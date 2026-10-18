@@ -1,0 +1,4969 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "Czqw1l4g7xq": {
+      "id": "Czqw1l4g7xq",
+      "qualified_name": "plot_sol",
+      "simple_name": "plot_sol",
+      "kind": "function",
+      "language": "julia",
+      "file": "F9vbiskjxhr",
+      "start_line": 7,
+      "end_line": 72,
+      "start_byte": 413,
+      "end_byte": 1731,
+      "signature_hint": "function plot_sol(i_exp, HR1,HR2, HR3, exp_data, Tlist, cap, sol0 = nothing) beta = l_exp_info[i_exp] T0=100+273.15 sol=HR1+HR2+HR3 ind = length(Tlist) plt = plot( Tlist, exp_data[:, 2], seriestype = :scatter, label = \"Exp\", ) plot!( plt, Tlist, HR1, lw = 3, legend = :left, label = \"CRNN R1\", ) plot!( plt, Tlist, HR2, lw = 3, legend = :left, label = \"CRNN R2\", ) plot!( plt, Tlist, HR3, lw = 3, legend = :left, label = \"CRNN R3\", ) plot!( plt, Tlist, sol, lw = 3, legend = :left, label = \"CRNN sum\", ) xlabel!(plt, \"Time [min]\") ylabel!(plt, \"HRR\") title!(plt, cap) exp_cond = string( @sprintf( \"T0 = %.1f K \\n beta = %.2f K/min\", T0, beta, ) ) annotate!(plt, exp_data[end, 1] / 60.0 * 0.85, 0.4, exp_cond) p2 = plot(Tlist, sol, lw = 2, legend = :right, label = \"heat release\") xlabel!(p2, \"Time [min]\") ylabel!(p2, \"W/g\") plt = plot(plt, p2, framestyle = :box, layout = @layout [a; b]) plot!(plt, size = (800, 800)) return plt end"
+    },
+    "C8i0e6hlivt": {
+      "id": "C8i0e6hlivt",
+      "qualified_name": "plot_loss",
+      "simple_name": "plot_loss",
+      "kind": "function",
+      "language": "julia",
+      "file": "F9vbiskjxhr",
+      "start_line": 94,
+      "end_line": 113,
+      "start_byte": 2445,
+      "end_byte": 3142,
+      "signature_hint": "function plot_loss(l_loss_train, l_loss_val; yscale = :log10) plt_loss = plot(l_loss_train, yscale = yscale, label = \"train\") plot!(plt_loss, l_loss_val, yscale = yscale, label = \"val\") plt_grad = plot(list_grad, yscale = yscale, label = \"grad_norm\") xlabel!(plt_loss, \"Epoch\") ylabel!(plt_loss, \"Loss\") xlabel!(plt_grad, \"Epoch\") ylabel!(plt_grad, \"Gradient Norm\") plt_all = plot([plt_loss, plt_grad]..., legend = :top, framestyle=:box) plot!( plt_all, size=(1000, 450), xtickfontsize = 11, ytickfontsize = 11, xguidefontsize = 12, yguidefontsize = 12, ) png(plt_all, string(fig_path, \"/loss_grad\")) end"
+    },
+    "Cguqrnmuc97": {
+      "id": "Cguqrnmuc97",
+      "qualified_name": "load_exp",
+      "simple_name": "load_exp",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fsq0nvodt80",
+      "start_line": 5,
+      "end_line": 10,
+      "start_byte": 24,
+      "end_byte": 225,
+      "signature_hint": "function load_exp(filename) exp_data = readdlm(filename,',', Float64) #[t, HRR] index = indexin(unique(exp_data[:, 1]), exp_data[:, 1]) exp_data = exp_data[index, :] return exp_data end"
+    },
+    "C14p8nk3whfo": {
+      "id": "C14p8nk3whfo",
+      "qualified_name": "p2vec",
+      "simple_name": "p2vec",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fznehlb0yha",
+      "start_line": 27,
+      "end_line": 50,
+      "start_byte": 609,
+      "end_byte": 1365,
+      "signature_hint": "function p2vec(p) #some clamps in place during debugging to make sure none of the parameters get too large or small #these don't appear to be necessary in the final runs slope = p[end] .* 1.e1 w_A = p[1:3] .* (slope * 20.0) #logA w_A = clamp.(w_A, 0, 50) w_out = p[16:17] #product stoich. coeffs w_out=[1, w_out[1], w_out[2]] w_out=clamp.(w_out, 0.01, 5) w_in_order=p[13:15] #rxn orders w_in_order=clamp.(w_in_order, 0.01, 10) w_in_Ea = abs.(p[4:6]) #Ea w_in_Ea = clamp.(w_in_Ea, 0.0, 3) w_in_b = (p[7:9]) #non-exponential temp dependence, can be negative, no clamp w_delH = abs.(p[10:12])*100 w_delH=clamp.(w_delH, 10, 300) return w_in_Ea, w_in_b, w_out, w_delH, w_in_order, w_A end"
+    },
+    "Cptk6czcs86": {
+      "id": "Cptk6czcs86",
+      "qualified_name": "display_p",
+      "simple_name": "display_p",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fznehlb0yha",
+      "start_line": 52,
+      "end_line": 58,
+      "start_byte": 1367,
+      "end_byte": 1689,
+      "signature_hint": "function display_p(p) w_in_Ea, w_in_b, w_out, w_delH, w_in_order, w_A = p2vec(p) println(\"\\n species (column) reaction (row)\") println(\"rxn ord | Ea | b | delH | lnA | stoich coeff\") show(stdout, \"text/plain\", round.(hcat(w_in_order, w_in_Ea, w_in_b, w_delH, w_A, w_out), digits = 2)) println(\"\\n\") end"
+    },
+    "C111arkdlux9": {
+      "id": "C111arkdlux9",
+      "qualified_name": "getsampletemp",
+      "simple_name": "getsampletemp",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fznehlb0yha",
+      "start_line": 60,
+      "end_line": 65,
+      "start_byte": 1691,
+      "end_byte": 1823,
+      "signature_hint": "function getsampletemp(t, T0, beta) if beta[1] < 100 T = T0 .+ beta[1] / 60 * t # K/min to K/s end return T end"
+    },
+    "Ce7aam1tvjr": {
+      "id": "Ce7aam1tvjr",
+      "qualified_name": "crnn!",
+      "simple_name": "crnn!",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fznehlb0yha",
+      "start_line": 68,
+      "end_line": 80,
+      "start_byte": 1869,
+      "end_byte": 2448,
+      "signature_hint": "function crnn!(du, u, p, t) #given a current concentration, parameter vector, and time #return the three concentration gradients logX = @. log(clamp(u, lb, 10.0)) T = getsampletemp(t, T0, beta) temp_term= reshape(hcat(log(T), R/T)*hcat(w_in_b, w_in_Ea*10^5)', 3) rxn_ord_term=w_in_order.*logX rxn_rates= @. exp(temp_term+rxn_ord_term+w_A ) du .= -rxn_rates #each reaction consumes the corresponding reactant #first and second reactions also produce c2 and c3"
+    },
+    "Cpln71m2pl4": {
+      "id": "Cpln71m2pl4",
+      "qualified_name": "HRR_getter",
+      "simple_name": "HRR_getter",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fznehlb0yha",
+      "start_line": 82,
+      "end_line": 91,
+      "start_byte": 2450,
+      "end_byte": 2930,
+      "signature_hint": "function HRR_getter(times, u_outputs) #Take the concentration trajectories solved by crnn!(), #and compute the raw reaction rates, to multiply layer against dH to obtain the exothermic heat release. logX = @. log(clamp(u_outputs, lb, 10.0)) T = getsampletemp(times, T0, beta) temp_term=@. log(T).*w_in_b'+R/T*(w_in_Ea*10^5)' rxn_ord_term=transpose(w_in_order).*transpose(logX) rxn_rates= @. exp(temp_term+rxn_ord_term.+w_A' ) return rxn_rates end"
+    },
+    "Cqsp19skgrh": {
+      "id": "Cqsp19skgrh",
+      "qualified_name": "condition",
+      "simple_name": "condition",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fznehlb0yha",
+      "start_line": 98,
+      "end_line": 98,
+      "start_byte": 3131,
+      "end_byte": 3177,
+      "signature_hint": "condition(u, t, integrator) = u[1] < lb * 10.0"
+    },
+    "C16usp5uozx9": {
+      "id": "C16usp5uozx9",
+      "qualified_name": "affect!",
+      "simple_name": "affect!",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fznehlb0yha",
+      "start_line": 99,
+      "end_line": 99,
+      "start_byte": 3178,
+      "end_byte": 3222,
+      "signature_hint": "affect!(integrator) = terminate!(integrator)"
+    },
+    "C953swh4y87": {
+      "id": "C953swh4y87",
+      "qualified_name": "pred_n_ode",
+      "simple_name": "pred_n_ode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fznehlb0yha",
+      "start_line": 103,
+      "end_line": 131,
+      "start_byte": 3309,
+      "end_byte": 4093,
+      "signature_hint": "function pred_n_ode(p, i_exp, exp_data) global beta = l_exp_info[i_exp, :] global T0=100+273.15 #degrees K global w_in_Ea, w_in_b, w_out, w_delH, w_in_order, w_A = p2vec(p) ts = @view(exp_data[:, 1]) tspan = [ts[1], ts[end]] #solve the species trajetory, which is independent of heat release (idealized DSC system)"
+    },
+    "Cvjrus64we4": {
+      "id": "Cvjrus64we4",
+      "qualified_name": "loss_neuralode",
+      "simple_name": "loss_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fznehlb0yha",
+      "start_line": 135,
+      "end_line": 141,
+      "start_byte": 4097,
+      "end_byte": 4326,
+      "signature_hint": "function loss_neuralode(p, i_exp) exp_data = l_exp_data[i_exp] pred = Array(pred_n_ode(p, i_exp, exp_data)[1]) #index=1 for times loss = mae(pred, @view(exp_data[:, 2])) #index=2 for heat releases return loss end"
+    },
+    "C84dsv1duwg": {
+      "id": "C84dsv1duwg",
+      "qualified_name": "plot_sol",
+      "simple_name": "plot_sol",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fs78wpnfqbf",
+      "start_line": 2,
+      "end_line": 79,
+      "start_byte": 1,
+      "end_byte": 1847,
+      "signature_hint": "function plot_sol(i_exp, HR1,HR2, HR3, exp_data, Tlist, cap, sol0 = nothing) beta = l_exp_info[i_exp] T0=100+273.15 sol=zeros(size(HR1)) ind = length(Tlist) plt = plot( Tlist, exp_data[:, 2], seriestype = :scatter, label = \"Exp\", ) for k =1:num_particles sol[k, :]=HR1[k, :]+HR2[k, :]+HR3[k, :] plot!( plt, Tlist, HR1[k, :], lw = 3, legend = :left, label = \"CRNN R1\", ) plot!( plt, Tlist, HR2[k, :], lw = 3, legend = :left, label = \"CRNN R2\", ) plot!( plt, Tlist, HR3[k, :], lw = 3, legend = :left, label = \"CRNN R3\", ) plot!( plt, Tlist, sol[k, :], lw = 3, legend = :left, label = \"CRNN sum\", ) end if sol0 !== nothing plot!( plt, sol0.t / 60, sol0, label = \"initial model\", ) end xlabel!(plt, \"Time [min]\") ylabel!(plt, \"HRR\") title!(plt, cap) exp_cond = string( @sprintf( \"T0 = %.1f K \\n beta = %.2f K/min\", T0, beta, ) ) annotate!(plt, exp_data[end, 1] / 60.0 * 0.85, 0.4, exp_cond) p2 = plot(Tlist, sol[1, :], lw = 2, legend = :right, label = \"heat release\") for k = 2:num_particles plot!(Tlist, sol[k, :], lw = 2, legend = :right, label = \"heat release\") end xlabel!(p2, \"Time [min]\") ylabel!(p2, \"W/g or something\") plt = plot(plt, p2, framestyle = :box, layout = @layout [a; b]) plot!(plt, size = (800, 800)) return plt end"
+    },
+    "Cqyk1tgx0xc": {
+      "id": "Cqyk1tgx0xc",
+      "qualified_name": "plot_loss",
+      "simple_name": "plot_loss",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fs78wpnfqbf",
+      "start_line": 113,
+      "end_line": 134,
+      "start_byte": 2758,
+      "end_byte": 3641,
+      "signature_hint": "function plot_loss(l_loss_train, l_loss_val; yscale = :log10) plt_loss = plot(l_loss_train, yscale = yscale, label = \"train\") plot!(plt_loss, l_loss_val, yscale = yscale, label = \"val\") plt_grad = plot(norm2(list_grad_data, dims=2), yscale = yscale, label = \"grad_norm_data\") plot!(norm2(list_grad_repul, dims=2), yscale = yscale, label = \"grad_norm_repulsion\") xlabel!(plt_loss, \"Epoch\") ylabel!(plt_loss, \"Loss\") xlabel!(plt_grad, \"Epoch\") ylabel!(plt_grad, \"Gradient Norm\") # ylims!(plt_loss, (-Inf, 1e0)) # ylims!(plt_grad, (-Inf, 1e3)) plt_all = plot([plt_loss, plt_grad]..., legend = :top, framestyle=:box) plot!( plt_all, size=(1000, 450), xtickfontsize = 11, ytickfontsize = 11, xguidefontsize = 12, yguidefontsize = 12, ) png(plt_all, string(fig_path, \"/loss_grad\")) end"
+    },
+    "Cf6dsfgw3pc": {
+      "id": "Cf6dsfgw3pc",
+      "qualified_name": "load_exp",
+      "simple_name": "load_exp",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fun6c84xp2w",
+      "start_line": 5,
+      "end_line": 10,
+      "start_byte": 78,
+      "end_byte": 279,
+      "signature_hint": "function load_exp(filename) exp_data = readdlm(filename,',', Float64) #[t, HRR] index = indexin(unique(exp_data[:, 1]), exp_data[:, 1]) exp_data = exp_data[index, :] return exp_data end"
+    },
+    "C3997c63awj": {
+      "id": "C3997c63awj",
+      "qualified_name": "extend_dims",
+      "simple_name": "extend_dims",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb4cfc0z971",
+      "start_line": 53,
+      "end_line": 57,
+      "start_byte": 1540,
+      "end_byte": 1681,
+      "signature_hint": "function extend_dims(A,which_dim) #for expanding p in sigma() s = [size(A)...] insert!(s,which_dim,1) return reshape(A, s...) end"
+    },
+    "C8px9dg4qab": {
+      "id": "C8px9dg4qab",
+      "qualified_name": "norm2",
+      "simple_name": "norm2",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb4cfc0z971",
+      "start_line": 59,
+      "end_line": 63,
+      "start_byte": 1683,
+      "end_byte": 1825,
+      "signature_hint": "function norm2(A; dims) #for taking the norm of a slice of p in sigma() B = sum(x -> x^2, A; dims=dims) B .= sqrt.(B) return B end"
+    },
+    "Cdifd7cu1ht": {
+      "id": "Cdifd7cu1ht",
+      "qualified_name": "svgd_kernel",
+      "simple_name": "svgd_kernel",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb4cfc0z971",
+      "start_line": 67,
+      "end_line": 87,
+      "start_byte": 1829,
+      "end_byte": 2408,
+      "signature_hint": "function svgd_kernel(svgd, p, h=-1) distances=pairwise(Euclidean(), p, dims = 1) sq_dist=distances[tril!(trues(size(distances)), -1)] #non-diagonal terms pairwise_dists = distances.^2 if h < 0 # if h < 0, using median trick h = median(sq_dist)^2 h = sqrt(0.5*h / log(size(p)[1]+1)) end Kxy = exp.( -pairwise_dists / h^2 / 2) # the RBF kernel function dxkxy = -Kxy*p sumkxy = sum(Kxy, dims=2) for i = 1:size(p)[2] dxkxy[:, i] = dxkxy[:,i] + p[:,i].*sumkxy end dxkxy = dxkxy / (h^2) return Kxy, dxkxy end"
+    },
+    "C7ewaib8bq": {
+      "id": "C7ewaib8bq",
+      "qualified_name": "p2vec",
+      "simple_name": "p2vec",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb4cfc0z971",
+      "start_line": 90,
+      "end_line": 107,
+      "start_byte": 2411,
+      "end_byte": 2744,
+      "signature_hint": "function p2vec(p) w_A_temp = p[1:3] w_out_temp = p[16:17] w_out_temp=[1, w_out_temp[1], w_out_temp[2]] w_in_order_temp=p[13:15] w_in_Ea_temp = (p[4:6]) w_in_b_temp = (p[7:9]) w_delH_temp = (p[10:12]) return w_in_Ea_temp, w_in_b_temp, w_out_temp, w_delH_temp, w_in_order_temp, w_A_temp end"
+    },
+    "Cnckshsrrvv": {
+      "id": "Cnckshsrrvv",
+      "qualified_name": "p2vec_reporting",
+      "simple_name": "p2vec_reporting",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb4cfc0z971",
+      "start_line": 109,
+      "end_line": 126,
+      "start_byte": 2746,
+      "end_byte": 3148,
+      "signature_hint": "function p2vec_reporting(p) w_A_report = p[:,1:3] w_out_temp = p[:,16:17] w_out_report=hcat(ones(size(p)[1]), w_out_temp[:,1], w_out_temp[:,2]) w_in_order_report=p[:,13:15] w_in_Ea_report = (p[:,4:6]) w_in_b_report = (p[:,7:9]) w_delH_report = (p[:,10:12]) return w_in_Ea_report, w_in_b_report, w_out_report, w_delH_report, w_in_order_report, w_A_report end"
+    },
+    "C9ao1jjlehx": {
+      "id": "C9ao1jjlehx",
+      "qualified_name": "display_p",
+      "simple_name": "display_p",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb4cfc0z971",
+      "start_line": 129,
+      "end_line": 141,
+      "start_byte": 3151,
+      "end_byte": 4198,
+      "signature_hint": "function display_p(p) w_in_Ea_report, w_in_b_report, w_out_report, w_delH_report, w_in_order_report, w_A_report=p2vec_reporting(p) println(\"\\n species (column) reaction (row)\") println(\"rxn ord | Ea | b | delH | lnA | stoich coeff\") println(\"means\") show(stdout, \"text/plain\", round.(hcat(mean(w_in_order_report.*p_scales[13:15]', dims=1)', mean(w_in_Ea_report.*p_scales[4:6]', dims=1)', mean(w_in_b_report.*p_scales[7:9]', dims=1)', mean(w_delH_report.*p_scales[10:12]', dims=1)', mean(w_A_report.*p_scales[1:3]', dims=1)', mean(w_out_report.*[1, p_scales[16], p_scales[17]]', dims=1)'), digits = 2)) println(\"\") println(\"standard deviations:\") show(stdout, \"text/plain\", round.(hcat(std(w_in_order_report.*p_scales[13:15]', dims=1)', std(w_in_Ea_report.*p_scales[4:6]', dims=1)', std(w_in_b_report.*p_scales[7:9]', dims=1)', std(w_delH_report.*p_scales[10:12]', dims=1)', std(w_A_report.*p_scales[1:3]', dims=1)', std(w_out_report.*[1, p_scales[16], p_scales[17]]', dims=1)'), digits = 2)) println(\"\\n\") end"
+    },
+    "C8m9su6rfaw": {
+      "id": "C8m9su6rfaw",
+      "qualified_name": "getsampletemp",
+      "simple_name": "getsampletemp",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb4cfc0z971",
+      "start_line": 143,
+      "end_line": 149,
+      "start_byte": 4200,
+      "end_byte": 4337,
+      "signature_hint": "function getsampletemp(t, T0, beta) if beta[1] < 100 T = T0 .+ beta[1] / 60 * t # K/min to K/s end return T end"
+    },
+    "C166gh84m6mc": {
+      "id": "C166gh84m6mc",
+      "qualified_name": "crnn!",
+      "simple_name": "crnn!",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb4cfc0z971",
+      "start_line": 152,
+      "end_line": 165,
+      "start_byte": 4407,
+      "end_byte": 5235,
+      "signature_hint": "function crnn!(du, u, p_for_crnn, t) w_in_Ea_temp, w_in_b_temp, w_out_temp, w_delH_temp, w_in_order_temp, w_A_temp=p_for_crnn logX = @. log(clamp(u, lb_clamp, 10.0)) #log of species concentrations T = getsampletemp(t, T0, beta) #current temperature #all params have to be scaled back up for physically meaningful application in ode's temp_term= reshape(hcat(log(T), R/T)*hcat(w_in_b_temp.*p_scales[7:9], w_in_Ea_temp.*p_scales[4:6]*10^5)', 3) rxn_ord_term=w_in_order_temp.*p_scales[13:15].*logX rxn_rates= @. exp(temp_term+rxn_ord_term+w_A_temp.*p_scales[1:3] ) du .= -rxn_rates #consume each of three reactants at specified rates #produce c2 and c3 at the according rates"
+    },
+    "Csjviquazd7": {
+      "id": "Csjviquazd7",
+      "qualified_name": "HRR_getter",
+      "simple_name": "HRR_getter",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb4cfc0z971",
+      "start_line": 167,
+      "end_line": 175,
+      "start_byte": 5237,
+      "end_byte": 5687,
+      "signature_hint": "function HRR_getter(times, u_outputs, p_hrr) logX = @. log(clamp(u_outputs, lb_clamp, 10.0)) T = getsampletemp(times, T0, beta) temp_term=@. log(T).*(p_hrr[7:9].*p_scales[7:9])'+R/T*(p_hrr[4:6].*p_scales[4:6]*10^5)' rxn_ord_term=transpose(p_hrr[13:15].*p_scales[13:15]).*transpose(logX) rxn_rates= @. exp(temp_term+rxn_ord_term.+(p_hrr[1:3].*p_scales[1:3])' ) hrr=rxn_rates*(p_hrr[10:12].*p_scales[10:12]) return hrr end"
+    },
+    "C14khc53jvn4": {
+      "id": "C14khc53jvn4",
+      "qualified_name": "HRR_getter_post",
+      "simple_name": "HRR_getter_post",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb4cfc0z971",
+      "start_line": 177,
+      "end_line": 184,
+      "start_byte": 5689,
+      "end_byte": 6101,
+      "signature_hint": "function HRR_getter_post(times, u_outputs, p_hrr) logX = @. log(clamp(u_outputs, lb_clamp, 10.0)) # T = getsampletemp(times, T0, beta) temp_term=@. log(T).*(p_hrr[7:9].*p_scales[7:9])'+R/T*(p_hrr[4:6].*p_scales[4:6]*10^5)' rxn_ord_term=transpose(p_hrr[13:15].*p_scales[13:15]).*transpose(logX) rxn_rates= @. exp(temp_term+rxn_ord_term.+(p_hrr[1:3].*p_scales[1:3])' ) return rxn_rates end"
+    },
+    "C9n3ivkp3dx": {
+      "id": "C9n3ivkp3dx",
+      "qualified_name": "condition",
+      "simple_name": "condition",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb4cfc0z971",
+      "start_line": 191,
+      "end_line": 191,
+      "start_byte": 6238,
+      "end_byte": 6291,
+      "signature_hint": "condition(u, t, integrator) = u[1] < lb_abstol * 10.0"
+    },
+    "C11azgy7nqyf": {
+      "id": "C11azgy7nqyf",
+      "qualified_name": "affect!",
+      "simple_name": "affect!",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb4cfc0z971",
+      "start_line": 192,
+      "end_line": 192,
+      "start_byte": 6292,
+      "end_byte": 6336,
+      "signature_hint": "affect!(integrator) = terminate!(integrator)"
+    },
+    "C152xouamxhu": {
+      "id": "C152xouamxhu",
+      "qualified_name": "pred_n_ode",
+      "simple_name": "pred_n_ode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb4cfc0z971",
+      "start_line": 196,
+      "end_line": 218,
+      "start_byte": 6423,
+      "end_byte": 7001,
+      "signature_hint": "function pred_n_ode(p_temp, i_exp, exp_data) global beta = l_exp_info[i_exp, :] ts = @view(exp_data[:, 1]) tspan = [ts[1], ts[end]] p_for_crnn= p2vec(p_temp) sol = solve( prob, alg, tspan = tspan, p = p_for_crnn, saveat = ts, maxiters = maxiters, ) trunc_time=ts[1:length(sol.u)] #so that if maxiters is reached, the rest of the code can still run heat_rel= HRR_getter(trunc_time, sol[:, :], p_temp) #compute heat release from species profiles return heat_rel, trunc_time, sol end"
+    },
+    "C14iu9j3mggp": {
+      "id": "C14iu9j3mggp",
+      "qualified_name": "dlnprob",
+      "simple_name": "dlnprob",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb4cfc0z971",
+      "start_line": 222,
+      "end_line": 260,
+      "start_byte": 7005,
+      "end_byte": 8444,
+      "signature_hint": "function dlnprob(p, i_exp) #to evaluate gradient of loss_neuralode size_curr=size(l_exp_data[i_exp])[1] loss=zeros(size(p)[1]) grad=zeros(size(p)[1],size(p)[2]) for j = 1:size(p)[1] p_temp=deepcopy(p[j, :]) loss_curr=loss_neuralode(p_temp, i_exp) grad_curr = ForwardDiff.gradient(x -> loss_neuralode(x, i_exp), p_temp) #first entry is loss, other three are just reporting grad_curr[1]/=(Normalizer[i_exp, 1]^2) grad_curr[2]/=(Normalizer[i_exp, 2]^2) grad_curr[3]/=(Normalizer[i_exp, 3]^2) grad_curr[4]/=Normalizer[i_exp, 1]^2 grad_curr[5]/=Normalizer[i_exp, 2]^2 grad_curr[6]/=Normalizer[i_exp, 3]^2 grad_curr[7]/=Normalizer[i_exp, 1]^2 grad_curr[8]/=Normalizer[i_exp, 2]^2 grad_curr[9]/=Normalizer[i_exp, 3]^2 grad_curr[10]/=(Normalizer[i_exp, 1]^2) grad_curr[11]/=(Normalizer[i_exp, 2]^2) grad_curr[12]/=(Normalizer[i_exp, 3]^2) grad_curr[13]/=Normalizer[i_exp, 1]^2 grad_curr[14]/=Normalizer[i_exp, 2]^2 grad_curr[15]/=Normalizer[i_exp, 3]^2 grad_curr[16]/=Normalizer[i_exp, 2]^2 grad_curr[17]/=Normalizer[i_exp, 3]^2 loss[j]=loss_curr grad[j, :]=grad_curr end loss=sum(loss)./size(p)[1] #normalize the saved loss by # of particles, note that gradient is still un-normalized to match svgd_kernel return loss, -grad end"
+    },
+    "Cd71rcd2jly": {
+      "id": "Cd71rcd2jly",
+      "qualified_name": "loss_neuralode",
+      "simple_name": "loss_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb4cfc0z971",
+      "start_line": 262,
+      "end_line": 275,
+      "start_byte": 8446,
+      "end_byte": 9132,
+      "signature_hint": "function loss_neuralode(p_temp, i_exp) exp_data = l_exp_data[i_exp] pred, trunc_time = (pred_n_ode(p_temp, i_exp, exp_data)) #1 grabs HRR. 2 is times, for use elsewhere. num_datasets=size(exp_data)[2]-1 loss=sum(((abs.(pred.-exp_data[1:length(trunc_time), 2:end]).^2)))/num_datasets/size(exp_data)[1] #in the uploaded case, we do not have a prior. #in the case at this linked CEJ paper, we do have a prior for certain runs"
+    },
+    "Ctktla7krgr": {
+      "id": "Ctktla7krgr",
+      "qualified_name": "plot_sol_post",
+      "simple_name": "plot_sol_post",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fqihkeao78c",
+      "start_line": 15,
+      "end_line": 85,
+      "start_byte": 318,
+      "end_byte": 1666,
+      "signature_hint": "function plot_sol_post(i_exp, HR1,HR2, HR3, exp_data, Tlist, cap, sol0 = nothing) sol=HR1+HR2+HR3 plot!( plt, Tlist.-273.15, HR1, lw = 3, #legend = :left, c=:sienna1, alpha=0.025, #label = \"CRNN R1\", ) plot!( plt, Tlist.-273.15, HR2, lw = 3, #legend = :left, c=:blue4, alpha=0.025, #label = \"CRNN R2\", ) plot!( plt, Tlist.-273.15, HR3, lw = 3, #legend = :left, c=:yellow, alpha=0.025, #label = \"CRNN R3\", ) plot!( plt, Tlist.-273.15, sol, lw = 3, #legend = :left, c=:green, label=false, alpha=0.1, # label = \"CRNN sum\", ) if sol0 !== nothing plot!( plt, sol0.t / 60, sol0, #label = \"initial model\", ) end xlabel!(plt, \"Temperature (\\$ ^ \\\\circ \\$C)\") ylabel!(plt, \"Heat Release Rate (W/g)\") #title!(plt, cap) #exp_cond = string( # @sprintf( # \"T0 = %.1f K \\n beta = %.2f K/min\", # T0, # beta, # ) #) #annotate!(plt, exp_data[end, 1] / 60.0 * 0.85, 0.4, exp_cond) plot!(plt) return plt end"
+    },
+    "Cledk45jhvw": {
+      "id": "Cledk45jhvw",
+      "qualified_name": "make_plots",
+      "simple_name": "make_plots",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fqihkeao78c",
+      "start_line": 90,
+      "end_line": 199,
+      "start_byte": 1750,
+      "end_byte": 4978,
+      "signature_hint": "function make_plots(i_exp, tot_no) beta = l_exp_info[i_exp] exp_data = l_exp_data[i_exp] T0=100+273.15 times=exp_data[:, 1] Tlist = similar(times) ind = length(Tlist) for (i, t) in enumerate(times) Tlist[i] = getsampletemp(t, T0, beta) end value = l_exp[i_exp] global plt = Plots.plot( Tlist.-273.15, exp_data[:, 2:end], alpha=0.05, ylims = (minimum(exp_data[:, 2:end]),1.25*maximum(exp_data[:,2:end])), seriestype = :scatter, c=:black, dpi=1000, #label = \"Exp\", legend=false, label=false, grid=false, size=(700, 400) ) full_array_to_average=zeros(size(times)[1], tot_no) full_soln_arr=zeros(tot_no, 4, size(times)[1]) for k in 1:tot_no sol, trunc_times, raw_sol = pred_n_ode(p[k, :], i_exp, exp_data) w_delH=p[k, 10:12].*p_scales[10:12] HR_all=HRR_getter_post(trunc_times, raw_sol[:, :], p[k, :]).*w_delH' HR1=HR_all[:, 1] HR2=HR_all[:, 2] HR3=HR_all[:, 3] full_array_to_average[1:length(trunc_times), k]=HR1+HR2+HR3 full_soln_arr[k, 1, 1:length(trunc_times)]=deepcopy(HR1) full_soln_arr[k, 2, 1:length(trunc_times)]=deepcopy(HR2) full_soln_arr[k, 3, 1:length(trunc_times)]=deepcopy(HR3) full_soln_arr[k, 4, 1:length(trunc_times)]=HR1+HR2+HR3 plot_sol_post(i_exp, HR1,HR2, HR3, exp_data, Tlist[1:length(trunc_times)], \"exp_$value\") end plot!( Tlist.-273.15, exp_data[:, 2:end], alpha=0.05, seriestype = :scatter, label = \"Exp. Data\", c=:black, legend=false, tickfontsize=10 ) plot!( Tlist.-273.15, mean(full_array_to_average, dims=2), c=:limegreen, linewidth=5, label=\"SVGD Models\", #label = \"Exp\", legend=false, thickness_scaling=1.25 ) png(plt, string(fig_path, \"/conditions/pred_exp_$value\")) ###make another plot that has the 3*sigma UQ range? sigmas=std(full_soln_arr, dims=1) sigma_1=sigmas[:, 1, :]' sigma_2=sigmas[:, 2, :]' sigma_3=sigmas[:, 3, :]' sigma_4=sigmas[:, 4, :]' total_lower=mean(full_array_to_average, dims=2).-4*sigma_4 total_upper=mean(full_array_to_average, dims=2).+4*sigma_4 plt = Plots.plot( Tlist.-273.15, exp_data[:, 2:end], alpha=0.05, ylims = (minimum(exp_data[:, 2:end]),1.25*maximum(exp_data[:, 2:end])), seriestype = :scatter, c=:black, label = \"Exp. Data\", dpi=1000, grid=false, size=(700, 400) ) plot!( Tlist.-273.15, mean(full_array_to_average, dims=2), c=:springgreen2, label=\"SVGD\", linewidth=5, legend=false, tickfontsize=10 ) plot!(Tlist.-273.15, total_lower, fillrange = total_upper, fillalpha = 0.5, c = :green, label = false, xlabel=\"Temperature (\\$ ^ \\\\circ \\$C)\", ylabel=\"Heat Release Rate (W/g)\", thickness_scaling=1.25) plot!(Tlist.-273.15, total_upper, c = :green, label=false, ) png(plt, string(fig_path, \"/conditions/UQ_pred_exp_$value\")) end"
+    },
+    "Cqxvjdryq8l": {
+      "id": "Cqxvjdryq8l",
+      "qualified_name": "A_Ea_plots",
+      "simple_name": "A_Ea_plots",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fqihkeao78c",
+      "start_line": 201,
+      "end_line": 265,
+      "start_byte": 4980,
+      "end_byte": 6485,
+      "signature_hint": "function A_Ea_plots(p, p_scales) w_A=p[:,1:3] w_Ea=p[:,4:6] axis_labels=[\"A1\",\"A2\",\"A3\",\"E1\",\"E2\",\"E3\",\"b1\",\"b2\",\"b3\",\"H1\",\"H2\",\"H3\",\"n1\",\"n2\",\"n3\",\"v1\",\"v2\"] correlation=corkendall(p) heat=Plots.heatmap( correlation[1:17, 1:17], c = cgrad(:RdBu, rev=true), clims=(-1, 1)) yticks!([1:1:17;], axis_labels) xticks!([1:1:17;], axis_labels) png(heat, string(fig_path, \"/conditions/parameter_correlation\")) #= #this is the combined one, then below are the first couple trials"
+    },
+    "Cwz88ujep69": {
+      "id": "Cwz88ujep69",
+      "qualified_name": "p2vec",
+      "simple_name": "p2vec",
+      "kind": "function",
+      "language": "julia",
+      "file": "F8ppjptp0wu",
+      "start_line": 78,
+      "end_line": 90,
+      "start_byte": 1874,
+      "end_byte": 2305,
+      "signature_hint": "function p2vec(p) slope = p[end] .* 10.0 w_b = p[1:nr] .* slope w_in_b = p[nr + 1:nr * 2] w_in_Ea = p[nr * 2 + 1:nr * 3] .* slope w_out = reshape(p[nr * 3 + 1:nr * (ns + 3)], ns, nr) w_in = reshape(p[nr * (ns + 3) + 1:nr * (ns * 2 + 3)], ns, nr); # w_out = (w_out * E_null)' w_out = @. -w_in * (10 ^ w_out) w_in = vcat(clamp.(w_in, 0.0, 2.5), w_in_Ea', w_in_b') return w_in, w_b, w_out end"
+    },
+    "Cgbh89tvj5k": {
+      "id": "Cgbh89tvj5k",
+      "qualified_name": "display_p",
+      "simple_name": "display_p",
+      "kind": "function",
+      "language": "julia",
+      "file": "F8ppjptp0wu",
+      "start_line": 92,
+      "end_line": 100,
+      "start_byte": 2307,
+      "end_byte": 2607,
+      "signature_hint": "function display_p(p) w_in, w_b, w_out = p2vec(p) println(\"\\nspecies (column) reaction (row)\") println(\"w_in\") show(stdout, \"text/plain\", round.(w_in', digits=2)) println(\"\\nw_out | log(A)\") show(stdout, \"text/plain\", round.(hcat(w_out', w_b), digits=2)) println(\"\\n\") end"
+    },
+    "Cgqdpwkgh9y": {
+      "id": "Cgqdpwkgh9y",
+      "qualified_name": "Y2density",
+      "simple_name": "Y2density",
+      "kind": "function",
+      "language": "julia",
+      "file": "F8ppjptp0wu",
+      "start_line": 107,
+      "end_line": 109,
+      "start_byte": 2760,
+      "end_byte": 2848,
+      "signature_hint": "function Y2density(Y, P, T) return P / (8.31446261815324e3 * T * sum(Y ./ l_MW)) end"
+    },
+    "Cd0spvs1vzs": {
+      "id": "Cd0spvs1vzs",
+      "qualified_name": "Y2C",
+      "simple_name": "Y2C",
+      "kind": "function",
+      "language": "julia",
+      "file": "F8ppjptp0wu",
+      "start_line": 112,
+      "end_line": 114,
+      "start_byte": 2894,
+      "end_byte": 2961,
+      "signature_hint": "function Y2C(Y, density) return density * (Y ./ l_MW) * 1e3 end"
+    },
+    "Cf5fhvxbk50": {
+      "id": "Cf5fhvxbk50",
+      "qualified_name": "crnn!",
+      "simple_name": "crnn!",
+      "kind": "function",
+      "language": "julia",
+      "file": "F8ppjptp0wu",
+      "start_line": 121,
+      "end_line": 131,
+      "start_byte": 3084,
+      "end_byte": 3408,
+      "signature_hint": "function crnn!(du, u, p, t) P = itpP(t) T = itpT(t) Y = clamp.(u, lb, 10) density = Y2density(Y, P, T) C = Y2C(Y, density) logX = @. log(clamp(C, lb, 10)) w_in_x = w_in' * vcat(logX, - 1 / R / T, log(T)) wdot = w_out * (@. exp(w_in_x + w_b)) @. du = wdot * l_MW / density * dydt_scale end"
+    },
+    "C4hkagdbf0v": {
+      "id": "C4hkagdbf0v",
+      "qualified_name": "predict_n_ode",
+      "simple_name": "predict_n_ode",
+      "kind": "function",
+      "language": "julia",
+      "file": "F8ppjptp0wu",
+      "start_line": 135,
+      "end_line": 140,
+      "start_byte": 3516,
+      "end_byte": 3797,
+      "signature_hint": "function predict_n_ode(p, sample=ntotal) global w_in, w_b, w_out = p2vec(p) _prob = remake(prob, p=p, tspan=[0, tsteps[sample]]) pred = Array(solve(_prob, ode_solver, saveat=tsteps[1:sample], atol=atol, rtol=rtol, sensalg=sense, maxiters=maxiters)) end"
+    },
+    "Cv6d9nj0o0c": {
+      "id": "Cv6d9nj0o0c",
+      "qualified_name": "loss_n_ode",
+      "simple_name": "loss_n_ode",
+      "kind": "function",
+      "language": "julia",
+      "file": "F8ppjptp0wu",
+      "start_line": 143,
+      "end_line": 147,
+      "start_byte": 3816,
+      "end_byte": 3980,
+      "signature_hint": "function loss_n_ode(p, sample=ntotal) pred = predict_n_ode(p, sample) loss = mae(pred ./ yscale, normdata[:, 1:size(pred)[2]] ./ yscale) return loss end"
+    },
+    "C2jbaagf5l1": {
+      "id": "C2jbaagf5l1",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "kind": "function",
+      "language": "julia",
+      "file": "F17pxnlzlepn",
+      "start_line": 38,
+      "end_line": 44,
+      "start_byte": 695,
+      "end_byte": 955,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) dydt[1] = -2 * k[1] * y[1]^2 - k[2] * y[1]; dydt[2] = k[1] * y[1]^2 - k[4] * y[2] * y[4]; dydt[3] = k[2] * y[1] - k[3] * y[3]; dydt[4] = k[3] * y[3] - k[4] * y[2] * y[4]; dydt[5] = k[4] * y[2] * y[4]; end"
+    },
+    "Cbptljg59yf": {
+      "id": "Cbptljg59yf",
+      "qualified_name": "max_min",
+      "simple_name": "max_min",
+      "kind": "function",
+      "language": "julia",
+      "file": "F17pxnlzlepn",
+      "start_line": 55,
+      "end_line": 57,
+      "start_byte": 1234,
+      "end_byte": 1336,
+      "signature_hint": "function max_min(ode_data) return maximum(ode_data, dims=2) .- minimum(ode_data, dims=2) .+ lb end"
+    },
+    "Ccds62iv49v": {
+      "id": "Ccds62iv49v",
+      "qualified_name": "p2vec",
+      "simple_name": "p2vec",
+      "kind": "function",
+      "language": "julia",
+      "file": "F17pxnlzlepn",
+      "start_line": 72,
+      "end_line": 78,
+      "start_byte": 1699,
+      "end_byte": 1892,
+      "signature_hint": "function p2vec(p) w_b = p[1:nr] .+ b0; w_out = reshape(p[nr + 1:end], ns, nr); # w_out = clamp.(w_out, -2.5, 2.5); w_in = clamp.(-w_out, 0, 2.5); return w_in, w_b, w_out end"
+    },
+    "Ch8kzba7zov": {
+      "id": "Ch8kzba7zov",
+      "qualified_name": "crnn!",
+      "simple_name": "crnn!",
+      "kind": "function",
+      "language": "julia",
+      "file": "F17pxnlzlepn",
+      "start_line": 80,
+      "end_line": 83,
+      "start_byte": 1894,
+      "end_byte": 2012,
+      "signature_hint": "function crnn!(du, u, p, t) w_in_x = w_in' * @. log(clamp(u, lb, ub)); du .= w_out * @. exp(w_in_x + w_b); end"
+    },
+    "Cd9tortsgbg": {
+      "id": "Cd9tortsgbg",
+      "qualified_name": "predict_neuralode",
+      "simple_name": "predict_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "F17pxnlzlepn",
+      "start_line": 92,
+      "end_line": 97,
+      "start_byte": 2188,
+      "end_byte": 2383,
+      "signature_hint": "function predict_neuralode(u0, p) global w_in, w_b, w_out = p2vec(p); pred = clamp.(Array(solve(prob, alg, u0=u0, p=p; maxiters=maxiters)), -ub, ub) return pred end"
+    },
+    "Chvtihkeb9g": {
+      "id": "Chvtihkeb9g",
+      "qualified_name": "display_p",
+      "simple_name": "display_p",
+      "kind": "function",
+      "language": "julia",
+      "file": "F17pxnlzlepn",
+      "start_line": 100,
+      "end_line": 112,
+      "start_byte": 2413,
+      "end_byte": 2778,
+      "signature_hint": "function display_p(p) w_in, w_b, w_out = p2vec(p); println(\"species (column) reaction (row)\") println(\"w_in\") show(stdout, \"text/plain\", round.(w_in', digits=3)) println(\"\\nw_b\") show(stdout, \"text/plain\", round.(exp.(w_b'), digits=3)) println(\"\\nw_out\") show(stdout, \"text/plain\", round.(w_out', digits=3)) println(\"\\n\\n\") end"
+    },
+    "C13pm5z5j0nx": {
+      "id": "C13pm5z5j0nx",
+      "qualified_name": "loss_neuralode",
+      "simple_name": "loss_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "F17pxnlzlepn",
+      "start_line": 115,
+      "end_line": 119,
+      "start_byte": 2793,
+      "end_byte": 2964,
+      "signature_hint": "function loss_neuralode(p, i_exp) pred = predict_neuralode(u0_list[i_exp, :], p) loss = mae(ode_data_list[i_exp, :, :] ./ y_std, pred ./ y_std) return loss end"
+    },
+    "Cetke470kb0": {
+      "id": "Cetke470kb0",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "kind": "function",
+      "language": "julia",
+      "file": "F103wqogzd5i",
+      "start_line": 38,
+      "end_line": 44,
+      "start_byte": 695,
+      "end_byte": 955,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) dydt[1] = -2 * k[1] * y[1]^2 - k[2] * y[1]; dydt[2] = k[1] * y[1]^2 - k[4] * y[2] * y[4]; dydt[3] = k[2] * y[1] - k[3] * y[3]; dydt[4] = k[3] * y[3] - k[4] * y[2] * y[4]; dydt[5] = k[4] * y[2] * y[4]; end"
+    },
+    "C14n49ycc72u": {
+      "id": "C14n49ycc72u",
+      "qualified_name": "max_min",
+      "simple_name": "max_min",
+      "kind": "function",
+      "language": "julia",
+      "file": "F103wqogzd5i",
+      "start_line": 55,
+      "end_line": 57,
+      "start_byte": 1234,
+      "end_byte": 1336,
+      "signature_hint": "function max_min(ode_data) return maximum(ode_data, dims=2) .- minimum(ode_data, dims=2) .+ lb end"
+    },
+    "C3ra3992acv": {
+      "id": "C3ra3992acv",
+      "qualified_name": "p2vec",
+      "simple_name": "p2vec",
+      "kind": "function",
+      "language": "julia",
+      "file": "F103wqogzd5i",
+      "start_line": 72,
+      "end_line": 82,
+      "start_byte": 1699,
+      "end_byte": 1963,
+      "signature_hint": "function p2vec(p) w_b = p[1:nr] .+ b0; w_out = reshape(p[nr + 1:end], ns, nr); index = findall(abs.(w_out) .< p_cutoff); w_out[index] .= 0; # w_out = clamp.(w_out, -2.5, 2.5); w_in = clamp.(-w_out, 0, 2.5); return w_in, w_b, w_out end"
+    },
+    "Cb7ta9z6o8l": {
+      "id": "Cb7ta9z6o8l",
+      "qualified_name": "crnn!",
+      "simple_name": "crnn!",
+      "kind": "function",
+      "language": "julia",
+      "file": "F103wqogzd5i",
+      "start_line": 84,
+      "end_line": 87,
+      "start_byte": 1965,
+      "end_byte": 2083,
+      "signature_hint": "function crnn!(du, u, p, t) w_in_x = w_in' * @. log(clamp(u, lb, ub)); du .= w_out * @. exp(w_in_x + w_b); end"
+    },
+    "Cuzqhku3g3w": {
+      "id": "Cuzqhku3g3w",
+      "qualified_name": "predict_neuralode",
+      "simple_name": "predict_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "F103wqogzd5i",
+      "start_line": 96,
+      "end_line": 101,
+      "start_byte": 2259,
+      "end_byte": 2454,
+      "signature_hint": "function predict_neuralode(u0, p) global w_in, w_b, w_out = p2vec(p); pred = clamp.(Array(solve(prob, alg, u0=u0, p=p; maxiters=maxiters)), -ub, ub) return pred end"
+    },
+    "C13i42ukmhuv": {
+      "id": "C13i42ukmhuv",
+      "qualified_name": "display_p",
+      "simple_name": "display_p",
+      "kind": "function",
+      "language": "julia",
+      "file": "F103wqogzd5i",
+      "start_line": 104,
+      "end_line": 116,
+      "start_byte": 2484,
+      "end_byte": 2849,
+      "signature_hint": "function display_p(p) w_in, w_b, w_out = p2vec(p); println(\"species (column) reaction (row)\") println(\"w_in\") show(stdout, \"text/plain\", round.(w_in', digits=3)) println(\"\\nw_b\") show(stdout, \"text/plain\", round.(exp.(w_b'), digits=3)) println(\"\\nw_out\") show(stdout, \"text/plain\", round.(w_out', digits=3)) println(\"\\n\\n\") end"
+    },
+    "Cmuu7uixmsr": {
+      "id": "Cmuu7uixmsr",
+      "qualified_name": "loss_neuralode",
+      "simple_name": "loss_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "F103wqogzd5i",
+      "start_line": 119,
+      "end_line": 123,
+      "start_byte": 2864,
+      "end_byte": 3035,
+      "signature_hint": "function loss_neuralode(p, i_exp) pred = predict_neuralode(u0_list[i_exp, :], p) loss = mae(ode_data_list[i_exp, :, :] ./ y_std, pred ./ y_std) return loss end"
+    },
+    "C13u3eaez77n": {
+      "id": "C13u3eaez77n",
+      "qualified_name": "max_min",
+      "simple_name": "max_min",
+      "kind": "function",
+      "language": "julia",
+      "file": "Foidhlqh2he",
+      "start_line": 55,
+      "end_line": 57,
+      "start_byte": 1113,
+      "end_byte": 1215,
+      "signature_hint": "function max_min(ode_data) return maximum(ode_data, dims=2) .- minimum(ode_data, dims=2) .+ lb end"
+    },
+    "C14b7uppwmh5": {
+      "id": "C14b7uppwmh5",
+      "qualified_name": "p2vec",
+      "simple_name": "p2vec",
+      "kind": "function",
+      "language": "julia",
+      "file": "Foidhlqh2he",
+      "start_line": 72,
+      "end_line": 78,
+      "start_byte": 1600,
+      "end_byte": 1785,
+      "signature_hint": "function p2vec(p) w_kf = p[1:nr]; w_kb = w_kf; # assume Kc = 1 w_out = reshape(p[nr + 1:end], ns, nr); w_out = clamp.(w_out, -2.5, 2.5) return w_kf, w_kb, w_out end"
+    },
+    "Cu4lovhsxfq": {
+      "id": "Cu4lovhsxfq",
+      "qualified_name": "crnn!",
+      "simple_name": "crnn!",
+      "kind": "function",
+      "language": "julia",
+      "file": "Foidhlqh2he",
+      "start_line": 80,
+      "end_line": 89,
+      "start_byte": 1787,
+      "end_byte": 2064,
+      "signature_hint": "function crnn!(du, u, p, t) w_in_f = clamp.(-w_out, 0, 2.5); w_in_b = clamp.(w_out, 0, 2.5); u_in = @. log(clamp(u, lb, Inf)) w_in_x_f = w_in_f' * u_in; w_in_x_b = w_in_b' * u_in; du .= w_out * @. (exp(w_in_x_f + w_kf) - exp(w_in_x_b + w_kb)); end"
+    },
+    "Cjwsdxjkxom": {
+      "id": "Cjwsdxjkxom",
+      "qualified_name": "pred_ode",
+      "simple_name": "pred_ode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Foidhlqh2he",
+      "start_line": 95,
+      "end_line": 100,
+      "start_byte": 2177,
+      "end_byte": 2349,
+      "signature_hint": "function pred_ode(u0, p) global w_kf, w_kb, w_out w_kf, w_kb, w_out = p2vec(p) pred = Array(solve(prob, alg, u0=u0, p=p; maxiters=maxiters)) return pred end"
+    },
+    "Ch280ui6bvc": {
+      "id": "Ch280ui6bvc",
+      "qualified_name": "display_p",
+      "simple_name": "display_p",
+      "kind": "function",
+      "language": "julia",
+      "file": "Foidhlqh2he",
+      "start_line": 103,
+      "end_line": 114,
+      "start_byte": 2368,
+      "end_byte": 2661,
+      "signature_hint": "function display_p(p) local w_kf, w_kb, w_out w_kf, w_kb, w_out = p2vec(p); println(\"species (column) reaction (row)\") println(\"\\n w_out | w_kf | w_kb\") println(rn.states) show(stdout, \"text/plain\", round.(vcat(w_out, w_kf', w_kb')', digits=3)) println(\"\\n\") end"
+    },
+    "C15lu6yhw88g": {
+      "id": "C15lu6yhw88g",
+      "qualified_name": "loss_ode",
+      "simple_name": "loss_ode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Foidhlqh2he",
+      "start_line": 117,
+      "end_line": 121,
+      "start_byte": 2676,
+      "end_byte": 2832,
+      "signature_hint": "function loss_ode(p, i_exp) pred = pred_ode(u0_list[i_exp, :], p) loss = mae(ode_data_list[i_exp, :, :] ./ y_std, pred ./ y_std) return loss end"
+    },
+    "C13q4h5tzkwq": {
+      "id": "C13q4h5tzkwq",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb1r45xko0i",
+      "start_line": 38,
+      "end_line": 50,
+      "start_byte": 802,
+      "end_byte": 1177,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) # TG(1),ROH(2),DG(3),MG(4),GL(5),R'CO2R(6) r1 = k[1] * y[1] * y[2]; r2 = k[2] * y[3] * y[2]; r3 = k[3] * y[4] * y[2]; dydt[1] = - r1; # TG dydt[2] = - r1 - r2 - r3; # TG dydt[3] = r1 - r2; # DG dydt[4] = r2 - r3; # MG dydt[5] = r3; # GL dydt[6] = r1 + r2 + r3; # R'CO2R dydt[7] = 0.f0; end"
+    },
+    "Cpit2edk4y9": {
+      "id": "Cpit2edk4y9",
+      "qualified_name": "Arrhenius",
+      "simple_name": "Arrhenius",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb1r45xko0i",
+      "start_line": 55,
+      "end_line": 59,
+      "start_byte": 1274,
+      "end_byte": 1392,
+      "signature_hint": "function Arrhenius(logA, Ea, T) R = 1.98720425864083f-3 k = exp.(logA) .* exp.(-Ea ./ R ./ T) return k end"
+    },
+    "Ccbr0v4op8u": {
+      "id": "Ccbr0v4op8u",
+      "qualified_name": "max_min",
+      "simple_name": "max_min",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb1r45xko0i",
+      "start_line": 71,
+      "end_line": 73,
+      "start_byte": 1763,
+      "end_byte": 1865,
+      "signature_hint": "function max_min(ode_data) return maximum(ode_data, dims=2) .- minimum(ode_data, dims=2) .+ lb end"
+    },
+    "Cwk0u2dq7cd": {
+      "id": "Cwk0u2dq7cd",
+      "qualified_name": "p2vec",
+      "simple_name": "p2vec",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb1r45xko0i",
+      "start_line": 91,
+      "end_line": 99,
+      "start_byte": 2399,
+      "end_byte": 2696,
+      "signature_hint": "function p2vec(p) slope = p[nr * (ns + 2) + 1] .* 100 w_b = p[1:nr] .* slope w_out = reshape(p[nr + 1:nr * (ns + 1)], ns, nr) w_in_Ea = abs.(p[nr * (ns + 1) + 1:nr * (ns + 2)] .* slope) w_in = clamp.(-w_out, 0, 4) w_in = vcat(w_in, w_in_Ea') return w_in, w_b, w_out end"
+    },
+    "C80qawpl5bj": {
+      "id": "C80qawpl5bj",
+      "qualified_name": "display_p",
+      "simple_name": "display_p",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb1r45xko0i",
+      "start_line": 101,
+      "end_line": 110,
+      "start_byte": 2698,
+      "end_byte": 3013,
+      "signature_hint": "function display_p(p) w_in, w_b, w_out = p2vec(p); println(\"species (column) reaction (row)\") println(\"w_in | w_b\") w_in_ = vcat(w_in, w_b')' show(stdout, \"text/plain\", round.(w_in_, digits=3)) println(\"\\nw_out\") show(stdout, \"text/plain\", round.(w_out', digits=3)) println(\"\\n\") end"
+    },
+    "C15f1hl4cyr2": {
+      "id": "C15f1hl4cyr2",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb1r45xko0i",
+      "start_line": 114,
+      "end_line": 118,
+      "start_byte": 3063,
+      "end_byte": 3241,
+      "signature_hint": "function crnn(du, u, p, t) logX = @. log(clamp(u[1:end - 1], lb, ub)) w_in_x = w_in' * vcat(logX, inv_R / u[end]) du .= vcat(w_out * (@. exp(w_in_x + w_b)), 0.f0) end"
+    },
+    "C6gy5sdwxzs": {
+      "id": "C6gy5sdwxzs",
+      "qualified_name": "predict_neuralode",
+      "simple_name": "predict_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb1r45xko0i",
+      "start_line": 124,
+      "end_line": 128,
+      "start_byte": 3406,
+      "end_byte": 3577,
+      "signature_hint": "function predict_neuralode(u0, p) global w_in, w_b, w_out = p2vec(p) pred = clamp.(Array(solve(prob, alg, u0=u0, p=p, sensalg=sense)), -ub, ub) return pred end"
+    },
+    "Ccrh7waofnd": {
+      "id": "Ccrh7waofnd",
+      "qualified_name": "loss_neuralode",
+      "simple_name": "loss_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fb1r45xko0i",
+      "start_line": 132,
+      "end_line": 137,
+      "start_byte": 3632,
+      "end_byte": 3863,
+      "signature_hint": "function loss_neuralode(p, i_exp) ode_data = @view ode_data_list[i_exp, i_obs, :] pred = predict_neuralode(u0_list[i_exp, :], p)[i_obs, :] loss = mae(ode_data ./ yscale[i_obs], pred ./ yscale[i_obs]) return loss end"
+    },
+    "C25ynd6z359": {
+      "id": "C25ynd6z359",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fxx70zom694",
+      "start_line": 44,
+      "end_line": 56,
+      "start_byte": 864,
+      "end_byte": 1239,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) # TG(1),ROH(2),DG(3),MG(4),GL(5),R'CO2R(6) r1 = k[1] * y[1] * y[2]; r2 = k[2] * y[3] * y[2]; r3 = k[3] * y[4] * y[2]; dydt[1] = - r1; # TG dydt[2] = - r1 - r2 - r3; # TG dydt[3] = r1 - r2; # DG dydt[4] = r2 - r3; # MG dydt[5] = r3; # GL dydt[6] = r1 + r2 + r3; # R'CO2R dydt[7] = 0.f0; end"
+    },
+    "C9benya2c29": {
+      "id": "C9benya2c29",
+      "qualified_name": "Arrhenius",
+      "simple_name": "Arrhenius",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fxx70zom694",
+      "start_line": 61,
+      "end_line": 65,
+      "start_byte": 1336,
+      "end_byte": 1457,
+      "signature_hint": "function Arrhenius(logA, Ea, T) R = 1.98720425864083f-3; k = exp.(logA) .* exp.(-Ea ./ R ./ T); return k; end"
+    },
+    "Cz3wwzelk8s": {
+      "id": "Cz3wwzelk8s",
+      "qualified_name": "max_min",
+      "simple_name": "max_min",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fxx70zom694",
+      "start_line": 83,
+      "end_line": 85,
+      "start_byte": 2026,
+      "end_byte": 2128,
+      "signature_hint": "function max_min(ode_data) return maximum(ode_data, dims=2) .- minimum(ode_data, dims=2) .+ lb end"
+    },
+    "Ce98p5hh5sc": {
+      "id": "Ce98p5hh5sc",
+      "qualified_name": "p2vec",
+      "simple_name": "p2vec",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fxx70zom694",
+      "start_line": 100,
+      "end_line": 115,
+      "start_byte": 2552,
+      "end_byte": 2979,
+      "signature_hint": "function p2vec(p) slope = p[nr * (ns + 2) + 1] .* 1.f2; w_b = p[1:nr] .* slope; w_out = reshape(p[nr + 1:nr * (ns + 1)], ns, nr); # w_out[3, 1] = -1 # w_out = clamp.(w_out, -2.5, 2.5); w_in_Ea = abs.(p[nr * (ns + 1) + 1:nr * (ns + 2)] .* slope); # w_in_Ea = clamp.(w_in_Ea, 0.f0, 30.f0); w_in = clamp.(-w_out, 0.f0, 4.f0); w_in = vcat(w_in, w_in_Ea'); return w_in, w_b, w_out end"
+    },
+    "C3vq871l1jj": {
+      "id": "C3vq871l1jj",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fxx70zom694",
+      "start_line": 120,
+      "end_line": 125,
+      "start_byte": 3036,
+      "end_byte": 3222,
+      "signature_hint": "function crnn(du, u, p, t) logX = @. log(clamp(u[1:end - 1], lb, ub)); w_in_x = w_in' * vcat(logX, -1.f0 / R / u[end]); du .= vcat(w_out * (@. exp(w_in_x + w_b)), 0.f0); end"
+    },
+    "Cza59vtnsu3": {
+      "id": "Cza59vtnsu3",
+      "qualified_name": "predict_neuralode",
+      "simple_name": "predict_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fxx70zom694",
+      "start_line": 132,
+      "end_line": 136,
+      "start_byte": 3384,
+      "end_byte": 3541,
+      "signature_hint": "function predict_neuralode(u0, p) global w_in, w_b, w_out = p2vec(p); pred = clamp.(Array(solve(prob, alg, u0=u0, p=p)), -ub, ub) return pred end"
+    },
+    "Cjagio3385j": {
+      "id": "Cjagio3385j",
+      "qualified_name": "display_p",
+      "simple_name": "display_p",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fxx70zom694",
+      "start_line": 140,
+      "end_line": 152,
+      "start_byte": 3606,
+      "end_byte": 3965,
+      "signature_hint": "function display_p(p) w_in, w_b, w_out = p2vec(p); println(\"species (column) reaction (row)\") println(\"w_in\") show(stdout, \"text/plain\", round.(w_in', digits=3)) println(\"\\nw_b\") show(stdout, \"text/plain\", round.(w_b', digits=3)) println(\"\\nw_out\") show(stdout, \"text/plain\", round.(w_out', digits=3)) println(\"\\n\\n\") end"
+    },
+    "Ckuhx745g2o": {
+      "id": "Ckuhx745g2o",
+      "qualified_name": "display_grad",
+      "simple_name": "display_grad",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fxx70zom694",
+      "start_line": 155,
+      "end_line": 163,
+      "start_byte": 3980,
+      "end_byte": 4188,
+      "signature_hint": "function display_grad(grad) grad_w_out = reshape(grad[nr + 1:nr * (ns + 1)], ns, nr); println(\"\\ngrad w_out\") show(stdout, \"text/plain\", round.(grad_w_out', digits=6)) println(\"\\n\") end"
+    },
+    "C11xua828hno": {
+      "id": "C11xua828hno",
+      "qualified_name": "loss_neuralode",
+      "simple_name": "loss_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fxx70zom694",
+      "start_line": 166,
+      "end_line": 172,
+      "start_byte": 4215,
+      "end_byte": 4510,
+      "signature_hint": "function loss_neuralode(p, i_exp) ode_data = @view ode_data_list[i_exp, i_obs, :] pred = predict_neuralode(u0_list[i_exp, :], p)[i_obs, :] loss = mae(ode_data ./ y_std[i_obs], pred ./ y_std[i_obs]) # loss = mean(abs.(ode_data .- pred) ./ y_std[i_obs], dims=2) return loss end"
+    },
+    "Ccxn88q2itf": {
+      "id": "Ccxn88q2itf",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fwbpms6ko1",
+      "start_line": 43,
+      "end_line": 55,
+      "start_byte": 816,
+      "end_byte": 1191,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) # TG(1),ROH(2),DG(3),MG(4),GL(5),R'CO2R(6) r1 = k[1] * y[1] * y[2]; r2 = k[2] * y[3] * y[2]; r3 = k[3] * y[4] * y[2]; dydt[1] = - r1; # TG dydt[2] = - r1 - r2 - r3; # TG dydt[3] = r1 - r2; # DG dydt[4] = r2 - r3; # MG dydt[5] = r3; # GL dydt[6] = r1 + r2 + r3; # R'CO2R dydt[7] = 0.f0; end"
+    },
+    "Czbod53uz46": {
+      "id": "Czbod53uz46",
+      "qualified_name": "Arrhenius",
+      "simple_name": "Arrhenius",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fwbpms6ko1",
+      "start_line": 60,
+      "end_line": 64,
+      "start_byte": 1288,
+      "end_byte": 1409,
+      "signature_hint": "function Arrhenius(logA, Ea, T) R = 1.98720425864083f-3; k = exp.(logA) .* exp.(-Ea ./ R ./ T); return k; end"
+    },
+    "C2igqu4vmm2": {
+      "id": "C2igqu4vmm2",
+      "qualified_name": "max_min",
+      "simple_name": "max_min",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fwbpms6ko1",
+      "start_line": 81,
+      "end_line": 83,
+      "start_byte": 1953,
+      "end_byte": 2055,
+      "signature_hint": "function max_min(ode_data) return maximum(ode_data, dims=2) .- minimum(ode_data, dims=2) .+ lb end"
+    },
+    "Cimbrqedpei": {
+      "id": "Cimbrqedpei",
+      "qualified_name": "p2vec",
+      "simple_name": "p2vec",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fwbpms6ko1",
+      "start_line": 98,
+      "end_line": 116,
+      "start_byte": 2481,
+      "end_byte": 2978,
+      "signature_hint": "function p2vec(p) slope = p[nr * (ns + 2) + 1] .* 1.f2; w_b = p[1:nr] .* slope; w_out = reshape(p[nr + 1:nr * (ns + 1)], ns, nr); # w_out[3, 1] = -1 index = findall(abs.(w_out) .< p_cutoff); w_out[index] .= 0; # w_out = clamp.(w_out, -2.5, 2.5); w_in_Ea = abs.(p[nr * (ns + 1) + 1:nr * (ns + 2)] .* slope); # w_in_Ea = clamp.(w_in_Ea, 0.f0, 30.f0); w_in = clamp.(-w_out, 0.f0, 4.f0); w_in = vcat(w_in, w_in_Ea'); return w_in, w_b, w_out end"
+    },
+    "C2wg4n5ayf4": {
+      "id": "C2wg4n5ayf4",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fwbpms6ko1",
+      "start_line": 121,
+      "end_line": 125,
+      "start_byte": 3035,
+      "end_byte": 3220,
+      "signature_hint": "function crnn(du, u, p, t) logX = @. log(clamp(u[1:end - 1], lb, ub)); w_in_x = w_in' * vcat(logX, -1.f0 / R / u[end]); du .= vcat(w_out * (@. exp(w_in_x + w_b)), 0.f0); end"
+    },
+    "C4j7yt9spaj": {
+      "id": "C4j7yt9spaj",
+      "qualified_name": "predict_neuralode",
+      "simple_name": "predict_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fwbpms6ko1",
+      "start_line": 132,
+      "end_line": 136,
+      "start_byte": 3382,
+      "end_byte": 3539,
+      "signature_hint": "function predict_neuralode(u0, p) global w_in, w_b, w_out = p2vec(p); pred = clamp.(Array(solve(prob, alg, u0=u0, p=p)), -ub, ub) return pred end"
+    },
+    "Cji528lamo0": {
+      "id": "Cji528lamo0",
+      "qualified_name": "display_p",
+      "simple_name": "display_p",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fwbpms6ko1",
+      "start_line": 140,
+      "end_line": 156,
+      "start_byte": 3604,
+      "end_byte": 3967,
+      "signature_hint": "function display_p(p) w_in, w_b, w_out = p2vec(p); println(\"species (column) reaction (row)\") println(\"w_in\") show(stdout, \"text/plain\", round.(w_in', digits=3)) println(\"\\nw_b\") show(stdout, \"text/plain\", round.(w_b', digits=3)) println(\"\\nw_out\") show(stdout, \"text/plain\", round.(w_out', digits=3)) println(\"\\n\\n\") end"
+    },
+    "Ce5ex6z4ans": {
+      "id": "Ce5ex6z4ans",
+      "qualified_name": "loss_neuralode",
+      "simple_name": "loss_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fwbpms6ko1",
+      "start_line": 160,
+      "end_line": 166,
+      "start_byte": 4010,
+      "end_byte": 4305,
+      "signature_hint": "function loss_neuralode(p, i_exp) ode_data = @view ode_data_list[i_exp, i_obs, :] pred = predict_neuralode(u0_list[i_exp, :], p)[i_obs, :] loss = mae(ode_data ./ y_std[i_obs], pred ./ y_std[i_obs]) # loss = mean(abs.(ode_data .- pred) ./ y_std[i_obs], dims=2) return loss end"
+    },
+    "C4g8srrwexk": {
+      "id": "C4g8srrwexk",
+      "qualified_name": "p2vec",
+      "simple_name": "p2vec",
+      "kind": "function",
+      "language": "julia",
+      "file": "Ff4yw3g4hdn",
+      "start_line": 42,
+      "end_line": 53,
+      "start_byte": 824,
+      "end_byte": 1151,
+      "signature_hint": "function p2vec(p) w_b = @view p[1:nr] slope = abs(p[end]) w_in = reshape(@view(p[nr * (ns + 1) + 1:nr * (2 * ns + 1)]), ns, nr) # .* (1.f1 * slope) w_out = reshape(@view(p[nr + 1:nr * (ns + 1)]), ns, nr) w_out = @. -w_in * abs(w_out); w_in = clamp.(w_in, 0.f0, 4.f0); return w_in, w_b, w_out end"
+    },
+    "Chbwf3eopup": {
+      "id": "Chbwf3eopup",
+      "qualified_name": "display_p",
+      "simple_name": "display_p",
+      "kind": "function",
+      "language": "julia",
+      "file": "Ff4yw3g4hdn",
+      "start_line": 55,
+      "end_line": 70,
+      "start_byte": 1153,
+      "end_byte": 1631,
+      "signature_hint": "function display_p(p) w_in, w_b, w_out = p2vec(p) println(\"species (column) reaction (row)\") println(\"w_in\") show(stdout, \"text/plain\", round.(w_in', digits=3)) println(\"\\nw_b\") show(stdout, \"text/plain\", round.(exp.(w_b'), digits=3)) # println(\"\\nw_out\") # show(stdout, \"text/plain\", round.(w_out', digits=3)) println(\"\\nw_out_scale\") show(stdout, \"text/plain\", round.(w_out' .* dy_std_' .* exp.(w_b), digits=3)) println(\"\\n\") end"
+    },
+    "C17bttino2hk": {
+      "id": "C17bttino2hk",
+      "qualified_name": "display_grad",
+      "simple_name": "display_grad",
+      "kind": "function",
+      "language": "julia",
+      "file": "Ff4yw3g4hdn",
+      "start_line": 73,
+      "end_line": 81,
+      "start_byte": 1646,
+      "end_byte": 1869,
+      "signature_hint": "function display_grad(grad) grad_w_out = reshape(grad[nr * (ns + 1) + 1:nr * (2 * ns + 1)], ns, nr); println(\"\\ngrad w_out\") show(stdout, \"text/plain\", round.(grad_w_out', digits=6)) println(\"\\n\") end"
+    },
+    "Caic8x7y9bo": {
+      "id": "Caic8x7y9bo",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "kind": "function",
+      "language": "julia",
+      "file": "Ff4yw3g4hdn",
+      "start_line": 83,
+      "end_line": 103,
+      "start_byte": 1871,
+      "end_byte": 2417,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) # [\"S\"(1), \"MAPKKK\"(2), \"MAPKKK*\"(3), \"MAPKK\"(4), \"MAPKK*\"(5), # \"MAPK\"(6), \"MAPK*\"(7), \"TF\"(8), \"TF*\"(9)] r1 = k[1] * y[1] * y[2] r2 = k[2] * y[3] * y[4] r3 = k[3] * y[5] * y[6] r4 = k[4] * y[7] * y[8] r5 = k[5] * y[3] r6 = k[6] * y[5] r7 = k[7] * y[7] r8 = k[8] * y[9] dydt[1] = 0 dydt[2] = -r1 + r5 dydt[3] = r1 - r5 dydt[4] = -r2 + r6 dydt[5] = r2 - r6 dydt[6] = -r3 + r7 dydt[7] = r3 - r7 dydt[8] = -r4 + r8 dydt[9] = r4 - r8 end"
+    },
+    "C3gsxuggmmv": {
+      "id": "C3gsxuggmmv",
+      "qualified_name": "max_min",
+      "simple_name": "max_min",
+      "kind": "function",
+      "language": "julia",
+      "file": "Ff4yw3g4hdn",
+      "start_line": 127,
+      "end_line": 131,
+      "start_byte": 3182,
+      "end_byte": 3286,
+      "signature_hint": "function max_min(ode_data) return maximum(ode_data, dims=2) .- minimum(ode_data, dims=2) .+ lb end"
+    },
+    "Cpmqv1u5rqe": {
+      "id": "Cpmqv1u5rqe",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "kind": "function",
+      "language": "julia",
+      "file": "Ff4yw3g4hdn",
+      "start_line": 162,
+      "end_line": 166,
+      "start_byte": 4089,
+      "end_byte": 4293,
+      "signature_hint": "function crnn(du, u, p, t) w_in_x = w_in' * @. log(clamp(u, lb, ub)) # w_in_x = w_in' * @. ((log(clamp(u, lb, ub)) - logy_mean) / logy_std); du .= w_out * (@. exp(w_in_x + w_b)) .* dy_std_ end"
+    },
+    "C188szzs5ao": {
+      "id": "C188szzs5ao",
+      "qualified_name": "predict_neuralode",
+      "simple_name": "predict_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Ff4yw3g4hdn",
+      "start_line": 172,
+      "end_line": 176,
+      "start_byte": 4425,
+      "end_byte": 4580,
+      "signature_hint": "function predict_neuralode(u0, p) global w_in, w_b, w_out = p2vec(p) pred = clamp.(Array(solve(prob, alg, u0=u0, p=p)), lb, ub) return pred end"
+    },
+    "Cum5wqfp08e": {
+      "id": "Cum5wqfp08e",
+      "qualified_name": "loss_neuralode",
+      "simple_name": "loss_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Ff4yw3g4hdn",
+      "start_line": 183,
+      "end_line": 190,
+      "start_byte": 4676,
+      "end_byte": 5037,
+      "signature_hint": "function loss_neuralode(p, i_exp) pred = predict_neuralode(u0_list[i_exp, :], p) ode_data = clamp.(ode_data_list[i_exp, :, :], lb, ub) # loss = mean(abs.(ode_data_list[i_exp, i_obs, :] .- pred) ./ y_std[i_obs], dims=2) # loss = mae( ode_data_list[i_exp, :, :] ./y_std, pred ./y_std) loss = mae(log.(ode_data), log.(pred)) return loss end"
+    },
+    "Cqp2f512bxy": {
+      "id": "Cqp2f512bxy",
+      "qualified_name": "display_grad",
+      "simple_name": "display_grad",
+      "kind": "function",
+      "language": "julia",
+      "file": "Frb5cilmj1w",
+      "start_line": 42,
+      "end_line": 50,
+      "start_byte": 824,
+      "end_byte": 1047,
+      "signature_hint": "function display_grad(grad) grad_w_out = reshape(grad[nr * (ns + 1) + 1:nr * (2 * ns + 1)], ns, nr); println(\"\\ngrad w_out\") show(stdout, \"text/plain\", round.(grad_w_out', digits=6)) println(\"\\n\") end"
+    },
+    "C5vuqxs6d10": {
+      "id": "C5vuqxs6d10",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "kind": "function",
+      "language": "julia",
+      "file": "Frb5cilmj1w",
+      "start_line": 52,
+      "end_line": 72,
+      "start_byte": 1049,
+      "end_byte": 1595,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) # [\"S\"(1), \"MAPKKK\"(2), \"MAPKKK*\"(3), \"MAPKK\"(4), \"MAPKK*\"(5), # \"MAPK\"(6), \"MAPK*\"(7), \"TF\"(8), \"TF*\"(9)] r1 = k[1] * y[1] * y[2] r2 = k[2] * y[3] * y[4] r3 = k[3] * y[5] * y[6] r4 = k[4] * y[7] * y[8] r5 = k[5] * y[3] r6 = k[6] * y[5] r7 = k[7] * y[7] r8 = k[8] * y[9] dydt[1] = 0 dydt[2] = -r1 + r5 dydt[3] = r1 - r5 dydt[4] = -r2 + r6 dydt[5] = r2 - r6 dydt[6] = -r3 + r7 dydt[7] = r3 - r7 dydt[8] = -r4 + r8 dydt[9] = r4 - r8 end"
+    },
+    "Cdwpbswcmwb": {
+      "id": "Cdwpbswcmwb",
+      "qualified_name": "max_min",
+      "simple_name": "max_min",
+      "kind": "function",
+      "language": "julia",
+      "file": "Frb5cilmj1w",
+      "start_line": 96,
+      "end_line": 100,
+      "start_byte": 2205,
+      "end_byte": 2309,
+      "signature_hint": "function max_min(ode_data) return maximum(ode_data, dims=2) .- minimum(ode_data, dims=2) .+ lb end"
+    },
+    "Chil9dj781o": {
+      "id": "Chil9dj781o",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "kind": "function",
+      "language": "julia",
+      "file": "Frb5cilmj1w",
+      "start_line": 131,
+      "end_line": 135,
+      "start_byte": 3112,
+      "end_byte": 3316,
+      "signature_hint": "function crnn(du, u, p, t) w_in_x = w_in' * @. log(clamp(u, lb, ub)) # w_in_x = w_in' * @. ((log(clamp(u, lb, ub)) - logy_mean) / logy_std); du .= w_out * (@. exp(w_in_x + w_b)) .* dy_std_ end"
+    },
+    "C2q15ymbwls": {
+      "id": "C2q15ymbwls",
+      "qualified_name": "predict_neuralode",
+      "simple_name": "predict_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Frb5cilmj1w",
+      "start_line": 141,
+      "end_line": 145,
+      "start_byte": 3448,
+      "end_byte": 3603,
+      "signature_hint": "function predict_neuralode(u0, p) global w_in, w_b, w_out = p2vec(p) pred = clamp.(Array(solve(prob, alg, u0=u0, p=p)), lb, ub) return pred end"
+    },
+    "Cac8s6af8hu": {
+      "id": "Cac8s6af8hu",
+      "qualified_name": "loss_neuralode",
+      "simple_name": "loss_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Frb5cilmj1w",
+      "start_line": 152,
+      "end_line": 159,
+      "start_byte": 3699,
+      "end_byte": 4060,
+      "signature_hint": "function loss_neuralode(p, i_exp) pred = predict_neuralode(u0_list[i_exp, :], p) ode_data = clamp.(ode_data_list[i_exp, :, :], lb, ub) # loss = mean(abs.(ode_data_list[i_exp, i_obs, :] .- pred) ./ y_std[i_obs], dims=2) # loss = mae( ode_data_list[i_exp, :, :] ./y_std, pred ./y_std) loss = mae(log.(ode_data), log.(pred)) return loss end"
+    },
+    "C4b4hw9fagt": {
+      "id": "C4b4hw9fagt",
+      "qualified_name": "p2vec",
+      "simple_name": "p2vec",
+      "kind": "function",
+      "language": "julia",
+      "file": "Frb5cilmj1w",
+      "start_line": 232,
+      "end_line": 251,
+      "start_byte": 6175,
+      "end_byte": 6704,
+      "signature_hint": "function p2vec(p) w_b = @view p[1:nr] slope = abs(p[end]) w_in = reshape(@view(p[nr * (ns + 1) + 1:nr * (2 * ns + 1)]), ns, nr) # .* (1.f1 * slope) w_out = reshape(@view(p[nr + 1:nr * (ns + 1)]), ns, nr) w_out = @. -w_in * abs(w_out); w_in = clamp.(w_in, 0.f0, 4.f0); w_out_ = w_out' .* dy_std_' scale = maximum(w_out_, dims=2) w_out_s = w_out_ ./ scale w_out[findall(abs.(w_out_s') .< p_cutoff)] .= 0; w_in[findall(abs.(w_in) .< p_cutoff)] .= 0; return w_in, w_b, w_out end"
+    },
+    "Cqwcc83qoug": {
+      "id": "Cqwcc83qoug",
+      "qualified_name": "display_p",
+      "simple_name": "display_p",
+      "kind": "function",
+      "language": "julia",
+      "file": "Frb5cilmj1w",
+      "start_line": 259,
+      "end_line": 274,
+      "start_byte": 6823,
+      "end_byte": 7301,
+      "signature_hint": "function display_p(p) w_in, w_b, w_out = p2vec(p) println(\"species (column) reaction (row)\") println(\"w_in\") show(stdout, \"text/plain\", round.(w_in', digits=3)) println(\"\\nw_b\") show(stdout, \"text/plain\", round.(exp.(w_b'), digits=3)) # println(\"\\nw_out\") # show(stdout, \"text/plain\", round.(w_out', digits=3)) println(\"\\nw_out_scale\") show(stdout, \"text/plain\", round.(w_out' .* dy_std_' .* exp.(w_b), digits=3)) println(\"\\n\") end"
+    },
+    "Cwpmo8wgokt": {
+      "id": "Cwpmo8wgokt",
+      "qualified_name": "display_grad",
+      "simple_name": "display_grad",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fvxum5tqffc",
+      "start_line": 42,
+      "end_line": 50,
+      "start_byte": 824,
+      "end_byte": 1047,
+      "signature_hint": "function display_grad(grad) grad_w_out = reshape(grad[nr * (ns + 1) + 1:nr * (2 * ns + 1)], ns, nr); println(\"\\ngrad w_out\") show(stdout, \"text/plain\", round.(grad_w_out', digits=6)) println(\"\\n\") end"
+    },
+    "Cwa1zfnmwnt": {
+      "id": "Cwa1zfnmwnt",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fvxum5tqffc",
+      "start_line": 52,
+      "end_line": 72,
+      "start_byte": 1049,
+      "end_byte": 1595,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) # [\"S\"(1), \"MAPKKK\"(2), \"MAPKKK*\"(3), \"MAPKK\"(4), \"MAPKK*\"(5), # \"MAPK\"(6), \"MAPK*\"(7), \"TF\"(8), \"TF*\"(9)] r1 = k[1] * y[1] * y[2] r2 = k[2] * y[3] * y[4] r3 = k[3] * y[5] * y[6] r4 = k[4] * y[7] * y[8] r5 = k[5] * y[3] r6 = k[6] * y[5] r7 = k[7] * y[7] r8 = k[8] * y[9] dydt[1] = 0 dydt[2] = -r1 + r5 dydt[3] = r1 - r5 dydt[4] = -r2 + r6 dydt[5] = r2 - r6 dydt[6] = -r3 + r7 dydt[7] = r3 - r7 dydt[8] = -r4 + r8 dydt[9] = r4 - r8 end"
+    },
+    "Cqf971swrds": {
+      "id": "Cqf971swrds",
+      "qualified_name": "max_min",
+      "simple_name": "max_min",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fvxum5tqffc",
+      "start_line": 96,
+      "end_line": 100,
+      "start_byte": 2205,
+      "end_byte": 2309,
+      "signature_hint": "function max_min(ode_data) return maximum(ode_data, dims=2) .- minimum(ode_data, dims=2) .+ lb end"
+    },
+    "Czoyc6zb6ks": {
+      "id": "Czoyc6zb6ks",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fvxum5tqffc",
+      "start_line": 131,
+      "end_line": 135,
+      "start_byte": 3112,
+      "end_byte": 3316,
+      "signature_hint": "function crnn(du, u, p, t) w_in_x = w_in' * @. log(clamp(u, lb, ub)) # w_in_x = w_in' * @. ((log(clamp(u, lb, ub)) - logy_mean) / logy_std); du .= w_out * (@. exp(w_in_x + w_b)) .* dy_std_ end"
+    },
+    "Clb8m9uadqg": {
+      "id": "Clb8m9uadqg",
+      "qualified_name": "predict_neuralode",
+      "simple_name": "predict_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fvxum5tqffc",
+      "start_line": 141,
+      "end_line": 145,
+      "start_byte": 3448,
+      "end_byte": 3603,
+      "signature_hint": "function predict_neuralode(u0, p) global w_in, w_b, w_out = p2vec(p) pred = clamp.(Array(solve(prob, alg, u0=u0, p=p)), lb, ub) return pred end"
+    },
+    "C15w01mcgzzo": {
+      "id": "C15w01mcgzzo",
+      "qualified_name": "loss_neuralode",
+      "simple_name": "loss_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fvxum5tqffc",
+      "start_line": 152,
+      "end_line": 159,
+      "start_byte": 3699,
+      "end_byte": 4060,
+      "signature_hint": "function loss_neuralode(p, i_exp) pred = predict_neuralode(u0_list[i_exp, :], p) ode_data = clamp.(ode_data_list[i_exp, :, :], lb, ub) # loss = mean(abs.(ode_data_list[i_exp, i_obs, :] .- pred) ./ y_std[i_obs], dims=2) # loss = mae( ode_data_list[i_exp, :, :] ./y_std, pred ./y_std) loss = mae(log.(ode_data), log.(pred)) return loss end"
+    },
+    "Cuc59mql1ja": {
+      "id": "Cuc59mql1ja",
+      "qualified_name": "p2vec",
+      "simple_name": "p2vec",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fvxum5tqffc",
+      "start_line": 232,
+      "end_line": 251,
+      "start_byte": 6175,
+      "end_byte": 6704,
+      "signature_hint": "function p2vec(p) w_b = @view p[1:nr] slope = abs(p[end]) w_in = reshape(@view(p[nr * (ns + 1) + 1:nr * (2 * ns + 1)]), ns, nr) # .* (1.f1 * slope) w_out = reshape(@view(p[nr + 1:nr * (ns + 1)]), ns, nr) w_out = @. -w_in * abs(w_out); w_in = clamp.(w_in, 0.f0, 4.f0); w_out_ = w_out' .* dy_std_' scale = maximum(w_out_, dims=2) w_out_s = w_out_ ./ scale w_out[findall(abs.(w_out_s') .< p_cutoff)] .= 0; w_in[findall(abs.(w_in) .< p_cutoff)] .= 0; return w_in, w_b, w_out end"
+    },
+    "Cy2hhdivddb": {
+      "id": "Cy2hhdivddb",
+      "qualified_name": "display_p",
+      "simple_name": "display_p",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fvxum5tqffc",
+      "start_line": 259,
+      "end_line": 274,
+      "start_byte": 6823,
+      "end_byte": 7301,
+      "signature_hint": "function display_p(p) w_in, w_b, w_out = p2vec(p) println(\"species (column) reaction (row)\") println(\"w_in\") show(stdout, \"text/plain\", round.(w_in', digits=3)) println(\"\\nw_b\") show(stdout, \"text/plain\", round.(exp.(w_b'), digits=3)) # println(\"\\nw_out\") # show(stdout, \"text/plain\", round.(w_out', digits=3)) println(\"\\nw_out_scale\") show(stdout, \"text/plain\", round.(w_out' .* dy_std_' .* exp.(w_b), digits=3)) println(\"\\n\") end"
+    },
+    "C3p5kx33lnm": {
+      "id": "C3p5kx33lnm",
+      "qualified_name": "p2vec",
+      "simple_name": "p2vec",
+      "kind": "function",
+      "language": "julia",
+      "file": "Ffm7it4hiz9",
+      "start_line": 39,
+      "end_line": 50,
+      "start_byte": 722,
+      "end_byte": 1033,
+      "signature_hint": "function p2vec(p) w_b = @view p[1:nr] w_in = reshape(@view(p[nr * (ns + 1) + 1:nr * (2 * ns + 1)]), ns, nr) w_out = reshape(@view(p[nr + 1:nr * (ns + 1)]), ns, nr) w_out[[1, 4, 7], :] .= 0 w_out = @. -w_in * abs(w_out); w_in = clamp.(w_in, 0.f0, 4.f0); return w_in, w_b, w_out end"
+    },
+    "C14h0eytwfee": {
+      "id": "C14h0eytwfee",
+      "qualified_name": "display_p",
+      "simple_name": "display_p",
+      "kind": "function",
+      "language": "julia",
+      "file": "Ffm7it4hiz9",
+      "start_line": 52,
+      "end_line": 64,
+      "start_byte": 1035,
+      "end_byte": 1397,
+      "signature_hint": "function display_p(p) w_in, w_b, w_out = p2vec(p) println(\"species (column) reaction (row)\") println(\"w_in\") show(stdout, \"text/plain\", round.(w_in', digits=3)) println(\"\\nw_b\") show(stdout, \"text/plain\", round.(exp.(w_b'), digits=3)) println(\"\\nw_out\") show(stdout, \"text/plain\", round.(w_out', digits=3)) println(\"\\n\") end"
+    },
+    "C12fmyfywtyo": {
+      "id": "C12fmyfywtyo",
+      "qualified_name": "display_grad",
+      "simple_name": "display_grad",
+      "kind": "function",
+      "language": "julia",
+      "file": "Ffm7it4hiz9",
+      "start_line": 67,
+      "end_line": 75,
+      "start_byte": 1412,
+      "end_byte": 1635,
+      "signature_hint": "function display_grad(grad) grad_w_out = reshape(grad[nr * (ns + 1) + 1:nr * (2 * ns + 1)], ns, nr); println(\"\\ngrad w_out\") show(stdout, \"text/plain\", round.(grad_w_out', digits=6)) println(\"\\n\") end"
+    },
+    "Cfmq694e3zg": {
+      "id": "Cfmq694e3zg",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "kind": "function",
+      "language": "julia",
+      "file": "Ffm7it4hiz9",
+      "start_line": 77,
+      "end_line": 129,
+      "start_byte": 1637,
+      "end_byte": 2780,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) #= Species"
+    },
+    "C6jj66nem7y": {
+      "id": "C6jj66nem7y",
+      "qualified_name": "max_min",
+      "simple_name": "max_min",
+      "kind": "function",
+      "language": "julia",
+      "file": "Ffm7it4hiz9",
+      "start_line": 146,
+      "end_line": 148,
+      "start_byte": 3282,
+      "end_byte": 3384,
+      "signature_hint": "function max_min(ode_data) return maximum(ode_data, dims=2) .- minimum(ode_data, dims=2) .+ lb end"
+    },
+    "Caygop5f1i4": {
+      "id": "Caygop5f1i4",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "kind": "function",
+      "language": "julia",
+      "file": "Ffm7it4hiz9",
+      "start_line": 164,
+      "end_line": 167,
+      "start_byte": 3795,
+      "end_byte": 3912,
+      "signature_hint": "function crnn(du, u, p, t) w_in_x = w_in' * @. log(clamp(u, lb, ub)) du .= w_out * (@. exp(w_in_x + w_b)) end"
+    },
+    "Cme4pp25q3s": {
+      "id": "Cme4pp25q3s",
+      "qualified_name": "predict_neuralode",
+      "simple_name": "predict_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Ffm7it4hiz9",
+      "start_line": 175,
+      "end_line": 180,
+      "start_byte": 4147,
+      "end_byte": 4367,
+      "signature_hint": "function predict_neuralode(u0, p) global w_in, w_b, w_out = p2vec(p) prob_ = remake(prob, u0=u0, p=p) pred = clamp.(Array(solve(prob_, alg, saveat=tsteps[1:batch], sensalg=sense)), lb, ub) return pred end"
+    },
+    "Cr5tzro2quv": {
+      "id": "Cr5tzro2quv",
+      "qualified_name": "loss_neuralode",
+      "simple_name": "loss_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Ffm7it4hiz9",
+      "start_line": 183,
+      "end_line": 188,
+      "start_byte": 4394,
+      "end_byte": 4593,
+      "signature_hint": "function loss_neuralode(p, i_exp) pred = predict_neuralode(u0_list[i_exp, :], p) ode_data = clamp.(ode_data_list[i_exp, :, 1:batch], lb, ub) loss = mae(ode_data, pred) return loss end"
+    },
+    "C3kx7wy4y3p": {
+      "id": "C3kx7wy4y3p",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fyognsek6c",
+      "start_line": 56,
+      "end_line": 63,
+      "start_byte": 1195,
+      "end_byte": 1378,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) r1 = k[1] * y[1] r2 = k[2] * y[2] * y[2] r3 = k[3] * y[2] * y[3] dydt[1] = -r1 + r3 dydt[2] = r1 - r2 - r3 dydt[3] = r2 end"
+    },
+    "Cbh4fvqu5az": {
+      "id": "Cbh4fvqu5az",
+      "qualified_name": "max_min",
+      "simple_name": "max_min",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fyognsek6c",
+      "start_line": 68,
+      "end_line": 70,
+      "start_byte": 1455,
+      "end_byte": 1551,
+      "signature_hint": "function max_min(ode_data) return maximum(ode_data, dims=2) .- minimum(ode_data, dims=2) end"
+    },
+    "Ck6yf90m462": {
+      "id": "Ck6yf90m462",
+      "qualified_name": "p2vec",
+      "simple_name": "p2vec",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fyognsek6c",
+      "start_line": 85,
+      "end_line": 96,
+      "start_byte": 2015,
+      "end_byte": 2334,
+      "signature_hint": "function p2vec(p) slope = abs(p[end]) w_b = @view(p[1:nr]) .* (10 * slope) w_in = reshape(@view(p[nr * (ns + 1) + 1:nr * (2 * ns + 1)]), ns, nr) w_out = reshape(@view(p[nr + 1:nr * (ns + 1)]), ns, nr) w_out = @. -w_in * (10 ^ w_out) w_in = clamp.(w_in, 0, 2.5) return w_in, w_b, w_out end"
+    },
+    "Chbhjmfwes2": {
+      "id": "Chbhjmfwes2",
+      "qualified_name": "display_p",
+      "simple_name": "display_p",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fyognsek6c",
+      "start_line": 98,
+      "end_line": 110,
+      "start_byte": 2336,
+      "end_byte": 2743,
+      "signature_hint": "function display_p(p) w_in, w_b, w_out = p2vec(p) println(\"species (column) reaction (row)\") println(\"w_in | w_b | w_out\") display(hcat(w_in', w_b, w_out')) println(\"w_out_scale\") w_out_ = (w_out .* dydt_scale)' .* exp.(w_b) # display(w_out_) # display(maximum(abs.(w_out_), dims=2)') display(w_out_ ./ maximum(abs.(w_out_), dims=2)) println(\"slope = $(p[end])\") end"
+    },
+    "Czjtihbgiz7": {
+      "id": "Czjtihbgiz7",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fyognsek6c",
+      "start_line": 113,
+      "end_line": 116,
+      "start_byte": 2758,
+      "end_byte": 2890,
+      "signature_hint": "function crnn(du, u, p, t) w_in_x = w_in' * @. log(clamp(u, lb, Inf)) du .= w_out * (@. exp(w_in_x + w_b)) .* dydt_scale end"
+    },
+    "C16u9uulznxb": {
+      "id": "C16u9uulznxb",
+      "qualified_name": "predict_neuralode",
+      "simple_name": "predict_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fyognsek6c",
+      "start_line": 123,
+      "end_line": 136,
+      "start_byte": 3083,
+      "end_byte": 3500,
+      "signature_hint": "function predict_neuralode(u0, p; sample = datasize) global w_in, w_b, w_out = p2vec(p) _prob = remake(prob, u0=u0, p=p, tspan=[0, tsteps[sample]]) sol = solve(_prob, alg, saveat=tsteps[1:sample], sensalg=sense, verbose=false, maxiters=maxiters) pred = Array(sol) if sol.retcode == :Success nothing else println(\"ode solver failed\") end return pred end"
+    },
+    "Cicof2nwl7q": {
+      "id": "Cicof2nwl7q",
+      "qualified_name": "loss_neuralode",
+      "simple_name": "loss_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fyognsek6c",
+      "start_line": 139,
+      "end_line": 144,
+      "start_byte": 3535,
+      "end_byte": 3773,
+      "signature_hint": "function loss_neuralode(p, i_exp; sample = datasize) pred = predict_neuralode(u0_list[i_exp, :], p; sample) ode_data = ode_data_list[i_exp, :, 1:size(pred)[2]] loss = mae(ode_data ./ yscale, pred ./ yscale) return loss end"
+    },
+    "C4gmgc9ubn9": {
+      "id": "C4gmgc9ubn9",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fadzx4dhi0e",
+      "start_line": 57,
+      "end_line": 64,
+      "start_byte": 1216,
+      "end_byte": 1399,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) r1 = k[1] * y[1] r2 = k[2] * y[2] * y[2] r3 = k[3] * y[2] * y[3] dydt[1] = -r1 + r3 dydt[2] = r1 - r2 - r3 dydt[3] = r2 end"
+    },
+    "C4z12kqb8t0": {
+      "id": "C4z12kqb8t0",
+      "qualified_name": "max_min",
+      "simple_name": "max_min",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fadzx4dhi0e",
+      "start_line": 69,
+      "end_line": 71,
+      "start_byte": 1476,
+      "end_byte": 1572,
+      "signature_hint": "function max_min(ode_data) return maximum(ode_data, dims=2) .- minimum(ode_data, dims=2) end"
+    },
+    "Cmtik4q5u2": {
+      "id": "Cmtik4q5u2",
+      "qualified_name": "p2vec",
+      "simple_name": "p2vec",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fadzx4dhi0e",
+      "start_line": 86,
+      "end_line": 97,
+      "start_byte": 2036,
+      "end_byte": 2355,
+      "signature_hint": "function p2vec(p) slope = abs(p[end]) w_b = @view(p[1:nr]) .* (10 * slope) w_in = reshape(@view(p[nr * (ns + 1) + 1:nr * (2 * ns + 1)]), ns, nr) w_out = reshape(@view(p[nr + 1:nr * (ns + 1)]), ns, nr) w_out = @. -w_in * (10 ^ w_out) w_in = clamp.(w_in, 0, 2.5) return w_in, w_b, w_out end"
+    },
+    "Cscjc1zfdqk": {
+      "id": "Cscjc1zfdqk",
+      "qualified_name": "display_p",
+      "simple_name": "display_p",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fadzx4dhi0e",
+      "start_line": 99,
+      "end_line": 111,
+      "start_byte": 2357,
+      "end_byte": 2764,
+      "signature_hint": "function display_p(p) w_in, w_b, w_out = p2vec(p) println(\"species (column) reaction (row)\") println(\"w_in | w_b | w_out\") display(hcat(w_in', w_b, w_out')) println(\"w_out_scale\") w_out_ = (w_out .* dydt_scale)' .* exp.(w_b) # display(w_out_) # display(maximum(abs.(w_out_), dims=2)') display(w_out_ ./ maximum(abs.(w_out_), dims=2)) println(\"slope = $(p[end])\") end"
+    },
+    "Cth3rg9nqix": {
+      "id": "Cth3rg9nqix",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fadzx4dhi0e",
+      "start_line": 114,
+      "end_line": 117,
+      "start_byte": 2779,
+      "end_byte": 2911,
+      "signature_hint": "function crnn(du, u, p, t) w_in_x = w_in' * @. log(clamp(u, lb, Inf)) du .= w_out * (@. exp(w_in_x + w_b)) .* dydt_scale end"
+    },
+    "Cjry299jdh8": {
+      "id": "Cjry299jdh8",
+      "qualified_name": "predict_neuralode",
+      "simple_name": "predict_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fadzx4dhi0e",
+      "start_line": 123,
+      "end_line": 136,
+      "start_byte": 3069,
+      "end_byte": 3486,
+      "signature_hint": "function predict_neuralode(u0, p; sample = datasize) global w_in, w_b, w_out = p2vec(p) _prob = remake(prob, tspan=[0, tsteps[sample]]) sol = solve(prob, alg, u0=u0, p=p, saveat=tsteps[1:sample], sensalg=sense, verbose=false, maxiters=maxiters) pred = Array(sol) if sol.retcode == :Success nothing else println(\"ode solver failed\") end return pred end"
+    },
+    "Cknbvfwxa4r": {
+      "id": "Cknbvfwxa4r",
+      "qualified_name": "loss_neuralode",
+      "simple_name": "loss_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fadzx4dhi0e",
+      "start_line": 139,
+      "end_line": 144,
+      "start_byte": 3521,
+      "end_byte": 3759,
+      "signature_hint": "function loss_neuralode(p, i_exp; sample = datasize) pred = predict_neuralode(u0_list[i_exp, :], p; sample) ode_data = ode_data_list[i_exp, :, 1:size(pred)[2]] loss = mae(ode_data ./ yscale, pred ./ yscale) return loss end"
+    },
+    "C138k8skubpy": {
+      "id": "C138k8skubpy",
+      "qualified_name": "loss_lm",
+      "simple_name": "loss_lm",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fadzx4dhi0e",
+      "start_line": 211,
+      "end_line": 213,
+      "start_byte": 5756,
+      "end_byte": 5829,
+      "signature_hint": "function loss_lm(p) [loss_neuralode(p, i) for i in 1:n_exp_train] end"
+    },
+    "Crbr4rzgf9s": {
+      "id": "Crbr4rzgf9s",
+      "qualified_name": "rober!",
+      "simple_name": "rober!",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fz7qp7a9d0y",
+      "start_line": 49,
+      "end_line": 56,
+      "start_byte": 972,
+      "end_byte": 1150,
+      "signature_hint": "function rober!(dydt, y, k, t) r1 = k[1] * y[1] r2 = k[2] * y[2] * y[2] r3 = k[3] * y[2] * y[3] dydt[1] = -r1 + r3 dydt[2] = r1 - r2 - r3 dydt[3] = r2 end"
+    },
+    "C3wtdwwyjyg": {
+      "id": "C3wtdwwyjyg",
+      "qualified_name": "max_min",
+      "simple_name": "max_min",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fz7qp7a9d0y",
+      "start_line": 61,
+      "end_line": 63,
+      "start_byte": 1222,
+      "end_byte": 1318,
+      "signature_hint": "function max_min(ode_data) return maximum(ode_data, dims=2) .- minimum(ode_data, dims=2) end"
+    },
+    "Cbpbzf0p8k": {
+      "id": "Cbpbzf0p8k",
+      "qualified_name": "p2vec",
+      "simple_name": "p2vec",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fz7qp7a9d0y",
+      "start_line": 82,
+      "end_line": 94,
+      "start_byte": 1888,
+      "end_byte": 2215,
+      "signature_hint": "function p2vec(p) slope = abs(p[np]) * 10 w_b = @view(p[1:nr]) .* slope w_in = reshape(@view(p[nr * (ns + 1) + 1:nr * (2 * ns + 1)]), ns, nr) w_out = reshape(@view(p[nr + 1:nr * (ns + 1)]), ns, nr) w_out = @. -w_in * abs(w_out) w_in = clamp.(w_in, 0, 2.5) return w_in, w_b, w_out end"
+    },
+    "Cncwv2hzbw5": {
+      "id": "Cncwv2hzbw5",
+      "qualified_name": "display_p",
+      "simple_name": "display_p",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fz7qp7a9d0y",
+      "start_line": 96,
+      "end_line": 108,
+      "start_byte": 2217,
+      "end_byte": 2610,
+      "signature_hint": "function display_p(p) w_in, w_b, w_out = p2vec(p) println(\"species (column) reaction (row)\") println(\"w_in | w_b | w_out\") display(hcat(w_in', w_b, w_out')) println(\"w_out_scale\") w_out_ = (w_out)' .* exp.(w_b) # display(w_out_) # display(maximum(abs.(w_out_), dims=2)') display(w_out_ ./ maximum(abs.(w_out_), dims=2)) println(\"slope = $(p[end])\") end"
+    },
+    "Cv3het2fk65": {
+      "id": "Cv3het2fk65",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fz7qp7a9d0y",
+      "start_line": 122,
+      "end_line": 126,
+      "start_byte": 2925,
+      "end_byte": 3109,
+      "signature_hint": "function crnn(du, u, p, t) u_ = vcat(@views(u[1]), rep(@views(u[[1, 3]])), @views(u[3])) w_in_x = w_in' * @. log(clamp(u_, lb, ub)) du .= w_out * (@. exp(w_in_x + w_b)) end"
+    },
+    "Czeyg2gpjej": {
+      "id": "Czeyg2gpjej",
+      "qualified_name": "predict_neuralode",
+      "simple_name": "predict_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fz7qp7a9d0y",
+      "start_line": 132,
+      "end_line": 147,
+      "start_byte": 3273,
+      "end_byte": 3695,
+      "signature_hint": "function predict_neuralode(u0, p) pcrnn = p[1:np] pnn = p[np + 1:end] global w_in, w_b, w_out = p2vec(pcrnn) global rep = re(pnn) sol = solve(prob, alg, u0=u0, p=pcrnn, sensalg=sense, verbose=false, maxiters=maxiters) pred = Array(sol) pred[2:2, :] .= rep(pred[[1, 3], :]) if sol.retcode == :Success nothing else println(\"ode solver failed\") end return pred end"
+    },
+    "Cef3rkog1r1": {
+      "id": "Cef3rkog1r1",
+      "qualified_name": "loss_neuralode",
+      "simple_name": "loss_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "Fz7qp7a9d0y",
+      "start_line": 152,
+      "end_line": 157,
+      "start_byte": 3791,
+      "end_byte": 3998,
+      "signature_hint": "function loss_neuralode(p, i_exp) pred = predict_neuralode(u0_list[i_exp, :], p)[[1, 3], :] ode_data = ode_data_list[i_exp, [1, 3], 1:size(pred)[2]] loss = mae(ode_data, pred) return loss end"
+    },
+    "C80x9po07to": {
+      "id": "C80x9po07to",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "kind": "function",
+      "language": "julia",
+      "file": "F15hoy5yar9",
+      "start_line": 49,
+      "end_line": 66,
+      "start_byte": 761,
+      "end_byte": 1236,
+      "signature_hint": "function trueODEfunc(dsdt, s, k, t) r1 = k[1] * s[1] * s[6] / (1 + (s[6] / K1)^q) r2 = k[2] * s[2] * (N - s[5]) r3 = k[3] * s[3] * (A - s[6]) r4 = k[4] * s[4] * s[5] r5 = k[5] * s[6] r6 = k[6] * s[2] * s[5] r7 = 13 * s[7] r8 = 13 * (s[4] - s[7]) dsdt[1] = J0 - r1 dsdt[2] = 2 * r1 - r2 - r6 dsdt[3] = r2 - r3 dsdt[4] = r3 - r4 - r8 dsdt[5] = r2 - r4 - r6 dsdt[6] = -2 * r1 + 2 * r3 - r5 dsdt[7] = phi * r8 - r7 end"
+    },
+    "C12n7gfgwlgj": {
+      "id": "C12n7gfgwlgj",
+      "qualified_name": "max_min",
+      "simple_name": "max_min",
+      "kind": "function",
+      "language": "julia",
+      "file": "F15hoy5yar9",
+      "start_line": 86,
+      "end_line": 88,
+      "start_byte": 1818,
+      "end_byte": 1920,
+      "signature_hint": "function max_min(ode_data) return maximum(ode_data, dims=2) .- minimum(ode_data, dims=2) .+ lb end"
+    },
+    "C14b2n5gotx7": {
+      "id": "C14b2n5gotx7",
+      "qualified_name": "p2vec",
+      "simple_name": "p2vec",
+      "kind": "function",
+      "language": "julia",
+      "file": "F15hoy5yar9",
+      "start_line": 108,
+      "end_line": 115,
+      "start_byte": 2459,
+      "end_byte": 2704,
+      "signature_hint": "function p2vec(p) slope = p[end] * 100 w_b = p[1:nr] .* slope w_out = reshape(@view(p[nr + 1:nr * (ns_ + 1)]), ns_, nr) w_in = clamp.(-w_out, 0.f0, 4.f0) w_J = p[nr * (ns_ + 1) + 1:np - 1] return w_in, w_b, w_out, w_J end"
+    },
+    "Ckcbar80jm9": {
+      "id": "Ckcbar80jm9",
+      "qualified_name": "display_p",
+      "simple_name": "display_p",
+      "kind": "function",
+      "language": "julia",
+      "file": "F15hoy5yar9",
+      "start_line": 117,
+      "end_line": 125,
+      "start_byte": 2706,
+      "end_byte": 3001,
+      "signature_hint": "function display_p(p) w_in, w_b, w_out, w_J = p2vec(p) println(\"\\nspecies (column) reaction (row) w_out | w_b\") w_in_ = vcat(w_out, exp.(w_b'), ) show(stdout, \"text/plain\", round.(w_in_', digits=2)) println(\"\\nw_J\") show(stdout, \"text/plain\", round.(w_J', digits=2)) end"
+    },
+    "C11ni650fabo": {
+      "id": "C11ni650fabo",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "kind": "function",
+      "language": "julia",
+      "file": "F15hoy5yar9",
+      "start_line": 138,
+      "end_line": 142,
+      "start_byte": 3295,
+      "end_byte": 3457,
+      "signature_hint": "function crnn(du, u, pcrnn, t) u_ = vcat(u, rep(u)) w_in_x = w_in' * @. log(clamp(u_, lb, ub)) du .= (w_out * (@. exp(w_in_x + w_b)))[1:ns] .+ w_J end"
+    },
+    "Ckrrhd0xrsi": {
+      "id": "Ckrrhd0xrsi",
+      "qualified_name": "predict_neuralode",
+      "simple_name": "predict_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "F15hoy5yar9",
+      "start_line": 149,
+      "end_line": 157,
+      "start_byte": 3637,
+      "end_byte": 3953,
+      "signature_hint": "function predict_neuralode(u0, p, batch=ntotal) pcrnn = p[1:np] pnn = p[np + 1:end] global w_in, w_b, w_out, w_J = p2vec(pcrnn) global rep = re(pnn) prob_ = remake(prob, u0=u0, p=pcrnn) pred = clamp.(Array(solve(prob_, alg, saveat=tsteps[1:batch], sensalg=sense)), lb, ub) return pred end"
+    },
+    "Cyoj7tqxwuu": {
+      "id": "Cyoj7tqxwuu",
+      "qualified_name": "loss_neuralode",
+      "simple_name": "loss_neuralode",
+      "kind": "function",
+      "language": "julia",
+      "file": "F15hoy5yar9",
+      "start_line": 160,
+      "end_line": 165,
+      "start_byte": 3980,
+      "end_byte": 4242,
+      "signature_hint": "function loss_neuralode(p, i_exp, batch=ntotal) pred = predict_neuralode(u0_list[i_exp, :], p, batch) ode_data = clamp.(ode_data_list[i_exp, 1:ns, 1:size(pred)[2]], lb, ub) loss = mae(ode_data ./ y_scale, pred[1:ns, :] ./ y_scale) return loss end"
+    }
+  },
+  "files": {
+    "F9vbiskjxhr": {
+      "id": "F9vbiskjxhr",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode/src/callback.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "96254b98b4a59a5a947c505a1b5a5fb40e1798e85ef20bfd0dc65f95f689287c",
+      "size_bytes": 4382,
+      "lines": 160,
+      "parse_ms": 1.8396949999999999,
+      "parse_status": "ok"
+    },
+    "Fmhder4ucx": {
+      "id": "Fmhder4ucx",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode/src/crnn_cathode.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "77e221f89be3569382dbb6e8b228ff4808a1316f1c2aa0a0fcfeb7e36ce870bc",
+      "size_bytes": 1469,
+      "lines": 50,
+      "parse_ms": 0.30178900000000003,
+      "parse_status": "ok"
+    },
+    "Fsq0nvodt80": {
+      "id": "Fsq0nvodt80",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode/src/dataset.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "81eecb49327ad6b303e0f73fa5c01202f4c7ee9652e69e8c41bde636ceea9c37",
+      "size_bytes": 729,
+      "lines": 24,
+      "parse_ms": 0.18958899999999998,
+      "parse_status": "ok"
+    },
+    "Fdm6x2xdatf": {
+      "id": "Fdm6x2xdatf",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode/src/header.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "d2cd735f7bf890450206c43c33bbbbe6e77df01756b3eeb4829d27646388ae48",
+      "size_bytes": 1816,
+      "lines": 86,
+      "parse_ms": 0.948657,
+      "parse_status": "ok"
+    },
+    "Fznehlb0yha": {
+      "id": "Fznehlb0yha",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode/src/network.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "b3f5f945647cda385e4524e9d4f3439b1458808ae82599007c972bd5a5bfb9cf",
+      "size_bytes": 4362,
+      "lines": 143,
+      "parse_ms": 1.458427,
+      "parse_status": "ok"
+    },
+    "Fs78wpnfqbf": {
+      "id": "Fs78wpnfqbf",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/callback.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "b72283906c2a0e005dfbb17cd34b1e05b3032294aa3f026802cf8ff5ddca168f",
+      "size_bytes": 5178,
+      "lines": 190,
+      "parse_ms": 2.0646850000000003,
+      "parse_status": "ok"
+    },
+    "F2ne1xtwaa2": {
+      "id": "F2ne1xtwaa2",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/crnn_cathode.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "90018b70375b7de4c2e1b69096075242d6f830d521dd38bce0d3441df7a49b2a",
+      "size_bytes": 2640,
+      "lines": 87,
+      "parse_ms": 0.5782889999999999,
+      "parse_status": "ok"
+    },
+    "Fun6c84xp2w": {
+      "id": "Fun6c84xp2w",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/dataset.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "c2527adf31b07486fc1a450c02556700dfeb2177a378e8cdac3f10adc23f7695",
+      "size_bytes": 1134,
+      "lines": 35,
+      "parse_ms": 0.6450680000000001,
+      "parse_status": "ok"
+    },
+    "Fytjt01hiqd": {
+      "id": "Fytjt01hiqd",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/header.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "f9bf5a49625565bdd15d8bdca51fb4c7be406926c15bbbfd4f0ec2327e04bf3a",
+      "size_bytes": 2537,
+      "lines": 114,
+      "parse_ms": 0.7644880000000001,
+      "parse_status": "ok"
+    },
+    "Fb4cfc0z971": {
+      "id": "Fb4cfc0z971",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/network.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "ae57a99ec54af335d7b0051ce75a2422c143ef107f1fd9b2ec19cb2a8716994f",
+      "size_bytes": 9135,
+      "lines": 277,
+      "parse_ms": 3.52534,
+      "parse_status": "ok"
+    },
+    "Fqihkeao78c": {
+      "id": "Fqihkeao78c",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/post_Plotting.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "0a4bf6a46b01fcc2180b1a2eeeb3cb9e377b070760efd9ebd3fadb6f96c121c5",
+      "size_bytes": 8893,
+      "lines": 349,
+      "parse_ms": 2.2698739999999997,
+      "parse_status": "ok"
+    },
+    "F8ppjptp0wu": {
+      "id": "F8ppjptp0wu",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/HyChem/crnn_pyrolysis_mass.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "c62dc2aca5133b2be4ab603301922fa601cb84006918749c1305abcecb8f23ab",
+      "size_bytes": 5860,
+      "lines": 212,
+      "parse_ms": 1.8533950000000001,
+      "parse_status": "ok"
+    },
+    "Fd7yosdyvr1": {
+      "id": "Fd7yosdyvr1",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/HyChem/gen_data_pyrolysis.py",
+      "language": "python",
+      "detected_via": "extension:.py",
+      "blake3": "a49fd0a74b5bb8077e88fc1ca72ec1fd5163c356c4161e4d4ab4c1b12a283c66",
+      "size_bytes": 2152,
+      "lines": 65,
+      "parse_ms": 0.799128,
+      "parse_status": "ok"
+    },
+    "F17pxnlzlepn": {
+      "id": "F17pxnlzlepn",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case1/case1.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "05ac722419e4caaa40cb41881b99e0c6fc3d3798bf155b733f6b949ca4bb8a66",
+      "size_bytes": 5408,
+      "lines": 209,
+      "parse_ms": 1.6090060000000002,
+      "parse_status": "ok"
+    },
+    "F103wqogzd5i": {
+      "id": "F103wqogzd5i",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case1/case1_hardthreshhold.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "59fd61519223cd05f712e3d3ea71c0861d3d11029edca77d043b13be5ea2fb8b",
+      "size_bytes": 6095,
+      "lines": 238,
+      "parse_ms": 1.8284449999999999,
+      "parse_status": "ok"
+    },
+    "Foidhlqh2he": {
+      "id": "Foidhlqh2he",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case1 rev/case1.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "a4bdd9649078cb0341ea846090a1c3b4ccfdd836c4d431a510c22ef7198b9ae8",
+      "size_bytes": 5096,
+      "lines": 207,
+      "parse_ms": 1.471896,
+      "parse_status": "ok"
+    },
+    "Fb1r45xko0i": {
+      "id": "Fb1r45xko0i",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case2/case2.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "b593c3d029186cc75032986f4f675deb8991f9d30a28efff9f29705e6e1e4bcd",
+      "size_bytes": 6130,
+      "lines": 211,
+      "parse_ms": 2.318314,
+      "parse_status": "ok"
+    },
+    "Fxx70zom694": {
+      "id": "Fxx70zom694",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case2/case2_missing.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "243a8b371af596cfcb72b8e849ddd216a14b8dd28f3044cc312d9583bf3c2094",
+      "size_bytes": 7394,
+      "lines": 281,
+      "parse_ms": 2.149784,
+      "parse_status": "ok"
+    },
+    "Fwbpms6ko1": {
+      "id": "Fwbpms6ko1",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case2/case2_pruning.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "8a42c6bab64cca8ef8687e5ded8eb6828ebcda83cd20eb08b0204e76d344636e",
+      "size_bytes": 7475,
+      "lines": 280,
+      "parse_ms": 1.891345,
+      "parse_status": "ok"
+    },
+    "Ff4yw3g4hdn": {
+      "id": "Ff4yw3g4hdn",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case3/case3.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "26563560d2911cd4cf6d8aed682470c946d16164cf3ac605c5b844094c2d9065",
+      "size_bytes": 8091,
+      "lines": 297,
+      "parse_ms": 2.993272,
+      "parse_status": "ok"
+    },
+    "Frb5cilmj1w": {
+      "id": "Frb5cilmj1w",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case3/case3_pruning.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "471d9f62bdbe2ac2d8be4a590834c4164aca39f0e4c3b617c2962b550b8c40a0",
+      "size_bytes": 7800,
+      "lines": 294,
+      "parse_ms": 2.6280129999999997,
+      "parse_status": "ok"
+    },
+    "Fvxum5tqffc": {
+      "id": "Fvxum5tqffc",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/gene-regulatory-network/gene-regulatory-pruning.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "471d9f62bdbe2ac2d8be4a590834c4164aca39f0e4c3b617c2962b550b8c40a0",
+      "size_bytes": 7800,
+      "lines": 294,
+      "parse_ms": 2.499653,
+      "parse_status": "ok"
+    },
+    "Ffm7it4hiz9": {
+      "id": "Ffm7it4hiz9",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/gene-regulatory-network/gene-regulatory.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "a8e1f22579717faa50622e5537df27ce5611f4ed19f9c1f1e4151f9b6290cac8",
+      "size_bytes": 7178,
+      "lines": 271,
+      "parse_ms": 2.793243,
+      "parse_status": "ok"
+    },
+    "Fyognsek6c": {
+      "id": "Fyognsek6c",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "38b1c53459aeffdede3d3d482839d1a4a60b48ae5591d69dada64751972fb4ed",
+      "size_bytes": 6798,
+      "lines": 240,
+      "parse_ms": 2.401884,
+      "parse_status": "ok"
+    },
+    "Fadzx4dhi0e": {
+      "id": "Fadzx4dhi0e",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_lm.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "f17c043467cb67d607eb070250ce2ed388e774eceefe34ed1670c8cfa4fe7eca",
+      "size_bytes": 7136,
+      "lines": 259,
+      "parse_ms": 2.552023,
+      "parse_status": "ok"
+    },
+    "Fz7qp7a9d0y": {
+      "id": "Fz7qp7a9d0y",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_qssa.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "00b8de181af2cf5af76393901eabd1a73eb7c1a5a65f5789b030d9c75bba4f24",
+      "size_bytes": 6774,
+      "lines": 244,
+      "parse_ms": 2.3788139999999998,
+      "parse_status": "ok"
+    },
+    "F15hoy5yar9": {
+      "id": "F15hoy5yar9",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl",
+      "language": "julia",
+      "detected_via": "extension:.jl",
+      "blake3": "eb409bde817ffecfc4af081147c843faaa7ff2a17bcc9aef11c113deb7fa5175",
+      "size_bytes": 7291,
+      "lines": 262,
+      "parse_ms": 2.778883,
+      "parse_status": "ok"
+    }
+  },
+  "edges": [
+    {
+      "src": "Cptk6czcs86",
+      "dst": "C14p8nk3whfo",
+      "site_line": 53,
+      "site_byte": 1443,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ce7aam1tvjr",
+      "dst": "C111arkdlux9",
+      "site_line": 72,
+      "site_byte": 2054,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cpln71m2pl4",
+      "dst": "C111arkdlux9",
+      "site_line": 86,
+      "site_byte": 2712,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C953swh4y87",
+      "dst": "C14p8nk3whfo",
+      "site_line": 106,
+      "site_byte": 3486,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C953swh4y87",
+      "dst": "Cpln71m2pl4",
+      "site_line": 121,
+      "site_byte": 3906,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cvjrus64we4",
+      "dst": "C953swh4y87",
+      "site_line": 137,
+      "site_byte": 4181,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C9ao1jjlehx",
+      "dst": "Cnckshsrrvv",
+      "site_line": 131,
+      "site_byte": 3268,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C166gh84m6mc",
+      "dst": "C8m9su6rfaw",
+      "site_line": 155,
+      "site_byte": 4620,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Csjviquazd7",
+      "dst": "C8m9su6rfaw",
+      "site_line": 169,
+      "site_byte": 5343,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14khc53jvn4",
+      "dst": "C8m9su6rfaw",
+      "site_line": 179,
+      "site_byte": 5801,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C152xouamxhu",
+      "dst": "C7ewaib8bq",
+      "site_line": 204,
+      "site_byte": 6591,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C152xouamxhu",
+      "dst": "Csjviquazd7",
+      "site_line": 215,
+      "site_byte": 6874,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14iu9j3mggp",
+      "dst": "Cd71rcd2jly",
+      "site_line": 230,
+      "site_byte": 7256,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14iu9j3mggp",
+      "dst": "Cd71rcd2jly",
+      "site_line": 232,
+      "site_byte": 7333,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cd71rcd2jly",
+      "dst": "C152xouamxhu",
+      "site_line": 264,
+      "site_byte": 8542,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cledk45jhvw",
+      "dst": "Ctktla7krgr",
+      "site_line": 134,
+      "site_byte": 3159,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cgbh89tvj5k",
+      "dst": "Cwz88ujep69",
+      "site_line": 93,
+      "site_byte": 2352,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cf5fhvxbk50",
+      "dst": "Cgqdpwkgh9y",
+      "site_line": 125,
+      "site_byte": 3184,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cf5fhvxbk50",
+      "dst": "Cd0spvs1vzs",
+      "site_line": 126,
+      "site_byte": 3211,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4hkagdbf0v",
+      "dst": "Cwz88ujep69",
+      "site_line": 136,
+      "site_byte": 3587,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cv6d9nj0o0c",
+      "dst": "C4hkagdbf0v",
+      "site_line": 144,
+      "site_byte": 3865,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cd9tortsgbg",
+      "dst": "Ccds62iv49v",
+      "site_line": 93,
+      "site_byte": 2252,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Chvtihkeb9g",
+      "dst": "Ccds62iv49v",
+      "site_line": 101,
+      "site_byte": 2458,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C13pm5z5j0nx",
+      "dst": "Cd9tortsgbg",
+      "site_line": 116,
+      "site_byte": 2838,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cuzqhku3g3w",
+      "dst": "C3ra3992acv",
+      "site_line": 97,
+      "site_byte": 2323,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C13i42ukmhuv",
+      "dst": "C3ra3992acv",
+      "site_line": 105,
+      "site_byte": 2529,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cmuu7uixmsr",
+      "dst": "Cuzqhku3g3w",
+      "site_line": 120,
+      "site_byte": 2909,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjwsdxjkxom",
+      "dst": "C14b7uppwmh5",
+      "site_line": 97,
+      "site_byte": 2255,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ch280ui6bvc",
+      "dst": "C14b7uppwmh5",
+      "site_line": 105,
+      "site_byte": 2442,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C15lu6yhw88g",
+      "dst": "Cjwsdxjkxom",
+      "site_line": 118,
+      "site_byte": 2715,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C80qawpl5bj",
+      "dst": "Cwk0u2dq7cd",
+      "site_line": 102,
+      "site_byte": 2743,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C6gy5sdwxzs",
+      "dst": "Cwk0u2dq7cd",
+      "site_line": 125,
+      "site_byte": 3470,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ccrh7waofnd",
+      "dst": "C6gy5sdwxzs",
+      "site_line": 134,
+      "site_byte": 3729,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cza59vtnsu3",
+      "dst": "Ce98p5hh5sc",
+      "site_line": 133,
+      "site_byte": 3448,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjagio3385j",
+      "dst": "Ce98p5hh5sc",
+      "site_line": 141,
+      "site_byte": 3651,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11xua828hno",
+      "dst": "Cza59vtnsu3",
+      "site_line": 168,
+      "site_byte": 4312,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4j7yt9spaj",
+      "dst": "Cimbrqedpei",
+      "site_line": 133,
+      "site_byte": 3446,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cji528lamo0",
+      "dst": "Cimbrqedpei",
+      "site_line": 141,
+      "site_byte": 3649,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ce5ex6z4ans",
+      "dst": "C4j7yt9spaj",
+      "site_line": 162,
+      "site_byte": 4107,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Chbwf3eopup",
+      "dst": "C4g8srrwexk",
+      "site_line": 56,
+      "site_byte": 1198,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C188szzs5ao",
+      "dst": "C4g8srrwexk",
+      "site_line": 173,
+      "site_byte": 4489,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cum5wqfp08e",
+      "dst": "C188szzs5ao",
+      "site_line": 184,
+      "site_byte": 4721,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2q15ymbwls",
+      "dst": "C4b4hw9fagt",
+      "site_line": 142,
+      "site_byte": 3512,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cac8s6af8hu",
+      "dst": "C2q15ymbwls",
+      "site_line": 153,
+      "site_byte": 3744,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cqwcc83qoug",
+      "dst": "C4b4hw9fagt",
+      "site_line": 260,
+      "site_byte": 6868,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Clb8m9uadqg",
+      "dst": "Cuc59mql1ja",
+      "site_line": 142,
+      "site_byte": 3512,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C15w01mcgzzo",
+      "dst": "Clb8m9uadqg",
+      "site_line": 153,
+      "site_byte": 3744,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cy2hhdivddb",
+      "dst": "Cuc59mql1ja",
+      "site_line": 260,
+      "site_byte": 6868,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14h0eytwfee",
+      "dst": "C3p5kx33lnm",
+      "site_line": 53,
+      "site_byte": 1080,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cme4pp25q3s",
+      "dst": "C3p5kx33lnm",
+      "site_line": 176,
+      "site_byte": 4211,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cr5tzro2quv",
+      "dst": "Cme4pp25q3s",
+      "site_line": 184,
+      "site_byte": 4439,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Chbhjmfwes2",
+      "dst": "Ck6yf90m462",
+      "site_line": 99,
+      "site_byte": 2381,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C16u9uulznxb",
+      "dst": "Ck6yf90m462",
+      "site_line": 124,
+      "site_byte": 3166,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cicof2nwl7q",
+      "dst": "C16u9uulznxb",
+      "site_line": 140,
+      "site_byte": 3599,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cscjc1zfdqk",
+      "dst": "Cmtik4q5u2",
+      "site_line": 100,
+      "site_byte": 2402,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjry299jdh8",
+      "dst": "Cmtik4q5u2",
+      "site_line": 124,
+      "site_byte": 3152,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cknbvfwxa4r",
+      "dst": "Cjry299jdh8",
+      "site_line": 140,
+      "site_byte": 3585,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C138k8skubpy",
+      "dst": "Cknbvfwxa4r",
+      "site_line": 212,
+      "site_byte": 5781,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cncwv2hzbw5",
+      "dst": "Cbpbzf0p8k",
+      "site_line": 97,
+      "site_byte": 2262,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Czeyg2gpjej",
+      "dst": "Cbpbzf0p8k",
+      "site_line": 135,
+      "site_byte": 3381,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cef3rkog1r1",
+      "dst": "Czeyg2gpjej",
+      "site_line": 153,
+      "site_byte": 3836,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ckcbar80jm9",
+      "dst": "C14b2n5gotx7",
+      "site_line": 118,
+      "site_byte": 2756,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ckrrhd0xrsi",
+      "dst": "C14b2n5gotx7",
+      "site_line": 152,
+      "site_byte": 3764,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cyoj7tqxwuu",
+      "dst": "Ckrrhd0xrsi",
+      "site_line": 161,
+      "site_byte": 4039,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": null,
+      "file": "F9vbiskjxhr",
+      "site_line": 89,
+      "site_byte": 2300,
+      "name": "plot_sol",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F9vbiskjxhr",
+      "site_line": 149,
+      "site_byte": 4036,
+      "name": "plot_loss",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fsq0nvodt80",
+      "site_line": 17,
+      "site_byte": 490,
+      "name": "load_exp",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fznehlb0yha",
+      "site_line": 143,
+      "site_byte": 4341,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fs78wpnfqbf",
+      "site_line": 108,
+      "site_byte": 2613,
+      "name": "plot_sol",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fs78wpnfqbf",
+      "site_line": 181,
+      "site_byte": 4899,
+      "name": "plot_loss",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fun6c84xp2w",
+      "site_line": 17,
+      "site_byte": 551,
+      "name": "load_exp",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fqihkeao78c",
+      "site_line": 273,
+      "site_byte": 6580,
+      "name": "A_Ea_plots",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fqihkeao78c",
+      "site_line": 336,
+      "site_byte": 8728,
+      "name": "make_plots",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fqihkeao78c",
+      "site_line": 338,
+      "site_byte": 8759,
+      "name": "make_plots",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fqihkeao78c",
+      "site_line": 340,
+      "site_byte": 8790,
+      "name": "make_plots",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fqihkeao78c",
+      "site_line": 342,
+      "site_byte": 8821,
+      "name": "make_plots",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fqihkeao78c",
+      "site_line": 344,
+      "site_byte": 8852,
+      "name": "make_plots",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F8ppjptp0wu",
+      "site_line": 101,
+      "site_byte": 2608,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F8ppjptp0wu",
+      "site_line": 110,
+      "site_byte": 2859,
+      "name": "Y2density",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F8ppjptp0wu",
+      "site_line": 115,
+      "site_byte": 2962,
+      "name": "Y2C",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F8ppjptp0wu",
+      "site_line": 117,
+      "site_byte": 2989,
+      "name": "Y2C",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F8ppjptp0wu",
+      "site_line": 141,
+      "site_byte": 3798,
+      "name": "predict_n_ode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F8ppjptp0wu",
+      "site_line": 148,
+      "site_byte": 3981,
+      "name": "loss_n_ode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F8ppjptp0wu",
+      "site_line": 159,
+      "site_byte": 4230,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F8ppjptp0wu",
+      "site_line": 160,
+      "site_byte": 4258,
+      "name": "predict_n_ode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F8ppjptp0wu",
+      "site_line": 200,
+      "site_byte": 5512,
+      "name": "loss_n_ode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F8ppjptp0wu",
+      "site_line": 201,
+      "site_byte": 5571,
+      "name": "loss_n_ode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F17pxnlzlepn",
+      "site_line": 66,
+      "site_byte": 1618,
+      "name": "max_min",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F17pxnlzlepn",
+      "site_line": 113,
+      "site_byte": 2779,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F17pxnlzlepn",
+      "site_line": 127,
+      "site_byte": 3146,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F17pxnlzlepn",
+      "site_line": 160,
+      "site_byte": 4031,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F17pxnlzlepn",
+      "site_line": 197,
+      "site_byte": 4991,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F17pxnlzlepn",
+      "site_line": 203,
+      "site_byte": 5138,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F103wqogzd5i",
+      "site_line": 66,
+      "site_byte": 1618,
+      "name": "max_min",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F103wqogzd5i",
+      "site_line": 117,
+      "site_byte": 2850,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F103wqogzd5i",
+      "site_line": 130,
+      "site_byte": 3185,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F103wqogzd5i",
+      "site_line": 165,
+      "site_byte": 4068,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F103wqogzd5i",
+      "site_line": 203,
+      "site_byte": 5073,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F103wqogzd5i",
+      "site_line": 210,
+      "site_byte": 5242,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F103wqogzd5i",
+      "site_line": 224,
+      "site_byte": 5575,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F103wqogzd5i",
+      "site_line": 230,
+      "site_byte": 5724,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Foidhlqh2he",
+      "site_line": 65,
+      "site_byte": 1487,
+      "name": "max_min",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Foidhlqh2he",
+      "site_line": 101,
+      "site_byte": 2350,
+      "name": "pred_ode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Foidhlqh2he",
+      "site_line": 115,
+      "site_byte": 2662,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Foidhlqh2he",
+      "site_line": 122,
+      "site_byte": 2833,
+      "name": "loss_ode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Foidhlqh2he",
+      "site_line": 129,
+      "site_byte": 2990,
+      "name": "pred_ode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Foidhlqh2he",
+      "site_line": 164,
+      "site_byte": 3873,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Foidhlqh2he",
+      "site_line": 197,
+      "site_byte": 4718,
+      "name": "loss_ode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Foidhlqh2he",
+      "site_line": 201,
+      "site_byte": 4832,
+      "name": "loss_ode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fb1r45xko0i",
+      "site_line": 76,
+      "site_byte": 1914,
+      "name": "Arrhenius",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fb1r45xko0i",
+      "site_line": 81,
+      "site_byte": 2196,
+      "name": "max_min",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fb1r45xko0i",
+      "site_line": 111,
+      "site_byte": 3014,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fb1r45xko0i",
+      "site_line": 129,
+      "site_byte": 3578,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fb1r45xko0i",
+      "site_line": 141,
+      "site_byte": 3944,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fb1r45xko0i",
+      "site_line": 163,
+      "site_byte": 4591,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fb1r45xko0i",
+      "site_line": 195,
+      "site_byte": 5561,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fb1r45xko0i",
+      "site_line": 200,
+      "site_byte": 5722,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fxx70zom694",
+      "site_line": 89,
+      "site_byte": 2179,
+      "name": "Arrhenius",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fxx70zom694",
+      "site_line": 94,
+      "site_byte": 2461,
+      "name": "max_min",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fxx70zom694",
+      "site_line": 117,
+      "site_byte": 3000,
+      "name": "p2vec",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fxx70zom694",
+      "site_line": 138,
+      "site_byte": 3580,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fxx70zom694",
+      "site_line": 153,
+      "site_byte": 3966,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fxx70zom694",
+      "site_line": 177,
+      "site_byte": 4615,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fxx70zom694",
+      "site_line": 200,
+      "site_byte": 5311,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fxx70zom694",
+      "site_line": 239,
+      "site_byte": 6418,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fxx70zom694",
+      "site_line": 254,
+      "site_byte": 6757,
+      "name": "display_grad",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fxx70zom694",
+      "site_line": 259,
+      "site_byte": 6865,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fxx70zom694",
+      "site_line": 273,
+      "site_byte": 7286,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fxx70zom694",
+      "site_line": 280,
+      "site_byte": 7372,
+      "name": "display_grad",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fwbpms6ko1",
+      "site_line": 87,
+      "site_byte": 2106,
+      "name": "Arrhenius",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fwbpms6ko1",
+      "site_line": 92,
+      "site_byte": 2388,
+      "name": "max_min",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fwbpms6ko1",
+      "site_line": 118,
+      "site_byte": 2999,
+      "name": "p2vec",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fwbpms6ko1",
+      "site_line": 138,
+      "site_byte": 3578,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fwbpms6ko1",
+      "site_line": 157,
+      "site_byte": 3968,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fwbpms6ko1",
+      "site_line": 172,
+      "site_byte": 4458,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fwbpms6ko1",
+      "site_line": 207,
+      "site_byte": 5398,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fwbpms6ko1",
+      "site_line": 241,
+      "site_byte": 6322,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fwbpms6ko1",
+      "site_line": 248,
+      "site_byte": 6491,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ff4yw3g4hdn",
+      "site_line": 71,
+      "site_byte": 1632,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ff4yw3g4hdn",
+      "site_line": 137,
+      "site_byte": 3467,
+      "name": "max_min",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ff4yw3g4hdn",
+      "site_line": 140,
+      "site_byte": 3603,
+      "name": "max_min",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ff4yw3g4hdn",
+      "site_line": 177,
+      "site_byte": 4581,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ff4yw3g4hdn",
+      "site_line": 195,
+      "site_byte": 5158,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ff4yw3g4hdn",
+      "site_line": 224,
+      "site_byte": 5945,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ff4yw3g4hdn",
+      "site_line": 267,
+      "site_byte": 7280,
+      "name": "p2vec",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ff4yw3g4hdn",
+      "site_line": 268,
+      "site_byte": 7305,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ff4yw3g4hdn",
+      "site_line": 276,
+      "site_byte": 7540,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Frb5cilmj1w",
+      "site_line": 106,
+      "site_byte": 2490,
+      "name": "max_min",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Frb5cilmj1w",
+      "site_line": 109,
+      "site_byte": 2626,
+      "name": "max_min",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Frb5cilmj1w",
+      "site_line": 146,
+      "site_byte": 3604,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Frb5cilmj1w",
+      "site_line": 166,
+      "site_byte": 4275,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Frb5cilmj1w",
+      "site_line": 201,
+      "site_byte": 5246,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Frb5cilmj1w",
+      "site_line": 276,
+      "site_byte": 7303,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Frb5cilmj1w",
+      "site_line": 283,
+      "site_byte": 7444,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvxum5tqffc",
+      "site_line": 106,
+      "site_byte": 2490,
+      "name": "max_min",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvxum5tqffc",
+      "site_line": 109,
+      "site_byte": 2626,
+      "name": "max_min",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvxum5tqffc",
+      "site_line": 146,
+      "site_byte": 3604,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvxum5tqffc",
+      "site_line": 166,
+      "site_byte": 4275,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvxum5tqffc",
+      "site_line": 201,
+      "site_byte": 5246,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvxum5tqffc",
+      "site_line": 276,
+      "site_byte": 7303,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvxum5tqffc",
+      "site_line": 283,
+      "site_byte": 7444,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ffm7it4hiz9",
+      "site_line": 65,
+      "site_byte": 1398,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ffm7it4hiz9",
+      "site_line": 158,
+      "site_byte": 3667,
+      "name": "max_min",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ffm7it4hiz9",
+      "site_line": 181,
+      "site_byte": 4368,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ffm7it4hiz9",
+      "site_line": 193,
+      "site_byte": 4714,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ffm7it4hiz9",
+      "site_line": 222,
+      "site_byte": 5501,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ffm7it4hiz9",
+      "site_line": 259,
+      "site_byte": 6691,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ffm7it4hiz9",
+      "site_line": 265,
+      "site_byte": 6892,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fyognsek6c",
+      "site_line": 78,
+      "site_byte": 1853,
+      "name": "max_min",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fyognsek6c",
+      "site_line": 111,
+      "site_byte": 2744,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fyognsek6c",
+      "site_line": 137,
+      "site_byte": 3508,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fyognsek6c",
+      "site_line": 145,
+      "site_byte": 3774,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fyognsek6c",
+      "site_line": 149,
+      "site_byte": 3875,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fyognsek6c",
+      "site_line": 181,
+      "site_byte": 4819,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fyognsek6c",
+      "site_line": 219,
+      "site_byte": 6065,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fyognsek6c",
+      "site_line": 227,
+      "site_byte": 6341,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fadzx4dhi0e",
+      "site_line": 79,
+      "site_byte": 1874,
+      "name": "max_min",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fadzx4dhi0e",
+      "site_line": 112,
+      "site_byte": 2765,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fadzx4dhi0e",
+      "site_line": 137,
+      "site_byte": 3494,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fadzx4dhi0e",
+      "site_line": 145,
+      "site_byte": 3760,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fadzx4dhi0e",
+      "site_line": 149,
+      "site_byte": 3861,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fadzx4dhi0e",
+      "site_line": 181,
+      "site_byte": 4794,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fadzx4dhi0e",
+      "site_line": 214,
+      "site_byte": 5830,
+      "name": "loss_lm",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fadzx4dhi0e",
+      "site_line": 217,
+      "site_byte": 5897,
+      "name": "loss_lm",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fadzx4dhi0e",
+      "site_line": 228,
+      "site_byte": 6191,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fadzx4dhi0e",
+      "site_line": 236,
+      "site_byte": 6467,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fadzx4dhi0e",
+      "site_line": 251,
+      "site_byte": 6948,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fz7qp7a9d0y",
+      "site_line": 71,
+      "site_byte": 1615,
+      "name": "max_min",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fz7qp7a9d0y",
+      "site_line": 109,
+      "site_byte": 2611,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fz7qp7a9d0y",
+      "site_line": 148,
+      "site_byte": 3703,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fz7qp7a9d0y",
+      "site_line": 158,
+      "site_byte": 3999,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fz7qp7a9d0y",
+      "site_line": 163,
+      "site_byte": 4164,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fz7qp7a9d0y",
+      "site_line": 188,
+      "site_byte": 4897,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fz7qp7a9d0y",
+      "site_line": 223,
+      "site_byte": 6049,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fz7qp7a9d0y",
+      "site_line": 231,
+      "site_byte": 6317,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15hoy5yar9",
+      "site_line": 126,
+      "site_byte": 3002,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15hoy5yar9",
+      "site_line": 158,
+      "site_byte": 3954,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15hoy5yar9",
+      "site_line": 166,
+      "site_byte": 4243,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15hoy5yar9",
+      "site_line": 171,
+      "site_byte": 4384,
+      "name": "predict_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15hoy5yar9",
+      "site_line": 210,
+      "site_byte": 5364,
+      "name": "display_p",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15hoy5yar9",
+      "site_line": 246,
+      "site_byte": 6592,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15hoy5yar9",
+      "site_line": 253,
+      "site_byte": 6877,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F9vbiskjxhr",
+      "site_line": 76,
+      "site_byte": 1802,
+      "name": "pred_n_ode",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9vbiskjxhr",
+      "site_line": 77,
+      "site_byte": 1848,
+      "name": "pred_n_ode",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9vbiskjxhr",
+      "site_line": 78,
+      "site_byte": 1894,
+      "name": "pred_n_ode",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9vbiskjxhr",
+      "site_line": 79,
+      "site_byte": 1936,
+      "name": "HRR_getter",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9vbiskjxhr",
+      "site_line": 80,
+      "site_byte": 1993,
+      "name": "HRR_getter",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9vbiskjxhr",
+      "site_line": 81,
+      "site_byte": 2050,
+      "name": "HRR_getter",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9vbiskjxhr",
+      "site_line": 86,
+      "site_byte": 2230,
+      "name": "getsampletemp",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9vbiskjxhr",
+      "site_line": 133,
+      "site_byte": 3587,
+      "name": "display_p",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 17
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9vbiskjxhr",
+      "site_line": 136,
+      "site_byte": 3694,
+      "name": "display_p",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 17
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fmhder4ucx",
+      "site_line": 17,
+      "site_byte": 488,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 15
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fmhder4ucx",
+      "site_line": 25,
+      "site_byte": 801,
+      "name": "loss_neuralode",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 15
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fs78wpnfqbf",
+      "site_line": 90,
+      "site_byte": 2097,
+      "name": "getsampletemp",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fs78wpnfqbf",
+      "site_line": 99,
+      "site_byte": 2325,
+      "name": "pred_n_ode",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fs78wpnfqbf",
+      "site_line": 101,
+      "site_byte": 2421,
+      "name": "HRR_getter",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cqyk1tgx0xc",
+      "file": "Fs78wpnfqbf",
+      "site_line": 116,
+      "site_byte": 2972,
+      "name": "norm2",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cqyk1tgx0xc",
+      "file": "Fs78wpnfqbf",
+      "site_line": 117,
+      "site_byte": 3056,
+      "name": "norm2",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fs78wpnfqbf",
+      "site_line": 165,
+      "site_byte": 4433,
+      "name": "display_p",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 17
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fs78wpnfqbf",
+      "site_line": 168,
+      "site_byte": 4548,
+      "name": "display_p",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 17
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F2ne1xtwaa2",
+      "site_line": 27,
+      "site_byte": 560,
+      "name": "dlnprob",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F2ne1xtwaa2",
+      "site_line": 31,
+      "site_byte": 685,
+      "name": "dlnprob",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F2ne1xtwaa2",
+      "site_line": 36,
+      "site_byte": 878,
+      "name": "svgd_kernel",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F2ne1xtwaa2",
+      "site_line": 46,
+      "site_byte": 1346,
+      "name": "norm2",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F2ne1xtwaa2",
+      "site_line": 47,
+      "site_byte": 1481,
+      "name": "norm2",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cledk45jhvw",
+      "file": "Fqihkeao78c",
+      "site_line": 98,
+      "site_byte": 1998,
+      "name": "getsampletemp",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cledk45jhvw",
+      "file": "Fqihkeao78c",
+      "site_line": 123,
+      "site_byte": 2592,
+      "name": "pred_n_ode",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cledk45jhvw",
+      "file": "Fqihkeao78c",
+      "site_line": 125,
+      "site_byte": 2688,
+      "name": "HRR_getter_post",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fqihkeao78c",
+      "site_line": 268,
+      "site_byte": 6505,
+      "name": "display_p",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 17
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 11,
+      "site_byte": 202,
+      "name": "lhs_type",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 11,
+      "site_byte": 222,
+      "name": "criterion",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 15,
+      "site_byte": 325,
+      "name": "dimensions",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 15,
+      "site_byte": 343,
+      "name": "nsamples",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 19,
+      "site_byte": 424,
+      "name": "nsamples",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 23,
+      "site_byte": 546,
+      "name": "gas",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 24,
+      "site_byte": 576,
+      "name": "r",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 26,
+      "site_byte": 625,
+      "name": "gas",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 26,
+      "site_byte": 630,
+      "name": "extra",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 30,
+      "site_byte": 766,
+      "name": "state",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 30,
+      "site_byte": 782,
+      "name": "t",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 30,
+      "site_byte": 784,
+      "name": "time",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 32,
+      "site_byte": 832,
+      "name": "time",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 36,
+      "site_byte": 1004,
+      "name": "s",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 39,
+      "site_byte": 1148,
+      "name": "t",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 39,
+      "site_byte": 1158,
+      "name": "T",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 39,
+      "site_byte": 1168,
+      "name": "P",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 39,
+      "site_byte": 1178,
+      "name": "X",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 40,
+      "site_byte": 1222,
+      "name": "nodedata",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 45,
+      "site_byte": 1311,
+      "name": "t",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 45,
+      "site_byte": 1321,
+      "name": "T",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 49,
+      "site_byte": 1452,
+      "name": "t",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 53,
+      "site_byte": 1625,
+      "name": "t",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 57,
+      "site_byte": 1794,
+      "name": "t",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 58,
+      "site_byte": 1860,
+      "name": "t",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd7yosdyvr1",
+      "site_line": 61,
+      "site_byte": 2003,
+      "name": "i",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 29.9592,
+    "phases": {
+      "walk_ms": 7.61609,
+      "parse_ms": 49.532999000000004,
+      "extract_ms": 0.0,
+      "resolve_ms": 0.0,
+      "link_ms": 2.135494,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 131,
+    "files_analyzed": 27,
+    "files_skipped": 104,
+    "files_errored": 0,
+    "bytes_processed": 146753,
+    "callables": 146,
+    "edges": 64,
+    "unresolved_calls": 356,
+    "stdlib_calls": 993,
+    "external_calls": 790,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "julia": {
+        "files": 26,
+        "callables": 146,
+        "edges": 64,
+        "unresolved": 330,
+        "stdlib": 986,
+        "external": 752
+      },
+      "python": {
+        "files": 1,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 26,
+        "stdlib": 7,
+        "external": 38
+      },
+      "skip:builtin": {
+        "files": 30,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      },
+      "skip:binary": {
+        "files": 48,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 64,
+      "medium": 0,
+      "low": 0
+    }
+  }
+}

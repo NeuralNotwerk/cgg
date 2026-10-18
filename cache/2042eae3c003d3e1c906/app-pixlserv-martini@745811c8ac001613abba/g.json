@@ -1,0 +1,2928 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "Csb0tl2svc6": {
+      "id": "Csb0tl2svc6",
+      "qualified_name": "main.init",
+      "simple_name": "init",
+      "kind": "function",
+      "language": "go",
+      "file": "Fpsldh5037r",
+      "start_line": 26,
+      "end_line": 29,
+      "start_byte": 390,
+      "end_byte": 503,
+      "signature_hint": "func init()",
+      "vis": "internal"
+    },
+    "C17dabja621u": {
+      "id": "C17dabja621u",
+      "qualified_name": "main.authInit",
+      "simple_name": "authInit",
+      "kind": "function",
+      "language": "go",
+      "file": "Fpsldh5037r",
+      "start_line": 31,
+      "end_line": 57,
+      "start_byte": 505,
+      "end_byte": 1164,
+      "signature_hint": "func authInit() error",
+      "vis": "internal"
+    },
+    "Clezxgteatc": {
+      "id": "Clezxgteatc",
+      "qualified_name": "main.hasPermission",
+      "simple_name": "hasPermission",
+      "kind": "function",
+      "language": "go",
+      "file": "Fpsldh5037r",
+      "start_line": 59,
+      "end_line": 65,
+      "start_byte": 1166,
+      "end_byte": 1302,
+      "signature_hint": "func hasPermission(key, permission string) bool",
+      "vis": "internal"
+    },
+    "Crq8q7tvv6k": {
+      "id": "Crq8q7tvv6k",
+      "qualified_name": "main.generateKey",
+      "simple_name": "generateKey",
+      "kind": "function",
+      "language": "go",
+      "file": "Fpsldh5037r",
+      "start_line": 67,
+      "end_line": 80,
+      "start_byte": 1304,
+      "end_byte": 1715,
+      "signature_hint": "func generateKey() (string, string, error)",
+      "vis": "internal"
+    },
+    "Cz8tojp6utj": {
+      "id": "Cz8tojp6utj",
+      "qualified_name": "main.generateSecret",
+      "simple_name": "generateSecret",
+      "kind": "function",
+      "language": "go",
+      "file": "Fpsldh5037r",
+      "start_line": 82,
+      "end_line": 95,
+      "start_byte": 1717,
+      "end_byte": 1990,
+      "signature_hint": "func generateSecret(key string) (string, error)",
+      "vis": "internal"
+    },
+    "C17ak7fwy48x": {
+      "id": "C17ak7fwy48x",
+      "qualified_name": "main.infoAboutKey",
+      "simple_name": "infoAboutKey",
+      "kind": "function",
+      "language": "go",
+      "file": "Fpsldh5037r",
+      "start_line": 97,
+      "end_line": 108,
+      "start_byte": 1992,
+      "end_byte": 2282,
+      "signature_hint": "func infoAboutKey(key string) ([]string, error)",
+      "vis": "internal"
+    },
+    "Ce6dau4cqyq": {
+      "id": "Ce6dau4cqyq",
+      "qualified_name": "main.listKeys",
+      "simple_name": "listKeys",
+      "kind": "function",
+      "language": "go",
+      "file": "Fpsldh5037r",
+      "start_line": 110,
+      "end_line": 112,
+      "start_byte": 2284,
+      "end_byte": 2376,
+      "signature_hint": "func listKeys() ([]string, error)",
+      "vis": "internal"
+    },
+    "Cixv0a91tmi": {
+      "id": "Cixv0a91tmi",
+      "qualified_name": "main.modifyKey",
+      "simple_name": "modifyKey",
+      "kind": "function",
+      "language": "go",
+      "file": "Fpsldh5037r",
+      "start_line": 114,
+      "end_line": 131,
+      "start_byte": 2378,
+      "end_byte": 2950,
+      "signature_hint": "func modifyKey(key, op, permission string) error",
+      "vis": "internal"
+    },
+    "C15wn74rr6kd": {
+      "id": "C15wn74rr6kd",
+      "qualified_name": "main.removeKey",
+      "simple_name": "removeKey",
+      "kind": "function",
+      "language": "go",
+      "file": "Fpsldh5037r",
+      "start_line": 133,
+      "end_line": 144,
+      "start_byte": 2952,
+      "end_byte": 3189,
+      "signature_hint": "func removeKey(key string) error",
+      "vis": "internal"
+    },
+    "Cbleygteo30": {
+      "id": "Cbleygteo30",
+      "qualified_name": "main.getSecretForKey",
+      "simple_name": "getSecretForKey",
+      "kind": "function",
+      "language": "go",
+      "file": "Fpsldh5037r",
+      "start_line": 146,
+      "end_line": 158,
+      "start_byte": 3191,
+      "end_byte": 3435,
+      "signature_hint": "func getSecretForKey(key string) (string, error)",
+      "vis": "internal"
+    },
+    "Cf9rih9ysbo": {
+      "id": "Cf9rih9ysbo",
+      "qualified_name": "main.authPermissionsOptions",
+      "simple_name": "authPermissionsOptions",
+      "kind": "function",
+      "language": "go",
+      "file": "Fpsldh5037r",
+      "start_line": 160,
+      "end_line": 162,
+      "start_byte": 3437,
+      "end_byte": 3539,
+      "signature_hint": "func authPermissionsOptions() string",
+      "vis": "internal"
+    },
+    "Cdyy12tt73j": {
+      "id": "Cdyy12tt73j",
+      "qualified_name": "main.checkKeyExists",
+      "simple_name": "checkKeyExists",
+      "kind": "function",
+      "language": "go",
+      "file": "Fpsldh5037r",
+      "start_line": 164,
+      "end_line": 173,
+      "start_byte": 3541,
+      "end_byte": 3752,
+      "signature_hint": "func checkKeyExists(key string) error",
+      "vis": "internal"
+    },
+    "Cu1wmvr8c1b": {
+      "id": "Cu1wmvr8c1b",
+      "qualified_name": "main.isValidSignature",
+      "simple_name": "isValidSignature",
+      "kind": "function",
+      "language": "go",
+      "file": "Fpsldh5037r",
+      "start_line": 175,
+      "end_line": 196,
+      "start_byte": 3754,
+      "end_byte": 4277,
+      "signature_hint": "func isValidSignature(signature, secret string, queryParams map[string]string) bool",
+      "vis": "internal"
+    },
+    "Cj3zm7dblpb": {
+      "id": "Cj3zm7dblpb",
+      "qualified_name": "main.signQueryString",
+      "simple_name": "signQueryString",
+      "kind": "function",
+      "language": "go",
+      "file": "Fpsldh5037r",
+      "start_line": 198,
+      "end_line": 202,
+      "start_byte": 4279,
+      "end_byte": 4436,
+      "signature_hint": "func signQueryString(queryString, secret string) []byte",
+      "vis": "internal"
+    },
+    "Cjhj5sisuay": {
+      "id": "Cjhj5sisuay",
+      "qualified_name": "main.addToCache",
+      "simple_name": "addToCache",
+      "kind": "function",
+      "language": "go",
+      "file": "F179nwwt4hjf",
+      "start_line": 19,
+      "end_line": 42,
+      "start_byte": 187,
+      "end_byte": 730,
+      "signature_hint": "func addToCache(filePath string, img image.Image, format string) error",
+      "vis": "internal"
+    },
+    "Chq5okjcdb": {
+      "id": "Chq5okjcdb",
+      "qualified_name": "main.removeFromCache",
+      "simple_name": "removeFromCache",
+      "kind": "function",
+      "language": "go",
+      "file": "F179nwwt4hjf",
+      "start_line": 44,
+      "end_line": 61,
+      "start_byte": 732,
+      "end_byte": 1182,
+      "signature_hint": "func removeFromCache(key string)",
+      "vis": "internal"
+    },
+    "C3hn2bbuxcd": {
+      "id": "C3hn2bbuxcd",
+      "qualified_name": "main.loadFromCache",
+      "simple_name": "loadFromCache",
+      "kind": "function",
+      "language": "go",
+      "file": "F179nwwt4hjf",
+      "start_line": 64,
+      "end_line": 80,
+      "start_byte": 1238,
+      "end_byte": 1641,
+      "signature_hint": "func loadFromCache(filePath string) (image.Image, string, error)",
+      "vis": "internal"
+    },
+    "C15uzb0x9fj2": {
+      "id": "C15uzb0x9fj2",
+      "qualified_name": "main.cacheUpdateLastAccess",
+      "simple_name": "cacheUpdateLastAccess",
+      "kind": "function",
+      "language": "go",
+      "file": "F179nwwt4hjf",
+      "start_line": 82,
+      "end_line": 86,
+      "start_byte": 1643,
+      "end_byte": 1824,
+      "signature_hint": "func cacheUpdateLastAccess(key string)",
+      "vis": "internal"
+    },
+    "Cjm5zobth0b": {
+      "id": "Cjm5zobth0b",
+      "qualified_name": "main.pruneCache",
+      "simple_name": "pruneCache",
+      "kind": "function",
+      "language": "go",
+      "file": "F179nwwt4hjf",
+      "start_line": 88,
+      "end_line": 108,
+      "start_byte": 1826,
+      "end_byte": 2188,
+      "signature_hint": "func pruneCache()",
+      "vis": "internal"
+    },
+    "C5rtsbnziix": {
+      "id": "C5rtsbnziix",
+      "qualified_name": "main.getCacheRemovalCandidates",
+      "simple_name": "getCacheRemovalCandidates",
+      "kind": "function",
+      "language": "go",
+      "file": "F179nwwt4hjf",
+      "start_line": 110,
+      "end_line": 121,
+      "start_byte": 2190,
+      "end_byte": 2557,
+      "signature_hint": "func getCacheRemovalCandidates() []string",
+      "vis": "internal"
+    },
+    "C4fm04tv0qa": {
+      "id": "C4fm04tv0qa",
+      "qualified_name": "main.configInit",
+      "simple_name": "configInit",
+      "kind": "function",
+      "language": "go",
+      "file": "Frydawcpugd",
+      "start_line": 53,
+      "end_line": 276,
+      "start_byte": 1719,
+      "end_byte": 7522,
+      "signature_hint": "func configInit(configFilePath string) error",
+      "vis": "internal"
+    },
+    "Cnfx4i6u85w": {
+      "id": "Cnfx4i6u85w",
+      "qualified_name": "main.isValidTransformationName",
+      "simple_name": "isValidTransformationName",
+      "kind": "function",
+      "language": "go",
+      "file": "Frydawcpugd",
+      "start_line": 282,
+      "end_line": 284,
+      "start_byte": 7603,
+      "end_byte": 7708,
+      "signature_hint": "func isValidTransformationName(name string) bool",
+      "vis": "internal"
+    },
+    "C6w9rsy7ewa": {
+      "id": "C6w9rsy7ewa",
+      "qualified_name": "main.writeImage",
+      "simple_name": "writeImage",
+      "kind": "function",
+      "language": "go",
+      "file": "F7kxx3t5jfr",
+      "start_line": 20,
+      "end_line": 25,
+      "start_byte": 319,
+      "end_byte": 505,
+      "signature_hint": "func writeImage(img image.Image, format string, w io.Writer) error",
+      "vis": "internal"
+    },
+    "C3v1dl2lj5r": {
+      "id": "C3v1dl2lj5r",
+      "qualified_name": "main.readImage",
+      "simple_name": "readImage",
+      "kind": "function",
+      "language": "go",
+      "file": "F7kxx3t5jfr",
+      "start_line": 27,
+      "end_line": 32,
+      "start_byte": 507,
+      "end_byte": 660,
+      "signature_hint": "func readImage(reader io.Reader, format string) (image.Image, error)",
+      "vis": "internal"
+    },
+    "Chwlouzzb8u": {
+      "id": "Chwlouzzb8u",
+      "qualified_name": "main.constructScaledPath",
+      "simple_name": "constructScaledPath",
+      "kind": "function",
+      "language": "go",
+      "file": "F7kxx3t5jfr",
+      "start_line": 35,
+      "end_line": 41,
+      "start_byte": 715,
+      "end_byte": 986,
+      "signature_hint": "func constructScaledPath(path string, scale int) (string, error)",
+      "vis": "internal"
+    },
+    "Casif1nedmd": {
+      "id": "Casif1nedmd",
+      "qualified_name": "main.parseBasePathAndScale",
+      "simple_name": "parseBasePathAndScale",
+      "kind": "function",
+      "language": "go",
+      "file": "F7kxx3t5jfr",
+      "start_line": 44,
+      "end_line": 52,
+      "start_byte": 1029,
+      "end_byte": 1276,
+      "signature_hint": "func parseBasePathAndScale(path string) (string, int)",
+      "vis": "internal"
+    },
+    "C96vd3fgrtt": {
+      "id": "C96vd3fgrtt",
+      "qualified_name": "main.Params.ToString",
+      "simple_name": "ToString",
+      "kind": "method",
+      "language": "go",
+      "file": "Fmhab023zk6",
+      "start_line": 56,
+      "end_line": 59,
+      "start_byte": 1396,
+      "end_byte": 1726,
+      "signature_hint": "func (p Params) ToString() string",
+      "vis": "public"
+    },
+    "Coma1sj4x7x": {
+      "id": "Coma1sj4x7x",
+      "qualified_name": "main.Params.WithScale",
+      "simple_name": "WithScale",
+      "kind": "method",
+      "language": "go",
+      "file": "Fmhab023zk6",
+      "start_line": 62,
+      "end_line": 64,
+      "start_byte": 1813,
+      "end_byte": 1934,
+      "signature_hint": "func (p Params) WithScale(scale int) Params",
+      "vis": "public"
+    },
+    "Cgwtyq2n8yv": {
+      "id": "Cgwtyq2n8yv",
+      "qualified_name": "main.parseParameters",
+      "simple_name": "parseParameters",
+      "kind": "function",
+      "language": "go",
+      "file": "Fmhab023zk6",
+      "start_line": 70,
+      "end_line": 124,
+      "start_byte": 2153,
+      "end_byte": 3756,
+      "signature_hint": "func parseParameters(parametersStr string) (Params, error)",
+      "vis": "internal"
+    },
+    "Cxgxfnw3z85": {
+      "id": "Cxgxfnw3z85",
+      "qualified_name": "main.parseTransformationName",
+      "simple_name": "parseTransformationName",
+      "kind": "function",
+      "language": "go",
+      "file": "Fmhab023zk6",
+      "start_line": 128,
+      "end_line": 134,
+      "start_byte": 3890,
+      "end_byte": 4076,
+      "signature_hint": "func parseTransformationName(parametersStr string) string",
+      "vis": "internal"
+    },
+    "C2cgu4nlmzf": {
+      "id": "C2cgu4nlmzf",
+      "qualified_name": "main.isValidCroppingMode",
+      "simple_name": "isValidCroppingMode",
+      "kind": "function",
+      "language": "go",
+      "file": "Fmhab023zk6",
+      "start_line": 136,
+      "end_line": 138,
+      "start_byte": 4078,
+      "end_byte": 4241,
+      "signature_hint": "func isValidCroppingMode(str string) bool",
+      "vis": "internal"
+    },
+    "C8xajy9oe3u": {
+      "id": "C8xajy9oe3u",
+      "qualified_name": "main.isValidGravity",
+      "simple_name": "isValidGravity",
+      "kind": "function",
+      "language": "go",
+      "file": "Fmhab023zk6",
+      "start_line": 140,
+      "end_line": 142,
+      "start_byte": 4243,
+      "end_byte": 4510,
+      "signature_hint": "func isValidGravity(str string) bool",
+      "vis": "internal"
+    },
+    "Cyz8b30urzz": {
+      "id": "Cyz8b30urzz",
+      "qualified_name": "main.isValidFilter",
+      "simple_name": "isValidFilter",
+      "kind": "function",
+      "language": "go",
+      "file": "Fmhab023zk6",
+      "start_line": 144,
+      "end_line": 146,
+      "start_byte": 4512,
+      "end_byte": 4582,
+      "signature_hint": "func isValidFilter(str string) bool",
+      "vis": "internal"
+    },
+    "C39bhkxlv23": {
+      "id": "C39bhkxlv23",
+      "qualified_name": "main.isEasternGravity",
+      "simple_name": "isEasternGravity",
+      "kind": "function",
+      "language": "go",
+      "file": "Fmhab023zk6",
+      "start_line": 148,
+      "end_line": 150,
+      "start_byte": 4584,
+      "end_byte": 4707,
+      "signature_hint": "func isEasternGravity(str string) bool",
+      "vis": "internal"
+    },
+    "Csorasnsrzd": {
+      "id": "Csorasnsrzd",
+      "qualified_name": "main.isSouthernGravity",
+      "simple_name": "isSouthernGravity",
+      "kind": "function",
+      "language": "go",
+      "file": "Fmhab023zk6",
+      "start_line": 152,
+      "end_line": 154,
+      "start_byte": 4709,
+      "end_byte": 4834,
+      "signature_hint": "func isSouthernGravity(str string) bool",
+      "vis": "internal"
+    },
+    "Clofmzpxfvv": {
+      "id": "Clofmzpxfvv",
+      "qualified_name": "main.TestParseParameters",
+      "simple_name": "TestParseParameters",
+      "kind": "function",
+      "language": "go",
+      "file": "Frqhkobwis0",
+      "start_line": 7,
+      "end_line": 19,
+      "start_byte": 37,
+      "end_byte": 491,
+      "signature_hint": "func TestParseParameters(t *testing.T)",
+      "vis": "public",
+      "test_role": "case"
+    },
+    "Cqvzg5v7vp5": {
+      "id": "Cqvzg5v7vp5",
+      "qualified_name": "main.redisInit",
+      "simple_name": "redisInit",
+      "kind": "function",
+      "language": "go",
+      "file": "Fdwgpcbt6t0",
+      "start_line": 22,
+      "end_line": 37,
+      "start_byte": 301,
+      "end_byte": 652,
+      "signature_hint": "func redisInit() error",
+      "vis": "internal"
+    },
+    "Cgop24rqa0j": {
+      "id": "Cgop24rqa0j",
+      "qualified_name": "main.redisCleanUp",
+      "simple_name": "redisCleanUp",
+      "kind": "function",
+      "language": "go",
+      "file": "Fdwgpcbt6t0",
+      "start_line": 39,
+      "end_line": 41,
+      "start_byte": 654,
+      "end_byte": 691,
+      "signature_hint": "func redisCleanUp()",
+      "vis": "internal"
+    },
+    "Cduhuz4pfy1": {
+      "id": "Cduhuz4pfy1",
+      "qualified_name": "main.init",
+      "simple_name": "init",
+      "kind": "function",
+      "language": "go",
+      "file": "Fdswrsqlqrp",
+      "start_line": 42,
+      "end_line": 44,
+      "start_byte": 830,
+      "end_byte": 879,
+      "signature_hint": "func init()",
+      "vis": "internal"
+    },
+    "Cwp3ev5qhjr": {
+      "id": "Cwp3ev5qhjr",
+      "qualified_name": "main.main",
+      "simple_name": "main",
+      "kind": "function",
+      "language": "go",
+      "file": "Fdswrsqlqrp",
+      "start_line": 46,
+      "end_line": 234,
+      "start_byte": 881,
+      "end_byte": 5701,
+      "signature_hint": "func main()",
+      "vis": "internal"
+    },
+    "C17g5brl5kci": {
+      "id": "C17g5brl5kci",
+      "qualified_name": "main.handler_at_103",
+      "simple_name": "handler_at_103",
+      "kind": "closure",
+      "language": "go",
+      "file": "Fdswrsqlqrp",
+      "start_line": 103,
+      "end_line": 108,
+      "start_byte": 2222,
+      "end_byte": 2433,
+      "signature_hint": "func(res http.ResponseWriter, req *http.Request)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Ck481xnbbd4": {
+      "id": "Ck481xnbbd4",
+      "qualified_name": "main.handler_at_114",
+      "simple_name": "handler_at_114",
+      "kind": "closure",
+      "language": "go",
+      "file": "Fdswrsqlqrp",
+      "start_line": 114,
+      "end_line": 116,
+      "start_byte": 2587,
+      "end_byte": 2632,
+      "signature_hint": "func() string",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Czafmtb6uju": {
+      "id": "Czafmtb6uju",
+      "qualified_name": "main.transformationHandler",
+      "simple_name": "transformationHandler",
+      "kind": "function",
+      "language": "go",
+      "file": "Fdswrsqlqrp",
+      "start_line": 236,
+      "end_line": 302,
+      "start_byte": 5703,
+      "end_byte": 7731,
+      "signature_hint": "func transformationHandler(params martini.Params) (int, string)",
+      "vis": "internal"
+    },
+    "Ceylxki50un": {
+      "id": "Ceylxki50un",
+      "qualified_name": "main.uploadResponse",
+      "simple_name": "uploadResponse",
+      "kind": "function",
+      "language": "go",
+      "file": "Fdswrsqlqrp",
+      "start_line": 311,
+      "end_line": 318,
+      "start_byte": 7967,
+      "end_byte": 8238,
+      "signature_hint": "func uploadResponse(response UploadResponse) string",
+      "vis": "internal"
+    },
+    "C6cpaphmf8j": {
+      "id": "C6cpaphmf8j",
+      "qualified_name": "main.uploadError",
+      "simple_name": "uploadError",
+      "kind": "function",
+      "language": "go",
+      "file": "Fdswrsqlqrp",
+      "start_line": 320,
+      "end_line": 322,
+      "start_byte": 8240,
+      "end_byte": 8354,
+      "signature_hint": "func uploadError(errorMessage string) string",
+      "vis": "internal"
+    },
+    "Cyqinasa196": {
+      "id": "Cyqinasa196",
+      "qualified_name": "main.uploadSuccess",
+      "simple_name": "uploadSuccess",
+      "kind": "function",
+      "language": "go",
+      "file": "Fdswrsqlqrp",
+      "start_line": 324,
+      "end_line": 326,
+      "start_byte": 8356,
+      "end_byte": 8463,
+      "signature_hint": "func uploadSuccess(imagePath string) string",
+      "vis": "internal"
+    },
+    "Cns5towq16j": {
+      "id": "Cns5towq16j",
+      "qualified_name": "main.uploadHandler",
+      "simple_name": "uploadHandler",
+      "kind": "function",
+      "language": "go",
+      "file": "Fdswrsqlqrp",
+      "start_line": 328,
+      "end_line": 431,
+      "start_byte": 8465,
+      "end_byte": 11603,
+      "signature_hint": "func uploadHandler(params martini.Params, uf UploadForm) (int, string)",
+      "vis": "internal"
+    },
+    "Cvwxqm27w5h": {
+      "id": "Cvwxqm27w5h",
+      "qualified_name": "main.eagerlyTransform",
+      "simple_name": "eagerlyTransform",
+      "kind": "function",
+      "language": "go",
+      "file": "Fdswrsqlqrp",
+      "start_line": 403,
+      "end_line": 411,
+      "start_byte": 10823,
+      "end_byte": 11145,
+      "signature_hint": "eagerlyTransform := func()",
+      "vis": "internal"
+    },
+    "Ck0np24zim9": {
+      "id": "Ck0np24zim9",
+      "qualified_name": "main.throttler",
+      "simple_name": "throttler",
+      "kind": "function",
+      "language": "go",
+      "file": "Fdswrsqlqrp",
+      "start_line": 433,
+      "end_line": 438,
+      "start_byte": 11605,
+      "end_byte": 11883,
+      "signature_hint": "func throttler(perMinRate int) http.Handler",
+      "vis": "internal"
+    },
+    "Cfqxq309nwy": {
+      "id": "Cfqxq309nwy",
+      "qualified_name": "main.storage.init",
+      "simple_name": "init",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 35,
+      "end_line": 35,
+      "start_byte": 602,
+      "end_byte": 614,
+      "signature_hint": "init() error",
+      "attributes": [
+        "abstract"
+      ],
+      "vis": "internal"
+    },
+    "C110gb1x9udf": {
+      "id": "C110gb1x9udf",
+      "qualified_name": "main.storage.loadImage",
+      "simple_name": "loadImage",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 37,
+      "end_line": 37,
+      "start_byte": 617,
+      "end_byte": 673,
+      "signature_hint": "loadImage(imagePath string) (image.Image, string, error)",
+      "attributes": [
+        "abstract"
+      ],
+      "vis": "internal"
+    },
+    "C9l8wjqyzsa": {
+      "id": "C9l8wjqyzsa",
+      "qualified_name": "main.storage.saveImage",
+      "simple_name": "saveImage",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 39,
+      "end_line": 39,
+      "start_byte": 676,
+      "end_byte": 748,
+      "signature_hint": "saveImage(img image.Image, format string, imagePath string) (int, error)",
+      "attributes": [
+        "abstract"
+      ],
+      "vis": "internal"
+    },
+    "Cyn5zeyver8": {
+      "id": "Cyn5zeyver8",
+      "qualified_name": "main.storage.deleteImage",
+      "simple_name": "deleteImage",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 41,
+      "end_line": 41,
+      "start_byte": 751,
+      "end_byte": 786,
+      "signature_hint": "deleteImage(imagePath string) error",
+      "attributes": [
+        "abstract"
+      ],
+      "vis": "internal"
+    },
+    "Cp51004fra6": {
+      "id": "Cp51004fra6",
+      "qualified_name": "main.storage.imageExists",
+      "simple_name": "imageExists",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 43,
+      "end_line": 43,
+      "start_byte": 789,
+      "end_byte": 823,
+      "signature_hint": "imageExists(imagePath string) bool",
+      "attributes": [
+        "abstract"
+      ],
+      "vis": "internal"
+    },
+    "C9qdu5hez0d": {
+      "id": "C9qdu5hez0d",
+      "qualified_name": "main.storageInit",
+      "simple_name": "storageInit",
+      "kind": "function",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 46,
+      "end_line": 59,
+      "start_byte": 827,
+      "end_byte": 1318,
+      "signature_hint": "func storageInit() error",
+      "vis": "internal"
+    },
+    "C8x7sfb4ymg": {
+      "id": "C8x7sfb4ymg",
+      "qualified_name": "main.storageCleanUp",
+      "simple_name": "storageCleanUp",
+      "kind": "function",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 61,
+      "end_line": 62,
+      "start_byte": 1320,
+      "end_byte": 1345,
+      "signature_hint": "func storageCleanUp()",
+      "vis": "internal"
+    },
+    "C1dpn3ecgjr": {
+      "id": "C1dpn3ecgjr",
+      "qualified_name": "main.loadImage",
+      "simple_name": "loadImage",
+      "kind": "function",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 64,
+      "end_line": 66,
+      "start_byte": 1347,
+      "end_byte": 1453,
+      "signature_hint": "func loadImage(imagePath string) (image.Image, string, error)",
+      "vis": "internal"
+    },
+    "Cryejf91b1": {
+      "id": "Cryejf91b1",
+      "qualified_name": "main.saveImage",
+      "simple_name": "saveImage",
+      "kind": "function",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 68,
+      "end_line": 70,
+      "start_byte": 1455,
+      "end_byte": 1590,
+      "signature_hint": "func saveImage(img image.Image, format string, imagePath string) (int, error)",
+      "vis": "internal"
+    },
+    "C14ade1r83na": {
+      "id": "C14ade1r83na",
+      "qualified_name": "main.deleteImage",
+      "simple_name": "deleteImage",
+      "kind": "function",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 72,
+      "end_line": 74,
+      "start_byte": 1592,
+      "end_byte": 1679,
+      "signature_hint": "func deleteImage(imagePath string) error",
+      "vis": "internal"
+    },
+    "Ch2vc856hvh": {
+      "id": "Ch2vc856hvh",
+      "qualified_name": "main.imageExists",
+      "simple_name": "imageExists",
+      "kind": "function",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 76,
+      "end_line": 78,
+      "start_byte": 1681,
+      "end_byte": 1767,
+      "signature_hint": "func imageExists(imagePath string) bool",
+      "vis": "internal"
+    },
+    "Cui1myg42m2": {
+      "id": "Cui1myg42m2",
+      "qualified_name": "main.localStorage.init",
+      "simple_name": "init",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 85,
+      "end_line": 89,
+      "start_byte": 1873,
+      "end_byte": 1965,
+      "signature_hint": "func (s *localStorage) init() error",
+      "vis": "internal"
+    },
+    "C132neld3zhm": {
+      "id": "C132neld3zhm",
+      "qualified_name": "main.localStorage.loadImage",
+      "simple_name": "loadImage",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 91,
+      "end_line": 103,
+      "start_byte": 1967,
+      "end_byte": 2360,
+      "signature_hint": "func (s *localStorage) loadImage(imagePath string) (image.Image, string, error)",
+      "vis": "internal"
+    },
+    "Cgr8fcoss7p": {
+      "id": "Cgr8fcoss7p",
+      "qualified_name": "main.localStorage.saveImage",
+      "simple_name": "saveImage",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 105,
+      "end_line": 132,
+      "start_byte": 2362,
+      "end_byte": 2899,
+      "signature_hint": "func (s *localStorage) saveImage(img image.Image, format string, imagePath string) (int, error)",
+      "vis": "internal"
+    },
+    "C12b6t5s8g24": {
+      "id": "C12b6t5s8g24",
+      "qualified_name": "main.localStorage.deleteImage",
+      "simple_name": "deleteImage",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 134,
+      "end_line": 136,
+      "start_byte": 2901,
+      "end_byte": 3007,
+      "signature_hint": "func (s *localStorage) deleteImage(imagePath string) error",
+      "vis": "internal"
+    },
+    "Czyu9bggqfd": {
+      "id": "Czyu9bggqfd",
+      "qualified_name": "main.localStorage.imageExists",
+      "simple_name": "imageExists",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 138,
+      "end_line": 143,
+      "start_byte": 3009,
+      "end_byte": 3171,
+      "signature_hint": "func (s *localStorage) imageExists(imagePath string) bool",
+      "vis": "internal"
+    },
+    "Cbioupnzveq": {
+      "id": "Cbioupnzveq",
+      "qualified_name": "main.s3Storage.init",
+      "simple_name": "init",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 150,
+      "end_line": 171,
+      "start_byte": 3276,
+      "end_byte": 3687,
+      "signature_hint": "func (s *s3Storage) init() error",
+      "vis": "internal"
+    },
+    "C15mmtsry04n": {
+      "id": "C15mmtsry04n",
+      "qualified_name": "main.s3Storage.loadImage",
+      "simple_name": "loadImage",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 173,
+      "end_line": 187,
+      "start_byte": 3689,
+      "end_byte": 4037,
+      "signature_hint": "func (s *s3Storage) loadImage(imagePath string) (image.Image, string, error)",
+      "vis": "internal"
+    },
+    "Cfiu7xzs1tq": {
+      "id": "Cfiu7xzs1tq",
+      "qualified_name": "main.s3Storage.saveImage",
+      "simple_name": "saveImage",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 189,
+      "end_line": 198,
+      "start_byte": 4039,
+      "end_byte": 4343,
+      "signature_hint": "func (s *s3Storage) saveImage(img image.Image, format string, imagePath string) (int, error)",
+      "vis": "internal"
+    },
+    "C8sokookokm": {
+      "id": "C8sokookokm",
+      "qualified_name": "main.s3Storage.deleteImage",
+      "simple_name": "deleteImage",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 200,
+      "end_line": 202,
+      "start_byte": 4345,
+      "end_byte": 4436,
+      "signature_hint": "func (s *s3Storage) deleteImage(imagePath string) error",
+      "vis": "internal"
+    },
+    "Cavhw0f02bo": {
+      "id": "Cavhw0f02bo",
+      "qualified_name": "main.s3Storage.imageExists",
+      "simple_name": "imageExists",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 204,
+      "end_line": 221,
+      "start_byte": 4438,
+      "end_byte": 4843,
+      "signature_hint": "func (s *s3Storage) imageExists(imagePath string) bool",
+      "vis": "internal"
+    },
+    "Cbwz0agpasi": {
+      "id": "Cbwz0agpasi",
+      "qualified_name": "main.gcsStorage.init",
+      "simple_name": "init",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 230,
+      "end_line": 249,
+      "start_byte": 5002,
+      "end_byte": 5486,
+      "signature_hint": "func (s *gcsStorage) init() error",
+      "vis": "internal"
+    },
+    "Cogay5jvikw": {
+      "id": "Cogay5jvikw",
+      "qualified_name": "main.gcsStorage.loadImage",
+      "simple_name": "loadImage",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 251,
+      "end_line": 270,
+      "start_byte": 5488,
+      "end_byte": 5956,
+      "signature_hint": "func (s *gcsStorage) loadImage(imagePath string) (image.Image, string, error)",
+      "vis": "internal"
+    },
+    "C8rssy69qca": {
+      "id": "C8rssy69qca",
+      "qualified_name": "main.gcsStorage.saveImage",
+      "simple_name": "saveImage",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 272,
+      "end_line": 285,
+      "start_byte": 5958,
+      "end_byte": 6329,
+      "signature_hint": "func (s *gcsStorage) saveImage(img image.Image, format string, imagePath string) (int, error)",
+      "vis": "internal"
+    },
+    "C16p7760umu4": {
+      "id": "C16p7760umu4",
+      "qualified_name": "main.gcsStorage.deleteImage",
+      "simple_name": "deleteImage",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 287,
+      "end_line": 289,
+      "start_byte": 6331,
+      "end_byte": 6450,
+      "signature_hint": "func (s *gcsStorage) deleteImage(imagePath string) error",
+      "vis": "internal"
+    },
+    "C114043gwjwf": {
+      "id": "C114043gwjwf",
+      "qualified_name": "main.gcsStorage.imageExists",
+      "simple_name": "imageExists",
+      "kind": "method",
+      "language": "go",
+      "file": "Fm73xi2iuuo",
+      "start_line": 291,
+      "end_line": 297,
+      "start_byte": 6452,
+      "end_byte": 6626,
+      "signature_hint": "func (s *gcsStorage) imageExists(imagePath string) bool",
+      "vis": "internal"
+    },
+    "Cqzw24mwp5k": {
+      "id": "Cqzw24mwp5k",
+      "qualified_name": "main.Transformation.createFilePath",
+      "simple_name": "createFilePath",
+      "kind": "method",
+      "language": "go",
+      "file": "F145i778y5dr",
+      "start_line": 53,
+      "end_line": 83,
+      "start_byte": 1245,
+      "end_byte": 1898,
+      "signature_hint": "func (t *Transformation) createFilePath(imagePath string) (string, error)",
+      "vis": "internal"
+    },
+    "Cpz07gn1pg1": {
+      "id": "Cpz07gn1pg1",
+      "qualified_name": "main.Watermark.hash",
+      "simple_name": "hash",
+      "kind": "method",
+      "language": "go",
+      "file": "F145i778y5dr",
+      "start_line": 85,
+      "end_line": 94,
+      "start_byte": 1900,
+      "end_byte": 2113,
+      "signature_hint": "func (w *Watermark) hash() []byte",
+      "vis": "internal"
+    },
+    "C185nf72wq04": {
+      "id": "C185nf72wq04",
+      "qualified_name": "main.Text.hash",
+      "simple_name": "hash",
+      "kind": "method",
+      "language": "go",
+      "file": "F145i778y5dr",
+      "start_line": 96,
+      "end_line": 117,
+      "start_byte": 2115,
+      "end_byte": 2591,
+      "signature_hint": "func (t *Text) hash() []byte",
+      "vis": "internal"
+    },
+    "C16nb3orjiap": {
+      "id": "C16nb3orjiap",
+      "qualified_name": "main.writeUint",
+      "simple_name": "writeUint",
+      "kind": "function",
+      "language": "go",
+      "file": "F145i778y5dr",
+      "start_line": 98,
+      "end_line": 102,
+      "start_byte": 2164,
+      "end_byte": 2270,
+      "signature_hint": "writeUint := func(i uint32)",
+      "vis": "internal"
+    },
+    "Cxmupxuf1su": {
+      "id": "Cxmupxuf1su",
+      "qualified_name": "main.Text.getFontMetrics",
+      "simple_name": "getFontMetrics",
+      "kind": "method",
+      "language": "go",
+      "file": "F145i778y5dr",
+      "start_line": 119,
+      "end_line": 143,
+      "start_byte": 2593,
+      "end_byte": 3498,
+      "signature_hint": "func (t *Text) getFontMetrics(scale int) FontMetrics",
+      "vis": "internal"
+    },
+    "Cwa3xchbjrl": {
+      "id": "Cwa3xchbjrl",
+      "qualified_name": "main.transformCropAndResize",
+      "simple_name": "transformCropAndResize",
+      "kind": "function",
+      "language": "go",
+      "file": "F145i778y5dr",
+      "start_line": 145,
+      "end_line": 312,
+      "start_byte": 3500,
+      "end_byte": 8746,
+      "signature_hint": "func transformCropAndResize(img image.Image, transformation *Transformation) (imgNew image.Image)",
+      "vis": "internal"
+    },
+    "Cedcvs8kn9y": {
+      "id": "Cedcvs8kn9y",
+      "qualified_name": "main.calculateTopLeftPointFromGravity",
+      "simple_name": "calculateTopLeftPointFromGravity",
+      "kind": "function",
+      "language": "go",
+      "file": "F145i778y5dr",
+      "start_line": 314,
+      "end_line": 337,
+      "start_byte": 8748,
+      "end_byte": 9641,
+      "signature_hint": "func calculateTopLeftPointFromGravity(gravity string, width, height, imgWidth, imgHeight int) image.Point",
+      "vis": "internal"
+    },
+    "Cwjbqp0rcxi": {
+      "id": "Cwjbqp0rcxi",
+      "qualified_name": "main.getTranslation",
+      "simple_name": "getTranslation",
+      "kind": "function",
+      "language": "go",
+      "file": "F145i778y5dr",
+      "start_line": 341,
+      "end_line": 363,
+      "start_byte": 9768,
+      "end_byte": 10337,
+      "signature_hint": "func getTranslation(gravity string, h, v int) image.Point",
+      "vis": "internal"
+    },
+    "C9ep703wht2": {
+      "id": "C9ep703wht2",
+      "qualified_name": "main.TestCalculateTopLeftPointFromGravity",
+      "simple_name": "TestCalculateTopLeftPointFromGravity",
+      "kind": "function",
+      "language": "go",
+      "file": "F92ts1z1u20",
+      "start_line": 8,
+      "end_line": 59,
+      "start_byte": 46,
+      "end_byte": 1523,
+      "signature_hint": "func TestCalculateTopLeftPointFromGravity(t *testing.T)",
+      "vis": "public",
+      "test_role": "case"
+    },
+    "Ck7icwh1kmt": {
+      "id": "Ck7icwh1kmt",
+      "qualified_name": "<framework-entry>::test::go-testing",
+      "simple_name": "go-testing",
+      "kind": "function",
+      "language": "go",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "`TestParseParameters` satisfies an implicitly-implemented go-testing interface"
+      ],
+      "synthetic": true,
+      "framework_entry": "test"
+    },
+    "Cptqrdpitga": {
+      "id": "Cptqrdpitga",
+      "qualified_name": "<framework-entry>::network::martini::get(\"/\")",
+      "simple_name": "get(\"/\")",
+      "kind": "function",
+      "language": "go",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `m.Get(\"/\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Clwfmancq5p": {
+      "id": "Clwfmancq5p",
+      "qualified_name": "<framework-entry>::network::martini::get(\"/((?P<apikey>[A-Z0-9]+)/)?image/:parameters/**\")",
+      "simple_name": "get(\"/((?P<apikey>[A-Z0-9]+)/)?image/:parameters/**\")",
+      "kind": "function",
+      "language": "go",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `m.Get(\"/((?P<apikey>[A-Z0-9]+)/)?image/:parameters/**\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cepk7w7l90p": {
+      "id": "Cepk7w7l90p",
+      "qualified_name": "<framework-entry>::network::martini::post(\"/((?P<apikey>[A-Z0-9]+)/)?upload\")",
+      "simple_name": "post(\"/((?P<apikey>[A-Z0-9]+)/)?upload\")",
+      "kind": "function",
+      "language": "go",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `m.Post(\"/((?P<apikey>[A-Z0-9]+)/)?upload\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    }
+  },
+  "files": {
+    "Fpsldh5037r": {
+      "id": "Fpsldh5037r",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/auth.go",
+      "language": "go",
+      "detected_via": "extension:.go",
+      "blake3": "7618b83f9f4b07f1fd569ebc384ab7560420e22cf1adf5b74fd1db6d12a2cd37",
+      "size_bytes": 4437,
+      "lines": 202,
+      "parse_ms": 2.06344,
+      "parse_status": "ok"
+    },
+    "F179nwwt4hjf": {
+      "id": "F179nwwt4hjf",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/cache.go",
+      "language": "go",
+      "detected_via": "extension:.go",
+      "blake3": "1e9a97a1fa49bf1fa8bbd29308e3a6449e81da596b390c9627dfd4030ccd1589",
+      "size_bytes": 2558,
+      "lines": 121,
+      "parse_ms": 1.002305,
+      "parse_status": "ok"
+    },
+    "Frydawcpugd": {
+      "id": "Frydawcpugd",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/config.go",
+      "language": "go",
+      "detected_via": "extension:.go",
+      "blake3": "661f718bb07d8bba376cc3d29377fad0718849d038962201caeb0a27c6cf3857",
+      "size_bytes": 7709,
+      "lines": 284,
+      "parse_ms": 2.191469,
+      "parse_status": "ok"
+    },
+    "F7kxx3t5jfr": {
+      "id": "F7kxx3t5jfr",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/io.go",
+      "language": "go",
+      "detected_via": "extension:.go",
+      "blake3": "2f44dbafe6bf76a4c9e213ca64b0b6fd040a863fc940464f7260aaf2143399e4",
+      "size_bytes": 1277,
+      "lines": 52,
+      "parse_ms": 0.620197,
+      "parse_status": "ok"
+    },
+    "Fmhab023zk6": {
+      "id": "Fmhab023zk6",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/parameters.go",
+      "language": "go",
+      "detected_via": "extension:.go",
+      "blake3": "7e22833e0a0da774b533c2e1681ce325687fc42157358ef5d30d07cedb368e64",
+      "size_bytes": 4835,
+      "lines": 154,
+      "parse_ms": 1.280944,
+      "parse_status": "ok"
+    },
+    "Frqhkobwis0": {
+      "id": "Frqhkobwis0",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/parameters_test.go",
+      "language": "go",
+      "detected_via": "extension:.go",
+      "blake3": "bf0283c2f734378f55450d7f4a530ee404da4921fc4ccaddfbb4efbfc823391a",
+      "size_bytes": 492,
+      "lines": 19,
+      "parse_ms": 0.191979,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "Fdwgpcbt6t0": {
+      "id": "Fdwgpcbt6t0",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/redis.go",
+      "language": "go",
+      "detected_via": "extension:.go",
+      "blake3": "2e2e65b7804e2152166760ec83b9e906c3e3d0478c81df788a0f4a37ebf50e9e",
+      "size_bytes": 692,
+      "lines": 41,
+      "parse_ms": 0.269978,
+      "parse_status": "ok"
+    },
+    "Fdswrsqlqrp": {
+      "id": "Fdswrsqlqrp",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/server.go",
+      "language": "go",
+      "detected_via": "extension:.go",
+      "blake3": "99248166aa22eeee8767b56e65ef14b8d2dbbec52088ff9283011ac549ead78d",
+      "size_bytes": 11884,
+      "lines": 438,
+      "parse_ms": 3.498243,
+      "parse_status": "ok"
+    },
+    "Fm73xi2iuuo": {
+      "id": "Fm73xi2iuuo",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/storage.go",
+      "language": "go",
+      "detected_via": "extension:.go",
+      "blake3": "b5afa3e2db09f7dc1f1fd7c72e2e82bcf05870fb2bff62d59a6979ee97bc2e16",
+      "size_bytes": 6627,
+      "lines": 297,
+      "parse_ms": 2.621507,
+      "parse_status": "ok"
+    },
+    "F145i778y5dr": {
+      "id": "F145i778y5dr",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/transformations.go",
+      "language": "go",
+      "detected_via": "extension:.go",
+      "blake3": "294170dfde1d63c09094c80c2bd81c571500ff5f3d0786bb6782a2b881931513",
+      "size_bytes": 10338,
+      "lines": 363,
+      "parse_ms": 3.1481149999999998,
+      "parse_status": "ok"
+    },
+    "F92ts1z1u20": {
+      "id": "F92ts1z1u20",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/transformations_test.go",
+      "language": "go",
+      "detected_via": "extension:.go",
+      "blake3": "c8a149c1263f69aa10ddc965a557c6341e97303233daf8c6049453a9207977df",
+      "size_bytes": 1524,
+      "lines": 59,
+      "parse_ms": 0.576187,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "Fn7kcdjzuh1": {
+      "id": "Fn7kcdjzuh1",
+      "path": "<framework-entry>",
+      "language": "framework-entry",
+      "detected_via": "synthesized",
+      "blake3": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 0,
+      "lines": 0,
+      "parse_ms": 0.0,
+      "parse_status": "synthetic"
+    }
+  },
+  "edges": [
+    {
+      "src": "C17dabja621u",
+      "dst": "Ce6dau4cqyq",
+      "site_line": 32,
+      "site_byte": 543,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C17dabja621u",
+      "dst": "C17ak7fwy48x",
+      "site_line": 46,
+      "site_byte": 954,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cz8tojp6utj",
+      "dst": "Cdyy12tt73j",
+      "site_line": 83,
+      "site_byte": 1775,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C17ak7fwy48x",
+      "dst": "Cdyy12tt73j",
+      "site_line": 98,
+      "site_byte": 2050,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cixv0a91tmi",
+      "dst": "Cdyy12tt73j",
+      "site_line": 115,
+      "site_byte": 2437,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C15wn74rr6kd",
+      "dst": "Cdyy12tt73j",
+      "site_line": 134,
+      "site_byte": 2995,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cbleygteo30",
+      "dst": "Cdyy12tt73j",
+      "site_line": 147,
+      "site_byte": 3250,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cu1wmvr8c1b",
+      "dst": "Cj3zm7dblpb",
+      "site_line": 190,
+      "site_byte": 4103,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjhj5sisuay",
+      "dst": "C15uzb0x9fj2",
+      "site_line": 36,
+      "site_byte": 670,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjhj5sisuay",
+      "dst": "Cjm5zobth0b",
+      "site_line": 38,
+      "site_byte": 700,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C3hn2bbuxcd",
+      "dst": "C15uzb0x9fj2",
+      "site_line": 74,
+      "site_byte": 1532,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjm5zobth0b",
+      "dst": "C5rtsbnziix",
+      "site_line": 103,
+      "site_byte": 2079,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjm5zobth0b",
+      "dst": "Chq5okjcdb",
+      "site_line": 105,
+      "site_byte": 2151,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4fm04tv0qa",
+      "dst": "Cnfx4i6u85w",
+      "site_line": 173,
+      "site_byte": 4783,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cgwtyq2n8yv",
+      "dst": "C2cgu4nlmzf",
+      "site_line": 97,
+      "site_byte": 3030,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cgwtyq2n8yv",
+      "dst": "C8xajy9oe3u",
+      "site_line": 106,
+      "site_byte": 3322,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cgwtyq2n8yv",
+      "dst": "Cyz8b30urzz",
+      "site_line": 112,
+      "site_byte": 3501,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cwp3ev5qhjr",
+      "dst": "Ck0np24zim9",
+      "site_line": 101,
+      "site_byte": 2172,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C6cpaphmf8j",
+      "dst": "Ceylxki50un",
+      "site_line": 321,
+      "site_byte": 8295,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cyqinasa196",
+      "dst": "Ceylxki50un",
+      "site_line": 325,
+      "site_byte": 8410,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "C6cpaphmf8j",
+      "site_line": 330,
+      "site_byte": 8629,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "C6cpaphmf8j",
+      "site_line": 334,
+      "site_byte": 8735,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "C6cpaphmf8j",
+      "site_line": 344,
+      "site_byte": 9110,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "C6cpaphmf8j",
+      "site_line": 352,
+      "site_byte": 9357,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "C6cpaphmf8j",
+      "site_line": 355,
+      "site_byte": 9489,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "C6cpaphmf8j",
+      "site_line": 361,
+      "site_byte": 9615,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "C6cpaphmf8j",
+      "site_line": 366,
+      "site_byte": 9734,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "C6cpaphmf8j",
+      "site_line": 371,
+      "site_byte": 9853,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "C6cpaphmf8j",
+      "site_line": 377,
+      "site_byte": 10001,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "C6cpaphmf8j",
+      "site_line": 383,
+      "site_byte": 10251,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "C6cpaphmf8j",
+      "site_line": 386,
+      "site_byte": 10354,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "C6cpaphmf8j",
+      "site_line": 391,
+      "site_byte": 10502,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "Cvwxqm27w5h",
+      "site_line": 420,
+      "site_byte": 11323,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "C6cpaphmf8j",
+      "site_line": 425,
+      "site_byte": 11468,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "Cvwxqm27w5h",
+      "site_line": 427,
+      "site_byte": 11527,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "Cyqinasa196",
+      "site_line": 430,
+      "site_byte": 11573,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C185nf72wq04",
+      "dst": "C16nb3orjiap",
+      "site_line": 111,
+      "site_byte": 2515,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C185nf72wq04",
+      "dst": "C16nb3orjiap",
+      "site_line": 112,
+      "site_byte": 2529,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C185nf72wq04",
+      "dst": "C16nb3orjiap",
+      "site_line": 113,
+      "site_byte": 2543,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C185nf72wq04",
+      "dst": "C16nb3orjiap",
+      "site_line": 114,
+      "site_byte": 2557,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cwa3xchbjrl",
+      "dst": "Cedcvs8kn9y",
+      "site_line": 185,
+      "site_byte": 4845,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cwa3xchbjrl",
+      "dst": "Cedcvs8kn9y",
+      "site_line": 200,
+      "site_byte": 5386,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cwa3xchbjrl",
+      "dst": "Cedcvs8kn9y",
+      "site_line": 261,
+      "site_byte": 7177,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cwa3xchbjrl",
+      "dst": "Cwjbqp0rcxi",
+      "site_line": 262,
+      "site_byte": 7305,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cwa3xchbjrl",
+      "dst": "Cxmupxuf1su",
+      "site_line": 292,
+      "site_byte": 8191,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cwa3xchbjrl",
+      "dst": "Cedcvs8kn9y",
+      "site_line": 296,
+      "site_byte": 8342,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cwa3xchbjrl",
+      "dst": "Cwjbqp0rcxi",
+      "site_line": 297,
+      "site_byte": 8445,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjhj5sisuay",
+      "dst": "Cryejf91b1",
+      "site_line": 23,
+      "site_byte": 337,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Chq5okjcdb",
+      "dst": "C14ade1r83na",
+      "site_line": 50,
+      "site_byte": 858,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C3hn2bbuxcd",
+      "dst": "C1dpn3ecgjr",
+      "site_line": 76,
+      "site_byte": 1569,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C4fm04tv0qa",
+      "dst": "Cgwtyq2n8yv",
+      "site_line": 164,
+      "site_byte": 4563,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C4fm04tv0qa",
+      "dst": "C8xajy9oe3u",
+      "site_line": 187,
+      "site_byte": 5234,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C4fm04tv0qa",
+      "dst": "C8xajy9oe3u",
+      "site_line": 216,
+      "site_byte": 5956,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Clofmzpxfvv",
+      "dst": "Cgwtyq2n8yv",
+      "site_line": 8,
+      "site_byte": 89,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Clofmzpxfvv",
+      "dst": "Cgwtyq2n8yv",
+      "site_line": 14,
+      "site_byte": 291,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwp3ev5qhjr",
+      "dst": "Cqvzg5v7vp5",
+      "site_line": 52,
+      "site_byte": 1012,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwp3ev5qhjr",
+      "dst": "C4fm04tv0qa",
+      "site_line": 77,
+      "site_byte": 1604,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwp3ev5qhjr",
+      "dst": "C17dabja621u",
+      "site_line": 85,
+      "site_byte": 1819,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwp3ev5qhjr",
+      "dst": "C9qdu5hez0d",
+      "site_line": 92,
+      "site_byte": 1968,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwp3ev5qhjr",
+      "dst": "Cgop24rqa0j",
+      "site_line": 127,
+      "site_byte": 2995,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwp3ev5qhjr",
+      "dst": "C8x7sfb4ymg",
+      "site_line": 128,
+      "site_byte": 3014,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwp3ev5qhjr",
+      "dst": "Crq8q7tvv6k",
+      "site_line": 139,
+      "site_byte": 3248,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwp3ev5qhjr",
+      "dst": "Cz8tojp6utj",
+      "site_line": 157,
+      "site_byte": 3793,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwp3ev5qhjr",
+      "dst": "C17ak7fwy48x",
+      "site_line": 174,
+      "site_byte": 4260,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwp3ev5qhjr",
+      "dst": "Ce6dau4cqyq",
+      "site_line": 187,
+      "site_byte": 4558,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwp3ev5qhjr",
+      "dst": "Cf9rih9ysbo",
+      "site_line": 198,
+      "site_byte": 4827,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwp3ev5qhjr",
+      "dst": "Cixv0a91tmi",
+      "site_line": 205,
+      "site_byte": 5076,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwp3ev5qhjr",
+      "dst": "C15wn74rr6kd",
+      "site_line": 221,
+      "site_byte": 5494,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czafmtb6uju",
+      "dst": "Clezxgteatc",
+      "site_line": 237,
+      "site_byte": 5774,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czafmtb6uju",
+      "dst": "Cxgxfnw3z85",
+      "site_line": 242,
+      "site_byte": 5922,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czafmtb6uju",
+      "dst": "Cgwtyq2n8yv",
+      "site_line": 250,
+      "site_byte": 6243,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czafmtb6uju",
+      "dst": "Casif1nedmd",
+      "site_line": 258,
+      "site_byte": 6525,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czafmtb6uju",
+      "dst": "Coma1sj4x7x",
+      "site_line": 260,
+      "site_byte": 6607,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czafmtb6uju",
+      "dst": "Cqzw24mwp5k",
+      "site_line": 266,
+      "site_byte": 6791,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czafmtb6uju",
+      "dst": "C3hn2bbuxcd",
+      "site_line": 267,
+      "site_byte": 6857,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czafmtb6uju",
+      "dst": "C6w9rsy7ewa",
+      "site_line": 270,
+      "site_byte": 6931,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czafmtb6uju",
+      "dst": "Ch2vc856hvh",
+      "site_line": 276,
+      "site_byte": 7057,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czafmtb6uju",
+      "dst": "C1dpn3ecgjr",
+      "site_line": 280,
+      "site_byte": 7176,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czafmtb6uju",
+      "dst": "Cwa3xchbjrl",
+      "site_line": 285,
+      "site_byte": 7286,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czafmtb6uju",
+      "dst": "C6w9rsy7ewa",
+      "site_line": 288,
+      "site_byte": 7364,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czafmtb6uju",
+      "dst": "Cjhj5sisuay",
+      "site_line": 295,
+      "site_byte": 7565,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "Clezxgteatc",
+      "site_line": 329,
+      "site_byte": 8543,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "Cbleygteo30",
+      "site_line": 350,
+      "site_byte": 9272,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "Cu1wmvr8c1b",
+      "site_line": 354,
+      "site_byte": 9402,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cvwxqm27w5h",
+      "dst": "Cwa3xchbjrl",
+      "site_line": 406,
+      "site_byte": 10974,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cvwxqm27w5h",
+      "dst": "Cqzw24mwp5k",
+      "site_line": 407,
+      "site_byte": 11043,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cvwxqm27w5h",
+      "dst": "Cjhj5sisuay",
+      "site_line": 408,
+      "site_byte": 11092,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "Cryejf91b1",
+      "site_line": 415,
+      "site_byte": 11200,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cns5towq16j",
+      "dst": "Cryejf91b1",
+      "site_line": 423,
+      "site_byte": 11370,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C9qdu5hez0d",
+      "dst": "Csb0tl2svc6",
+      "site_line": 58,
+      "site_byte": 1298,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C9qdu5hez0d",
+      "dst": "Cduhuz4pfy1",
+      "site_line": 58,
+      "site_byte": 1298,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C9qdu5hez0d",
+      "dst": "Cui1myg42m2",
+      "site_line": 58,
+      "site_byte": 1298,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C9qdu5hez0d",
+      "dst": "Cbioupnzveq",
+      "site_line": 58,
+      "site_byte": 1298,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C9qdu5hez0d",
+      "dst": "Cbwz0agpasi",
+      "site_line": 58,
+      "site_byte": 1298,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C1dpn3ecgjr",
+      "dst": "C132neld3zhm",
+      "site_line": 65,
+      "site_byte": 1419,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C1dpn3ecgjr",
+      "dst": "C15mmtsry04n",
+      "site_line": 65,
+      "site_byte": 1419,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C1dpn3ecgjr",
+      "dst": "Cogay5jvikw",
+      "site_line": 65,
+      "site_byte": 1419,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cryejf91b1",
+      "dst": "Cgr8fcoss7p",
+      "site_line": 69,
+      "site_byte": 1543,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cryejf91b1",
+      "dst": "Cfiu7xzs1tq",
+      "site_line": 69,
+      "site_byte": 1543,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cryejf91b1",
+      "dst": "C8rssy69qca",
+      "site_line": 69,
+      "site_byte": 1543,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C14ade1r83na",
+      "dst": "C12b6t5s8g24",
+      "site_line": 73,
+      "site_byte": 1643,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C14ade1r83na",
+      "dst": "C8sokookokm",
+      "site_line": 73,
+      "site_byte": 1643,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C14ade1r83na",
+      "dst": "C16p7760umu4",
+      "site_line": 73,
+      "site_byte": 1643,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ch2vc856hvh",
+      "dst": "Czyu9bggqfd",
+      "site_line": 77,
+      "site_byte": 1731,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ch2vc856hvh",
+      "dst": "Cavhw0f02bo",
+      "site_line": 77,
+      "site_byte": 1731,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ch2vc856hvh",
+      "dst": "C114043gwjwf",
+      "site_line": 77,
+      "site_byte": 1731,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cgr8fcoss7p",
+      "dst": "C6w9rsy7ewa",
+      "site_line": 115,
+      "site_byte": 2659,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C15mmtsry04n",
+      "dst": "C3v1dl2lj5r",
+      "site_line": 181,
+      "site_byte": 3944,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cfiu7xzs1tq",
+      "dst": "C6w9rsy7ewa",
+      "site_line": 191,
+      "site_byte": 4167,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cogay5jvikw",
+      "dst": "C3v1dl2lj5r",
+      "site_line": 264,
+      "site_byte": 5856,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C8rssy69qca",
+      "dst": "C6w9rsy7ewa",
+      "site_line": 274,
+      "site_byte": 6089,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cqzw24mwp5k",
+      "dst": "C96vd3fgrtt",
+      "site_line": 82,
+      "site_byte": 1837,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwa3xchbjrl",
+      "dst": "Chwlouzzb8u",
+      "site_line": 230,
+      "site_byte": 6190,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwa3xchbjrl",
+      "dst": "C1dpn3ecgjr",
+      "site_line": 236,
+      "site_byte": 6324,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwa3xchbjrl",
+      "dst": "C1dpn3ecgjr",
+      "site_line": 246,
+      "site_byte": 6587,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C9ep703wht2",
+      "dst": "Cedcvs8kn9y",
+      "site_line": 10,
+      "site_byte": 140,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C9ep703wht2",
+      "dst": "Cedcvs8kn9y",
+      "site_line": 16,
+      "site_byte": 295,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C9ep703wht2",
+      "dst": "Cedcvs8kn9y",
+      "site_line": 22,
+      "site_byte": 457,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C9ep703wht2",
+      "dst": "Cedcvs8kn9y",
+      "site_line": 28,
+      "site_byte": 613,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C9ep703wht2",
+      "dst": "Cedcvs8kn9y",
+      "site_line": 33,
+      "site_byte": 774,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C9ep703wht2",
+      "dst": "Cedcvs8kn9y",
+      "site_line": 38,
+      "site_byte": 928,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C9ep703wht2",
+      "dst": "Cedcvs8kn9y",
+      "site_line": 43,
+      "site_byte": 1087,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C9ep703wht2",
+      "dst": "Cedcvs8kn9y",
+      "site_line": 49,
+      "site_byte": 1239,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C9ep703wht2",
+      "dst": "Cedcvs8kn9y",
+      "site_line": 55,
+      "site_byte": 1401,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ck7icwh1kmt",
+      "dst": "Clofmzpxfvv",
+      "site_line": 7,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "go-testing"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cptqrdpitga",
+      "dst": "Ck481xnbbd4",
+      "site_line": 114,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "martini"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Clwfmancq5p",
+      "dst": "Czafmtb6uju",
+      "site_line": 117,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "martini"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cepk7w7l90p",
+      "dst": "Cns5towq16j",
+      "site_line": 118,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "martini"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Ck7icwh1kmt",
+      "dst": "C9ep703wht2",
+      "site_line": 8,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "go-testing"
+      },
+      "resolver": "framework-entry"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": "Cqzw24mwp5k",
+      "file": "F145i778y5dr",
+      "site_line": 63,
+      "site_byte": 1507,
+      "name": "hash",
+      "receiver_hint": "t.watermark",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cqzw24mwp5k",
+      "file": "F145i778y5dr",
+      "site_line": 71,
+      "site_byte": 1630,
+      "name": "hash",
+      "receiver_hint": "elem",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 16.138462,
+    "phases": {
+      "walk_ms": 1.3960839999999999,
+      "parse_ms": 17.464364,
+      "extract_ms": 0.0,
+      "resolve_ms": 0.0,
+      "link_ms": 3.3766540000000003,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 47,
+    "files_analyzed": 11,
+    "files_skipped": 36,
+    "files_errored": 0,
+    "bytes_processed": 52373,
+    "callables": 88,
+    "edges": 129,
+    "unresolved_calls": 2,
+    "stdlib_calls": 334,
+    "external_calls": 150,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "go": {
+        "files": 11,
+        "callables": 84,
+        "edges": 49,
+        "unresolved": 2,
+        "stdlib": 334,
+        "external": 150
+      },
+      "skip:builtin": {
+        "files": 30,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      },
+      "skip:binary": {
+        "files": 1,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 103,
+      "medium": 23,
+      "low": 0
+    }
+  }
+}

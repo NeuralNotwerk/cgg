@@ -1,0 +1,6240 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "asm",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [],
+      "files": 7,
+      "callables": 22,
+      "roots": 0,
+      "reachable": 2,
+      "reachable_pct": 9,
+      "findings": 16
+    },
+    {
+      "language": "bash",
+      "class": "script-driven",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 4,
+      "callables": 1,
+      "roots": 1,
+      "reachable": 1,
+      "reachable_pct": 100,
+      "findings": 0
+    },
+    {
+      "language": "c",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "builtin:main",
+        "toplevel:invocation",
+        "toplevel:macro-invocation"
+      ],
+      "files": 68,
+      "callables": 373,
+      "roots": 21,
+      "reachable": 262,
+      "reachable_pct": 70,
+      "findings": 111
+    },
+    {
+      "language": "perl",
+      "class": "script-driven",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "full",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 5,
+      "callables": 1,
+      "roots": 1,
+      "reachable": 1,
+      "reachable_pct": 100,
+      "findings": 0
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 397,
+    "edges": 2333,
+    "unresolved_call_sites": 103,
+    "roots": 23,
+    "candidates": 131,
+    "reported": 127,
+    "regions": 55,
+    "withheld": [
+      {
+        "language": "asm",
+        "category": "reachable-only-from-dead-code",
+        "reason": "no-roots-found",
+        "would_have_reported": 4
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Co9m875m7do",
+      "qualified_name": "main",
+      "language": "c",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cr1imbxo88t",
+      "qualified_name": "C",
+      "language": "c",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/asm-xv6/kbd.h:105"
+    },
+    {
+      "id": "Cb4qmzobpu2",
+      "qualified_name": "writefile",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/asm-xv6/cuth:46"
+    },
+    {
+      "id": "Cx7bk3ucsb0",
+      "qualified_name": "main",
+      "language": "c",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cs2ejg5k2of",
+      "qualified_name": "main",
+      "language": "c",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cy4hd2v491d",
+      "qualified_name": "main",
+      "language": "c",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cdlef090edz",
+      "qualified_name": "main",
+      "language": "c",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "C17y73wx1n1a",
+      "qualified_name": "C",
+      "language": "c",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/asm-xv6/kbd.h:105"
+    },
+    {
+      "id": "C10clo87x60b",
+      "qualified_name": "main",
+      "language": "c",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cmru4rpuh8t",
+      "qualified_name": "main",
+      "language": "c",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "C510tsfxocy",
+      "qualified_name": "main",
+      "language": "c",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "C88t87tdsbd",
+      "qualified_name": "main",
+      "language": "c",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cxbhsctrok7",
+      "qualified_name": "V2P",
+      "language": "c",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:macro-invocation",
+      "detail": "macro invoked outside any function at /storage/cgg-test_repos/asm-xv6/vm.c:112"
+    },
+    {
+      "id": "Ce2len7gh0",
+      "qualified_name": "P2V",
+      "language": "c",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:macro-invocation",
+      "detail": "macro invoked outside any function at /storage/cgg-test_repos/asm-xv6/console.c:129"
+    },
+    {
+      "id": "C151q7pev2ar",
+      "qualified_name": "main",
+      "language": "c",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cikeyw8r7xy",
+      "qualified_name": "main",
+      "language": "c",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cnckvz4xok4",
+      "qualified_name": "main",
+      "language": "c",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cz5yzwucnt3",
+      "qualified_name": "pad",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/asm-xv6/runoff:216"
+    },
+    {
+      "id": "Cqq6jlc5q2p",
+      "qualified_name": "main",
+      "language": "c",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "C5g8m1v4e3q",
+      "qualified_name": "main",
+      "language": "c",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cuqmew410xj",
+      "qualified_name": "main",
+      "language": "c",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Ciyb31rn1x4",
+      "qualified_name": "main",
+      "language": "c",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cvo565ksoq9",
+      "qualified_name": "main",
+      "language": "c",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "C13vrt3f84fw"
+      ],
+      "anchors": [
+        "C13vrt3f84fw"
+      ],
+      "files": [
+        "F4rb88otxur"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 6,
+      "members": [
+        "C67p7ijgiyu"
+      ],
+      "anchors": [
+        "C67p7ijgiyu"
+      ],
+      "files": [
+        "F1e2pdp0lwm"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "asm"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 7,
+      "members": [
+        "Ccbtaklgwe7"
+      ],
+      "anchors": [
+        "Ccbtaklgwe7"
+      ],
+      "files": [
+        "F1e2pdp0lwm"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "asm"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 8,
+      "members": [
+        "Cvrwctwoh2"
+      ],
+      "anchors": [
+        "Cvrwctwoh2"
+      ],
+      "files": [
+        "F1e2pdp0lwm"
+      ],
+      "total_lines": 24,
+      "languages": [
+        "asm"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 9,
+      "members": [
+        "Ccl2kqdght1",
+        "Czruq6rvvki",
+        "Cwhyguq3wk5",
+        "Clcewuzkd2w",
+        "C2uwxs4ap83",
+        "Clp7min9gx6",
+        "Cnb6rkydu21",
+        "C2i5wukwk22",
+        "Cn79lyxiv6p",
+        "C3z14yxtthb",
+        "Cm8sto618p",
+        "Ceq360frhby",
+        "C14k6c5r2zkh",
+        "C11rtlz6ntif",
+        "Cnnf4coajps",
+        "Cn4xobwecsm",
+        "C9nsdjhxo1f"
+      ],
+      "anchors": [
+        "Ccl2kqdght1",
+        "C2i5wukwk22",
+        "C3z14yxtthb",
+        "Cm8sto618p",
+        "Ceq360frhby",
+        "C14k6c5r2zkh"
+      ],
+      "files": [
+        "F1e2pdp0lwm",
+        "F1514cckrgn9",
+        "Feyreg0gp7a",
+        "F17p4a5d1ck8",
+        "Fcdjm0ksjpg",
+        "Fz1jl8oich2",
+        "F6aw41hbujs"
+      ],
+      "total_lines": 290,
+      "languages": [
+        "asm",
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 10,
+      "members": [
+        "C113fosolgkv"
+      ],
+      "anchors": [],
+      "files": [
+        "F1e2pdp0lwm"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "asm"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 11,
+      "members": [
+        "C13gkg8v1729"
+      ],
+      "anchors": [
+        "C13gkg8v1729"
+      ],
+      "files": [
+        "F1e2pdp0lwm"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "asm"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 12,
+      "members": [
+        "Cw1plojp4tg"
+      ],
+      "anchors": [
+        "Cw1plojp4tg"
+      ],
+      "files": [
+        "F1e2pdp0lwm"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "asm"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 25,
+      "members": [
+        "Cixgxkdwlnb",
+        "Cgl2yfz1eqe",
+        "C6c13ij53rd",
+        "Ctctlwin1ac",
+        "Ck508iyz26r",
+        "Cs099ts3dth",
+        "Cizvgvexkdx",
+        "Cxqbu5t0t69",
+        "C10n983rklta",
+        "Cdd9iurhjib",
+        "Ciem5do67ie"
+      ],
+      "anchors": [
+        "C10n983rklta"
+      ],
+      "files": [
+        "Fgtiwl5y3w6",
+        "F14m2ssoyr7u",
+        "Fiy3mhnfrc7",
+        "Fr8cm78os1y",
+        "Fglnb26k9gt",
+        "Fy8yeo6lshb",
+        "F1399ywoho7k",
+        "Fvqq6kmv96d",
+        "F7d2ouk2ur5",
+        "F6aw41hbujs"
+      ],
+      "total_lines": 220,
+      "languages": [
+        "asm",
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 26,
+      "members": [
+        "C2m5lrqaly2"
+      ],
+      "anchors": [
+        "C2m5lrqaly2"
+      ],
+      "files": [
+        "Fgtiwl5y3w6"
+      ],
+      "total_lines": 37,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 27,
+      "members": [
+        "Cx6qqadnxnz"
+      ],
+      "anchors": [
+        "Cx6qqadnxnz"
+      ],
+      "files": [
+        "Fgtiwl5y3w6"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 30,
+      "members": [
+        "Cgqapn0j1mn"
+      ],
+      "anchors": [
+        "Cgqapn0j1mn"
+      ],
+      "files": [
+        "F14m2ssoyr7u"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 35,
+      "members": [
+        "Cjgzvizpcul"
+      ],
+      "anchors": [
+        "Cjgzvizpcul"
+      ],
+      "files": [
+        "F14m2ssoyr7u"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 36,
+      "members": [
+        "Cmg4loyzgdm"
+      ],
+      "anchors": [
+        "Cmg4loyzgdm"
+      ],
+      "files": [
+        "F14m2ssoyr7u"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 40,
+      "members": [
+        "Czq072oj608"
+      ],
+      "anchors": [
+        "Czq072oj608"
+      ],
+      "files": [
+        "F14m2ssoyr7u"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 43,
+      "members": [
+        "Cncx5xvuhas"
+      ],
+      "anchors": [
+        "Cncx5xvuhas"
+      ],
+      "files": [
+        "Feyreg0gp7a"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "asm"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 45,
+      "members": [
+        "Ctesnfxy96c",
+        "C71d73g02co"
+      ],
+      "anchors": [
+        "C71d73g02co"
+      ],
+      "files": [
+        "Fhjjkwsxroz"
+      ],
+      "total_lines": 58,
+      "languages": [
+        "asm"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 47,
+      "members": [
+        "Cly2cfdw7vl"
+      ],
+      "anchors": [],
+      "files": [
+        "Fhjjkwsxroz"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "asm"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 48,
+      "members": [
+        "C14vvqogen9l"
+      ],
+      "anchors": [
+        "C14vvqogen9l"
+      ],
+      "files": [
+        "Fhjjkwsxroz"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "asm"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 49,
+      "members": [
+        "Cx1mrrcb1wd"
+      ],
+      "anchors": [
+        "Cx1mrrcb1wd"
+      ],
+      "files": [
+        "Fhjjkwsxroz"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "asm"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 52,
+      "members": [
+        "Covsewublig",
+        "Cwsjkwa5jzu",
+        "Clzsukwwudr",
+        "Cf412uiuatq",
+        "C9bblj7qmcn",
+        "C2v4040mb1n",
+        "C3lua01g3un",
+        "C61diri622b",
+        "Cu0v5hplx6p",
+        "C7p8pn5kijm",
+        "C11btsye6wdi",
+        "Cory3zbw680",
+        "Crtn4n7ltyd",
+        "Cmjgy0hfkch",
+        "Ctw081f2eos",
+        "Capsk3kv9iv",
+        "C8al9s8m5id",
+        "Cwkm7hhnbdi",
+        "Czfxhxxjxes",
+        "C7l9zmauxz0",
+        "C14eiez6gf7l",
+        "Cpryfzncc75",
+        "C13ef4fidivk",
+        "C10tf5ktlpga",
+        "C14fv95utbp5",
+        "Cta5dqs9klr",
+        "Cdb31nec9sc",
+        "Cbxo3uthy8k",
+        "Cn3kg707i0y",
+        "C15xqaoocxtu",
+        "Ct4oljb5k1x",
+        "C10k3tgo2z0d",
+        "Csjhk15zo35",
+        "Cla6c64sh8",
+        "Cj037llduph",
+        "Ci1zefo60id",
+        "Cypdg1pf7hi",
+        "C16s0pcw3tqm",
+        "Ca9y793r566"
+      ],
+      "anchors": [
+        "Cpryfzncc75",
+        "C13ef4fidivk",
+        "C10tf5ktlpga",
+        "C14fv95utbp5",
+        "Cta5dqs9klr",
+        "Cdb31nec9sc",
+        "Cn3kg707i0y",
+        "Ct4oljb5k1x",
+        "C10k3tgo2z0d",
+        "Csjhk15zo35",
+        "Cla6c64sh8",
+        "Cj037llduph",
+        "Ci1zefo60id",
+        "Cypdg1pf7hi",
+        "C16s0pcw3tqm",
+        "Ca9y793r566"
+      ],
+      "files": [
+        "Fqn32s1ayup",
+        "Fnoj6sibuct",
+        "Fnzpv2vwvaj",
+        "Fglnb26k9gt",
+        "Fcdjm0ksjpg",
+        "Fy8yeo6lshb",
+        "Fqeeztb4yh5",
+        "Ff0q5thdmyx"
+      ],
+      "total_lines": 785,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 62,
+      "members": [
+        "Cuhdwrcorr3",
+        "Cwv4cyoe8ab",
+        "C14vbvkgidjv",
+        "C4um75f9rfi",
+        "C8gki3gr0hb",
+        "C1diej98o9p"
+      ],
+      "anchors": [
+        "C1diej98o9p"
+      ],
+      "files": [
+        "Fnoj6sibuct",
+        "Fxnta1zkbe1",
+        "Fglnb26k9gt"
+      ],
+      "total_lines": 77,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 100,
+      "members": [
+        "Ce8nikhsq0h"
+      ],
+      "anchors": [
+        "Ce8nikhsq0h"
+      ],
+      "files": [
+        "F18kx2zfwy2"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "asm"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 102,
+      "members": [
+        "C3acif93pdp"
+      ],
+      "anchors": [
+        "C3acif93pdp"
+      ],
+      "files": [
+        "F18kx2zfwy2"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "asm"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 103,
+      "members": [
+        "Ckgdxwo478p"
+      ],
+      "anchors": [
+        "Ckgdxwo478p"
+      ],
+      "files": [
+        "F18kx2zfwy2"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "asm"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 113,
+      "members": [
+        "C26huzuq86o"
+      ],
+      "anchors": [
+        "C26huzuq86o"
+      ],
+      "files": [
+        "Fiy3mhnfrc7"
+      ],
+      "total_lines": 39,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 123,
+      "members": [
+        "Cyp7pd5fo3l",
+        "Codd57dlq8t",
+        "C8see6uw9m4",
+        "C16erjzo6t4c"
+      ],
+      "anchors": [
+        "C8see6uw9m4"
+      ],
+      "files": [
+        "Fr8cm78os1y"
+      ],
+      "total_lines": 55,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 142,
+      "members": [
+        "Chvnb5hxxzf"
+      ],
+      "anchors": [
+        "Chvnb5hxxzf"
+      ],
+      "files": [
+        "F4jhfbdxp1n"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 145,
+      "members": [
+        "Cg4qz7t1dr0"
+      ],
+      "anchors": [
+        "Cg4qz7t1dr0"
+      ],
+      "files": [
+        "Fwhig0o692a"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 146,
+      "members": [
+        "C1vz2znz2fp"
+      ],
+      "anchors": [
+        "C1vz2znz2fp"
+      ],
+      "files": [
+        "Fwhig0o692a"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 147,
+      "members": [
+        "C2ewd8wmuuq"
+      ],
+      "anchors": [
+        "C2ewd8wmuuq"
+      ],
+      "files": [
+        "Fwhig0o692a"
+      ],
+      "total_lines": 23,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 150,
+      "members": [
+        "Cf4qi5wob8h"
+      ],
+      "anchors": [
+        "Cf4qi5wob8h"
+      ],
+      "files": [
+        "Fb51x74eob"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 151,
+      "members": [
+        "Cuqro9fzgb7"
+      ],
+      "anchors": [
+        "Cuqro9fzgb7"
+      ],
+      "files": [
+        "Fb51x74eob"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 185,
+      "members": [
+        "Cz5z8kvqltq",
+        "C3bupo5491m",
+        "C11otrot8xfy"
+      ],
+      "anchors": [
+        "C11otrot8xfy"
+      ],
+      "files": [
+        "Fklwu8nye9o"
+      ],
+      "total_lines": 78,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 188,
+      "members": [
+        "Cw7rfpn0zhf"
+      ],
+      "anchors": [
+        "Cw7rfpn0zhf"
+      ],
+      "files": [
+        "Fglnb26k9gt"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 243,
+      "members": [
+        "C15cjfqfe845",
+        "Cfyoe5wtkw6"
+      ],
+      "anchors": [
+        "Cfyoe5wtkw6"
+      ],
+      "files": [
+        "Fcdjm0ksjpg"
+      ],
+      "total_lines": 24,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 248,
+      "members": [
+        "Cuduoqtv9ed"
+      ],
+      "anchors": [
+        "Cuduoqtv9ed"
+      ],
+      "files": [
+        "Fcdjm0ksjpg"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 273,
+      "members": [
+        "C145e6xorcg1"
+      ],
+      "anchors": [
+        "C145e6xorcg1"
+      ],
+      "files": [
+        "Ff0q5thdmyx"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 274,
+      "members": [
+        "C58f1226mi8"
+      ],
+      "anchors": [
+        "C58f1226mi8"
+      ],
+      "files": [
+        "Ff0q5thdmyx"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 275,
+      "members": [
+        "C106cndp94tf"
+      ],
+      "anchors": [
+        "C106cndp94tf"
+      ],
+      "files": [
+        "Ff0q5thdmyx"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 277,
+      "members": [
+        "Cbjourh43uw"
+      ],
+      "anchors": [
+        "Cbjourh43uw"
+      ],
+      "files": [
+        "Ff0q5thdmyx"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 280,
+      "members": [
+        "Cqt3fwhggma"
+      ],
+      "anchors": [
+        "Cqt3fwhggma"
+      ],
+      "files": [
+        "Ff0q5thdmyx"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 285,
+      "members": [
+        "C1525f9bs9jn"
+      ],
+      "anchors": [
+        "C1525f9bs9jn"
+      ],
+      "files": [
+        "Fvqq6kmv96d"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "asm"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 288,
+      "members": [
+        "C5fo87ljghb"
+      ],
+      "anchors": [
+        "C5fo87ljghb"
+      ],
+      "files": [
+        "F7d2ouk2ur5"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 291,
+      "members": [
+        "C11vn1qfku91"
+      ],
+      "anchors": [
+        "C11vn1qfku91"
+      ],
+      "files": [
+        "Fz1jl8oich2"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 292,
+      "members": [
+        "C13u0rd3l29n"
+      ],
+      "anchors": [
+        "C13u0rd3l29n"
+      ],
+      "files": [
+        "Fz1jl8oich2"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 298,
+      "members": [
+        "C3d7y5iksz7"
+      ],
+      "anchors": [
+        "C3d7y5iksz7"
+      ],
+      "files": [
+        "Fz1jl8oich2"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 316,
+      "members": [
+        "C25mjzus8z0"
+      ],
+      "anchors": [
+        "C25mjzus8z0"
+      ],
+      "files": [
+        "Foddven1ro4"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 317,
+      "members": [
+        "C8sk2ama80s"
+      ],
+      "anchors": [
+        "C8sk2ama80s"
+      ],
+      "files": [
+        "Foddven1ro4"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 328,
+      "members": [
+        "C12tvy8n6n5u"
+      ],
+      "anchors": [
+        "C12tvy8n6n5u"
+      ],
+      "files": [
+        "Foihjo06aih"
+      ],
+      "total_lines": 25,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 355,
+      "members": [
+        "Cmyob3wh7dr"
+      ],
+      "anchors": [
+        "Cmyob3wh7dr"
+      ],
+      "files": [
+        "Foihjo06aih"
+      ],
+      "total_lines": 50,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 358,
+      "members": [
+        "Cn14807bh8h"
+      ],
+      "anchors": [
+        "Cn14807bh8h"
+      ],
+      "files": [
+        "Foihjo06aih"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 360,
+      "members": [
+        "C9g7v6hnxi7"
+      ],
+      "anchors": [
+        "C9g7v6hnxi7"
+      ],
+      "files": [
+        "F13h25rydfdu"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "asm"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 382,
+      "members": [
+        "C5wyzqhwn4z"
+      ],
+      "anchors": [
+        "C5wyzqhwn4z"
+      ],
+      "files": [
+        "F6aw41hbujs"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 390,
+      "members": [
+        "C161vh35d3af"
+      ],
+      "anchors": [
+        "C161vh35d3af"
+      ],
+      "files": [
+        "F6aw41hbujs"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "c"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cxqbu5t0t69",
+      "qualified_name": "trap",
+      "simple_name": "trap",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1399ywoho7k",
+      "path": "/storage/cgg-test_repos/asm-xv6/trap.c",
+      "start_line": 36,
+      "end_line": 112,
+      "size_lines": 77,
+      "signature_hint": "void trap(struct trapframe *tf)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -623,
+      "region": 25,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C10n983rklta"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 44
+    },
+    {
+      "id": "Cn3kg707i0y",
+      "qualified_name": "sys_unlink",
+      "simple_name": "sys_unlink",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqeeztb4yh5",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysfile.c",
+      "start_line": 184,
+      "end_line": 239,
+      "size_lines": 56,
+      "signature_hint": "int sys_unlink(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -644,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 22
+    },
+    {
+      "id": "Cmyob3wh7dr",
+      "qualified_name": "fsfull",
+      "simple_name": "fsfull",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Foihjo06aih",
+      "path": "/storage/cgg-test_repos/asm-xv6/usertests.c",
+      "start_line": 1647,
+      "end_line": 1696,
+      "size_lines": 50,
+      "signature_hint": "void fsfull()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -650,
+      "region": 355,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 9
+    },
+    {
+      "id": "Ct4oljb5k1x",
+      "qualified_name": "sys_open",
+      "simple_name": "sys_open",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqeeztb4yh5",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysfile.c",
+      "start_line": 285,
+      "end_line": 333,
+      "size_lines": 49,
+      "signature_hint": "int sys_open(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -651,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 17
+    },
+    {
+      "id": "Cdb31nec9sc",
+      "qualified_name": "sys_link",
+      "simple_name": "sys_link",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqeeztb4yh5",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysfile.c",
+      "start_line": 118,
+      "end_line": 165,
+      "size_lines": 48,
+      "signature_hint": "int sys_link(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -652,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 21
+    },
+    {
+      "id": "Cixgxkdwlnb",
+      "qualified_name": "consoleintr",
+      "simple_name": "consoleintr",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fgtiwl5y3w6",
+      "path": "/storage/cgg-test_repos/asm-xv6/console.c",
+      "start_line": 191,
+      "end_line": 233,
+      "size_lines": 43,
+      "signature_hint": "void consoleintr(int (*getc)(void))",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -657,
+      "region": 25,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C6c13ij53rd"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 11
+    },
+    {
+      "id": "C15xqaoocxtu",
+      "qualified_name": "create",
+      "simple_name": "create",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqeeztb4yh5",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysfile.c",
+      "start_line": 241,
+      "end_line": 283,
+      "size_lines": 43,
+      "signature_hint": "static struct inode* create(char *path, short type, short major, short minor)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -657,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 3,
+          "example": "Ct4oljb5k1x"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 18
+    },
+    {
+      "id": "Cf412uiuatq",
+      "qualified_name": "filewrite",
+      "simple_name": "filewrite",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqn32s1ayup",
+      "path": "/storage/cgg-test_repos/asm-xv6/file.c",
+      "start_line": 117,
+      "end_line": 156,
+      "size_lines": 40,
+      "signature_hint": "int filewrite(struct file *f, char *addr, int n)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -660,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C10tf5ktlpga"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 8
+    },
+    {
+      "id": "C26huzuq86o",
+      "qualified_name": "kbdgetc",
+      "simple_name": "kbdgetc",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fiy3mhnfrc7",
+      "path": "/storage/cgg-test_repos/asm-xv6/kbd.c",
+      "start_line": 6,
+      "end_line": 44,
+      "size_lines": 39,
+      "signature_hint": "int kbdgetc(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -661,
+      "region": 113,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C2m5lrqaly2",
+      "qualified_name": "consoleread",
+      "simple_name": "consoleread",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fgtiwl5y3w6",
+      "path": "/storage/cgg-test_repos/asm-xv6/console.c",
+      "start_line": 235,
+      "end_line": 271,
+      "size_lines": 37,
+      "signature_hint": "int consoleread(struct inode *ip, char *dst, int n)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -663,
+      "region": 26,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 8
+    },
+    {
+      "id": "C7p8pn5kijm",
+      "qualified_name": "pipealloc",
+      "simple_name": "pipealloc",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnzpv2vwvaj",
+      "path": "/storage/cgg-test_repos/asm-xv6/pipe.c",
+      "start_line": 22,
+      "end_line": 57,
+      "size_lines": 36,
+      "signature_hint": "int pipealloc(struct file **f0, struct file **f1)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -664,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ci1zefo60id"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "C8see6uw9m4",
+      "qualified_name": "cmostime",
+      "simple_name": "cmostime",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fr8cm78os1y",
+      "path": "/storage/cgg-test_repos/asm-xv6/lapic.c",
+      "start_line": 195,
+      "end_line": 229,
+      "size_lines": 35,
+      "signature_hint": "void cmostime(struct rtcdate *r)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -665,
+      "region": 123,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 11
+    },
+    {
+      "id": "C71d73g02co",
+      "qualified_name": "start32",
+      "simple_name": "start32",
+      "language": "asm",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fhjjkwsxroz",
+      "path": "/storage/cgg-test_repos/asm-xv6/entryother.S",
+      "start_line": 48,
+      "end_line": 80,
+      "size_lines": 33,
+      "signature_hint": "start32",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -667,
+      "region": 45,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Czruq6rvvki",
+      "qualified_name": "bootmain",
+      "simple_name": "bootmain",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1514cckrgn9",
+      "path": "/storage/cgg-test_repos/asm-xv6/bootmain.c",
+      "start_line": 17,
+      "end_line": 48,
+      "size_lines": 32,
+      "signature_hint": "void bootmain(void)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -668,
+      "region": 9,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ccl2kqdght1"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Cm8sto618p",
+      "qualified_name": "iderw",
+      "simple_name": "iderw",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F17p4a5d1ck8",
+      "path": "/storage/cgg-test_repos/asm-xv6/ide.c",
+      "start_line": 137,
+      "end_line": 168,
+      "size_lines": 32,
+      "signature_hint": "void iderw(struct buf *b)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -668,
+      "region": 9,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "Cs099ts3dth",
+      "qualified_name": "procdump",
+      "simple_name": "procdump",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fglnb26k9gt",
+      "path": "/storage/cgg-test_repos/asm-xv6/proc.c",
+      "start_line": 503,
+      "end_line": 534,
+      "size_lines": 32,
+      "signature_hint": "void procdump(void)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -668,
+      "region": 25,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cixgxkdwlnb"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "C3lua01g3un",
+      "qualified_name": "writei",
+      "simple_name": "writei",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnoj6sibuct",
+      "path": "/storage/cgg-test_repos/asm-xv6/fs.c",
+      "start_line": 481,
+      "end_line": 511,
+      "size_lines": 31,
+      "signature_hint": "int writei(struct inode *ip, char *src, uint off, uint n)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -669,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 3,
+          "example": "C61diri622b"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "C3z14yxtthb",
+      "qualified_name": "ideintr",
+      "simple_name": "ideintr",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F17p4a5d1ck8",
+      "path": "/storage/cgg-test_repos/asm-xv6/ide.c",
+      "start_line": 103,
+      "end_line": 131,
+      "size_lines": 29,
+      "signature_hint": "void ideintr(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -671,
+      "region": 9,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "C61diri622b",
+      "qualified_name": "dirlink",
+      "simple_name": "dirlink",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnoj6sibuct",
+      "path": "/storage/cgg-test_repos/asm-xv6/fs.c",
+      "start_line": 551,
+      "end_line": 578,
+      "size_lines": 28,
+      "signature_hint": "int dirlink(struct inode *dp, char *name, uint inum)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -672,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 4,
+          "example": "Cdb31nec9sc"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "Cn79lyxiv6p",
+      "qualified_name": "idestart",
+      "simple_name": "idestart",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F17p4a5d1ck8",
+      "path": "/storage/cgg-test_repos/asm-xv6/ide.c",
+      "start_line": 73,
+      "end_line": 100,
+      "size_lines": 28,
+      "signature_hint": "static void idestart(struct buf *b)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -672,
+      "region": 9,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C3z14yxtthb"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 13
+    },
+    {
+      "id": "C9g7v6hnxi7",
+      "qualified_name": "name",
+      "simple_name": "name",
+      "language": "asm",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13h25rydfdu",
+      "path": "/storage/cgg-test_repos/asm-xv6/usys.S",
+      "start_line": 6,
+      "end_line": 32,
+      "size_lines": 27,
+      "signature_hint": "name",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -673,
+      "region": 360,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3bupo5491m",
+      "qualified_name": "printint",
+      "simple_name": "printint",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fklwu8nye9o",
+      "path": "/storage/cgg-test_repos/asm-xv6/printf.c",
+      "start_line": 11,
+      "end_line": 36,
+      "size_lines": 26,
+      "signature_hint": "static void printint(int fd, int xx, int base, int sgn)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -674,
+      "region": 185,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C11otrot8xfy"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cj037llduph",
+      "qualified_name": "sys_exec",
+      "simple_name": "sys_exec",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqeeztb4yh5",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysfile.c",
+      "start_line": 396,
+      "end_line": 420,
+      "size_lines": 25,
+      "signature_hint": "int sys_exec(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -675,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "C12tvy8n6n5u",
+      "qualified_name": "dirtest",
+      "simple_name": "dirtest",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Foihjo06aih",
+      "path": "/storage/cgg-test_repos/asm-xv6/usertests.c",
+      "start_line": 267,
+      "end_line": 291,
+      "size_lines": 25,
+      "signature_hint": "void dirtest(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -675,
+      "region": 328,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 18
+    },
+    {
+      "id": "Cvrwctwoh2",
+      "qualified_name": "seta20.2",
+      "simple_name": "seta20.2",
+      "language": "asm",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1e2pdp0lwm",
+      "path": "/storage/cgg-test_repos/asm-xv6/bootasm.S",
+      "start_line": 31,
+      "end_line": 54,
+      "size_lines": 24,
+      "signature_hint": "seta20.2",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -676,
+      "region": 8,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cla6c64sh8",
+      "qualified_name": "sys_chdir",
+      "simple_name": "sys_chdir",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqeeztb4yh5",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysfile.c",
+      "start_line": 371,
+      "end_line": 394,
+      "size_lines": 24,
+      "signature_hint": "int sys_chdir(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -676,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 11
+    },
+    {
+      "id": "C2ewd8wmuuq",
+      "qualified_name": "iderw",
+      "simple_name": "iderw",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fwhig0o692a",
+      "path": "/storage/cgg-test_repos/asm-xv6/memide.c",
+      "start_line": 38,
+      "end_line": 60,
+      "size_lines": 23,
+      "signature_hint": "void iderw(struct buf *b)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -677,
+      "region": 147,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "Ci1zefo60id",
+      "qualified_name": "sys_pipe",
+      "simple_name": "sys_pipe",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqeeztb4yh5",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysfile.c",
+      "start_line": 422,
+      "end_line": 444,
+      "size_lines": 23,
+      "signature_hint": "int sys_pipe(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -677,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "Ccl2kqdght1",
+      "qualified_name": "start32",
+      "simple_name": "start32",
+      "language": "asm",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1e2pdp0lwm",
+      "path": "/storage/cgg-test_repos/asm-xv6/bootasm.S",
+      "start_line": 54,
+      "end_line": 75,
+      "size_lines": 22,
+      "signature_hint": "start32",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -678,
+      "region": 9,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cory3zbw680",
+      "qualified_name": "piperead",
+      "simple_name": "piperead",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnzpv2vwvaj",
+      "path": "/storage/cgg-test_repos/asm-xv6/pipe.c",
+      "start_line": 100,
+      "end_line": 121,
+      "size_lines": 22,
+      "signature_hint": "int piperead(struct pipe *p, char *addr, int n)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -678,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Clzsukwwudr"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "C9bblj7qmcn",
+      "qualified_name": "ialloc",
+      "simple_name": "ialloc",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnoj6sibuct",
+      "path": "/storage/cgg-test_repos/asm-xv6/fs.c",
+      "start_line": 194,
+      "end_line": 214,
+      "size_lines": 21,
+      "signature_hint": "struct inode* ialloc(uint dev, short type)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -679,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C15xqaoocxtu"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 8
+    },
+    {
+      "id": "C2i5wukwk22",
+      "qualified_name": "ideinit",
+      "simple_name": "ideinit",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F17p4a5d1ck8",
+      "path": "/storage/cgg-test_repos/asm-xv6/ide.c",
+      "start_line": 50,
+      "end_line": 70,
+      "size_lines": 21,
+      "signature_hint": "void ideinit(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -679,
+      "region": 9,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "C11btsye6wdi",
+      "qualified_name": "pipewrite",
+      "simple_name": "pipewrite",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnzpv2vwvaj",
+      "path": "/storage/cgg-test_repos/asm-xv6/pipe.c",
+      "start_line": 78,
+      "end_line": 98,
+      "size_lines": 21,
+      "signature_hint": "int pipewrite(struct pipe *p, char *addr, int n)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -679,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cf412uiuatq"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "C10n983rklta",
+      "qualified_name": "alltraps",
+      "simple_name": "alltraps",
+      "language": "asm",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fvqq6kmv96d",
+      "path": "/storage/cgg-test_repos/asm-xv6/trapasm.S",
+      "start_line": 5,
+      "end_line": 25,
+      "size_lines": 21,
+      "signature_hint": "alltraps",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -679,
+      "region": 25,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ca9y793r566",
+      "qualified_name": "sys_sleep",
+      "simple_name": "sys_sleep",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ff0q5thdmyx",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysproc.c",
+      "start_line": 59,
+      "end_line": 78,
+      "size_lines": 20,
+      "signature_hint": "int sys_sleep(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -680,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "C2uwxs4ap83",
+      "qualified_name": "readseg",
+      "simple_name": "readseg",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1514cckrgn9",
+      "path": "/storage/cgg-test_repos/asm-xv6/bootmain.c",
+      "start_line": 78,
+      "end_line": 96,
+      "size_lines": 19,
+      "signature_hint": "void readseg(uchar* pa, uint count, uint offset)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -681,
+      "region": 9,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Czruq6rvvki"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Csjhk15zo35",
+      "qualified_name": "sys_mknod",
+      "simple_name": "sys_mknod",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqeeztb4yh5",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysfile.c",
+      "start_line": 351,
+      "end_line": 369,
+      "size_lines": 19,
+      "signature_hint": "int sys_mknod(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -681,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 8
+    },
+    {
+      "id": "Clzsukwwudr",
+      "qualified_name": "fileread",
+      "simple_name": "fileread",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqn32s1ayup",
+      "path": "/storage/cgg-test_repos/asm-xv6/file.c",
+      "start_line": 96,
+      "end_line": 113,
+      "size_lines": 18,
+      "signature_hint": "int fileread(struct file *f, char *addr, int n)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -682,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C13ef4fidivk"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "Crtn4n7ltyd",
+      "qualified_name": "growproc",
+      "simple_name": "growproc",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fglnb26k9gt",
+      "path": "/storage/cgg-test_repos/asm-xv6/proc.c",
+      "start_line": 158,
+      "end_line": 175,
+      "size_lines": 18,
+      "signature_hint": "int growproc(int n)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -682,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C16s0pcw3tqm"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C1diej98o9p",
+      "qualified_name": "forkret",
+      "simple_name": "forkret",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fglnb26k9gt",
+      "path": "/storage/cgg-test_repos/asm-xv6/proc.c",
+      "start_line": 396,
+      "end_line": 413,
+      "size_lines": 18,
+      "signature_hint": "void forkret(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -682,
+      "region": 62,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Clcewuzkd2w",
+      "qualified_name": "readsect",
+      "simple_name": "readsect",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1514cckrgn9",
+      "path": "/storage/cgg-test_repos/asm-xv6/bootmain.c",
+      "start_line": 59,
+      "end_line": 74,
+      "size_lines": 16,
+      "signature_hint": "void readsect(void *dst, uint offset)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -684,
+      "region": 9,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C2uwxs4ap83"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 9
+    },
+    {
+      "id": "Cncx5xvuhas",
+      "qualified_name": "multiboot_header",
+      "simple_name": "multiboot_header",
+      "language": "asm",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Feyreg0gp7a",
+      "path": "/storage/cgg-test_repos/asm-xv6/entry.S",
+      "start_line": 30,
+      "end_line": 45,
+      "size_lines": 16,
+      "signature_hint": "multiboot_header",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -684,
+      "region": 43,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Covsewublig",
+      "qualified_name": "filealloc",
+      "simple_name": "filealloc",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqn32s1ayup",
+      "path": "/storage/cgg-test_repos/asm-xv6/file.c",
+      "start_line": 26,
+      "end_line": 41,
+      "size_lines": 16,
+      "signature_hint": "struct file* filealloc(void)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -684,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 3,
+          "example": "C7p8pn5kijm"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cwv4cyoe8ab",
+      "qualified_name": "iinit",
+      "simple_name": "iinit",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnoj6sibuct",
+      "path": "/storage/cgg-test_repos/asm-xv6/fs.c",
+      "start_line": 171,
+      "end_line": 186,
+      "size_lines": 16,
+      "signature_hint": "void iinit(int dev)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -684,
+      "region": 62,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C1diej98o9p"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Capsk3kv9iv",
+      "qualified_name": "fetchstr",
+      "simple_name": "fetchstr",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fy8yeo6lshb",
+      "path": "/storage/cgg-test_repos/asm-xv6/syscall.c",
+      "start_line": 31,
+      "end_line": 46,
+      "size_lines": 16,
+      "signature_hint": "int fetchstr(uint addr, char **pp)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -684,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Czfxhxxjxes"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C7l9zmauxz0",
+      "qualified_name": "argfd",
+      "simple_name": "argfd",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqeeztb4yh5",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysfile.c",
+      "start_line": 21,
+      "end_line": 36,
+      "size_lines": 16,
+      "signature_hint": "static int argfd(int n, int *pfd, struct file **pf)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -684,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 5,
+          "example": "Cpryfzncc75"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cizvgvexkdx",
+      "qualified_name": "syscall",
+      "simple_name": "syscall",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fy8yeo6lshb",
+      "path": "/storage/cgg-test_repos/asm-xv6/syscall.c",
+      "start_line": 131,
+      "end_line": 145,
+      "size_lines": 15,
+      "signature_hint": "void syscall(void)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -685,
+      "region": 25,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cxqbu5t0t69"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C10k3tgo2z0d",
+      "qualified_name": "sys_mkdir",
+      "simple_name": "sys_mkdir",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqeeztb4yh5",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysfile.c",
+      "start_line": 335,
+      "end_line": 349,
+      "size_lines": 15,
+      "signature_hint": "int sys_mkdir(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -685,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "Cx6qqadnxnz",
+      "qualified_name": "consolewrite",
+      "simple_name": "consolewrite",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fgtiwl5y3w6",
+      "path": "/storage/cgg-test_repos/asm-xv6/console.c",
+      "start_line": 273,
+      "end_line": 286,
+      "size_lines": 14,
+      "signature_hint": "int consolewrite(struct inode *ip, char *buf, int n)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -686,
+      "region": 27,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "C14vbvkgidjv",
+      "qualified_name": "initlog",
+      "simple_name": "initlog",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fxnta1zkbe1",
+      "path": "/storage/cgg-test_repos/asm-xv6/log.c",
+      "start_line": 53,
+      "end_line": 66,
+      "size_lines": 14,
+      "signature_hint": "void initlog(int dev)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -686,
+      "region": 62,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C1diej98o9p"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C14eiez6gf7l",
+      "qualified_name": "fdalloc",
+      "simple_name": "fdalloc",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqeeztb4yh5",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysfile.c",
+      "start_line": 40,
+      "end_line": 53,
+      "size_lines": 14,
+      "signature_hint": "static int fdalloc(struct file *f)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -686,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 4,
+          "example": "Cpryfzncc75"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cbxo3uthy8k",
+      "qualified_name": "isdirempty",
+      "simple_name": "isdirempty",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqeeztb4yh5",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysfile.c",
+      "start_line": 168,
+      "end_line": 181,
+      "size_lines": 14,
+      "signature_hint": "static int isdirempty(struct inode *dp)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -686,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cn3kg707i0y"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cwkm7hhnbdi",
+      "qualified_name": "argptr",
+      "simple_name": "argptr",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fy8yeo6lshb",
+      "path": "/storage/cgg-test_repos/asm-xv6/syscall.c",
+      "start_line": 58,
+      "end_line": 70,
+      "size_lines": 13,
+      "signature_hint": "int argptr(int n, char **pp, int size)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -687,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 4,
+          "example": "C13ef4fidivk"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cpryfzncc75",
+      "qualified_name": "sys_dup",
+      "simple_name": "sys_dup",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqeeztb4yh5",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysfile.c",
+      "start_line": 55,
+      "end_line": 67,
+      "size_lines": 13,
+      "signature_hint": "int sys_dup(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -687,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C16s0pcw3tqm",
+      "qualified_name": "sys_sbrk",
+      "simple_name": "sys_sbrk",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ff0q5thdmyx",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysproc.c",
+      "start_line": 45,
+      "end_line": 57,
+      "size_lines": 13,
+      "signature_hint": "int sys_sbrk(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -687,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C67p7ijgiyu",
+      "qualified_name": "start",
+      "simple_name": "start",
+      "language": "asm",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1e2pdp0lwm",
+      "path": "/storage/cgg-test_repos/asm-xv6/bootasm.S",
+      "start_line": 12,
+      "end_line": 23,
+      "size_lines": 12,
+      "signature_hint": "start",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -688,
+      "region": 6,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4um75f9rfi",
+      "qualified_name": "read_head",
+      "simple_name": "read_head",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fxnta1zkbe1",
+      "path": "/storage/cgg-test_repos/asm-xv6/log.c",
+      "start_line": 85,
+      "end_line": 96,
+      "size_lines": 12,
+      "signature_hint": "static void read_head(void)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -688,
+      "region": 62,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C8gki3gr0hb"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C14fv95utbp5",
+      "qualified_name": "sys_close",
+      "simple_name": "sys_close",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqeeztb4yh5",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysfile.c",
+      "start_line": 93,
+      "end_line": 104,
+      "size_lines": 12,
+      "signature_hint": "int sys_close(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -688,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cwsjkwa5jzu",
+      "qualified_name": "filestat",
+      "simple_name": "filestat",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqn32s1ayup",
+      "path": "/storage/cgg-test_repos/asm-xv6/file.c",
+      "start_line": 83,
+      "end_line": 93,
+      "size_lines": 11,
+      "signature_hint": "int filestat(struct file *f, struct stat *st)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -689,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cta5dqs9klr"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cnb6rkydu21",
+      "qualified_name": "idewait",
+      "simple_name": "idewait",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F17p4a5d1ck8",
+      "path": "/storage/cgg-test_repos/asm-xv6/ide.c",
+      "start_line": 38,
+      "end_line": 48,
+      "size_lines": 11,
+      "signature_hint": "static int idewait(int checkerr)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -689,
+      "region": 9,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 3,
+          "example": "C2i5wukwk22"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C13ef4fidivk",
+      "qualified_name": "sys_read",
+      "simple_name": "sys_read",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqeeztb4yh5",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysfile.c",
+      "start_line": 69,
+      "end_line": 79,
+      "size_lines": 11,
+      "signature_hint": "int sys_read(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -689,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C10tf5ktlpga",
+      "qualified_name": "sys_write",
+      "simple_name": "sys_write",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqeeztb4yh5",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysfile.c",
+      "start_line": 81,
+      "end_line": 91,
+      "size_lines": 11,
+      "signature_hint": "int sys_write(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -689,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Codd57dlq8t",
+      "qualified_name": "fill_rtcdate",
+      "simple_name": "fill_rtcdate",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fr8cm78os1y",
+      "path": "/storage/cgg-test_repos/asm-xv6/lapic.c",
+      "start_line": 183,
+      "end_line": 192,
+      "size_lines": 10,
+      "signature_hint": "static void fill_rtcdate(struct rtcdate *r)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -690,
+      "region": 123,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C8see6uw9m4"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "Ctw081f2eos",
+      "qualified_name": "fetchint",
+      "simple_name": "fetchint",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fy8yeo6lshb",
+      "path": "/storage/cgg-test_repos/asm-xv6/syscall.c",
+      "start_line": 17,
+      "end_line": 26,
+      "size_lines": 10,
+      "signature_hint": "int fetchint(uint addr, int *ip)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -690,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C8al9s8m5id"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cta5dqs9klr",
+      "qualified_name": "sys_fstat",
+      "simple_name": "sys_fstat",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqeeztb4yh5",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysfile.c",
+      "start_line": 106,
+      "end_line": 115,
+      "size_lines": 10,
+      "signature_hint": "int sys_fstat(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -690,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cqt3fwhggma",
+      "qualified_name": "sys_uptime",
+      "simple_name": "sys_uptime",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ff0q5thdmyx",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysproc.c",
+      "start_line": 82,
+      "end_line": 91,
+      "size_lines": 10,
+      "signature_hint": "int sys_uptime(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -690,
+      "region": 280,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Ccbtaklgwe7",
+      "qualified_name": "seta20.1",
+      "simple_name": "seta20.1",
+      "language": "asm",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1e2pdp0lwm",
+      "path": "/storage/cgg-test_repos/asm-xv6/bootasm.S",
+      "start_line": 23,
+      "end_line": 31,
+      "size_lines": 9,
+      "signature_hint": "seta20.1",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 7,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cuhdwrcorr3",
+      "qualified_name": "readsb",
+      "simple_name": "readsb",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnoj6sibuct",
+      "path": "/storage/cgg-test_repos/asm-xv6/fs.c",
+      "start_line": 31,
+      "end_line": 39,
+      "size_lines": 9,
+      "signature_hint": "void readsb(int dev, struct superblock *sb)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 62,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cwv4cyoe8ab"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C2v4040mb1n",
+      "qualified_name": "stati",
+      "simple_name": "stati",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnoj6sibuct",
+      "path": "/storage/cgg-test_repos/asm-xv6/fs.c",
+      "start_line": 439,
+      "end_line": 447,
+      "size_lines": 9,
+      "signature_hint": "void stati(struct inode *ip, struct stat *st)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwsjkwa5jzu"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ce8nikhsq0h",
+      "qualified_name": "start",
+      "simple_name": "start",
+      "language": "asm",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F18kx2zfwy2",
+      "path": "/storage/cgg-test_repos/asm-xv6/initcode.S",
+      "start_line": 10,
+      "end_line": 18,
+      "size_lines": 9,
+      "signature_hint": "start",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 100,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cuduoqtv9ed",
+      "qualified_name": "strlen",
+      "simple_name": "strlen",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcdjm0ksjpg",
+      "path": "/storage/cgg-test_repos/asm-xv6/string.c",
+      "start_line": 96,
+      "end_line": 104,
+      "size_lines": 9,
+      "signature_hint": "int strlen(const char *s)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 248,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cypdg1pf7hi",
+      "qualified_name": "sys_kill",
+      "simple_name": "sys_kill",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ff0q5thdmyx",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysproc.c",
+      "start_line": 29,
+      "end_line": 37,
+      "size_lines": 9,
+      "signature_hint": "int sys_kill(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C1525f9bs9jn",
+      "qualified_name": "trapret",
+      "simple_name": "trapret",
+      "language": "asm",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fvqq6kmv96d",
+      "path": "/storage/cgg-test_repos/asm-xv6/trapasm.S",
+      "start_line": 25,
+      "end_line": 33,
+      "size_lines": 9,
+      "signature_hint": "trapret",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 285,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5fo87ljghb",
+      "qualified_name": "uartgetc",
+      "simple_name": "uartgetc",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F7d2ouk2ur5",
+      "path": "/storage/cgg-test_repos/asm-xv6/uart.c",
+      "start_line": 63,
+      "end_line": 71,
+      "size_lines": 9,
+      "signature_hint": "static int uartgetc(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 288,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C13u0rd3l29n",
+      "qualified_name": "strlen",
+      "simple_name": "strlen",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fz1jl8oich2",
+      "path": "/storage/cgg-test_repos/asm-xv6/ulib.c",
+      "start_line": 26,
+      "end_line": 34,
+      "size_lines": 9,
+      "signature_hint": "uint strlen(const char *s)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 292,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cyp7pd5fo3l",
+      "qualified_name": "cmos_read",
+      "simple_name": "cmos_read",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fr8cm78os1y",
+      "path": "/storage/cgg-test_repos/asm-xv6/lapic.c",
+      "start_line": 174,
+      "end_line": 181,
+      "size_lines": 8,
+      "signature_hint": "static uint cmos_read(uint reg)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 123,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 8,
+          "example": "Codd57dlq8t"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C8gki3gr0hb",
+      "qualified_name": "recover_from_log",
+      "simple_name": "recover_from_log",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fxnta1zkbe1",
+      "path": "/storage/cgg-test_repos/asm-xv6/log.c",
+      "start_line": 115,
+      "end_line": 122,
+      "size_lines": 8,
+      "signature_hint": "static void recover_from_log(void)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 62,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C14vbvkgidjv"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Chvnb5hxxzf",
+      "qualified_name": "mpenter",
+      "simple_name": "mpenter",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4jhfbdxp1n",
+      "path": "/storage/cgg-test_repos/asm-xv6/main.c",
+      "start_line": 41,
+      "end_line": 48,
+      "size_lines": 8,
+      "signature_hint": "static void mpenter(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 142,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Ck508iyz26r",
+      "qualified_name": "yield",
+      "simple_name": "yield",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fglnb26k9gt",
+      "path": "/storage/cgg-test_repos/asm-xv6/proc.c",
+      "start_line": 385,
+      "end_line": 392,
+      "size_lines": 8,
+      "signature_hint": "void yield(void)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 25,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cxqbu5t0t69"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Czfxhxxjxes",
+      "qualified_name": "argstr",
+      "simple_name": "argstr",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fy8yeo6lshb",
+      "path": "/storage/cgg-test_repos/asm-xv6/syscall.c",
+      "start_line": 76,
+      "end_line": 83,
+      "size_lines": 8,
+      "signature_hint": "int argstr(int n, char **pp)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 8,
+          "example": "Cdb31nec9sc"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C11rtlz6ntif",
+      "qualified_name": "insl",
+      "simple_name": "insl",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6aw41hbujs",
+      "path": "/storage/cgg-test_repos/asm-xv6/x86.h",
+      "start_line": 12,
+      "end_line": 19,
+      "size_lines": 8,
+      "signature_hint": "static inline void insl(int port, void *addr, int cnt)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 9,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Clcewuzkd2w"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnnf4coajps",
+      "qualified_name": "outsl",
+      "simple_name": "outsl",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6aw41hbujs",
+      "path": "/storage/cgg-test_repos/asm-xv6/x86.h",
+      "start_line": 33,
+      "end_line": 40,
+      "size_lines": 8,
+      "signature_hint": "static inline void outsl(int port, const void *addr, int cnt)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 9,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cn79lyxiv6p"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cn4xobwecsm",
+      "qualified_name": "stosb",
+      "simple_name": "stosb",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6aw41hbujs",
+      "path": "/storage/cgg-test_repos/asm-xv6/x86.h",
+      "start_line": 42,
+      "end_line": 49,
+      "size_lines": 8,
+      "signature_hint": "static inline void stosb(void *addr, int data, int cnt)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 9,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 3,
+          "example": "Czruq6rvvki"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C9nsdjhxo1f",
+      "qualified_name": "stosl",
+      "simple_name": "stosl",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6aw41hbujs",
+      "path": "/storage/cgg-test_repos/asm-xv6/x86.h",
+      "start_line": 51,
+      "end_line": 58,
+      "size_lines": 8,
+      "signature_hint": "static inline void stosl(void *addr, int data, int cnt)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 9,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ceq360frhby"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwhyguq3wk5",
+      "qualified_name": "waitdisk",
+      "simple_name": "waitdisk",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1514cckrgn9",
+      "path": "/storage/cgg-test_repos/asm-xv6/bootmain.c",
+      "start_line": 50,
+      "end_line": 56,
+      "size_lines": 7,
+      "signature_hint": "void waitdisk(void)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -693,
+      "region": 9,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Clcewuzkd2w"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C14vvqogen9l",
+      "qualified_name": "gdt",
+      "simple_name": "gdt",
+      "language": "asm",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fhjjkwsxroz",
+      "path": "/storage/cgg-test_repos/asm-xv6/entryother.S",
+      "start_line": 84,
+      "end_line": 90,
+      "size_lines": 7,
+      "signature_hint": "gdt",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -693,
+      "region": 48,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11vn1qfku91",
+      "qualified_name": "strcmp",
+      "simple_name": "strcmp",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fz1jl8oich2",
+      "path": "/storage/cgg-test_repos/asm-xv6/ulib.c",
+      "start_line": 18,
+      "end_line": 24,
+      "size_lines": 7,
+      "signature_hint": "int strcmp(const char *p, const char *q)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -693,
+      "region": 291,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ciem5do67ie",
+      "qualified_name": "rcr2",
+      "simple_name": "rcr2",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6aw41hbujs",
+      "path": "/storage/cgg-test_repos/asm-xv6/x86.h",
+      "start_line": 133,
+      "end_line": 139,
+      "size_lines": 7,
+      "signature_hint": "static inline uint rcr2(void)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -693,
+      "region": 25,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cxqbu5t0t69"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C13gkg8v1729",
+      "qualified_name": "gdt",
+      "simple_name": "gdt",
+      "language": "asm",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1e2pdp0lwm",
+      "path": "/storage/cgg-test_repos/asm-xv6/bootasm.S",
+      "start_line": 80,
+      "end_line": 85,
+      "size_lines": 6,
+      "signature_hint": "gdt",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 11,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3acif93pdp",
+      "qualified_name": "init",
+      "simple_name": "init",
+      "language": "asm",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F18kx2zfwy2",
+      "path": "/storage/cgg-test_repos/asm-xv6/initcode.S",
+      "start_line": 24,
+      "end_line": 29,
+      "size_lines": 6,
+      "signature_hint": "init",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 102,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ctctlwin1ac",
+      "qualified_name": "lapiceoi",
+      "simple_name": "lapiceoi",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fr8cm78os1y",
+      "path": "/storage/cgg-test_repos/asm-xv6/lapic.c",
+      "start_line": 109,
+      "end_line": 114,
+      "size_lines": 6,
+      "signature_hint": "void lapiceoi(void)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 25,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 5,
+          "example": "Cxqbu5t0t69"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cg4qz7t1dr0",
+      "qualified_name": "ideinit",
+      "simple_name": "ideinit",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fwhig0o692a",
+      "path": "/storage/cgg-test_repos/asm-xv6/memide.c",
+      "start_line": 21,
+      "end_line": 26,
+      "size_lines": 6,
+      "signature_hint": "void ideinit(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 145,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C58f1226mi8",
+      "qualified_name": "sys_exit",
+      "simple_name": "sys_exit",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ff0q5thdmyx",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysproc.c",
+      "start_line": 16,
+      "end_line": 21,
+      "size_lines": 6,
+      "signature_hint": "int sys_exit(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 274,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cn14807bh8h",
+      "qualified_name": "rand",
+      "simple_name": "rand",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Foihjo06aih",
+      "path": "/storage/cgg-test_repos/asm-xv6/usertests.c",
+      "start_line": 1741,
+      "end_line": 1746,
+      "size_lines": 6,
+      "signature_hint": "unsigned int rand()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 358,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C13vrt3f84fw",
+      "qualified_name": "SEG_ASM",
+      "simple_name": "SEG_ASM",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4rb88otxur",
+      "path": "/storage/cgg-test_repos/asm-xv6/asm.h",
+      "start_line": 11,
+      "end_line": 15,
+      "size_lines": 5,
+      "signature_hint": "#define SEG_ASM(type,base,lim) \\ .word (((lim) >> 12) & 0xffff), ((base) & 0xffff); \\ .byte (((base) >> 16) & 0xff), (0x90 | (type)), \\ (0xC0 | (((lim) >> 28) & 0xf)), (((base) >> 24) & 0xff)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 0,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cw1plojp4tg",
+      "qualified_name": "gdtdesc",
+      "simple_name": "gdtdesc",
+      "language": "asm",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1e2pdp0lwm",
+      "path": "/storage/cgg-test_repos/asm-xv6/bootasm.S",
+      "start_line": 85,
+      "end_line": 89,
+      "size_lines": 5,
+      "signature_hint": "gdtdesc",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 12,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cx1mrrcb1wd",
+      "qualified_name": "gdtdesc",
+      "simple_name": "gdtdesc",
+      "language": "asm",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fhjjkwsxroz",
+      "path": "/storage/cgg-test_repos/asm-xv6/entryother.S",
+      "start_line": 90,
+      "end_line": 94,
+      "size_lines": 5,
+      "signature_hint": "gdtdesc",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 49,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cu0v5hplx6p",
+      "qualified_name": "nameiparent",
+      "simple_name": "nameiparent",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnoj6sibuct",
+      "path": "/storage/cgg-test_repos/asm-xv6/fs.c",
+      "start_line": 666,
+      "end_line": 670,
+      "size_lines": 5,
+      "signature_hint": "struct inode* nameiparent(char *path, char *name)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 3,
+          "example": "Cdb31nec9sc"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ckgdxwo478p",
+      "qualified_name": "argv",
+      "simple_name": "argv",
+      "language": "asm",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F18kx2zfwy2",
+      "path": "/storage/cgg-test_repos/asm-xv6/initcode.S",
+      "start_line": 29,
+      "end_line": 33,
+      "size_lines": 5,
+      "signature_hint": "argv",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 103,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6c13ij53rd",
+      "qualified_name": "kbdintr",
+      "simple_name": "kbdintr",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fiy3mhnfrc7",
+      "path": "/storage/cgg-test_repos/asm-xv6/kbd.c",
+      "start_line": 46,
+      "end_line": 50,
+      "size_lines": 5,
+      "signature_hint": "void kbdintr(void)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 25,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cxqbu5t0t69"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C1vz2znz2fp",
+      "qualified_name": "ideintr",
+      "simple_name": "ideintr",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fwhig0o692a",
+      "path": "/storage/cgg-test_repos/asm-xv6/memide.c",
+      "start_line": 29,
+      "end_line": 33,
+      "size_lines": 5,
+      "signature_hint": "void ideintr(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 146,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cz5z8kvqltq",
+      "qualified_name": "putc",
+      "simple_name": "putc",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fklwu8nye9o",
+      "path": "/storage/cgg-test_repos/asm-xv6/printf.c",
+      "start_line": 5,
+      "end_line": 9,
+      "size_lines": 5,
+      "signature_hint": "static void putc(int fd, char c)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 185,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 7,
+          "example": "C3bupo5491m"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cfyoe5wtkw6",
+      "qualified_name": "memcpy",
+      "simple_name": "memcpy",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcdjm0ksjpg",
+      "path": "/storage/cgg-test_repos/asm-xv6/string.c",
+      "start_line": 52,
+      "end_line": 56,
+      "size_lines": 5,
+      "signature_hint": "void* memcpy(void *dst, const void *src, uint n)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 243,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C8al9s8m5id",
+      "qualified_name": "argint",
+      "simple_name": "argint",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fy8yeo6lshb",
+      "path": "/storage/cgg-test_repos/asm-xv6/syscall.c",
+      "start_line": 49,
+      "end_line": 53,
+      "size_lines": 5,
+      "signature_hint": "int argint(int n, int *ip)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 12,
+          "example": "Cwkm7hhnbdi"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C145e6xorcg1",
+      "qualified_name": "sys_fork",
+      "simple_name": "sys_fork",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ff0q5thdmyx",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysproc.c",
+      "start_line": 10,
+      "end_line": 14,
+      "size_lines": 5,
+      "signature_hint": "int sys_fork(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 273,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C106cndp94tf",
+      "qualified_name": "sys_wait",
+      "simple_name": "sys_wait",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ff0q5thdmyx",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysproc.c",
+      "start_line": 23,
+      "end_line": 27,
+      "size_lines": 5,
+      "signature_hint": "int sys_wait(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 275,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cbjourh43uw",
+      "qualified_name": "sys_getpid",
+      "simple_name": "sys_getpid",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ff0q5thdmyx",
+      "path": "/storage/cgg-test_repos/asm-xv6/sysproc.c",
+      "start_line": 39,
+      "end_line": 43,
+      "size_lines": 5,
+      "signature_hint": "int sys_getpid(void)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 277,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cdd9iurhjib",
+      "qualified_name": "uartintr",
+      "simple_name": "uartintr",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F7d2ouk2ur5",
+      "path": "/storage/cgg-test_repos/asm-xv6/uart.c",
+      "start_line": 73,
+      "end_line": 77,
+      "size_lines": 5,
+      "signature_hint": "void uartintr(void)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 25,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cxqbu5t0t69"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C5wyzqhwn4z",
+      "qualified_name": "outw",
+      "simple_name": "outw",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6aw41hbujs",
+      "path": "/storage/cgg-test_repos/asm-xv6/x86.h",
+      "start_line": 27,
+      "end_line": 31,
+      "size_lines": 5,
+      "signature_hint": "static inline void outw(ushort port, ushort data)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 382,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C161vh35d3af",
+      "qualified_name": "loadgs",
+      "simple_name": "loadgs",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6aw41hbujs",
+      "path": "/storage/cgg-test_repos/asm-xv6/x86.h",
+      "start_line": 102,
+      "end_line": 106,
+      "size_lines": 5,
+      "signature_hint": "static inline void loadgs(ushort v)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 390,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16erjzo6t4c",
+      "qualified_name": "CONV",
+      "simple_name": "CONV",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fr8cm78os1y",
+      "path": "/storage/cgg-test_repos/asm-xv6/lapic.c",
+      "start_line": 217,
+      "end_line": 218,
+      "size_lines": 2,
+      "signature_hint": "#define CONV(x) (t1.x = ((t1.x >> 4) * 10) + (t1.x & 0xf))",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 123,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 6,
+          "example": "C8see6uw9m4"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cf4qi5wob8h",
+      "qualified_name": "V2P_WO",
+      "simple_name": "V2P_WO",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fb51x74eob",
+      "path": "/storage/cgg-test_repos/asm-xv6/memlayout.h",
+      "start_line": 14,
+      "end_line": 15,
+      "size_lines": 2,
+      "signature_hint": "#define V2P_WO(x) ((x) - KERNBASE) // same as V2P, but without casts",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 150,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cuqro9fzgb7",
+      "qualified_name": "P2V_WO",
+      "simple_name": "P2V_WO",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fb51x74eob",
+      "path": "/storage/cgg-test_repos/asm-xv6/memlayout.h",
+      "start_line": 15,
+      "end_line": 16,
+      "size_lines": 2,
+      "signature_hint": "#define P2V_WO(x) ((x) + KERNBASE) // same as P2V, but without casts",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 151,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cgqapn0j1mn",
+      "qualified_name": "consoleintr",
+      "simple_name": "consoleintr",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14m2ssoyr7u",
+      "path": "/storage/cgg-test_repos/asm-xv6/defs.h",
+      "start_line": 22,
+      "end_line": 22,
+      "size_lines": 1,
+      "signature_hint": "void consoleintr(int(*)(void));",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 30,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cgl2yfz1eqe",
+      "qualified_name": "ideintr",
+      "simple_name": "ideintr",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14m2ssoyr7u",
+      "path": "/storage/cgg-test_repos/asm-xv6/defs.h",
+      "start_line": 58,
+      "end_line": 58,
+      "size_lines": 1,
+      "signature_hint": "void ideintr(void);",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 25,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cxqbu5t0t69"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjgzvizpcul",
+      "qualified_name": "picenable",
+      "simple_name": "picenable",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14m2ssoyr7u",
+      "path": "/storage/cgg-test_repos/asm-xv6/defs.h",
+      "start_line": 95,
+      "end_line": 95,
+      "size_lines": 1,
+      "signature_hint": "void picenable(int);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 35,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmg4loyzgdm",
+      "qualified_name": "setproc",
+      "simple_name": "setproc",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14m2ssoyr7u",
+      "path": "/storage/cgg-test_repos/asm-xv6/defs.h",
+      "start_line": 117,
+      "end_line": 117,
+      "size_lines": 1,
+      "signature_hint": "void setproc(struct proc*);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 36,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czq072oj608",
+      "qualified_name": "timerinit",
+      "simple_name": "timerinit",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14m2ssoyr7u",
+      "path": "/storage/cgg-test_repos/asm-xv6/defs.h",
+      "start_line": 160,
+      "end_line": 160,
+      "size_lines": 1,
+      "signature_hint": "void timerinit(void);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cw7rfpn0zhf",
+      "qualified_name": "trapret",
+      "simple_name": "trapret",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fglnb26k9gt",
+      "path": "/storage/cgg-test_repos/asm-xv6/proc.c",
+      "start_line": 19,
+      "end_line": 19,
+      "size_lines": 1,
+      "signature_hint": "extern void trapret(void);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 188,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8sk2ama80s",
+      "qualified_name": "uptime",
+      "simple_name": "uptime",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Foddven1ro4",
+      "path": "/storage/cgg-test_repos/asm-xv6/user.h",
+      "start_line": 25,
+      "end_line": 25,
+      "size_lines": 1,
+      "signature_hint": "int uptime(void);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 317,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11otrot8xfy",
+      "qualified_name": "printf",
+      "simple_name": "printf",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fklwu8nye9o",
+      "path": "/storage/cgg-test_repos/asm-xv6/printf.c",
+      "start_line": 39,
+      "end_line": 85,
+      "size_lines": 47,
+      "signature_hint": "void printf(int fd, const char *fmt, ...)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1153,
+      "region": 185,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "printf",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ff5qhwtkeuf",
+            "path": "/storage/cgg-test_repos/asm-xv6/mkfs.c",
+            "line": 105,
+            "name": "printf"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 8
+    },
+    {
+      "id": "C15cjfqfe845",
+      "qualified_name": "memmove",
+      "simple_name": "memmove",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcdjm0ksjpg",
+      "path": "/storage/cgg-test_repos/asm-xv6/string.c",
+      "start_line": 31,
+      "end_line": 49,
+      "size_lines": 19,
+      "signature_hint": "void* memmove(void *dst, const void *src, uint n)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -1181,
+      "region": 243,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "memmove",
+          "sites": 20,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fgtiwl5y3w6",
+            "path": "/storage/cgg-test_repos/asm-xv6/console.c",
+            "line": 153,
+            "name": "memmove"
+          }
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cfyoe5wtkw6"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmjgy0hfkch",
+      "qualified_name": "strncpy",
+      "simple_name": "strncpy",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcdjm0ksjpg",
+      "path": "/storage/cgg-test_repos/asm-xv6/string.c",
+      "start_line": 68,
+      "end_line": 79,
+      "size_lines": 12,
+      "signature_hint": "char* strncpy(char *s, const char *t, int n)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -1188,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "strncpy",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ff5qhwtkeuf",
+            "path": "/storage/cgg-test_repos/asm-xv6/mkfs.c",
+            "line": 149,
+            "name": "strncpy"
+          }
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C61diri622b"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3d7y5iksz7",
+      "qualified_name": "memmove",
+      "simple_name": "memmove",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fz1jl8oich2",
+      "path": "/storage/cgg-test_repos/asm-xv6/ulib.c",
+      "start_line": 95,
+      "end_line": 106,
+      "size_lines": 12,
+      "signature_hint": "void* memmove(void *vdst, const void *vsrc, int n)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1188,
+      "region": 298,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "memmove",
+          "sites": 20,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fgtiwl5y3w6",
+            "path": "/storage/cgg-test_repos/asm-xv6/console.c",
+            "line": 153,
+            "name": "memmove"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ceq360frhby",
+      "qualified_name": "memset",
+      "simple_name": "memset",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcdjm0ksjpg",
+      "path": "/storage/cgg-test_repos/asm-xv6/string.c",
+      "start_line": 4,
+      "end_line": 13,
+      "size_lines": 10,
+      "signature_hint": "void* memset(void *dst, int c, uint n)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1190,
+      "region": 9,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "memset",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ff5qhwtkeuf",
+            "path": "/storage/cgg-test_repos/asm-xv6/mkfs.c",
+            "line": 113,
+            "name": "memset"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C14k6c5r2zkh",
+      "qualified_name": "memset",
+      "simple_name": "memset",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fz1jl8oich2",
+      "path": "/storage/cgg-test_repos/asm-xv6/ulib.c",
+      "start_line": 36,
+      "end_line": 41,
+      "size_lines": 6,
+      "signature_hint": "void* memset(void *dst, int c, uint n)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1194,
+      "region": 9,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "memset",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ff5qhwtkeuf",
+            "path": "/storage/cgg-test_repos/asm-xv6/mkfs.c",
+            "line": 113,
+            "name": "memset"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C25mjzus8z0",
+      "qualified_name": "sleep",
+      "simple_name": "sleep",
+      "language": "c",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Foddven1ro4",
+      "path": "/storage/cgg-test_repos/asm-xv6/user.h",
+      "start_line": 24,
+      "end_line": 24,
+      "size_lines": 1,
+      "signature_hint": "int sleep(int);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1199,
+      "region": 316,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "sleep",
+          "sites": 8,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fgtiwl5y3w6",
+            "path": "/storage/cgg-test_repos/asm-xv6/console.c",
+            "line": 251,
+            "name": "sleep"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

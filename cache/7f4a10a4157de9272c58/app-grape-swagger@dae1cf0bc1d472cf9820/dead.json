@@ -1,0 +1,6016 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "ruby",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "builtin:lifecycle",
+        "framework:entry-node",
+        "framework:rule",
+        "toplevel:invocation"
+      ],
+      "files": 154,
+      "callables": 341,
+      "roots": 176,
+      "reachable": 166,
+      "reachable_pct": 48,
+      "findings": 58
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 341,
+    "edges": 501,
+    "unresolved_call_sites": 1466,
+    "roots": 176,
+    "candidates": 175,
+    "reported": 58,
+    "regions": 127
+  },
+  "roots": [
+    {
+      "id": "C11wod8jetp6",
+      "qualified_name": "Base::handler_at_29",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rails-callbacks:closure`"
+    },
+    {
+      "id": "Cj37i0f6gn",
+      "qualified_name": "GrapeSwagger::DocMethods::StatusCodes::get",
+      "language": "ruby",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-grape-swagger/example/config.ru:6"
+    },
+    {
+      "id": "Ckiw6daqa78",
+      "qualified_name": "GrapeSwagger::DocMethods::Version::get",
+      "language": "ruby",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-grape-swagger/example/config.ru:6"
+    },
+    {
+      "id": "Ck5ktlp489h",
+      "qualified_name": "GrapeSwagger::ModelParsers::initialize",
+      "language": "ruby",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`initialize` is invoked by the runtime"
+    },
+    {
+      "id": "C90z4i3i1pt",
+      "qualified_name": "GrapeSwagger::Rake::OapiTasks::initialize",
+      "language": "ruby",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`initialize` is invoked by the runtime"
+    },
+    {
+      "id": "Cpmjiutnwg7",
+      "qualified_name": "GrapeSwagger::Rake::OapiTasks::file",
+      "language": "ruby",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-grape-swagger/example/api/endpoints.rb:116"
+    },
+    {
+      "id": "Ch8gftnzo0t",
+      "qualified_name": "GrapeSwagger::RequestParamParserRegistry::initialize",
+      "language": "ruby",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`initialize` is invoked by the runtime"
+    },
+    {
+      "id": "Ctcyd7dzqre",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Body::initialize",
+      "language": "ruby",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`initialize` is invoked by the runtime"
+    },
+    {
+      "id": "Cvrxnlor5yr",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Headers::initialize",
+      "language": "ruby",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`initialize` is invoked by the runtime"
+    },
+    {
+      "id": "Cdwqbb86tii",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Route::initialize",
+      "language": "ruby",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`initialize` is invoked by the runtime"
+    },
+    {
+      "id": "Cmgcgka4f0e",
+      "qualified_name": "stackable_values_double",
+      "language": "ruby",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-grape-swagger/spec/lib/request_param_parsers/route_spec.rb:279"
+    },
+    {
+      "id": "Cov42xrck6w",
+      "qualified_name": "namespace_stackable_double",
+      "language": "ruby",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-grape-swagger/spec/lib/swagger_routing_spec.rb:84"
+    },
+    {
+      "id": "C14i9skertzp",
+      "qualified_name": "GrapeSwagger::EmptyModelParser::initialize",
+      "language": "ruby",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`initialize` is invoked by the runtime"
+    },
+    {
+      "id": "C15juaiemtmj",
+      "qualified_name": "GrapeSwagger::MockParser::initialize",
+      "language": "ruby",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`initialize` is invoked by the runtime"
+    },
+    {
+      "id": "Cg7gux3vuva",
+      "qualified_name": "ExamplePropertyDocumentationParser::initialize",
+      "language": "ruby",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`initialize` is invoked by the runtime"
+    },
+    {
+      "id": "Cbfdc6zpwri",
+      "qualified_name": "SampleAuth::context",
+      "language": "ruby",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-grape-swagger/spec/swagger_v2/guarded_endpoint_spec.rb:149"
+    },
+    {
+      "id": "C106tdqx2ujd",
+      "qualified_name": "SampleAuth::before",
+      "language": "ruby",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-grape-swagger/spec/swagger_v2/guarded_endpoint_spec.rb:48"
+    },
+    {
+      "id": "Cbycg9rfn9p",
+      "qualified_name": "<framework-entry>::network::grape::get(\":id\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\":id\")`"
+    },
+    {
+      "id": "Crpb06s6b88",
+      "qualified_name": "<framework-entry>::network::grape::put(\":id\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::put(\":id\")`"
+    },
+    {
+      "id": "C16fkszux3lr",
+      "qualified_name": "<framework-entry>::network::grape::delete(\":id\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::delete(\":id\")`"
+    },
+    {
+      "id": "Chtpmvksq8d",
+      "qualified_name": "<framework-entry>::network::grape::post(\"upload\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"upload\")`"
+    },
+    {
+      "id": "Ccjye6ay751",
+      "qualified_name": "<framework-entry>::network::grape::GrapeSwagger::DocMethods::mount_path",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::GrapeSwagger::DocMethods::mount_path`"
+    },
+    {
+      "id": "Cffi4jia06a",
+      "qualified_name": "<framework-entry>::network::grape::GrapeSwagger::DocMethods::handler_at_102",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::GrapeSwagger::DocMethods::handler_at_102`"
+    },
+    {
+      "id": "Cokmp4vh980",
+      "qualified_name": "<framework-entry>::network::grape::get(\"#{mount_path}/:name\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"#{mount_path}/:name\")`"
+    },
+    {
+      "id": "Cj5y4gppu4k",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/nothings\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/nothings\")`"
+    },
+    {
+      "id": "C10skdhr5h5x",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/api_version\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/api_version\")`"
+    },
+    {
+      "id": "Cumr6qed5pc",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/doc_version\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/doc_version\")`"
+    },
+    {
+      "id": "Cfe87bjuqtl",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/both_versions\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/both_versions\")`"
+    },
+    {
+      "id": "C15wv8amsdca",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/grape_version\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/grape_version\")`"
+    },
+    {
+      "id": "C7eps0eo5wt",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/\")`"
+    },
+    {
+      "id": "Cqmhwylqg2y",
+      "qualified_name": "<framework-entry>::network::grape::put(\":guid\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::put(\":guid\")`"
+    },
+    {
+      "id": "Cfevwjnlzn7",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/produces_given\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/produces_given\")`"
+    },
+    {
+      "id": "Chc76a1h0wd",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/automatic_produces\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/automatic_produces\")`"
+    },
+    {
+      "id": "Camhp3dx951",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/range/:range_start-:range_end\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/range/:range_start-:range_end\")`"
+    },
+    {
+      "id": "Cyvsd7rssaz",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/array_of_range\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/array_of_range\")`"
+    },
+    {
+      "id": "Cxk0yuihdaz",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/array_with_default\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/array_with_default\")`"
+    },
+    {
+      "id": "Clt8ayi3gjf",
+      "qualified_name": "<framework-entry>::network::grape::post(\"create\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"create\")`"
+    },
+    {
+      "id": "C12xdq6ef2hx",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/get_primitive_array_parameters\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/get_primitive_array_parameters\")`"
+    },
+    {
+      "id": "Clb2d65fmry",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/get_object_array_parameters\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/get_object_array_parameters\")`"
+    },
+    {
+      "id": "C143cwff93k",
+      "qualified_name": "<framework-entry>::network::grape::delete(\"/posts/:post_id/comments\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::delete(\"/posts/:post_id/comments\")`"
+    },
+    {
+      "id": "C1ivb95gi53",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/list\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/list\")`"
+    },
+    {
+      "id": "Clz2aqren7v",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/another-list\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/another-list\")`"
+    },
+    {
+      "id": "Cewirpse57a",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/probe\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/probe\")`"
+    },
+    {
+      "id": "C5il8iajz9y",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/status\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/status\")`"
+    },
+    {
+      "id": "Cs89v4sjyav",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/test\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/test\")`"
+    },
+    {
+      "id": "C5ntn5x0l3o",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/simple\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/simple\")`"
+    },
+    {
+      "id": "C8xxcrzo1wy",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/simple-test\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/simple-test\")`"
+    },
+    {
+      "id": "Cf0r8au9z63",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/simple_with_headers\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/simple_with_headers\")`"
+    },
+    {
+      "id": "Ce8bllg5mxz",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/items\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/items\")`"
+    },
+    {
+      "id": "Ctjdr8hkk6a",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/custom\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/custom\")`"
+    },
+    {
+      "id": "Cqgnvcrtl4",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/with-custom-documentation\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/with-custom-documentation\")`"
+    },
+    {
+      "id": "Cbfviqfbr87",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/with-description-only\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/with-description-only\")`"
+    },
+    {
+      "id": "C65ujf71mr0",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/with-example-type-field\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/with-example-type-field\")`"
+    },
+    {
+      "id": "Cu90luq2cy9",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/with-example-description-field\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/with-example-description-field\")`"
+    },
+    {
+      "id": "Cy4ighwcu6m",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/with-capitalized-type-example-field\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/with-capitalized-type-example-field\")`"
+    },
+    {
+      "id": "Cq6jgaprvul",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/without-documentation\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/without-documentation\")`"
+    },
+    {
+      "id": "C56j3kb3d6d",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/with-string-model-reference\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/with-string-model-reference\")`"
+    },
+    {
+      "id": "Csua1hp0dy0",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/with-call-counting-documentation\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/with-call-counting-documentation\")`"
+    },
+    {
+      "id": "C154t2nvqri7",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/with-raising-documentation\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/with-raising-documentation\")`"
+    },
+    {
+      "id": "Cduj45etot2",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/with-field-level-documentation\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/with-field-level-documentation\")`"
+    },
+    {
+      "id": "Cpixr7ajb4q",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/with-untyped-example-documentation\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/with-untyped-example-documentation\")`"
+    },
+    {
+      "id": "C15owmzznzpm",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/with-example-property-documentation\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/with-example-property-documentation\")`"
+    },
+    {
+      "id": "C347z7bysid",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/use_detail\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/use_detail\")`"
+    },
+    {
+      "id": "Cre724uxcnj",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/use_detail_block\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/use_detail_block\")`"
+    },
+    {
+      "id": "Cnavrr8n0ta",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/use_detail_nil\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/use_detail_nil\")`"
+    },
+    {
+      "id": "Che9g3cvwkh",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/path_extension\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/path_extension\")`"
+    },
+    {
+      "id": "Csp6gwval6u",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/verb_extension\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/verb_extension\")`"
+    },
+    {
+      "id": "Cm24sbr2bug",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/definitions_extension\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/definitions_extension\")`"
+    },
+    {
+      "id": "C5nbo1a86nv",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/non_existent_status_definitions_extension\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/non_existent_status_definitions_extension\")`"
+    },
+    {
+      "id": "Cdawieyglge",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/multiple_definitions_extension\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/multiple_definitions_extension\")`"
+    },
+    {
+      "id": "C14jyq7eai1x",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/use_default\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/use_default\")`"
+    },
+    {
+      "id": "Cx5t3f82jcr",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/use_produces\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/use_produces\")`"
+    },
+    {
+      "id": "C5e7hagz10y",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/use_consumes\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/use_consumes\")`"
+    },
+    {
+      "id": "Cawvlsa913g",
+      "qualified_name": "<framework-entry>::network::grape::patch(\"/use_consumes\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::patch(\"/use_consumes\")`"
+    },
+    {
+      "id": "Cbodwqd19qi",
+      "qualified_name": "<framework-entry>::network::grape::TheApi::ConfigurationApi::handler_at_17",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::TheApi::ConfigurationApi::handler_at_17`"
+    },
+    {
+      "id": "Cwy4yldanco",
+      "qualified_name": "<framework-entry>::network::grape::put(\"/id_and_hash\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::put(\"/id_and_hash\")`"
+    },
+    {
+      "id": "Cxowpi083lo",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/use_headers\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/use_headers\")`"
+    },
+    {
+      "id": "Cdf6lb7dkf9",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/params_response\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/params_response\")`"
+    },
+    {
+      "id": "C1oyzo4y6e1",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/entity_response\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/entity_response\")`"
+    },
+    {
+      "id": "Cna6443a48s",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/present_response\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/present_response\")`"
+    },
+    {
+      "id": "Ckcnojyzjnb",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/delay_thing\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/delay_thing\")`"
+    },
+    {
+      "id": "Cvpdd6buezu",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/thing\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/thing\")`"
+    },
+    {
+      "id": "Cn4onluy7bj",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/thing2\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/thing2\")`"
+    },
+    {
+      "id": "C1813g90xy6k",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/thing/:id\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/thing/:id\")`"
+    },
+    {
+      "id": "Ct647xi183w",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/thing\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/thing\")`"
+    },
+    {
+      "id": "C144o6umikzr",
+      "qualified_name": "<framework-entry>::network::grape::put(\"/thing/:id\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::put(\"/thing/:id\")`"
+    },
+    {
+      "id": "Ctfjrl9xetb",
+      "qualified_name": "<framework-entry>::network::grape::delete(\"/thing/:id\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::delete(\"/thing/:id\")`"
+    },
+    {
+      "id": "C13il6wyxgv3",
+      "qualified_name": "<framework-entry>::network::grape::delete(\"/dummy/:id\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::delete(\"/dummy/:id\")`"
+    },
+    {
+      "id": "C14uhrdws2qc",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/:elements\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/:elements\")`"
+    },
+    {
+      "id": "C14zasncki9h",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/in_body\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/in_body\")`"
+    },
+    {
+      "id": "C9e1dqrc2rx",
+      "qualified_name": "<framework-entry>::network::grape::put(\"/in_body/:id\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::put(\"/in_body/:id\")`"
+    },
+    {
+      "id": "C10vpkkhl27y",
+      "qualified_name": "<framework-entry>::network::grape::put(\"/in_body/:key\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::put(\"/in_body/:key\")`"
+    },
+    {
+      "id": "Czp41qt5dmk",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/defined_param_type\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/defined_param_type\")`"
+    },
+    {
+      "id": "Cp31o8wi5c0",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/defined_param_type/:in_path\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/defined_param_type/:in_path\")`"
+    },
+    {
+      "id": "C3d2vm2am7p",
+      "qualified_name": "<framework-entry>::network::grape::delete(\"/defined_param_type/:in_path\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::delete(\"/defined_param_type/:in_path\")`"
+    },
+    {
+      "id": "Ce7lpv599v5",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/defined_in\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/defined_in\")`"
+    },
+    {
+      "id": "Cjojamw4wx6",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/defined_in/:in_path\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/defined_in/:in_path\")`"
+    },
+    {
+      "id": "C7p1yy4ifqx",
+      "qualified_name": "<framework-entry>::network::grape::delete(\"/defined_in/:in_path\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::delete(\"/defined_in/:in_path\")`"
+    },
+    {
+      "id": "C8lfhp6wv0l",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/download\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/download\")`"
+    },
+    {
+      "id": "Cd89q118900",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/upload\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/upload\")`"
+    },
+    {
+      "id": "Cty61vgxgzx",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/conf/:access_number\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/conf/:access_number\")`"
+    },
+    {
+      "id": "C3zdceg7goj",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/params_given\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/params_given\")`"
+    },
+    {
+      "id": "Cbyisdlj940",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/nested_type\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/nested_type\")`"
+    },
+    {
+      "id": "Cjk8q274kg",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/multiple-success-responses\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/multiple-success-responses\")`"
+    },
+    {
+      "id": "C10q99a7kx65",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/response_examples\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/response_examples\")`"
+    },
+    {
+      "id": "Ctd6gg2l22a",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/response_failure_examples\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/response_failure_examples\")`"
+    },
+    {
+      "id": "C17vzdyxxmgi",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/response_no_examples\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/response_no_examples\")`"
+    },
+    {
+      "id": "Cf96wplgsr6",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/response_headers\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/response_headers\")`"
+    },
+    {
+      "id": "Cjo24yivrzk",
+      "qualified_name": "<framework-entry>::network::grape::delete(\"/no_content_response_headers\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::delete(\"/no_content_response_headers\")`"
+    },
+    {
+      "id": "Co506k4co7",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/file_response_headers\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/file_response_headers\")`"
+    },
+    {
+      "id": "Cr6lcgxzkmw",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/response_failure_headers\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/response_failure_headers\")`"
+    },
+    {
+      "id": "Cx23r6p0y5s",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/response_no_headers\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/response_no_headers\")`"
+    },
+    {
+      "id": "Cgu61txh7tj",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/use-response\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/use-response\")`"
+    },
+    {
+      "id": "Cfhrdrao4ee",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/ordinary_response\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/ordinary_response\")`"
+    },
+    {
+      "id": "C12kdjbjwzbr",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/response_with_array\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/response_with_array\")`"
+    },
+    {
+      "id": "Cfbwejffk22",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/response_with_root\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/response_with_root\")`"
+    },
+    {
+      "id": "Cuh1d4bh080",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/response_with_root_underscore\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/response_with_root_underscore\")`"
+    },
+    {
+      "id": "Caujy0ysii3",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/response_with_array_and_root\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/response_with_array_and_root\")`"
+    },
+    {
+      "id": "Cq7rn5imkus",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/response_with_custom_root\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/response_with_custom_root\")`"
+    },
+    {
+      "id": "C17noahdlao7",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/accepting_endpoint\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/accepting_endpoint\")`"
+    },
+    {
+      "id": "C10a90474j9c",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/error_endpoint\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/error_endpoint\")`"
+    },
+    {
+      "id": "C65rbhmujcj",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/endpoint\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/endpoint\")`"
+    },
+    {
+      "id": "Cice8ezed2k",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/request_types\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/request_types\")`"
+    },
+    {
+      "id": "C17xy3s0vt0d",
+      "qualified_name": "<framework-entry>::network::grape::handler_at_17",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::handler_at_17`"
+    },
+    {
+      "id": "C57bxgrzxvd",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/something\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/something\")`"
+    },
+    {
+      "id": "Cvmpdym041c",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/somethingelse\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/somethingelse\")`"
+    },
+    {
+      "id": "Cmttvl38oax",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/foobar\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/foobar\")`"
+    },
+    {
+      "id": "Cbh95etq2po",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/use_gfm_rc_detail\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/use_gfm_rc_detail\")`"
+    },
+    {
+      "id": "Cgp421qhyju",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/empty_model\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/empty_model\")`"
+    },
+    {
+      "id": "Cq3gsb1qzh",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/wrong_model\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/wrong_model\")`"
+    },
+    {
+      "id": "Cgf2nhzyeje",
+      "qualified_name": "<framework-entry>::network::grape::handler_at_16",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::handler_at_16`"
+    },
+    {
+      "id": "C119stowhdjw",
+      "qualified_name": "<framework-entry>::network::grape::put(\"/items/:id\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::put(\"/items/:id\")`"
+    },
+    {
+      "id": "Cjy2wqr1mee",
+      "qualified_name": "<framework-entry>::network::grape::patch(\"/items/:id\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::patch(\"/items/:id\")`"
+    },
+    {
+      "id": "Cgatfr5u4wu",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/items/:id\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/items/:id\")`"
+    },
+    {
+      "id": "China7mdasi",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/auth\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/auth\")`"
+    },
+    {
+      "id": "Csf5i7ij1zs",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/hide\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/hide\")`"
+    },
+    {
+      "id": "Cotvvi9tv9m",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/hide_as_well\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/hide_as_well\")`"
+    },
+    {
+      "id": "Cbmywnn8cpe",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/lazy\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/lazy\")`"
+    },
+    {
+      "id": "Cwmilwdhisi",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/simple/show\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/simple/show\")`"
+    },
+    {
+      "id": "Ckgnmr5hob8",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/simple/hide\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/simple/hide\")`"
+    },
+    {
+      "id": "C5telg3hzx4",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/simple/lazy\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/simple/lazy\")`"
+    },
+    {
+      "id": "C1825zmmw13q",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/deep\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/deep\")`"
+    },
+    {
+      "id": "C15jtjqlj7up",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/simple_opp\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/simple_opp\")`"
+    },
+    {
+      "id": "C1iytnjao1h",
+      "qualified_name": "<framework-entry>::network::grape::handler_at_65",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::handler_at_65`"
+    },
+    {
+      "id": "Cc73z9348gc",
+      "qualified_name": "<framework-entry>::network::grape::handler_at_94",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::handler_at_94`"
+    },
+    {
+      "id": "Crw17m0gkfn",
+      "qualified_name": "<framework-entry>::network::grape::handler_at_135",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::handler_at_135`"
+    },
+    {
+      "id": "C1041qu05a3h",
+      "qualified_name": "<framework-entry>::network::grape::handler_at_197",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::handler_at_197`"
+    },
+    {
+      "id": "Clelv956jy9",
+      "qualified_name": "<framework-entry>::network::grape::handler_at_221",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::handler_at_221`"
+    },
+    {
+      "id": "Cpchn6ubyq4",
+      "qualified_name": "<framework-entry>::network::grape::handler_at_26",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::handler_at_26`"
+    },
+    {
+      "id": "Ccdrqs4e4ay",
+      "qualified_name": "<framework-entry>::network::grape::handler_at_38",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::handler_at_38`"
+    },
+    {
+      "id": "C10jklimf2n0",
+      "qualified_name": "<framework-entry>::network::grape::handler_at_103",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::handler_at_103`"
+    },
+    {
+      "id": "C88k21e3vyw",
+      "qualified_name": "<framework-entry>::network::grape::handler_at_27",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::handler_at_27`"
+    },
+    {
+      "id": "C5q1j6n5pha",
+      "qualified_name": "<framework-entry>::network::grape::handler_at_37",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::handler_at_37`"
+    },
+    {
+      "id": "Coa1q2bjhq4",
+      "qualified_name": "<framework-entry>::network::grape::handler_at_47",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::handler_at_47`"
+    },
+    {
+      "id": "Cjteq0qatp2",
+      "qualified_name": "<framework-entry>::network::grape::handler_at_128",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::handler_at_128`"
+    },
+    {
+      "id": "C12qawfk5r5e",
+      "qualified_name": "<framework-entry>::network::grape::handler_at_138",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::handler_at_138`"
+    },
+    {
+      "id": "Cv3zlkgt6is",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/array_of_strings_without_collection_format\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/array_of_strings_without_collection_format\")`"
+    },
+    {
+      "id": "Cdrlv473p2m",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/array_of_strings_multi_collection_format\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/array_of_strings_multi_collection_format\")`"
+    },
+    {
+      "id": "Cfozygu8qb6",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/array_of_strings_invalid_collection_format\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/array_of_strings_invalid_collection_format\")`"
+    },
+    {
+      "id": "C12apgmlvttt",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/array_of_strings_brackets_collection_format\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/array_of_strings_brackets_collection_format\")`"
+    },
+    {
+      "id": "Cavx9pk51xh",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/groups\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/groups\")`"
+    },
+    {
+      "id": "C182gfjmgvee",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/type_given\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/type_given\")`"
+    },
+    {
+      "id": "Ci745ikkfmw",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/array_of_type\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/array_of_type\")`"
+    },
+    {
+      "id": "C3bx4ez9edh",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/object_and_array\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/object_and_array\")`"
+    },
+    {
+      "id": "C822579r2c8",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/array_of_type_in_form\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/array_of_type_in_form\")`"
+    },
+    {
+      "id": "C17g6u6wfqv5",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/array_of_entities\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/array_of_entities\")`"
+    },
+    {
+      "id": "Cj9c2mnbyms",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/endpoint_with_examples/:id\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/endpoint_with_examples/:id\")`"
+    },
+    {
+      "id": "Cr4sfyi4tbk",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/endpoint_with_examples/:id\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/endpoint_with_examples/:id\")`"
+    },
+    {
+      "id": "C7wofjxwg6x",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/use_groups\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/use_groups\")`"
+    },
+    {
+      "id": "C1fhpslimed",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/use_given_type\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/use_given_type\")`"
+    },
+    {
+      "id": "C41jxe7f0ey",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/nested_array\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/nested_array\")`"
+    },
+    {
+      "id": "Czoh9rgzm8b",
+      "qualified_name": "<framework-entry>::network::grape::post(\"/nested_hash\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::post(\"/nested_hash\")`"
+    },
+    {
+      "id": "Cfvaihm14gs",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/kind\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/kind\")`"
+    },
+    {
+      "id": "Ca79k7a6ltp",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/child\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/child\")`"
+    },
+    {
+      "id": "C4bloguc9lw",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/with_security\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/with_security\")`"
+    },
+    {
+      "id": "Ctptlzq0y6b",
+      "qualified_name": "<framework-entry>::network::grape::get(\"/without_security\")",
+      "language": "ruby",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::grape::get(\"/without_security\")`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 6,
+      "members": [
+        "Cj4492mamoj"
+      ],
+      "anchors": [
+        "Cj4492mamoj"
+      ],
+      "files": [
+        "Fy2jv096rmu"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 35,
+      "members": [
+        "Cx31f9etm1"
+      ],
+      "anchors": [
+        "Cx31f9etm1"
+      ],
+      "files": [
+        "Fzdywudmet"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 53,
+      "members": [
+        "Chnv7oflilc"
+      ],
+      "anchors": [
+        "Chnv7oflilc"
+      ],
+      "files": [
+        "Fuxy4okd8rj"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 58,
+      "members": [
+        "C128f5nomx3g"
+      ],
+      "anchors": [
+        "C128f5nomx3g"
+      ],
+      "files": [
+        "Fuxy4okd8rj"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 94,
+      "members": [
+        "C171y1yoq7lr",
+        "Cc1idxqp2nd",
+        "C175f81b1msk",
+        "C4eigpp22qs",
+        "Coyal3lg0dt",
+        "Cvv4tt9t5i0",
+        "Cl0xvf7v5ru",
+        "C7l3lh76whd",
+        "Cr31m06qzna",
+        "Cuhbsg3ytfq",
+        "C33rurwrwzp",
+        "Ci8m0s7jhkt",
+        "C10tomt1y4xe",
+        "Cnfdv4y5avf",
+        "Cuev4fliiyc"
+      ],
+      "anchors": [
+        "Cvv4tt9t5i0"
+      ],
+      "files": [
+        "F10983g4q6j0",
+        "F15il8ovkfi",
+        "Fy819p0fog1"
+      ],
+      "total_lines": 189,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 153,
+      "members": [
+        "C15m4ne3gdki"
+      ],
+      "anchors": [
+        "C15m4ne3gdki"
+      ],
+      "files": [
+        "Fzd9d27mrpl"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 154,
+      "members": [
+        "Cuox46bvrq8"
+      ],
+      "anchors": [
+        "Cuox46bvrq8"
+      ],
+      "files": [
+        "Fzd9d27mrpl"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 155,
+      "members": [
+        "Cmjpfxofvts"
+      ],
+      "anchors": [
+        "Cmjpfxofvts"
+      ],
+      "files": [
+        "Fzd9d27mrpl"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 156,
+      "members": [
+        "C16rpvyeuxc8"
+      ],
+      "anchors": [
+        "C16rpvyeuxc8"
+      ],
+      "files": [
+        "Fzd9d27mrpl"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 157,
+      "members": [
+        "Cgdbaotbiq2"
+      ],
+      "anchors": [
+        "Cgdbaotbiq2"
+      ],
+      "files": [
+        "Fzd9d27mrpl"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 159,
+      "members": [
+        "Cmitqgipx9z",
+        "C155k2slmvac",
+        "Cbz7kj51nbz",
+        "Cdhi3tgw3v7",
+        "Ce6wv75eyls",
+        "C1193n5i6pen",
+        "C16s5zp13a31",
+        "Coferpdlbhd",
+        "Cfzcg051y7p"
+      ],
+      "anchors": [
+        "Cfzcg051y7p"
+      ],
+      "files": [
+        "F3m75vf1idu"
+      ],
+      "total_lines": 70,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 172,
+      "members": [
+        "C12d1sp7tb77",
+        "C1xhwxydbaz",
+        "Cw4k7wexig1",
+        "Cj839eu2a32"
+      ],
+      "anchors": [
+        "C12d1sp7tb77",
+        "C1xhwxydbaz",
+        "Cw4k7wexig1"
+      ],
+      "files": [
+        "Fo1ww2bqwn6"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 175,
+      "members": [
+        "Cv6p1znyce3"
+      ],
+      "anchors": [
+        "Cv6p1znyce3"
+      ],
+      "files": [
+        "Fo1ww2bqwn6"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 177,
+      "members": [
+        "Chbsompafbf"
+      ],
+      "anchors": [
+        "Chbsompafbf"
+      ],
+      "files": [
+        "Foe9l91tfoi"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 179,
+      "members": [
+        "C16x91xlv71m",
+        "C7p9mgm9od3",
+        "C8oysusedyi",
+        "C2ed6ndlbj1",
+        "C2t1gy7jppb",
+        "C10txlvxft2f",
+        "Cbu9309ro2k"
+      ],
+      "anchors": [
+        "C16x91xlv71m"
+      ],
+      "files": [
+        "Foe9l91tfoi"
+      ],
+      "total_lines": 47,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 186,
+      "members": [
+        "Cjzp72xa2ab"
+      ],
+      "anchors": [
+        "Cjzp72xa2ab"
+      ],
+      "files": [
+        "F127hmy7zr0u"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 188,
+      "members": [
+        "Cjbpdwrrdj7"
+      ],
+      "anchors": [
+        "Cjbpdwrrdj7"
+      ],
+      "files": [
+        "F127hmy7zr0u"
+      ],
+      "total_lines": 15,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 189,
+      "members": [
+        "Chxwcw6cpom"
+      ],
+      "anchors": [
+        "Chxwcw6cpom"
+      ],
+      "files": [
+        "F1438r10rcwj"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 191,
+      "members": [
+        "C10nxp96m039",
+        "C178vettxdo3",
+        "Cn37a3w6f7y",
+        "C17el6n2u877",
+        "C17bzie99rbd",
+        "Cip43htio71",
+        "C14g0sfi8i9j",
+        "C6imcuy7xca",
+        "Cpvimql0cqh",
+        "C146ayl29u4f"
+      ],
+      "anchors": [
+        "C10nxp96m039"
+      ],
+      "files": [
+        "F1438r10rcwj",
+        "Ftq4ftw1y77"
+      ],
+      "total_lines": 110,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 223,
+      "members": [
+        "C4bokaze1e5"
+      ],
+      "anchors": [
+        "C4bokaze1e5"
+      ],
+      "files": [
+        "Fwva32iqi0i"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 225,
+      "members": [
+        "C12zoe300svz"
+      ],
+      "anchors": [
+        "C12zoe300svz"
+      ],
+      "files": [
+        "Fwva32iqi0i"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 227,
+      "members": [
+        "Cpl1dz9247e"
+      ],
+      "anchors": [
+        "Cpl1dz9247e"
+      ],
+      "files": [
+        "Fwva32iqi0i"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 229,
+      "members": [
+        "Conw55skln0"
+      ],
+      "anchors": [
+        "Conw55skln0"
+      ],
+      "files": [
+        "Fwva32iqi0i"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 231,
+      "members": [
+        "C5jsn6ttdyh"
+      ],
+      "anchors": [
+        "C5jsn6ttdyh"
+      ],
+      "files": [
+        "Fwva32iqi0i"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 279,
+      "members": [
+        "C4l3tkbggby",
+        "C8jhwlsmprb",
+        "Cjc9ejhrnot"
+      ],
+      "anchors": [],
+      "files": [
+        "Fzmtci8ant7"
+      ],
+      "total_lines": 23,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 280,
+      "members": [
+        "Cy42dqf5evq"
+      ],
+      "anchors": [],
+      "files": [
+        "Fzmtci8ant7"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 311,
+      "members": [
+        "Covyp5vm34k"
+      ],
+      "anchors": [
+        "Covyp5vm34k"
+      ],
+      "files": [
+        "F7h2vksi7oq"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 312,
+      "members": [
+        "Cv9r3lbhthx"
+      ],
+      "anchors": [
+        "Cv9r3lbhthx"
+      ],
+      "files": [
+        "F7h2vksi7oq"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 314,
+      "members": [
+        "C2itru6wley"
+      ],
+      "anchors": [
+        "C2itru6wley"
+      ],
+      "files": [
+        "F7h2vksi7oq"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 315,
+      "members": [
+        "C15lhpk8ay9y"
+      ],
+      "anchors": [
+        "C15lhpk8ay9y"
+      ],
+      "files": [
+        "F7h2vksi7oq"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 316,
+      "members": [
+        "Cx0sn061fsc"
+      ],
+      "anchors": [
+        "Cx0sn061fsc"
+      ],
+      "files": [
+        "F7h2vksi7oq"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 319,
+      "members": [
+        "C2n939jtu3t"
+      ],
+      "anchors": [
+        "C2n939jtu3t"
+      ],
+      "files": [
+        "Frc4owi5zqh"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 320,
+      "members": [
+        "C16ndss5bscz",
+        "C15s5hnxkwko",
+        "C14n0cvnv2xn"
+      ],
+      "anchors": [
+        "C14n0cvnv2xn"
+      ],
+      "files": [
+        "F10nmgmuauf1",
+        "F17d7aprdnav"
+      ],
+      "total_lines": 34,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 323,
+      "members": [
+        "Cq3tvgpu49l"
+      ],
+      "anchors": [
+        "Cq3tvgpu49l"
+      ],
+      "files": [
+        "F80bptvdbhu"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 324,
+      "members": [
+        "Cnpfzrzfkv6"
+      ],
+      "anchors": [
+        "Cnpfzrzfkv6"
+      ],
+      "files": [
+        "F150uozi4mlz"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 325,
+      "members": [
+        "C9h41l3h1g8"
+      ],
+      "anchors": [
+        "C9h41l3h1g8"
+      ],
+      "files": [
+        "Fu820co4gcf"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 326,
+      "members": [
+        "C81xenhtty2"
+      ],
+      "anchors": [
+        "C81xenhtty2"
+      ],
+      "files": [
+        "Fu820co4gcf"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 327,
+      "members": [
+        "Cxdoocvfs5b"
+      ],
+      "anchors": [
+        "Cxdoocvfs5b"
+      ],
+      "files": [
+        "Fu820co4gcf"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 328,
+      "members": [
+        "C2yb3jyiwkf"
+      ],
+      "anchors": [
+        "C2yb3jyiwkf"
+      ],
+      "files": [
+        "Fu820co4gcf"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 329,
+      "members": [
+        "Ctut1q7s511"
+      ],
+      "anchors": [
+        "Ctut1q7s511"
+      ],
+      "files": [
+        "Fu820co4gcf"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 330,
+      "members": [
+        "Cx1y6xjapto"
+      ],
+      "anchors": [
+        "Cx1y6xjapto"
+      ],
+      "files": [
+        "Fu820co4gcf"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 331,
+      "members": [
+        "Csr0e0ux8mb",
+        "Cayt8i302yp",
+        "Cafjkf95uu0"
+      ],
+      "anchors": [
+        "Cayt8i302yp",
+        "Cafjkf95uu0"
+      ],
+      "files": [
+        "F8k7ohhw2r6",
+        "Fbzil8a2uvc",
+        "Fkh7ncxpd6p"
+      ],
+      "total_lines": 253,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 332,
+      "members": [
+        "Cdiioy22j4"
+      ],
+      "anchors": [
+        "Cdiioy22j4"
+      ],
+      "files": [
+        "F8k7ohhw2r6"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 333,
+      "members": [
+        "C5jjhqxnj0e"
+      ],
+      "anchors": [
+        "C5jjhqxnj0e"
+      ],
+      "files": [
+        "F8k7ohhw2r6"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 334,
+      "members": [
+        "C10un27wyrxr"
+      ],
+      "anchors": [
+        "C10un27wyrxr"
+      ],
+      "files": [
+        "F8k7ohhw2r6"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 335,
+      "members": [
+        "C16vnifptm27"
+      ],
+      "anchors": [
+        "C16vnifptm27"
+      ],
+      "files": [
+        "F8k7ohhw2r6"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 336,
+      "members": [
+        "Cpwh1iuyjk0"
+      ],
+      "anchors": [
+        "Cpwh1iuyjk0"
+      ],
+      "files": [
+        "F8k7ohhw2r6"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 354,
+      "members": [
+        "Cet5qc6j8h1"
+      ],
+      "anchors": [
+        "Cet5qc6j8h1"
+      ],
+      "files": [
+        "Ftnt69uqn2a"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 355,
+      "members": [
+        "Clh3pwbvb71"
+      ],
+      "anchors": [
+        "Clh3pwbvb71"
+      ],
+      "files": [
+        "Frz7g9h6kz9"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 356,
+      "members": [
+        "Cx3b0dcg4y"
+      ],
+      "anchors": [
+        "Cx3b0dcg4y"
+      ],
+      "files": [
+        "Frz7g9h6kz9"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 357,
+      "members": [
+        "Cel8qhu9j2r"
+      ],
+      "anchors": [
+        "Cel8qhu9j2r"
+      ],
+      "files": [
+        "Frz7g9h6kz9"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 358,
+      "members": [
+        "Cg8fwuul3fr"
+      ],
+      "anchors": [
+        "Cg8fwuul3fr"
+      ],
+      "files": [
+        "Frz7g9h6kz9"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 359,
+      "members": [
+        "C9zl4kle473"
+      ],
+      "anchors": [
+        "C9zl4kle473"
+      ],
+      "files": [
+        "Frz7g9h6kz9"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 360,
+      "members": [
+        "C11edmikodqj"
+      ],
+      "anchors": [
+        "C11edmikodqj"
+      ],
+      "files": [
+        "Frz7g9h6kz9"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 361,
+      "members": [
+        "C90rmjki7q8",
+        "C15hqn1yzei5"
+      ],
+      "anchors": [
+        "C15hqn1yzei5"
+      ],
+      "files": [
+        "Frz7g9h6kz9"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 363,
+      "members": [
+        "Cefb0x0s5ga"
+      ],
+      "anchors": [
+        "Cefb0x0s5ga"
+      ],
+      "files": [
+        "Frz7g9h6kz9"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 364,
+      "members": [
+        "C26aj4k5ui9",
+        "C539xg2owd8"
+      ],
+      "anchors": [
+        "C539xg2owd8"
+      ],
+      "files": [
+        "Frz7g9h6kz9"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 365,
+      "members": [
+        "C7cjb6peedn"
+      ],
+      "anchors": [
+        "C7cjb6peedn"
+      ],
+      "files": [
+        "Frz7g9h6kz9"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 380,
+      "members": [
+        "C54533dz9kn"
+      ],
+      "anchors": [
+        "C54533dz9kn"
+      ],
+      "files": [
+        "Frz7g9h6kz9"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 381,
+      "members": [
+        "Cfige52njtf"
+      ],
+      "anchors": [
+        "Cfige52njtf"
+      ],
+      "files": [
+        "F96xulvril3"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 382,
+      "members": [
+        "Clw0jskd6gz"
+      ],
+      "anchors": [
+        "Clw0jskd6gz"
+      ],
+      "files": [
+        "Fvmh1tel0jh"
+      ],
+      "total_lines": 19,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 386,
+      "members": [
+        "Covz9w60tjw"
+      ],
+      "anchors": [
+        "Covz9w60tjw"
+      ],
+      "files": [
+        "Fvmh1tel0jh"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 392,
+      "members": [
+        "C6r9ec4w09b"
+      ],
+      "anchors": [
+        "C6r9ec4w09b"
+      ],
+      "files": [
+        "Fqn9mnbyjsa"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 397,
+      "members": [
+        "Cle8s6zgfdf"
+      ],
+      "anchors": [
+        "Cle8s6zgfdf"
+      ],
+      "files": [
+        "F150v09d3am4"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 399,
+      "members": [
+        "C7f4uqllupq"
+      ],
+      "anchors": [
+        "C7f4uqllupq"
+      ],
+      "files": [
+        "Ffbx53msmah"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 402,
+      "members": [
+        "Cpx88cu0zv8"
+      ],
+      "anchors": [
+        "Cpx88cu0zv8"
+      ],
+      "files": [
+        "F10dx4cjv48l"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 404,
+      "members": [
+        "Cdqmczrn6i5"
+      ],
+      "anchors": [
+        "Cdqmczrn6i5"
+      ],
+      "files": [
+        "F104c1sir22s"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 408,
+      "members": [
+        "Cbulwlhd8xb"
+      ],
+      "anchors": [
+        "Cbulwlhd8xb"
+      ],
+      "files": [
+        "F115h60zkf23"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 409,
+      "members": [
+        "C15x6lcy5rfq"
+      ],
+      "anchors": [
+        "C15x6lcy5rfq"
+      ],
+      "files": [
+        "F16wu5daevo3"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 413,
+      "members": [
+        "C107sec5dpmm"
+      ],
+      "anchors": [
+        "C107sec5dpmm"
+      ],
+      "files": [
+        "Fqdas1o7bas"
+      ],
+      "total_lines": 29,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 433,
+      "members": [
+        "C6d22crz36p"
+      ],
+      "anchors": [
+        "C6d22crz36p"
+      ],
+      "files": [
+        "F8zxybtcepx"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 441,
+      "members": [
+        "C538zr4v8by"
+      ],
+      "anchors": [
+        "C538zr4v8by"
+      ],
+      "files": [
+        "F2pfcqzrufh"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 450,
+      "members": [
+        "C1yu4cfy0fu"
+      ],
+      "anchors": [
+        "C1yu4cfy0fu"
+      ],
+      "files": [
+        "F638wm5zc8p"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 456,
+      "members": [
+        "C455fbpdv7y"
+      ],
+      "anchors": [
+        "C455fbpdv7y"
+      ],
+      "files": [
+        "Fsws6q2fva4"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 461,
+      "members": [
+        "C9u7wlq9asq"
+      ],
+      "anchors": [
+        "C9u7wlq9asq"
+      ],
+      "files": [
+        "F16j1ajaz4h6"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 465,
+      "members": [
+        "Cm9j04dwslg"
+      ],
+      "anchors": [
+        "Cm9j04dwslg"
+      ],
+      "files": [
+        "F3sw0a0du4p"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 471,
+      "members": [
+        "Cynaflmc0wx"
+      ],
+      "anchors": [
+        "Cynaflmc0wx"
+      ],
+      "files": [
+        "F4ayq2nmy8l"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 473,
+      "members": [
+        "Cm1h1izdkx"
+      ],
+      "anchors": [
+        "Cm1h1izdkx"
+      ],
+      "files": [
+        "Fcknmq7px5e"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 475,
+      "members": [
+        "C12qp6zf6brv"
+      ],
+      "anchors": [
+        "C12qp6zf6brv"
+      ],
+      "files": [
+        "Fn84jq61m96"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 482,
+      "members": [
+        "C172rp74ac4m"
+      ],
+      "anchors": [
+        "C172rp74ac4m"
+      ],
+      "files": [
+        "Faku2tvp2j0"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 498,
+      "members": [
+        "C4dijv60l6p"
+      ],
+      "anchors": [
+        "C4dijv60l6p"
+      ],
+      "files": [
+        "F14ypb7gijo2"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 499,
+      "members": [
+        "C17r799or5oo"
+      ],
+      "anchors": [
+        "C17r799or5oo"
+      ],
+      "files": [
+        "Fo151gu7z0c"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 501,
+      "members": [
+        "C3dyjuwsjpo"
+      ],
+      "anchors": [
+        "C3dyjuwsjpo"
+      ],
+      "files": [
+        "F11d8x6u3m88"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 503,
+      "members": [
+        "C10o9wsigge6"
+      ],
+      "anchors": [
+        "C10o9wsigge6"
+      ],
+      "files": [
+        "F11d8x6u3m88"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 505,
+      "members": [
+        "Cops008gylw"
+      ],
+      "anchors": [
+        "Cops008gylw"
+      ],
+      "files": [
+        "F11d8x6u3m88"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 506,
+      "members": [
+        "Cv9lgzb0lvk"
+      ],
+      "anchors": [
+        "Cv9lgzb0lvk"
+      ],
+      "files": [
+        "F11d8x6u3m88"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 509,
+      "members": [
+        "Cdsca6w240h"
+      ],
+      "anchors": [
+        "Cdsca6w240h"
+      ],
+      "files": [
+        "Fxdnow3zujj"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 512,
+      "members": [
+        "Ck5t2hcggoi"
+      ],
+      "anchors": [
+        "Ck5t2hcggoi"
+      ],
+      "files": [
+        "F16kjhws749r"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 516,
+      "members": [
+        "C5i8wmtklfy"
+      ],
+      "anchors": [
+        "C5i8wmtklfy"
+      ],
+      "files": [
+        "F12zlobukrs1"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 521,
+      "members": [
+        "C62ya3fn9ad"
+      ],
+      "anchors": [
+        "C62ya3fn9ad"
+      ],
+      "files": [
+        "Fhjdxmx53i1"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 523,
+      "members": [
+        "C2yos8qw3x9"
+      ],
+      "anchors": [
+        "C2yos8qw3x9"
+      ],
+      "files": [
+        "Fuo5kmuzx4a"
+      ],
+      "total_lines": 50,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 528,
+      "members": [
+        "Ca7wvylxypy"
+      ],
+      "anchors": [
+        "Ca7wvylxypy"
+      ],
+      "files": [
+        "F2l3q9oun7i"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 530,
+      "members": [
+        "Cfdivft6pia"
+      ],
+      "anchors": [
+        "Cfdivft6pia"
+      ],
+      "files": [
+        "F2l3q9oun7i"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 533,
+      "members": [
+        "C67xc6pyb7z"
+      ],
+      "anchors": [
+        "C67xc6pyb7z"
+      ],
+      "files": [
+        "F2l3q9oun7i"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 535,
+      "members": [
+        "Cutdb1okbc5"
+      ],
+      "anchors": [
+        "Cutdb1okbc5"
+      ],
+      "files": [
+        "F2l3q9oun7i"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 540,
+      "members": [
+        "C125l7q9t7n6"
+      ],
+      "anchors": [
+        "C125l7q9t7n6"
+      ],
+      "files": [
+        "Fpb0twito5v"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 544,
+      "members": [
+        "Cmkcflgshp"
+      ],
+      "anchors": [
+        "Cmkcflgshp"
+      ],
+      "files": [
+        "Fpb0twito5v"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 545,
+      "members": [
+        "Cko1if6ogzt"
+      ],
+      "anchors": [
+        "Cko1if6ogzt"
+      ],
+      "files": [
+        "Fsjfvbi66fa"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 546,
+      "members": [
+        "C20g93e4mxq"
+      ],
+      "anchors": [
+        "C20g93e4mxq"
+      ],
+      "files": [
+        "Flk2e9i02t4"
+      ],
+      "total_lines": 28,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 548,
+      "members": [
+        "C165vw3axn34"
+      ],
+      "anchors": [
+        "C165vw3axn34"
+      ],
+      "files": [
+        "Fc63s0cmynx"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 555,
+      "members": [
+        "C11wfgomk00g"
+      ],
+      "anchors": [
+        "C11wfgomk00g"
+      ],
+      "files": [
+        "Fr6a2pxcwop"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 556,
+      "members": [
+        "Cse7umkk7q1"
+      ],
+      "anchors": [
+        "Cse7umkk7q1"
+      ],
+      "files": [
+        "Fzmyn1kp813"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 557,
+      "members": [
+        "C4cryqqlah4"
+      ],
+      "anchors": [
+        "C4cryqqlah4"
+      ],
+      "files": [
+        "Fbzroqap7s8"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 559,
+      "members": [
+        "Cxphm8ff21u"
+      ],
+      "anchors": [
+        "Cxphm8ff21u"
+      ],
+      "files": [
+        "Fbzroqap7s8"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 561,
+      "members": [
+        "Co09yv073x9"
+      ],
+      "anchors": [
+        "Co09yv073x9"
+      ],
+      "files": [
+        "Fbzroqap7s8"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 563,
+      "members": [
+        "Cmv17qd7apy"
+      ],
+      "anchors": [
+        "Cmv17qd7apy"
+      ],
+      "files": [
+        "Fbzroqap7s8"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 565,
+      "members": [
+        "C11p8emst77"
+      ],
+      "anchors": [
+        "C11p8emst77"
+      ],
+      "files": [
+        "Fbzroqap7s8"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 567,
+      "members": [
+        "C5wvbtkafvr"
+      ],
+      "anchors": [
+        "C5wvbtkafvr"
+      ],
+      "files": [
+        "F381x9wl5hb"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 569,
+      "members": [
+        "Cvr789d8h1f"
+      ],
+      "anchors": [
+        "Cvr789d8h1f"
+      ],
+      "files": [
+        "F16o1zdm4gyd"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 571,
+      "members": [
+        "Cmvc8cif5eg"
+      ],
+      "anchors": [
+        "Cmvc8cif5eg"
+      ],
+      "files": [
+        "Ftq4ftw1y77"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 573,
+      "members": [
+        "Cmg2v26d2y"
+      ],
+      "anchors": [
+        "Cmg2v26d2y"
+      ],
+      "files": [
+        "Ftq4ftw1y77"
+      ],
+      "total_lines": 22,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 575,
+      "members": [
+        "C15ef2mp4pf3"
+      ],
+      "anchors": [
+        "C15ef2mp4pf3"
+      ],
+      "files": [
+        "Ftq4ftw1y77"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 580,
+      "members": [
+        "Cy66y2v3rhf"
+      ],
+      "anchors": [
+        "Cy66y2v3rhf"
+      ],
+      "files": [
+        "Ftq4ftw1y77"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 582,
+      "members": [
+        "C10o4quag9lf"
+      ],
+      "anchors": [
+        "C10o4quag9lf"
+      ],
+      "files": [
+        "Ftq4ftw1y77"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 584,
+      "members": [
+        "Cvyil3tzsze"
+      ],
+      "anchors": [
+        "Cvyil3tzsze"
+      ],
+      "files": [
+        "Fugvp3l9j4e"
+      ],
+      "total_lines": 40,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 588,
+      "members": [
+        "Cb3ahxlrqdo"
+      ],
+      "anchors": [
+        "Cb3ahxlrqdo"
+      ],
+      "files": [
+        "Fugvp3l9j4e"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 590,
+      "members": [
+        "Cp3a7or43mu"
+      ],
+      "anchors": [
+        "Cp3a7or43mu"
+      ],
+      "files": [
+        "F16vdhk4us74"
+      ],
+      "total_lines": 47,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 595,
+      "members": [
+        "C8ob3m3fy92"
+      ],
+      "anchors": [
+        "C8ob3m3fy92"
+      ],
+      "files": [
+        "F16vdhk4us74"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 596,
+      "members": [
+        "C12eh595gu9o"
+      ],
+      "anchors": [
+        "C12eh595gu9o"
+      ],
+      "files": [
+        "F16vdhk4us74"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 599,
+      "members": [
+        "Clzg9qy89je"
+      ],
+      "anchors": [
+        "Clzg9qy89je"
+      ],
+      "files": [
+        "F16vdhk4us74"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 600,
+      "members": [
+        "Czu02k3m6rz"
+      ],
+      "anchors": [
+        "Czu02k3m6rz"
+      ],
+      "files": [
+        "Fcsr7ym8nfq"
+      ],
+      "total_lines": 39,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 611,
+      "members": [
+        "Ctlufvw0jtu"
+      ],
+      "anchors": [
+        "Ctlufvw0jtu"
+      ],
+      "files": [
+        "Fu80bv0t8tf"
+      ],
+      "total_lines": 30,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 614,
+      "members": [
+        "C3hrz24oixg"
+      ],
+      "anchors": [
+        "C3hrz24oixg"
+      ],
+      "files": [
+        "Fledge80ne9"
+      ],
+      "total_lines": 35,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 619,
+      "members": [
+        "C2ahdu6emth"
+      ],
+      "anchors": [
+        "C2ahdu6emth"
+      ],
+      "files": [
+        "F8h0rs9ns3r"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 625,
+      "members": [
+        "C5kmlxsttkr"
+      ],
+      "anchors": [
+        "C5kmlxsttkr"
+      ],
+      "files": [
+        "Fjahcl7zmht"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 626,
+      "members": [
+        "Cb6adexsy5e"
+      ],
+      "anchors": [
+        "Cb6adexsy5e"
+      ],
+      "files": [
+        "F11brz8p1kq"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 636,
+      "members": [
+        "Cfkseeozvv0"
+      ],
+      "anchors": [
+        "Cfkseeozvv0"
+      ],
+      "files": [
+        "F4wlb0kwd0u"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "ruby"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cbz7kj51nbz",
+      "qualified_name": "GrapeSwagger::Rake::OapiTasks::validate",
+      "simple_name": "validate",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F3m75vf1idu",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/rake/oapi_tasks.rb",
+      "start_line": 60,
+      "end_line": 81,
+      "size_lines": 22,
+      "signature_hint": "def validate desc 'validates the generated OpenApi file … params (usage: key=value)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -378,
+      "region": 159,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "C14g0sfi8i9j",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Route::extract_variant_validator_parts",
+      "simple_name": "extract_variant_validator_parts",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1438r10rcwj",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/route.rb",
+      "start_line": 97,
+      "end_line": 114,
+      "size_lines": 18,
+      "signature_hint": "def extract_variant_validator_parts(validator) if validator.is_a?(Hash) return unless validator[:validator_class] == Grape::Validations::Validators::CoerceValidator attrs = Array(validator[:attributes]) scope = validator[:params_scope] converter = validator[:options].is_a?(Hash) ? validator[:options][:type]",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -382,
+      "region": 191,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cip43htio71"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8oysusedyi",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Body::array_param?",
+      "simple_name": "array_param?",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Foe9l91tfoi",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/body.rb",
+      "start_line": 38,
+      "end_line": 47,
+      "size_lines": 10,
+      "signature_hint": "def array_param?(param_type) return false if param_type.nil? return true if param_type == 'Array' param_types = param_type.match(/\\[(.*)\\]$/) return false unless param_types param_types = param_types[0].split(',') if param_types param_types.size == 1 end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -390,
+      "region": 179,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C16x91xlv71m"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C178vettxdo3",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Route::build_path_params",
+      "simple_name": "build_path_params",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1438r10rcwj",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/route.rb",
+      "start_line": 29,
+      "end_line": 38,
+      "size_lines": 10,
+      "signature_hint": "def build_path_params(stackable_values) params",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -390,
+      "region": 191,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C10nxp96m039"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C17bzie99rbd",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Route::fetch_inherited_params",
+      "simple_name": "fetch_inherited_params",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1438r10rcwj",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/route.rb",
+      "start_line": 54,
+      "end_line": 63,
+      "size_lines": 10,
+      "signature_hint": "def fetch_inherited_params(stackable_values) return",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -390,
+      "region": 191,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C178vettxdo3"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cuev4fliiyc",
+      "qualified_name": "GrapeSwagger::SwaggerRouting::route_path_start_with?",
+      "simple_name": "route_path_start_with?",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fy819p0fog1",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/swagger_routing.rb",
+      "start_line": 68,
+      "end_line": 77,
+      "size_lines": 10,
+      "signature_hint": "def route_path_start_with?(route, name) # String#start_with? is a literal prefix check, so Regexp.escape is not needed here. patterns = if route.prefix.to_s.empty? [\"/#{name}\", \"/:version/#{name}\"] else [\"/#{route.prefix}/#{name}\", \"/#{route.prefix}/:version/#{name}\"] end patterns.any?",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -390,
+      "region": 94,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C33rurwrwzp"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2t1gy7jppb",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Body::public_parameter?",
+      "simple_name": "public_parameter?",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Foe9l91tfoi",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/body.rb",
+      "start_line": 53,
+      "end_line": 59,
+      "size_lines": 7,
+      "signature_hint": "def public_parameter?(param_options) return true unless param_options.key?(:documentation) && !param_options[:required] param_hidden = param_options[:documentation].fetch(:hidden, false) param_hidden = evaluate_hidden_proc(param_hidden) if param_hidden.is_a?(Proc) !param_hidden end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -393,
+      "region": 179,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C2ed6ndlbj1"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C17el6n2u877",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Route::merge_path_param_options",
+      "simple_name": "merge_path_param_options",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1438r10rcwj",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/route.rb",
+      "start_line": 46,
+      "end_line": 52,
+      "size_lines": 7,
+      "signature_hint": "def merge_path_param_options(outer_options, inner_options) return inner_options unless outer_options.is_a?(Hash) && inner_options.is_a?(Hash) outer_options.merge(inner_options) do |_key, outer_value, inner_value| merge_path_param_options(outer_value, inner_value) end end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -393,
+      "region": 191,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cn37a3w6f7y"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C33rurwrwzp",
+      "qualified_name": "GrapeSwagger::SwaggerRouting::determine_namespaced_routes",
+      "simple_name": "determine_namespaced_routes",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fy819p0fog1",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/swagger_routing.rb",
+      "start_line": 27,
+      "end_line": 33,
+      "size_lines": 7,
+      "signature_hint": "def determine_namespaced_routes(name, parent_route, routes) return routes.values.flatten if parent_route.nil? parent_route.select do |route| route_path_start_with?(route, name) || route_namespace_equals?(route, name) end end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -393,
+      "region": 94,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ci8m0s7jhkt"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Coyal3lg0dt",
+      "qualified_name": "GrapeSwagger::DocMethods::pop_desc",
+      "simple_name": "pop_desc",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10983g4q6j0",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/doc_methods.rb",
+      "start_line": 147,
+      "end_line": 152,
+      "size_lines": 6,
+      "signature_hint": "def pop_desc(doc) result = doc.key?(:desc) ? doc.delete(:desc)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 94,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cc1idxqp2nd"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cbu9309ro2k",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Body::evaluate_hidden_proc",
+      "simple_name": "evaluate_hidden_proc",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Foe9l91tfoi",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/body.rb",
+      "start_line": 67,
+      "end_line": 72,
+      "size_lines": 6,
+      "signature_hint": "def evaluate_hidden_proc(hidden_proc) return hidden_proc.call unless settings[:token_owner] token_owner = GrapeSwagger::TokenOwnerResolver.resolve(endpoint, settings[:token_owner]) GrapeSwagger::TokenOwnerResolver.evaluate_proc(hidden_proc, token_owner) end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 179,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C2t1gy7jppb"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cpvimql0cqh",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Route::restore_variant_type",
+      "simple_name": "restore_variant_type",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1438r10rcwj",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/route.rb",
+      "start_line": 133,
+      "end_line": 138,
+      "size_lines": 6,
+      "signature_hint": "def restore_variant_type(defined_options, param, variant_types) types = variant_types[param.to_s] return defined_options unless types defined_options.merge(type: types) end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 191,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C6imcuy7xca"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C175f81b1msk",
+      "qualified_name": "GrapeSwagger::DocMethods::class_variables_from",
+      "simple_name": "class_variables_from",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10983g4q6j0",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/doc_methods.rb",
+      "start_line": 132,
+      "end_line": 136,
+      "size_lines": 5,
+      "signature_hint": "def class_variables_from(options) @@mount_path = options[:mount_path] @@class_name = options[:class_name] || options[:mount_path].delete('/') @@hide_documentation_path = options[:hide_documentation_path] end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 94,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cc1idxqp2nd"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4eigpp22qs",
+      "qualified_name": "GrapeSwagger::DocMethods::setup_formatter",
+      "simple_name": "setup_formatter",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10983g4q6j0",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/doc_methods.rb",
+      "start_line": 138,
+      "end_line": 142,
+      "size_lines": 5,
+      "signature_hint": "def setup_formatter(formatter) return unless formatter FORMATTER_METHOD.each",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 94,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cc1idxqp2nd"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1193n5i6pen",
+      "qualified_name": "GrapeSwagger::Rake::OapiTasks::format_path",
+      "simple_name": "format_path",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F3m75vf1idu",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/rake/oapi_tasks.rb",
+      "start_line": 104,
+      "end_line": 108,
+      "size_lines": 5,
+      "signature_hint": "def format_path(path) oapi_route = api_class.routes.select",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 159,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ce6wv75eyls"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C10txlvxft2f",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Body::includes_body_param?",
+      "simple_name": "includes_body_param?",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Foe9l91tfoi",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/body.rb",
+      "start_line": 61,
+      "end_line": 65,
+      "size_lines": 5,
+      "signature_hint": "def includes_body_param? params.any? do |_, options| options.dig(:documentation, :param_type) == 'body' || options.dig(:documentation, :in) == 'body' end end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 179,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C7p9mgm9od3"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cn37a3w6f7y",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Route::merge_path_params",
+      "simple_name": "merge_path_params",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1438r10rcwj",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/route.rb",
+      "start_line": 40,
+      "end_line": 44,
+      "size_lines": 5,
+      "signature_hint": "def merge_path_params(outer_params, inner_params) outer_params.merge(inner_params) do |_key, outer_options, inner_options| merge_path_param_options(outer_options, inner_options) end end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 191,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C178vettxdo3"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cr31m06qzna",
+      "qualified_name": "GrapeSwagger::SwaggerDocumentationAdder::create_documentation_class",
+      "simple_name": "create_documentation_class",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F15il8ovkfi",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/swagger_documentation_adder.rb",
+      "start_line": 66,
+      "end_line": 70,
+      "size_lines": 5,
+      "signature_hint": "def create_documentation_class Class.new(GrapeInstance) do extend GrapeSwagger::DocMethods end end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 94,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cvv4tt9t5i0"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C171y1yoq7lr",
+      "qualified_name": "GrapeSwagger::DocMethods::hide_documentation_path",
+      "simple_name": "hide_documentation_path",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10983g4q6j0",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/doc_methods.rb",
+      "start_line": 74,
+      "end_line": 76,
+      "size_lines": 3,
+      "signature_hint": "def hide_documentation_path @@hide_documentation_path end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 94,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cuhbsg3ytfq"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16s5zp13a31",
+      "qualified_name": "GrapeSwagger::Rake::OapiTasks::save_to_file?",
+      "simple_name": "save_to_file?",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F3m75vf1idu",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/rake/oapi_tasks.rb",
+      "start_line": 110,
+      "end_line": 112,
+      "size_lines": 3,
+      "signature_hint": "def save_to_file? ENV.fetch('store', nil).present? && !error? end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 159,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C155k2slmvac"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Coferpdlbhd",
+      "qualified_name": "GrapeSwagger::Rake::OapiTasks::error?",
+      "simple_name": "error?",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F3m75vf1idu",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/rake/oapi_tasks.rb",
+      "start_line": 114,
+      "end_line": 116,
+      "size_lines": 3,
+      "signature_hint": "def error? JSON.parse(@oapi).keys.first == 'error' end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 159,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cbz7kj51nbz"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cj839eu2a32",
+      "qualified_name": "GrapeSwagger::RequestParamParserRegistry::remove_parser",
+      "simple_name": "remove_parser",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fo1ww2bqwn6",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parser_registry.rb",
+      "start_line": 44,
+      "end_line": 46,
+      "size_lines": 3,
+      "signature_hint": "def remove_parser(klass) @parsers.reject!",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 172,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 3,
+          "example": "C12d1sp7tb77"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7p9mgm9od3",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Body::array_use_braces?",
+      "simple_name": "array_use_braces?",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Foe9l91tfoi",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/body.rb",
+      "start_line": 34,
+      "end_line": 36,
+      "size_lines": 3,
+      "signature_hint": "def array_use_braces? @array_use_braces ||= settings[:array_use_braces] && !includes_body_param? end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 179,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C16x91xlv71m"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C2ed6ndlbj1",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Body::public_params",
+      "simple_name": "public_params",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Foe9l91tfoi",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/body.rb",
+      "start_line": 49,
+      "end_line": 51,
+      "size_lines": 3,
+      "signature_hint": "def public_params params.select",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 179,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C16x91xlv71m"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cl0xvf7v5ru",
+      "qualified_name": "GrapeSwagger::SwaggerDocumentationAdder::version_for",
+      "simple_name": "version_for",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F15il8ovkfi",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/swagger_documentation_adder.rb",
+      "start_line": 39,
+      "end_line": 41,
+      "size_lines": 3,
+      "signature_hint": "def version_for(options) options[:version] = version if version end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 94,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cvv4tt9t5i0"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnfdv4y5avf",
+      "qualified_name": "GrapeSwagger::SwaggerRouting::route_namespace_equals?",
+      "simple_name": "route_namespace_equals?",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fy819p0fog1",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/swagger_routing.rb",
+      "start_line": 64,
+      "end_line": 66,
+      "size_lines": 3,
+      "signature_hint": "def route_namespace_equals?(route, name) [\"/#{name}\", \"/:version/#{name}\"].any?",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 94,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C33rurwrwzp"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cip43htio71",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Route::collect_variant_types",
+      "simple_name": "collect_variant_types",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1438r10rcwj",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/route.rb",
+      "start_line": 69,
+      "end_line": 95,
+      "size_lines": 27,
+      "signature_hint": "def collect_variant_types(stackable_values) variant_types",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -673,
+      "region": 191,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "reflection",
+          "sites": 1
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C10nxp96m039"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C7l3lh76whd",
+      "qualified_name": "GrapeSwagger::SwaggerDocumentationAdder::combine_namespaces",
+      "simple_name": "combine_namespaces",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F15il8ovkfi",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/swagger_documentation_adder.rb",
+      "start_line": 43,
+      "end_line": 64,
+      "size_lines": 22,
+      "signature_hint": "def combine_namespaces(app) combined_namespaces",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -678,
+      "region": 94,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "reflection",
+          "sites": 1
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cvv4tt9t5i0"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ci8m0s7jhkt",
+      "qualified_name": "GrapeSwagger::SwaggerRouting::combine_namespace_routes",
+      "simple_name": "combine_namespace_routes",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fy819p0fog1",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/swagger_routing.rb",
+      "start_line": 35,
+      "end_line": 54,
+      "size_lines": 20,
+      "signature_hint": "def combine_namespace_routes(namespaces, routes) combined_namespace_routes",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -680,
+      "region": 94,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "reflection",
+          "sites": 1
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cvv4tt9t5i0"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cuhbsg3ytfq",
+      "qualified_name": "GrapeSwagger::SwaggerRouting::combine_routes",
+      "simple_name": "combine_routes",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fy819p0fog1",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/swagger_routing.rb",
+      "start_line": 7,
+      "end_line": 25,
+      "size_lines": 19,
+      "signature_hint": "def combine_routes(app, doc_klass) app.routes.each_with_object({}) do |route, combined_routes| route_path = route.path route_match = route_path.split(/^.*?#{Regexp.escape(route.prefix.to_s)}/).last next unless route_match route_match = route_match.match('\\/([\\p{Alnum}\\-\\_]*?)[\\.\\/\\(]') || route_match.match('\\/([\\p{Alpha}\\-\\_]*)$') next unless route_match resource = route_match.captures.first resource = '/' if resource.empty? combined_routes[resource] ||= [] if doc_klass.hide_documentation_path && route.path.match(/#{Regexp.escape(doc_klass.mount_path)}($|\\/|\\(\\.)/) next end combined_routes[resource] << route end end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -681,
+      "region": 94,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "reflection",
+          "sites": 1
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cvv4tt9t5i0"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C6imcuy7xca",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Route::fulfill_params",
+      "simple_name": "fulfill_params",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1438r10rcwj",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/route.rb",
+      "start_line": 116,
+      "end_line": 131,
+      "size_lines": 16,
+      "signature_hint": "def fulfill_params(path_params, variant_types) # Merge path params options into route params route.params.each_with_object({}) do |(param, definition), accum| # The route.params hash includes both parametrized params (with a string as a key) # and well-defined params from body/query (with a symbol as a key). # We avoid overriding well-defined params with parametrized ones. key = param.is_a?(String) ? param.to_sym",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -684,
+      "region": 191,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "reflection",
+          "sites": 1
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C10nxp96m039"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ce6wv75eyls",
+      "qualified_name": "GrapeSwagger::Rake::OapiTasks::urls_for",
+      "simple_name": "urls_for",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F3m75vf1idu",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/rake/oapi_tasks.rb",
+      "start_line": 95,
+      "end_line": 102,
+      "size_lines": 8,
+      "signature_hint": "def urls_for(api_class) api_class.routes .map(&:path) .grep(/#{GrapeSwagger::DocMethods.class_variable_get(:@@mount_path)}/) .reject",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 159,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "reflection",
+          "sites": 1
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C155k2slmvac"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cdhi3tgw3v7",
+      "qualified_name": "GrapeSwagger::Rake::OapiTasks::make_request",
+      "simple_name": "make_request",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F3m75vf1idu",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/rake/oapi_tasks.rb",
+      "start_line": 86,
+      "end_line": 92,
+      "size_lines": 7,
+      "signature_hint": "def make_request(url) get url @oapi = JSON.pretty_generate( JSON.parse(last_response.body, symbolize_names: true) ) + \"\\n\" end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -693,
+      "region": 159,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "reflection",
+          "sites": 1
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C155k2slmvac"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C10tomt1y4xe",
+      "qualified_name": "GrapeSwagger::SwaggerRouting::extract_parent_route",
+      "simple_name": "extract_parent_route",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fy819p0fog1",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/swagger_routing.rb",
+      "start_line": 56,
+      "end_line": 62,
+      "size_lines": 7,
+      "signature_hint": "def extract_parent_route(name) route_name = name.match(%r{^/?([^/]*).*$})[1] return route_name unless route_name.include? ':' matches = name.match(/\\/\\p{Alpha}+/) matches.nil? ? route_name",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -693,
+      "region": 94,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "reflection",
+          "sites": 1
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ci8m0s7jhkt"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chnv7oflilc",
+      "qualified_name": "GrapeSwagger::DocMethods::MoveParams::build_definition",
+      "simple_name": "build_definition",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fuxy4okd8rj",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/doc_methods/move_params.rb",
+      "start_line": 151,
+      "end_line": 155,
+      "size_lines": 5,
+      "signature_hint": "def build_definition(name, params) @definitions[name] = should_expose_as_array?(params) ? array_type",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 53,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "reflection",
+          "sites": 1
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C128f5nomx3g",
+      "qualified_name": "GrapeSwagger::DocMethods::MoveParams::parse_model",
+      "simple_name": "parse_model",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fuxy4okd8rj",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/doc_methods/move_params.rb",
+      "start_line": 174,
+      "end_line": 177,
+      "size_lines": 4,
+      "signature_hint": "def parse_model(ref) parts = ref.split('/') parts.last.include?('{') ? parts[0..-2].join('/')",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 58,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "reflection",
+          "sites": 1
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmitqgipx9z",
+      "qualified_name": "GrapeSwagger::Rake::OapiTasks::api_class",
+      "simple_name": "api_class",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F3m75vf1idu",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/rake/oapi_tasks.rb",
+      "start_line": 28,
+      "end_line": 30,
+      "size_lines": 3,
+      "signature_hint": "def api_class @api_class ||= @api_class_name.constantize end",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 159,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "reflection",
+          "sites": 1
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 4,
+          "example": "C155k2slmvac"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cc1idxqp2nd",
+      "qualified_name": "GrapeSwagger::DocMethods::setup",
+      "simple_name": "setup",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10983g4q6j0",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/doc_methods.rb",
+      "start_line": 82,
+      "end_line": 130,
+      "size_lines": 49,
+      "signature_hint": "def setup(options) options = DEFAULTS.merge(options) # options could be set on #add_swagger_documentation call, # for available options see #defaults target_class = options[:target_class] guard = options[:swagger_endpoint_guard] # transform_keys normalizes string-keyed input, e.g. loaded from YAML/JSON. api_doc = (options[:api_documentation] || {}).transform_keys(&:to_sym) specific_api_doc = (options[:specific_api_documentation] || {}).transform_keys(&:to_sym) class_variables_from(options) setup_formatter(options[:format]) # Only the named-resource endpoint extracts :params for its required route param below. desc(pop_desc(api_doc), **api_doc) instance_eval(guard) unless guard.nil? get mount_path do header['Access-Control-Allow-Origin'] = '*' header['Access-Control-Request-Method'] = '*' GrapeSwagger::DocMethods .output_path_definitions(target_class.combined_namespace_routes, self, target_class, options) end specific_desc = pop_desc(specific_api_doc) specific_params = specific_api_doc.delete(:params) ||",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -851,
+      "region": 94,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "setup",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fmeh68yiku0",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/Rakefile",
+            "line": 6,
+            "name": "setup",
+            "receiver_hint": "Bundler"
+          }
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cvv4tt9t5i0"
+        }
+      ],
+      "out_degree": 10
+    },
+    {
+      "id": "Cvv4tt9t5i0",
+      "qualified_name": "GrapeSwagger::SwaggerDocumentationAdder::add_swagger_documentation",
+      "simple_name": "add_swagger_documentation",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F15il8ovkfi",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/swagger_documentation_adder.rb",
+      "start_line": 11,
+      "end_line": 35,
+      "size_lines": 25,
+      "signature_hint": "def add_swagger_documentation(options = {}) documentation_class = create_documentation_class version_for(options) options",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -875,
+      "region": 94,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "add_swagger_documentation",
+          "sites": 72,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ft6jcbbrr21",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/example/config.ru",
+            "line": 34,
+            "name": "add_swagger_documentation"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "Cx31f9etm1",
+      "qualified_name": "GrapeSwagger::DocMethods::Extensions::method",
+      "simple_name": "method",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fzdywudmet",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/doc_methods/extensions.rb",
+      "start_line": 91,
+      "end_line": 98,
+      "size_lines": 8,
+      "signature_hint": "def method(*args) # We're shadowing Object.method(:symbol) here so we provide # a compatibility layer for code that introspects the methods # of this class return super if args.size.positive? @route.request_method.downcase.to_sym end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -892,
+      "region": 35,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "method",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F6mkv8g2r1c",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/endpoint.rb",
+            "line": 473,
+            "name": "method",
+            "receiver_hint": "model"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cuox46bvrq8",
+      "qualified_name": "GrapeSwagger::ModelParsers::insert_before",
+      "simple_name": "insert_before",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fzd9d27mrpl",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/model_parsers.rb",
+      "start_line": 15,
+      "end_line": 20,
+      "size_lines": 6,
+      "signature_hint": "def insert_before(before_klass, klass, ancestor) subhash = @parsers.except(klass).to_a insert_at = subhash.index(subhash.assoc(before_klass)) insert_at = subhash.length - 1 if insert_at.nil? @parsers = subhash.insert(insert_at, [klass, ancestor]).to_h end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -894,
+      "region": 154,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "insert_before",
+          "sites": 3,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fnu0hw1jw1n",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/spec/lib/model_parsers_spec.rb",
+            "line": 34,
+            "name": "insert_before",
+            "receiver_hint": "model_parsers"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmjpfxofvts",
+      "qualified_name": "GrapeSwagger::ModelParsers::insert_after",
+      "simple_name": "insert_after",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fzd9d27mrpl",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/model_parsers.rb",
+      "start_line": 22,
+      "end_line": 27,
+      "size_lines": 6,
+      "signature_hint": "def insert_after(after_klass, klass, ancestor) subhash = @parsers.except(klass).to_a insert_at = subhash.index(subhash.assoc(after_klass)) insert_at = subhash.length - 1 if insert_at.nil? @parsers = subhash.insert(insert_at + 1, [klass, ancestor]).to_h end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -894,
+      "region": 155,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "insert_after",
+          "sites": 3,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fnu0hw1jw1n",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/spec/lib/model_parsers_spec.rb",
+            "line": 72,
+            "name": "insert_after",
+            "receiver_hint": "model_parsers"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cgdbaotbiq2",
+      "qualified_name": "GrapeSwagger::ModelParsers::find",
+      "simple_name": "find",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fzd9d27mrpl",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/model_parsers.rb",
+      "start_line": 35,
+      "end_line": 40,
+      "size_lines": 6,
+      "signature_hint": "def find(model) GrapeSwagger.model_parsers.each do |klass, ancestor| return klass if model.ancestors.map(&:to_s).include?(ancestor) end nil end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -894,
+      "region": 157,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "find",
+          "sites": 9,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Frjb75jonyz",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/doc_methods/build_model_definition.rb",
+            "line": 41,
+            "name": "find",
+            "receiver_hint": "properties"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C1xhwxydbaz",
+      "qualified_name": "GrapeSwagger::RequestParamParserRegistry::insert_before",
+      "simple_name": "insert_before",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fo1ww2bqwn6",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parser_registry.rb",
+      "start_line": 26,
+      "end_line": 30,
+      "size_lines": 5,
+      "signature_hint": "def insert_before(before_klass, klass) remove_parser(klass) insert_at = @parsers.index(before_klass) || @parsers.size @parsers.insert(insert_at, klass) end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -895,
+      "region": 172,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "insert_before",
+          "sites": 3,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fnu0hw1jw1n",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/spec/lib/model_parsers_spec.rb",
+            "line": 34,
+            "name": "insert_before",
+            "receiver_hint": "model_parsers"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cw4k7wexig1",
+      "qualified_name": "GrapeSwagger::RequestParamParserRegistry::insert_after",
+      "simple_name": "insert_after",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fo1ww2bqwn6",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parser_registry.rb",
+      "start_line": 32,
+      "end_line": 36,
+      "size_lines": 5,
+      "signature_hint": "def insert_after(after_klass, klass) remove_parser(klass) insert_at = @parsers.index(after_klass) @parsers.insert(insert_at ? insert_at + 1 : @parsers.size, klass) end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -895,
+      "region": 172,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "insert_after",
+          "sites": 3,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fnu0hw1jw1n",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/spec/lib/model_parsers_spec.rb",
+            "line": 72,
+            "name": "insert_after",
+            "receiver_hint": "model_parsers"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C12d1sp7tb77",
+      "qualified_name": "GrapeSwagger::RequestParamParserRegistry::register",
+      "simple_name": "register",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fo1ww2bqwn6",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parser_registry.rb",
+      "start_line": 21,
+      "end_line": 24,
+      "size_lines": 4,
+      "signature_hint": "def register(klass) remove_parser(klass) @parsers << klass end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -896,
+      "region": 172,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "register",
+          "sites": 10,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fnu0hw1jw1n",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/spec/lib/model_parsers_spec.rb",
+            "line": 14,
+            "name": "register",
+            "receiver_hint": "model_parsers"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cj4492mamoj",
+      "qualified_name": "Api::Entities::Splines::path",
+      "simple_name": "path",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fy2jv096rmu",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/example/api/entities.rb",
+      "start_line": 13,
+      "end_line": 15,
+      "size_lines": 3,
+      "signature_hint": "def path \"/#",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -897,
+      "region": 6,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "path",
+          "sites": 31,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fp8bryabrwp",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/doc_methods/path_string.rb",
+            "line": 8,
+            "name": "path",
+            "receiver_hint": "route"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C15m4ne3gdki",
+      "qualified_name": "GrapeSwagger::ModelParsers::register",
+      "simple_name": "register",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fzd9d27mrpl",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/model_parsers.rb",
+      "start_line": 11,
+      "end_line": 13,
+      "size_lines": 3,
+      "signature_hint": "def register(klass, ancestor) @parsers[klass] = ancestor.to_s end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -897,
+      "region": 153,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "register",
+          "sites": 10,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fnu0hw1jw1n",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/spec/lib/model_parsers_spec.rb",
+            "line": 14,
+            "name": "register",
+            "receiver_hint": "model_parsers"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cfzcg051y7p",
+      "qualified_name": "GrapeSwagger::Rake::OapiTasks::app",
+      "simple_name": "app",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F3m75vf1idu",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/rake/oapi_tasks.rb",
+      "start_line": 130,
+      "end_line": 132,
+      "size_lines": 3,
+      "signature_hint": "def app api_class.new end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -897,
+      "region": 159,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "app",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fhxs6kl1k2s",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/spec/lib/request_param_parsers/route_spec.rb",
+            "line": 14,
+            "name": "app",
+            "receiver_hint": "Class.new(Grape::API) do\n      namespace(':harvest') { get('/probe') { 'probe' } }\n    end.routes.first"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C155k2slmvac",
+      "qualified_name": "GrapeSwagger::Rake::OapiTasks::fetch",
+      "simple_name": "fetch",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F3m75vf1idu",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/rake/oapi_tasks.rb",
+      "start_line": 42,
+      "end_line": 57,
+      "size_lines": 16,
+      "signature_hint": "def fetch desc 'generates OpenApi documentation … params (usage: key=value)",
+      "category": "unreachable-from-roots",
+      "confidence": "low",
+      "rank": -884,
+      "region": 159,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "fetch",
+          "sites": 18,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 5,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fntqgc4hn8d",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/Gemfile",
+            "line": 8,
+            "name": "fetch",
+            "receiver_hint": "ENV"
+          }
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "Cjbpdwrrdj7",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Headers::parse",
+      "simple_name": "parse",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F127hmy7zr0u",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/headers.rb",
+      "start_line": 16,
+      "end_line": 30,
+      "size_lines": 15,
+      "signature_hint": "def parse return",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -885,
+      "region": 188,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "parse",
+          "sites": 172,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F6mkv8g2r1c",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/endpoint.rb",
+            "line": 383,
+            "name": "parse",
+            "receiver_hint": "parser_klass"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16x91xlv71m",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Body::parse",
+      "simple_name": "parse",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Foe9l91tfoi",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/body.rb",
+      "start_line": 18,
+      "end_line": 30,
+      "size_lines": 13,
+      "signature_hint": "def parse public_params.each_with_object({}) do |(name, options), memo| name = name.to_s param_type = options[:type]&.to_s if array_param?(param_type) options[:is_array] = true name += '[]' if array_use_braces? end memo[name] = options end end",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -887,
+      "region": 179,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "parse",
+          "sites": 172,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F6mkv8g2r1c",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/endpoint.rb",
+            "line": 383,
+            "name": "parse",
+            "receiver_hint": "parser_klass"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C10nxp96m039",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Route::parse",
+      "simple_name": "parse",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1438r10rcwj",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/route.rb",
+      "start_line": 18,
+      "end_line": 25,
+      "size_lines": 8,
+      "signature_hint": "def parse stackable_values = route.app&.inheritable_setting&.namespace_stackable path_params = build_path_params(stackable_values) variant_types = collect_variant_types(stackable_values) fulfill_params(path_params, variant_types) end",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -892,
+      "region": 191,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "parse",
+          "sites": 172,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F6mkv8g2r1c",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/endpoint.rb",
+            "line": 383,
+            "name": "parse",
+            "receiver_hint": "parser_klass"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C16rpvyeuxc8",
+      "qualified_name": "GrapeSwagger::ModelParsers::each",
+      "simple_name": "each",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fzd9d27mrpl",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/model_parsers.rb",
+      "start_line": 29,
+      "end_line": 33,
+      "size_lines": 5,
+      "signature_hint": "def each @parsers.each_pair do |klass, ancestor| yield klass, ancestor end end",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -895,
+      "region": 156,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "each",
+          "sites": 41,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fzdywudmet",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/doc_methods/extensions.rb",
+            "line": 39,
+            "name": "each",
+            "receiver_hint": "def_extension[:x_def]"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cv6p1znyce3",
+      "qualified_name": "GrapeSwagger::RequestParamParserRegistry::each",
+      "simple_name": "each",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fo1ww2bqwn6",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parser_registry.rb",
+      "start_line": 38,
+      "end_line": 40,
+      "size_lines": 3,
+      "signature_hint": "def each(&) @parsers.each(&) end",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -897,
+      "region": 175,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "each",
+          "sites": 41,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fzdywudmet",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/doc_methods/extensions.rb",
+            "line": 39,
+            "name": "each",
+            "receiver_hint": "def_extension[:x_def]"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chbsompafbf",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Body::parse",
+      "simple_name": "parse",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "static_method",
+      "file": "Foe9l91tfoi",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/body.rb",
+      "start_line": 8,
+      "end_line": 10,
+      "size_lines": 3,
+      "signature_hint": "def self.parse(route, params, settings, endpoint) new(route, params, settings, endpoint).parse end",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -897,
+      "region": 177,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "parse",
+          "sites": 172,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F6mkv8g2r1c",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/endpoint.rb",
+            "line": 383,
+            "name": "parse",
+            "receiver_hint": "parser_klass"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjzp72xa2ab",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Headers::parse",
+      "simple_name": "parse",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "static_method",
+      "file": "F127hmy7zr0u",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/headers.rb",
+      "start_line": 8,
+      "end_line": 10,
+      "size_lines": 3,
+      "signature_hint": "def self.parse(route, params, settings, endpoint) new(route, params, settings, endpoint).parse end",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -897,
+      "region": 186,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "parse",
+          "sites": 172,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F6mkv8g2r1c",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/endpoint.rb",
+            "line": 383,
+            "name": "parse",
+            "receiver_hint": "parser_klass"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chxwcw6cpom",
+      "qualified_name": "GrapeSwagger::RequestParamParsers::Route::parse",
+      "simple_name": "parse",
+      "language": "ruby",
+      "kind": "method",
+      "def_variant": "static_method",
+      "file": "F1438r10rcwj",
+      "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/request_param_parsers/route.rb",
+      "start_line": 10,
+      "end_line": 12,
+      "size_lines": 3,
+      "signature_hint": "def self.parse(route, params, settings, endpoint) new(route, params, settings, endpoint).parse end",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -897,
+      "region": 189,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "parse",
+          "sites": 172,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F6mkv8g2r1c",
+            "path": "/storage/cgg-test_repos/app-grape-swagger/lib/grape-swagger/endpoint.rb",
+            "line": 383,
+            "name": "parse",
+            "receiver_hint": "parser_klass"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

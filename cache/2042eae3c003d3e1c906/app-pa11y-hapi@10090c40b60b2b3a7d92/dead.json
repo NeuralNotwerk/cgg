@@ -1,0 +1,2610 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "framework:entry-node",
+        "framework:test-harness",
+        "toplevel:invocation"
+      ],
+      "files": 29,
+      "callables": 37,
+      "roots": 248,
+      "reachable": 20,
+      "reachable_pct": 54,
+      "findings": 13,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 37,
+    "edges": 346,
+    "unresolved_call_sites": 157,
+    "roots": 248,
+    "candidates": 17,
+    "reported": 13,
+    "regions": 10,
+    "withheld": [
+      {
+        "language": "javascript",
+        "category": "only-used-by-tests",
+        "reason": "missing-signal",
+        "would_have_reported": 4
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "C3qmxfz94ro",
+      "qualified_name": "initApp",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-pa11y-hapi/app.js:108"
+    },
+    {
+      "id": "C157flz5d61h",
+      "qualified_name": "env",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-pa11y-hapi/config.js:38"
+    },
+    {
+      "id": "C16qesh479l0",
+      "qualified_name": "loadFixtures",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-pa11y-hapi/data/fixture/load.js:42"
+    },
+    {
+      "id": "C893k2uatf5",
+      "qualified_name": "hideCredentialsInConnectionString",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-pa11y-hapi/index.js:29"
+    },
+    {
+      "id": "C418b8gahlg",
+      "qualified_name": "initTask",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-pa11y-hapi/task/pa11y.js:21"
+    },
+    {
+      "id": "C10canruuskl",
+      "qualified_name": "runPa11yOnTasks",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-pa11y-hapi/task/pa11y.js:22"
+    },
+    {
+      "id": "C75b2c1ojac",
+      "qualified_name": "handler_at_20",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ch2dwoqutcp",
+      "qualified_name": "handler_at_22",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C5lbgecz0vc",
+      "qualified_name": "handler_at_25",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C8ffjb07t2c",
+      "qualified_name": "handler_at_41",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C12o49z54p0e",
+      "qualified_name": "handler_at_46",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Caran0ef729",
+      "qualified_name": "handler_at_50",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Crbkdr87aeq",
+      "qualified_name": "handler_at_58",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Coo0dbfyift",
+      "qualified_name": "handler_at_67",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cv3qpgdz3l1",
+      "qualified_name": "handler_at_70",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C7qe5h1zisd",
+      "qualified_name": "handler_at_89",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cdtwccvubci",
+      "qualified_name": "handler_at_94",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C76bhp0io6y",
+      "qualified_name": "handler_at_98",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C12g9d7t8liz",
+      "qualified_name": "handler_at_106",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cp5s9yj5xrq",
+      "qualified_name": "handler_at_119",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Csl3pi3f8fw",
+      "qualified_name": "handler_at_122",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cml41ids4ff",
+      "qualified_name": "handler_at_137",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cd7jl4enr5m",
+      "qualified_name": "handler_at_142",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ccpeegyt14e",
+      "qualified_name": "handler_at_146",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C197kskoh5g",
+      "qualified_name": "handler_at_154",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C16y7lvx2so1",
+      "qualified_name": "handler_at_164",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C114ndh9i6wh",
+      "qualified_name": "handler_at_167",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cnnwmkuk51k",
+      "qualified_name": "handler_at_183",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C2oq3haktkh",
+      "qualified_name": "handler_at_188",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cbx40vrm8s6",
+      "qualified_name": "handler_at_192",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C4et8ubn7xs",
+      "qualified_name": "handler_at_200",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cyfkydgmvhw",
+      "qualified_name": "handler_at_211",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cqj96rnegdq",
+      "qualified_name": "handler_at_214",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cj7qndas7vv",
+      "qualified_name": "handler_at_231",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C12thmf302tr",
+      "qualified_name": "handler_at_236",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cjx3bohkj50",
+      "qualified_name": "handler_at_240",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cq51o0hioqv",
+      "qualified_name": "handler_at_248",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cfg6k2a5ygs",
+      "qualified_name": "handler_at_260",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cybhk9zy2gq",
+      "qualified_name": "handler_at_263",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cnylstyjzjb",
+      "qualified_name": "handler_at_283",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cw6ygefxp24",
+      "qualified_name": "handler_at_288",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C2yxjckd7rd",
+      "qualified_name": "handler_at_292",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cl0noiqmcjd",
+      "qualified_name": "handler_at_300",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ctq6nfloh2x",
+      "qualified_name": "handler_at_312",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cqjdmm226z6",
+      "qualified_name": "handler_at_315",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cjxthyzi58c",
+      "qualified_name": "handler_at_332",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C80l3ftlkqd",
+      "qualified_name": "handler_at_340",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cme4r3o3pmx",
+      "qualified_name": "handler_at_344",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cokx6xk9wbz",
+      "qualified_name": "handler_at_352",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cydnm61hj63",
+      "qualified_name": "handler_at_358",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cjzdgffcyrm",
+      "qualified_name": "handler_at_361",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C14zppwe0w9l",
+      "qualified_name": "handler_at_376",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cbosbbzsxlg",
+      "qualified_name": "handler_at_386",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cu1443r7mj3",
+      "qualified_name": "handler_at_390",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C11dqkcri9ig",
+      "qualified_name": "handler_at_398",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cixv007mrk0",
+      "qualified_name": "handler_at_406",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ce54ezrc0qc",
+      "qualified_name": "handler_at_408",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cfzbjr3fh2b",
+      "qualified_name": "handler_at_421",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cru5lxfw0c5",
+      "qualified_name": "handler_at_427",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Clwokirio13",
+      "qualified_name": "handler_at_429",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C2liwhwwzoq",
+      "qualified_name": "handler_at_441",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C15bwcaxdv1h",
+      "qualified_name": "handler_at_447",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cwvxklu1zlc",
+      "qualified_name": "handler_at_449",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C585whm717b",
+      "qualified_name": "handler_at_461",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Catdrxk9xl0",
+      "qualified_name": "handler_at_467",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ccbshkf76df",
+      "qualified_name": "handler_at_469",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ceze2drgrx4",
+      "qualified_name": "handler_at_483",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cd6xj72aouy",
+      "qualified_name": "handler_at_489",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C7e5mcyxenv",
+      "qualified_name": "handler_at_491",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Csjihoz9bpz",
+      "qualified_name": "handler_at_508",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C14r55yyxalq",
+      "qualified_name": "handler_at_19",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ck8ye9bdvo9",
+      "qualified_name": "handler_at_21",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Crlj2pax3k0",
+      "qualified_name": "handler_at_23",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cwcvckjj5fv",
+      "qualified_name": "handler_at_30",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C3wgqyj9stx",
+      "qualified_name": "handler_at_35",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ci2b9k28rfk",
+      "qualified_name": "handler_at_40",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cg2z47q6hpv",
+      "qualified_name": "handler_at_46",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Chyiupldhjw",
+      "qualified_name": "handler_at_48",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cq3n4zj0hah",
+      "qualified_name": "handler_at_56",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C85rp49rw9o",
+      "qualified_name": "handler_at_62",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cfqjs0drsq4",
+      "qualified_name": "handler_at_64",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cc0p86exmvc",
+      "qualified_name": "handler_at_72",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C17l51wa9rxz",
+      "qualified_name": "handler_at_19",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C15tdtjhkxmb",
+      "qualified_name": "handler_at_21",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cr1tz9yxjo4",
+      "qualified_name": "handler_at_23",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cd319g1jtrd",
+      "qualified_name": "handler_at_26",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Clugzu62e2h",
+      "qualified_name": "handler_at_51",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Czs3hv2zcb3",
+      "qualified_name": "handler_at_56",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cg0uyyxjb5z",
+      "qualified_name": "handler_at_61",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cd9krp3q6ic",
+      "qualified_name": "handler_at_66",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C66s4zqn501",
+      "qualified_name": "handler_at_71",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C8ccjmwf8n1",
+      "qualified_name": "handler_at_76",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C10ehy47qlp5",
+      "qualified_name": "handler_at_81",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ct9vf0ps5i3",
+      "qualified_name": "handler_at_86",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cmdyfuga1ci",
+      "qualified_name": "handler_at_91",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C175xfd452do",
+      "qualified_name": "handler_at_100",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Caxlrnjg6ly",
+      "qualified_name": "handler_at_106",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C3hobxc726v",
+      "qualified_name": "handler_at_109",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cxvimjmc9xc",
+      "qualified_name": "handler_at_122",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C8lw3exvjxo",
+      "qualified_name": "handler_at_131",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C58fissk4mr",
+      "qualified_name": "handler_at_134",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cpimt57fl2t",
+      "qualified_name": "handler_at_146",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cthxy8di515",
+      "qualified_name": "handler_at_152",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C16u240b8g0z",
+      "qualified_name": "handler_at_155",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cme5xl0uaob",
+      "qualified_name": "handler_at_168",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C25dhyfvveo",
+      "qualified_name": "handler_at_174",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cglu0hf7ppz",
+      "qualified_name": "handler_at_182",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Css1eamiugx",
+      "qualified_name": "handler_at_185",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cxli8ikli63",
+      "qualified_name": "handler_at_197",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cgilwrkvyx7",
+      "qualified_name": "handler_at_201",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Caimy0t2rln",
+      "qualified_name": "handler_at_208",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Chni2es0nxq",
+      "qualified_name": "handler_at_211",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cxv7a84ph3z",
+      "qualified_name": "handler_at_226",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cymus6h9o6a",
+      "qualified_name": "handler_at_230",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ctx8ku2a8bv",
+      "qualified_name": "handler_at_237",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C63rc340h64",
+      "qualified_name": "handler_at_239",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C1mgysyd9yc",
+      "qualified_name": "handler_at_251",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C15bh91tly0u",
+      "qualified_name": "handler_at_257",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C9efkxaupaf",
+      "qualified_name": "handler_at_259",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C7but6wk9s8",
+      "qualified_name": "handler_at_271",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Coig031zy0m",
+      "qualified_name": "handler_at_19",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C12tjozdf6st",
+      "qualified_name": "handler_at_21",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cvgmouxnam6",
+      "qualified_name": "handler_at_23",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C9ck5bm9d94",
+      "qualified_name": "handler_at_31",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cq4yn02zpul",
+      "qualified_name": "handler_at_35",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cjc4zgmlatg",
+      "qualified_name": "handler_at_53",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cgfmheu4k8a",
+      "qualified_name": "handler_at_56",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Crqeo69ij74",
+      "qualified_name": "handler_at_69",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ck23iga12a1",
+      "qualified_name": "handler_at_73",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C16bd0tvvqcj",
+      "qualified_name": "handler_at_87",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ctv402is0b0",
+      "qualified_name": "handler_at_90",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C2kgzajslbe",
+      "qualified_name": "handler_at_102",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C16aqpke1mny",
+      "qualified_name": "handler_at_106",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cidfdgqs7sa",
+      "qualified_name": "handler_at_124",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cirjfr2k5h",
+      "qualified_name": "handler_at_126",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cr5va9q705",
+      "qualified_name": "handler_at_137",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C49hjjzewae",
+      "qualified_name": "handler_at_19",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cnz7vrr9j6p",
+      "qualified_name": "handler_at_21",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C1pc46u99xe",
+      "qualified_name": "handler_at_23",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Co2ghratmhi",
+      "qualified_name": "handler_at_31",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Crj82ih0pwv",
+      "qualified_name": "handler_at_35",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cudj2r54105",
+      "qualified_name": "handler_at_45",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cw9z07jm771",
+      "qualified_name": "handler_at_47",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cspqbizjm1n",
+      "qualified_name": "handler_at_58",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cohoa3iq9c1",
+      "qualified_name": "handler_at_62",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C3bysoose96",
+      "qualified_name": "handler_at_19",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C124fxafcqy7",
+      "qualified_name": "handler_at_21",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cgswzxx1y53",
+      "qualified_name": "handler_at_23",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Czqvovvomcw",
+      "qualified_name": "handler_at_25",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C106x967eqvl",
+      "qualified_name": "handler_at_27",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C135zgoiarhl",
+      "qualified_name": "handler_at_35",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C1wpxjt6rua",
+      "qualified_name": "handler_at_39",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cjm3ekfoldy",
+      "qualified_name": "handler_at_50",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cc0fla6zxyu",
+      "qualified_name": "handler_at_52",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C17yuaamv54s",
+      "qualified_name": "handler_at_63",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cwb4yk507by",
+      "qualified_name": "handler_at_67",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Crntyhfkef6",
+      "qualified_name": "handler_at_78",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cvcq7qfplav",
+      "qualified_name": "handler_at_80",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C2ypyn5qd6z",
+      "qualified_name": "handler_at_91",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cds93dma4ij",
+      "qualified_name": "handler_at_99",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C12m3n24nmdi",
+      "qualified_name": "handler_at_101",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Crh8j31uczt",
+      "qualified_name": "handler_at_109",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C6ktiv1w1t1",
+      "qualified_name": "handler_at_115",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cs7lk6b8xvj",
+      "qualified_name": "handler_at_117",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C71r29bx7qd",
+      "qualified_name": "handler_at_125",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cl2x5flj3om",
+      "qualified_name": "handler_at_133",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cp6mp174800",
+      "qualified_name": "handler_at_135",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C5u2f5nhnno",
+      "qualified_name": "handler_at_143",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cndfxghkjd8",
+      "qualified_name": "handler_at_149",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C9760zxxdxc",
+      "qualified_name": "handler_at_151",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C178sd3yp7f6",
+      "qualified_name": "handler_at_159",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C169i1zazl1m",
+      "qualified_name": "handler_at_165",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C6lepx172q8",
+      "qualified_name": "handler_at_167",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C12sowyqhmnx",
+      "qualified_name": "handler_at_175",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cpc81u8e5x9",
+      "qualified_name": "handler_at_19",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C30zg06kfo3",
+      "qualified_name": "handler_at_21",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C146rr6d6zac",
+      "qualified_name": "handler_at_23",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Caca0gc1fyl",
+      "qualified_name": "handler_at_25",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ct2f4ollwec",
+      "qualified_name": "handler_at_33",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C9u0dulc4tn",
+      "qualified_name": "handler_at_37",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Csxavqjf8tj",
+      "qualified_name": "handler_at_52",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cqj96xgzdo7",
+      "qualified_name": "handler_at_55",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C83ioxv1zqh",
+      "qualified_name": "handler_at_68",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cmlk4k0gfzk",
+      "qualified_name": "handler_at_72",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Czh85e9dg9y",
+      "qualified_name": "handler_at_85",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cll9qk7003b",
+      "qualified_name": "handler_at_88",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C17grbdaaxml",
+      "qualified_name": "handler_at_100",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cwrtm4id6vn",
+      "qualified_name": "handler_at_104",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C180csd3a1cm",
+      "qualified_name": "handler_at_119",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C13q8bothcky",
+      "qualified_name": "handler_at_121",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cjshn0acto",
+      "qualified_name": "handler_at_132",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C13icdfhwc8j",
+      "qualified_name": "handler_at_140",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C13fr74oir8d",
+      "qualified_name": "handler_at_142",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Czaxoclx8dq",
+      "qualified_name": "handler_at_150",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cj17fog6r5k",
+      "qualified_name": "handler_at_156",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C76dwcyw1ht",
+      "qualified_name": "handler_at_158",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cjg2stijs4n",
+      "qualified_name": "handler_at_166",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cn3n5ww0tix",
+      "qualified_name": "handler_at_19",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Czqzjd0sw45",
+      "qualified_name": "handler_at_21",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Chd762edrge",
+      "qualified_name": "handler_at_23",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Csn4t6lqk82",
+      "qualified_name": "handler_at_24",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cnxrvwof0ao",
+      "qualified_name": "handler_at_31",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C14e7j4np0rd",
+      "qualified_name": "handler_at_35",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C3sam6jzcsj",
+      "qualified_name": "handler_at_45",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ch5kwv1bjp8",
+      "qualified_name": "handler_at_47",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ckrlr8o3p81",
+      "qualified_name": "handler_at_58",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C147ajpwd2lu",
+      "qualified_name": "handler_at_62",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Crcwswg3rs4",
+      "qualified_name": "handler_at_76",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C6x35jo68iw",
+      "qualified_name": "handler_at_78",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C175p3ht62se",
+      "qualified_name": "handler_at_85",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cidgmeyurev",
+      "qualified_name": "handler_at_91",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C5d301vx4pq",
+      "qualified_name": "handler_at_92",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C10mwsdbtqov",
+      "qualified_name": "handler_at_100",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cembamu67tz",
+      "qualified_name": "handler_at_30",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cr3hdxp1xvn",
+      "qualified_name": "handler_at_32",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C34wdnj4qzl",
+      "qualified_name": "handler_at_35",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cbe6uv5vjqb",
+      "qualified_name": "handler_at_49",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ceepf835ys2",
+      "qualified_name": "handler_at_53",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cw4z9yzovb9",
+      "qualified_name": "handler_at_58",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cuwywzt6qok",
+      "qualified_name": "handler_at_60",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C4oxftmphy",
+      "qualified_name": "handler_at_68",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C15fi85ah8f6",
+      "qualified_name": "handler_at_74",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cwlamdd5jxk",
+      "qualified_name": "handler_at_75",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cgwafihrhv4",
+      "qualified_name": "handler_at_82",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cdcudo4xwyv",
+      "qualified_name": "handler_at_43",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C125vryn15nl",
+      "qualified_name": "handler_at_55",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ctslsmsiaov",
+      "qualified_name": "handler_at_27",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cf8d29nh4jz",
+      "qualified_name": "handler_at_28",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Czeiqyonqpb",
+      "qualified_name": "handler_at_21",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cs0kdhv9kor",
+      "qualified_name": "handler_at_37",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ceihi4tb00c",
+      "qualified_name": "handler_at_43",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cqyc1d2d592",
+      "qualified_name": "handler_at_47",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Car5r8wjrvd",
+      "qualified_name": "handler_at_51",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C170dez1yj4e",
+      "qualified_name": "handler_at_55",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cthpgj7bn6j",
+      "qualified_name": "handler_at_59",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Clcjee8mdbg",
+      "qualified_name": "handler_at_61",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C94tsl6hh69",
+      "qualified_name": "handler_at_75",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cdoba45i75f",
+      "qualified_name": "handler_at_77",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cy8lpx91l5l",
+      "qualified_name": "handler_at_82",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cyxegd4vdy7",
+      "qualified_name": "handler_at_87",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cclmxq8ydsu",
+      "qualified_name": "handler_at_101",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cvsc4mx36v7",
+      "qualified_name": "handler_at_103",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C184pjicp32n",
+      "qualified_name": "handler_at_105",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C7i27z7pg3n",
+      "qualified_name": "handler_at_117",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C2lxt7n8kln",
+      "qualified_name": "handler_at_119",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C10skbfbyqet",
+      "qualified_name": "handler_at_127",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Celnfz21gqr",
+      "qualified_name": "handler_at_134",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C149rhpyumfy",
+      "qualified_name": "<framework-entry>::test::js-test-globals",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::js-test-globals`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 9,
+      "members": [
+        "C162pu5nw5do"
+      ],
+      "anchors": [
+        "C162pu5nw5do"
+      ],
+      "files": [
+        "Fa1z7t2t3bt"
+      ],
+      "total_lines": 167,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 10,
+      "members": [
+        "Cah5poq7w15"
+      ],
+      "anchors": [
+        "Cah5poq7w15"
+      ],
+      "files": [
+        "Fa1z7t2t3bt"
+      ],
+      "total_lines": 15,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 16,
+      "members": [
+        "C4n7ikhvoi8"
+      ],
+      "anchors": [],
+      "files": [
+        "Fa1z7t2t3bt"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 17,
+      "members": [
+        "C97elwd87s3"
+      ],
+      "anchors": [],
+      "files": [
+        "Fa1z7t2t3bt"
+      ],
+      "total_lines": 26,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 21,
+      "members": [
+        "Cno8hvcrqe5"
+      ],
+      "anchors": [
+        "Cno8hvcrqe5"
+      ],
+      "files": [
+        "F10phsyf611d"
+      ],
+      "total_lines": 266,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 22,
+      "members": [
+        "Ccera2rvlbn",
+        "Ckgxgr35l9g",
+        "Ctb7dip2dgu",
+        "C5hh2sl0plj"
+      ],
+      "anchors": [
+        "Ccera2rvlbn"
+      ],
+      "files": [
+        "F10phsyf611d"
+      ],
+      "total_lines": 95,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 27,
+      "members": [
+        "Cgsi3bcvyim"
+      ],
+      "anchors": [],
+      "files": [
+        "F10phsyf611d"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 32,
+      "members": [
+        "Cik4vwxoahl"
+      ],
+      "anchors": [
+        "Cik4vwxoahl"
+      ],
+      "files": [
+        "F15u48rlvbc2"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 34,
+      "members": [
+        "C2k5szsh8zg"
+      ],
+      "anchors": [
+        "C2k5szsh8zg"
+      ],
+      "files": [
+        "F4jydjtadp2"
+      ],
+      "total_lines": 195,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 41,
+      "members": [
+        "C73r2nf5o2c"
+      ],
+      "anchors": [
+        "C73r2nf5o2c"
+      ],
+      "files": [
+        "Fxdgs7o34oj"
+      ],
+      "total_lines": 112,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cno8hvcrqe5",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F10phsyf611d",
+      "path": "/storage/cgg-test_repos/app-pa11y-hapi/model/task.js",
+      "start_line": 24,
+      "end_line": 289,
+      "size_lines": 266,
+      "signature_hint": "module.exports = function(app, callback)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 166,
+      "region": 21,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2k5szsh8zg",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4jydjtadp2",
+      "path": "/storage/cgg-test_repos/app-pa11y-hapi/route/task.js",
+      "start_line": 21,
+      "end_line": 215,
+      "size_lines": 195,
+      "signature_hint": "module.exports = function({model, server})",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 95,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C162pu5nw5do",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fa1z7t2t3bt",
+      "path": "/storage/cgg-test_repos/app-pa11y-hapi/model/result.js",
+      "start_line": 22,
+      "end_line": 188,
+      "size_lines": 167,
+      "signature_hint": "module.exports = function({db}, callback)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 67,
+      "region": 9,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C73r2nf5o2c",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fxdgs7o34oj",
+      "path": "/storage/cgg-test_repos/app-pa11y-hapi/route/tasks.js",
+      "start_line": 21,
+      "end_line": 132,
+      "size_lines": 112,
+      "signature_hint": "module.exports = function(app)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 12,
+      "region": 41,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckgxgr35l9g",
+      "qualified_name": "editById",
+      "simple_name": "editById",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10phsyf611d",
+      "path": "/storage/cgg-test_repos/app-pa11y-hapi/model/task.js",
+      "start_line": 85,
+      "end_line": 132,
+      "size_lines": 48,
+      "signature_hint": "editById(id, edits)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -52,
+      "region": 22,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C97elwd87s3",
+      "qualified_name": "getByIdAndTaskId",
+      "simple_name": "getByIdAndTaskId",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fa1z7t2t3bt",
+      "path": "/storage/cgg-test_repos/app-pa11y-hapi/model/result.js",
+      "start_line": 131,
+      "end_line": 156,
+      "size_lines": 26,
+      "signature_hint": "getByIdAndTaskId(id, task, opts)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -74,
+      "region": 17,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ctb7dip2dgu",
+      "qualified_name": "addAnnotationById",
+      "simple_name": "addAnnotationById",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10phsyf611d",
+      "path": "/storage/cgg-test_repos/app-pa11y-hapi/model/task.js",
+      "start_line": 134,
+      "end_line": 156,
+      "size_lines": 23,
+      "signature_hint": "addAnnotationById(id, annotation)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -77,
+      "region": 22,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ckgxgr35l9g"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cgsi3bcvyim",
+      "qualified_name": "deleteById",
+      "simple_name": "deleteById",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10phsyf611d",
+      "path": "/storage/cgg-test_repos/app-pa11y-hapi/model/task.js",
+      "start_line": 158,
+      "end_line": 174,
+      "size_lines": 17,
+      "signature_hint": "deleteById(id)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -83,
+      "region": 27,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cah5poq7w15",
+      "qualified_name": "create",
+      "simple_name": "create",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fa1z7t2t3bt",
+      "path": "/storage/cgg-test_repos/app-pa11y-hapi/model/result.js",
+      "start_line": 31,
+      "end_line": 45,
+      "size_lines": 15,
+      "signature_hint": "create(newResult)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -85,
+      "region": 10,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C4n7ikhvoi8",
+      "qualified_name": "deleteByTaskId",
+      "simple_name": "deleteByTaskId",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fa1z7t2t3bt",
+      "path": "/storage/cgg-test_repos/app-pa11y-hapi/model/result.js",
+      "start_line": 116,
+      "end_line": 129,
+      "size_lines": 14,
+      "signature_hint": "deleteByTaskId(id)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -86,
+      "region": 16,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccera2rvlbn",
+      "qualified_name": "create",
+      "simple_name": "create",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10phsyf611d",
+      "path": "/storage/cgg-test_repos/app-pa11y-hapi/model/task.js",
+      "start_line": 35,
+      "end_line": 46,
+      "size_lines": 12,
+      "signature_hint": "create(newTask)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -88,
+      "region": 22,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C5hh2sl0plj",
+      "qualified_name": "sanitizeHeaderInput",
+      "simple_name": "sanitizeHeaderInput",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10phsyf611d",
+      "path": "/storage/cgg-test_repos/app-pa11y-hapi/model/task.js",
+      "start_line": 264,
+      "end_line": 275,
+      "size_lines": 12,
+      "signature_hint": "sanitizeHeaderInput(headers)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -88,
+      "region": 22,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Ccera2rvlbn"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cik4vwxoahl",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F15u48rlvbc2",
+      "path": "/storage/cgg-test_repos/app-pa11y-hapi/route/index.js",
+      "start_line": 17,
+      "end_line": 26,
+      "size_lines": 10,
+      "signature_hint": "module.exports = function({server})",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -90,
+      "region": 32,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

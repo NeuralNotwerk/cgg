@@ -1,0 +1,3316 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "python",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "full",
+      "test_tagging": "full",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "builtin:lifecycle",
+        "builtin:main",
+        "framework:entry-node",
+        "framework:test-harness",
+        "toplevel:invocation"
+      ],
+      "files": 32,
+      "callables": 190,
+      "roots": 77,
+      "reachable": 135,
+      "reachable_pct": 71,
+      "findings": 55,
+      "blind_spots": [
+        "getattr/setattr and other string-dispatched calls"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 190,
+    "edges": 343,
+    "unresolved_call_sites": 136,
+    "roots": 77,
+    "candidates": 57,
+    "reported": 55,
+    "regions": 23,
+    "withheld": [
+      {
+        "language": "python",
+        "category": "only-used-by-tests",
+        "reason": "missing-signal",
+        "would_have_reported": 2
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Cqqw7fqoc1k",
+      "qualified_name": "versioneer.register_vcs_handler",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py:216"
+    },
+    {
+      "id": "C13k0wwmhrg4",
+      "qualified_name": "versioneer.do_setup",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-xrviz-panel/versioneer.py:1819"
+    },
+    {
+      "id": "C13altx5e2tq",
+      "qualified_name": "versioneer.scan_setup_py",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-xrviz-panel/versioneer.py:1820"
+    },
+    {
+      "id": "C14nkjag6f50",
+      "qualified_name": "xrviz._version.register_vcs_handler",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py:216"
+    },
+    {
+      "id": "Chulqbezqp6",
+      "qualified_name": "xrviz.cli.main",
+      "language": "python",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cn6l80fbx6i",
+      "qualified_name": "xrviz.control.Control.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cjpo0yep2wf",
+      "qualified_name": "xrviz.coord_setter.CoordSetter.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Clmijpncmkx",
+      "qualified_name": "xrviz.dashboard.Dashboard.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C1373pm92nrp",
+      "qualified_name": "xrviz.describe.Describe.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Ca4b2tblseq",
+      "qualified_name": "xrviz.display.Display.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Ceytk1taob3",
+      "qualified_name": "xrviz.fields.Fields.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cv7n7rigip",
+      "qualified_name": "xrviz.projection.Projection.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Ctylsxtl3sq",
+      "qualified_name": "xrviz.sigslot.SigSlot.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cvdvn762qnp",
+      "qualified_name": "xrviz.style.Style.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C13v0ewf0aye",
+      "qualified_name": "xrviz.tests.__init__.data",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Crougnh30ih",
+      "qualified_name": "xrviz.tests.test_control.control",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ctpk2jnfd48",
+      "qualified_name": "xrviz.tests.test_control.test_control_initial",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cskcuosrxm5",
+      "qualified_name": "xrviz.tests.test_coord_setter.coord_setter",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ck5y00isoe1",
+      "qualified_name": "xrviz.tests.test_coord_setter.test_coord_setter_initial",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Csy220x2s6b",
+      "qualified_name": "xrviz.tests.test_dashboard.dashboard",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cz0ntpgynpt",
+      "qualified_name": "xrviz.tests.test_dashboard.dash_for_Array",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C14h68kj6atp",
+      "qualified_name": "xrviz.tests.test_dashboard.test_dashboard_with_invalid_datatype",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C3qmzvhzml",
+      "qualified_name": "xrviz.tests.test_dashboard.test_check_is_plottable_1D",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cbz8ildeq53",
+      "qualified_name": "xrviz.tests.test_dashboard.test_check_is_plottable_coord",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Chxgvt3o1iz",
+      "qualified_name": "xrviz.tests.test_dashboard.test_check_is_plottable_other_vars",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Csyx3jt8yrx",
+      "qualified_name": "xrviz.tests.test_dashboard.test_2d_variable_for_dims",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cuxvysbbu5r",
+      "qualified_name": "xrviz.tests.test_dashboard.test_3d_variable_for_dims",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C6ftpulcnjb",
+      "qualified_name": "xrviz.tests.test_dashboard.test_4d_variable_for_dims",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C17vsgajse4u",
+      "qualified_name": "xrviz.tests.test_dashboard.test_link_aggregation_selectors",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C13j36i29owx",
+      "qualified_name": "xrviz.tests.test_dashboard.test_set_coords",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C38nh2zll55",
+      "qualified_name": "xrviz.tests.test_dashboard.test_animate_wigdet_for_dims",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cab9gg8zio5",
+      "qualified_name": "xrviz.tests.test_dashboard.test_with_is_geo_projection",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C16wx53lrdio",
+      "qualified_name": "xrviz.tests.test_dashboard.test_with_is_geo_basemap",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cj2qvxqaoy5",
+      "qualified_name": "xrviz.tests.test_dashboard.test_with_aggregations_for_dims",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C179u7xvqpqw",
+      "qualified_name": "xrviz.tests.test_dashboard.test_with_aggregations_for_coords",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C13fsg5cpgeu",
+      "qualified_name": "xrviz.tests.test_dashboard.test_color_scaling_for_dims",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C152kisw2dtq",
+      "qualified_name": "xrviz.tests.test_dashboard.test_color_scaling_for_coords",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C12xl38rfsza",
+      "qualified_name": "xrviz.tests.test_dashboard.test_use_all_data_for_dims",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ct7i7x6pk94",
+      "qualified_name": "xrviz.tests.test_dashboard.test_use_all_data_for_coords",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ce3dkg4ye3z",
+      "qualified_name": "xrviz.tests.test_dashboard.test_create_taps_and_series_graph_for_dims",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cikk13z4xo4",
+      "qualified_name": "xrviz.tests.test_dashboard.test_create_taps_and_series_graph_for_2d_coords",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C7zklw20uep",
+      "qualified_name": "xrviz.tests.test_dashboard.test_find_cmap_limits_with_crick_tdigest",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cprca8apsxl",
+      "qualified_name": "xrviz.tests.test_describe.test_describe_initial",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cg2y1mme7ce",
+      "qualified_name": "xrviz.tests.test_display.displayer",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C14i67c15702",
+      "qualified_name": "xrviz.tests.test_display.displayer_array",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Clqzdaizzm7",
+      "qualified_name": "xrviz.tests.test_display.displayer_array_single_var",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Csbvf46y6f6",
+      "qualified_name": "xrviz.tests.test_display.test_fill_items",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cnwq3regn6p",
+      "qualified_name": "xrviz.tests.test_display.test_fill_items_array",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C222ite1ba2",
+      "qualified_name": "xrviz.tests.test_display.test_fill_items_single_var",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C9tx6an58xz",
+      "qualified_name": "xrviz.tests.test_example.test_dashboard_example",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cseig66362d",
+      "qualified_name": "xrviz.tests.test_fields.fields",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C51mowgyh7q",
+      "qualified_name": "xrviz.tests.test_fields.fields_array",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C5lqvt6751g",
+      "qualified_name": "xrviz.tests.test_fields.test_fields_initial",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cl1ekuj0mw",
+      "qualified_name": "xrviz.tests.test_fields.test_x_y_var_without_coords",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cd9zqdcmvk2",
+      "qualified_name": "xrviz.tests.test_fields.test_x_y_var_with_coords",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cbx89qsa4ln",
+      "qualified_name": "xrviz.tests.test_fields.test_change_y_dim_selectors",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ci4d97xnvsy",
+      "qualified_name": "xrviz.tests.test_fields.test_check_are_var_coords",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cp2vui63kak",
+      "qualified_name": "xrviz.tests.test_projection.projection",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C11iir19w985",
+      "qualified_name": "xrviz.tests.test_projection.test_widget",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Crbocsl1r2n",
+      "qualified_name": "xrviz.tests.test_projection.test_setup_geo_disabled",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cipquzlkpj4",
+      "qualified_name": "xrviz.tests.test_projection.test_setup_geo_changed_to_False",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C7tbab5ctzn",
+      "qualified_name": "xrviz.tests.test_projection.test_setup_geo_changed_to_True",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C7bke0ui7wx",
+      "qualified_name": "xrviz.tests.test_projection.test_add_proj_params",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cdgxu8v3yim",
+      "qualified_name": "xrviz.tests.test_style.style",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C1479tbs8504",
+      "qualified_name": "xrviz.tests.test_style.test_height",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C144xj8xvmou",
+      "qualified_name": "xrviz.tests.test_style.test_width",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cer4w2mg3c9",
+      "qualified_name": "xrviz.tests.test_style.test_cmap",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ctpcae7fh5o",
+      "qualified_name": "xrviz.tests.test_style.test_colorbar",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C8xlon9a0v1",
+      "qualified_name": "xrviz.tests.test_style.test_lower_limit",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cj2ebwtcqvk",
+      "qualified_name": "xrviz.tests.test_style.test_upper_limit",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C2wco7rezlb",
+      "qualified_name": "xrviz.tests.test_style.test_use_all_data",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C328wxsj0ta",
+      "qualified_name": "xrviz.tests.test_style.test_color_scale",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C4ub4yypqub",
+      "qualified_name": "xrviz.tests.test_style.test_rasterize",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C5oxh70guvl",
+      "qualified_name": "xrviz.tests.test_style.test_setup",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Clg6ctkchmf",
+      "qualified_name": "xrviz.tests.test_utils.test_convert_widget",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cop1vyt556x",
+      "qualified_name": "xrviz.tests.test_utils.test_player_with_name_and_value",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ctfumw6mzmj",
+      "qualified_name": "<framework-entry>::test::pytest",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::pytest`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 6,
+      "members": [
+        "Cqxwtpk6qii"
+      ],
+      "anchors": [
+        "Cqxwtpk6qii"
+      ],
+      "files": [
+        "Fq6vecw0yyz"
+      ],
+      "total_lines": 26,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 7,
+      "members": [
+        "C155o6rrd9t3"
+      ],
+      "anchors": [
+        "C155o6rrd9t3"
+      ],
+      "files": [
+        "Fq6vecw0yyz"
+      ],
+      "total_lines": 52,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 8,
+      "members": [
+        "C16juc6mbkes"
+      ],
+      "anchors": [
+        "C16juc6mbkes"
+      ],
+      "files": [
+        "Fq6vecw0yyz"
+      ],
+      "total_lines": 89,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 10,
+      "members": [
+        "Cvefq73w8gy",
+        "Ci197wlmxzh",
+        "C4aftf9tyed",
+        "Cgl8cj8rsra",
+        "Cbnd2gjlgmw",
+        "Cquf4n8hqcm",
+        "C40pylo6sne",
+        "Cvhiyrvxerq",
+        "Czg15euji8c",
+        "C17kailj42ue",
+        "Cmruy3ytrq2",
+        "Cfrxvx7bwm6",
+        "Cnre2mvqj0f",
+        "Cwqq2joz0qb",
+        "Cmnv3rshdj2",
+        "Ck8l5hmmbxr",
+        "C7ymj75ypjg",
+        "Cg7msfi8cwo",
+        "C65xibc1wu7"
+      ],
+      "anchors": [
+        "Cnre2mvqj0f",
+        "Cwqq2joz0qb",
+        "Cmnv3rshdj2",
+        "Ck8l5hmmbxr",
+        "C7ymj75ypjg",
+        "Cg7msfi8cwo",
+        "C65xibc1wu7"
+      ],
+      "files": [
+        "Fq6vecw0yyz"
+      ],
+      "total_lines": 353,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 23,
+      "members": [
+        "Cw6vvvmytu1"
+      ],
+      "anchors": [
+        "Cw6vvvmytu1"
+      ],
+      "files": [
+        "Fq6vecw0yyz"
+      ],
+      "total_lines": 168,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 24,
+      "members": [
+        "Cxvqyzglcgt"
+      ],
+      "anchors": [
+        "Cxvqyzglcgt"
+      ],
+      "files": [
+        "Fq6vecw0yyz"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 25,
+      "members": [
+        "Cxdn240sk17"
+      ],
+      "anchors": [
+        "Cxdn240sk17"
+      ],
+      "files": [
+        "Fq6vecw0yyz"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 34,
+      "members": [
+        "Cherfzcfvcy",
+        "Cb9ot9tr04y",
+        "Cf7mppea245",
+        "Czhipx211du",
+        "C72xk1sgzpx",
+        "C14mcg76232d",
+        "Ckf0nklv653",
+        "C3qmitq2vrc",
+        "C5jr0g333wc",
+        "Cgne96hmmgd",
+        "Cr6i3lhc84w",
+        "C5t80sh8e3u",
+        "Cmy94rkk09a",
+        "Ch0ka8mrsoq"
+      ],
+      "anchors": [
+        "Ch0ka8mrsoq"
+      ],
+      "files": [
+        "F14d6cd6k4oz"
+      ],
+      "total_lines": 384,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 38,
+      "members": [
+        "C8h3lafd68u"
+      ],
+      "anchors": [
+        "C8h3lafd68u"
+      ],
+      "files": [
+        "F14d6cd6k4oz"
+      ],
+      "total_lines": 35,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 40,
+      "members": [
+        "Ceb280hyswt"
+      ],
+      "anchors": [
+        "Ceb280hyswt"
+      ],
+      "files": [
+        "F14d6cd6k4oz"
+      ],
+      "total_lines": 26,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 57,
+      "members": [
+        "C7h0l5yfj48"
+      ],
+      "anchors": [],
+      "files": [
+        "Fkxguut0ljg"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 85,
+      "members": [
+        "C9xfdpgye6a"
+      ],
+      "anchors": [
+        "C9xfdpgye6a"
+      ],
+      "files": [
+        "Fqhgugwech8"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 93,
+      "members": [
+        "C16wjebp98th"
+      ],
+      "anchors": [
+        "C16wjebp98th"
+      ],
+      "files": [
+        "F5bkpb705ht"
+      ],
+      "total_lines": 26,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 105,
+      "members": [
+        "Czryrscg0mm"
+      ],
+      "anchors": [
+        "Czryrscg0mm"
+      ],
+      "files": [
+        "Fi8vpotrctu"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 107,
+      "members": [
+        "Cv20vmqhd5g"
+      ],
+      "anchors": [
+        "Cv20vmqhd5g"
+      ],
+      "files": [
+        "F10dofeqqfrr"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": 108,
+      "members": [
+        "Cto0qbbzlav"
+      ],
+      "anchors": [
+        "Cto0qbbzlav"
+      ],
+      "files": [
+        "F10dofeqqfrr"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "python"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": 109,
+      "members": [
+        "Cjmftsi2s6h",
+        "C12a1z5ozwnd"
+      ],
+      "anchors": [
+        "Cjmftsi2s6h"
+      ],
+      "files": [
+        "F10dofeqqfrr"
+      ],
+      "total_lines": 30,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 110,
+      "members": [
+        "Cb59b6jbivp"
+      ],
+      "anchors": [
+        "Cb59b6jbivp"
+      ],
+      "files": [
+        "F10dofeqqfrr"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 113,
+      "members": [
+        "Ckdh8p6q1b4"
+      ],
+      "anchors": [
+        "Ckdh8p6q1b4"
+      ],
+      "files": [
+        "F10dofeqqfrr"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 119,
+      "members": [
+        "Cgqu2d7kx9d"
+      ],
+      "anchors": [
+        "Cgqu2d7kx9d"
+      ],
+      "files": [
+        "F12ybr70mzo6"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 183,
+      "members": [
+        "Cuvbbos5lmc"
+      ],
+      "anchors": [
+        "Cuvbbos5lmc"
+      ],
+      "files": [
+        "Fl04z829uec"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 185,
+      "members": [
+        "Cksz1fc1b82"
+      ],
+      "anchors": [
+        "Cksz1fc1b82"
+      ],
+      "files": [
+        "Fl04z829uec"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "python"
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": 187,
+      "members": [
+        "Ctigvrn8i32"
+      ],
+      "anchors": [
+        "Ctigvrn8i32"
+      ],
+      "files": [
+        "Fl04z829uec"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cto0qbbzlav",
+      "qualified_name": "xrviz.sigslot.SigSlot._deregister",
+      "simple_name": "_deregister",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10dofeqqfrr",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/sigslot.py",
+      "start_line": 27,
+      "end_line": 31,
+      "size_lines": 5,
+      "signature_hint": "def _deregister(self, name)",
+      "category": "never-referenced",
+      "confidence": "high",
+      "rank": 605,
+      "region": 108,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cksz1fc1b82",
+      "qualified_name": "xrviz.utils._is_coord",
+      "simple_name": "_is_coord",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fl04z829uec",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/utils.py",
+      "start_line": 53,
+      "end_line": 57,
+      "size_lines": 5,
+      "signature_hint": "def _is_coord(data, name)",
+      "category": "never-referenced",
+      "confidence": "high",
+      "rank": 605,
+      "region": 185,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cv20vmqhd5g",
+      "qualified_name": "xrviz.sigslot.SigSlot._clear",
+      "simple_name": "_clear",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10dofeqqfrr",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/sigslot.py",
+      "start_line": 22,
+      "end_line": 25,
+      "size_lines": 4,
+      "signature_hint": "def _clear(self)",
+      "category": "never-referenced",
+      "confidence": "high",
+      "rank": 604,
+      "region": 107,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C12a1z5ozwnd",
+      "qualified_name": "xrviz.sigslot.SigSlot._signal",
+      "simple_name": "_signal",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10dofeqqfrr",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/sigslot.py",
+      "start_line": 67,
+      "end_line": 76,
+      "size_lines": 10,
+      "signature_hint": "def _signal(self, event)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 310,
+      "region": 109,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 1
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cjmftsi2s6h"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C16juc6mbkes",
+      "qualified_name": "versioneer.git_pieces_from_vcs",
+      "simple_name": "git_pieces_from_vcs",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1029,
+      "end_line": 1117,
+      "size_lines": 89,
+      "signature_hint": "def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 189,
+      "region": 8,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C72xk1sgzpx",
+      "qualified_name": "xrviz._version.git_pieces_from_vcs",
+      "simple_name": "git_pieces_from_vcs",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14d6cd6k4oz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py",
+      "start_line": 217,
+      "end_line": 305,
+      "size_lines": 89,
+      "signature_hint": "def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 189,
+      "region": 34,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ch0ka8mrsoq"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C155o6rrd9t3",
+      "qualified_name": "versioneer.git_versions_from_keywords",
+      "simple_name": "git_versions_from_keywords",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 974,
+      "end_line": 1025,
+      "size_lines": 52,
+      "signature_hint": "def git_versions_from_keywords(keywords, tag_prefix, verbose)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 152,
+      "region": 7,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czhipx211du",
+      "qualified_name": "xrviz._version.git_versions_from_keywords",
+      "simple_name": "git_versions_from_keywords",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14d6cd6k4oz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py",
+      "start_line": 162,
+      "end_line": 213,
+      "size_lines": 52,
+      "signature_hint": "def git_versions_from_keywords(keywords, tag_prefix, verbose)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 152,
+      "region": 34,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ch0ka8mrsoq"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmruy3ytrq2",
+      "qualified_name": "versioneer.render",
+      "simple_name": "render",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1366,
+      "end_line": 1395,
+      "size_lines": 30,
+      "signature_hint": "def render(pieces, style)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 130,
+      "region": 10,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cfrxvx7bwm6"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "Cmy94rkk09a",
+      "qualified_name": "xrviz._version.render",
+      "simple_name": "render",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14d6cd6k4oz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py",
+      "start_line": 445,
+      "end_line": 474,
+      "size_lines": 30,
+      "signature_hint": "def render(pieces, style)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 130,
+      "region": 34,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ch0ka8mrsoq"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "Cqxwtpk6qii",
+      "qualified_name": "versioneer.git_get_keywords",
+      "simple_name": "git_get_keywords",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 945,
+      "end_line": 970,
+      "size_lines": 26,
+      "signature_hint": "def git_get_keywords(versionfile_abs)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 126,
+      "region": 6,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ceb280hyswt",
+      "qualified_name": "xrviz._version.git_get_keywords",
+      "simple_name": "git_get_keywords",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14d6cd6k4oz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py",
+      "start_line": 133,
+      "end_line": 158,
+      "size_lines": 26,
+      "signature_hint": "def git_get_keywords(versionfile_abs)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 126,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C40pylo6sne",
+      "qualified_name": "versioneer.render_pep440_post",
+      "simple_name": "render_pep440_post",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1277,
+      "end_line": 1301,
+      "size_lines": 25,
+      "signature_hint": "def render_pep440_post(pieces)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 125,
+      "region": 10,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cmruy3ytrq2"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C5jr0g333wc",
+      "qualified_name": "xrviz._version.render_pep440_post",
+      "simple_name": "render_pep440_post",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14d6cd6k4oz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py",
+      "start_line": 356,
+      "end_line": 380,
+      "size_lines": 25,
+      "signature_hint": "def render_pep440_post(pieces)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 125,
+      "region": 34,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cmy94rkk09a"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cvefq73w8gy",
+      "qualified_name": "versioneer.versions_from_parentdir",
+      "simple_name": "versions_from_parentdir",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1158,
+      "end_line": 1180,
+      "size_lines": 23,
+      "signature_hint": "def versions_from_parentdir(parentdir_prefix, root, verbose)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 123,
+      "region": 10,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cfrxvx7bwm6"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cbnd2gjlgmw",
+      "qualified_name": "versioneer.render_pep440",
+      "simple_name": "render_pep440",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1236,
+      "end_line": 1258,
+      "size_lines": 23,
+      "signature_hint": "def render_pep440(pieces)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 123,
+      "region": 10,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cmruy3ytrq2"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cf7mppea245",
+      "qualified_name": "xrviz._version.versions_from_parentdir",
+      "simple_name": "versions_from_parentdir",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14d6cd6k4oz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py",
+      "start_line": 107,
+      "end_line": 129,
+      "size_lines": 23,
+      "signature_hint": "def versions_from_parentdir(parentdir_prefix, root, verbose)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 123,
+      "region": 34,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ch0ka8mrsoq"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckf0nklv653",
+      "qualified_name": "xrviz._version.render_pep440",
+      "simple_name": "render_pep440",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14d6cd6k4oz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py",
+      "start_line": 315,
+      "end_line": 337,
+      "size_lines": 23,
+      "signature_hint": "def render_pep440(pieces)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 123,
+      "region": 34,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cmy94rkk09a"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cvhiyrvxerq",
+      "qualified_name": "versioneer.render_pep440_old",
+      "simple_name": "render_pep440_old",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1304,
+      "end_line": 1323,
+      "size_lines": 20,
+      "signature_hint": "def render_pep440_old(pieces)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 120,
+      "region": 10,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cmruy3ytrq2"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cgne96hmmgd",
+      "qualified_name": "xrviz._version.render_pep440_old",
+      "simple_name": "render_pep440_old",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14d6cd6k4oz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py",
+      "start_line": 383,
+      "end_line": 402,
+      "size_lines": 20,
+      "signature_hint": "def render_pep440_old(pieces)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 120,
+      "region": 34,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cmy94rkk09a"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjmftsi2s6h",
+      "qualified_name": "xrviz.sigslot.SigSlot._register",
+      "simple_name": "_register",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10dofeqqfrr",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/sigslot.py",
+      "start_line": 33,
+      "end_line": 52,
+      "size_lines": 20,
+      "signature_hint": "def _register(self, widget, name, thing='value')",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 120,
+      "region": 109,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "_register",
+          "sites": 16,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fxe342hjzi4",
+            "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/dashboard.py",
+            "line": 78,
+            "name": "_register",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Czg15euji8c",
+      "qualified_name": "versioneer.render_git_describe",
+      "simple_name": "render_git_describe",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1326,
+      "end_line": 1343,
+      "size_lines": 18,
+      "signature_hint": "def render_git_describe(pieces)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 118,
+      "region": 10,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cmruy3ytrq2"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17kailj42ue",
+      "qualified_name": "versioneer.render_git_describe_long",
+      "simple_name": "render_git_describe_long",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1346,
+      "end_line": 1363,
+      "size_lines": 18,
+      "signature_hint": "def render_git_describe_long(pieces)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 118,
+      "region": 10,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cmruy3ytrq2"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cr6i3lhc84w",
+      "qualified_name": "xrviz._version.render_git_describe",
+      "simple_name": "render_git_describe",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14d6cd6k4oz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py",
+      "start_line": 405,
+      "end_line": 422,
+      "size_lines": 18,
+      "signature_hint": "def render_git_describe(pieces)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 118,
+      "region": 34,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cmy94rkk09a"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5t80sh8e3u",
+      "qualified_name": "xrviz._version.render_git_describe_long",
+      "simple_name": "render_git_describe_long",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14d6cd6k4oz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py",
+      "start_line": 425,
+      "end_line": 442,
+      "size_lines": 18,
+      "signature_hint": "def render_git_describe_long(pieces)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 118,
+      "region": 34,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cmy94rkk09a"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ci197wlmxzh",
+      "qualified_name": "versioneer.versions_from_file",
+      "simple_name": "versions_from_file",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1201,
+      "end_line": 1215,
+      "size_lines": 15,
+      "signature_hint": "def versions_from_file(filename)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 115,
+      "region": 10,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cfrxvx7bwm6"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cquf4n8hqcm",
+      "qualified_name": "versioneer.render_pep440_pre",
+      "simple_name": "render_pep440_pre",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1261,
+      "end_line": 1274,
+      "size_lines": 14,
+      "signature_hint": "def render_pep440_pre(pieces)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 114,
+      "region": 10,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cmruy3ytrq2"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3qmitq2vrc",
+      "qualified_name": "xrviz._version.render_pep440_pre",
+      "simple_name": "render_pep440_pre",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14d6cd6k4oz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py",
+      "start_line": 340,
+      "end_line": 353,
+      "size_lines": 14,
+      "signature_hint": "def render_pep440_pre(pieces)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 114,
+      "region": 34,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cmy94rkk09a"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cb9ot9tr04y",
+      "qualified_name": "xrviz._version.get_config",
+      "simple_name": "get_config",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14d6cd6k4oz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py",
+      "start_line": 37,
+      "end_line": 48,
+      "size_lines": 12,
+      "signature_hint": "def get_config()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 112,
+      "region": 34,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ch0ka8mrsoq"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cherfzcfvcy",
+      "qualified_name": "xrviz._version.get_keywords",
+      "simple_name": "get_keywords",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14d6cd6k4oz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py",
+      "start_line": 20,
+      "end_line": 30,
+      "size_lines": 11,
+      "signature_hint": "def get_keywords()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 111,
+      "region": 34,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ch0ka8mrsoq"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4aftf9tyed",
+      "qualified_name": "versioneer.write_to_version_file",
+      "simple_name": "write_to_version_file",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1218,
+      "end_line": 1226,
+      "size_lines": 9,
+      "signature_hint": "def write_to_version_file(filename, versions)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 109,
+      "region": 10,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 4,
+          "example": "Cmnv3rshdj2"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckdh8p6q1b4",
+      "qualified_name": "xrviz.sigslot.SigSlot.ignore_events",
+      "simple_name": "ignore_events",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10dofeqqfrr",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/sigslot.py",
+      "start_line": 79,
+      "end_line": 85,
+      "size_lines": 7,
+      "signature_hint": "def ignore_events(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 113,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cgl8cj8rsra",
+      "qualified_name": "versioneer.plus_or_dot",
+      "simple_name": "plus_or_dot",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1229,
+      "end_line": 1233,
+      "size_lines": 5,
+      "signature_hint": "def plus_or_dot(pieces)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 105,
+      "region": 10,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cbnd2gjlgmw"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14mcg76232d",
+      "qualified_name": "xrviz._version.plus_or_dot",
+      "simple_name": "plus_or_dot",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14d6cd6k4oz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py",
+      "start_line": 308,
+      "end_line": 312,
+      "size_lines": 5,
+      "signature_hint": "def plus_or_dot(pieces)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 105,
+      "region": 34,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Ckf0nklv653"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxvqyzglcgt",
+      "qualified_name": "versioneer.get_cmdclass.cmd_version.initialize_options",
+      "simple_name": "initialize_options",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1510,
+      "end_line": 1511,
+      "size_lines": 2,
+      "signature_hint": "def initialize_options(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 102,
+      "region": 24,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxdn240sk17",
+      "qualified_name": "versioneer.get_cmdclass.cmd_version.finalize_options",
+      "simple_name": "finalize_options",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1513,
+      "end_line": 1514,
+      "size_lines": 2,
+      "signature_hint": "def finalize_options(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 102,
+      "region": 25,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cw6vvvmytu1",
+      "qualified_name": "versioneer.get_cmdclass",
+      "simple_name": "get_cmdclass",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1483,
+      "end_line": 1650,
+      "size_lines": 168,
+      "signature_hint": "def get_cmdclass()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -32,
+      "region": 23,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ck8l5hmmbxr",
+      "qualified_name": "versioneer.get_cmdclass.cmd_build_exe.run",
+      "simple_name": "run",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1572,
+      "end_line": 1590,
+      "size_lines": 19,
+      "signature_hint": "def run(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -181,
+      "region": 10,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 4
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C7ymj75ypjg",
+      "qualified_name": "versioneer.get_cmdclass.cmd_py2exe.run",
+      "simple_name": "run",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1601,
+      "end_line": 1619,
+      "size_lines": 19,
+      "signature_hint": "def run(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -181,
+      "region": 10,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 4
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Cmnv3rshdj2",
+      "qualified_name": "versioneer.get_cmdclass.cmd_build_py.run",
+      "simple_name": "run",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1548,
+      "end_line": 1559,
+      "size_lines": 12,
+      "signature_hint": "def run(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -188,
+      "region": 10,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 4
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C65xibc1wu7",
+      "qualified_name": "versioneer.get_cmdclass.cmd_sdist.make_release_tree",
+      "simple_name": "make_release_tree",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1637,
+      "end_line": 1647,
+      "size_lines": 11,
+      "signature_hint": "def make_release_tree(self, base_dir, files)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -189,
+      "region": 10,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cwqq2joz0qb",
+      "qualified_name": "versioneer.get_cmdclass.cmd_version.run",
+      "simple_name": "run",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1516,
+      "end_line": 1523,
+      "size_lines": 8,
+      "signature_hint": "def run(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -192,
+      "region": 10,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 4
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cg7msfi8cwo",
+      "qualified_name": "versioneer.get_cmdclass.cmd_sdist.run",
+      "simple_name": "run",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1629,
+      "end_line": 1635,
+      "size_lines": 7,
+      "signature_hint": "def run(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -193,
+      "region": 10,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 4
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cnre2mvqj0f",
+      "qualified_name": "versioneer.get_version",
+      "simple_name": "get_version",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1478,
+      "end_line": 1480,
+      "size_lines": 3,
+      "signature_hint": "def get_version()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -197,
+      "region": 10,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cb59b6jbivp",
+      "qualified_name": "xrviz.sigslot.SigSlot.signals",
+      "simple_name": "signals",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F10dofeqqfrr",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/sigslot.py",
+      "start_line": 55,
+      "end_line": 57,
+      "size_lines": 3,
+      "signature_hint": "def signals(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -197,
+      "region": 110,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cfrxvx7bwm6",
+      "qualified_name": "versioneer.get_versions",
+      "simple_name": "get_versions",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6vecw0yyz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+      "start_line": 1402,
+      "end_line": 1475,
+      "size_lines": 74,
+      "signature_hint": "def get_versions(verbose=False)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -326,
+      "region": 10,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "get_versions",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F160zllya2hi",
+            "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/__init__.py",
+            "line": 4,
+            "name": "get_versions"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 6,
+          "example": "Cnre2mvqj0f"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "Ch0ka8mrsoq",
+      "qualified_name": "xrviz._version.get_versions",
+      "simple_name": "get_versions",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14d6cd6k4oz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py",
+      "start_line": 477,
+      "end_line": 520,
+      "size_lines": 44,
+      "signature_hint": "def get_versions()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -356,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "get_versions",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F160zllya2hi",
+            "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/__init__.py",
+            "line": 4,
+            "name": "get_versions"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "C16wjebp98th",
+      "qualified_name": "xrviz.fields.Fields.kwargs",
+      "simple_name": "kwargs",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F5bkpb705ht",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/fields.py",
+      "start_line": 192,
+      "end_line": 217,
+      "size_lines": 26,
+      "signature_hint": "def kwargs(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -674,
+      "region": 93,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "kwargs",
+          "sites": 2,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fxe342hjzi4",
+            "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/dashboard.py",
+            "line": 147,
+            "name": "kwargs"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czryrscg0mm",
+      "qualified_name": "xrviz.projection.Projection.kwargs",
+      "simple_name": "kwargs",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "Fi8vpotrctu",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/projection.py",
+      "start_line": 178,
+      "end_line": 181,
+      "size_lines": 4,
+      "signature_hint": "def kwargs(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 105,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "kwargs",
+          "sites": 2,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fxe342hjzi4",
+            "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/dashboard.py",
+            "line": 147,
+            "name": "kwargs"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cgqu2d7kx9d",
+      "qualified_name": "xrviz.style.Style.kwargs",
+      "simple_name": "kwargs",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F12ybr70mzo6",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/style.py",
+      "start_line": 108,
+      "end_line": 111,
+      "size_lines": 4,
+      "signature_hint": "def kwargs(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 119,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "kwargs",
+          "sites": 2,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fxe342hjzi4",
+            "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/dashboard.py",
+            "line": 147,
+            "name": "kwargs"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C9xfdpgye6a",
+      "qualified_name": "xrviz.display.Display.kwargs",
+      "simple_name": "kwargs",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "Fqhgugwech8",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/display.py",
+      "start_line": 57,
+      "end_line": 58,
+      "size_lines": 2,
+      "signature_hint": "def kwargs(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 85,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "kwargs",
+          "sites": 2,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fxe342hjzi4",
+            "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/dashboard.py",
+            "line": 147,
+            "name": "kwargs"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7h0l5yfj48",
+      "qualified_name": "xrviz.control.Control.kwargs",
+      "simple_name": "kwargs",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "Fkxguut0ljg",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/control.py",
+      "start_line": 122,
+      "end_line": 128,
+      "size_lines": 7,
+      "signature_hint": "def kwargs(self)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -993,
+      "region": 57,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 4
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "kwargs",
+          "sites": 2,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fxe342hjzi4",
+            "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/dashboard.py",
+            "line": 147,
+            "name": "kwargs"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 4,
+          "example": "C7h0l5yfj48"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C8h3lafd68u",
+      "qualified_name": "xrviz._version.run_command",
+      "simple_name": "run_command",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14d6cd6k4oz",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/_version.py",
+      "start_line": 70,
+      "end_line": 104,
+      "size_lines": 35,
+      "signature_hint": "def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False, env=None)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -365,
+      "region": 38,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "run_command",
+          "sites": 10,
+          "reason": "shadowed-by-local",
+          "same_file_sites": 5,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fq6vecw0yyz",
+            "path": "/storage/cgg-test_repos/app-xrviz-panel/versioneer.py",
+            "line": 1040,
+            "name": "run_command"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cuvbbos5lmc",
+      "qualified_name": "xrviz.utils.convert_widget.callback",
+      "simple_name": "callback",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fl04z829uec",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/utils.py",
+      "start_line": 29,
+      "end_line": 32,
+      "size_lines": 4,
+      "signature_hint": "def callback(*events)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -996,
+      "region": 183,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 2,
+          "file_local_candidates": 0,
+          "example": {
+            "file": "Fl04z829uec",
+            "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/utils.py",
+            "line": 34,
+            "name": "callback"
+          }
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 2
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "callback",
+          "sites": 4,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F10dofeqqfrr",
+            "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/sigslot.py",
+            "line": 65,
+            "name": "callback"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ctigvrn8i32",
+      "qualified_name": "xrviz.utils.player_with_name_and_value.callback",
+      "simple_name": "callback",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fl04z829uec",
+      "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/utils.py",
+      "start_line": 71,
+      "end_line": 74,
+      "size_lines": 4,
+      "signature_hint": "def callback(*events)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -996,
+      "region": 187,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 2,
+          "file_local_candidates": 0,
+          "example": {
+            "file": "Fl04z829uec",
+            "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/utils.py",
+            "line": 34,
+            "name": "callback"
+          }
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 2
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "callback",
+          "sites": 4,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F10dofeqqfrr",
+            "path": "/storage/cgg-test_repos/app-xrviz-panel/xrviz/sigslot.py",
+            "line": 65,
+            "name": "callback"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

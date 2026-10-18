@@ -1,0 +1,5083 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "Cw4vpsfj3xc": {
+      "id": "Cw4vpsfj3xc",
+      "qualified_name": "isDecrease",
+      "simple_name": "isDecrease",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fsp94spghkm",
+      "start_line": 9,
+      "end_line": 12,
+      "start_byte": 202,
+      "end_byte": 310,
+      "signature_hint": "let isDecrease change = match change with | Increase _ -> false | Decrease _ -> true"
+    },
+    "Cs0490hxdoj": {
+      "id": "Cs0490hxdoj",
+      "qualified_name": "spentAtDate",
+      "simple_name": "spentAtDate",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fsp94spghkm",
+      "start_line": 14,
+      "end_line": 19,
+      "start_byte": 316,
+      "end_byte": 727,
+      "signature_hint": "let spentAtDate (date: DateTimeOffset) cardNumber operations = let date = date.Date let operationFilter"
+    },
+    "C135tf3l1tki": {
+      "id": "C135tf3l1tki",
+      "qualified_name": "operationFilter",
+      "simple_name": "operationFilter",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fsp94spghkm",
+      "start_line": 16,
+      "end_line": 17,
+      "start_byte": 416,
+      "end_byte": 586,
+      "signature_hint": "let operationFilter"
+    },
+    "Cejdhqkbsgm": {
+      "id": "Cejdhqkbsgm",
+      "qualified_name": "isExpired",
+      "simple_name": "isExpired",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F533r31sm5b",
+      "start_line": 19,
+      "end_line": 20,
+      "start_byte": 938,
+      "end_byte": 1108,
+      "signature_hint": "let private isExpired (currentDate: DateTimeOffset) (month: Month, year: Year) = (int year.Value, month.ToNumber() |> int) < (currentDate.Year, currentDate.Month)"
+    },
+    "C6a5r4p0rc5": {
+      "id": "C6a5r4p0rc5",
+      "qualified_name": "cardExpiredMessage",
+      "simple_name": "cardExpiredMessage",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F533r31sm5b",
+      "start_line": 26,
+      "end_line": 27,
+      "start_byte": 1277,
+      "end_byte": 1388,
+      "signature_hint": "let private cardExpiredMessage (cardNumber: CardNumber) = sprintf \"Card %s is expired\" cardNumber.Value"
+    },
+    "C163xqzzcvek": {
+      "id": "C163xqzzcvek",
+      "qualified_name": "cardDeactivatedMessage",
+      "simple_name": "cardDeactivatedMessage",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F533r31sm5b",
+      "start_line": 29,
+      "end_line": 30,
+      "start_byte": 1394,
+      "end_byte": 1513,
+      "signature_hint": "let private cardDeactivatedMessage (cardNumber: CardNumber) = sprintf \"Card %s is deactivated\" cardNumber.Value"
+    },
+    "Cl0zjkp9qmg": {
+      "id": "Cl0zjkp9qmg",
+      "qualified_name": "isCardExpired",
+      "simple_name": "isCardExpired",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F533r31sm5b",
+      "start_line": 32,
+      "end_line": 33,
+      "start_byte": 1519,
+      "end_byte": 1619,
+      "signature_hint": "let isCardExpired (currentDate: DateTimeOffset) card = isExpired currentDate card.Expiration"
+    },
+    "Ctfdgbt3ggh": {
+      "id": "Ctfdgbt3ggh",
+      "qualified_name": "deactivate",
+      "simple_name": "deactivate",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F533r31sm5b",
+      "start_line": 35,
+      "end_line": 38,
+      "start_byte": 1625,
+      "end_byte": 1780,
+      "signature_hint": "let deactivate card = match card.AccountDetails with | Deactivated -> card | Active _ ->"
+    },
+    "C10bof0p5m06": {
+      "id": "C10bof0p5m06",
+      "qualified_name": "activate",
+      "simple_name": "activate",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F533r31sm5b",
+      "start_line": 40,
+      "end_line": 43,
+      "start_byte": 1786,
+      "end_byte": 1981,
+      "signature_hint": "let activate (cardAccountInfo: AccountInfo) card = match card.AccountDetails with | Active _ -> card | Deactivated ->"
+    },
+    "C46vpq3k333": {
+      "id": "C46vpq3k333",
+      "qualified_name": "setDailyLimit",
+      "simple_name": "setDailyLimit",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F533r31sm5b",
+      "start_line": 45,
+      "end_line": 51,
+      "start_byte": 1987,
+      "end_byte": 2419,
+      "signature_hint": "let setDailyLimit (currentDate: DateTimeOffset) limit card = if isCardExpired currentDate card then cardExpiredMessage card.CardNumber |> setDailyLimitNotAllowed else match card.AccountDetails with | Deactivated -> cardDeactivatedMessage card.CardNumber |> setDailyLimitNotAllowed | Active accInfo ->"
+    },
+    "C156w8j8a0nn": {
+      "id": "C156w8j8a0nn",
+      "qualified_name": "processPayment",
+      "simple_name": "processPayment",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F533r31sm5b",
+      "start_line": 53,
+      "end_line": 84,
+      "start_byte": 2425,
+      "end_byte": 4226,
+      "signature_hint": "let processPayment (currentDate: DateTimeOffset) (spentToday: Money) card (paymentAmount: MoneyTransaction) = if isCardExpired currentDate card then cardExpiredMessage card.CardNumber |> processPaymentNotAllowed else match card.AccountDetails with | Deactivated -> cardDeactivatedMessage card.CardNumber |> processPaymentNotAllowed | Active accInfo -> if paymentAmount.Value > accInfo.Balance.Value then sprintf \"Insufficent funds on card %s\" card.CardNumber.Value |> processPaymentNotAllowed else match accInfo.DailyLimit with | Limit limit when limit < spentToday + paymentAmount -> sprintf \"Daily limit is exceeded for card %s with daily limit %M. Today was spent %M\" card.CardNumber.Value limit.Value spentToday.Value |> processPaymentNotAllowed (* We could use here the ultimate wild card case like this: | _ -> but it's dangerous because if a new case appears in `DailyLimit` type, we won't get a compile error here, which would remind us to process this new case in here. So this is a safe way to do the same thing. *) | Limit _ | Unlimited -> let newBalance = accInfo.Balance - paymentAmount let updatedCard"
+    },
+    "Ccma6oevbxx": {
+      "id": "Ccma6oevbxx",
+      "qualified_name": "topUp",
+      "simple_name": "topUp",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F533r31sm5b",
+      "start_line": 86,
+      "end_line": 101,
+      "start_byte": 4232,
+      "end_byte": 5063,
+      "signature_hint": "let topUp (currentDate: DateTimeOffset) card (topUp : MoneyTransaction) = let topUpNotAllowed = operationNotAllowed \"Top up\" if isCardExpired currentDate card then cardExpiredMessage card.CardNumber |> topUpNotAllowed else match card.AccountDetails with | Deactivated -> cardDeactivatedMessage card.CardNumber |> topUpNotAllowed | Active accInfo -> let newBalance = accInfo.Balance + topUp let updatedCard"
+    },
+    "C14bpu1phi89": {
+      "id": "C14bpu1phi89",
+      "qualified_name": "ofDecimal",
+      "simple_name": "ofDecimal",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "F13xm6c7r3xb",
+      "start_line": 52,
+      "end_line": 54,
+      "start_byte": 2287,
+      "end_byte": 2391,
+      "signature_hint": "static member ofDecimal dec = if dec > 0m then Money dec |> Limit else Unlimited"
+    },
+    "Cg5yh8x7ynq": {
+      "id": "Cg5yh8x7ynq",
+      "qualified_name": "ToDecimalOption",
+      "simple_name": "ToDecimalOption",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "F13xm6c7r3xb",
+      "start_line": 55,
+      "end_line": 58,
+      "start_byte": 2400,
+      "end_byte": 2537,
+      "signature_hint": "member this.ToDecimalOption() = match this with | Unlimited -> None | Limit limit -> Some limit.Value"
+    },
+    "Cjjnq943kjf": {
+      "id": "Cjjnq943kjf",
+      "qualified_name": "Default",
+      "simple_name": "Default",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "F13xm6c7r3xb",
+      "start_line": 78,
+      "end_line": 81,
+      "start_byte": 3143,
+      "end_byte": 3277,
+      "signature_hint": "static member Default userId"
+    },
+    "Cj87s2s7eq1": {
+      "id": "Cj87s2s7eq1",
+      "qualified_name": "ToDecimal",
+      "simple_name": "ToDecimal",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "F13xm6c7r3xb",
+      "start_line": 129,
+      "end_line": 132,
+      "start_byte": 4783,
+      "end_byte": 4909,
+      "signature_hint": "member this.ToDecimal() = match this with | Increase i -> i.Value | Decrease d -> -d.Value"
+    },
+    "C8ehynkkkdm": {
+      "id": "C8ehynkkkdm",
+      "qualified_name": "validateCreateUserCommand",
+      "simple_name": "validateCreateUserCommand",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fbpkr8wbuob",
+      "start_line": 151,
+      "end_line": 160,
+      "start_byte": 5464,
+      "end_byte": 5830,
+      "signature_hint": "let validateCreateUserCommand userId : ValidateCreateUserCommand = fun cmd -> result"
+    },
+    "Ckgfxvdkoy3": {
+      "id": "Ckgfxvdkoy3",
+      "qualified_name": "toBasicInfoToModel",
+      "simple_name": "toBasicInfoToModel",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F1zxqzktgqj",
+      "start_line": 44,
+      "end_line": 48,
+      "start_byte": 1175,
+      "end_byte": 1433,
+      "signature_hint": "let toBasicInfoToModel (basicCard: Card)"
+    },
+    "Cxu5b1gz8u6": {
+      "id": "Cxu5b1gz8u6",
+      "qualified_name": "toCardInfoModel",
+      "simple_name": "toCardInfoModel",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F1zxqzktgqj",
+      "start_line": 50,
+      "end_line": 59,
+      "start_byte": 1439,
+      "end_byte": 1870,
+      "signature_hint": "let toCardInfoModel card = let (balance, dailyLimit, isActive) = match card.AccountDetails with | Active accInfo -> (accInfo.Balance.Value |> Some, accInfo.DailyLimit.ToDecimalOption(), true) | Deactivated -> (None, None, false)"
+    },
+    "C20rjql9674": {
+      "id": "C20rjql9674",
+      "qualified_name": "toAddressModel",
+      "simple_name": "toAddressModel",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F1zxqzktgqj",
+      "start_line": 61,
+      "end_line": 66,
+      "start_byte": 1876,
+      "end_byte": 2140,
+      "signature_hint": "let toAddressModel (address: Address)"
+    },
+    "Cksqpw9rhmq": {
+      "id": "Cksqpw9rhmq",
+      "qualified_name": "toCardDetailsModel",
+      "simple_name": "toCardDetailsModel",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F1zxqzktgqj",
+      "start_line": 68,
+      "end_line": 71,
+      "start_byte": 2146,
+      "end_byte": 2378,
+      "signature_hint": "let toCardDetailsModel (cardDetails: CardDetails)"
+    },
+    "Cmcj3xzts6f": {
+      "id": "Cmcj3xzts6f",
+      "qualified_name": "toUserModel",
+      "simple_name": "toUserModel",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F1zxqzktgqj",
+      "start_line": 73,
+      "end_line": 77,
+      "start_byte": 2384,
+      "end_byte": 2607,
+      "signature_hint": "let toUserModel (user: User)"
+    },
+    "C16x744gu68b": {
+      "id": "C16x744gu68b",
+      "qualified_name": "bind",
+      "simple_name": "bind",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 54,
+      "end_line": 67,
+      "start_byte": 3308,
+      "end_byte": 4090,
+      "signature_hint": "let rec bind f instruction = match instruction with | GetCard (x, next) -> GetCard (x, (next >> bind f)) | GetCardWithAccountInfo (x, next) -> GetCardWithAccountInfo (x, (next >> bind f)) | CreateCard (x, next) -> CreateCard (x, (next >> bind f)) | ReplaceCard (x, next) -> ReplaceCard (x, (next >> bind f)) | GetUser (x, next) -> GetUser (x,(next >> bind f)) | CreateUser (x, next) -> CreateUser (x,(next >> bind f)) | GetBalanceOperations (x, next) -> GetBalanceOperations (x,(next >> bind f)) | SaveBalanceOperation (x, next) -> SaveBalanceOperation (x,(next >> bind f)) | Stop x -> f x // this is a set of basic functions. Use them in your expression tree builder to represent dependency call"
+    },
+    "C121z56fea81": {
+      "id": "C121z56fea81",
+      "qualified_name": "stop",
+      "simple_name": "stop",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 68,
+      "end_line": 68,
+      "start_byte": 4095,
+      "end_byte": 4114,
+      "signature_hint": "let stop x = Stop x"
+    },
+    "Czel7vck5r5": {
+      "id": "Czel7vck5r5",
+      "qualified_name": "getCardByNumber",
+      "simple_name": "getCardByNumber",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 69,
+      "end_line": 69,
+      "start_byte": 4119,
+      "end_byte": 4170,
+      "signature_hint": "let getCardByNumber number = GetCard (number, stop)"
+    },
+    "Cf71d5qglp5": {
+      "id": "Cf71d5qglp5",
+      "qualified_name": "getCardWithAccountInfo",
+      "simple_name": "getCardWithAccountInfo",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 70,
+      "end_line": 70,
+      "start_byte": 4175,
+      "end_byte": 4248,
+      "signature_hint": "let getCardWithAccountInfo number = GetCardWithAccountInfo (number, stop)"
+    },
+    "Cmmniyb0soi": {
+      "id": "Cmmniyb0soi",
+      "qualified_name": "createNewCard",
+      "simple_name": "createNewCard",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 71,
+      "end_line": 71,
+      "start_byte": 4253,
+      "end_byte": 4315,
+      "signature_hint": "let createNewCard (card, acc) = CreateCard ((card, acc), stop)"
+    },
+    "Cus22upm4wq": {
+      "id": "Cus22upm4wq",
+      "qualified_name": "replaceCard",
+      "simple_name": "replaceCard",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 72,
+      "end_line": 72,
+      "start_byte": 4320,
+      "end_byte": 4367,
+      "signature_hint": "let replaceCard card = ReplaceCard (card, stop)"
+    },
+    "Ca5hrwge7fa": {
+      "id": "Ca5hrwge7fa",
+      "qualified_name": "getUserById",
+      "simple_name": "getUserById",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 73,
+      "end_line": 73,
+      "start_byte": 4372,
+      "end_byte": 4411,
+      "signature_hint": "let getUserById id = GetUser (id, stop)"
+    },
+    "Ceilh8hgane": {
+      "id": "Ceilh8hgane",
+      "qualified_name": "createNewUser",
+      "simple_name": "createNewUser",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 74,
+      "end_line": 74,
+      "start_byte": 4416,
+      "end_byte": 4464,
+      "signature_hint": "let createNewUser user = CreateUser (user, stop)"
+    },
+    "C1ixbysjrt4": {
+      "id": "C1ixbysjrt4",
+      "qualified_name": "getBalanceOperations",
+      "simple_name": "getBalanceOperations",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 75,
+      "end_line": 75,
+      "start_byte": 4469,
+      "end_byte": 4578,
+      "signature_hint": "let getBalanceOperations (number, fromDate, toDate) = GetBalanceOperations ((number, fromDate, toDate), stop)"
+    },
+    "Clh3zyvdk0w": {
+      "id": "Clh3zyvdk0w",
+      "qualified_name": "saveBalanceOperation",
+      "simple_name": "saveBalanceOperation",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 76,
+      "end_line": 78,
+      "start_byte": 4583,
+      "end_byte": 4755,
+      "signature_hint": "let saveBalanceOperation op = SaveBalanceOperation (op, stop) // These are builders for computation expressions. Using CEs will make building execution trees very easy"
+    },
+    "C50ubzhe7y9": {
+      "id": "C50ubzhe7y9",
+      "qualified_name": "SimpleProgramBuilder.SimpleProgramBuilder",
+      "simple_name": "SimpleProgramBuilder",
+      "kind": "constructor",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 79,
+      "end_line": 79,
+      "start_byte": 4765,
+      "end_byte": 4787,
+      "signature_hint": "SimpleProgramBuilder()"
+    },
+    "C8fhc9brr0k": {
+      "id": "C8fhc9brr0k",
+      "qualified_name": "SimpleProgramBuilder.Bind",
+      "simple_name": "Bind",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 80,
+      "end_line": 80,
+      "start_byte": 4798,
+      "end_byte": 4830,
+      "signature_hint": "member __.Bind (x, f) = bind f x"
+    },
+    "C2erm71v5w1": {
+      "id": "C2erm71v5w1",
+      "qualified_name": "SimpleProgramBuilder.Return",
+      "simple_name": "Return",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 81,
+      "end_line": 81,
+      "start_byte": 4839,
+      "end_byte": 4866,
+      "signature_hint": "member __.Return x = Stop x"
+    },
+    "Chuydi0r3fu": {
+      "id": "Chuydi0r3fu",
+      "qualified_name": "SimpleProgramBuilder.Zero",
+      "simple_name": "Zero",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 82,
+      "end_line": 82,
+      "start_byte": 4875,
+      "end_byte": 4902,
+      "signature_hint": "member __.Zero () = Stop ()"
+    },
+    "Cp822tg3lvg": {
+      "id": "Cp822tg3lvg",
+      "qualified_name": "SimpleProgramBuilder.ReturnFrom",
+      "simple_name": "ReturnFrom",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 83,
+      "end_line": 83,
+      "start_byte": 4911,
+      "end_byte": 4937,
+      "signature_hint": "member __.ReturnFrom x = x"
+    },
+    "Cu0mjjrepbn": {
+      "id": "Cu0mjjrepbn",
+      "qualified_name": "ProgramBuilder.ProgramBuilder",
+      "simple_name": "ProgramBuilder",
+      "kind": "constructor",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 85,
+      "end_line": 85,
+      "start_byte": 4948,
+      "end_byte": 4964,
+      "signature_hint": "ProgramBuilder()"
+    },
+    "C11yq9qhuqt9": {
+      "id": "C11yq9qhuqt9",
+      "qualified_name": "ProgramBuilder.Bind",
+      "simple_name": "Bind",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 86,
+      "end_line": 86,
+      "start_byte": 4975,
+      "end_byte": 5007,
+      "signature_hint": "member __.Bind (x, f) = bind f x"
+    },
+    "Cbmlzv3sbmg": {
+      "id": "Cbmlzv3sbmg",
+      "qualified_name": "ProgramBuilder.Bind",
+      "simple_name": "Bind",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 87,
+      "end_line": 90,
+      "start_byte": 5016,
+      "end_byte": 5157,
+      "signature_hint": "member this.Bind (x, f) = match x with | Ok x -> this.ReturnFrom (f x) | Error e -> this.Return (Error e)"
+    },
+    "Cq0wmegtde1": {
+      "id": "Cq0wmegtde1",
+      "qualified_name": "ProgramBuilder.Bind",
+      "simple_name": "Bind",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 91,
+      "end_line": 96,
+      "start_byte": 5166,
+      "end_byte": 5393,
+      "signature_hint": "member this.Bind((x: Program<Result<_,_>>), f) = let f x = match x with | Ok x -> this.ReturnFrom (f x) | Error e -> this.Return (Error e ) this.Bind(x, f)"
+    },
+    "Cv9eh6swb95": {
+      "id": "Cv9eh6swb95",
+      "qualified_name": "ProgramBuilder.f",
+      "simple_name": "f",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 92,
+      "end_line": 95,
+      "start_byte": 5227,
+      "end_byte": 5365,
+      "signature_hint": "let f x = match x with | Ok x -> this.ReturnFrom (f x) | Error e -> this.Return (Error e )"
+    },
+    "Cwdq9vr7dd6": {
+      "id": "Cwdq9vr7dd6",
+      "qualified_name": "ProgramBuilder.Return",
+      "simple_name": "Return",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 97,
+      "end_line": 97,
+      "start_byte": 5402,
+      "end_byte": 5429,
+      "signature_hint": "member __.Return x = Stop x"
+    },
+    "Cyyeha3nabr": {
+      "id": "Cyyeha3nabr",
+      "qualified_name": "ProgramBuilder.Zero",
+      "simple_name": "Zero",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 98,
+      "end_line": 98,
+      "start_byte": 5438,
+      "end_byte": 5465,
+      "signature_hint": "member __.Zero () = Stop ()"
+    },
+    "C12ho7mhg09o": {
+      "id": "C12ho7mhg09o",
+      "qualified_name": "ProgramBuilder.ReturnFrom",
+      "simple_name": "ReturnFrom",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 99,
+      "end_line": 99,
+      "start_byte": 5474,
+      "end_byte": 5500,
+      "signature_hint": "member __.ReturnFrom x = x"
+    },
+    "Coxxbna6ftr": {
+      "id": "Coxxbna6ftr",
+      "qualified_name": "expectDataRelatedErrorProgram",
+      "simple_name": "expectDataRelatedErrorProgram",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fa5i1b9p4hv",
+      "start_line": 105,
+      "end_line": 109,
+      "start_byte": 5667,
+      "end_byte": 5934,
+      "signature_hint": "let expectDataRelatedErrorProgram (prog: Program<Result<_,DataRelatedError>>) = program"
+    },
+    "Czi0k22xwzq": {
+      "id": "Czi0k22xwzq",
+      "qualified_name": "noneToError",
+      "simple_name": "noneToError",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fudior91vc7",
+      "start_line": 15,
+      "end_line": 17,
+      "start_byte": 455,
+      "end_byte": 606,
+      "signature_hint": "let private noneToError (a: 'a option) id = let error = EntityNotFound (sprintf \"%sEntity\" typeof<'a>.Name, id) Result.ofOption error a"
+    },
+    "Co0bjc79579": {
+      "id": "Co0bjc79579",
+      "qualified_name": "tryGetCard",
+      "simple_name": "tryGetCard",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fudior91vc7",
+      "start_line": 19,
+      "end_line": 24,
+      "start_byte": 612,
+      "end_byte": 837,
+      "signature_hint": "let private tryGetCard cardNumber = program"
+    },
+    "Cmt6l3tc13r": {
+      "id": "Cmt6l3tc13r",
+      "qualified_name": "processPayment",
+      "simple_name": "processPayment",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fudior91vc7",
+      "start_line": 26,
+      "end_line": 45,
+      "start_byte": 843,
+      "end_byte": 2172,
+      "signature_hint": "let processPayment (currentDate: DateTimeOffset, payment) = program"
+    },
+    "Cnt0vigyzqk": {
+      "id": "Cnt0vigyzqk",
+      "qualified_name": "setDailyLimit",
+      "simple_name": "setDailyLimit",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fudior91vc7",
+      "start_line": 47,
+      "end_line": 54,
+      "start_byte": 2178,
+      "end_byte": 2656,
+      "signature_hint": "let setDailyLimit (currentDate: DateTimeOffset, setDailyLimitCommand) = program"
+    },
+    "C10xyow27txv": {
+      "id": "C10xyow27txv",
+      "qualified_name": "topUp",
+      "simple_name": "topUp",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fudior91vc7",
+      "start_line": 56,
+      "end_line": 64,
+      "start_byte": 2662,
+      "end_byte": 3172,
+      "signature_hint": "let topUp (currentDate: DateTimeOffset, topUpCmd) = program"
+    },
+    "Coow55olz9n": {
+      "id": "Coow55olz9n",
+      "qualified_name": "activateCard",
+      "simple_name": "activateCard",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fudior91vc7",
+      "start_line": 66,
+      "end_line": 74,
+      "start_byte": 3178,
+      "end_byte": 3661,
+      "signature_hint": "let activateCard activateCmd = program"
+    },
+    "Cqeqnpsh23s": {
+      "id": "Cqeqnpsh23s",
+      "qualified_name": "deactivateCard",
+      "simple_name": "deactivateCard",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fudior91vc7",
+      "start_line": 76,
+      "end_line": 83,
+      "start_byte": 3667,
+      "end_byte": 4037,
+      "signature_hint": "let deactivateCard deactivateCmd = program"
+    },
+    "C16v192xflcm": {
+      "id": "C16v192xflcm",
+      "qualified_name": "createUser",
+      "simple_name": "createUser",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fudior91vc7",
+      "start_line": 85,
+      "end_line": 92,
+      "start_byte": 4043,
+      "end_byte": 4400,
+      "signature_hint": "let createUser (userId, createUserCommand) = program"
+    },
+    "Cergdqkut9y": {
+      "id": "Cergdqkut9y",
+      "qualified_name": "createCard",
+      "simple_name": "createCard",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fudior91vc7",
+      "start_line": 94,
+      "end_line": 100,
+      "start_byte": 4406,
+      "end_byte": 4750,
+      "signature_hint": "let createCard cardCommand = program"
+    },
+    "Cs12qr9mwf3": {
+      "id": "Cs12qr9mwf3",
+      "qualified_name": "getCard",
+      "simple_name": "getCard",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fudior91vc7",
+      "start_line": 102,
+      "end_line": 107,
+      "start_byte": 4756,
+      "end_byte": 5016,
+      "signature_hint": "let getCard cardNumber = program"
+    },
+    "Cqlly34h5v5": {
+      "id": "Cqlly34h5v5",
+      "qualified_name": "getUser",
+      "simple_name": "getUser",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fudior91vc7",
+      "start_line": 109,
+      "end_line": 113,
+      "start_byte": 5022,
+      "end_byte": 5179,
+      "signature_hint": "let getUser userId = simpleProgram"
+    },
+    "Cwfkgahjllw": {
+      "id": "Cwfkgahjllw",
+      "qualified_name": "getUnionCasesFromCache",
+      "simple_name": "getUnionCasesFromCache",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fextwqtr74a",
+      "start_line": 12,
+      "end_line": 18,
+      "start_byte": 258,
+      "end_byte": 515,
+      "signature_hint": "let getUnionCasesFromCache typ = match unionCaseCache.TryGetValue typ with | (true, cases) -> cases | _ -> let cases = FSharpType.GetUnionCases typ unionCaseCache.TryAdd(typ, cases) |> ignore cases"
+    },
+    "Cncrsrvkd81": {
+      "id": "Cncrsrvkd81",
+      "qualified_name": "OptionConverter.OptionConverter",
+      "simple_name": "OptionConverter",
+      "kind": "constructor",
+      "language": "fsharp",
+      "file": "Fextwqtr74a",
+      "start_line": 20,
+      "end_line": 21,
+      "start_byte": 526,
+      "end_byte": 577,
+      "signature_hint": "OptionConverter() = inherit JsonConverter()"
+    },
+    "Crk1tjjjo8w": {
+      "id": "Crk1tjjjo8w",
+      "qualified_name": "OptionConverter.CanConvert",
+      "simple_name": "CanConvert",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "Fextwqtr74a",
+      "start_line": 22,
+      "end_line": 22,
+      "start_byte": 586,
+      "end_byte": 689,
+      "signature_hint": "override x.CanConvert(typ) = typ.IsGenericType && typ.GetGenericTypeDefinition() = typedefof<option<_>>"
+    },
+    "C164aj9xfjej": {
+      "id": "C164aj9xfjej",
+      "qualified_name": "OptionConverter.WriteJson",
+      "simple_name": "WriteJson",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "Fextwqtr74a",
+      "start_line": 24,
+      "end_line": 30,
+      "start_byte": 699,
+      "end_byte": 1004,
+      "signature_hint": "override x.WriteJson(writer, value, serializer) = let value = if isNull value then null else let _,fields = FSharpValue.GetUnionFields(value, value.GetType()) fields.[0] serializer.Serialize(writer, value)"
+    },
+    "Chl8dr823rx": {
+      "id": "Chl8dr823rx",
+      "qualified_name": "OptionConverter.ReadJson",
+      "simple_name": "ReadJson",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "Fextwqtr74a",
+      "start_line": 32,
+      "end_line": 43,
+      "start_byte": 1014,
+      "end_byte": 1700,
+      "signature_hint": "override x.ReadJson(reader, typ, existingValue, serializer) = let innerType = let innerType = typ.GetGenericArguments().[0] if innerType.IsValueType then typedefof<Nullable<_>>.MakeGenericType([|innerType|]) else innerType let cases = getUnionCasesFromCache typ if reader.TokenType = JsonToken.Null then FSharpValue.MakeUnion(cases.[0], Array.empty) else let value = serializer.Deserialize(reader, innerType) if isNull value then FSharpValue.MakeUnion(cases.[0], Array.empty) else FSharpValue.MakeUnion(cases.[1], [|value|])"
+    },
+    "Cji9k7poprf": {
+      "id": "Cji9k7poprf",
+      "qualified_name": "toErrorModel",
+      "simple_name": "toErrorModel",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fgepfasscev",
+      "start_line": 30,
+      "end_line": 30,
+      "start_byte": 726,
+      "end_byte": 764,
+      "signature_hint": "let toErrorModel str"
+    },
+    "Catdy9iu0fx": {
+      "id": "Catdy9iu0fx",
+      "qualified_name": "notFound",
+      "simple_name": "notFound",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fgepfasscev",
+      "start_line": 31,
+      "end_line": 31,
+      "start_byte": 769,
+      "end_byte": 816,
+      "signature_hint": "let notFound f = json"
+    },
+    "C7yicvzv6iw": {
+      "id": "C7yicvzv6iw",
+      "qualified_name": "errorHandler",
+      "simple_name": "errorHandler",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fgepfasscev",
+      "start_line": 33,
+      "end_line": 42,
+      "start_byte": 822,
+      "end_byte": 1313,
+      "signature_hint": "let errorHandler (ex: Exception) (logger: Microsoft.Extensions.Logging.ILogger) = match ex with | :? Newtonsoft.Json.JsonReaderException -> clearResponse >=> RequestErrors.BAD_REQUEST ex.Message | _ -> logger.LogError(EventId(), ex, \"An unhandled exception has occurred while executing the request.\") ex.GetType().FullName |> printf \"%s\" clearResponse >=> ServerErrors.INTERNAL_ERROR ex.Message"
+    },
+    "C15xcogih68n": {
+      "id": "C15xcogih68n",
+      "qualified_name": "errorToResponse",
+      "simple_name": "errorToResponse",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fgepfasscev",
+      "start_line": 44,
+      "end_line": 56,
+      "start_byte": 1319,
+      "end_byte": 1879,
+      "signature_hint": "let errorToResponse e = let message = errorMessage e |> toErrorModel |> json match e with | Bug exn -> Log.Error(exn.ToString()) let err = toErrorModel \"Oops. Something went wrong\" |> json ServerErrors.internalError err | OperationNotAllowed _ | ValidationError _ -> RequestErrors.unprocessableEntity message | DataError e -> match e with | EntityNotFound _ -> RequestErrors.notFound message | _ -> RequestErrors.unprocessableEntity message"
+    },
+    "Cqcf88evgz6": {
+      "id": "Cqcf88evgz6",
+      "qualified_name": "resultToHttpResponseAsync",
+      "simple_name": "resultToHttpResponseAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fgepfasscev",
+      "start_line": 58,
+      "end_line": 67,
+      "start_byte": 1885,
+      "end_byte": 2256,
+      "signature_hint": "let resultToHttpResponseAsync asyncWorkflow : HttpHandler = fun next ctx -> task"
+    },
+    "C12gh8or5ea1": {
+      "id": "C12gh8or5ea1",
+      "qualified_name": "optionToHttpResponseAsync",
+      "simple_name": "optionToHttpResponseAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fgepfasscev",
+      "start_line": 69,
+      "end_line": 79,
+      "start_byte": 2262,
+      "end_byte": 2701,
+      "signature_hint": "let optionToHttpResponseAsync asyncWorkflow : HttpHandler = fun next ctx -> task"
+    },
+    "Clf9v2kubrr": {
+      "id": "Clf9v2kubrr",
+      "qualified_name": "bindJsonForRoute",
+      "simple_name": "bindJsonForRoute",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fgepfasscev",
+      "start_line": 80,
+      "end_line": 80,
+      "start_byte": 2706,
+      "end_byte": 2765,
+      "signature_hint": "let bindJsonForRoute<'a> r f = routeCi r >=> bindJson<'a> f"
+    },
+    "Cyfw98ngjnh": {
+      "id": "Cyfw98ngjnh",
+      "qualified_name": "configureApp",
+      "simple_name": "configureApp",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fgepfasscev",
+      "start_line": 111,
+      "end_line": 114,
+      "start_byte": 4374,
+      "end_byte": 4551,
+      "signature_hint": "let configureApp (app : IApplicationBuilder) = // Add Giraffe to the ASP.NET Core pipeline app.UseGiraffeErrorHandler(errorHandler) .UseGiraffe webApp"
+    },
+    "Cahmkjwc3ez": {
+      "id": "Cahmkjwc3ez",
+      "qualified_name": "configureServices",
+      "simple_name": "configureServices",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fgepfasscev",
+      "start_line": 116,
+      "end_line": 125,
+      "start_byte": 4557,
+      "end_byte": 5032,
+      "signature_hint": "let configureServices (services : IServiceCollection) = // Add Giraffe dependencies services.AddGiraffe() |> ignore let customSettings = JsonSerializerSettings() customSettings.Converters.Add(OptionConverter()) let contractResolver = CamelCasePropertyNamesContractResolver() customSettings.ContractResolver <- contractResolver services.AddSingleton<IJsonSerializer>(NewtonsoftJsonSerializer(customSettings)) |> ignore"
+    },
+    "Cdj2waxj84s": {
+      "id": "Cdj2waxj84s",
+      "qualified_name": "main",
+      "simple_name": "main",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fgepfasscev",
+      "start_line": 128,
+      "end_line": 137,
+      "start_byte": 5057,
+      "end_byte": 5329,
+      "signature_hint": "let main args = AppConfiguration.configureLog() WebHostBuilder() .UseKestrel() .Configure(Action<IApplicationBuilder> configureApp) .ConfigureServices(configureServices) .Build() .Run() 0",
+      "attributes": [
+        "EntryPoint"
+      ]
+    },
+    "C7giaeunvjd": {
+      "id": "C7giaeunvjd",
+      "qualified_name": "length",
+      "simple_name": "length",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F8v8o2dn057",
+      "start_line": 11,
+      "end_line": 11,
+      "start_byte": 227,
+      "end_byte": 264,
+      "signature_hint": "let inline length (HasLength f) = f()"
+    },
+    "Cio5g6m5x8u": {
+      "id": "Cio5g6m5x8u",
+      "qualified_name": "isNullOrEmpty",
+      "simple_name": "isNullOrEmpty",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F8v8o2dn057",
+      "start_line": 13,
+      "end_line": 15,
+      "start_byte": 270,
+      "end_byte": 371,
+      "signature_hint": "let inline isNullOrEmpty arg = if arg = null || (length arg) = 0 then true else false"
+    },
+    "Cph2t3rtyak": {
+      "id": "Cph2t3rtyak",
+      "qualified_name": "bindAsync",
+      "simple_name": "bindAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F8v8o2dn057",
+      "start_line": 17,
+      "end_line": 21,
+      "start_byte": 377,
+      "end_byte": 469,
+      "signature_hint": "let bindAsync f a = async"
+    },
+    "C14btrzo2nkv": {
+      "id": "C14btrzo2nkv",
+      "qualified_name": "ToNumber",
+      "simple_name": "ToNumber",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "Fqd23g9uy3g",
+      "start_line": 18,
+      "end_line": 31,
+      "start_byte": 536,
+      "end_byte": 929,
+      "signature_hint": "member this.ToNumber() = match this with | January -> 1us | February -> 2us | March -> 3us | April -> 4us | May -> 5us | June -> 6us | July -> 7us | August -> 8us | September -> 9us | October -> 10us | November -> 11us | December -> 12us"
+    },
+    "Cu7q0dzbrr": {
+      "id": "Cu7q0dzbrr",
+      "qualified_name": "create",
+      "simple_name": "create",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "Fqd23g9uy3g",
+      "start_line": 32,
+      "end_line": 46,
+      "start_byte": 938,
+      "end_byte": 1477,
+      "signature_hint": "static member create field n = match n with | 1us -> January |> Ok | 2us -> February |> Ok | 3us -> March |> Ok | 4us -> April |> Ok | 5us -> May |> Ok | 6us -> June |> Ok | 7us -> July |> Ok | 8us -> August |> Ok | 9us -> September |> Ok | 10us -> October |> Ok | 11us -> November |> Ok | 12us -> December |> Ok | _ -> validationError field \"Number must be from 1 to 12\""
+    },
+    "Cziur5gmx50": {
+      "id": "Cziur5gmx50",
+      "qualified_name": "tryParseEmptyDUCase",
+      "simple_name": "tryParseEmptyDUCase",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F10xy32m22rr",
+      "start_line": 208,
+      "end_line": 216,
+      "start_byte": 4312,
+      "end_byte": 4707,
+      "signature_hint": "let tryParseEmptyDUCase<'DU> str = if FSharpType.IsUnion typeof<'DU> |> not then None else match str with | null | \"\" -> None | str -> FSharpType.GetUnionCases typeof<'DU> |> Array.tryFind (fun c -> c.Name =~ str && (c.GetFields() |> Array.isEmpty)) |> Option.map (fun case -> FSharpValue.MakeUnion(case, [||]) :?> 'DU)"
+    },
+    "Cduieu7knsh": {
+      "id": "Cduieu7knsh",
+      "qualified_name": "parseCountry",
+      "simple_name": "parseCountry",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F10xy32m22rr",
+      "start_line": 218,
+      "end_line": 221,
+      "start_byte": 4713,
+      "end_byte": 4932,
+      "signature_hint": "let parseCountry country = match tryParseEmptyDUCase<Country> country with | Some country -> Ok country | None -> Error"
+    },
+    "Cildueiuez0": {
+      "id": "Cildueiuez0",
+      "qualified_name": "validationMessage",
+      "simple_name": "validationMessage",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F5e6501oqjq",
+      "start_line": 17,
+      "end_line": 18,
+      "start_byte": 637,
+      "end_byte": 766,
+      "signature_hint": "let validationMessage"
+    },
+    "Cj1yx29hlqb": {
+      "id": "Cj1yx29hlqb",
+      "qualified_name": "operationNotAllowedMessage",
+      "simple_name": "operationNotAllowedMessage",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F5e6501oqjq",
+      "start_line": 20,
+      "end_line": 21,
+      "start_byte": 772,
+      "end_byte": 910,
+      "signature_hint": "let operationNotAllowedMessage"
+    },
+    "C2uf2rcbanl": {
+      "id": "C2uf2rcbanl",
+      "qualified_name": "errorMessage",
+      "simple_name": "errorMessage",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F5e6501oqjq",
+      "start_line": 23,
+      "end_line": 28,
+      "start_byte": 916,
+      "end_byte": 1194,
+      "signature_hint": "let errorMessage error = match error with | ValidationError v -> validationMessage v | OperationNotAllowed o -> operationNotAllowedMessage o | DataError d -> dataRelatedErrorMessage d | Bug b -> sprintf \"Oops, something went wrong.\\n%A\" b"
+    },
+    "Ctyb922q7aq": {
+      "id": "Ctyb922q7aq",
+      "qualified_name": "validationError",
+      "simple_name": "validationError",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F1629dxylhzo",
+      "start_line": 50,
+      "end_line": 50,
+      "start_byte": 2392,
+      "end_byte": 2485,
+      "signature_hint": "let validationError fieldPath message"
+    },
+    "C5geu0nhmff": {
+      "id": "C5geu0nhmff",
+      "qualified_name": "bug",
+      "simple_name": "bug",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F1629dxylhzo",
+      "start_line": 52,
+      "end_line": 52,
+      "start_byte": 2491,
+      "end_byte": 2521,
+      "signature_hint": "let bug exc = Bug exc |> Error"
+    },
+    "C72ozy0tzmq": {
+      "id": "C72ozy0tzmq",
+      "qualified_name": "operationNotAllowed",
+      "simple_name": "operationNotAllowed",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F1629dxylhzo",
+      "start_line": 54,
+      "end_line": 54,
+      "start_byte": 2527,
+      "end_byte": 2621,
+      "signature_hint": "let operationNotAllowed operation reason"
+    },
+    "Cdusi2go4q4": {
+      "id": "Cdusi2go4q4",
+      "qualified_name": "notFound",
+      "simple_name": "notFound",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F1629dxylhzo",
+      "start_line": 56,
+      "end_line": 56,
+      "start_byte": 2627,
+      "end_byte": 2684,
+      "signature_hint": "let notFound name id = EntityNotFound (name, id) |> Error"
+    },
+    "Cfx87hhq1in": {
+      "id": "Cfx87hhq1in",
+      "qualified_name": "entityInUse",
+      "simple_name": "entityInUse",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F1629dxylhzo",
+      "start_line": 58,
+      "end_line": 58,
+      "start_byte": 2690,
+      "end_byte": 2740,
+      "signature_hint": "let entityInUse name = EntityIsInUse name |> Error"
+    },
+    "Co8tguvfxgu": {
+      "id": "Co8tguvfxgu",
+      "qualified_name": "expectValidationError",
+      "simple_name": "expectValidationError",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F1629dxylhzo",
+      "start_line": 60,
+      "end_line": 60,
+      "start_byte": 2746,
+      "end_byte": 2819,
+      "signature_hint": "let expectValidationError result = Result.mapError ValidationError result"
+    },
+    "Cfukcmhp3do": {
+      "id": "Cfukcmhp3do",
+      "qualified_name": "expectOperationNotAllowedError",
+      "simple_name": "expectOperationNotAllowedError",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F1629dxylhzo",
+      "start_line": 62,
+      "end_line": 62,
+      "start_byte": 2825,
+      "end_byte": 2911,
+      "signature_hint": "let expectOperationNotAllowedError result = Result.mapError OperationNotAllowed result"
+    },
+    "C8x4dnzbbyz": {
+      "id": "C8x4dnzbbyz",
+      "qualified_name": "expectDataRelatedError",
+      "simple_name": "expectDataRelatedError",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F1629dxylhzo",
+      "start_line": 64,
+      "end_line": 65,
+      "start_byte": 2917,
+      "end_byte": 2993,
+      "signature_hint": "let expectDataRelatedError result = Result.mapError DataError result"
+    },
+    "C6z4p78q7w8": {
+      "id": "C6z4p78q7w8",
+      "qualified_name": "expectDataRelatedErrorAsync",
+      "simple_name": "expectDataRelatedErrorAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F1629dxylhzo",
+      "start_line": 67,
+      "end_line": 71,
+      "start_byte": 2999,
+      "end_byte": 3157,
+      "signature_hint": "let expectDataRelatedErrorAsync asyncResult = async"
+    },
+    "Cmu6goh0woj": {
+      "id": "Cmu6goh0woj",
+      "qualified_name": "combine",
+      "simple_name": "combine",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F1629dxylhzo",
+      "start_line": 87,
+      "end_line": 97,
+      "start_byte": 3683,
+      "end_byte": 4055,
+      "signature_hint": "let combine results = let rec loop acc results = match results with | [] -> acc | result :: tail -> match result with | Error e -> Error e | Ok ok -> let acc = Result.map (fun oks -> ok :: oks) acc loop acc tail loop (Ok []) results"
+    },
+    "Cf88ot33jpn": {
+      "id": "Cf88ot33jpn",
+      "qualified_name": "loop",
+      "simple_name": "loop",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F1629dxylhzo",
+      "start_line": 88,
+      "end_line": 96,
+      "start_byte": 3713,
+      "end_byte": 4026,
+      "signature_hint": "let rec loop acc results = match results with | [] -> acc | result :: tail -> match result with | Error e -> Error e | Ok ok -> let acc = Result.map (fun oks -> ok :: oks) acc loop acc tail"
+    },
+    "C152l6gch5wa": {
+      "id": "C152l6gch5wa",
+      "qualified_name": "ofOption",
+      "simple_name": "ofOption",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F1629dxylhzo",
+      "start_line": 99,
+      "end_line": 102,
+      "start_byte": 4061,
+      "end_byte": 4159,
+      "signature_hint": "let ofOption err opt = match opt with | Some v -> Ok v | None -> Error err"
+    },
+    "Cpf3dc5sdsc": {
+      "id": "Cpf3dc5sdsc",
+      "qualified_name": "main",
+      "simple_name": "main",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fhhh1m8yjb0",
+      "start_line": 13,
+      "end_line": 54,
+      "start_byte": 299,
+      "end_byte": 1780,
+      "signature_hint": "let main argv = AppConfiguration.configureLog() let userId = Guid.Parse \"b3f0a6f4-ee04-48ab-b838-9b3330c6bca9\" let cardNumber = \"1234123412341234\" //let setDailyLimitModel = //",
+      "attributes": [
+        "EntryPoint"
+      ]
+    },
+    "C1z14pe9ivs": {
+      "id": "C1z14pe9ivs",
+      "qualified_name": "createCardAsync",
+      "simple_name": "createCardAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F6uj6s5khp5",
+      "start_line": 28,
+      "end_line": 32,
+      "start_byte": 1407,
+      "end_byte": 1770,
+      "signature_hint": "let createCardAsync (mongoDb: MongoDb)"
+    },
+    "C2v4b4dy4y2": {
+      "id": "C2v4b4dy4y2",
+      "qualified_name": "createUserAsync",
+      "simple_name": "createUserAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F6uj6s5khp5",
+      "start_line": 34,
+      "end_line": 37,
+      "start_byte": 1776,
+      "end_byte": 1961,
+      "signature_hint": "let createUserAsync (mongoDb: MongoDb)"
+    },
+    "C3u12f0n3e0": {
+      "id": "C3u12f0n3e0",
+      "qualified_name": "replaceCardAsync",
+      "simple_name": "replaceCardAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F6uj6s5khp5",
+      "start_line": 39,
+      "end_line": 47,
+      "start_byte": 1967,
+      "end_byte": 2408,
+      "signature_hint": "let replaceCardAsync (mongoDb: MongoDb)"
+    },
+    "C119ane6qxzr": {
+      "id": "C119ane6qxzr",
+      "qualified_name": "replaceUserAsync",
+      "simple_name": "replaceUserAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F6uj6s5khp5",
+      "start_line": 49,
+      "end_line": 52,
+      "start_byte": 2414,
+      "end_byte": 2602,
+      "signature_hint": "let replaceUserAsync (mongoDb: MongoDb)"
+    },
+    "Csmpixp6cr7": {
+      "id": "Csmpixp6cr7",
+      "qualified_name": "getUserInfoAsync",
+      "simple_name": "getUserInfoAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F6uj6s5khp5",
+      "start_line": 54,
+      "end_line": 59,
+      "start_byte": 2608,
+      "end_byte": 2874,
+      "signature_hint": "let getUserInfoAsync (mongoDb: MongoDb)"
+    },
+    "C11be9uysptv": {
+      "id": "C11be9uysptv",
+      "qualified_name": "getUserWithCards",
+      "simple_name": "getUserWithCards",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F6uj6s5khp5",
+      "start_line": 61,
+      "end_line": 77,
+      "start_byte": 2880,
+      "end_byte": 3592,
+      "signature_hint": "let getUserWithCards (mongoDb: MongoDb)"
+    },
+    "C17n8rngrzp9": {
+      "id": "C17n8rngrzp9",
+      "qualified_name": "getCardAsync",
+      "simple_name": "getCardAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F6uj6s5khp5",
+      "start_line": 79,
+      "end_line": 84,
+      "start_byte": 3598,
+      "end_byte": 3854,
+      "signature_hint": "let getCardAsync (mongoDb: MongoDb)"
+    },
+    "Ceptyl9fkyj": {
+      "id": "Ceptyl9fkyj",
+      "qualified_name": "getCardWithAccountInfoAsync",
+      "simple_name": "getCardWithAccountInfoAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F6uj6s5khp5",
+      "start_line": 86,
+      "end_line": 91,
+      "start_byte": 3860,
+      "end_byte": 4157,
+      "signature_hint": "let getCardWithAccountInfoAsync (mongoDb: MongoDb)"
+    },
+    "Cflobqa7eg9": {
+      "id": "Cflobqa7eg9",
+      "qualified_name": "getBalanceOperationsAsync",
+      "simple_name": "getBalanceOperationsAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F6uj6s5khp5",
+      "start_line": 93,
+      "end_line": 98,
+      "start_byte": 4163,
+      "end_byte": 4517,
+      "signature_hint": "let getBalanceOperationsAsync (mongoDb: MongoDb)"
+    },
+    "C14thibnkwsg": {
+      "id": "C14thibnkwsg",
+      "qualified_name": "createBalanceOperationAsync",
+      "simple_name": "createBalanceOperationAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F6uj6s5khp5",
+      "start_line": 100,
+      "end_line": 103,
+      "start_byte": 4523,
+      "end_byte": 4780,
+      "signature_hint": "let createBalanceOperationAsync (mongoDb: MongoDb)"
+    },
+    "Cj5dcf79ig5": {
+      "id": "Cj5dcf79ig5",
+      "qualified_name": "EntityId",
+      "simple_name": "EntityId",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "F12s3o81t2ol",
+      "start_line": 27,
+      "end_line": 27,
+      "start_byte": 899,
+      "end_byte": 939,
+      "signature_hint": "member this.EntityId = sprintf \"%A\" this"
+    },
+    "Cmxlos44nx1": {
+      "id": "Cmxlos44nx1",
+      "qualified_name": "EntityId",
+      "simple_name": "EntityId",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "F12s3o81t2ol",
+      "start_line": 39,
+      "end_line": 41,
+      "start_byte": 1195,
+      "end_byte": 1429,
+      "signature_hint": "member this.EntityId = this.CardNumber.ToString() // we use this Id comparer quotation (F# alternative to C# Expression) for updating entity by id, // since for different entities identifier has different name and type"
+    },
+    "Cxkagpbv0f0": {
+      "id": "Cxkagpbv0f0",
+      "qualified_name": "IdComparer",
+      "simple_name": "IdComparer",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "F12s3o81t2ol",
+      "start_line": 42,
+      "end_line": 42,
+      "start_byte": 1438,
+      "end_byte": 1527,
+      "signature_hint": "member this.IdComparer = <@ System.Func<_,_> (fun c -> c.CardNumber = this.CardNumber) @>"
+    },
+    "C551htp8l0d": {
+      "id": "C551htp8l0d",
+      "qualified_name": "EntityId",
+      "simple_name": "EntityId",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "F12s3o81t2ol",
+      "start_line": 51,
+      "end_line": 51,
+      "start_byte": 1711,
+      "end_byte": 1760,
+      "signature_hint": "member this.EntityId = this.CardNumber.ToString()"
+    },
+    "Cj12ze0zer2": {
+      "id": "Cj12ze0zer2",
+      "qualified_name": "IdComparer",
+      "simple_name": "IdComparer",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "F12s3o81t2ol",
+      "start_line": 52,
+      "end_line": 52,
+      "start_byte": 1769,
+      "end_byte": 1858,
+      "signature_hint": "member this.IdComparer = <@ System.Func<_,_> (fun c -> c.CardNumber = this.CardNumber) @>"
+    },
+    "Czevw0f8xbp": {
+      "id": "Czevw0f8xbp",
+      "qualified_name": "EntityId",
+      "simple_name": "EntityId",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "F12s3o81t2ol",
+      "start_line": 61,
+      "end_line": 61,
+      "start_byte": 2026,
+      "end_byte": 2071,
+      "signature_hint": "member this.EntityId = this.UserId.ToString()"
+    },
+    "Cwr9w0ctjx2": {
+      "id": "Cwr9w0ctjx2",
+      "qualified_name": "IdComparer",
+      "simple_name": "IdComparer",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "F12s3o81t2ol",
+      "start_line": 62,
+      "end_line": 65,
+      "start_byte": 2080,
+      "end_byte": 2343,
+      "signature_hint": "member this.IdComparer = <@ System.Func<_,_> (fun c -> c.UserId = this.UserId) @> // MongoDb allowes you to use objects as identifiers, so I used this instead of generating some GUID // which wouldn't mean anything other than something purely DB specific"
+    },
+    "Cr5bsj0nl3o": {
+      "id": "Cr5bsj0nl3o",
+      "qualified_name": "EntityId",
+      "simple_name": "EntityId",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "F12s3o81t2ol",
+      "start_line": 78,
+      "end_line": 78,
+      "start_byte": 2654,
+      "end_byte": 2697,
+      "signature_hint": "member this.EntityId = sprintf \"%A\" this.Id"
+    },
+    "Czasdkwffid": {
+      "id": "Czasdkwffid",
+      "qualified_name": "isNullUnsafe",
+      "simple_name": "isNullUnsafe",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F12s3o81t2ol",
+      "start_line": 87,
+      "end_line": 91,
+      "start_byte": 3176,
+      "end_byte": 3384,
+      "signature_hint": "let isNullUnsafe (arg: 'a when 'a: not struct) = arg = Unchecked.defaultof<'a> // then we have this function to convert nulls to option, therefore we limited this // toxic null thing in here."
+    },
+    "Clgew78g97g": {
+      "id": "Clgew78g97g",
+      "qualified_name": "unsafeNullToOption",
+      "simple_name": "unsafeNullToOption",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F12s3o81t2ol",
+      "start_line": 92,
+      "end_line": 93,
+      "start_byte": 3389,
+      "end_byte": 3463,
+      "signature_hint": "let unsafeNullToOption a = if isNullUnsafe a then None else Some a"
+    },
+    "C5uj2ulxng1": {
+      "id": "C5uj2ulxng1",
+      "qualified_name": "entityId",
+      "simple_name": "entityId",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F12s3o81t2ol",
+      "start_line": 106,
+      "end_line": 106,
+      "start_byte": 4056,
+      "end_byte": 4097,
+      "signature_hint": "let inline entityId (HasEntityId f) = f()"
+    },
+    "Cmedisubj1h": {
+      "id": "Cmedisubj1h",
+      "qualified_name": "idComparer",
+      "simple_name": "idComparer",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F12s3o81t2ol",
+      "start_line": 112,
+      "end_line": 115,
+      "start_byte": 4318,
+      "end_byte": 4471,
+      "signature_hint": "let inline idComparer (HasIdComparer id) = id() |> LeafExpressionConverter.QuotationToExpression |> unbox<Expression<Func<_,_>>>"
+    },
+    "C632thtowpo": {
+      "id": "C632thtowpo",
+      "qualified_name": "ConnectionString",
+      "simple_name": "ConnectionString",
+      "kind": "method",
+      "language": "fsharp",
+      "file": "Fztl7334qj",
+      "start_line": 15,
+      "end_line": 17,
+      "start_byte": 291,
+      "end_byte": 507,
+      "signature_hint": "member this.ConnectionString = if this.User |> isNullOrEmpty then sprintf \"mongodb://%s:%i\" this.Host this.Port else sprintf \"mongodb://%s:%s@%s:%i\" this.User this.Password this.Host this.Port"
+    },
+    "Cjfh1s5u9mz": {
+      "id": "Cjfh1s5u9mz",
+      "qualified_name": "createClient",
+      "simple_name": "createClient",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fztl7334qj",
+      "start_line": 19,
+      "end_line": 19,
+      "start_byte": 513,
+      "end_byte": 595,
+      "signature_hint": "let private createClient (connectionString:string) = MongoClient(connectionString)"
+    },
+    "Ckshk6kvn1p": {
+      "id": "Ckshk6kvn1p",
+      "qualified_name": "getDatabase",
+      "simple_name": "getDatabase",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fztl7334qj",
+      "start_line": 21,
+      "end_line": 23,
+      "start_byte": 601,
+      "end_byte": 744,
+      "signature_hint": "let getDatabase (config: MongoSettings) = let client = createClient config.ConnectionString client.GetDatabase(config.Database)"
+    },
+    "C7qny8yb96o": {
+      "id": "C7qny8yb96o",
+      "qualified_name": "getSession",
+      "simple_name": "getSession",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fztl7334qj",
+      "start_line": 25,
+      "end_line": 27,
+      "start_byte": 750,
+      "end_byte": 878,
+      "signature_hint": "let getSession (config: MongoSettings) = let client = createClient config.ConnectionString client.StartSession()"
+    },
+    "Ck1jh65ahfv": {
+      "id": "Ck1jh65ahfv",
+      "qualified_name": "isDuplicateKeyException",
+      "simple_name": "isDuplicateKeyException",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F13u2ltso4my",
+      "start_line": 24,
+      "end_line": 25,
+      "start_byte": 812,
+      "end_byte": 986,
+      "signature_hint": "let private isDuplicateKeyException (ex: Exception) = ex :? MongoWriteException && (ex :?> MongoWriteException).WriteError.Category = ServerErrorCategory.DuplicateKey"
+    },
+    "Ckwrsqxfxb2": {
+      "id": "Ckwrsqxfxb2",
+      "qualified_name": "executeInsertAsync",
+      "simple_name": "executeInsertAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F13u2ltso4my",
+      "start_line": 37,
+      "end_line": 45,
+      "start_byte": 1501,
+      "end_byte": 1814,
+      "signature_hint": "let inline private executeInsertAsync (func: 'a -> Async<unit>) arg = async"
+    },
+    "Cs3l2k41sts": {
+      "id": "Cs3l2k41sts",
+      "qualified_name": "executeReplaceAsync",
+      "simple_name": "executeReplaceAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F13u2ltso4my",
+      "start_line": 47,
+      "end_line": 56,
+      "start_byte": 1820,
+      "end_byte": 2338,
+      "signature_hint": "let inline private executeReplaceAsync (update: _ -> Task<ReplaceOneResult>) arg = async"
+    },
+    "C13vob5aqsu4": {
+      "id": "C13vob5aqsu4",
+      "qualified_name": "createUserAsync",
+      "simple_name": "createUserAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F13u2ltso4my",
+      "start_line": 58,
+      "end_line": 61,
+      "start_byte": 2344,
+      "end_byte": 2578,
+      "signature_hint": "let createUserAsync (mongoDb : MongoDb)"
+    },
+    "Cs2vt91uyfu": {
+      "id": "Cs2vt91uyfu",
+      "qualified_name": "createCardAsync",
+      "simple_name": "createCardAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F13u2ltso4my",
+      "start_line": 63,
+      "end_line": 71,
+      "start_byte": 2584,
+      "end_byte": 3075,
+      "signature_hint": "let createCardAsync (mongoDb: MongoDb)"
+    },
+    "Cdgfg2wgsv1": {
+      "id": "Cdgfg2wgsv1",
+      "qualified_name": "replaceUserAsync",
+      "simple_name": "replaceUserAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F13u2ltso4my",
+      "start_line": 73,
+      "end_line": 77,
+      "start_byte": 3081,
+      "end_byte": 3385,
+      "signature_hint": "let replaceUserAsync (mongoDb: MongoDb)"
+    },
+    "Cib5zrf6e0z": {
+      "id": "Cib5zrf6e0z",
+      "qualified_name": "replaceCommand",
+      "simple_name": "replaceCommand",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F13u2ltso4my",
+      "start_line": 75,
+      "end_line": 76,
+      "start_byte": 3174,
+      "end_byte": 3330,
+      "signature_hint": "let replaceCommand (selector: Expression<_>, user, options) = mongoDb.GetCollection(userCollection).ReplaceOneAsync(selector, user, options)"
+    },
+    "C7fvdx0tkfy": {
+      "id": "C7fvdx0tkfy",
+      "qualified_name": "replaceCardAsync",
+      "simple_name": "replaceCardAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F13u2ltso4my",
+      "start_line": 79,
+      "end_line": 83,
+      "start_byte": 3391,
+      "end_byte": 3695,
+      "signature_hint": "let replaceCardAsync (mongoDb: MongoDb)"
+    },
+    "Catyknmjchb": {
+      "id": "Catyknmjchb",
+      "qualified_name": "replaceCommand",
+      "simple_name": "replaceCommand",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F13u2ltso4my",
+      "start_line": 81,
+      "end_line": 82,
+      "start_byte": 3484,
+      "end_byte": 3640,
+      "signature_hint": "let replaceCommand (selector: Expression<_>, card, options) = mongoDb.GetCollection(cardCollection).ReplaceOneAsync(selector, card, options)"
+    },
+    "C5ljxo4ku2t": {
+      "id": "C5ljxo4ku2t",
+      "qualified_name": "replaceCardAccountInfoAsync",
+      "simple_name": "replaceCardAccountInfoAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F13u2ltso4my",
+      "start_line": 85,
+      "end_line": 89,
+      "start_byte": 3701,
+      "end_byte": 4050,
+      "signature_hint": "let replaceCardAccountInfoAsync (mongoDb: MongoDb)"
+    },
+    "Cy8myl42t09": {
+      "id": "Cy8myl42t09",
+      "qualified_name": "replaceCommand",
+      "simple_name": "replaceCommand",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F13u2ltso4my",
+      "start_line": 87,
+      "end_line": 88,
+      "start_byte": 3819,
+      "end_byte": 3992,
+      "signature_hint": "let replaceCommand (selector: Expression<_>, accInfo, options) = mongoDb.GetCollection(cardAccountInfoCollection).ReplaceOneAsync(selector, accInfo, options)"
+    },
+    "Cj2z9c24g9h": {
+      "id": "Cj2z9c24g9h",
+      "qualified_name": "createBalanceOperationAsync",
+      "simple_name": "createBalanceOperationAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F13u2ltso4my",
+      "start_line": 91,
+      "end_line": 94,
+      "start_byte": 4056,
+      "end_byte": 4337,
+      "signature_hint": "let createBalanceOperationAsync (mongoDb: MongoDb)"
+    },
+    "Cn5euox3ux2": {
+      "id": "Cn5euox3ux2",
+      "qualified_name": "throwOnValidationError",
+      "simple_name": "throwOnValidationError",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fct6jle6dkw",
+      "start_line": 21,
+      "end_line": 23,
+      "start_byte": 872,
+      "end_byte": 1077,
+      "signature_hint": "let private throwOnValidationError entityName (err: ValidationError) = sprintf \"Could not deserialize entity [%s]. Field [%s]. Message"
+    },
+    "Cx7wcv6745u": {
+      "id": "Cx7wcv6745u",
+      "qualified_name": "valueOrException",
+      "simple_name": "valueOrException",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fct6jle6dkw",
+      "start_line": 25,
+      "end_line": 28,
+      "start_byte": 1083,
+      "end_byte": 1257,
+      "signature_hint": "let valueOrException (result: Result< 'a, ValidationError>)"
+    },
+    "Cy3m1r3v6si": {
+      "id": "Cy3m1r3v6si",
+      "qualified_name": "validateCardEntityWithAccInfo",
+      "simple_name": "validateCardEntityWithAccInfo",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fct6jle6dkw",
+      "start_line": 30,
+      "end_line": 52,
+      "start_byte": 1263,
+      "end_byte": 2391,
+      "signature_hint": "let private validateCardEntityWithAccInfo (cardEntity: CardEntity, cardAccountEntity)"
+    },
+    "C34jszov3al": {
+      "id": "C34jszov3al",
+      "qualified_name": "validateCardEntity",
+      "simple_name": "validateCardEntity",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fct6jle6dkw",
+      "start_line": 54,
+      "end_line": 56,
+      "start_byte": 2397,
+      "end_byte": 2601,
+      "signature_hint": "let private validateCardEntity (cardEntity: CardEntity, cardAccountEntity)"
+    },
+    "Cj3toniw6th": {
+      "id": "Cj3toniw6th",
+      "qualified_name": "mapCardEntity",
+      "simple_name": "mapCardEntity",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fct6jle6dkw",
+      "start_line": 58,
+      "end_line": 60,
+      "start_byte": 2607,
+      "end_byte": 2745,
+      "signature_hint": "let mapCardEntity (cardEntity, cardAccountEntity) = validateCardEntity (cardEntity, cardAccountEntity) |> valueOrException"
+    },
+    "Caonn6dn7wq": {
+      "id": "Caonn6dn7wq",
+      "qualified_name": "mapCardEntityWithAccountInfo",
+      "simple_name": "mapCardEntityWithAccountInfo",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fct6jle6dkw",
+      "start_line": 62,
+      "end_line": 64,
+      "start_byte": 2751,
+      "end_byte": 2915,
+      "signature_hint": "let mapCardEntityWithAccountInfo (cardEntity, cardAccountEntity) = validateCardEntityWithAccInfo (cardEntity, cardAccountEntity) |> valueOrException"
+    },
+    "C106s7rk3zk": {
+      "id": "C106s7rk3zk",
+      "qualified_name": "validateAddressEntity",
+      "simple_name": "validateAddressEntity",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fct6jle6dkw",
+      "start_line": 66,
+      "end_line": 77,
+      "start_byte": 2921,
+      "end_byte": 3474,
+      "signature_hint": "let private validateAddressEntity (entity: AddressEntity)"
+    },
+    "C127y2mexc5e": {
+      "id": "C127y2mexc5e",
+      "qualified_name": "mapAddressEntity",
+      "simple_name": "mapAddressEntity",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fct6jle6dkw",
+      "start_line": 79,
+      "end_line": 79,
+      "start_byte": 3480,
+      "end_byte": 3558,
+      "signature_hint": "let mapAddressEntity entity = validateAddressEntity entity |> valueOrException"
+    },
+    "C5aadqvcp6l": {
+      "id": "C5aadqvcp6l",
+      "qualified_name": "validateUserInfoEntity",
+      "simple_name": "validateUserInfoEntity",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fct6jle6dkw",
+      "start_line": 81,
+      "end_line": 89,
+      "start_byte": 3564,
+      "end_byte": 3934,
+      "signature_hint": "let private validateUserInfoEntity (entity: UserEntity)"
+    },
+    "C13x49e53izq": {
+      "id": "C13x49e53izq",
+      "qualified_name": "mapUserInfoEntity",
+      "simple_name": "mapUserInfoEntity",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fct6jle6dkw",
+      "start_line": 91,
+      "end_line": 93,
+      "start_byte": 3940,
+      "end_byte": 4050,
+      "signature_hint": "let mapUserInfoEntity (entity: UserEntity) = validateUserInfoEntity entity |> valueOrException"
+    },
+    "C14auc70le3r": {
+      "id": "C14auc70le3r",
+      "qualified_name": "mapUserEntity",
+      "simple_name": "mapUserEntity",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fct6jle6dkw",
+      "start_line": 95,
+      "end_line": 103,
+      "start_byte": 4056,
+      "end_byte": 4435,
+      "signature_hint": "let mapUserEntity (entity: UserEntity) (cardEntities: (CardEntity * CardAccountInfoEntity) list) = result"
+    },
+    "Ck2vhpr4oq6": {
+      "id": "Ck2vhpr4oq6",
+      "qualified_name": "mapBalanceOperationEntity",
+      "simple_name": "mapBalanceOperationEntity",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fct6jle6dkw",
+      "start_line": 105,
+      "end_line": 117,
+      "start_byte": 4441,
+      "end_byte": 5124,
+      "signature_hint": "let mapBalanceOperationEntity (entity: BalanceOperationEntity) = result"
+    },
+    "Cr7hd54riiz": {
+      "id": "Cr7hd54riiz",
+      "qualified_name": "runSingleQuery",
+      "simple_name": "runSingleQuery",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fad90x311yl",
+      "start_line": 17,
+      "end_line": 21,
+      "start_byte": 649,
+      "end_byte": 815,
+      "signature_hint": "let private runSingleQuery dbQuery id = async"
+    },
+    "C103444qpc7u": {
+      "id": "C103444qpc7u",
+      "qualified_name": "getCardQuery",
+      "simple_name": "getCardQuery",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fad90x311yl",
+      "start_line": 23,
+      "end_line": 26,
+      "start_byte": 821,
+      "end_byte": 1024,
+      "signature_hint": "let private getCardQuery (mongoDb: MongoDb) cardnumber = mongoDb.GetCollection<CardEntity>(cardCollection) .Find(fun c -> c.CardNumber = cardnumber) .FirstOrDefaultAsync()"
+    },
+    "Ceh4rao330i": {
+      "id": "Ceh4rao330i",
+      "qualified_name": "getAccountInfoQuery",
+      "simple_name": "getAccountInfoQuery",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fad90x311yl",
+      "start_line": 28,
+      "end_line": 31,
+      "start_byte": 1030,
+      "end_byte": 1262,
+      "signature_hint": "let private getAccountInfoQuery (mongoDb: MongoDb) cardnumber = mongoDb.GetCollection<CardAccountInfoEntity>(cardAccountInfoCollection) .Find(fun c -> c.CardNumber = cardnumber) .FirstOrDefaultAsync()"
+    },
+    "Ctici4mc3es": {
+      "id": "Ctici4mc3es",
+      "qualified_name": "getUserQuery",
+      "simple_name": "getUserQuery",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fad90x311yl",
+      "start_line": 46,
+      "end_line": 49,
+      "start_byte": 1787,
+      "end_byte": 1978,
+      "signature_hint": "let private getUserQuery (mongoDb: MongoDb) userId = mongoDb.GetCollection<UserEntity>(userCollection) .Find(fun u -> u.UserId = userId) .FirstOrDefaultAsync()"
+    },
+    "Cfg0wzpd51a": {
+      "id": "Cfg0wzpd51a",
+      "qualified_name": "getUserCardsQuery",
+      "simple_name": "getUserCardsQuery",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fad90x311yl",
+      "start_line": 56,
+      "end_line": 59,
+      "start_byte": 2142,
+      "end_byte": 2330,
+      "signature_hint": "let private getUserCardsQuery (mongoDb: MongoDb) userId = mongoDb.GetCollection<CardEntity>(cardCollection) .Find(fun c -> c.UserId = userId) .ToListAsync()"
+    },
+    "Clfbo76gynx": {
+      "id": "Clfbo76gynx",
+      "qualified_name": "getUserAccountInfosQuery",
+      "simple_name": "getUserAccountInfosQuery",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fad90x311yl",
+      "start_line": 61,
+      "end_line": 64,
+      "start_byte": 2336,
+      "end_byte": 2585,
+      "signature_hint": "let private getUserAccountInfosQuery (mongoDb: MongoDb) (cardNumbers: #seq<_>) = mongoDb.GetCollection<CardAccountInfoEntity>(cardAccountInfoCollection) .Find(fun a -> cardNumbers.Contains a.CardNumber) .ToListAsync()"
+    },
+    "Cnewnc466bp": {
+      "id": "Cnewnc466bp",
+      "qualified_name": "getBalanceOperationsQuery",
+      "simple_name": "getBalanceOperationsQuery",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fad90x311yl",
+      "start_line": 81,
+      "end_line": 84,
+      "start_byte": 3350,
+      "end_byte": 3666,
+      "signature_hint": "let private getBalanceOperationsQuery (mongoDb: MongoDb) (cardNumber, fromDate, toDate) = mongoDb.GetCollection<BalanceOperationEntity>(balanceOperationCollection) .Find(fun bo -> bo.Id.CardNumber = cardNumber && bo.Id.Timestamp >= fromDate && bo.Id.Timestamp < toDate) .ToListAsync()"
+    },
+    "Cyr25nvrfrj": {
+      "id": "Cyr25nvrfrj",
+      "qualified_name": "stringSetting",
+      "simple_name": "stringSetting",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F14znbnyhrdl",
+      "start_line": 11,
+      "end_line": 11,
+      "start_byte": 267,
+      "end_byte": 356,
+      "signature_hint": "let stringSetting defaultValue str = Option.ofObj str |> Option.defaultValue defaultValue"
+    },
+    "Cnmxlmemudq": {
+      "id": "Cnmxlmemudq",
+      "qualified_name": "intSetting",
+      "simple_name": "intSetting",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F14znbnyhrdl",
+      "start_line": 13,
+      "end_line": 16,
+      "start_byte": 362,
+      "end_byte": 517,
+      "signature_hint": "let intSetting defaultValue (str: string) = match Int32.TryParse str with | (false, _) -> defaultValue | (true, setting) -> setting"
+    },
+    "C108yf3pk9tb": {
+      "id": "C108yf3pk9tb",
+      "qualified_name": "buildConfig",
+      "simple_name": "buildConfig",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F14znbnyhrdl",
+      "start_line": 18,
+      "end_line": 22,
+      "start_byte": 523,
+      "end_byte": 710,
+      "signature_hint": "let buildConfig() = ConfigurationBuilder() .SetBasePath(Directory.GetCurrentDirectory()) .AddJsonFile(\"appsettings.json\", false, true) .Build()"
+    },
+    "C2dk00cdlcf": {
+      "id": "C2dk00cdlcf",
+      "qualified_name": "configureLog",
+      "simple_name": "configureLog",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F14znbnyhrdl",
+      "start_line": 26,
+      "end_line": 28,
+      "start_byte": 831,
+      "end_byte": 1013,
+      "signature_hint": "let configureLog() = let logger = LoggerConfiguration().WriteTo.Console(outputTemplate = logFormat, theme = AnsiConsoleTheme.Code).CreateLogger() Log.Logger <- logger"
+    },
+    "C3u8m4hv6qj": {
+      "id": "C3u8m4hv6qj",
+      "qualified_name": "getMongoSettings",
+      "simple_name": "getMongoSettings",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F14znbnyhrdl",
+      "start_line": 30,
+      "end_line": 41,
+      "start_byte": 1019,
+      "end_byte": 1599,
+      "signature_hint": "let getMongoSettings (config: IConfigurationRoot) = let setting = sprintf \"MongoDB:%s\" let database = config.[setting \"Database\"] |> stringSetting \"CardsDb\" let port = config.[setting \"Port\"] |> intSetting 27017 let host = config.[setting \"Host\"] |> stringSetting \"localhost\" let user = config.[setting \"User\"] |> stringSetting \"root\" let password = config.[setting \"Password\"] |> stringSetting \"example\""
+    },
+    "C11zhp616kbj": {
+      "id": "C11zhp616kbj",
+      "qualified_name": "createUser",
+      "simple_name": "createUser",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fjxk9gomcv0",
+      "start_line": 7,
+      "end_line": 8,
+      "start_byte": 107,
+      "end_byte": 246,
+      "signature_hint": "let createUser arg = arg |> (CardWorkflow.createUser >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.createUser\")"
+    },
+    "Canyjilg9f5": {
+      "id": "Canyjilg9f5",
+      "qualified_name": "createCard",
+      "simple_name": "createCard",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fjxk9gomcv0",
+      "start_line": 9,
+      "end_line": 10,
+      "start_byte": 251,
+      "end_byte": 390,
+      "signature_hint": "let createCard arg = arg |> (CardWorkflow.createCard >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.createCard\")"
+    },
+    "C6xlhiqbwto": {
+      "id": "C6xlhiqbwto",
+      "qualified_name": "activateCard",
+      "simple_name": "activateCard",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fjxk9gomcv0",
+      "start_line": 11,
+      "end_line": 12,
+      "start_byte": 395,
+      "end_byte": 540,
+      "signature_hint": "let activateCard arg = arg |> (CardWorkflow.activateCard >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.activateCard\")"
+    },
+    "C10jxfm1pidv": {
+      "id": "C10jxfm1pidv",
+      "qualified_name": "deactivateCard",
+      "simple_name": "deactivateCard",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fjxk9gomcv0",
+      "start_line": 13,
+      "end_line": 14,
+      "start_byte": 545,
+      "end_byte": 696,
+      "signature_hint": "let deactivateCard arg = arg |> (CardWorkflow.deactivateCard >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.deactivateCard\")"
+    },
+    "Cb3zzg0xapo": {
+      "id": "Cb3zzg0xapo",
+      "qualified_name": "processPayment",
+      "simple_name": "processPayment",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fjxk9gomcv0",
+      "start_line": 15,
+      "end_line": 16,
+      "start_byte": 701,
+      "end_byte": 852,
+      "signature_hint": "let processPayment arg = arg |> (CardWorkflow.processPayment >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.processPayment\")"
+    },
+    "Cynj4k7hrrq": {
+      "id": "Cynj4k7hrrq",
+      "qualified_name": "topUp",
+      "simple_name": "topUp",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fjxk9gomcv0",
+      "start_line": 17,
+      "end_line": 18,
+      "start_byte": 857,
+      "end_byte": 981,
+      "signature_hint": "let topUp arg = arg |> (CardWorkflow.topUp >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.topUp\")"
+    },
+    "Cw7408ttv1s": {
+      "id": "Cw7408ttv1s",
+      "qualified_name": "setDailyLimit",
+      "simple_name": "setDailyLimit",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fjxk9gomcv0",
+      "start_line": 19,
+      "end_line": 20,
+      "start_byte": 986,
+      "end_byte": 1134,
+      "signature_hint": "let setDailyLimit arg = arg |> (CardWorkflow.setDailyLimit >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.setDailyLimit\")"
+    },
+    "C17k1vseoz05": {
+      "id": "C17k1vseoz05",
+      "qualified_name": "getCard",
+      "simple_name": "getCard",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fjxk9gomcv0",
+      "start_line": 21,
+      "end_line": 22,
+      "start_byte": 1139,
+      "end_byte": 1269,
+      "signature_hint": "let getCard arg = arg |> (CardWorkflow.getCard >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.getCard\")"
+    },
+    "C169cw6ktqaj": {
+      "id": "C169cw6ktqaj",
+      "qualified_name": "getUser",
+      "simple_name": "getUser",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "Fjxk9gomcv0",
+      "start_line": 23,
+      "end_line": 24,
+      "start_byte": 1274,
+      "end_byte": 1410,
+      "signature_hint": "let getUser arg = arg |> (CardWorkflow.getUser >> CardProgramInterpreter.interpretSimple |> logifyResultAsync \"CardApi.getUser\")"
+    },
+    "C2mjku39b4m": {
+      "id": "C2mjku39b4m",
+      "qualified_name": "mongoSettings",
+      "simple_name": "mongoSettings",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F4ysrp6ack8",
+      "start_line": 11,
+      "end_line": 11,
+      "start_byte": 226,
+      "end_byte": 323,
+      "signature_hint": "let private mongoSettings() = AppConfiguration.buildConfig() |> AppConfiguration.getMongoSettings"
+    },
+    "C13uziqx2888": {
+      "id": "C13uziqx2888",
+      "qualified_name": "getMongoDb",
+      "simple_name": "getMongoDb",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F4ysrp6ack8",
+      "start_line": 12,
+      "end_line": 12,
+      "start_byte": 328,
+      "end_byte": 408,
+      "signature_hint": "let private getMongoDb() = mongoSettings() |> CardMongoConfiguration.getDatabase"
+    },
+    "Csveqys93op": {
+      "id": "Csveqys93op",
+      "qualified_name": "getCardAsync",
+      "simple_name": "getCardAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F4ysrp6ack8",
+      "start_line": 14,
+      "end_line": 15,
+      "start_byte": 414,
+      "end_byte": 546,
+      "signature_hint": "let private getCardAsync mongoDb = CardDataPipeline.getCardAsync mongoDb |> logifyPlainAsync \"CardDataPipeline.getCardAsync\""
+    },
+    "Cv5ic8587io": {
+      "id": "Cv5ic8587io",
+      "qualified_name": "getUserAsync",
+      "simple_name": "getUserAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F4ysrp6ack8",
+      "start_line": 17,
+      "end_line": 18,
+      "start_byte": 552,
+      "end_byte": 697,
+      "signature_hint": "let private getUserAsync mongoDb = CardDataPipeline.getUserWithCards mongoDb |> logifyPlainAsync \"CardDataPipeline.getUserWithCardsAsync\""
+    },
+    "Cxmvsmcnxt2": {
+      "id": "Cxmvsmcnxt2",
+      "qualified_name": "getCardWithAccInfoAsync",
+      "simple_name": "getCardWithAccInfoAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F4ysrp6ack8",
+      "start_line": 20,
+      "end_line": 21,
+      "start_byte": 703,
+      "end_byte": 876,
+      "signature_hint": "let private getCardWithAccInfoAsync mongoDb = CardDataPipeline.getCardWithAccountInfoAsync mongoDb |> logifyPlainAsync \"CardDataPipeline.getCardWithAccountInfoAsync\""
+    },
+    "C1049hrptilr": {
+      "id": "C1049hrptilr",
+      "qualified_name": "replaceCardAsync",
+      "simple_name": "replaceCardAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F4ysrp6ack8",
+      "start_line": 23,
+      "end_line": 24,
+      "start_byte": 882,
+      "end_byte": 1027,
+      "signature_hint": "let private replaceCardAsync mongoDb = CardDataPipeline.replaceCardAsync mongoDb |> logifyResultAsync \"CardDataPipeline.replaceCardAsync\""
+    },
+    "Cya4zdxyjl": {
+      "id": "Cya4zdxyjl",
+      "qualified_name": "getBalanceOperationsAsync",
+      "simple_name": "getBalanceOperationsAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F4ysrp6ack8",
+      "start_line": 26,
+      "end_line": 27,
+      "start_byte": 1033,
+      "end_byte": 1204,
+      "signature_hint": "let private getBalanceOperationsAsync mongoDb = CardDataPipeline.getBalanceOperationsAsync mongoDb |> logifyPlainAsync \"CardDataPipeline.getBalanceOperationsAsync\""
+    },
+    "Czysn11jtxc": {
+      "id": "Czysn11jtxc",
+      "qualified_name": "saveBalanceOperationAsync",
+      "simple_name": "saveBalanceOperationAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F4ysrp6ack8",
+      "start_line": 29,
+      "end_line": 30,
+      "start_byte": 1210,
+      "end_byte": 1386,
+      "signature_hint": "let private saveBalanceOperationAsync mongoDb = CardDataPipeline.createBalanceOperationAsync mongoDb |> logifyResultAsync \"CardDataPipeline.createBalanceOperationAsync\""
+    },
+    "C6tku9zyx3x": {
+      "id": "C6tku9zyx3x",
+      "qualified_name": "createCardAsync",
+      "simple_name": "createCardAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F4ysrp6ack8",
+      "start_line": 32,
+      "end_line": 33,
+      "start_byte": 1392,
+      "end_byte": 1530,
+      "signature_hint": "let private createCardAsync mongoDb = CardDataPipeline.createCardAsync mongoDb |> logifyResultAsync \"CardPipeline.createCardAsync\""
+    },
+    "C331lyb1r1k": {
+      "id": "C331lyb1r1k",
+      "qualified_name": "createUserAsync",
+      "simple_name": "createUserAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F4ysrp6ack8",
+      "start_line": 35,
+      "end_line": 36,
+      "start_byte": 1536,
+      "end_byte": 1678,
+      "signature_hint": "let private createUserAsync mongoDb = CardDataPipeline.createUserAsync mongoDb |> logifyResultAsync \"CardDataPipeline.createUserAsync\""
+    },
+    "C7y3p5yeb47": {
+      "id": "C7y3p5yeb47",
+      "qualified_name": "interpretCardProgram",
+      "simple_name": "interpretCardProgram",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F4ysrp6ack8",
+      "start_line": 40,
+      "end_line": 58,
+      "start_byte": 1830,
+      "end_byte": 3073,
+      "signature_hint": "let rec private interpretCardProgram mongoDb prog = match prog with | GetCard (cardNumber, next) -> cardNumber |> getCardAsync mongoDb |> bindAsync (next >> interpretCardProgram mongoDb) | GetCardWithAccountInfo (number, next) -> number |> getCardWithAccInfoAsync mongoDb |> bindAsync (next >> interpretCardProgram mongoDb) | CreateCard ((card,acc), next) -> (card, acc) |> createCardAsync mongoDb |> bindAsync (next >> interpretCardProgram mongoDb) | ReplaceCard (card, next) -> card |> replaceCardAsync mongoDb |> bindAsync (next >> interpretCardProgram mongoDb) | GetUser (id, next) -> getUserAsync mongoDb id |> bindAsync (next >> interpretCardProgram mongoDb) | CreateUser (user, next) -> user |> createUserAsync mongoDb |> bindAsync (next >> interpretCardProgram mongoDb) | GetBalanceOperations (request, next) -> getBalanceOperationsAsync mongoDb request |> bindAsync (next >> interpretCardProgram mongoDb) | SaveBalanceOperation (op, next) -> saveBalanceOperationAsync mongoDb op |> bindAsync (next >> interpretCardProgram mongoDb) | Stop a -> async.Return a"
+    },
+    "C1418setzubi": {
+      "id": "C1418setzubi",
+      "qualified_name": "interpret",
+      "simple_name": "interpret",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F4ysrp6ack8",
+      "start_line": 60,
+      "end_line": 65,
+      "start_byte": 3079,
+      "end_byte": 3273,
+      "signature_hint": "let interpret prog = try let interpret = interpretCardProgram (getMongoDb()) interpret prog with | failure -> Bug failure |> Error |> async.Return"
+    },
+    "C2f301ufcre": {
+      "id": "C2f301ufcre",
+      "qualified_name": "interpretSimple",
+      "simple_name": "interpretSimple",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F4ysrp6ack8",
+      "start_line": 67,
+      "end_line": 75,
+      "start_byte": 3279,
+      "end_byte": 3564,
+      "signature_hint": "let interpretSimple prog = try let interpret = interpretCardProgram (getMongoDb()) async"
+    },
+    "C7nlkekdhnr": {
+      "id": "C7nlkekdhnr",
+      "qualified_name": "funcFinishedWithError",
+      "simple_name": "funcFinishedWithError",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F3bo3s3nggp",
+      "start_line": 13,
+      "end_line": 13,
+      "start_byte": 399,
+      "end_byte": 489,
+      "signature_hint": "let private funcFinishedWithError funcName = sprintf \"%s finished with error: %s\" funcName"
+    },
+    "Cml85enuoiy": {
+      "id": "Cml85enuoiy",
+      "qualified_name": "logDataError",
+      "simple_name": "logDataError",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F3bo3s3nggp",
+      "start_line": 15,
+      "end_line": 15,
+      "start_byte": 495,
+      "end_byte": 599,
+      "signature_hint": "let logDataError funcName e = dataRelatedErrorMessage e |> funcFinishedWithError funcName |> Log.Warning"
+    },
+    "Criz8mzge7d": {
+      "id": "Criz8mzge7d",
+      "qualified_name": "logValidationError",
+      "simple_name": "logValidationError",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F3bo3s3nggp",
+      "start_line": 17,
+      "end_line": 17,
+      "start_byte": 605,
+      "end_byte": 713,
+      "signature_hint": "let logValidationError funcName e = validationMessage e |> funcFinishedWithError funcName |> Log.Information"
+    },
+    "Camw7jpt3gw": {
+      "id": "Camw7jpt3gw",
+      "qualified_name": "logOperationNotAllowed",
+      "simple_name": "logOperationNotAllowed",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F3bo3s3nggp",
+      "start_line": 19,
+      "end_line": 19,
+      "start_byte": 719,
+      "end_byte": 836,
+      "signature_hint": "let logOperationNotAllowed funcName e = operationNotAllowedMessage e |> funcFinishedWithError funcName |> Log.Warning"
+    },
+    "C13adnj8kqtm": {
+      "id": "C13adnj8kqtm",
+      "qualified_name": "logError",
+      "simple_name": "logError",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F3bo3s3nggp",
+      "start_line": 21,
+      "end_line": 28,
+      "start_byte": 842,
+      "end_byte": 1168,
+      "signature_hint": "let logError funcName e = match e with | DataError e -> logDataError funcName e | ValidationError e -> logValidationError funcName e | OperationNotAllowed e -> logOperationNotAllowed funcName e | Bug _ -> let errorMessage = errorMessage e Log.Error(errorMessage)"
+    },
+    "C4qvqz3ei5o": {
+      "id": "C4qvqz3ei5o",
+      "qualified_name": "logResult",
+      "simple_name": "logResult",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F3bo3s3nggp",
+      "start_line": 30,
+      "end_line": 39,
+      "start_byte": 1174,
+      "end_byte": 1704,
+      "signature_hint": "let private logResult funcName result = match result with | Ok ok -> sprintf \"%s finished with result\\n%A\" funcName ok |> Log.Information | Error e -> match box e with | :? DataRelatedError as er -> logDataError funcName er | :? Error as er -> logError funcName er | :? ValidationError as er -> logValidationError funcName er | :? OperationNotAllowedError as er -> logOperationNotAllowed funcName er | e -> sprintf \"%A\" e |> Log.Error"
+    },
+    "Cfgp8ab3r2q": {
+      "id": "Cfgp8ab3r2q",
+      "qualified_name": "logifyResult",
+      "simple_name": "logifyResult",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F3bo3s3nggp",
+      "start_line": 41,
+      "end_line": 45,
+      "start_byte": 1710,
+      "end_byte": 1891,
+      "signature_hint": "let logifyResult funcName func x = sprintf \"start %s with arg\\n%A\" funcName x |> Log.Information let result = func x logResult funcName result result"
+    },
+    "Cvtlx9dm3db": {
+      "id": "Cvtlx9dm3db",
+      "qualified_name": "logifyResultAsync",
+      "simple_name": "logifyResultAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F3bo3s3nggp",
+      "start_line": 47,
+      "end_line": 53,
+      "start_byte": 1897,
+      "end_byte": 2143,
+      "signature_hint": "let logifyResultAsync funcName funcAsync x = async"
+    },
+    "Cquyy55xwj": {
+      "id": "Cquyy55xwj",
+      "qualified_name": "logifyPlainAsync",
+      "simple_name": "logifyPlainAsync",
+      "kind": "function",
+      "language": "fsharp",
+      "file": "F3bo3s3nggp",
+      "start_line": 55,
+      "end_line": 61,
+      "start_byte": 2149,
+      "end_byte": 2441,
+      "signature_hint": "let logifyPlainAsync funcName funcAsync x = async"
+    }
+  },
+  "files": {
+    "Fsp94spghkm": {
+      "id": "Fsp94spghkm",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/BalanceOperation.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "3cc57f60625121aaf4b6542f1322709151bc9bc28bb55e1d6e7dfdb3bfaaf890",
+      "size_bytes": 728,
+      "lines": 19,
+      "parse_ms": 0.783616,
+      "parse_status": "ok"
+    },
+    "F533r31sm5b": {
+      "id": "F533r31sm5b",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardActions.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "641b4c07c2386403bd007d70001d3bc1706b9c246692985372cea8b0bc298038",
+      "size_bytes": 5064,
+      "lines": 101,
+      "parse_ms": 2.0688400000000002,
+      "parse_status": "ok"
+    },
+    "F13xm6c7r3xb": {
+      "id": "F13xm6c7r3xb",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardDomain.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "6acea8a2a8151b2fe16d9d631c15ed71b44a9e23842ff2d649f5ecd700854048",
+      "size_bytes": 5092,
+      "lines": 139,
+      "parse_ms": 1.393003,
+      "parse_status": "error"
+    },
+    "Fbpkr8wbuob": {
+      "id": "Fbpkr8wbuob",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardDomainCommandModels.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "9bbd17265daab958e6e20c2fd673eee3a79aebf60154e3422b76ba6933dc7bc4",
+      "size_bytes": 6516,
+      "lines": 177,
+      "parse_ms": 2.0115100000000004,
+      "parse_status": "ok"
+    },
+    "F1zxqzktgqj": {
+      "id": "F1zxqzktgqj",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardDomainQueryModels.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "3e06bedaff43569dd2e97ae40ffe649a4b053f649d263f69041ea74cff29e4f6",
+      "size_bytes": 2608,
+      "lines": 77,
+      "parse_ms": 1.419933,
+      "parse_status": "ok"
+    },
+    "Fa5i1b9p4hv": {
+      "id": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "9558f443f5799491aab3ca215112e2f49ca221bb0a1a446a24b454079d4c21b9",
+      "size_bytes": 5935,
+      "lines": 109,
+      "parse_ms": 2.705257,
+      "parse_status": "ok"
+    },
+    "Fudior91vc7": {
+      "id": "Fudior91vc7",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardWorkflow.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "d3056fb11fb76dac8e66891f17ee9a8825011642b391132dcef8759bb6d88a83",
+      "size_bytes": 5180,
+      "lines": 113,
+      "parse_ms": 3.298803,
+      "parse_status": "ok"
+    },
+    "Fextwqtr74a": {
+      "id": "Fextwqtr74a",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/OptionConverter.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "d60ca2ac84129db342ecd5f83e13542fb8965a77bbd4d0c31cbc1a9edc56b08c",
+      "size_bytes": 1701,
+      "lines": 43,
+      "parse_ms": 1.253084,
+      "parse_status": "ok"
+    },
+    "Fgepfasscev": {
+      "id": "Fgepfasscev",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "7acda411b099b551e89c2695969f5ad70dbf327332d9438b8c230a8980dd7459",
+      "size_bytes": 5330,
+      "lines": 137,
+      "parse_ms": 2.475978,
+      "parse_status": "ok"
+    },
+    "F8v8o2dn057": {
+      "id": "F8v8o2dn057",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Common.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "07dc41f376d46729954811fb52f54e41703c04a57c24f8ca681697ecf69ba795",
+      "size_bytes": 470,
+      "lines": 21,
+      "parse_ms": 0.636516,
+      "parse_status": "ok"
+    },
+    "Fqd23g9uy3g": {
+      "id": "Fqd23g9uy3g",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/CommonTypes.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "8bdf080975d4258f02463ef4f8b2b1701bfce643fa7a151532e4963818ab6e7b",
+      "size_bytes": 3828,
+      "lines": 102,
+      "parse_ms": 5.531163,
+      "parse_status": "error"
+    },
+    "F10xy32m22rr": {
+      "id": "F10xy32m22rr",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Country.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "ecf68fac8d7e3077bda29ee602ac8b6081d9e286cbdcf2f74c236ec2c4d4f4c2",
+      "size_bytes": 4933,
+      "lines": 221,
+      "parse_ms": 1.5990419999999999,
+      "parse_status": "ok"
+    },
+    "F5e6501oqjq": {
+      "id": "F5e6501oqjq",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/ErrorMessages.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "fd4235101d9d3fb5299af6e38067844a3a44b41982b315d722261628be2efb87",
+      "size_bytes": 1195,
+      "lines": 28,
+      "parse_ms": 1.299213,
+      "parse_status": "ok"
+    },
+    "F1629dxylhzo": {
+      "id": "F1629dxylhzo",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Errors.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "9e3dcbcb3fdb5c14fb5020834f478d74750c41180559350d06a306444eedc5f6",
+      "size_bytes": 4160,
+      "lines": 102,
+      "parse_ms": 1.406053,
+      "parse_status": "ok"
+    },
+    "Fhhh1m8yjb0": {
+      "id": "Fhhh1m8yjb0",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Console/Program.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "38ee6318865d853bb92ad63effc4da3c8b105e21806876e9803eabb0ca5c4b5f",
+      "size_bytes": 1781,
+      "lines": 54,
+      "parse_ms": 0.739256,
+      "parse_status": "ok"
+    },
+    "F6uj6s5khp5": {
+      "id": "F6uj6s5khp5",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDataPipeline.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "7661044387ad2eff123965e3ff272afa872e224edaf188ed4cb0ce3034e6e164",
+      "size_bytes": 4781,
+      "lines": 103,
+      "parse_ms": 1.7210109999999998,
+      "parse_status": "ok"
+    },
+    "F12s3o81t2ol": {
+      "id": "F12s3o81t2ol",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDomainEntities.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "a21da877405095afed0860d5b56326da4aef38b1191ec8281847472a18ae0fab",
+      "size_bytes": 4472,
+      "lines": 115,
+      "parse_ms": 0.9152750000000001,
+      "parse_status": "ok"
+    },
+    "Fztl7334qj": {
+      "id": "Fztl7334qj",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardMongoConfiguration.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "aad6e384a3218e9a1e85f9a15d5d1f8481a02080c7f04c5658747025bfa9e90e",
+      "size_bytes": 1209,
+      "lines": 36,
+      "parse_ms": 0.612827,
+      "parse_status": "ok"
+    },
+    "F13u2ltso4my": {
+      "id": "F13u2ltso4my",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CommandRepository.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "e7fb600648e47b4faee4165cc92b1cc9502a781f9636c5b871204b41093664eb",
+      "size_bytes": 4339,
+      "lines": 95,
+      "parse_ms": 1.764411,
+      "parse_status": "ok"
+    },
+    "Fcr6utslue8": {
+      "id": "Fcr6utslue8",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/DomainToEntityMapping.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "f6443096a102fdf0742e5a675b5a2c39886f102de67fe1a8c30d00e078976359",
+      "size_bytes": 2498,
+      "lines": 67,
+      "parse_ms": 1.118055,
+      "parse_status": "ok"
+    },
+    "Fct6jle6dkw": {
+      "id": "Fct6jle6dkw",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/EntityToDomainMapping.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "a83f4613822ae389c9d3df7d313465a7c8f3131988c10758d1e990b144e214b4",
+      "size_bytes": 5125,
+      "lines": 117,
+      "parse_ms": 2.1201000000000003,
+      "parse_status": "ok"
+    },
+    "Fad90x311yl": {
+      "id": "Fad90x311yl",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/QueryRepository.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "494cab96e291933ae35a522ea6ee220db3491861c4863b89a57e1255c87efde8",
+      "size_bytes": 4026,
+      "lines": 92,
+      "parse_ms": 1.549082,
+      "parse_status": "ok"
+    },
+    "F14znbnyhrdl": {
+      "id": "F14znbnyhrdl",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/AppConfiguration.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "e20f657b959bcf67288f482c47f26a8d82e9db3bb8985a8ee0caefdec262e641",
+      "size_bytes": 1600,
+      "lines": 41,
+      "parse_ms": 0.764346,
+      "parse_status": "ok"
+    },
+    "Fjxk9gomcv0": {
+      "id": "Fjxk9gomcv0",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardApi.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "1c1f025dceb8144a71b52d3017ba04a793756b680a434b6707bc3ba62dba566a",
+      "size_bytes": 1411,
+      "lines": 24,
+      "parse_ms": 0.638117,
+      "parse_status": "ok"
+    },
+    "F4ysrp6ack8": {
+      "id": "F4ysrp6ack8",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardProgramInterpreter.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "bf169f3a598648fa5f0129687c066e5c054306ddf856302eb258ffefe6d440ac",
+      "size_bytes": 3565,
+      "lines": 75,
+      "parse_ms": 1.7123119999999998,
+      "parse_status": "ok"
+    },
+    "F3bo3s3nggp": {
+      "id": "F3bo3s3nggp",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/Logging.fs",
+      "language": "fsharp",
+      "detected_via": "extension:.fs",
+      "blake3": "3a09e79bcc6f33d9f543fb52c50402bd6108b1fcca9ec351e9a8399fd3a05733",
+      "size_bytes": 2442,
+      "lines": 61,
+      "parse_ms": 1.3564429999999998,
+      "parse_status": "ok"
+    }
+  },
+  "edges": [
+    {
+      "src": "C135tf3l1tki",
+      "dst": "Cw4vpsfj3xc",
+      "site_line": 17,
+      "site_byte": 521,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cl0zjkp9qmg",
+      "dst": "Cejdhqkbsgm",
+      "site_line": 33,
+      "site_byte": 1582,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C46vpq3k333",
+      "dst": "Cl0zjkp9qmg",
+      "site_line": 46,
+      "site_byte": 2059,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C46vpq3k333",
+      "dst": "C6a5r4p0rc5",
+      "site_line": 47,
+      "site_byte": 2107,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C46vpq3k333",
+      "dst": "C163xqzzcvek",
+      "site_line": 50,
+      "site_byte": 2246,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C156w8j8a0nn",
+      "dst": "Cl0zjkp9qmg",
+      "site_line": 54,
+      "site_byte": 2546,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C156w8j8a0nn",
+      "dst": "C6a5r4p0rc5",
+      "site_line": 55,
+      "site_byte": 2594,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C156w8j8a0nn",
+      "dst": "C163xqzzcvek",
+      "site_line": 58,
+      "site_byte": 2734,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ccma6oevbxx",
+      "dst": "Cl0zjkp9qmg",
+      "site_line": 88,
+      "site_byte": 4376,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ccma6oevbxx",
+      "dst": "C6a5r4p0rc5",
+      "site_line": 89,
+      "site_byte": 4424,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ccma6oevbxx",
+      "dst": "C163xqzzcvek",
+      "site_line": 92,
+      "site_byte": 4555,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C16x744gu68b",
+      "dst": "Cv9eh6swb95",
+      "site_line": 64,
+      "site_byte": 3974,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C8fhc9brr0k",
+      "dst": "C16x744gu68b",
+      "site_line": 80,
+      "site_byte": 4822,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11yq9qhuqt9",
+      "dst": "C16x744gu68b",
+      "site_line": 86,
+      "site_byte": 4999,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cbmlzv3sbmg",
+      "dst": "C12ho7mhg09o",
+      "site_line": 89,
+      "site_byte": 5089,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cbmlzv3sbmg",
+      "dst": "Cv9eh6swb95",
+      "site_line": 89,
+      "site_byte": 5106,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cbmlzv3sbmg",
+      "dst": "Cwdq9vr7dd6",
+      "site_line": 90,
+      "site_byte": 5136,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cv9eh6swb95",
+      "dst": "C12ho7mhg09o",
+      "site_line": 94,
+      "site_byte": 5292,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cv9eh6swb95",
+      "dst": "Cv9eh6swb95",
+      "site_line": 94,
+      "site_byte": 5309,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cv9eh6swb95",
+      "dst": "Cwdq9vr7dd6",
+      "site_line": 95,
+      "site_byte": 5343,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cq0wmegtde1",
+      "dst": "C11yq9qhuqt9",
+      "site_line": 96,
+      "site_byte": 5378,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cq0wmegtde1",
+      "dst": "Cbmlzv3sbmg",
+      "site_line": 96,
+      "site_byte": 5378,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cq0wmegtde1",
+      "dst": "Cq0wmegtde1",
+      "site_line": 96,
+      "site_byte": 5378,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Co0bjc79579",
+      "dst": "Czi0k22xwzq",
+      "site_line": 22,
+      "site_byte": 741,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cmt6l3tc13r",
+      "dst": "Co0bjc79579",
+      "site_line": 34,
+      "site_byte": 1467,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cnt0vigyzqk",
+      "dst": "Co0bjc79579",
+      "site_line": 50,
+      "site_byte": 2390,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C10xyow27txv",
+      "dst": "Co0bjc79579",
+      "site_line": 59,
+      "site_byte": 2834,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Coow55olz9n",
+      "dst": "Czi0k22xwzq",
+      "site_line": 70,
+      "site_byte": 3414,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cqeqnpsh23s",
+      "dst": "Co0bjc79579",
+      "site_line": 79,
+      "site_byte": 3836,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Chl8dr823rx",
+      "dst": "Cwfkgahjllw",
+      "site_line": 38,
+      "site_byte": 1339,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C15xcogih68n",
+      "dst": "Cji9k7poprf",
+      "site_line": 49,
+      "site_byte": 1506,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cqcf88evgz6",
+      "dst": "C15xcogih68n",
+      "site_line": 65,
+      "site_byte": 2189,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C12gh8or5ea1",
+      "dst": "C15xcogih68n",
+      "site_line": 77,
+      "site_byte": 2634,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cio5g6m5x8u",
+      "dst": "C7giaeunvjd",
+      "site_line": 14,
+      "site_byte": 327,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cduieu7knsh",
+      "dst": "Cziur5gmx50",
+      "site_line": 219,
+      "site_byte": 4754,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2uf2rcbanl",
+      "dst": "Cildueiuez0",
+      "site_line": 25,
+      "site_byte": 997,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2uf2rcbanl",
+      "dst": "Cj1yx29hlqb",
+      "site_line": 26,
+      "site_byte": 1052,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C6z4p78q7w8",
+      "dst": "C8x4dnzbbyz",
+      "site_line": 70,
+      "site_byte": 3118,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cf88ot33jpn",
+      "dst": "Cf88ot33jpn",
+      "site_line": 96,
+      "site_byte": 4013,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cmu6goh0woj",
+      "dst": "Cf88ot33jpn",
+      "site_line": 97,
+      "site_byte": 4035,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11be9uysptv",
+      "dst": "Csmpixp6cr7",
+      "site_line": 64,
+      "site_byte": 3012,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Clgew78g97g",
+      "dst": "Czasdkwffid",
+      "site_line": 93,
+      "site_byte": 3427,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ckshk6kvn1p",
+      "dst": "Cjfh1s5u9mz",
+      "site_line": 22,
+      "site_byte": 664,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C7qny8yb96o",
+      "dst": "Cjfh1s5u9mz",
+      "site_line": 26,
+      "site_byte": 812,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cx7wcv6745u",
+      "dst": "Cn5euox3ux2",
+      "site_line": 28,
+      "site_byte": 1217,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C34jszov3al",
+      "dst": "Cy3m1r3v6si",
+      "site_line": 55,
+      "site_byte": 2514,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cj3toniw6th",
+      "dst": "C34jszov3al",
+      "site_line": 59,
+      "site_byte": 2667,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Caonn6dn7wq",
+      "dst": "Cy3m1r3v6si",
+      "site_line": 63,
+      "site_byte": 2826,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C127y2mexc5e",
+      "dst": "C106s7rk3zk",
+      "site_line": 79,
+      "site_byte": 3510,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C5aadqvcp6l",
+      "dst": "C106s7rk3zk",
+      "site_line": 84,
+      "site_byte": 3765,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C13x49e53izq",
+      "dst": "C5aadqvcp6l",
+      "site_line": 92,
+      "site_byte": 3993,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14auc70le3r",
+      "dst": "C5aadqvcp6l",
+      "site_line": 97,
+      "site_byte": 4200,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C13uziqx2888",
+      "dst": "C2mjku39b4m",
+      "site_line": 12,
+      "site_byte": 355,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C7y3p5yeb47",
+      "dst": "Cv5ic8587io",
+      "site_line": 51,
+      "site_byte": 2527,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C7y3p5yeb47",
+      "dst": "Cya4zdxyjl",
+      "site_line": 55,
+      "site_byte": 2798,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C7y3p5yeb47",
+      "dst": "Czysn11jtxc",
+      "site_line": 57,
+      "site_byte": 2950,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1418setzubi",
+      "dst": "C7y3p5yeb47",
+      "site_line": 62,
+      "site_byte": 3140,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1418setzubi",
+      "dst": "C13uziqx2888",
+      "site_line": 62,
+      "site_byte": 3162,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1418setzubi",
+      "dst": "C1418setzubi",
+      "site_line": 63,
+      "site_byte": 3188,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2f301ufcre",
+      "dst": "C7y3p5yeb47",
+      "site_line": 69,
+      "site_byte": 3346,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2f301ufcre",
+      "dst": "C13uziqx2888",
+      "site_line": 69,
+      "site_byte": 3368,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2f301ufcre",
+      "dst": "C1418setzubi",
+      "site_line": 71,
+      "site_byte": 3432,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C13adnj8kqtm",
+      "dst": "Cml85enuoiy",
+      "site_line": 23,
+      "site_byte": 914,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C13adnj8kqtm",
+      "dst": "Criz8mzge7d",
+      "site_line": 24,
+      "site_byte": 969,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C13adnj8kqtm",
+      "dst": "Camw7jpt3gw",
+      "site_line": 25,
+      "site_byte": 1034,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4qvqz3ei5o",
+      "dst": "Cml85enuoiy",
+      "site_line": 35,
+      "site_byte": 1421,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4qvqz3ei5o",
+      "dst": "C13adnj8kqtm",
+      "site_line": 36,
+      "site_byte": 1478,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4qvqz3ei5o",
+      "dst": "Criz8mzge7d",
+      "site_line": 37,
+      "site_byte": 1541,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4qvqz3ei5o",
+      "dst": "Camw7jpt3gw",
+      "site_line": 38,
+      "site_byte": 1623,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cfgp8ab3r2q",
+      "dst": "C4qvqz3ei5o",
+      "site_line": 44,
+      "site_byte": 1851,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cvtlx9dm3db",
+      "dst": "C4qvqz3ei5o",
+      "site_line": 51,
+      "site_byte": 2082,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cejdhqkbsgm",
+      "dst": "C14btrzo2nkv",
+      "site_line": 20,
+      "site_byte": 1044,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ccma6oevbxx",
+      "dst": "C72ozy0tzmq",
+      "site_line": 87,
+      "site_byte": 4336,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Coxxbna6ftr",
+      "dst": "C8x4dnzbbyz",
+      "site_line": 108,
+      "site_byte": 5895,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Co0bjc79579",
+      "dst": "Czel7vck5r5",
+      "site_line": 21,
+      "site_byte": 690,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cmt6l3tc13r",
+      "dst": "C1ixbysjrt4",
+      "site_line": 37,
+      "site_byte": 1655,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cmt6l3tc13r",
+      "dst": "Clh3zyvdk0w",
+      "site_line": 42,
+      "site_byte": 1991,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cmt6l3tc13r",
+      "dst": "Cus22upm4wq",
+      "site_line": 43,
+      "site_byte": 2064,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cnt0vigyzqk",
+      "dst": "Cus22upm4wq",
+      "site_line": 52,
+      "site_byte": 2548,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C10xyow27txv",
+      "dst": "Clh3zyvdk0w",
+      "site_line": 61,
+      "site_byte": 2991,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C10xyow27txv",
+      "dst": "Cus22upm4wq",
+      "site_line": 62,
+      "site_byte": 3064,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Coow55olz9n",
+      "dst": "Cf71d5qglp5",
+      "site_line": 69,
+      "site_byte": 3341,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Coow55olz9n",
+      "dst": "Cus22upm4wq",
+      "site_line": 72,
+      "site_byte": 3553,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cqeqnpsh23s",
+      "dst": "Cus22upm4wq",
+      "site_line": 81,
+      "site_byte": 3929,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C16v192xflcm",
+      "dst": "C8ehynkkkdm",
+      "site_line": 87,
+      "site_byte": 4134,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C16v192xflcm",
+      "dst": "Ceilh8hgane",
+      "site_line": 88,
+      "site_byte": 4226,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cergdqkut9y",
+      "dst": "Cmmniyb0soi",
+      "site_line": 98,
+      "site_byte": 4625,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cs12qr9mwf3",
+      "dst": "Czel7vck5r5",
+      "site_line": 105,
+      "site_byte": 4920,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cqlly34h5v5",
+      "dst": "Ca5hrwge7fa",
+      "site_line": 111,
+      "site_byte": 5096,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C15xcogih68n",
+      "dst": "C2uf2rcbanl",
+      "site_line": 45,
+      "site_byte": 1365,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cahmkjwc3ez",
+      "dst": "Cncrsrvkd81",
+      "site_line": 121,
+      "site_byte": 4782,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cu7q0dzbrr",
+      "dst": "Ctyb922q7aq",
+      "site_line": 46,
+      "site_byte": 1426,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ckwrsqxfxb2",
+      "dst": "C5uj2ulxng1",
+      "site_line": 44,
+      "site_byte": 1781,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cs3l2k41sts",
+      "dst": "Cmedisubj1h",
+      "site_line": 50,
+      "site_byte": 1974,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cs3l2k41sts",
+      "dst": "C5uj2ulxng1",
+      "site_line": 54,
+      "site_byte": 2277,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C106s7rk3zk",
+      "dst": "Cduieu7knsh",
+      "site_line": 68,
+      "site_byte": 3060,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cr7hd54riiz",
+      "dst": "Clgew78g97g",
+      "site_line": 20,
+      "site_byte": 780,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C7y3p5yeb47",
+      "dst": "C2erm71v5w1",
+      "site_line": 58,
+      "site_byte": 3059,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C7y3p5yeb47",
+      "dst": "Cwdq9vr7dd6",
+      "site_line": 58,
+      "site_byte": 3059,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Criz8mzge7d",
+      "dst": "Cildueiuez0",
+      "site_line": 17,
+      "site_byte": 641,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Camw7jpt3gw",
+      "dst": "Cj1yx29hlqb",
+      "site_line": 19,
+      "site_byte": 759,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C13adnj8kqtm",
+      "dst": "C2uf2rcbanl",
+      "site_line": 27,
+      "site_byte": 1118,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": null,
+      "file": "F533r31sm5b",
+      "site_line": 22,
+      "site_byte": 1152,
+      "name": "operationNotAllowed",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F533r31sm5b",
+      "site_line": 24,
+      "site_byte": 1234,
+      "name": "operationNotAllowed",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F13xm6c7r3xb",
+      "site_line": 33,
+      "site_byte": 1406,
+      "name": "validationError",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F13xm6c7r3xb",
+      "site_line": 36,
+      "site_byte": 1577,
+      "name": "validationError",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fbpkr8wbuob",
+      "site_line": 140,
+      "site_byte": 5052,
+      "name": "parseCountry",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fa5i1b9p4hv",
+      "site_line": 101,
+      "site_byte": 5520,
+      "name": "ProgramBuilder",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fa5i1b9p4hv",
+      "site_line": 102,
+      "site_byte": 5561,
+      "name": "SimpleProgramBuilder",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgepfasscev",
+      "site_line": 90,
+      "site_byte": 3156,
+      "name": "bindJsonForRoute",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgepfasscev",
+      "site_line": 92,
+      "site_byte": 3306,
+      "name": "bindJsonForRoute",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgepfasscev",
+      "site_line": 94,
+      "site_byte": 3452,
+      "name": "bindJsonForRoute",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgepfasscev",
+      "site_line": 96,
+      "site_byte": 3628,
+      "name": "bindJsonForRoute",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgepfasscev",
+      "site_line": 98,
+      "site_byte": 3806,
+      "name": "bindJsonForRoute",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgepfasscev",
+      "site_line": 103,
+      "site_byte": 4030,
+      "name": "bindJsonForRoute",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgepfasscev",
+      "site_line": 105,
+      "site_byte": 4182,
+      "name": "bindJsonForRoute",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fqd23g9uy3g",
+      "site_line": 54,
+      "site_byte": 1736,
+      "name": "validationError",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fqd23g9uy3g",
+      "site_line": 62,
+      "site_byte": 2024,
+      "name": "validationError",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fqd23g9uy3g",
+      "site_line": 65,
+      "site_byte": 2191,
+      "name": "validationError",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fqd23g9uy3g",
+      "site_line": 73,
+      "site_byte": 2524,
+      "name": "validationError",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fqd23g9uy3g",
+      "site_line": 89,
+      "site_byte": 3274,
+      "name": "validationError",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fqd23g9uy3g",
+      "site_line": 92,
+      "site_byte": 3426,
+      "name": "validationError",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F13u2ltso4my",
+      "site_line": 29,
+      "site_byte": 1111,
+      "name": "isDuplicateKeyException",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fad90x311yl",
+      "site_line": 35,
+      "site_byte": 1364,
+      "name": "getCardQuery",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fad90x311yl",
+      "site_line": 36,
+      "site_byte": 1416,
+      "name": "getAccountInfoQuery",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fad90x311yl",
+      "site_line": 38,
+      "site_byte": 1492,
+      "name": "runSingleQuery",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fad90x311yl",
+      "site_line": 39,
+      "site_byte": 1559,
+      "name": "runSingleQuery",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fad90x311yl",
+      "site_line": 53,
+      "site_byte": 2076,
+      "name": "getUserQuery",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fad90x311yl",
+      "site_line": 54,
+      "site_byte": 2109,
+      "name": "runSingleQuery",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fad90x311yl",
+      "site_line": 68,
+      "site_byte": 2693,
+      "name": "getUserCardsQuery",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fad90x311yl",
+      "site_line": 69,
+      "site_byte": 2780,
+      "name": "getUserAccountInfosQuery",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fad90x311yl",
+      "site_line": 88,
+      "site_byte": 3819,
+      "name": "getBalanceOperationsQuery",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fbpkr8wbuob",
+      "site_line": 91,
+      "site_byte": 3269,
+      "name": "create",
+      "receiver_hint": "CardNumber",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fbpkr8wbuob",
+      "site_line": 111,
+      "site_byte": 4018,
+      "name": "ofDecimal",
+      "receiver_hint": "DailyLimit",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fbpkr8wbuob",
+      "site_line": 141,
+      "site_byte": 5101,
+      "name": "create",
+      "receiver_hint": "LetterString",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fbpkr8wbuob",
+      "site_line": 142,
+      "site_byte": 5167,
+      "name": "create",
+      "receiver_hint": "PostalCode",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C8ehynkkkdm",
+      "file": "Fbpkr8wbuob",
+      "site_line": 154,
+      "site_byte": 5591,
+      "name": "create",
+      "receiver_hint": "LetterString",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fbpkr8wbuob",
+      "site_line": 165,
+      "site_byte": 5956,
+      "name": "create",
+      "receiver_hint": "LetterString",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fbpkr8wbuob",
+      "site_line": 166,
+      "site_byte": 6018,
+      "name": "create",
+      "receiver_hint": "CardNumber",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fbpkr8wbuob",
+      "site_line": 167,
+      "site_byte": 6089,
+      "name": "create",
+      "receiver_hint": "Month",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fbpkr8wbuob",
+      "site_line": 168,
+      "site_byte": 6164,
+      "name": "create",
+      "receiver_hint": "Year",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fbpkr8wbuob",
+      "site_line": 175,
+      "site_byte": 6442,
+      "name": "Default",
+      "receiver_hint": "AccountInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Czi0k22xwzq",
+      "file": "Fudior91vc7",
+      "site_line": 17,
+      "site_byte": 583,
+      "name": "ofOption",
+      "receiver_hint": "Result",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cmt6l3tc13r",
+      "file": "Fudior91vc7",
+      "site_line": 38,
+      "site_byte": 1739,
+      "name": "spentAtDate",
+      "receiver_hint": "BalanceOperation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cmt6l3tc13r",
+      "file": "Fudior91vc7",
+      "site_line": 40,
+      "site_byte": 1852,
+      "name": "processPayment",
+      "receiver_hint": "CardActions",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "Cnt0vigyzqk",
+      "file": "Fudior91vc7",
+      "site_line": 51,
+      "site_byte": 2440,
+      "name": "setDailyLimit",
+      "receiver_hint": "CardActions",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "C10xyow27txv",
+      "file": "Fudior91vc7",
+      "site_line": 60,
+      "site_byte": 2890,
+      "name": "topUp",
+      "receiver_hint": "CardActions",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "Coow55olz9n",
+      "file": "Fudior91vc7",
+      "site_line": 71,
+      "site_byte": 3503,
+      "name": "activate",
+      "receiver_hint": "CardActions",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cqeqnpsh23s",
+      "file": "Fudior91vc7",
+      "site_line": 80,
+      "site_byte": 3885,
+      "name": "deactivate",
+      "receiver_hint": "CardActions",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cergdqkut9y",
+      "file": "Fudior91vc7",
+      "site_line": 97,
+      "site_byte": 4570,
+      "name": "Default",
+      "receiver_hint": "AccountInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cs12qr9mwf3",
+      "file": "Fudior91vc7",
+      "site_line": 104,
+      "site_byte": 4829,
+      "name": "create",
+      "receiver_hint": "CardNumber",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cncrsrvkd81",
+      "file": "Fextwqtr74a",
+      "site_line": 21,
+      "site_byte": 562,
+      "name": "JsonConverter",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "C15xcogih68n",
+      "file": "Fgepfasscev",
+      "site_line": 55,
+      "site_byte": 1788,
+      "name": "notFound",
+      "receiver_hint": "RequestErrors",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C12gh8or5ea1",
+      "file": "Fgepfasscev",
+      "site_line": 76,
+      "site_byte": 2573,
+      "name": "notFound",
+      "receiver_hint": "RequestErrors",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgepfasscev",
+      "site_line": 85,
+      "site_byte": 2901,
+      "name": "getUser",
+      "receiver_hint": "CardApi",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgepfasscev",
+      "site_line": 86,
+      "site_byte": 3014,
+      "name": "getCard",
+      "receiver_hint": "CardApi",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgepfasscev",
+      "site_line": 91,
+      "site_byte": 3229,
+      "name": "deactivateCard",
+      "receiver_hint": "CardApi",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgepfasscev",
+      "site_line": 93,
+      "site_byte": 3377,
+      "name": "activateCard",
+      "receiver_hint": "CardApi",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgepfasscev",
+      "site_line": 95,
+      "site_byte": 3528,
+      "name": "setDailyLimit",
+      "receiver_hint": "CardApi",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgepfasscev",
+      "site_line": 97,
+      "site_byte": 3705,
+      "name": "processPayment",
+      "receiver_hint": "CardApi",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgepfasscev",
+      "site_line": 99,
+      "site_byte": 3874,
+      "name": "topUp",
+      "receiver_hint": "CardApi",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgepfasscev",
+      "site_line": 104,
+      "site_byte": 4092,
+      "name": "createUser",
+      "receiver_hint": "CardApi",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgepfasscev",
+      "site_line": 106,
+      "site_byte": 4244,
+      "name": "createCard",
+      "receiver_hint": "CardApi",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgepfasscev",
+      "site_line": 108,
+      "site_byte": 4327,
+      "name": "notFound",
+      "receiver_hint": "RequestErrors",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cdj2waxj84s",
+      "file": "Fgepfasscev",
+      "site_line": 129,
+      "site_byte": 5081,
+      "name": "configureLog",
+      "receiver_hint": "AppConfiguration",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C7giaeunvjd",
+      "file": "F8v8o2dn057",
+      "site_line": 11,
+      "site_byte": 261,
+      "name": "f",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cph2t3rtyak",
+      "file": "F8v8o2dn057",
+      "site_line": 20,
+      "site_byte": 456,
+      "name": "f",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cpf3dc5sdsc",
+      "file": "Fhhh1m8yjb0",
+      "site_line": 14,
+      "site_byte": 319,
+      "name": "configureLog",
+      "receiver_hint": "AppConfiguration",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cpf3dc5sdsc",
+      "file": "Fhhh1m8yjb0",
+      "site_line": 46,
+      "site_byte": 1377,
+      "name": "createUser",
+      "receiver_hint": "CardApi",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cpf3dc5sdsc",
+      "file": "Fhhh1m8yjb0",
+      "site_line": 47,
+      "site_byte": 1441,
+      "name": "createCard",
+      "receiver_hint": "CardApi",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cpf3dc5sdsc",
+      "file": "Fhhh1m8yjb0",
+      "site_line": 48,
+      "site_byte": 1495,
+      "name": "topUp",
+      "receiver_hint": "CardApi",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "Cpf3dc5sdsc",
+      "file": "Fhhh1m8yjb0",
+      "site_line": 49,
+      "site_byte": 1569,
+      "name": "processPayment",
+      "receiver_hint": "CardApi",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "Csmpixp6cr7",
+      "file": "F6uj6s5khp5",
+      "site_line": 57,
+      "site_byte": 2735,
+      "name": "getUserInfoAsync",
+      "receiver_hint": "QueryRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C17n8rngrzp9",
+      "file": "F6uj6s5khp5",
+      "site_line": 82,
+      "site_byte": 3717,
+      "name": "getCardAsync",
+      "receiver_hint": "QueryRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Ceptyl9fkyj",
+      "file": "F6uj6s5khp5",
+      "site_line": 89,
+      "site_byte": 4005,
+      "name": "getCardAsync",
+      "receiver_hint": "QueryRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cflobqa7eg9",
+      "file": "F6uj6s5khp5",
+      "site_line": 96,
+      "site_byte": 4334,
+      "name": "getBalanceOperationsAsync",
+      "receiver_hint": "QueryRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C5uj2ulxng1",
+      "file": "F12s3o81t2ol",
+      "site_line": 106,
+      "site_byte": 4094,
+      "name": "f",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cy3m1r3v6si",
+      "file": "Fct6jle6dkw",
+      "site_line": 33,
+      "site_byte": 1452,
+      "name": "create",
+      "receiver_hint": "CardNumber",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cy3m1r3v6si",
+      "file": "Fct6jle6dkw",
+      "site_line": 34,
+      "site_byte": 1529,
+      "name": "create",
+      "receiver_hint": "LetterString",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cy3m1r3v6si",
+      "file": "Fct6jle6dkw",
+      "site_line": 35,
+      "site_byte": 1597,
+      "name": "create",
+      "receiver_hint": "Month",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cy3m1r3v6si",
+      "file": "Fct6jle6dkw",
+      "site_line": 36,
+      "site_byte": 1679,
+      "name": "create",
+      "receiver_hint": "Year",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cy3m1r3v6si",
+      "file": "Fct6jle6dkw",
+      "site_line": 39,
+      "site_byte": 1855,
+      "name": "ofDecimal",
+      "receiver_hint": "DailyLimit",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C106s7rk3zk",
+      "file": "Fct6jle6dkw",
+      "site_line": 69,
+      "site_byte": 3112,
+      "name": "create",
+      "receiver_hint": "LetterString",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C106s7rk3zk",
+      "file": "Fct6jle6dkw",
+      "site_line": 70,
+      "site_byte": 3181,
+      "name": "create",
+      "receiver_hint": "PostalCode",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C5aadqvcp6l",
+      "file": "Fct6jle6dkw",
+      "site_line": 83,
+      "site_byte": 3699,
+      "name": "create",
+      "receiver_hint": "LetterString",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C2mjku39b4m",
+      "file": "F4ysrp6ack8",
+      "site_line": 11,
+      "site_byte": 256,
+      "name": "buildConfig",
+      "receiver_hint": "AppConfiguration",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Csveqys93op",
+      "file": "F4ysrp6ack8",
+      "site_line": 15,
+      "site_byte": 457,
+      "name": "getCardAsync",
+      "receiver_hint": "CardDataPipeline",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cv5ic8587io",
+      "file": "F4ysrp6ack8",
+      "site_line": 18,
+      "site_byte": 595,
+      "name": "getUserWithCards",
+      "receiver_hint": "CardDataPipeline",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cxmvsmcnxt2",
+      "file": "F4ysrp6ack8",
+      "site_line": 21,
+      "site_byte": 757,
+      "name": "getCardWithAccountInfoAsync",
+      "receiver_hint": "CardDataPipeline",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C1049hrptilr",
+      "file": "F4ysrp6ack8",
+      "site_line": 24,
+      "site_byte": 929,
+      "name": "replaceCardAsync",
+      "receiver_hint": "CardDataPipeline",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "Cya4zdxyjl",
+      "file": "F4ysrp6ack8",
+      "site_line": 27,
+      "site_byte": 1089,
+      "name": "getBalanceOperationsAsync",
+      "receiver_hint": "CardDataPipeline",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Czysn11jtxc",
+      "file": "F4ysrp6ack8",
+      "site_line": 30,
+      "site_byte": 1266,
+      "name": "createBalanceOperationAsync",
+      "receiver_hint": "CardDataPipeline",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C6tku9zyx3x",
+      "file": "F4ysrp6ack8",
+      "site_line": 33,
+      "site_byte": 1438,
+      "name": "createCardAsync",
+      "receiver_hint": "CardDataPipeline",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "C331lyb1r1k",
+      "file": "F4ysrp6ack8",
+      "site_line": 36,
+      "site_byte": 1582,
+      "name": "createUserAsync",
+      "receiver_hint": "CardDataPipeline",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 25.939271,
+    "phases": {
+      "walk_ms": 2.462108,
+      "parse_ms": 42.893246,
+      "extract_ms": 0.0,
+      "resolve_ms": 0.0,
+      "link_ms": 2.225879,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 75,
+    "files_analyzed": 26,
+    "files_skipped": 49,
+    "files_errored": 0,
+    "bytes_processed": 89989,
+    "callables": 188,
+    "edges": 128,
+    "unresolved_calls": 143,
+    "stdlib_calls": 0,
+    "external_calls": 389,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "fsharp": {
+        "files": 26,
+        "callables": 188,
+        "edges": 95,
+        "unresolved": 143,
+        "stdlib": 0,
+        "external": 389
+      },
+      "skip:builtin": {
+        "files": 30,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 90,
+      "medium": 38,
+      "low": 0
+    }
+  }
+}

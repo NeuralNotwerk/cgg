@@ -1,0 +1,6785 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "graphql",
+      "class": "descriptor",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [],
+      "files": 15,
+      "callables": 22,
+      "roots": 0,
+      "reachable": 0,
+      "reachable_pct": 0,
+      "findings": 0
+    },
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 6,
+      "callables": 7,
+      "roots": 1,
+      "reachable": 6,
+      "reachable_pct": 85,
+      "findings": 1,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    },
+    {
+      "language": "typescript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "framework:entry-node",
+        "framework:test-harness",
+        "toplevel:invocation"
+      ],
+      "files": 191,
+      "callables": 249,
+      "roots": 196,
+      "reachable": 123,
+      "reachable_pct": 49,
+      "findings": 112,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 278,
+    "edges": 395,
+    "unresolved_call_sites": 305,
+    "roots": 197,
+    "candidates": 149,
+    "reported": 113,
+    "regions": 76,
+    "withheld": [
+      {
+        "language": "graphql",
+        "category": "never-referenced",
+        "reason": "descriptor-language",
+        "would_have_reported": 4
+      },
+      {
+        "language": "graphql",
+        "category": "reachable-only-from-dead-code",
+        "reason": "descriptor-language",
+        "would_have_reported": 16
+      },
+      {
+        "language": "graphql",
+        "category": "dead-cycle",
+        "reason": "descriptor-language",
+        "would_have_reported": 2
+      },
+      {
+        "language": "typescript",
+        "category": "only-used-by-tests",
+        "reason": "missing-signal",
+        "would_have_reported": 14
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "C226i1i7xa4",
+      "qualified_name": "providersDecorator",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/.storybook/providersDecorator.tsx:16"
+    },
+    {
+      "id": "Cmzs8iv6tdz",
+      "qualified_name": "wrapTables",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/content-collections.ts:53"
+    },
+    {
+      "id": "Cjiapxkc6w8",
+      "qualified_name": "handler_at_1",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C84mv9ne57m",
+      "qualified_name": "handler_at_3",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cjbmwqha48m",
+      "qualified_name": "handler_at_6",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C18bln6tl607",
+      "qualified_name": "handler_at_11",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cts0t660jxf",
+      "qualified_name": "handler_at_16",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C1spnk2u3na",
+      "qualified_name": "handler_at_25",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cto2iqyo248",
+      "qualified_name": "handler_at_4",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Crp2iotcird",
+      "qualified_name": "handler_at_6",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cw9ubjfr2qv",
+      "qualified_name": "handler_at_17",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C108m3992nuz",
+      "qualified_name": "handler_at_21",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C1c6qlqkjd6",
+      "qualified_name": "handler_at_36",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Ck64txiohrc",
+      "qualified_name": "handler_at_75",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cqkjsf5ho5r",
+      "qualified_name": "handler_at_92",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C12bml4y97d5",
+      "qualified_name": "handler_at_119",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cjpexdlhyxg",
+      "qualified_name": "handler_at_150",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cyok2fyd96m",
+      "qualified_name": "handler_at_189",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cidvujb8hcy",
+      "qualified_name": "handler_at_1",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Ct4wk0pkp8k",
+      "qualified_name": "handler_at_3",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C996q6y3yzs",
+      "qualified_name": "handler_at_6",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cxl99xu0t6h",
+      "qualified_name": "handler_at_11",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C11gq55qlcbe",
+      "qualified_name": "handler_at_3",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C7ockumwqel",
+      "qualified_name": "handler_at_5",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C298j9lhf07",
+      "qualified_name": "handler_at_16",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cfdji2gmlox",
+      "qualified_name": "handler_at_20",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C1585hf35lvk",
+      "qualified_name": "handler_at_82",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cu2k0gny8hd",
+      "qualified_name": "handler_at_90",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C17lh3txhj43",
+      "qualified_name": "handler_at_153",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Chqzqadzydo",
+      "qualified_name": "handler_at_197",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C14dffpivd29",
+      "qualified_name": "handler_at_3",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C10olg38qbdp",
+      "qualified_name": "handler_at_5",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cgyzwxmtxfq",
+      "qualified_name": "handler_at_8",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C6p1sl2bjik",
+      "qualified_name": "handler_at_13",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cmz3pcko182",
+      "qualified_name": "handler_at_18",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C84t2q7em5t",
+      "qualified_name": "handler_at_38",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cvudlv0399c",
+      "qualified_name": "handler_at_63",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cwycut9yjkg",
+      "qualified_name": "handler_at_80",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cxzlk9ln8si",
+      "qualified_name": "handler_at_121",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C83rt341v47",
+      "qualified_name": "handler_at_164",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Czx9qwtqymf",
+      "qualified_name": "handler_at_199",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cux589cojgv",
+      "qualified_name": "handler_at_229",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C17f42fim6jg",
+      "qualified_name": "handler_at_261",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C151ac03xcqx",
+      "qualified_name": "handler_at_304",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Clxsujtq53w",
+      "qualified_name": "handler_at_359",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cdusv35qacr",
+      "qualified_name": "handler_at_378",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Ci3j556uck7",
+      "qualified_name": "handler_at_508",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Ci2wogqt5az",
+      "qualified_name": "handler_at_536",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cqg8fm1i58k",
+      "qualified_name": "handler_at_558",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C11alix3588h",
+      "qualified_name": "handler_at_567",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cb2ygto4azr",
+      "qualified_name": "handler_at_582",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cicgufxiov0",
+      "qualified_name": "handler_at_590",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C1341ymyngp4",
+      "qualified_name": "handler_at_601",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cf0xp28yjqt",
+      "qualified_name": "handler_at_1",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cxm70r833am",
+      "qualified_name": "handler_at_3",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cjyvb2w68h8",
+      "qualified_name": "handler_at_6",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C7utecobmi9",
+      "qualified_name": "handler_at_11",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Crn5o8crwxp",
+      "qualified_name": "handler_at_1",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cb4o8t3n2ly",
+      "qualified_name": "handler_at_3",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C10zt9eacdcj",
+      "qualified_name": "handler_at_14",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Ctdfp7vkujb",
+      "qualified_name": "handler_at_18",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cjdram2rbdi",
+      "qualified_name": "handler_at_1",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C7cvnt99t88",
+      "qualified_name": "handler_at_3",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cmktzoxir0y",
+      "qualified_name": "handler_at_6",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Crvdypqzxs2",
+      "qualified_name": "handler_at_11",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cm244nvdxpa",
+      "qualified_name": "handler_at_16",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cr7gfkt9wx",
+      "qualified_name": "handler_at_25",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C11poscp37io",
+      "qualified_name": "handler_at_4",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C3uxxntuafd",
+      "qualified_name": "handler_at_6",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C1v9cbyzsyr",
+      "qualified_name": "handler_at_17",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C9k8hlzlpty",
+      "qualified_name": "handler_at_21",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Canaiepvgey",
+      "qualified_name": "handler_at_36",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cw809wa2rcj",
+      "qualified_name": "handler_at_75",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cf0stgy12z4",
+      "qualified_name": "handler_at_92",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C6ir9ghsg5q",
+      "qualified_name": "handler_at_119",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Ch4q3z1jgwv",
+      "qualified_name": "handler_at_150",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C15hc2tnlyd1",
+      "qualified_name": "handler_at_1",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C1135rdca4hd",
+      "qualified_name": "handler_at_3",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C6o002eqfg4",
+      "qualified_name": "handler_at_6",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cboqucgg5hw",
+      "qualified_name": "handler_at_11",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cuuih4z4lll",
+      "qualified_name": "handler_at_3",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cnsw9i2s0op",
+      "qualified_name": "handler_at_5",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C11ey1yt0rnd",
+      "qualified_name": "handler_at_16",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C8mhkar0r2q",
+      "qualified_name": "handler_at_20",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C1iqhmt4ac",
+      "qualified_name": "handler_at_82",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C8o6gtmb0do",
+      "qualified_name": "handler_at_90",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cki90riew3y",
+      "qualified_name": "handler_at_153",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C121ts9x6v54",
+      "qualified_name": "handler_at_187",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cnxx9839mtm",
+      "qualified_name": "handler_at_3",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cp58ft87y7p",
+      "qualified_name": "handler_at_5",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C4und38b0lc",
+      "qualified_name": "handler_at_8",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cjak3k4ebmk",
+      "qualified_name": "handler_at_13",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Crf5htvyl9f",
+      "qualified_name": "handler_at_18",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cer8q1ep9vp",
+      "qualified_name": "handler_at_35",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cslyg5ko61i",
+      "qualified_name": "handler_at_60",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C12lwzy63q87",
+      "qualified_name": "handler_at_78",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cwrfk3wp3vt",
+      "qualified_name": "handler_at_101",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C179q6wnykqy",
+      "qualified_name": "handler_at_141",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Ccw2lhfueuw",
+      "qualified_name": "handler_at_176",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cz8mtvuwbky",
+      "qualified_name": "handler_at_199",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Clv8uwilll0",
+      "qualified_name": "handler_at_246",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C7n5dl01udx",
+      "qualified_name": "handler_at_302",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C186srngs408",
+      "qualified_name": "handler_at_332",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C15ywmca08q3",
+      "qualified_name": "handler_at_361",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cxqy5hz664m",
+      "qualified_name": "handler_at_377",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Ca5ups8zw4",
+      "qualified_name": "handler_at_399",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C11cwrh0ntrm",
+      "qualified_name": "handler_at_415",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Clehkipwm5y",
+      "qualified_name": "handler_at_433",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Csscobn23ro",
+      "qualified_name": "handler_at_1",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C16j79k7a4fd",
+      "qualified_name": "handler_at_3",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cvtut30r1ks",
+      "qualified_name": "handler_at_6",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Ca9emitkb5m",
+      "qualified_name": "handler_at_11",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C7yov9nw61f",
+      "qualified_name": "handler_at_1",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C324jd0zjt2",
+      "qualified_name": "handler_at_3",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C8rm9gfvkjt",
+      "qualified_name": "handler_at_14",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C151fda5azp1",
+      "qualified_name": "handler_at_18",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cuisaaqpg5u",
+      "qualified_name": "run",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/scripts/areaToDatabase/lib.ts:404"
+    },
+    {
+      "id": "C1046wgbqvm",
+      "qualified_name": "handler_at_37",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C286p49750t",
+      "qualified_name": "handler_at_42",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C18bz8ykvtdy",
+      "qualified_name": "handler_at_47",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C5sxq195d1n",
+      "qualified_name": "handler_at_69",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cmx0votda71",
+      "qualified_name": "handler_at_108",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cojlbfkdmp8",
+      "qualified_name": "handler_at_119",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C406o39c3vd",
+      "qualified_name": "handler_at_235",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Csgzd0h5wsl",
+      "qualified_name": "checkRole",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/api/directives/checkRole.ts:14"
+    },
+    {
+      "id": "C6yhn6xepr6",
+      "qualified_name": "astToOpeningTimes",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/api/graphql/OpeningTimesScalar.ts:72"
+    },
+    {
+      "id": "Cknuxsrqu60",
+      "qualified_name": "validateOpeningTimes",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/api/graphql/OpeningTimesScalar.ts:72"
+    },
+    {
+      "id": "C5zamtbdiiq",
+      "qualified_name": "fetchGraphQLLoosWithinGeohash",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/api/graphql/resolvers.ts:141"
+    },
+    {
+      "id": "C6tihig05bu",
+      "qualified_name": "postgresAuditRecordToGraphQLReport",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/api/graphql/resolvers.ts:287"
+    },
+    {
+      "id": "C16gl6z5otoe",
+      "qualified_name": "schema",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/api-client/schema.ts:19"
+    },
+    {
+      "id": "Cyoqf31t3nc",
+      "qualified_name": "CodeViewer",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/CodeViewer/CodeViewer.tsx:95"
+    },
+    {
+      "id": "Cwqiqk8gzrv",
+      "qualified_name": "Container",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/Container.tsx:20"
+    },
+    {
+      "id": "Cbx5oeghk4n",
+      "qualified_name": "EntryForm",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/EntryForm.tsx:808"
+    },
+    {
+      "id": "Cr06yr8fup5",
+      "qualified_name": "Feedback",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/Feedback/Feedback.tsx:118"
+    },
+    {
+      "id": "C1794kyyebxq",
+      "qualified_name": "Filters",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/Filters.tsx:63"
+    },
+    {
+      "id": "C11lurxcjul1",
+      "qualified_name": "LocationSearch",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/LocationSearch/LocationSearch.tsx:200"
+    },
+    {
+      "id": "Ct8u41ermrl",
+      "qualified_name": "useNominatimAutocomplete",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/LocationSearch/useNominatimAutocomplete.ts:95"
+    },
+    {
+      "id": "Cjd6de56czl",
+      "qualified_name": "AccessibilityIntersection",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/AccessibilityIntersection.tsx:92"
+    },
+    {
+      "id": "C14o5hox4q1z",
+      "qualified_name": "AccessibilityList",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/AccessibilityList.tsx:135"
+    },
+    {
+      "id": "Cysestnol5l",
+      "qualified_name": "CurrentLooMarker",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/CurrentLooMarker.tsx:14"
+    },
+    {
+      "id": "C5ywespyssf",
+      "qualified_name": "LocateMapControl",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/LocateMapControl.tsx:89"
+    },
+    {
+      "id": "Cprnicohg1m",
+      "qualified_name": "LooMap",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/LooMapLoader.tsx:32"
+    },
+    {
+      "id": "Czpk03snkoq",
+      "qualified_name": "LooMap",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/LooMapLoader.tsx:32"
+    },
+    {
+      "id": "Ce6v1wfrxw7",
+      "qualified_name": "Markers",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/Markers.tsx:231"
+    },
+    {
+      "id": "C4vp7yubhz5",
+      "qualified_name": "ToiletMarkerIcon",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/ToiletMarkerIcon.tsx:72"
+    },
+    {
+      "id": "C6mqmimumgs",
+      "qualified_name": "ZoomControl",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/ZoomControl.tsx:40"
+    },
+    {
+      "id": "C6gqy237e5w",
+      "qualified_name": "getString",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/mapTheme.ts:316"
+    },
+    {
+      "id": "Ckm1yuvn0m2",
+      "qualified_name": "getNumber",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/mapTheme.ts:185"
+    },
+    {
+      "id": "Cpybqamb83c",
+      "qualified_name": "useLocateMapControl",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/useLocateMapControl.ts:145"
+    },
+    {
+      "id": "C6u6opgaaiq",
+      "qualified_name": "PageLoading",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/PageLoading.tsx:28"
+    },
+    {
+      "id": "Cdn6rhqfvy1",
+      "qualified_name": "Portal",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/Portal.tsx:33"
+    },
+    {
+      "id": "Cxw3f8rfuh4",
+      "qualified_name": "Providers",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/components/Providers.tsx:36"
+    },
+    {
+      "id": "Cqrx6jlmy4t",
+      "qualified_name": "Badge",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/Badge/Badge.tsx:9"
+    },
+    {
+      "id": "C15m2yxgiatn",
+      "qualified_name": "Banner",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/Banner/Banner.tsx:40"
+    },
+    {
+      "id": "Corpq44d5kz",
+      "qualified_name": "Drawer",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/Drawer/Drawer.tsx:22"
+    },
+    {
+      "id": "Cg5krzum3wd",
+      "qualified_name": "Footer",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/Footer/Footer.tsx:46"
+    },
+    {
+      "id": "Ccv3tlzj2hy",
+      "qualified_name": "Header",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/Header/Header.tsx:156"
+    },
+    {
+      "id": "Cyvc00au05q",
+      "qualified_name": "MainMenu",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/Header/MainMenu.tsx:55"
+    },
+    {
+      "id": "Cld8x497pwm",
+      "qualified_name": "Icon",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/Icon/Icon.tsx:20"
+    },
+    {
+      "id": "C10lrt41tm20",
+      "qualified_name": "MapOverlay",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/MapOverlay/MapOverlay.tsx:11"
+    },
+    {
+      "id": "C45nyi0b1nz",
+      "qualified_name": "Radio",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/RadioInput/RadioInput.tsx:24"
+    },
+    {
+      "id": "Cy9tq69mr13",
+      "qualified_name": "Sidebar",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/Sidebar/Sidebar.tsx:207"
+    },
+    {
+      "id": "Cha1t1k5hvj",
+      "qualified_name": "SiteLayout",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/SiteLayout/SiteLayout.tsx:41"
+    },
+    {
+      "id": "C17mloe7kvq4",
+      "qualified_name": "ToiletDetailsPanel",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/ToiletDetailsPanel/ToiletDetailsPanel.tsx:364"
+    },
+    {
+      "id": "Chfqhosa03h",
+      "qualified_name": "Center",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/layout/Center/Center.tsx:22"
+    },
+    {
+      "id": "C8tb5q2t2ab",
+      "qualified_name": "Stack",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/layout/Stack/Stack.tsx:14"
+    },
+    {
+      "id": "C169e9ovya8j",
+      "qualified_name": "VisuallyHidden",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/utilities/VisuallyHidden/VisuallyHidden.tsx:32"
+    },
+    {
+      "id": "C14a73kfp11s",
+      "qualified_name": "NotFound",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/404.page.tsx:45"
+    },
+    {
+      "id": "Cksc847aosy",
+      "qualified_name": "NotFound",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/404.page.tsx:45"
+    },
+    {
+      "id": "Cbcl9j2gywp",
+      "qualified_name": "ThereWasAProblem",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/500.page.tsx:46"
+    },
+    {
+      "id": "Cqli74munzf",
+      "qualified_name": "NotFound",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/404.page.tsx:45"
+    },
+    {
+      "id": "Cqauffpqs7n",
+      "qualified_name": "App",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/_app.page.tsx:38"
+    },
+    {
+      "id": "C16jeepj0zws",
+      "qualified_name": "Document",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/_document.page.tsx:22"
+    },
+    {
+      "id": "Cfs1th3sqka",
+      "qualified_name": "AboutPage",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/about.page.tsx:163"
+    },
+    {
+      "id": "Cdkw7l36qg1",
+      "qualified_name": "handler",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/api/loos/[id]/revalidate.page.ts:29"
+    },
+    {
+      "id": "C5r56lfj5vt",
+      "qualified_name": "handler",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/api/loos/[id]/revalidate.page.ts:29"
+    },
+    {
+      "id": "C13q9q0u7dsa",
+      "qualified_name": "handler",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/api/loos/[id]/revalidate.page.ts:29"
+    },
+    {
+      "id": "Cpgbnm74zpz",
+      "qualified_name": "handler",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/api/loos/[id]/revalidate.page.ts:29"
+    },
+    {
+      "id": "Cq4nodol7uh",
+      "qualified_name": "getKey",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/api/index.page.ts:43"
+    },
+    {
+      "id": "Cpoqz0ksu54",
+      "qualified_name": "handler",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/api/loos/[id]/revalidate.page.ts:29"
+    },
+    {
+      "id": "Cqma0ur6273",
+      "qualified_name": "handler",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/api/loos/[id]/revalidate.page.ts:29"
+    },
+    {
+      "id": "C36rgi44bn3",
+      "qualified_name": "AppIndexPage",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/app/index.page.tsx:32"
+    },
+    {
+      "id": "C6bzzl12ad9",
+      "qualified_name": "AppPrivacyPage",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/app/privacy.page.tsx:220"
+    },
+    {
+      "id": "Cemde9snjaf",
+      "qualified_name": "ContactPage",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/contact.page.tsx:34"
+    },
+    {
+      "id": "Caflkfqp5gl",
+      "qualified_name": "DatasetPage",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/dataset.page.tsx:172"
+    },
+    {
+      "id": "Cof8lbbe5q4",
+      "qualified_name": "Stats",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/explorer/index.page.tsx:137"
+    },
+    {
+      "id": "Czfop68edop",
+      "qualified_name": "LooPage",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/loos/[id]/index.page.tsx:160"
+    },
+    {
+      "id": "Cqsafh93dil",
+      "qualified_name": "Search",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/explorer/search.page.tsx:326"
+    },
+    {
+      "id": "Cgd2z20vfks",
+      "qualified_name": "HomePage",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/index.page.tsx:35"
+    },
+    {
+      "id": "Chyds4zyzs4",
+      "qualified_name": "LoginPage",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/login.page.tsx:103"
+    },
+    {
+      "id": "Cja5n2udmhw",
+      "qualified_name": "EditPage",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/loos/[id]/edit.page.tsx:200"
+    },
+    {
+      "id": "Cufwvefdl60",
+      "qualified_name": "LooPage",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/loos/[id]/index.page.tsx:160"
+    },
+    {
+      "id": "Ci2548t421o",
+      "qualified_name": "RemovePage",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/loos/[id]/remove.page.tsx:190"
+    },
+    {
+      "id": "Cubfnzp7mfh",
+      "qualified_name": "AddPage",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/loos/add.page.tsx:138"
+    },
+    {
+      "id": "Crdgwoyx4v8",
+      "qualified_name": "MapPage",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/map/index.page.tsx:51"
+    },
+    {
+      "id": "C17e8lf3b7qb",
+      "qualified_name": "PrivacyPage",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-toiletmap-yoga/src/pages/privacy.page.tsx:104"
+    },
+    {
+      "id": "Chjsvxeg8lz",
+      "qualified_name": "<framework-entry>::test::jest",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::jest`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 152,
+      "members": [
+        "C17fzjumpoca"
+      ],
+      "anchors": [],
+      "files": [
+        "Fi60654axyh"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 153,
+      "members": [
+        "C19jyy7ihln"
+      ],
+      "anchors": [
+        "C19jyy7ihln"
+      ],
+      "files": [
+        "Fi60654axyh"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 154,
+      "members": [
+        "C53xrd05rbu"
+      ],
+      "anchors": [],
+      "files": [
+        "Fi60654axyh"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 156,
+      "members": [
+        "C8yo07tk5a6"
+      ],
+      "anchors": [
+        "C8yo07tk5a6"
+      ],
+      "files": [
+        "F26yw5vx5cc"
+      ],
+      "total_lines": 34,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 157,
+      "members": [
+        "Cdcd31z3pxh"
+      ],
+      "anchors": [
+        "Cdcd31z3pxh"
+      ],
+      "files": [
+        "F26yw5vx5cc"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 158,
+      "members": [
+        "C1ngwnb76j9"
+      ],
+      "anchors": [
+        "C1ngwnb76j9"
+      ],
+      "files": [
+        "F26yw5vx5cc"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 160,
+      "members": [
+        "C11g1yqnqy1i"
+      ],
+      "anchors": [
+        "C11g1yqnqy1i"
+      ],
+      "files": [
+        "Fkb62mgkf7s"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 179,
+      "members": [
+        "Cr5ftir8p1n",
+        "C4e3gkm403j",
+        "C7ofdizexpm",
+        "C816sh6wpfi",
+        "Cr810wjxnii"
+      ],
+      "anchors": [
+        "C816sh6wpfi"
+      ],
+      "files": [
+        "Fgefmbyg88a",
+        "F76v016a0it"
+      ],
+      "total_lines": 115,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 180,
+      "members": [
+        "Cuu37xmqtrq"
+      ],
+      "anchors": [],
+      "files": [
+        "Fgefmbyg88a"
+      ],
+      "total_lines": 15,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 185,
+      "members": [
+        "Clm42v05ucu",
+        "C8te2ci6le8"
+      ],
+      "anchors": [
+        "C8te2ci6le8"
+      ],
+      "files": [
+        "Fvgxfs49epl"
+      ],
+      "total_lines": 74,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 187,
+      "members": [
+        "Cc7qoq0b9v1"
+      ],
+      "anchors": [
+        "Cc7qoq0b9v1"
+      ],
+      "files": [
+        "Fvgxfs49epl"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 191,
+      "members": [
+        "C8nkb1ln9i",
+        "Cffe8nlrht9",
+        "Ckipaq4rquv"
+      ],
+      "anchors": [
+        "Ckipaq4rquv"
+      ],
+      "files": [
+        "Fak4t65axda"
+      ],
+      "total_lines": 58,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 192,
+      "members": [
+        "Cp8b6i6plo8"
+      ],
+      "anchors": [
+        "Cp8b6i6plo8"
+      ],
+      "files": [
+        "Fak4t65axda"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 195,
+      "members": [
+        "Cibekkkwngv"
+      ],
+      "anchors": [
+        "Cibekkkwngv"
+      ],
+      "files": [
+        "Fak4t65axda"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 197,
+      "members": [
+        "Canva8lo9cl"
+      ],
+      "anchors": [
+        "Canva8lo9cl"
+      ],
+      "files": [
+        "Fak4t65axda"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 198,
+      "members": [
+        "C16l0u690uox"
+      ],
+      "anchors": [
+        "C16l0u690uox"
+      ],
+      "files": [
+        "Fak4t65axda"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 199,
+      "members": [
+        "C7ya7dhrczo"
+      ],
+      "anchors": [
+        "C7ya7dhrczo"
+      ],
+      "files": [
+        "Fak4t65axda"
+      ],
+      "total_lines": 43,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 200,
+      "members": [
+        "C17mar8x3acl"
+      ],
+      "anchors": [
+        "C17mar8x3acl"
+      ],
+      "files": [
+        "Fak4t65axda"
+      ],
+      "total_lines": 44,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 201,
+      "members": [
+        "Cwxldou5szj",
+        "Cv0wi3t31tm",
+        "C7emsxad1nx",
+        "Coveyafkm1e",
+        "Cdl5u8frcgz",
+        "Cjkpk6kkxkt",
+        "Cf15rkzppen",
+        "C2tzoeghkfm",
+        "Cazll35q9g4",
+        "C18axi2qbdry",
+        "C12se6zjh7ev",
+        "Cpocvut6mw5",
+        "C84aob7bln2",
+        "Cppptgswqy9",
+        "Clpq89qx2iq",
+        "Ctu3rvl0wf0",
+        "Coof1x319hq",
+        "Cwli82lvx0h",
+        "C17pwzjdqpjj",
+        "Cfojmlc60vz"
+      ],
+      "anchors": [
+        "C84aob7bln2",
+        "Cfojmlc60vz"
+      ],
+      "cycles": [
+        [
+          "Cdl5u8frcgz",
+          "Cjkpk6kkxkt"
+        ]
+      ],
+      "files": [
+        "F1zve6fx0rv"
+      ],
+      "total_lines": 219,
+      "languages": [
+        "graphql"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 203,
+      "members": [
+        "C16y98y0t7e4"
+      ],
+      "anchors": [
+        "C16y98y0t7e4"
+      ],
+      "files": [
+        "F1zve6fx0rv"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "graphql"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 208,
+      "members": [
+        "Cgcc7zqipxg"
+      ],
+      "anchors": [
+        "Cgcc7zqipxg"
+      ],
+      "files": [
+        "F1zve6fx0rv"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "graphql"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 232,
+      "members": [
+        "Cyal3kvpzre"
+      ],
+      "anchors": [
+        "Cyal3kvpzre"
+      ],
+      "files": [
+        "F1fk0i03xlj"
+      ],
+      "total_lines": 117,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 234,
+      "members": [
+        "C5pgbny5wj5"
+      ],
+      "anchors": [
+        "C5pgbny5wj5"
+      ],
+      "files": [
+        "F1fk0i03xlj"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 236,
+      "members": [
+        "Cve1v4a5ubd"
+      ],
+      "anchors": [
+        "Cve1v4a5ubd"
+      ],
+      "files": [
+        "F1fk0i03xlj"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 239,
+      "members": [
+        "Cg1uwkufwx8"
+      ],
+      "anchors": [
+        "Cg1uwkufwx8"
+      ],
+      "files": [
+        "Fxxahrnpo60"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 243,
+      "members": [
+        "Co9qwjflykx"
+      ],
+      "anchors": [
+        "Co9qwjflykx"
+      ],
+      "files": [
+        "Fqr73a7ki5c"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 252,
+      "members": [
+        "Cwdoe3gryyn"
+      ],
+      "anchors": [
+        "Cwdoe3gryyn"
+      ],
+      "files": [
+        "F16ju55lfw8q"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 253,
+      "members": [
+        "Cu5g5x9vcl"
+      ],
+      "anchors": [
+        "Cu5g5x9vcl"
+      ],
+      "files": [
+        "F16ju55lfw8q"
+      ],
+      "total_lines": 59,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 258,
+      "members": [
+        "C4ut62xcxm3"
+      ],
+      "anchors": [
+        "C4ut62xcxm3"
+      ],
+      "files": [
+        "Flwzac24w80"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 259,
+      "members": [
+        "C5obn9rghcu"
+      ],
+      "anchors": [
+        "C5obn9rghcu"
+      ],
+      "files": [
+        "Flwzac24w80"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 260,
+      "members": [
+        "Cn8pfxn4a1e"
+      ],
+      "anchors": [
+        "Cn8pfxn4a1e"
+      ],
+      "files": [
+        "Flwzac24w80"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 261,
+      "members": [
+        "Cw53jy01zic"
+      ],
+      "anchors": [
+        "Cw53jy01zic"
+      ],
+      "files": [
+        "Flwzac24w80"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 262,
+      "members": [
+        "Cwcy8tt40az"
+      ],
+      "anchors": [
+        "Cwcy8tt40az"
+      ],
+      "files": [
+        "F8yq1z36x92"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 267,
+      "members": [
+        "Ckmg0vdy938",
+        "Centvwjoz6g",
+        "C12433ev0gt9",
+        "C1260mrwhh0u"
+      ],
+      "anchors": [
+        "Ckmg0vdy938"
+      ],
+      "files": [
+        "Fb5ghykc5lz",
+        "F16qpgzydvkj",
+        "Fm7spajze31"
+      ],
+      "total_lines": 365,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 270,
+      "members": [
+        "Chb4w3mo3gn"
+      ],
+      "anchors": [
+        "Chb4w3mo3gn"
+      ],
+      "files": [
+        "F17vy3chvev1"
+      ],
+      "total_lines": 21,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 294,
+      "members": [
+        "Cdr72nq1142",
+        "C11t6ujdntzm",
+        "Ch9702mzu1o",
+        "C103aichyvlf",
+        "C11w93sgnd3g",
+        "C5ek9lsb0ty"
+      ],
+      "anchors": [
+        "C11t6ujdntzm",
+        "C103aichyvlf",
+        "C11w93sgnd3g",
+        "C5ek9lsb0ty"
+      ],
+      "files": [
+        "F10bwnd7zyx9",
+        "Fue2vnosuj"
+      ],
+      "total_lines": 73,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 307,
+      "members": [
+        "Cry2q94so3f"
+      ],
+      "anchors": [
+        "Cry2q94so3f"
+      ],
+      "files": [
+        "Fniyf6nylks"
+      ],
+      "total_lines": 36,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 309,
+      "members": [
+        "Ceursqnm1yx"
+      ],
+      "anchors": [
+        "Ceursqnm1yx"
+      ],
+      "files": [
+        "Fzkfex7qubw"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 311,
+      "members": [
+        "Cecicio06gd"
+      ],
+      "anchors": [
+        "Cecicio06gd"
+      ],
+      "files": [
+        "F17jtvapa4gx"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 320,
+      "members": [
+        "C14zc7ykosd5"
+      ],
+      "anchors": [
+        "C14zc7ykosd5"
+      ],
+      "files": [
+        "F5tji5yut05"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 322,
+      "members": [
+        "C14cvaqwy6dr"
+      ],
+      "anchors": [
+        "C14cvaqwy6dr"
+      ],
+      "files": [
+        "Fylppv6kmwf"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 324,
+      "members": [
+        "C10dk1n4q39v"
+      ],
+      "anchors": [
+        "C10dk1n4q39v"
+      ],
+      "files": [
+        "Fx1d1ihbq9h"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 326,
+      "members": [
+        "Cfk2rwzi742"
+      ],
+      "anchors": [
+        "Cfk2rwzi742"
+      ],
+      "files": [
+        "F3w8et12zte"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 328,
+      "members": [
+        "C11k7q6snz0i"
+      ],
+      "anchors": [
+        "C11k7q6snz0i"
+      ],
+      "files": [
+        "Fukbk03b4nl"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 330,
+      "members": [
+        "Clqi285av1x"
+      ],
+      "anchors": [
+        "Clqi285av1x"
+      ],
+      "files": [
+        "Frvblm86t1d"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 331,
+      "members": [
+        "C5on4u82lft"
+      ],
+      "anchors": [
+        "C5on4u82lft"
+      ],
+      "files": [
+        "Fdsb2xgl990"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 332,
+      "members": [
+        "C125jcwjgipw",
+        "Cdb4flofyew"
+      ],
+      "anchors": [
+        "Cdb4flofyew"
+      ],
+      "files": [
+        "F1tjpz25ew3"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 341,
+      "members": [
+        "Czko6u9bl6a",
+        "Cfwq57nrfff",
+        "C21uddo38v0",
+        "Ccm7zo7blrg",
+        "C71mzn5orfa",
+        "Cjiax72gav1",
+        "Co7lx337jpv",
+        "C5vpnsv1nge",
+        "C13q71z4te71",
+        "Coexhdo4rs5",
+        "C49olk972i0",
+        "C16ztc8uiq9z",
+        "Cwi2p8lmvs9",
+        "C78pu0f8adw",
+        "C1uz0g5cpvo",
+        "C16nna4ee0oe",
+        "Cs883b1ioh8",
+        "C5kstgl6p0g",
+        "Co48aty6ydo",
+        "Ca4jzbnda13"
+      ],
+      "anchors": [
+        "C5kstgl6p0g",
+        "Co48aty6ydo",
+        "Ca4jzbnda13"
+      ],
+      "files": [
+        "Fyhd0o7w5cs",
+        "Fj27vijbjgt"
+      ],
+      "total_lines": 264,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 368,
+      "members": [
+        "Cpnwkpurtda",
+        "C4dg7ek06ua"
+      ],
+      "anchors": [
+        "C4dg7ek06ua"
+      ],
+      "files": [
+        "F14ur5ozmg9a"
+      ],
+      "total_lines": 46,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 374,
+      "members": [
+        "Cunvf7qs76t"
+      ],
+      "anchors": [
+        "Cunvf7qs76t"
+      ],
+      "files": [
+        "Fiblnm7insw"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 375,
+      "members": [
+        "Cutbalhtq9j"
+      ],
+      "anchors": [
+        "Cutbalhtq9j"
+      ],
+      "files": [
+        "Fx9jmapqicw"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 376,
+      "members": [
+        "C17k267puzvi"
+      ],
+      "anchors": [
+        "C17k267puzvi"
+      ],
+      "files": [
+        "F7hpozuvq5o"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 377,
+      "members": [
+        "C17bh8xjrpjk"
+      ],
+      "anchors": [
+        "C17bh8xjrpjk"
+      ],
+      "files": [
+        "F1606x22ecn7"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 378,
+      "members": [
+        "Cop10d0z3hq"
+      ],
+      "anchors": [
+        "Cop10d0z3hq"
+      ],
+      "files": [
+        "F141jkdyl36m"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 402,
+      "members": [
+        "C16hg7uvp89"
+      ],
+      "anchors": [
+        "C16hg7uvp89"
+      ],
+      "files": [
+        "Fz2zuxnl3gq"
+      ],
+      "total_lines": 33,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 404,
+      "members": [
+        "C81lgob2dbv"
+      ],
+      "anchors": [
+        "C81lgob2dbv"
+      ],
+      "files": [
+        "F4fm1h2yjtx"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 406,
+      "members": [
+        "C81vhpfsxt4"
+      ],
+      "anchors": [
+        "C81vhpfsxt4"
+      ],
+      "files": [
+        "Fpfnjkzevl8"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 407,
+      "members": [
+        "C93fg7h94wr",
+        "C144s31me90g"
+      ],
+      "anchors": [
+        "C93fg7h94wr"
+      ],
+      "files": [
+        "Fns6zh4noh8"
+      ],
+      "total_lines": 89,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 410,
+      "members": [
+        "Cuy8jazta4p"
+      ],
+      "anchors": [
+        "Cuy8jazta4p"
+      ],
+      "files": [
+        "Fns6zh4noh8"
+      ],
+      "total_lines": 47,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 411,
+      "members": [
+        "Cxe7z7kq227"
+      ],
+      "anchors": [
+        "Cxe7z7kq227"
+      ],
+      "files": [
+        "Fns6zh4noh8"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 412,
+      "members": [
+        "C3mjo733var",
+        "Cn07x8lgi3m",
+        "C181jhqcqo1l",
+        "Cl37a281ste"
+      ],
+      "anchors": [
+        "C3mjo733var"
+      ],
+      "files": [
+        "F15gf9pdw1"
+      ],
+      "total_lines": 309,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 418,
+      "members": [
+        "Cvvibsq943o"
+      ],
+      "anchors": [
+        "Cvvibsq943o"
+      ],
+      "files": [
+        "F11szxvknvrw"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 420,
+      "members": [
+        "Cimmftwojjz"
+      ],
+      "anchors": [
+        "Cimmftwojjz"
+      ],
+      "files": [
+        "Fc3h58x6p6x"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 421,
+      "members": [
+        "Cjfmlx730qj"
+      ],
+      "anchors": [
+        "Cjfmlx730qj"
+      ],
+      "files": [
+        "F8mkwjtuygm"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 422,
+      "members": [
+        "C2crv0exp03"
+      ],
+      "anchors": [
+        "C2crv0exp03"
+      ],
+      "files": [
+        "Ffzllkae4xw"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 423,
+      "members": [
+        "C16rl93saaoi"
+      ],
+      "anchors": [
+        "C16rl93saaoi"
+      ],
+      "files": [
+        "Ffzllkae4xw"
+      ],
+      "total_lines": 19,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 424,
+      "members": [
+        "Cdd947i7b7n"
+      ],
+      "anchors": [
+        "Cdd947i7b7n"
+      ],
+      "files": [
+        "Fjmyj7zqqs6"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 427,
+      "members": [
+        "Cc3kowccw5q"
+      ],
+      "anchors": [
+        "Cc3kowccw5q"
+      ],
+      "files": [
+        "Fi8gg7y6is8"
+      ],
+      "total_lines": 24,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 429,
+      "members": [
+        "C5143y78qek"
+      ],
+      "anchors": [
+        "C5143y78qek"
+      ],
+      "files": [
+        "Fjfuwp4jaai"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 430,
+      "members": [
+        "C15wm4ku46qr"
+      ],
+      "anchors": [
+        "C15wm4ku46qr"
+      ],
+      "files": [
+        "Fjfuwp4jaai"
+      ],
+      "total_lines": 30,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 431,
+      "members": [
+        "Cl7ckj731gy"
+      ],
+      "anchors": [
+        "Cl7ckj731gy"
+      ],
+      "files": [
+        "Fjfuwp4jaai"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 435,
+      "members": [
+        "Cb6rqjjfhor"
+      ],
+      "anchors": [
+        "Cb6rqjjfhor"
+      ],
+      "files": [
+        "Ff8wdmrb339"
+      ],
+      "total_lines": 26,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 438,
+      "members": [
+        "Csrl10xkc6j"
+      ],
+      "anchors": [
+        "Csrl10xkc6j"
+      ],
+      "files": [
+        "Fcb7mtobnxc"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 440,
+      "members": [
+        "Cnewqvtigig"
+      ],
+      "anchors": [
+        "Cnewqvtigig"
+      ],
+      "files": [
+        "F8hbo1hfru3"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 441,
+      "members": [
+        "C7jze0cyk0s"
+      ],
+      "anchors": [
+        "C7jze0cyk0s"
+      ],
+      "files": [
+        "F8hbo1hfru3"
+      ],
+      "total_lines": 163,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 442,
+      "members": [
+        "Ct8o7ucghn0"
+      ],
+      "anchors": [
+        "Ct8o7ucghn0"
+      ],
+      "files": [
+        "Fb8ci4qgkgt"
+      ],
+      "total_lines": 69,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "C3mjo733var",
+      "qualified_name": "UnstyledTable",
+      "simple_name": "UnstyledTable",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F15gf9pdw1",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/explorer/search.page.tsx",
+      "start_line": 29,
+      "end_line": 320,
+      "size_lines": 292,
+      "signature_hint": "UnstyledTable = () =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 192,
+      "region": 412,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "C7jze0cyk0s",
+      "qualified_name": "PostPage",
+      "simple_name": "PostPage",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8hbo1hfru3",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/posts/[slug]/index.page.tsx",
+      "start_line": 46,
+      "end_line": 208,
+      "size_lines": 163,
+      "signature_hint": "function PostPage({ postData, notFound, }: InferGetStaticPropsType<typeof getStaticProps>)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 63,
+      "region": 441,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Ckmg0vdy938",
+      "qualified_name": "MarkerGroup",
+      "simple_name": "MarkerGroup",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fb5ghykc5lz",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/Markers.tsx",
+      "start_line": 80,
+      "end_line": 229,
+      "size_lines": 150,
+      "signature_hint": "MarkerGroup: React.FC<{ geohash: string; maxClusterRadius: number; }> = ({ geohash, maxClusterRadius }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 50,
+      "region": 267,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "Centvwjoz6g",
+      "qualified_name": "useLoosByGeohash",
+      "simple_name": "useLoosByGeohash",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F16qpgzydvkj",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/useLoosByGeohash.ts",
+      "start_line": 37,
+      "end_line": 154,
+      "size_lines": 118,
+      "signature_hint": "function useLoosByGeohash( geohash: string, active: boolean = true, )",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 18,
+      "region": 267,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ckmg0vdy938"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cyal3kvpzre",
+      "qualified_name": "Section",
+      "simple_name": "Section",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1fk0i03xlj",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/EntryForm.tsx",
+      "start_line": 60,
+      "end_line": 176,
+      "size_lines": 117,
+      "signature_hint": "Section: React.FC<Section> = ({ register, id, title, questions, children, }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 17,
+      "region": 232,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ct8o7ucghn0",
+      "qualified_name": "PostPage",
+      "simple_name": "PostPage",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fb8ci4qgkgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/posts/index.page.tsx",
+      "start_line": 23,
+      "end_line": 91,
+      "size_lines": 69,
+      "signature_hint": "function PostPage({ posts, }: InferGetStaticPropsType<typeof getStaticProps>)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -31,
+      "region": 442,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C1260mrwhh0u",
+      "qualified_name": "fetchCompressedLoos",
+      "simple_name": "fetchCompressedLoos",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fm7spajze31",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/api/compressed-loo-api.ts",
+      "start_line": 23,
+      "end_line": 83,
+      "size_lines": 61,
+      "signature_hint": "async function fetchCompressedLoos( geohash: string, active: boolean = true, )",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -39,
+      "region": 267,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C12433ev0gt9"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cu5g5x9vcl",
+      "qualified_name": "Content",
+      "simple_name": "Content",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F16ju55lfw8q",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/AccessibilityList.tsx",
+      "start_line": 28,
+      "end_line": 86,
+      "size_lines": 59,
+      "signature_hint": "Content = ({ toilets }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -41,
+      "region": 253,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cuy8jazta4p",
+      "qualified_name": "getStaticProps",
+      "simple_name": "getStaticProps",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fns6zh4noh8",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/explorer/loos/[id]/index.page.tsx",
+      "start_line": 466,
+      "end_line": 512,
+      "size_lines": 47,
+      "signature_hint": "getStaticProps: GetServerSideProps = async ({ params, req }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -53,
+      "region": 410,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C93fg7h94wr",
+      "qualified_name": "TimelineEntry",
+      "simple_name": "TimelineEntry",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fns6zh4noh8",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/explorer/loos/[id]/index.page.tsx",
+      "start_line": 76,
+      "end_line": 120,
+      "size_lines": 45,
+      "signature_hint": "TimelineEntry: FC<TimelineEntryProps> = ({ report }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -55,
+      "region": 407,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C144s31me90g",
+      "qualified_name": "diffValueMapping",
+      "simple_name": "diffValueMapping",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fns6zh4noh8",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/explorer/loos/[id]/index.page.tsx",
+      "start_line": 125,
+      "end_line": 168,
+      "size_lines": 44,
+      "signature_hint": "diffValueMapping = (key: string, value: unknown) =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -56,
+      "region": 407,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C93fg7h94wr"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C7ya7dhrczo",
+      "qualified_name": "upsertArea",
+      "simple_name": "upsertArea",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fak4t65axda",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/prisma/queries.ts",
+      "start_line": 142,
+      "end_line": 184,
+      "size_lines": 43,
+      "signature_hint": "upsertArea = async ( prisma: PrismaClient, area: { id: string; geometry: { coordinates: Prisma.JsonValue; type: string; }; name: string; datasetId: number; priority: number; type: string; version: number; }, ) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -57,
+      "region": 199,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4e3gkm403j",
+      "qualified_name": "createApolloClient",
+      "simple_name": "createApolloClient",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F76v016a0it",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api-client/withApollo.tsx",
+      "start_line": 18,
+      "end_line": 57,
+      "size_lines": 40,
+      "signature_hint": "function createApolloClient()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -60,
+      "region": 179,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C7ofdizexpm"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C11t6ujdntzm",
+      "qualified_name": "MapStateProvider",
+      "simple_name": "MapStateProvider",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F10bwnd7zyx9",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/MapState.tsx",
+      "start_line": 41,
+      "end_line": 77,
+      "size_lines": 37,
+      "signature_hint": "MapStateProvider = ({ children }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -63,
+      "region": 294,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C12433ev0gt9",
+      "qualified_name": "fetchFromRestApi",
+      "simple_name": "fetchFromRestApi",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F16qpgzydvkj",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/useLoosByGeohash.ts",
+      "start_line": 77,
+      "end_line": 112,
+      "size_lines": 36,
+      "signature_hint": "fetchFromRestApi = async () =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -64,
+      "region": 267,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Centvwjoz6g"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cry2q94so3f",
+      "qualified_name": "Default",
+      "simple_name": "Default",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fniyf6nylks",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/Drawer/Drawer.stories.tsx",
+      "start_line": 16,
+      "end_line": 51,
+      "size_lines": 36,
+      "signature_hint": "Default = (props) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -64,
+      "region": 307,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8yo07tk5a6",
+      "qualified_name": "setupNodeEvents",
+      "simple_name": "setupNodeEvents",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F26yw5vx5cc",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/cypress.config.ts",
+      "start_line": 23,
+      "end_line": 56,
+      "size_lines": 34,
+      "signature_hint": "setupNodeEvents(on, config)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -66,
+      "region": 156,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16hg7uvp89",
+      "qualified_name": "getStaticProps",
+      "simple_name": "getStaticProps",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fz2zuxnl3gq",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/dataset.page.tsx",
+      "start_line": 13,
+      "end_line": 45,
+      "size_lines": 33,
+      "signature_hint": "getStaticProps = async () =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -67,
+      "region": 402,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4dg7ek06ua",
+      "qualified_name": "getIsOpen",
+      "simple_name": "getIsOpen",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14ur5ozmg9a",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/openingTimes.ts",
+      "start_line": 61,
+      "end_line": 91,
+      "size_lines": 31,
+      "signature_hint": "function getIsOpen(openingTimes = [], dateTime = new Date())",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -69,
+      "region": 368,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C15wm4ku46qr",
+      "qualified_name": "getStaticProps",
+      "simple_name": "getStaticProps",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjfuwp4jaai",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/loos/[id]/index.page.tsx",
+      "start_line": 122,
+      "end_line": 151,
+      "size_lines": 30,
+      "signature_hint": "getStaticProps: GetServerSideProps = async ({ params, req }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -70,
+      "region": 430,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C71mzn5orfa",
+      "qualified_name": "base64UrlEncode",
+      "simple_name": "base64UrlEncode",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 44,
+      "end_line": 70,
+      "size_lines": 27,
+      "signature_hint": "base64UrlEncode = (value: string)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -73,
+      "region": 341,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C1uz0g5cpvo"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Czko6u9bl6a",
+      "qualified_name": "genLooFilterBitmask",
+      "simple_name": "genLooFilterBitmask",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fyhd0o7w5cs",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/filter.ts",
+      "start_line": 13,
+      "end_line": 38,
+      "size_lines": 26,
+      "signature_hint": "genLooFilterBitmask = (loo: Loo) =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -74,
+      "region": 341,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cs883b1ioh8"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1uz0g5cpvo",
+      "qualified_name": "encodeMeta",
+      "simple_name": "encodeMeta",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 198,
+      "end_line": 223,
+      "size_lines": 26,
+      "signature_hint": "encodeMeta = (loo: Loo)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -74,
+      "region": 341,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Co48aty6ydo"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cb6rqjjfhor",
+      "qualified_name": "getServerSideProps",
+      "simple_name": "getServerSideProps",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ff8wdmrb339",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/loos/[id]/remove.page.tsx",
+      "start_line": 163,
+      "end_line": 188,
+      "size_lines": 26,
+      "signature_hint": "getServerSideProps: GetServerSideProps = async (ctx) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -74,
+      "region": 435,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cc3kowccw5q",
+      "qualified_name": "getServerSideProps",
+      "simple_name": "getServerSideProps",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fi8gg7y6is8",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/loos/[id]/edit.page.tsx",
+      "start_line": 175,
+      "end_line": 198,
+      "size_lines": 24,
+      "signature_hint": "getServerSideProps: GetServerSideProps = async (ctx) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -76,
+      "region": 427,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Co7lx337jpv",
+      "qualified_name": "base64UrlDecode",
+      "simple_name": "base64UrlDecode",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 78,
+      "end_line": 99,
+      "size_lines": 22,
+      "signature_hint": "base64UrlDecode = (value: string)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -78,
+      "region": 341,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C16nna4ee0oe"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Chb4w3mo3gn",
+      "qualified_name": "ProtomapLayer",
+      "simple_name": "ProtomapLayer",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F17vy3chvev1",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/ProtomapLayer.tsx",
+      "start_line": 7,
+      "end_line": 27,
+      "size_lines": 21,
+      "signature_hint": "ProtomapLayer = () =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -79,
+      "region": 270,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwi2p8lmvs9",
+      "qualified_name": "decompressOpeningTimes",
+      "simple_name": "decompressOpeningTimes",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 176,
+      "end_line": 196,
+      "size_lines": 21,
+      "signature_hint": "decompressOpeningTimes = ( encoded?: string, )",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -79,
+      "region": 341,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C16nna4ee0oe"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C16ztc8uiq9z",
+      "qualified_name": "compressOpeningTimes",
+      "simple_name": "compressOpeningTimes",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 155,
+      "end_line": 174,
+      "size_lines": 20,
+      "signature_hint": "compressOpeningTimes = ( openingTimes: Loo['openingTimes'], )",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -80,
+      "region": 341,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C1uz0g5cpvo"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ca4jzbnda13",
+      "qualified_name": "parseCompressedFullLoo",
+      "simple_name": "parseCompressedFullLoo",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 319,
+      "end_line": 338,
+      "size_lines": 20,
+      "signature_hint": "parseCompressedFullLoo = ( compressedLoo: CompressedFullLooString, )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -80,
+      "region": 341,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C16rl93saaoi",
+      "qualified_name": "RemovedLoo",
+      "simple_name": "RemovedLoo",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ffzllkae4xw",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/loos/[id]/Index.stories.tsx",
+      "start_line": 56,
+      "end_line": 74,
+      "size_lines": 19,
+      "signature_hint": "RemovedLoo = (props) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -81,
+      "region": 423,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cc7qoq0b9v1",
+      "qualified_name": "postgresUpsertLooQuery",
+      "simple_name": "postgresUpsertLooQuery",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fvgxfs49epl",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/graphql/helpers.ts",
+      "start_line": 75,
+      "end_line": 91,
+      "size_lines": 17,
+      "signature_hint": "postgresUpsertLooQuery = ( id: string | undefined, data: Partial<ToiletsExcludingComputed>, location?: { lat: number; lng: number }, )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -83,
+      "region": 187,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwdoe3gryyn",
+      "qualified_name": "Key",
+      "simple_name": "Key",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F16ju55lfw8q",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/AccessibilityList.tsx",
+      "start_line": 10,
+      "end_line": 26,
+      "size_lines": 17,
+      "signature_hint": "Key = ({ children, ...props }) => ( <Box as=\"span\" display=\"inline-flex\" alignItems=\"center\" justifyContent=\"center\" flexShrink={0} height=\"1.5rem\" width=\"1.5rem\" borderRadius=\"5px\" bg=\"lightGrey\" border=\"2px solid currentColor\" {...props} > <b>{children}</b> </Box> )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -83,
+      "region": 252,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16nna4ee0oe",
+      "qualified_name": "decodeMeta",
+      "simple_name": "decodeMeta",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 225,
+      "end_line": 241,
+      "size_lines": 17,
+      "signature_hint": "decodeMeta = (encodedMeta: string) =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -83,
+      "region": 341,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ca4jzbnda13"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cffe8nlrht9",
+      "qualified_name": "setLooLocation",
+      "simple_name": "setLooLocation",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fak4t65axda",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/prisma/queries.ts",
+      "start_line": 33,
+      "end_line": 48,
+      "size_lines": 16,
+      "signature_hint": "setLooLocation = async ( prisma: PrismaClient, id: string, lat: number, lng: number, ) =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -84,
+      "region": 191,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ckipaq4rquv"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cpnwkpurtda",
+      "qualified_name": "getDateFromTime",
+      "simple_name": "getDateFromTime",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14ur5ozmg9a",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/openingTimes.ts",
+      "start_line": 45,
+      "end_line": 59,
+      "size_lines": 15,
+      "signature_hint": "function getDateFromTime(timeRangeString: string, weekdayToCheck: number)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -85,
+      "region": 368,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C4dg7ek06ua"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Clm42v05ucu",
+      "qualified_name": "suggestLooId",
+      "simple_name": "suggestLooId",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fvgxfs49epl",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/graphql/helpers.ts",
+      "start_line": 7,
+      "end_line": 19,
+      "size_lines": 13,
+      "signature_hint": "suggestLooId = async ( nickname: string, coordinates: number[], updatedAt: Date, )",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -87,
+      "region": 185,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C8te2ci6le8"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdb4flofyew",
+      "qualified_name": "DistanceTo",
+      "simple_name": "DistanceTo",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1tjpz25ew3",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/ToiletDetailsPanel/ToiletDetailsPanel.tsx",
+      "start_line": 30,
+      "end_line": 42,
+      "size_lines": 13,
+      "signature_hint": "DistanceTo = ({ from, to }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -87,
+      "region": 332,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cwcy8tt40az",
+      "qualified_name": "MapTracker",
+      "simple_name": "MapTracker",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8yq1z36x92",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/LooMap.tsx",
+      "start_line": 24,
+      "end_line": 35,
+      "size_lines": 12,
+      "signature_hint": "MapTracker = () =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -88,
+      "region": 262,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ch9702mzu1o",
+      "qualified_name": "getSettings",
+      "simple_name": "getSettings",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fue2vnosuj",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/config.ts",
+      "start_line": 78,
+      "end_line": 89,
+      "size_lines": 12,
+      "signature_hint": "getSettings(namespace: string)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -88,
+      "region": 294,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 5,
+          "example": "C103aichyvlf"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cs883b1ioh8",
+      "qualified_name": "compressBaseLoo",
+      "simple_name": "compressBaseLoo",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 243,
+      "end_line": 254,
+      "size_lines": 12,
+      "signature_hint": "compressBaseLoo = (loo: Loo) =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -88,
+      "region": 341,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C5kstgl6p0g"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C7ofdizexpm",
+      "qualified_name": "getApolloClient",
+      "simple_name": "getApolloClient",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F76v016a0it",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api-client/withApollo.tsx",
+      "start_line": 62,
+      "end_line": 72,
+      "size_lines": 11,
+      "signature_hint": "getApolloClient: GetApolloClient = () =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -89,
+      "region": 179,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cr810wjxnii"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C81vhpfsxt4",
+      "qualified_name": "getServerSideProps",
+      "simple_name": "getServerSideProps",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fpfnjkzevl8",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/explorer/index.page.tsx",
+      "start_line": 126,
+      "end_line": 135,
+      "size_lines": 10,
+      "signature_hint": "getServerSideProps: GetServerSideProps = async ({ req }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -90,
+      "region": 406,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11g1yqnqy1i",
+      "qualified_name": "rewrites",
+      "simple_name": "rewrites",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fkb62mgkf7s",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/next.config.js",
+      "start_line": 30,
+      "end_line": 38,
+      "size_lines": 9,
+      "signature_hint": "async rewrites()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 160,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cw53jy01zic",
+      "qualified_name": "WithCurrentLooMarker",
+      "simple_name": "WithCurrentLooMarker",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Flwzac24w80",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/LooMap.stories.tsx",
+      "start_line": 67,
+      "end_line": 75,
+      "size_lines": 9,
+      "signature_hint": "WithCurrentLooMarker = (props) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 261,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C5ek9lsb0ty",
+      "qualified_name": "setSettings",
+      "simple_name": "setSettings",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fue2vnosuj",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/config.ts",
+      "start_line": 99,
+      "end_line": 107,
+      "size_lines": 9,
+      "signature_hint": "setSettings(namespace: string, obj = {})",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 294,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C5vpnsv1nge",
+      "qualified_name": "encodeTriState",
+      "simple_name": "encodeTriState",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 118,
+      "end_line": 126,
+      "size_lines": 9,
+      "signature_hint": "encodeTriState = (value: boolean | null | undefined) =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 341,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 4,
+          "example": "Coexhdo4rs5"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C13q71z4te71",
+      "qualified_name": "decodeTriState",
+      "simple_name": "decodeTriState",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 128,
+      "end_line": 136,
+      "size_lines": 9,
+      "signature_hint": "decodeTriState = (value: number)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 341,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 4,
+          "example": "C49olk972i0"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Coexhdo4rs5",
+      "qualified_name": "encodeDetailsMask",
+      "simple_name": "encodeDetailsMask",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 138,
+      "end_line": 146,
+      "size_lines": 9,
+      "signature_hint": "encodeDetailsMask = (loo: Loo) =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 341,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Co48aty6ydo"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C5143y78qek",
+      "qualified_name": "setInitialMapCentre",
+      "simple_name": "setInitialMapCentre",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjfuwp4jaai",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/loos/[id]/index.page.tsx",
+      "start_line": 45,
+      "end_line": 53,
+      "size_lines": 9,
+      "signature_hint": "function setInitialMapCentre()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 429,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5obn9rghcu",
+      "qualified_name": "Crosshair",
+      "simple_name": "Crosshair",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Flwzac24w80",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/LooMap.stories.tsx",
+      "start_line": 49,
+      "end_line": 56,
+      "size_lines": 8,
+      "signature_hint": "Crosshair = (props) => ( <LooMap center={{ lat: 51.5072, lng: 0.1276 }} zoom={8} showCrosshair={true} {...props} ></LooMap> )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -92,
+      "region": 259,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cn8pfxn4a1e",
+      "qualified_name": "WithAccessibilityOverlay",
+      "simple_name": "WithAccessibilityOverlay",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Flwzac24w80",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/LooMap.stories.tsx",
+      "start_line": 58,
+      "end_line": 65,
+      "size_lines": 8,
+      "signature_hint": "WithAccessibilityOverlay = (props) => ( <LooMap center={{ lat: 51.5072, lng: 0.1276 }} zoom={8} showAccessibilityOverlay={true} {...props} ></LooMap> )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -92,
+      "region": 260,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cl37a281ste",
+      "qualified_name": "handleChangeRowsPerPage",
+      "simple_name": "handleChangeRowsPerPage",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F15gf9pdw1",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/explorer/search.page.tsx",
+      "start_line": 152,
+      "end_line": 159,
+      "size_lines": 8,
+      "signature_hint": "handleChangeRowsPerPage = ( event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, ) =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -92,
+      "region": 412,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C3mjo733var"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5pgbny5wj5",
+      "qualified_name": "registerMapMovedHandler",
+      "simple_name": "registerMapMovedHandler",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1fk0i03xlj",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/EntryForm.tsx",
+      "start_line": 185,
+      "end_line": 191,
+      "size_lines": 7,
+      "signature_hint": "function registerMapMovedHandler()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -93,
+      "region": 234,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11k7q6snz0i",
+      "qualified_name": "setTheAmountOfAppliedFilters",
+      "simple_name": "setTheAmountOfAppliedFilters",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fukbk03b4nl",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/Sidebar/Sidebar.tsx",
+      "start_line": 40,
+      "end_line": 46,
+      "size_lines": 7,
+      "signature_hint": "function setTheAmountOfAppliedFilters()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -93,
+      "region": 328,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cfwq57nrfff",
+      "qualified_name": "getGlobalBuffer",
+      "simple_name": "getGlobalBuffer",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 24,
+      "end_line": 30,
+      "size_lines": 7,
+      "signature_hint": "getGlobalBuffer = ()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -93,
+      "region": 341,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C71mzn5orfa"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdr72nq1142",
+      "qualified_name": "reducer",
+      "simple_name": "reducer",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F10bwnd7zyx9",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/MapState.tsx",
+      "start_line": 34,
+      "end_line": 39,
+      "size_lines": 6,
+      "signature_hint": "reducer = (state: MapState, newState: MapState) =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -94,
+      "region": 294,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C11t6ujdntzm"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccm7zo7blrg",
+      "qualified_name": "fromBinary",
+      "simple_name": "fromBinary",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 37,
+      "end_line": 42,
+      "size_lines": 6,
+      "signature_hint": "fromBinary = (value: string) => decodeURIComponent( Array.from(value) .map((char) => `%${char.charCodeAt(0).toString(16).padStart(2, '0')}`) .join(''), )",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -94,
+      "region": 341,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Co7lx337jpv"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C49olk972i0",
+      "qualified_name": "decodeDetailsMask",
+      "simple_name": "decodeDetailsMask",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 148,
+      "end_line": 153,
+      "size_lines": 6,
+      "signature_hint": "decodeDetailsMask = (mask: number) => ({ women: decodeTriState((mask >> DETAIL_OFFSETS.women) & 0b11), men: decodeTriState((mask >> DETAIL_OFFSETS.men) & 0b11), children: decodeTriState((mask >> DETAIL_OFFSETS.children) & 0b11), urinalOnly: decodeTriState((mask >> DETAIL_OFFSETS.urinalOnly) & 0b11), })",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -94,
+      "region": 341,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ca4jzbnda13"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Cxe7z7kq227",
+      "qualified_name": "getStaticPaths",
+      "simple_name": "getStaticPaths",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fns6zh4noh8",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/explorer/loos/[id]/index.page.tsx",
+      "start_line": 515,
+      "end_line": 520,
+      "size_lines": 6,
+      "signature_hint": "getStaticPaths: GetStaticPaths = async () =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -94,
+      "region": 411,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C181jhqcqo1l",
+      "qualified_name": "handleChangePage",
+      "simple_name": "handleChangePage",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F15gf9pdw1",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/explorer/search.page.tsx",
+      "start_line": 145,
+      "end_line": 150,
+      "size_lines": 6,
+      "signature_hint": "handleChangePage = ( event: React.MouseEvent<HTMLButtonElement> | null, newPage: number, ) =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -94,
+      "region": 412,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C3mjo733var"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cl7ckj731gy",
+      "qualified_name": "getStaticPaths",
+      "simple_name": "getStaticPaths",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjfuwp4jaai",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/loos/[id]/index.page.tsx",
+      "start_line": 153,
+      "end_line": 158,
+      "size_lines": 6,
+      "signature_hint": "getStaticPaths = async () =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -94,
+      "region": 431,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdcd31z3pxh",
+      "qualified_name": "log",
+      "simple_name": "log",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F26yw5vx5cc",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/cypress.config.ts",
+      "start_line": 27,
+      "end_line": 31,
+      "size_lines": 5,
+      "signature_hint": "log(message)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 157,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1ngwnb76j9",
+      "qualified_name": "table",
+      "simple_name": "table",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F26yw5vx5cc",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/cypress.config.ts",
+      "start_line": 32,
+      "end_line": 36,
+      "size_lines": 5,
+      "signature_hint": "table(message)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 158,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cr810wjxnii",
+      "qualified_name": "ApolloWrapper",
+      "simple_name": "ApolloWrapper",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F76v016a0it",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api-client/withApollo.tsx",
+      "start_line": 76,
+      "end_line": 80,
+      "size_lines": 5,
+      "signature_hint": "ApolloWrapper = (props: React.ComponentProps<T>) => ( <ApolloProvider client={getApolloClient()}> <Component {...props} /> </ApolloProvider> )",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 179,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C816sh6wpfi"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cve1v4a5ubd",
+      "qualified_name": "setMapMovedIfSearchHappened",
+      "simple_name": "setMapMovedIfSearchHappened",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1fk0i03xlj",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/EntryForm.tsx",
+      "start_line": 196,
+      "end_line": 200,
+      "size_lines": 5,
+      "signature_hint": "function setMapMovedIfSearchHappened()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 236,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C103aichyvlf",
+      "qualified_name": "getSetting",
+      "simple_name": "getSetting",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fue2vnosuj",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/config.ts",
+      "start_line": 90,
+      "end_line": 94,
+      "size_lines": 5,
+      "signature_hint": "getSetting(namespace: string, key: string, defaultVal = '')",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 294,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cecicio06gd",
+      "qualified_name": "Default",
+      "simple_name": "Default",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F17jtvapa4gx",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/Header/Header.stories.tsx",
+      "start_line": 12,
+      "end_line": 16,
+      "size_lines": 5,
+      "signature_hint": "Default = (props) => ( <Header {...props}> <p>Header menu content</p> </Header> )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 311,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjiax72gav1",
+      "qualified_name": "padBase64",
+      "simple_name": "padBase64",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 72,
+      "end_line": 76,
+      "size_lines": 5,
+      "signature_hint": "padBase64 = (value: string) => value.padEnd( value.length + ((4 - (value.length % 4 || 4)) % 4), '=', )",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 341,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Co7lx337jpv"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2crv0exp03",
+      "qualified_name": "Loo",
+      "simple_name": "Loo",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ffzllkae4xw",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/loos/[id]/Index.stories.tsx",
+      "start_line": 50,
+      "end_line": 54,
+      "size_lines": 5,
+      "signature_hint": "Loo = (props) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 422,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnewqvtigig",
+      "qualified_name": "generateMetadata",
+      "simple_name": "generateMetadata",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8hbo1hfru3",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/posts/[slug]/index.page.tsx",
+      "start_line": 17,
+      "end_line": 21,
+      "size_lines": 5,
+      "signature_hint": "generateMetadata = ({ params }: { params: { slug: string } }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 440,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C11w93sgnd3g",
+      "qualified_name": "setSetting",
+      "simple_name": "setSetting",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fue2vnosuj",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/config.ts",
+      "start_line": 95,
+      "end_line": 98,
+      "size_lines": 4,
+      "signature_hint": "setSetting(namespace: string, key: string, val: string)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -96,
+      "region": 294,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Clqi285av1x",
+      "qualified_name": "SwitchWithState",
+      "simple_name": "SwitchWithState",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Frvblm86t1d",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/Switch/Switch.stories.tsx",
+      "start_line": 14,
+      "end_line": 17,
+      "size_lines": 4,
+      "signature_hint": "SwitchWithState = () =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -96,
+      "region": 330,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C125jcwjgipw",
+      "qualified_name": "round",
+      "simple_name": "round",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1tjpz25ew3",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/ToiletDetailsPanel/ToiletDetailsPanel.tsx",
+      "start_line": 25,
+      "end_line": 28,
+      "size_lines": 4,
+      "signature_hint": "function round(value: number, precision = 0)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -96,
+      "region": 332,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cdb4flofyew"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C21uddo38v0",
+      "qualified_name": "toBinary",
+      "simple_name": "toBinary",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 32,
+      "end_line": 35,
+      "size_lines": 4,
+      "signature_hint": "toBinary = (value: string) => encodeURIComponent(value).replace(/%([0-9A-F]{2})/g, (_, hex: string) => String.fromCharCode(Number.parseInt(hex, 16)), )",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -96,
+      "region": 341,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C71mzn5orfa"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4ut62xcxm3",
+      "qualified_name": "Default",
+      "simple_name": "Default",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Flwzac24w80",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/LooMap.stories.tsx",
+      "start_line": 45,
+      "end_line": 47,
+      "size_lines": 3,
+      "signature_hint": "Default = (props) => ( <LooMap center={{ lat: 51.5072, lng: 0.1276 }} zoom={8} {...props}></LooMap> )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 258,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cunvf7qs76t",
+      "qualified_name": "About",
+      "simple_name": "About",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fiblnm7insw",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/About.stories.tsx",
+      "start_line": 14,
+      "end_line": 16,
+      "size_lines": 3,
+      "signature_hint": "About = () =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 374,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C17k267puzvi",
+      "qualified_name": "Index",
+      "simple_name": "Index",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F7hpozuvq5o",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/Index.stories.tsx",
+      "start_line": 17,
+      "end_line": 19,
+      "size_lines": 3,
+      "signature_hint": "Index = () =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 376,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17bh8xjrpjk",
+      "qualified_name": "Login",
+      "simple_name": "Login",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1606x22ecn7",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/Login.stories.tsx",
+      "start_line": 49,
+      "end_line": 51,
+      "size_lines": 3,
+      "signature_hint": "Login = () =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 377,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cop10d0z3hq",
+      "qualified_name": "Privacy",
+      "simple_name": "Privacy",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F141jkdyl36m",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/Privacy.stories.tsx",
+      "start_line": 16,
+      "end_line": 18,
+      "size_lines": 3,
+      "signature_hint": "Privacy = () =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 378,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C81lgob2dbv",
+      "qualified_name": "Dataset",
+      "simple_name": "Dataset",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4fm1h2yjtx",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/dataset.stories.tsx",
+      "start_line": 36,
+      "end_line": 38,
+      "size_lines": 3,
+      "signature_hint": "Dataset = (props) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 404,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cn07x8lgi3m",
+      "qualified_name": "removeEmpty",
+      "simple_name": "removeEmpty",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F15gf9pdw1",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/explorer/search.page.tsx",
+      "start_line": 48,
+      "end_line": 50,
+      "size_lines": 3,
+      "signature_hint": "function removeEmpty(obj: object)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 412,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 3,
+          "example": "C3mjo733var"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvvibsq943o",
+      "qualified_name": "ListItem",
+      "simple_name": "ListItem",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F11szxvknvrw",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/login.page.tsx",
+      "start_line": 18,
+      "end_line": 20,
+      "size_lines": 3,
+      "signature_hint": "ListItem = (props: BoxProps) => ( <Box as=\"li\" marginTop={2} marginLeft={4} {...props} /> )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 418,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cimmftwojjz",
+      "qualified_name": "Add",
+      "simple_name": "Add",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fc3h58x6p6x",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/loos/Add.stories.tsx",
+      "start_line": 20,
+      "end_line": 22,
+      "size_lines": 3,
+      "signature_hint": "Add = () =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 420,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjfmlx730qj",
+      "qualified_name": "Edit",
+      "simple_name": "Edit",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8mkwjtuygm",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/loos/[id]/Edit.stories.tsx",
+      "start_line": 52,
+      "end_line": 54,
+      "size_lines": 3,
+      "signature_hint": "Edit = (props) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 421,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdd947i7b7n",
+      "qualified_name": "Remove",
+      "simple_name": "Remove",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjmyj7zqqs6",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/loos/[id]/Remove.stories.tsx",
+      "start_line": 52,
+      "end_line": 54,
+      "size_lines": 3,
+      "signature_hint": "Remove = (props) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 424,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Csrl10xkc6j",
+      "qualified_name": "Index",
+      "simple_name": "Index",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcb7mtobnxc",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/map/Index.stories.tsx",
+      "start_line": 28,
+      "end_line": 30,
+      "size_lines": 3,
+      "signature_hint": "Index = (props) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 438,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cg1uwkufwx8",
+      "qualified_name": "Default",
+      "simple_name": "Default",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fxxahrnpo60",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/Feedback/Feedback.stories.tsx",
+      "start_line": 23,
+      "end_line": 23,
+      "size_lines": 1,
+      "signature_hint": "Default = () => <Feedback />",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -99,
+      "region": 239,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Co9qwjflykx",
+      "qualified_name": "Default",
+      "simple_name": "Default",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqr73a7ki5c",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/LocationSearch/LocationSearch.stories.tsx",
+      "start_line": 9,
+      "end_line": 9,
+      "size_lines": 1,
+      "signature_hint": "Default = (props) => <LocationSearch {...props}></LocationSearch>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -99,
+      "region": 243,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ceursqnm1yx",
+      "qualified_name": "Default",
+      "simple_name": "Default",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fzkfex7qubw",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/Footer/Footer.stories.tsx",
+      "start_line": 12,
+      "end_line": 12,
+      "size_lines": 1,
+      "signature_hint": "Default = () => <Footer />",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -99,
+      "region": 309,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14zc7ykosd5",
+      "qualified_name": "Default",
+      "simple_name": "Default",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F5tji5yut05",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/Icon/Icon.stories.tsx",
+      "start_line": 18,
+      "end_line": 18,
+      "size_lines": 1,
+      "signature_hint": "Default = (args) => <Icon {...args} />",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -99,
+      "region": 320,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14cvaqwy6dr",
+      "qualified_name": "Default",
+      "simple_name": "Default",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fylppv6kmwf",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/InputField/InputField.stories.tsx",
+      "start_line": 25,
+      "end_line": 25,
+      "size_lines": 1,
+      "signature_hint": "Default = (args) => <InputField {...args} />",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -99,
+      "region": 322,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C10dk1n4q39v",
+      "qualified_name": "Default",
+      "simple_name": "Default",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fx1d1ihbq9h",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/RadioInput/RadioInput.stories.tsx",
+      "start_line": 21,
+      "end_line": 21,
+      "size_lines": 1,
+      "signature_hint": "Default = (args) => <Radio {...args} />",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -99,
+      "region": 324,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cfk2rwzi742",
+      "qualified_name": "Default",
+      "simple_name": "Default",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F3w8et12zte",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/Sidebar/Sidebar.stories.tsx",
+      "start_line": 12,
+      "end_line": 12,
+      "size_lines": 1,
+      "signature_hint": "Default = () => <Sidebar />",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -99,
+      "region": 326,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5on4u82lft",
+      "qualified_name": "Default",
+      "simple_name": "Default",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fdsb2xgl990",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/design-system/components/ToiletDetailsPanel/ToiletDetailsPanel.stories.tsx",
+      "start_line": 60,
+      "end_line": 60,
+      "size_lines": 1,
+      "signature_hint": "Default = () => <ToiletDetailsPanel data={mockToiletData.loo} />",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -99,
+      "region": 331,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C78pu0f8adw",
+      "qualified_name": "formatted",
+      "simple_name": "formatted",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 192,
+      "end_line": 192,
+      "size_lines": 1,
+      "signature_hint": "formatted = (input: string) => `$",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -99,
+      "region": 341,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cwi2p8lmvs9"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cutbalhtq9j",
+      "qualified_name": "Contact",
+      "simple_name": "Contact",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fx9jmapqicw",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/Contact.stories.tsx",
+      "start_line": 12,
+      "end_line": 12,
+      "size_lines": 1,
+      "signature_hint": "Contact = () => <SiteLayout Component={ContactPage} />",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -99,
+      "region": 375,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C17fzjumpoca",
+      "qualified_name": "Chainable.login",
+      "simple_name": "login",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "trait_method",
+      "file": "Fi60654axyh",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/cypress/support/e2e.ts",
+      "start_line": 32,
+      "end_line": 35,
+      "size_lines": 4,
+      "signature_hint": "login(options?: { username?: string; password?: string; })",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -396,
+      "region": 152,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C19jyy7ihln",
+      "qualified_name": "Chainable.logout",
+      "simple_name": "logout",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "trait_method",
+      "file": "Fi60654axyh",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/cypress/support/e2e.ts",
+      "start_line": 40,
+      "end_line": 40,
+      "size_lines": 1,
+      "signature_hint": "logout(returnTo?: string)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 153,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C53xrd05rbu",
+      "qualified_name": "Chainable.clearAuth0Cookies",
+      "simple_name": "clearAuth0Cookies",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "trait_method",
+      "file": "Fi60654axyh",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/cypress/support/e2e.ts",
+      "start_line": 49,
+      "end_line": 49,
+      "size_lines": 1,
+      "signature_hint": "clearAuth0Cookies()",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 154,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8te2ci6le8",
+      "qualified_name": "postgresUpsertLooQueryFromReport",
+      "simple_name": "postgresUpsertLooQueryFromReport",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fvgxfs49epl",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/graphql/helpers.ts",
+      "start_line": 93,
+      "end_line": 153,
+      "size_lines": 61,
+      "signature_hint": "postgresUpsertLooQueryFromReport = async ( id: string | undefined, report: ReportInput, nickname: string, )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -539,
+      "region": 185,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "postgresUpsertLooQueryFromReport",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F12xw9iy2ckk",
+            "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/graphql/resolvers.ts",
+            "line": 318,
+            "name": "postgresUpsertLooQueryFromReport"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cr5ftir8p1n",
+      "qualified_name": "authDirective",
+      "simple_name": "authDirective",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fgefmbyg88a",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/directives/authDirective.ts",
+      "start_line": 5,
+      "end_line": 55,
+      "size_lines": 51,
+      "signature_hint": "function authDirective(directiveName: string)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -549,
+      "region": 179,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "authDirective",
+          "sites": 2,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F18a9y15ixwi",
+            "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/api/index.page.ts",
+            "line": 28,
+            "name": "authDirective"
+          }
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C4e3gkm403j"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17mar8x3acl",
+      "qualified_name": "getLoosByProximity",
+      "simple_name": "getLoosByProximity",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fak4t65axda",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/prisma/queries.ts",
+      "start_line": 186,
+      "end_line": 229,
+      "size_lines": 44,
+      "signature_hint": "getLoosByProximity = async ( prisma: PrismaClient, lat: number, lng: number, radius = 1000, ) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -556,
+      "region": 200,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "getLoosByProximity",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F12xw9iy2ckk",
+            "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/graphql/resolvers.ts",
+            "line": 127,
+            "name": "getLoosByProximity"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckipaq4rquv",
+      "qualified_name": "upsertLoo",
+      "simple_name": "upsertLoo",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fak4t65axda",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/prisma/queries.ts",
+      "start_line": 78,
+      "end_line": 109,
+      "size_lines": 32,
+      "signature_hint": "upsertLoo = async ( prisma: PrismaClient, report: ToiletUpsertReport, returnFinal = true, ) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -568,
+      "region": 191,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "upsertLoo",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F12xw9iy2ckk",
+            "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/graphql/resolvers.ts",
+            "line": 324,
+            "name": "upsertLoo"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Canva8lo9cl",
+      "qualified_name": "removeLoo",
+      "simple_name": "removeLoo",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fak4t65axda",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/prisma/queries.ts",
+      "start_line": 111,
+      "end_line": 128,
+      "size_lines": 18,
+      "signature_hint": "removeLoo = async ( prisma: PrismaClient, report: RemovalReportInput, nickname: string, ) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -582,
+      "region": 197,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "removeLoo",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F12xw9iy2ckk",
+            "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/graphql/resolvers.ts",
+            "line": 345,
+            "name": "removeLoo"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cp8b6i6plo8",
+      "qualified_name": "getLooNamesByIds",
+      "simple_name": "getLooNamesByIds",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fak4t65axda",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/prisma/queries.ts",
+      "start_line": 16,
+      "end_line": 31,
+      "size_lines": 16,
+      "signature_hint": "getLooNamesByIds = async ( prisma: PrismaClient, idList: string[], ) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -584,
+      "region": 192,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "getLooNamesByIds",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F12xw9iy2ckk",
+            "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/graphql/resolvers.ts",
+            "line": 123,
+            "name": "getLooNamesByIds"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cuu37xmqtrq",
+      "qualified_name": "resolve",
+      "simple_name": "resolve",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fgefmbyg88a",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/directives/authDirective.ts",
+      "start_line": 34,
+      "end_line": 48,
+      "size_lines": 15,
+      "signature_hint": "fieldConfig.resolve = function (source, args, context, info)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -585,
+      "region": 180,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "resolve",
+          "sites": 2,
+          "reason": "shadowed-by-local",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F18a9y15ixwi",
+            "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/pages/api/index.page.ts",
+            "line": 47,
+            "name": "resolve"
+          }
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cuu37xmqtrq"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C16l0u690uox",
+      "qualified_name": "verifyLoo",
+      "simple_name": "verifyLoo",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fak4t65axda",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/prisma/queries.ts",
+      "start_line": 130,
+      "end_line": 140,
+      "size_lines": 11,
+      "signature_hint": "verifyLoo = async (prisma: PrismaClient, id: string) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -589,
+      "region": 198,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "verifyLoo",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F12xw9iy2ckk",
+            "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/graphql/resolvers.ts",
+            "line": 363,
+            "name": "verifyLoo"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Co48aty6ydo",
+      "qualified_name": "stringifyAndCompressFullLoos",
+      "simple_name": "stringifyAndCompressFullLoos",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 294,
+      "end_line": 304,
+      "size_lines": 11,
+      "signature_hint": "stringifyAndCompressFullLoos = ( loos: Loo[], )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -589,
+      "region": 341,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "stringifyAndCompressFullLoos",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F12xw9iy2ckk",
+            "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/graphql/resolvers.ts",
+            "line": 140,
+            "name": "stringifyAndCompressFullLoos"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C8nkb1ln9i",
+      "qualified_name": "getLooById",
+      "simple_name": "getLooById",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fak4t65axda",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/prisma/queries.ts",
+      "start_line": 5,
+      "end_line": 14,
+      "size_lines": 10,
+      "signature_hint": "getLooById = async ( prisma: PrismaClient, id: string, )",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -590,
+      "region": 191,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "getLooById",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F12xw9iy2ckk",
+            "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/graphql/resolvers.ts",
+            "line": 46,
+            "name": "getLooById"
+          }
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ckipaq4rquv"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C816sh6wpfi",
+      "qualified_name": "withApollo",
+      "simple_name": "withApollo",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F76v016a0it",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api-client/withApollo.tsx",
+      "start_line": 75,
+      "end_line": 82,
+      "size_lines": 8,
+      "signature_hint": "function withApollo<T extends NextPage<any>>(Component: T)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -592,
+      "region": 179,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "withApollo",
+          "sites": 10,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fnd59gfu6y0",
+            "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/components/LooMap/LooMapLoader.tsx",
+            "line": 32,
+            "name": "withApollo"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cibekkkwngv",
+      "qualified_name": "getAreas",
+      "simple_name": "getAreas",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fak4t65axda",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/prisma/queries.ts",
+      "start_line": 70,
+      "end_line": 76,
+      "size_lines": 7,
+      "signature_hint": "getAreas = async (prisma: PrismaClient) => prisma.areas.findMany({ select: { name: true, type: true, }, })",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -593,
+      "region": 195,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "getAreas",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F12xw9iy2ckk",
+            "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/graphql/resolvers.ts",
+            "line": 143,
+            "name": "getAreas"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5kstgl6p0g",
+      "qualified_name": "stringifyAndCompressLoos",
+      "simple_name": "stringifyAndCompressLoos",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fj27vijbjgt",
+      "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/lib/loo.ts",
+      "start_line": 287,
+      "end_line": 292,
+      "size_lines": 6,
+      "signature_hint": "stringifyAndCompressLoos = (loos: Loo[])",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -594,
+      "region": 341,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "stringifyAndCompressLoos",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F12xw9iy2ckk",
+            "path": "/storage/cgg-test_repos/app-toiletmap-yoga/src/api/graphql/resolvers.ts",
+            "line": 136,
+            "name": "stringifyAndCompressLoos"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    }
+  ]
+}

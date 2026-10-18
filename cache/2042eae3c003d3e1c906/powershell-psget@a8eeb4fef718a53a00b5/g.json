@@ -1,0 +1,6658 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "Cgn79to1699": {
+      "id": "Cgn79to1699",
+      "qualified_name": "Test-IsAdmin",
+      "simple_name": "Test-IsAdmin",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 101,
+      "end_line": 108,
+      "start_byte": 4783,
+      "end_byte": 5038,
+      "signature_hint": "function Test-IsAdmin",
+      "test_role": "support"
+    },
+    "C4e8qrywqcs": {
+      "id": "C4e8qrywqcs",
+      "qualified_name": "Get-IsWindows",
+      "simple_name": "Get-IsWindows",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 110,
+      "end_line": 112,
+      "start_byte": 5040,
+      "end_byte": 5095,
+      "signature_hint": "function Get-IsWindows",
+      "test_role": "support"
+    },
+    "C7fbwrctfis": {
+      "id": "C7fbwrctfis",
+      "qualified_name": "Get-AllUsersModulesPath",
+      "simple_name": "Get-AllUsersModulesPath",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 114,
+      "end_line": 116,
+      "start_byte": 5097,
+      "end_byte": 5176,
+      "signature_hint": "function Get-AllUsersModulesPath",
+      "test_role": "support"
+    },
+    "Cligknf7taj": {
+      "id": "Cligknf7taj",
+      "qualified_name": "Get-CurrentUserModulesPath",
+      "simple_name": "Get-CurrentUserModulesPath",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 118,
+      "end_line": 120,
+      "start_byte": 5178,
+      "end_byte": 5259,
+      "signature_hint": "function Get-CurrentUserModulesPath",
+      "test_role": "support"
+    },
+    "Cirbrt8ohhs": {
+      "id": "Cirbrt8ohhs",
+      "qualified_name": "Get-AllUsersScriptsPath",
+      "simple_name": "Get-AllUsersScriptsPath",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 122,
+      "end_line": 124,
+      "start_byte": 5261,
+      "end_byte": 5340,
+      "signature_hint": "function Get-AllUsersScriptsPath",
+      "test_role": "support"
+    },
+    "Cttintbl1i2": {
+      "id": "Cttintbl1i2",
+      "qualified_name": "Get-CurrentUserScriptsPath",
+      "simple_name": "Get-CurrentUserScriptsPath",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 126,
+      "end_line": 128,
+      "start_byte": 5342,
+      "end_byte": 5423,
+      "signature_hint": "function Get-CurrentUserScriptsPath",
+      "test_role": "support"
+    },
+    "Chi00ves86j": {
+      "id": "Chi00ves86j",
+      "qualified_name": "Get-TempPath",
+      "simple_name": "Get-TempPath",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 130,
+      "end_line": 132,
+      "start_byte": 5425,
+      "end_byte": 5478,
+      "signature_hint": "function Get-TempPath",
+      "test_role": "support"
+    },
+    "Cd2xc4ddn5a": {
+      "id": "Cd2xc4ddn5a",
+      "qualified_name": "Get-PSGetLocalAppDataPath",
+      "simple_name": "Get-PSGetLocalAppDataPath",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 134,
+      "end_line": 136,
+      "start_byte": 5480,
+      "end_byte": 5555,
+      "signature_hint": "function Get-PSGetLocalAppDataPath",
+      "test_role": "support"
+    },
+    "Cahta2p93rr": {
+      "id": "Cahta2p93rr",
+      "qualified_name": "Get-NuGetGalleryName",
+      "simple_name": "Get-NuGetGalleryName",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 138,
+      "end_line": 141,
+      "start_byte": 5557,
+      "end_byte": 5626,
+      "signature_hint": "function Get-NuGetGalleryName",
+      "test_role": "support"
+    },
+    "C7b1bna5ty": {
+      "id": "C7b1bna5ty",
+      "qualified_name": "Get-NuGetGalleryLocation",
+      "simple_name": "Get-NuGetGalleryLocation",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 143,
+      "end_line": 146,
+      "start_byte": 5628,
+      "end_byte": 5705,
+      "signature_hint": "function Get-NuGetGalleryLocation",
+      "test_role": "support"
+    },
+    "C16el4ika1i3": {
+      "id": "C16el4ika1i3",
+      "qualified_name": "Get-PSGalleryName",
+      "simple_name": "Get-PSGalleryName",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 148,
+      "end_line": 151,
+      "start_byte": 5707,
+      "end_byte": 5770,
+      "signature_hint": "function Get-PSGalleryName",
+      "test_role": "support"
+    },
+    "C55q56pf864": {
+      "id": "C55q56pf864",
+      "qualified_name": "Get-PSGalleryLocation",
+      "simple_name": "Get-PSGalleryLocation",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 153,
+      "end_line": 155,
+      "start_byte": 5772,
+      "end_byte": 5843,
+      "signature_hint": "function Get-PSGalleryLocation",
+      "test_role": "support"
+    },
+    "Cntnt7sopl3": {
+      "id": "Cntnt7sopl3",
+      "qualified_name": "Get-NewTestDirs",
+      "simple_name": "Get-NewTestDirs",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 156,
+      "end_line": 165,
+      "start_byte": 5844,
+      "end_byte": 6033,
+      "signature_hint": "function Get-NewTestDirs",
+      "test_role": "support"
+    },
+    "Cxqbw2nmkdg": {
+      "id": "Cxqbw2nmkdg",
+      "qualified_name": "Get-RemoveTestDirs",
+      "simple_name": "Get-RemoveTestDirs",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 167,
+      "end_line": 179,
+      "start_byte": 6035,
+      "end_byte": 6287,
+      "signature_hint": "function Get-RemoveTestDirs",
+      "test_role": "support"
+    },
+    "C68r1lecmt9": {
+      "id": "C68r1lecmt9",
+      "qualified_name": "Get-NewPSResourceRepositoryFile",
+      "simple_name": "Get-NewPSResourceRepositoryFile",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 181,
+      "end_line": 198,
+      "start_byte": 6289,
+      "end_byte": 7233,
+      "signature_hint": "function Get-NewPSResourceRepositoryFile",
+      "test_role": "support"
+    },
+    "C16w5h25d1u4": {
+      "id": "C16w5h25d1u4",
+      "qualified_name": "Get-RevertPSResourceRepositoryFile",
+      "simple_name": "Get-RevertPSResourceRepositoryFile",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 200,
+      "end_line": 210,
+      "start_byte": 7235,
+      "end_byte": 7896,
+      "signature_hint": "function Get-RevertPSResourceRepositoryFile",
+      "test_role": "support"
+    },
+    "C2pi84upmkq": {
+      "id": "C2pi84upmkq",
+      "qualified_name": "Get-NewPSResourceRepositoryFileWithCredentialInfo",
+      "simple_name": "Get-NewPSResourceRepositoryFileWithCredentialInfo",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 212,
+      "end_line": 229,
+      "start_byte": 7898,
+      "end_byte": 8878,
+      "signature_hint": "function Get-NewPSResourceRepositoryFileWithCredentialInfo",
+      "test_role": "support"
+    },
+    "C15zrosbn9yy": {
+      "id": "C15zrosbn9yy",
+      "qualified_name": "Register-LocalRepos",
+      "simple_name": "Register-LocalRepos",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 231,
+      "end_line": 252,
+      "start_byte": 8880,
+      "end_byte": 9636,
+      "signature_hint": "function Register-LocalRepos",
+      "test_role": "support"
+    },
+    "Cdbm8agppbg": {
+      "id": "Cdbm8agppbg",
+      "qualified_name": "Register-PSGallery",
+      "simple_name": "Register-PSGallery",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 254,
+      "end_line": 264,
+      "start_byte": 9638,
+      "end_byte": 9926,
+      "signature_hint": "function Register-PSGallery",
+      "test_role": "support"
+    },
+    "C133soyv0q54": {
+      "id": "C133soyv0q54",
+      "qualified_name": "Unregister-LocalRepos",
+      "simple_name": "Unregister-LocalRepos",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 266,
+      "end_line": 273,
+      "start_byte": 9928,
+      "end_byte": 10216,
+      "signature_hint": "function Unregister-LocalRepos",
+      "test_role": "support"
+    },
+    "Ccx8kkund6g": {
+      "id": "Ccx8kkund6g",
+      "qualified_name": "Get-TestDriveSetUp",
+      "simple_name": "Get-TestDriveSetUp",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 274,
+      "end_line": 280,
+      "start_byte": 10217,
+      "end_byte": 10526,
+      "signature_hint": "function Get-TestDriveSetUp",
+      "test_role": "support"
+    },
+    "C10tzex4qj9": {
+      "id": "C10tzex4qj9",
+      "qualified_name": "Get-RoleCapabilityResourcePublishedToLocalRepoTestDrive",
+      "simple_name": "Get-RoleCapabilityResourcePublishedToLocalRepoTestDrive",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 282,
+      "end_line": 300,
+      "start_byte": 10528,
+      "end_byte": 11391,
+      "signature_hint": "function Get-RoleCapabilityResourcePublishedToLocalRepoTestDrive",
+      "test_role": "support"
+    },
+    "C15wruifmoix": {
+      "id": "C15wruifmoix",
+      "qualified_name": "Get-DSCResourcePublishedToLocalRepoTestDrive",
+      "simple_name": "Get-DSCResourcePublishedToLocalRepoTestDrive",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 302,
+      "end_line": 319,
+      "start_byte": 11393,
+      "end_byte": 12128,
+      "signature_hint": "function Get-DSCResourcePublishedToLocalRepoTestDrive",
+      "test_role": "support"
+    },
+    "C131f15tim7g": {
+      "id": "C131f15tim7g",
+      "qualified_name": "Get-ScriptResourcePublishedToLocalRepoTestDrive",
+      "simple_name": "Get-ScriptResourcePublishedToLocalRepoTestDrive",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 321,
+      "end_line": 355,
+      "start_byte": 12130,
+      "end_byte": 13386,
+      "signature_hint": "function Get-ScriptResourcePublishedToLocalRepoTestDrive",
+      "test_role": "support"
+    },
+    "Cpdodk8d4es": {
+      "id": "Cpdodk8d4es",
+      "qualified_name": "Get-CommandResourcePublishedToLocalRepoTestDrive",
+      "simple_name": "Get-CommandResourcePublishedToLocalRepoTestDrive",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 357,
+      "end_line": 373,
+      "start_byte": 13388,
+      "end_byte": 14072,
+      "signature_hint": "function Get-CommandResourcePublishedToLocalRepoTestDrive",
+      "test_role": "support"
+    },
+    "Clr9ul4nctd": {
+      "id": "Clr9ul4nctd",
+      "qualified_name": "Get-ModuleResourcePublishedToLocalRepoTestDrive",
+      "simple_name": "Get-ModuleResourcePublishedToLocalRepoTestDrive",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 375,
+      "end_line": 394,
+      "start_byte": 14074,
+      "end_byte": 14711,
+      "signature_hint": "function Get-ModuleResourcePublishedToLocalRepoTestDrive",
+      "test_role": "support"
+    },
+    "C68z66ctk17": {
+      "id": "C68z66ctk17",
+      "qualified_name": "Create-TagsStringEntry",
+      "simple_name": "Create-TagsStringEntry",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 396,
+      "end_line": 410,
+      "start_byte": 14713,
+      "end_byte": 14925,
+      "signature_hint": "function Create-TagsStringEntry",
+      "test_role": "support"
+    },
+    "Ccj4u9fit83": {
+      "id": "Ccj4u9fit83",
+      "qualified_name": "New-TestModule",
+      "simple_name": "New-TestModule",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 412,
+      "end_line": 467,
+      "start_byte": 14927,
+      "end_byte": 16243,
+      "signature_hint": "function New-TestModule",
+      "test_role": "support"
+    },
+    "Cz8ab4kvel4": {
+      "id": "Cz8ab4kvel4",
+      "qualified_name": "Get-ModuleResourcePublishedToLocalRepoTestDrive",
+      "simple_name": "Get-ModuleResourcePublishedToLocalRepoTestDrive",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 469,
+      "end_line": 518,
+      "start_byte": 16245,
+      "end_byte": 17908,
+      "signature_hint": "function Get-ModuleResourcePublishedToLocalRepoTestDrive",
+      "test_role": "support"
+    },
+    "Cqwee5mz0gb": {
+      "id": "Cqwee5mz0gb",
+      "qualified_name": "Register-LocalRepos",
+      "simple_name": "Register-LocalRepos",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 520,
+      "end_line": 542,
+      "start_byte": 17910,
+      "end_byte": 18604,
+      "signature_hint": "function Register-LocalRepos",
+      "test_role": "support"
+    },
+    "C15wrb0bzk2s": {
+      "id": "C15wrb0bzk2s",
+      "qualified_name": "RemoveItem",
+      "simple_name": "RemoveItem",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 543,
+      "end_line": 554,
+      "start_byte": 18605,
+      "end_byte": 18798,
+      "signature_hint": "function RemoveItem",
+      "test_role": "support"
+    },
+    "Cbuxerhhdde": {
+      "id": "Cbuxerhhdde",
+      "qualified_name": "Create-PSScriptMetadata",
+      "simple_name": "Create-PSScriptMetadata",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 556,
+      "end_line": 674,
+      "start_byte": 18800,
+      "end_byte": 20942,
+      "signature_hint": "function Create-PSScriptMetadata",
+      "test_role": "support"
+    },
+    "C7d2ow6dnw7": {
+      "id": "C7d2ow6dnw7",
+      "qualified_name": "CheckForExpectedPSGetInfo",
+      "simple_name": "CheckForExpectedPSGetInfo",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1601cp4gd3s",
+      "start_line": 681,
+      "end_line": 734,
+      "start_byte": 21074,
+      "end_byte": 25001,
+      "signature_hint": "function CheckForExpectedPSGetInfo",
+      "test_role": "support"
+    },
+    "Cfmb9s32lh6": {
+      "id": "Cfmb9s32lh6",
+      "qualified_name": "CreateTestModule",
+      "simple_name": "CreateTestModule",
+      "kind": "function",
+      "language": "powershell",
+      "file": "Fvnion2qyk1",
+      "start_line": 9,
+      "end_line": 43,
+      "start_byte": 329,
+      "end_byte": 1324,
+      "signature_hint": "function CreateTestModule",
+      "test_role": "support"
+    },
+    "Cotg9hpzhhy": {
+      "id": "Cotg9hpzhhy",
+      "qualified_name": "Get-VersionType",
+      "simple_name": "Get-VersionType",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 6,
+      "end_line": 29,
+      "start_byte": 380,
+      "end_byte": 1227,
+      "signature_hint": "function Get-VersionType"
+    },
+    "Co26msyo4ro": {
+      "id": "Co26msyo4ro",
+      "qualified_name": "Compare-Version",
+      "simple_name": "Compare-Version",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 33,
+      "end_line": 109,
+      "start_byte": 1350,
+      "end_byte": 3607,
+      "signature_hint": "function Compare-Version"
+    },
+    "Cx5bjyprjna": {
+      "id": "Cx5bjyprjna",
+      "qualified_name": "Convert-VersionParamaters",
+      "simple_name": "Convert-VersionParamaters",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 114,
+      "end_line": 144,
+      "start_byte": 3881,
+      "end_byte": 4969,
+      "signature_hint": "function Convert-VersionParamaters"
+    },
+    "C4hgga9px25": {
+      "id": "C4hgga9px25",
+      "qualified_name": "Find-Command",
+      "simple_name": "Find-Command",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 159,
+      "end_line": 283,
+      "start_byte": 5622,
+      "end_byte": 9578,
+      "signature_hint": "function Find-Command"
+    },
+    "C2guu424chu": {
+      "id": "C2guu424chu",
+      "qualified_name": "Find-DscResource",
+      "simple_name": "Find-DscResource",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 285,
+      "end_line": 408,
+      "start_byte": 9580,
+      "end_byte": 13555,
+      "signature_hint": "function Find-DscResource"
+    },
+    "Cakorkfc4zn": {
+      "id": "Cakorkfc4zn",
+      "qualified_name": "Find-Module",
+      "simple_name": "Find-Module",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 410,
+      "end_line": 564,
+      "start_byte": 13557,
+      "end_byte": 18668,
+      "signature_hint": "function Find-Module"
+    },
+    "C3lirldxs52": {
+      "id": "C3lirldxs52",
+      "qualified_name": "Find-RoleCapability",
+      "simple_name": "Find-RoleCapability",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 566,
+      "end_line": 627,
+      "start_byte": 18670,
+      "end_byte": 19878,
+      "signature_hint": "function Find-RoleCapability"
+    },
+    "Cpgwhvub1ct": {
+      "id": "Cpgwhvub1ct",
+      "qualified_name": "Find-Script",
+      "simple_name": "Find-Script",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 629,
+      "end_line": 774,
+      "start_byte": 19880,
+      "end_byte": 24606,
+      "signature_hint": "function Find-Script"
+    },
+    "Ccyi96sh82e": {
+      "id": "Ccyi96sh82e",
+      "qualified_name": "Get-InstalledModule",
+      "simple_name": "Get-InstalledModule",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 776,
+      "end_line": 874,
+      "start_byte": 24608,
+      "end_byte": 27876,
+      "signature_hint": "function Get-InstalledModule"
+    },
+    "Cn5ebpk1flt": {
+      "id": "Cn5ebpk1flt",
+      "qualified_name": "Get-InstalledScript",
+      "simple_name": "Get-InstalledScript",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 876,
+      "end_line": 970,
+      "start_byte": 27878,
+      "end_byte": 30962,
+      "signature_hint": "function Get-InstalledScript"
+    },
+    "Cuy8yoedxjk": {
+      "id": "Cuy8yoedxjk",
+      "qualified_name": "Get-PSRepository",
+      "simple_name": "Get-PSRepository",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 972,
+      "end_line": 1035,
+      "start_byte": 30964,
+      "end_byte": 32725,
+      "signature_hint": "function Get-PSRepository"
+    },
+    "Cp7s2tvwzoo": {
+      "id": "Cp7s2tvwzoo",
+      "qualified_name": "Install-Module",
+      "simple_name": "Install-Module",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 1037,
+      "end_line": 1184,
+      "start_byte": 32727,
+      "end_byte": 37948,
+      "signature_hint": "function Install-Module"
+    },
+    "C60s1off9w9": {
+      "id": "C60s1off9w9",
+      "qualified_name": "Install-Script",
+      "simple_name": "Install-Script",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 1186,
+      "end_line": 1327,
+      "start_byte": 37950,
+      "end_byte": 42759,
+      "signature_hint": "function Install-Script"
+    },
+    "Cj1js290epv": {
+      "id": "Cj1js290epv",
+      "qualified_name": "New-ScriptFileInfo",
+      "simple_name": "New-ScriptFileInfo",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 1329,
+      "end_line": 1476,
+      "start_byte": 42761,
+      "end_byte": 46390,
+      "signature_hint": "function New-ScriptFileInfo"
+    },
+    "Cr3e8nbx052": {
+      "id": "Cr3e8nbx052",
+      "qualified_name": "Publish-Module",
+      "simple_name": "Publish-Module",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 1478,
+      "end_line": 1619,
+      "start_byte": 46392,
+      "end_byte": 51140,
+      "signature_hint": "function Publish-Module"
+    },
+    "Cbulgb7w4dh": {
+      "id": "Cbulgb7w4dh",
+      "qualified_name": "Publish-Script",
+      "simple_name": "Publish-Script",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 1621,
+      "end_line": 1714,
+      "start_byte": 51142,
+      "end_byte": 54122,
+      "signature_hint": "function Publish-Script"
+    },
+    "Czk8gber8uf": {
+      "id": "Czk8gber8uf",
+      "qualified_name": "Register-PSRepository",
+      "simple_name": "Register-PSRepository",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 1716,
+      "end_line": 1847,
+      "start_byte": 54124,
+      "end_byte": 58884,
+      "signature_hint": "function Register-PSRepository"
+    },
+    "C15tf2xf282o": {
+      "id": "C15tf2xf282o",
+      "qualified_name": "Save-Module",
+      "simple_name": "Save-Module",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 1849,
+      "end_line": 1999,
+      "start_byte": 58886,
+      "end_byte": 65202,
+      "signature_hint": "function Save-Module"
+    },
+    "C4xkee4g0uu": {
+      "id": "C4xkee4g0uu",
+      "qualified_name": "Save-Script",
+      "simple_name": "Save-Script",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 2001,
+      "end_line": 2150,
+      "start_byte": 65204,
+      "end_byte": 71488,
+      "signature_hint": "function Save-Script"
+    },
+    "Cn9hycc2ww5": {
+      "id": "Cn9hycc2ww5",
+      "qualified_name": "Set-PSRepository",
+      "simple_name": "Set-PSRepository",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 2152,
+      "end_line": 2277,
+      "start_byte": 71490,
+      "end_byte": 75751,
+      "signature_hint": "function Set-PSRepository"
+    },
+    "C13s6yidxr48": {
+      "id": "C13s6yidxr48",
+      "qualified_name": "Test-ScriptFileInfo",
+      "simple_name": "Test-ScriptFileInfo",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 2279,
+      "end_line": 2353,
+      "start_byte": 75753,
+      "end_byte": 78117,
+      "signature_hint": "function Test-ScriptFileInfo"
+    },
+    "C17qqlgkdki7": {
+      "id": "C17qqlgkdki7",
+      "qualified_name": "Uninstall-Module",
+      "simple_name": "Uninstall-Module",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 2355,
+      "end_line": 2465,
+      "start_byte": 78119,
+      "end_byte": 82144,
+      "signature_hint": "function Uninstall-Module"
+    },
+    "Clnohc3m70t": {
+      "id": "Clnohc3m70t",
+      "qualified_name": "Uninstall-Script",
+      "simple_name": "Uninstall-Script",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 2467,
+      "end_line": 2572,
+      "start_byte": 82146,
+      "end_byte": 85933,
+      "signature_hint": "function Uninstall-Script"
+    },
+    "C56vzu46fo4": {
+      "id": "C56vzu46fo4",
+      "qualified_name": "Unregister-PSRepository",
+      "simple_name": "Unregister-PSRepository",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 2574,
+      "end_line": 2641,
+      "start_byte": 85935,
+      "end_byte": 87888,
+      "signature_hint": "function Unregister-PSRepository"
+    },
+    "C9rpm9xen1j": {
+      "id": "C9rpm9xen1j",
+      "qualified_name": "Update-Module",
+      "simple_name": "Update-Module",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 2643,
+      "end_line": 2762,
+      "start_byte": 87890,
+      "end_byte": 91594,
+      "signature_hint": "function Update-Module"
+    },
+    "Ceziewvkfdb": {
+      "id": "Ceziewvkfdb",
+      "qualified_name": "Update-Script",
+      "simple_name": "Update-Script",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 2764,
+      "end_line": 2880,
+      "start_byte": 91596,
+      "end_byte": 95265,
+      "signature_hint": "function Update-Script"
+    },
+    "Cq4t80gwqdj": {
+      "id": "Cq4t80gwqdj",
+      "qualified_name": "Update-ModuleManifest",
+      "simple_name": "Update-ModuleManifest",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 2882,
+      "end_line": 3024,
+      "start_byte": 95267,
+      "end_byte": 98593,
+      "signature_hint": "function Update-ModuleManifest"
+    },
+    "C3q56fcdefm": {
+      "id": "C3q56fcdefm",
+      "qualified_name": "Update-ScriptFileInfo",
+      "simple_name": "Update-ScriptFileInfo",
+      "kind": "function",
+      "language": "powershell",
+      "file": "F1qwtyjcp0c",
+      "start_line": 3026,
+      "end_line": 3178,
+      "start_byte": 98595,
+      "end_byte": 102757,
+      "signature_hint": "function Update-ScriptFileInfo"
+    }
+  },
+  "files": {
+    "F15scu052fpb": {
+      "id": "F15scu052fpb",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/FindPSResource.Tests.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "dadf2626c5024c4c09bb2bb7727f2a69e4479b0ee706090118539c0cd8c1cc27",
+      "size_bytes": 8545,
+      "lines": 207,
+      "parse_ms": 3.505244,
+      "parse_status": "error",
+      "test_role": "file-name"
+    },
+    "Fdotbvr5cso": {
+      "id": "Fdotbvr5cso",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/GetInstalledPSResource.Tests.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "13e6169158ba821f6863dd54edc7d54b91298fcec8b3cbe738822ef63a9f4893",
+      "size_bytes": 5962,
+      "lines": 141,
+      "parse_ms": 1.507233,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "Fn0ltqrezb6": {
+      "id": "Fn0ltqrezb6",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/GetPSResourceRepository.Tests.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "e87187a04129b16cd0aaadf7a297bbc930f4ef6411260ee90e76db9ba6b73733",
+      "size_bytes": 6277,
+      "lines": 125,
+      "parse_ms": 0.926016,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "F4itzl9w4yr": {
+      "id": "F4itzl9w4yr",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/InstallPSResource.Tests.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "9646aa800247da5573aa920d5759621dc72dcf1f8e17974c02080f9011f29d18",
+      "size_bytes": 18421,
+      "lines": 406,
+      "parse_ms": 3.8303019999999997,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "F12ikm18bo3x": {
+      "id": "F12ikm18bo3x",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/NewPSScriptFile.Tests.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "2d21dd98cd320dbbaa2ec14b2908cf6ce9d13b566965dbb4591a0697cb77336a",
+      "size_bytes": 11231,
+      "lines": 251,
+      "parse_ms": 3.6752730000000002,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "F1601cp4gd3s": {
+      "id": "F1601cp4gd3s",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/PSGetTestUtils.psm1",
+      "language": "powershell",
+      "detected_via": "extension:.psm1",
+      "blake3": "75c157a31e3b2183932619ed028fe61a3f3fd9a30ea087855e5338f1f124b0cd",
+      "size_bytes": 25002,
+      "lines": 734,
+      "parse_ms": 6.273381,
+      "parse_status": "error",
+      "test_role": "directory"
+    },
+    "F8v32fac3ap": {
+      "id": "F8v32fac3ap",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/Proxy.Tests.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "5a307e139ab6c5d86c7f23fe9ec9a20a4064ad999bdae4cc006f9563891ee796",
+      "size_bytes": 12950,
+      "lines": 124,
+      "parse_ms": 2.722487,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "Fvnion2qyk1": {
+      "id": "Fvnion2qyk1",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/PublishPSResource.Tests.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "b900e4b06a4852d1eb89bf8daf6cce619de6ea62708c0da822f8bf2ba32f3e25",
+      "size_bytes": 19379,
+      "lines": 371,
+      "parse_ms": 3.042216,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "F9zqf5w325o": {
+      "id": "F9zqf5w325o",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/RegisterPSResourceRepository.Tests.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "ece7f30466a86289e1d4dfb24cd84678787621ee033b09f336625fb4fd46934e",
+      "size_bytes": 9976,
+      "lines": 171,
+      "parse_ms": 3.6830830000000003,
+      "parse_status": "error",
+      "test_role": "file-name"
+    },
+    "Fq4q2wu87eu": {
+      "id": "Fq4q2wu87eu",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/SavePSResource.Tests.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "63c891a7d1fe8d09f3f546493e7c836ca8c62510293eeef2134f07287e23118c",
+      "size_bytes": 7531,
+      "lines": 159,
+      "parse_ms": 1.5114729999999998,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "F187mihndkys": {
+      "id": "F187mihndkys",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/SetPSResourceRepository.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "cf762c4b94da6c017f4db2e46f773fc668e7c080a5a7a368f6ebf50c4280eefe",
+      "size_bytes": 6693,
+      "lines": 122,
+      "parse_ms": 1.061305,
+      "parse_status": "ok",
+      "test_role": "directory"
+    },
+    "F68iwazylni": {
+      "id": "F68iwazylni",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/TestPSScriptFile.Tests.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "a4287207e28cb88f2f88a1077bb236144e8d2d543795f2755235847ba99f1d4b",
+      "size_bytes": 3931,
+      "lines": 88,
+      "parse_ms": 1.239865,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "F15y33an62w6": {
+      "id": "F15y33an62w6",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/UninstallPSResource.Tests.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "e2b1c018e1a38eff93c58ffef2632d0dd8e31c7a6b12761c1a80414179a39571",
+      "size_bytes": 15168,
+      "lines": 298,
+      "parse_ms": 4.512679,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "Fagyr24izzm": {
+      "id": "Fagyr24izzm",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/UnregisterPSResourceRepository.Tests.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "555ba9ed36e4c0d56981c01a521d4e1f7779476ec2c29d063b59f7ca7009d52a",
+      "size_bytes": 4755,
+      "lines": 91,
+      "parse_ms": 1.141585,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "F15s41nwg11": {
+      "id": "F15s41nwg11",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/UpdatePSModuleManifest.Tests.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "0caa39b6933be8692e9b8f3b2d3f1d0c0e986819b0b29a2cec8f1cb4d7221d9b",
+      "size_bytes": 20995,
+      "lines": 415,
+      "parse_ms": 5.324385,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "Fw2muyrn051": {
+      "id": "Fw2muyrn051",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/UpdatePSResource.Tests.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "fa8473e5a906a76b9fe52847292c6a658008fc38a3f47f656b0d01a7884c9c16",
+      "size_bytes": 16339,
+      "lines": 376,
+      "parse_ms": 3.995522,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "Fvjms5lgce7": {
+      "id": "Fvjms5lgce7",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/UpdatePSScriptFileInfo.Tests.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "9d507f95f8ec166196e666d5ba70f4e76a85ac7be6cdef8eee8e522944dabe31",
+      "size_bytes": 15366,
+      "lines": 314,
+      "parse_ms": 4.35593,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "Fng4c1yw0y": {
+      "id": "Fng4c1yw0y",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/testFiles/testModules/incorrectdepmoduleversion/incorrectdepmoduleversion.psd1",
+      "language": "powershell",
+      "detected_via": "extension:.psd1",
+      "blake3": "7de571fbc5594627d1beae69a0e2a81af8e07d95b73fae983ed99f55f1545f91",
+      "size_bytes": 4618,
+      "lines": 132,
+      "parse_ms": 0.324469,
+      "parse_status": "ok",
+      "test_role": "directory"
+    },
+    "Fiqx9sj9cyx": {
+      "id": "Fiqx9sj9cyx",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/testFiles/testModules/incorrectmoduleversion/incorrectmoduleversion.psd1",
+      "language": "powershell",
+      "detected_via": "extension:.psd1",
+      "blake3": "550a6de364ffc15b4ece93c19aa360d0042303275bee1711657d2b44bdd028dc",
+      "size_bytes": 4128,
+      "lines": 132,
+      "parse_ms": 0.279419,
+      "parse_status": "ok",
+      "test_role": "directory"
+    },
+    "F10me6pi1rde": {
+      "id": "F10me6pi1rde",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/testFiles/testScripts/InvalidScriptMissingAuthor.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "f292e06033b04767e6db176903d3908cccfee7447f02dc7929ce8e69a034ad47",
+      "size_bytes": 360,
+      "lines": 43,
+      "parse_ms": 0.031439999999999996,
+      "parse_status": "error",
+      "test_role": "directory"
+    },
+    "F2dilb7yzdb": {
+      "id": "F2dilb7yzdb",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/testFiles/testScripts/InvalidScriptMissingAuthorAndVersion.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "e753ffa92da123cd3a71444bb0bf9ac7b13087e3e237493a1faf8c9acfa7cd90",
+      "size_bytes": 356,
+      "lines": 43,
+      "parse_ms": 0.02448,
+      "parse_status": "error",
+      "test_role": "directory"
+    },
+    "Fy1hdii4ad4": {
+      "id": "Fy1hdii4ad4",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/testFiles/testScripts/InvalidScriptMissingDescription.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "50cf98c7eaa7e16460b146d78368a162a1a5e6b403f4c14302f92ccbdf8ffb2b",
+      "size_bytes": 305,
+      "lines": 42,
+      "parse_ms": 0.021398999999999998,
+      "parse_status": "error",
+      "test_role": "directory"
+    },
+    "F4zn8y0wag8": {
+      "id": "F4zn8y0wag8",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/testFiles/testScripts/InvalidScriptMissingDescriptionCommentBlock.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "abf55fc79c3e6c87a668aa6a2b39be3271caefbbd25dade3df11961f502342cf",
+      "size_bytes": 283,
+      "lines": 37,
+      "parse_ms": 0.12224,
+      "parse_status": "error",
+      "test_role": "directory"
+    },
+    "Fcw0cx7kn6o": {
+      "id": "Fcw0cx7kn6o",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/testFiles/testScripts/InvalidScriptMissingGuid.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "9550bad609a01956be0b4a0aa5d42842b23d65b885100ea64fede65e864d0cad",
+      "size_bytes": 332,
+      "lines": 43,
+      "parse_ms": 0.01663,
+      "parse_status": "error",
+      "test_role": "directory"
+    },
+    "F17o5jp9nr5r": {
+      "id": "F17o5jp9nr5r",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/testFiles/testScripts/InvalidScriptMissingVersion.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "01644000c2d9d057eb73dbff6cf93c26f210893531876f81b2e93abf36c791e4",
+      "size_bytes": 365,
+      "lines": 43,
+      "parse_ms": 0.013529000000000001,
+      "parse_status": "error",
+      "test_role": "directory"
+    },
+    "Fphclk7gt8q": {
+      "id": "Fphclk7gt8q",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/testFiles/testScripts/ScriptWithInvalidProjectUri.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "4b75fbb1e8c0d0777a5ef9febd287f46c1483cd96883850ac8c2bc5c79e7808a",
+      "size_bytes": 395,
+      "lines": 39,
+      "parse_ms": 0.01341,
+      "parse_status": "error",
+      "test_role": "directory"
+    },
+    "Foxvd1zmmhl": {
+      "id": "Foxvd1zmmhl",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/testFiles/testScripts/ScriptWithSignature.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "d99e9cbd639231c3e3e167b8397e42870518431c21a9ed8c0c8f79a4eb0811f8",
+      "size_bytes": 2376,
+      "lines": 75,
+      "parse_ms": 0.06691,
+      "parse_status": "error",
+      "test_role": "directory"
+    },
+    "Fnrjxuoyn3": {
+      "id": "Fnrjxuoyn3",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/testFiles/testScripts/ScriptWithoutEmptyLinesBetweenCommentBlocks.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "268a2e133351d14f776722750d793d3affc64b0f47c1200c9c647944f0cf9e02",
+      "size_bytes": 350,
+      "lines": 24,
+      "parse_ms": 0.01346,
+      "parse_status": "error",
+      "test_role": "directory"
+    },
+    "Febp80ksp47": {
+      "id": "Febp80ksp47",
+      "path": "/storage/cgg-test_repos/powershell-psget/Test/testFiles/testScripts/ScriptWithoutEmptyLinesInMetadata.ps1",
+      "language": "powershell",
+      "detected_via": "extension:.ps1",
+      "blake3": "46491cf32f25f0781f886f56cc5f7f8f5b9c3be8fb59146580bc84e2610b41b0",
+      "size_bytes": 349,
+      "lines": 23,
+      "parse_ms": 0.0222,
+      "parse_status": "error",
+      "test_role": "directory"
+    },
+    "Fc0t2o3g92i": {
+      "id": "Fc0t2o3g92i",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psd1",
+      "language": "powershell",
+      "detected_via": "extension:.psd1",
+      "blake3": "9ff8a0834271fc4ed1de9e099ecbe16dcc133775a7299c09eb7980a6b25ad7d4",
+      "size_bytes": 2186,
+      "lines": 73,
+      "parse_ms": 0.255099,
+      "parse_status": "ok"
+    },
+    "F1qwtyjcp0c": {
+      "id": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "language": "powershell",
+      "detected_via": "extension:.psm1",
+      "blake3": "b3977781ca51c32228e3f92a667548f470a9ff0641f55fc865520ba1f5b637be",
+      "size_bytes": 103668,
+      "lines": 3219,
+      "parse_ms": 19.956666000000002,
+      "parse_status": "ok"
+    }
+  },
+  "edges": [
+    {
+      "src": "C10tzex4qj9",
+      "dst": "Ccx8kkund6g",
+      "site_line": 289,
+      "site_byte": 10655,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C15wruifmoix",
+      "dst": "Ccx8kkund6g",
+      "site_line": 309,
+      "site_byte": 11505,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C131f15tim7g",
+      "dst": "Ccx8kkund6g",
+      "site_line": 333,
+      "site_byte": 12332,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C131f15tim7g",
+      "dst": "Cbuxerhhdde",
+      "site_line": 352,
+      "site_byte": 13210,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cpdodk8d4es",
+      "dst": "Ccx8kkund6g",
+      "site_line": 363,
+      "site_byte": 13503,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Clr9ul4nctd",
+      "dst": "Ccx8kkund6g",
+      "site_line": 384,
+      "site_byte": 14228,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ccj4u9fit83",
+      "dst": "C68z66ctk17",
+      "site_line": 442,
+      "site_byte": 15552,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cz8ab4kvel4",
+      "dst": "Ccx8kkund6g",
+      "site_line": 487,
+      "site_byte": 16521,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Co26msyo4ro",
+      "dst": "Cotg9hpzhhy",
+      "site_line": 38,
+      "site_byte": 1504,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Co26msyo4ro",
+      "dst": "Cotg9hpzhhy",
+      "site_line": 42,
+      "site_byte": 1636,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cx5bjyprjna",
+      "dst": "Co26msyo4ro",
+      "site_line": 137,
+      "site_byte": 4740,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cakorkfc4zn",
+      "dst": "Cx5bjyprjna",
+      "site_line": 503,
+      "site_byte": 16051,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cpgwhvub1ct",
+      "dst": "Cx5bjyprjna",
+      "site_line": 714,
+      "site_byte": 22222,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ccyi96sh82e",
+      "dst": "Cx5bjyprjna",
+      "site_line": 820,
+      "site_byte": 26088,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cn5ebpk1flt",
+      "dst": "Cx5bjyprjna",
+      "site_line": 917,
+      "site_byte": 29324,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cp7s2tvwzoo",
+      "dst": "Cx5bjyprjna",
+      "site_line": 1123,
+      "site_byte": 35466,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C60s1off9w9",
+      "dst": "Cx5bjyprjna",
+      "site_line": 1269,
+      "site_byte": 40642,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C15tf2xf282o",
+      "dst": "Cx5bjyprjna",
+      "site_line": 1940,
+      "site_byte": 62936,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4xkee4g0uu",
+      "dst": "Cx5bjyprjna",
+      "site_line": 2092,
+      "site_byte": 69254,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C17qqlgkdki7",
+      "dst": "Cx5bjyprjna",
+      "site_line": 2409,
+      "site_byte": 80198,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Clnohc3m70t",
+      "dst": "Cx5bjyprjna",
+      "site_line": 2517,
+      "site_byte": 84138,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C9rpm9xen1j",
+      "dst": "Cx5bjyprjna",
+      "site_line": 2706,
+      "site_byte": 89690,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ceziewvkfdb",
+      "dst": "Cx5bjyprjna",
+      "site_line": 2823,
+      "site_byte": 93324,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 100,
+      "site_byte": 4267,
+      "name": "CreateTestModule",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 11,
+      "site_byte": 384,
+      "name": "Get-PSGalleryName",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 18,
+      "site_byte": 664,
+      "name": "Get-NewPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 22,
+      "site_byte": 726,
+      "name": "Get-RevertPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 26,
+      "site_byte": 845,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 31,
+      "site_byte": 993,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 37,
+      "site_byte": 1197,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 43,
+      "site_byte": 1415,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 48,
+      "site_byte": 1573,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 54,
+      "site_byte": 1868,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 59,
+      "site_byte": 2054,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 64,
+      "site_byte": 2275,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 71,
+      "site_byte": 2586,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 77,
+      "site_byte": 2893,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 82,
+      "site_byte": 3087,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 89,
+      "site_byte": 3456,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 95,
+      "site_byte": 3714,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 100,
+      "site_byte": 3930,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 105,
+      "site_byte": 4111,
+      "name": "Find-DscResource",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 113,
+      "site_byte": 4462,
+      "name": "Find-DscResource",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 121,
+      "site_byte": 4892,
+      "name": "Find-Command",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 128,
+      "site_byte": 5148,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 133,
+      "site_byte": 5326,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 139,
+      "site_byte": 5558,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 148,
+      "site_byte": 6036,
+      "name": "Find-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 162,
+      "site_byte": 6438,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 172,
+      "site_byte": 6883,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 175,
+      "site_byte": 7014,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 181,
+      "site_byte": 7266,
+      "name": "Find-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 188,
+      "site_byte": 7591,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15scu052fpb",
+      "site_line": 195,
+      "site_byte": 7923,
+      "name": "Find-RoleCapability",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 12,
+      "site_byte": 433,
+      "name": "Get-PSGalleryName",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 15,
+      "site_byte": 540,
+      "name": "Get-NewPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 28,
+      "site_byte": 1295,
+      "name": "Get-RevertPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 32,
+      "site_byte": 1421,
+      "name": "Get-InstalledModule",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 41,
+      "site_byte": 1756,
+      "name": "Get-InstalledScript",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 50,
+      "site_byte": 2104,
+      "name": "Get-InstalledModule",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 55,
+      "site_byte": 2281,
+      "name": "Get-InstalledModule",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 64,
+      "site_byte": 2613,
+      "name": "Get-InstalledModule",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 70,
+      "site_byte": 2950,
+      "name": "Get-InstalledModule",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 72,
+      "site_byte": 3069,
+      "name": "Get-InstalledModule",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 80,
+      "site_byte": 3511,
+      "name": "Get-InstalledScript",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 82,
+      "site_byte": 3630,
+      "name": "Get-InstalledScript",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 89,
+      "site_byte": 3907,
+      "name": "Get-InstalledModule",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 94,
+      "site_byte": 4072,
+      "name": "Get-InstalledScript",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 99,
+      "site_byte": 4241,
+      "name": "Get-InstalledScript",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 104,
+      "site_byte": 4382,
+      "name": "Get-InstalledModule",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 109,
+      "site_byte": 4518,
+      "name": "Get-InstalledModule",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 114,
+      "site_byte": 4682,
+      "name": "Get-InstalledScript",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 119,
+      "site_byte": 4838,
+      "name": "Get-InstalledModule",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fdotbvr5cso",
+      "site_line": 130,
+      "site_byte": 5463,
+      "name": "Get-InstalledModule",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fn0ltqrezb6",
+      "site_line": 13,
+      "site_byte": 505,
+      "name": "Get-NewPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fn0ltqrezb6",
+      "site_line": 18,
+      "site_byte": 825,
+      "name": "Get-NewTestDirs",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fn0ltqrezb6",
+      "site_line": 21,
+      "site_byte": 885,
+      "name": "Get-RevertPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fn0ltqrezb6",
+      "site_line": 26,
+      "site_byte": 1208,
+      "name": "Get-RemoveTestDirs",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fn0ltqrezb6",
+      "site_line": 31,
+      "site_byte": 1386,
+      "name": "Get-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fn0ltqrezb6",
+      "site_line": 40,
+      "site_byte": 1827,
+      "name": "Get-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fn0ltqrezb6",
+      "site_line": 51,
+      "site_byte": 2280,
+      "name": "Get-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fn0ltqrezb6",
+      "site_line": 60,
+      "site_byte": 2680,
+      "name": "Get-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fn0ltqrezb6",
+      "site_line": 68,
+      "site_byte": 2993,
+      "name": "Get-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fn0ltqrezb6",
+      "site_line": 80,
+      "site_byte": 3652,
+      "name": "Get-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fn0ltqrezb6",
+      "site_line": 91,
+      "site_byte": 4299,
+      "name": "Get-NewPSResourceRepositoryFileWithCredentialInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fn0ltqrezb6",
+      "site_line": 93,
+      "site_byte": 4365,
+      "name": "Get-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fn0ltqrezb6",
+      "site_line": 105,
+      "site_byte": 5131,
+      "name": "Get-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fn0ltqrezb6",
+      "site_line": 110,
+      "site_byte": 5604,
+      "name": "Get-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fn0ltqrezb6",
+      "site_line": 114,
+      "site_byte": 5801,
+      "name": "Get-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 12,
+      "site_byte": 429,
+      "name": "Get-PSGalleryName",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 13,
+      "site_byte": 471,
+      "name": "Get-PSGalleryLocation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 14,
+      "site_byte": 521,
+      "name": "Get-NuGetGalleryName",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 20,
+      "site_byte": 816,
+      "name": "Get-NewPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 21,
+      "site_byte": 856,
+      "name": "Register-LocalRepos",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 33,
+      "site_byte": 1430,
+      "name": "Get-RevertPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 37,
+      "site_byte": 1533,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 44,
+      "site_byte": 1788,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 51,
+      "site_byte": 2042,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 58,
+      "site_byte": 2292,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 66,
+      "site_byte": 2605,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 73,
+      "site_byte": 2898,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 80,
+      "site_byte": 3169,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 91,
+      "site_byte": 3605,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 99,
+      "site_byte": 3920,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 107,
+      "site_byte": 4244,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 109,
+      "site_byte": 4331,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 114,
+      "site_byte": 4710,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 116,
+      "site_byte": 4797,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 121,
+      "site_byte": 5135,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 122,
+      "site_byte": 5221,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 130,
+      "site_byte": 5597,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 131,
+      "site_byte": 5683,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 139,
+      "site_byte": 5994,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 145,
+      "site_byte": 6192,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 145,
+      "site_byte": 6245,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 151,
+      "site_byte": 6414,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 151,
+      "site_byte": 6467,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 157,
+      "site_byte": 6652,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 157,
+      "site_byte": 6722,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 163,
+      "site_byte": 6947,
+      "name": "Find-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 164,
+      "site_byte": 7006,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 170,
+      "site_byte": 7199,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 178,
+      "site_byte": 7555,
+      "name": "Find-DscResource",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 178,
+      "site_byte": 7617,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 186,
+      "site_byte": 7858,
+      "name": "Find-Command",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 186,
+      "site_byte": 7884,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 197,
+      "site_byte": 8260,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 209,
+      "site_byte": 8871,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 215,
+      "site_byte": 9216,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 222,
+      "site_byte": 9495,
+      "name": "Install-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 230,
+      "site_byte": 9823,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 236,
+      "site_byte": 10048,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 244,
+      "site_byte": 10532,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 251,
+      "site_byte": 10879,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 259,
+      "site_byte": 11309,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 266,
+      "site_byte": 11546,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 273,
+      "site_byte": 11875,
+      "name": "Get-IsWindows",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 274,
+      "site_byte": 11901,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 281,
+      "site_byte": 12268,
+      "name": "Get-IsWindows",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 281,
+      "site_byte": 12289,
+      "name": "Test-IsAdmin",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 282,
+      "site_byte": 12315,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 289,
+      "site_byte": 12650,
+      "name": "Get-IsWindows",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 290,
+      "site_byte": 12676,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 298,
+      "site_byte": 13111,
+      "name": "Get-IsWindows",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 299,
+      "site_byte": 13136,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 307,
+      "site_byte": 13596,
+      "name": "Get-IsWindows",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 308,
+      "site_byte": 13621,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 315,
+      "site_byte": 13958,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 318,
+      "site_byte": 14135,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 323,
+      "site_byte": 14415,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 330,
+      "site_byte": 14775,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 335,
+      "site_byte": 15008,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 342,
+      "site_byte": 15332,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 349,
+      "site_byte": 15594,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 356,
+      "site_byte": 15931,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 361,
+      "site_byte": 16122,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 366,
+      "site_byte": 16526,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 374,
+      "site_byte": 16887,
+      "name": "Get-IsWindows",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 376,
+      "site_byte": 16962,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 385,
+      "site_byte": 17386,
+      "name": "Get-IsWindows",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 386,
+      "site_byte": 17414,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 391,
+      "site_byte": 17724,
+      "name": "Get-IsWindows",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F4itzl9w4yr",
+      "site_line": 392,
+      "site_byte": 17750,
+      "name": "Install-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 12,
+      "site_byte": 482,
+      "name": "Get-NewTestDirs",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 27,
+      "site_byte": 959,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 36,
+      "site_byte": 1372,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 46,
+      "site_byte": 1690,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 58,
+      "site_byte": 2181,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 70,
+      "site_byte": 2659,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 81,
+      "site_byte": 3133,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 93,
+      "site_byte": 3640,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 105,
+      "site_byte": 4167,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 120,
+      "site_byte": 4852,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 133,
+      "site_byte": 5542,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 146,
+      "site_byte": 6084,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 159,
+      "site_byte": 6652,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 171,
+      "site_byte": 7187,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 183,
+      "site_byte": 7713,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 196,
+      "site_byte": 8295,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 210,
+      "site_byte": 9027,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 224,
+      "site_byte": 9742,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F12ikm18bo3x",
+      "site_line": 236,
+      "site_byte": 10447,
+      "name": "New-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 47,
+      "site_byte": 1419,
+      "name": "Get-NewPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 103,
+      "site_byte": 4375,
+      "name": "Get-RevertPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 121,
+      "site_byte": 5224,
+      "name": "Publish-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 132,
+      "site_byte": 5853,
+      "name": "Publish-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 144,
+      "site_byte": 6624,
+      "name": "Publish-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 155,
+      "site_byte": 7254,
+      "name": "Publish-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 168,
+      "site_byte": 8038,
+      "name": "Publish-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 179,
+      "site_byte": 8648,
+      "name": "Publish-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 185,
+      "site_byte": 9042,
+      "name": "Publish-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 196,
+      "site_byte": 9681,
+      "name": "Publish-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 205,
+      "site_byte": 10325,
+      "name": "Publish-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 222,
+      "site_byte": 11377,
+      "name": "Publish-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 230,
+      "site_byte": 11931,
+      "name": "Publish-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 256,
+      "site_byte": 13089,
+      "name": "Publish-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 267,
+      "site_byte": 13614,
+      "name": "Publish-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 278,
+      "site_byte": 14122,
+      "name": "Publish-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 289,
+      "site_byte": 14627,
+      "name": "Publish-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 301,
+      "site_byte": 15319,
+      "name": "Publish-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 315,
+      "site_byte": 15999,
+      "name": "Publish-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 328,
+      "site_byte": 16730,
+      "name": "Publish-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 342,
+      "site_byte": 17638,
+      "name": "Publish-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 354,
+      "site_byte": 18346,
+      "name": "Publish-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvnion2qyk1",
+      "site_line": 361,
+      "site_byte": 18788,
+      "name": "Publish-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 10,
+      "site_byte": 399,
+      "name": "Get-PSGalleryName",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 11,
+      "site_byte": 441,
+      "name": "Get-PSGalleryLocation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 17,
+      "site_byte": 686,
+      "name": "Get-NewPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 23,
+      "site_byte": 1091,
+      "name": "Get-NewTestDirs",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 36,
+      "site_byte": 1768,
+      "name": "Get-RevertPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 42,
+      "site_byte": 2176,
+      "name": "Get-RemoveTestDirs",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 46,
+      "site_byte": 2317,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 54,
+      "site_byte": 2683,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 63,
+      "site_byte": 3143,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 72,
+      "site_byte": 3542,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 80,
+      "site_byte": 3891,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 84,
+      "site_byte": 4206,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 88,
+      "site_byte": 4468,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 92,
+      "site_byte": 4744,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 96,
+      "site_byte": 5019,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 101,
+      "site_byte": 5443,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 102,
+      "site_byte": 5597,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 106,
+      "site_byte": 5843,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 116,
+      "site_byte": 6241,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 129,
+      "site_byte": 6929,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 131,
+      "site_byte": 7035,
+      "name": "Get-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 136,
+      "site_byte": 7272,
+      "name": "Unregister-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 145,
+      "site_byte": 7525,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 149,
+      "site_byte": 7824,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 153,
+      "site_byte": 8247,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 157,
+      "site_byte": 8728,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9zqf5w325o",
+      "site_line": 161,
+      "site_byte": 9214,
+      "name": "Register-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 11,
+      "site_byte": 387,
+      "name": "Get-PSGalleryName",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 16,
+      "site_byte": 584,
+      "name": "Get-NewPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 29,
+      "site_byte": 975,
+      "name": "Get-RevertPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 35,
+      "site_byte": 1167,
+      "name": "Find-DscResource",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 38,
+      "site_byte": 1259,
+      "name": "Find-DscResource",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 38,
+      "site_byte": 1301,
+      "name": "Save-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 47,
+      "site_byte": 1601,
+      "name": "Find-Command",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 50,
+      "site_byte": 1681,
+      "name": "Find-Command",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 50,
+      "site_byte": 1711,
+      "name": "Save-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 64,
+      "site_byte": 2167,
+      "name": "Save-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 71,
+      "site_byte": 2590,
+      "name": "Save-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 78,
+      "site_byte": 2817,
+      "name": "Save-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 85,
+      "site_byte": 3160,
+      "name": "Save-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 93,
+      "site_byte": 3558,
+      "name": "Save-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 101,
+      "site_byte": 4003,
+      "name": "Save-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 107,
+      "site_byte": 4338,
+      "name": "Save-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 113,
+      "site_byte": 4721,
+      "name": "Save-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 121,
+      "site_byte": 5171,
+      "name": "Save-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 129,
+      "site_byte": 5566,
+      "name": "Save-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 139,
+      "site_byte": 6365,
+      "name": "Save-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fq4q2wu87eu",
+      "site_line": 146,
+      "site_byte": 6886,
+      "name": "Save-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F187mihndkys",
+      "site_line": 10,
+      "site_byte": 394,
+      "name": "Get-PSGalleryName",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F187mihndkys",
+      "site_line": 11,
+      "site_byte": 436,
+      "name": "Get-PSGalleryLocation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F187mihndkys",
+      "site_line": 16,
+      "site_byte": 638,
+      "name": "Get-NewPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F187mihndkys",
+      "site_line": 22,
+      "site_byte": 1043,
+      "name": "Get-NewTestDirs",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F187mihndkys",
+      "site_line": 35,
+      "site_byte": 1712,
+      "name": "Get-RevertPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F187mihndkys",
+      "site_line": 41,
+      "site_byte": 2120,
+      "name": "Get-RemoveTestDirs",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F187mihndkys",
+      "site_line": 46,
+      "site_byte": 2312,
+      "name": "Set-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F187mihndkys",
+      "site_line": 55,
+      "site_byte": 2738,
+      "name": "Set-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F187mihndkys",
+      "site_line": 64,
+      "site_byte": 3238,
+      "name": "Set-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F187mihndkys",
+      "site_line": 73,
+      "site_byte": 3652,
+      "name": "Set-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F187mihndkys",
+      "site_line": 78,
+      "site_byte": 4007,
+      "name": "Set-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F187mihndkys",
+      "site_line": 83,
+      "site_byte": 4362,
+      "name": "Set-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F187mihndkys",
+      "site_line": 88,
+      "site_byte": 4670,
+      "name": "Set-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F187mihndkys",
+      "site_line": 94,
+      "site_byte": 5046,
+      "name": "Set-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F187mihndkys",
+      "site_line": 99,
+      "site_byte": 5402,
+      "name": "Set-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F187mihndkys",
+      "site_line": 109,
+      "site_byte": 5951,
+      "name": "Set-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F68iwazylni",
+      "site_line": 13,
+      "site_byte": 535,
+      "name": "Get-NewTestDirs",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F68iwazylni",
+      "site_line": 29,
+      "site_byte": 1374,
+      "name": "Test-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F68iwazylni",
+      "site_line": 36,
+      "site_byte": 1661,
+      "name": "Test-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F68iwazylni",
+      "site_line": 43,
+      "site_byte": 1959,
+      "name": "Test-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F68iwazylni",
+      "site_line": 50,
+      "site_byte": 2278,
+      "name": "Test-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F68iwazylni",
+      "site_line": 57,
+      "site_byte": 2543,
+      "name": "Test-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F68iwazylni",
+      "site_line": 64,
+      "site_byte": 2822,
+      "name": "Test-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F68iwazylni",
+      "site_line": 71,
+      "site_byte": 3134,
+      "name": "Test-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F68iwazylni",
+      "site_line": 78,
+      "site_byte": 3454,
+      "name": "Test-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 11,
+      "site_byte": 429,
+      "name": "Get-PSGalleryName",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 15,
+      "site_byte": 577,
+      "name": "Get-NewPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 33,
+      "site_byte": 1442,
+      "name": "Get-RevertPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 37,
+      "site_byte": 1520,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 44,
+      "site_byte": 1696,
+      "name": "Uninstall-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 52,
+      "site_byte": 1976,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 61,
+      "site_byte": 2299,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 70,
+      "site_byte": 2657,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 78,
+      "site_byte": 2980,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 87,
+      "site_byte": 3303,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 96,
+      "site_byte": 3661,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 107,
+      "site_byte": 4262,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 119,
+      "site_byte": 5112,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 131,
+      "site_byte": 5904,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 140,
+      "site_byte": 6486,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 145,
+      "site_byte": 6995,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 162,
+      "site_byte": 8016,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 172,
+      "site_byte": 8531,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 183,
+      "site_byte": 8996,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 192,
+      "site_byte": 9583,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 200,
+      "site_byte": 10064,
+      "name": "Uninstall-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 207,
+      "site_byte": 10448,
+      "name": "Uninstall-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 218,
+      "site_byte": 11047,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 226,
+      "site_byte": 11514,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 235,
+      "site_byte": 11924,
+      "name": "Uninstall-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 247,
+      "site_byte": 12463,
+      "name": "Uninstall-Script",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 255,
+      "site_byte": 12813,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 263,
+      "site_byte": 13174,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 274,
+      "site_byte": 13880,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 281,
+      "site_byte": 14298,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15y33an62w6",
+      "site_line": 287,
+      "site_byte": 14520,
+      "name": "Uninstall-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fagyr24izzm",
+      "site_line": 10,
+      "site_byte": 401,
+      "name": "Get-PSGalleryName",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fagyr24izzm",
+      "site_line": 11,
+      "site_byte": 443,
+      "name": "Get-PSGalleryLocation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fagyr24izzm",
+      "site_line": 12,
+      "site_byte": 473,
+      "name": "Get-NewPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fagyr24izzm",
+      "site_line": 17,
+      "site_byte": 793,
+      "name": "Get-NewTestDirs",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fagyr24izzm",
+      "site_line": 20,
+      "site_byte": 853,
+      "name": "Get-RevertPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fagyr24izzm",
+      "site_line": 25,
+      "site_byte": 1176,
+      "name": "Get-RemoveTestDirs",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fagyr24izzm",
+      "site_line": 30,
+      "site_byte": 1365,
+      "name": "Unregister-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fagyr24izzm",
+      "site_line": 39,
+      "site_byte": 1802,
+      "name": "Unregister-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fagyr24izzm",
+      "site_line": 47,
+      "site_byte": 2183,
+      "name": "Unregister-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fagyr24izzm",
+      "site_line": 54,
+      "site_byte": 2599,
+      "name": "Unregister-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fagyr24izzm",
+      "site_line": 62,
+      "site_byte": 3168,
+      "name": "Unregister-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fagyr24izzm",
+      "site_line": 68,
+      "site_byte": 3562,
+      "name": "Unregister-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fagyr24izzm",
+      "site_line": 72,
+      "site_byte": 3753,
+      "name": "Unregister-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fagyr24izzm",
+      "site_line": 76,
+      "site_byte": 3950,
+      "name": "Unregister-PSRepository",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 24,
+      "site_byte": 1070,
+      "name": "RemoveItem",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 30,
+      "site_byte": 1289,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 39,
+      "site_byte": 1656,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 48,
+      "site_byte": 1998,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 57,
+      "site_byte": 2376,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 66,
+      "site_byte": 2756,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 77,
+      "site_byte": 3316,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 92,
+      "site_byte": 3982,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 102,
+      "site_byte": 4458,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 113,
+      "site_byte": 4928,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 123,
+      "site_byte": 5400,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 133,
+      "site_byte": 5878,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 143,
+      "site_byte": 6347,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 152,
+      "site_byte": 6785,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 174,
+      "site_byte": 8136,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 183,
+      "site_byte": 8713,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 193,
+      "site_byte": 9247,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 206,
+      "site_byte": 9949,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 223,
+      "site_byte": 10917,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 242,
+      "site_byte": 12011,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 259,
+      "site_byte": 12926,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 273,
+      "site_byte": 13596,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 287,
+      "site_byte": 14259,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 304,
+      "site_byte": 15135,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 314,
+      "site_byte": 15660,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 324,
+      "site_byte": 16147,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 342,
+      "site_byte": 17005,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 363,
+      "site_byte": 18294,
+      "name": "Get-IsWindows",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 369,
+      "site_byte": 18648,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 386,
+      "site_byte": 19490,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F15s41nwg11",
+      "site_line": 400,
+      "site_byte": 20244,
+      "name": "Update-ModuleManifest",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 12,
+      "site_byte": 428,
+      "name": "Get-PSGalleryName",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 13,
+      "site_byte": 474,
+      "name": "Get-NuGetGalleryName",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 16,
+      "site_byte": 585,
+      "name": "Get-NewPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 26,
+      "site_byte": 945,
+      "name": "Get-RevertPSResourceRepositoryFile",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 30,
+      "site_byte": 1020,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 31,
+      "site_byte": 1106,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 38,
+      "site_byte": 1304,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 39,
+      "site_byte": 1390,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 47,
+      "site_byte": 1670,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 48,
+      "site_byte": 1766,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 50,
+      "site_byte": 1863,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 58,
+      "site_byte": 2230,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 59,
+      "site_byte": 2316,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 66,
+      "site_byte": 2560,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 67,
+      "site_byte": 2653,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 72,
+      "site_byte": 2822,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 73,
+      "site_byte": 2884,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 80,
+      "site_byte": 3144,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 81,
+      "site_byte": 3229,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 82,
+      "site_byte": 3323,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 84,
+      "site_byte": 3418,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 93,
+      "site_byte": 3871,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 95,
+      "site_byte": 3959,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 107,
+      "site_byte": 4478,
+      "name": "Install-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 108,
+      "site_byte": 4560,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 118,
+      "site_byte": 4977,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 147,
+      "site_byte": 7189,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 165,
+      "site_byte": 7964,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 182,
+      "site_byte": 8587,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 199,
+      "site_byte": 9124,
+      "name": "Test-IsAdmin",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 204,
+      "site_byte": 9532,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 222,
+      "site_byte": 10122,
+      "name": "Test-IsAdmin",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 226,
+      "site_byte": 10404,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 236,
+      "site_byte": 10852,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 255,
+      "site_byte": 11506,
+      "name": "Get-IsWindows",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 260,
+      "site_byte": 11884,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 284,
+      "site_byte": 12892,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 303,
+      "site_byte": 13530,
+      "name": "Get-IsWindows",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 308,
+      "site_byte": 13923,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 327,
+      "site_byte": 14571,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 346,
+      "site_byte": 15155,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw2muyrn051",
+      "site_line": 354,
+      "site_byte": 15528,
+      "name": "Update-Module",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 13,
+      "site_byte": 537,
+      "name": "Get-NewTestDirs",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 45,
+      "site_byte": 1882,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 67,
+      "site_byte": 2914,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 89,
+      "site_byte": 3828,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 100,
+      "site_byte": 4320,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 111,
+      "site_byte": 4845,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 121,
+      "site_byte": 5321,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 128,
+      "site_byte": 5762,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 139,
+      "site_byte": 6295,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 150,
+      "site_byte": 6793,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 161,
+      "site_byte": 7352,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 173,
+      "site_byte": 7951,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 186,
+      "site_byte": 8717,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 198,
+      "site_byte": 9405,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 209,
+      "site_byte": 9931,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 220,
+      "site_byte": 10465,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 231,
+      "site_byte": 11003,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 242,
+      "site_byte": 11546,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 258,
+      "site_byte": 12475,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 271,
+      "site_byte": 13100,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 284,
+      "site_byte": 13743,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvjms5lgce7",
+      "site_line": 304,
+      "site_byte": 14756,
+      "name": "Update-ScriptFileInfo",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 37.895382,
+    "phases": {
+      "walk_ms": 2.350289,
+      "parse_ms": 73.46933,
+      "extract_ms": 0.0,
+      "resolve_ms": 0.0,
+      "link_ms": 2.25329,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 75,
+    "files_analyzed": 31,
+    "files_skipped": 44,
+    "files_errored": 0,
+    "bytes_processed": 328592,
+    "callables": 62,
+    "edges": 23,
+    "unresolved_calls": 790,
+    "stdlib_calls": 0,
+    "external_calls": 2265,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "powershell": {
+        "files": 31,
+        "callables": 62,
+        "edges": 23,
+        "unresolved": 790,
+        "stdlib": 0,
+        "external": 2265
+      },
+      "skip:builtin": {
+        "files": 31,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 23,
+      "medium": 0,
+      "low": 0
+    }
+  }
+}

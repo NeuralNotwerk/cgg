@@ -1,0 +1,1245 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [],
+      "files": 6,
+      "callables": 24,
+      "roots": 0,
+      "reachable": 0,
+      "reachable_pct": 0,
+      "findings": 20,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    },
+    {
+      "language": "typescript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 8,
+      "callables": 27,
+      "roots": 2,
+      "reachable": 3,
+      "reachable_pct": 11,
+      "findings": 1,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 51,
+    "edges": 61,
+    "unresolved_call_sites": 46,
+    "roots": 2,
+    "candidates": 48,
+    "reported": 21,
+    "regions": 28,
+    "withheld": [
+      {
+        "language": "javascript",
+        "category": "reachable-only-from-dead-code",
+        "reason": "no-roots-found",
+        "would_have_reported": 4
+      },
+      {
+        "language": "typescript",
+        "category": "reachable-only-from-dead-code",
+        "reason": "low-root-coverage",
+        "would_have_reported": 12
+      },
+      {
+        "language": "typescript",
+        "category": "unreachable-from-roots",
+        "reason": "low-root-coverage",
+        "would_have_reported": 11
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "C172quaujc9u",
+      "qualified_name": "middleware",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-edrys-oak/server/app.ts:71"
+    },
+    {
+      "id": "C11spqebcsil",
+      "qualified_name": "getArg",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-edrys-oak/server/env.ts:92"
+    }
+  ],
+  "regions": [
+    {
+      "id": 1,
+      "members": [
+        "Cept5mzka3h",
+        "C166jwkckeeg",
+        "Cyobhguwazo"
+      ],
+      "anchors": [
+        "Cyobhguwazo"
+      ],
+      "files": [
+        "F401ssg5quk"
+      ],
+      "total_lines": 163,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 4,
+      "members": [
+        "Cd3a8p5o09m"
+      ],
+      "anchors": [
+        "Cd3a8p5o09m"
+      ],
+      "files": [
+        "F401ssg5quk"
+      ],
+      "total_lines": 15,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 5,
+      "members": [
+        "Cng1ccznjbt"
+      ],
+      "anchors": [
+        "Cng1ccznjbt"
+      ],
+      "files": [
+        "F401ssg5quk"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 6,
+      "members": [
+        "Cm2odmmx6xw",
+        "Cl8yf01e126"
+      ],
+      "anchors": [
+        "Cm2odmmx6xw"
+      ],
+      "files": [
+        "F401ssg5quk"
+      ],
+      "total_lines": 22,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 8,
+      "members": [
+        "C2f2vrl1rne"
+      ],
+      "anchors": [
+        "C2f2vrl1rne"
+      ],
+      "files": [
+        "F401ssg5quk"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 11,
+      "members": [
+        "Cuzrmuoj5di"
+      ],
+      "anchors": [
+        "Cuzrmuoj5di"
+      ],
+      "files": [
+        "Fy0ncrlsgtl"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 12,
+      "members": [
+        "Cc9xa87atuj"
+      ],
+      "anchors": [
+        "Cc9xa87atuj"
+      ],
+      "files": [
+        "Fy0ncrlsgtl"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 13,
+      "members": [
+        "Czrqu6sd0fo"
+      ],
+      "anchors": [
+        "Czrqu6sd0fo"
+      ],
+      "files": [
+        "Fy0ncrlsgtl"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 14,
+      "members": [
+        "C117t334lyu6"
+      ],
+      "anchors": [
+        "C117t334lyu6"
+      ],
+      "files": [
+        "Fy0ncrlsgtl"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 15,
+      "members": [
+        "Cest43fxlaz"
+      ],
+      "anchors": [
+        "Cest43fxlaz"
+      ],
+      "files": [
+        "Fy0ncrlsgtl"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 16,
+      "members": [
+        "Cxqtdv6gp7i"
+      ],
+      "anchors": [
+        "Cxqtdv6gp7i"
+      ],
+      "files": [
+        "Fy0ncrlsgtl"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 17,
+      "members": [
+        "C7k8u31rzl0"
+      ],
+      "anchors": [
+        "C7k8u31rzl0"
+      ],
+      "files": [
+        "Fy0ncrlsgtl"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 18,
+      "members": [
+        "C17dg6dezym"
+      ],
+      "anchors": [
+        "C17dg6dezym"
+      ],
+      "files": [
+        "Fy0ncrlsgtl"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 19,
+      "members": [
+        "Cq803zsuwm3"
+      ],
+      "anchors": [
+        "Cq803zsuwm3"
+      ],
+      "files": [
+        "Fqxpqa5hjy8"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 21,
+      "members": [
+        "Csrsmu01h5"
+      ],
+      "anchors": [
+        "Csrsmu01h5"
+      ],
+      "files": [
+        "Fqxpqa5hjy8"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 23,
+      "members": [
+        "C66yc7eopgw"
+      ],
+      "anchors": [
+        "C66yc7eopgw"
+      ],
+      "files": [
+        "Fqxpqa5hjy8"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 25,
+      "members": [
+        "Cb1gyn12v7j"
+      ],
+      "anchors": [
+        "Cb1gyn12v7j"
+      ],
+      "files": [
+        "Fqxpqa5hjy8"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 26,
+      "members": [
+        "Cl0pzcd21yq"
+      ],
+      "anchors": [
+        "Cl0pzcd21yq"
+      ],
+      "files": [
+        "Fqxpqa5hjy8"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 27,
+      "members": [
+        "Ctv0dfcg5ly",
+        "C86v8xsmglk"
+      ],
+      "anchors": [
+        "C86v8xsmglk"
+      ],
+      "files": [
+        "Fqxpqa5hjy8"
+      ],
+      "total_lines": 30,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 29,
+      "members": [
+        "C6d4l7tmios"
+      ],
+      "anchors": [
+        "C6d4l7tmios"
+      ],
+      "files": [
+        "Fqxpqa5hjy8"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 35,
+      "members": [
+        "C6zbvhdxr85"
+      ],
+      "anchors": [
+        "C6zbvhdxr85"
+      ],
+      "files": [
+        "Fnwnbcz046z"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 36,
+      "members": [
+        "C11m6k4jf6ap",
+        "Cen2v67qzpy",
+        "C178egm3pf38",
+        "C86msc5eolc",
+        "C13lq3w4v2pa",
+        "Cwc0iuljdtj",
+        "Cbchr05tgkm",
+        "C14ij63bmp50",
+        "Coc0mg2rx63",
+        "Chdjl0z3n3c"
+      ],
+      "anchors": [],
+      "files": [
+        "Fnwnbcz046z",
+        "F16kdvpnxxeq"
+      ],
+      "total_lines": 233,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 50,
+      "members": [
+        "Cy1a2c6op8x"
+      ],
+      "anchors": [],
+      "files": [
+        "F16kdvpnxxeq"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 51,
+      "members": [
+        "Cv0audk8uar"
+      ],
+      "anchors": [],
+      "files": [
+        "F16kdvpnxxeq"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 52,
+      "members": [
+        "Cy0koyrg3h3",
+        "Czc4qtrk6wi",
+        "Cpxpbasvlr9",
+        "Cmjqruz6p2c",
+        "C10u7p57k2vv",
+        "Cs9bvogon5x",
+        "Cgyyntqidwr",
+        "C8s8bl5jl2z"
+      ],
+      "anchors": [],
+      "files": [
+        "F16kdvpnxxeq"
+      ],
+      "total_lines": 65,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 59,
+      "members": [
+        "C6o1211o8gh"
+      ],
+      "anchors": [],
+      "files": [
+        "F16kdvpnxxeq"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 73,
+      "members": [
+        "C239mjbg3m5"
+      ],
+      "anchors": [],
+      "files": [
+        "F57rlyeka65"
+      ],
+      "total_lines": 29,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 74,
+      "members": [
+        "Cn5pdc8dps9"
+      ],
+      "anchors": [],
+      "files": [
+        "F57rlyeka65"
+      ],
+      "total_lines": 32,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cyobhguwazo",
+      "qualified_name": "scrapeModule",
+      "simple_name": "scrapeModule",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F401ssg5quk",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/client/plugins/mixins.js",
+      "start_line": 93,
+      "end_line": 175,
+      "size_lines": 83,
+      "signature_hint": "async scrapeModule(module)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -17,
+      "region": 1,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cm2odmmx6xw",
+      "qualified_name": "debounce",
+      "simple_name": "debounce",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F401ssg5quk",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/client/plugins/mixins.js",
+      "start_line": 199,
+      "end_line": 216,
+      "size_lines": 18,
+      "signature_hint": "debounce(func, wait, immediate)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -82,
+      "region": 6,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cd3a8p5o09m",
+      "qualified_name": "download",
+      "simple_name": "download",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F401ssg5quk",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/client/plugins/mixins.js",
+      "start_line": 176,
+      "end_line": 190,
+      "size_lines": 15,
+      "signature_hint": "download(filename, text)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -85,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2f2vrl1rne",
+      "qualified_name": "setToValue",
+      "simple_name": "setToValue",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F401ssg5quk",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/client/plugins/mixins.js",
+      "start_line": 217,
+      "end_line": 228,
+      "size_lines": 12,
+      "signature_hint": "setToValue(obj, pathArr, value)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -88,
+      "region": 8,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6d4l7tmios",
+      "qualified_name": "set",
+      "simple_name": "set",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fqxpqa5hjy8",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/module/edrys.js",
+      "start_line": 70,
+      "end_line": 81,
+      "size_lines": 12,
+      "signature_hint": "set(target, key, value)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -88,
+      "region": 29,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cng1ccznjbt",
+      "qualified_name": "uuidv4",
+      "simple_name": "uuidv4",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F401ssg5quk",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/client/plugins/mixins.js",
+      "start_line": 191,
+      "end_line": 198,
+      "size_lines": 8,
+      "signature_hint": "uuidv4()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -92,
+      "region": 5,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C86v8xsmglk",
+      "qualified_name": "get",
+      "simple_name": "get",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fqxpqa5hjy8",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/module/edrys.js",
+      "start_line": 62,
+      "end_line": 69,
+      "size_lines": 8,
+      "signature_hint": "get(target, key)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -92,
+      "region": 27,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cuzrmuoj5di",
+      "qualified_name": "state",
+      "simple_name": "state",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fy0ncrlsgtl",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/client/store/index.js",
+      "start_line": 1,
+      "end_line": 7,
+      "size_lines": 7,
+      "signature_hint": "state = () => ({ drawer: true, user: undefined, class_: undefined, scrapedModules: [], lastRecievedMessage: undefined, })",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -93,
+      "region": 11,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C66yc7eopgw",
+      "qualified_name": "onMessage",
+      "simple_name": "onMessage",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fqxpqa5hjy8",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/module/edrys.js",
+      "start_line": 36,
+      "end_line": 42,
+      "size_lines": 7,
+      "signature_hint": "onMessage(handler, promiscuous=false)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -93,
+      "region": 23,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cq803zsuwm3",
+      "qualified_name": "onReady",
+      "simple_name": "onReady",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fqxpqa5hjy8",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/module/edrys.js",
+      "start_line": 27,
+      "end_line": 32,
+      "size_lines": 6,
+      "signature_hint": "onReady(handler)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -94,
+      "region": 19,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxqtdv6gp7i",
+      "qualified_name": "setScrapedModules",
+      "simple_name": "setScrapedModules",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fy0ncrlsgtl",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/client/store/index.js",
+      "start_line": 22,
+      "end_line": 25,
+      "size_lines": 4,
+      "signature_hint": "setScrapedModules(state, scrapedModules)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -96,
+      "region": 16,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cc9xa87atuj",
+      "qualified_name": "toggleDrawer",
+      "simple_name": "toggleDrawer",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fy0ncrlsgtl",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/client/store/index.js",
+      "start_line": 10,
+      "end_line": 12,
+      "size_lines": 3,
+      "signature_hint": "toggleDrawer(state, val)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 12,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czrqu6sd0fo",
+      "qualified_name": "setState",
+      "simple_name": "setState",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fy0ncrlsgtl",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/client/store/index.js",
+      "start_line": 13,
+      "end_line": 15,
+      "size_lines": 3,
+      "signature_hint": "setState(state, { key, value })",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 13,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C117t334lyu6",
+      "qualified_name": "setUser",
+      "simple_name": "setUser",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fy0ncrlsgtl",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/client/store/index.js",
+      "start_line": 16,
+      "end_line": 18,
+      "size_lines": 3,
+      "signature_hint": "setUser(state, user)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 14,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cest43fxlaz",
+      "qualified_name": "setClass",
+      "simple_name": "setClass",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fy0ncrlsgtl",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/client/store/index.js",
+      "start_line": 19,
+      "end_line": 21,
+      "size_lines": 3,
+      "signature_hint": "setClass(state, class_)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 15,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7k8u31rzl0",
+      "qualified_name": "setLastRecievedMessage",
+      "simple_name": "setLastRecievedMessage",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fy0ncrlsgtl",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/client/store/index.js",
+      "start_line": 26,
+      "end_line": 28,
+      "size_lines": 3,
+      "signature_hint": "setLastRecievedMessage(state, lastRecievedMessage)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 17,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17dg6dezym",
+      "qualified_name": "setInstance",
+      "simple_name": "setInstance",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fy0ncrlsgtl",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/client/store/index.js",
+      "start_line": 29,
+      "end_line": 31,
+      "size_lines": 3,
+      "signature_hint": "setInstance(state, instance)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 18,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Csrsmu01h5",
+      "qualified_name": "onUpdate",
+      "simple_name": "onUpdate",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fqxpqa5hjy8",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/module/edrys.js",
+      "start_line": 33,
+      "end_line": 35,
+      "size_lines": 3,
+      "signature_hint": "onUpdate(handler)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 21,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cb1gyn12v7j",
+      "qualified_name": "setItem",
+      "simple_name": "setItem",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fqxpqa5hjy8",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/module/edrys.js",
+      "start_line": 53,
+      "end_line": 55,
+      "size_lines": 3,
+      "signature_hint": "setItem(key, value)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 25,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cl0pzcd21yq",
+      "qualified_name": "getItem",
+      "simple_name": "getItem",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fqxpqa5hjy8",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/module/edrys.js",
+      "start_line": 56,
+      "end_line": 58,
+      "size_lines": 3,
+      "signature_hint": "getItem(key)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 26,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6zbvhdxr85",
+      "qualified_name": "teardown",
+      "simple_name": "teardown",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnwnbcz046z",
+      "path": "/storage/cgg-test_repos/app-edrys-oak/server/auth.ts",
+      "start_line": 61,
+      "end_line": 63,
+      "size_lines": 3,
+      "signature_hint": "async function teardown()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 35,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

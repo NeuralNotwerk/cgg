@@ -1,0 +1,3885 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "framework:entry-node",
+        "framework:test-harness",
+        "toplevel:invocation"
+      ],
+      "files": 237,
+      "callables": 221,
+      "roots": 408,
+      "reachable": 209,
+      "reachable_pct": 94,
+      "findings": 11,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 221,
+    "edges": 498,
+    "unresolved_call_sites": 642,
+    "roots": 408,
+    "candidates": 12,
+    "reported": 11,
+    "regions": 11,
+    "withheld": [
+      {
+        "language": "javascript",
+        "category": "only-used-by-tests",
+        "reason": "missing-signal",
+        "would_have_reported": 1
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "C1382xcd2244",
+      "qualified_name": "handler_at_15",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cbw7fg561h8",
+      "qualified_name": "handler_at_16",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cst61byr46q",
+      "qualified_name": "handler_at_36",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cy4novnq6fg",
+      "qualified_name": "up",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/authentication/src/helpers/create-user-seeder.js:39"
+    },
+    {
+      "id": "C8rjyn59yez",
+      "qualified_name": "login",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/authentication/src/modules/login/login.route.js:9"
+    },
+    {
+      "id": "Cjz6cn59nr8",
+      "qualified_name": "otpLogin",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/authentication/src/modules/login/login.route.js:10"
+    },
+    {
+      "id": "Cnip3ww2ehd",
+      "qualified_name": "handler_at_16",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ccy9u1ufsaf",
+      "qualified_name": "handler_at_35",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C2ngt7pdrlt",
+      "qualified_name": "handler_at_39",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cujcjrkz1ad",
+      "qualified_name": "handler_at_43",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C14orh35xkg6",
+      "qualified_name": "handler_at_44",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Conz109iegx",
+      "qualified_name": "handler_at_55",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cl97mg36331",
+      "qualified_name": "handler_at_73",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C2emx8lnl41",
+      "qualified_name": "handler_at_91",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C1lsprtuj80",
+      "qualified_name": "create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:13"
+    },
+    {
+      "id": "C9mkslcrctw",
+      "qualified_name": "update",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:14"
+    },
+    {
+      "id": "Cay098a9xc3",
+      "qualified_name": "destroy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:15"
+    },
+    {
+      "id": "Cy0aoni8ka4",
+      "qualified_name": "handler_at_18",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C81vvo7hh0m",
+      "qualified_name": "handler_at_36",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cvgqso343lx",
+      "qualified_name": "handler_at_55",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C12x4jgilepk",
+      "qualified_name": "handler_at_59",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C179mhg39mqc",
+      "qualified_name": "handler_at_60",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ctzf5glbodo",
+      "qualified_name": "handler_at_67",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C106shrbjfwj",
+      "qualified_name": "handler_at_80",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cu0thmnvo7z",
+      "qualified_name": "handler_at_81",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C2h8eoajooe",
+      "qualified_name": "handler_at_88",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cdijere0qyk",
+      "qualified_name": "handler_at_95",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C7liqd4ldeu",
+      "qualified_name": "handler_at_111",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C105uenag3hv",
+      "qualified_name": "handler_at_112",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cod6jzq8tk9",
+      "qualified_name": "handler_at_119",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C15v73ihdpap",
+      "qualified_name": "index",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/modules/notification/notification.route.js:16"
+    },
+    {
+      "id": "Ceej5h429w8",
+      "qualified_name": "create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:13"
+    },
+    {
+      "id": "C8c8t2qn4qo",
+      "qualified_name": "update",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:14"
+    },
+    {
+      "id": "Cr2j1723z6n",
+      "qualified_name": "handler_at_15",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cwnhzify0ac",
+      "qualified_name": "handler_at_26",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cmc2xhcvsvh",
+      "qualified_name": "handler_at_30",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Crveih07uuf",
+      "qualified_name": "handler_at_33",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cmixbtzilrk",
+      "qualified_name": "handler_at_44",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cyrs1nm0fp6",
+      "qualified_name": "handler_at_52",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cu70628934v",
+      "qualified_name": "handler_at_65",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Crnrgoea6lv",
+      "qualified_name": "handler_at_79",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C1072120mbeo",
+      "qualified_name": "handler_at_80",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cdtqkdrbv3q",
+      "qualified_name": "handler_at_84",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C1e13n47kor",
+      "qualified_name": "handler_at_92",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ce9ovacvwnp",
+      "qualified_name": "handler_at_101",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C1766tem5y4l",
+      "qualified_name": "index",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/modules/notification/notification.route.js:16"
+    },
+    {
+      "id": "Ct6ffpojmd",
+      "qualified_name": "verify",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/authentication/src/modules/signup/signup.route.js:10"
+    },
+    {
+      "id": "Coc0jvwp39y",
+      "qualified_name": "create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:13"
+    },
+    {
+      "id": "Ciag87kjfxq",
+      "qualified_name": "handler_at_15",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cjgub6kngbf",
+      "qualified_name": "handler_at_26",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cc82ai4oeuz",
+      "qualified_name": "handler_at_30",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cv1d9wju4lv",
+      "qualified_name": "handler_at_34",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cwfy5ebdk60",
+      "qualified_name": "handler_at_35",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Comfqmyma3p",
+      "qualified_name": "handler_at_46",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C1647f7szk62",
+      "qualified_name": "handler_at_49",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cxgc0h8zlg6",
+      "qualified_name": "handler_at_62",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cwymtvfiget",
+      "qualified_name": "handler_at_72",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ccyyzh7ry11",
+      "qualified_name": "handler_at_83",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C13n0j2sptj4",
+      "qualified_name": "handler_at_84",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cj1jywk11ea",
+      "qualified_name": "handler_at_97",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C17scrlsywyb",
+      "qualified_name": "handler_at_115",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C14jtfmbjaaj",
+      "qualified_name": "handler_at_133",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cyb9wktdxt0",
+      "qualified_name": "user",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/betting/src/modules/betting/betting.route.js:64"
+    },
+    {
+      "id": "C7fzlqtz7gh",
+      "qualified_name": "email",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/authentication/src/modules/user/user.route.js:20"
+    },
+    {
+      "id": "Casj9ed1zdi",
+      "qualified_name": "emailVerify",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/authentication/src/modules/user/user.route.js:23"
+    },
+    {
+      "id": "Cguzew3il6u",
+      "qualified_name": "password",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/authentication/src/modules/user/user.route.js:31"
+    },
+    {
+      "id": "C5z585vu2bw",
+      "qualified_name": "profile",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/authentication/src/modules/user/user.route.js:40"
+    },
+    {
+      "id": "C1n7o7jpuke",
+      "qualified_name": "handler_at_17",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C10k7tb4dtn3",
+      "qualified_name": "handler_at_31",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cy0zht6fpsc",
+      "qualified_name": "handler_at_51",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cmkns6g5dzn",
+      "qualified_name": "handler_at_55",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C15towrj8490",
+      "qualified_name": "handler_at_56",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C16883uhib36",
+      "qualified_name": "handler_at_66",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cb7ickmt3t9",
+      "qualified_name": "UserRepo.create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:13"
+    },
+    {
+      "id": "C15ab5rxplae",
+      "qualified_name": "getWallets",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:53"
+    },
+    {
+      "id": "Cslaj0n9uj2",
+      "qualified_name": "getUserWallet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:54"
+    },
+    {
+      "id": "Cjn10xcw89k",
+      "qualified_name": "createWallet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:55"
+    },
+    {
+      "id": "Ckb69q71bb8",
+      "qualified_name": "updateWallet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:56"
+    },
+    {
+      "id": "C9k23a0e0bb",
+      "qualified_name": "destroyWallet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:57"
+    },
+    {
+      "id": "Cbiz5b3ebvg",
+      "qualified_name": "parseToken",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/middlewares/auth-middleware.js:23"
+    },
+    {
+      "id": "Cxrnvbb391z",
+      "qualified_name": "returnBet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/betting/src/modules/betting/betting.route.js:23"
+    },
+    {
+      "id": "C3xml7mtbst",
+      "qualified_name": "updateReturns",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/betting/src/modules/betting/betting.route.js:33"
+    },
+    {
+      "id": "Cx7rjndy1ws",
+      "qualified_name": "updateWinners",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/betting/src/modules/betting/betting.route.js:43"
+    },
+    {
+      "id": "Clqr1ov9wic",
+      "qualified_name": "updateLosers",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/betting/src/modules/betting/betting.route.js:53"
+    },
+    {
+      "id": "Corsqljzrhz",
+      "qualified_name": "index",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/modules/notification/notification.route.js:16"
+    },
+    {
+      "id": "Cfoj1pw7lp4",
+      "qualified_name": "user",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/betting/src/modules/betting/betting.route.js:64"
+    },
+    {
+      "id": "C9d0068jbwp",
+      "qualified_name": "find",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:12"
+    },
+    {
+      "id": "C8iyqwdrd5w",
+      "qualified_name": "create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:13"
+    },
+    {
+      "id": "Clyfma8do2",
+      "qualified_name": "update",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:14"
+    },
+    {
+      "id": "Cra7guttaxn",
+      "qualified_name": "destroy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:15"
+    },
+    {
+      "id": "Cko6zaaguh0",
+      "qualified_name": "returnBet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/betting/src/modules/betting/betting.route.js:23"
+    },
+    {
+      "id": "Cnlne9f4ctu",
+      "qualified_name": "updateBetsStatus",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/betting/src/repos/bet-repo.js:130"
+    },
+    {
+      "id": "Ctf37zi7xmt",
+      "qualified_name": "list",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:11"
+    },
+    {
+      "id": "Cewhjfd6dve",
+      "qualified_name": "listByUser",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/repos/notification-repo.js:95"
+    },
+    {
+      "id": "Cj6wqq25ilf",
+      "qualified_name": "find",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:12"
+    },
+    {
+      "id": "C14nh6p9bqku",
+      "qualified_name": "create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:13"
+    },
+    {
+      "id": "C17m1rs65803",
+      "qualified_name": "update",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:14"
+    },
+    {
+      "id": "Cbxeyqzyjc",
+      "qualified_name": "destroy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:15"
+    },
+    {
+      "id": "C80y643oucp",
+      "qualified_name": "getUser",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/services/auth-service.js:20"
+    },
+    {
+      "id": "C6bhd9pmb38",
+      "qualified_name": "getMatches",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:132"
+    },
+    {
+      "id": "Crv3lo1n2t3",
+      "qualified_name": "createMatch",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:133"
+    },
+    {
+      "id": "C9762zemom7",
+      "qualified_name": "updateMatch",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:134"
+    },
+    {
+      "id": "Cm0k8wznbok",
+      "qualified_name": "destroyMatch",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:135"
+    },
+    {
+      "id": "Cljebg07wlq",
+      "qualified_name": "findMatch",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:136"
+    },
+    {
+      "id": "C31nxlfjkis",
+      "qualified_name": "openBetting",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:137"
+    },
+    {
+      "id": "Cvimi4t4ool",
+      "qualified_name": "closeBetting",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:138"
+    },
+    {
+      "id": "Ce7lcx0dmhu",
+      "qualified_name": "updateMatchStatus",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:141"
+    },
+    {
+      "id": "C3g6oybcah2",
+      "qualified_name": "getMatchPlayers",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:142"
+    },
+    {
+      "id": "C105r6dx3rez",
+      "qualified_name": "addMatchPlayer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:143"
+    },
+    {
+      "id": "C165sm24nc7r",
+      "qualified_name": "updateMatchPlayer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:144"
+    },
+    {
+      "id": "Crmu6ftieio",
+      "qualified_name": "deleteMatchPlayer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:145"
+    },
+    {
+      "id": "Cv33dqno3zy",
+      "qualified_name": "getTransactions",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/transaction-service.js:55"
+    },
+    {
+      "id": "C17pxt0hqwgl",
+      "qualified_name": "createTransaction",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/transaction-service.js:56"
+    },
+    {
+      "id": "C1472sfl58bj",
+      "qualified_name": "updateTransaction",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/transaction-service.js:57"
+    },
+    {
+      "id": "Ce72t759pd5",
+      "qualified_name": "destroyTransaction",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/transaction-service.js:58"
+    },
+    {
+      "id": "Ciek61fwy2d",
+      "qualified_name": "findTransaction",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/transaction-service.js:59"
+    },
+    {
+      "id": "C1fh5rq7q2o",
+      "qualified_name": "getWallets",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:53"
+    },
+    {
+      "id": "C4i1yxnztwb",
+      "qualified_name": "getUserWallet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:54"
+    },
+    {
+      "id": "Cwcg58sfhxo",
+      "qualified_name": "createWallet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:55"
+    },
+    {
+      "id": "Cvrrgp6kiw5",
+      "qualified_name": "updateWallet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:56"
+    },
+    {
+      "id": "Cwp01ibq057",
+      "qualified_name": "destroyWallet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:57"
+    },
+    {
+      "id": "Ck424bimet",
+      "qualified_name": "parseToken",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/middlewares/auth-middleware.js:23"
+    },
+    {
+      "id": "Cagdkp0foxt",
+      "qualified_name": "index",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/modules/notification/notification.route.js:16"
+    },
+    {
+      "id": "C3hz2iejipb",
+      "qualified_name": "find",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:12"
+    },
+    {
+      "id": "C107bf5o12de",
+      "qualified_name": "create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:13"
+    },
+    {
+      "id": "C1cpsgxwjbd",
+      "qualified_name": "update",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:14"
+    },
+    {
+      "id": "C16hqo7lgu0h",
+      "qualified_name": "destroy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:15"
+    },
+    {
+      "id": "Cr0m4r6rddb",
+      "qualified_name": "handler_at_17",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C10hfneuz5e",
+      "qualified_name": "handler_at_20",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cci8zlwrapx",
+      "qualified_name": "handler_at_28",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cou72sxudrd",
+      "qualified_name": "handler_at_32",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C2b3z9y34ek",
+      "qualified_name": "handler_at_33",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C9v4a70h22r",
+      "qualified_name": "handler_at_48",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cacop9a0v84",
+      "qualified_name": "handler_at_49",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C5p5ad9utos",
+      "qualified_name": "handler_at_61",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cgdecwrsxgm",
+      "qualified_name": "handler_at_73",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Capqntgwik9",
+      "qualified_name": "handler_at_74",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C17nx5xffs9d",
+      "qualified_name": "handler_at_87",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cawtbijoto7",
+      "qualified_name": "handler_at_99",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C4yjt0modsz",
+      "qualified_name": "handler_at_112",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cmhlg70pio0",
+      "qualified_name": "handler_at_126",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C4gky4x0zcp",
+      "qualified_name": "handler_at_127",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ccyqqd7g1ml",
+      "qualified_name": "handler_at_140",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cp3m24ag71j",
+      "qualified_name": "handler_at_152",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C13jbjzh9ofc",
+      "qualified_name": "handler_at_165",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cez4vuz9kiu",
+      "qualified_name": "handler_at_179",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cjl5gjjgkmk",
+      "qualified_name": "handler_at_180",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C4bny0khupo",
+      "qualified_name": "handler_at_193",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cmkk9bnwr1m",
+      "qualified_name": "handler_at_206",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cs9jny41242",
+      "qualified_name": "index",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/modules/notification/notification.route.js:16"
+    },
+    {
+      "id": "Csj0pr90ph5",
+      "qualified_name": "find",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:12"
+    },
+    {
+      "id": "Clinkr1usdz",
+      "qualified_name": "create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:13"
+    },
+    {
+      "id": "C9l93xnzxy5",
+      "qualified_name": "update",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:14"
+    },
+    {
+      "id": "Cdhkjxd39a3",
+      "qualified_name": "destroy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:15"
+    },
+    {
+      "id": "Czenjcgjo0d",
+      "qualified_name": "bettingStatusOpen",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/modules/match/match.route.js:37"
+    },
+    {
+      "id": "Cwqkm61gtpi",
+      "qualified_name": "bettingStatusClose",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/modules/match/match.route.js:41"
+    },
+    {
+      "id": "C166mzq62u21",
+      "qualified_name": "matchStatus",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/modules/match/match.route.js:49"
+    },
+    {
+      "id": "Cnsbimqbrn3",
+      "qualified_name": "addPlayer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/modules/match/match.route.js:58"
+    },
+    {
+      "id": "Cl5fd6qrcr3",
+      "qualified_name": "removePlayer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/modules/match/match.route.js:72"
+    },
+    {
+      "id": "Cpll2ujam1e",
+      "qualified_name": "updatePlayer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/modules/match/match.route.js:67"
+    },
+    {
+      "id": "Cqt55zjsupp",
+      "qualified_name": "addOdd",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/modules/match/match.route.js:80"
+    },
+    {
+      "id": "Clevy04avgz",
+      "qualified_name": "updateOdd",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/modules/match/match.route.js:89"
+    },
+    {
+      "id": "C10rfvq4ebjv",
+      "qualified_name": "removeOdd",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/modules/match/match.route.js:94"
+    },
+    {
+      "id": "Cay4t67gb0m",
+      "qualified_name": "addWinner",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/modules/match/match.route.js:98"
+    },
+    {
+      "id": "Cwvu7h46wu7",
+      "qualified_name": "handler_at_19",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C11n5d1cqela",
+      "qualified_name": "handler_at_24",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C1g2yuzpa47",
+      "qualified_name": "handler_at_42",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C14c1xzq3q8z",
+      "qualified_name": "handler_at_47",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cs7yhyiy4l2",
+      "qualified_name": "handler_at_48",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Chy66tv5ou6",
+      "qualified_name": "handler_at_61",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C90h5xv0zv3",
+      "qualified_name": "handler_at_73",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C1a7eyt48h9",
+      "qualified_name": "handler_at_86",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C2vjy2zuca6",
+      "qualified_name": "handler_at_106",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C6vga440spe",
+      "qualified_name": "handler_at_107",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Czym3zrfvi5",
+      "qualified_name": "handler_at_120",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cy20ib9i7ft",
+      "qualified_name": "handler_at_132",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cx9asd2ciwd",
+      "qualified_name": "handler_at_145",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C69bjcbu468",
+      "qualified_name": "handler_at_169",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cf2jcw617i7",
+      "qualified_name": "handler_at_170",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C11mgvsqr2u5",
+      "qualified_name": "handler_at_183",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C13ul47w6w4o",
+      "qualified_name": "handler_at_196",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ch36jqpsxz6",
+      "qualified_name": "handler_at_19",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cnoh7j2gjyk",
+      "qualified_name": "handler_at_24",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cj8uyk6aqi6",
+      "qualified_name": "handler_at_42",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C4wv5l19xm3",
+      "qualified_name": "handler_at_47",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C170njmyyztm",
+      "qualified_name": "handler_at_48",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ct1qzz6drpu",
+      "qualified_name": "handler_at_61",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C12dctob7xwv",
+      "qualified_name": "handler_at_73",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C12wqyz4iapq",
+      "qualified_name": "handler_at_86",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cwowgiduiq4",
+      "qualified_name": "handler_at_108",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cgs0rjxhyab",
+      "qualified_name": "handler_at_109",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cwehg9u4kln",
+      "qualified_name": "handler_at_122",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cothavxf8h1",
+      "qualified_name": "handler_at_134",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cj6wj5u1t4w",
+      "qualified_name": "handler_at_147",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C13120wwzr2i",
+      "qualified_name": "handler_at_172",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C4zcku4ii5s",
+      "qualified_name": "handler_at_173",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C3g3gwqnllo",
+      "qualified_name": "handler_at_186",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Czy2y1p9ylb",
+      "qualified_name": "handler_at_199",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cywyr8ri8sn",
+      "qualified_name": "handler_at_19",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C18bcpivgl4g",
+      "qualified_name": "handler_at_23",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cw5eq7fw098",
+      "qualified_name": "handler_at_41",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C16dciwwrpsr",
+      "qualified_name": "handler_at_46",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cbfaxkg9ah9",
+      "qualified_name": "handler_at_47",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Crx6y1b3xhq",
+      "qualified_name": "handler_at_62",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cw929r4hz09",
+      "qualified_name": "handler_at_63",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Csnfjdx4vrt",
+      "qualified_name": "handler_at_75",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cjqyv57ciuq",
+      "qualified_name": "handler_at_87",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cifmtmjavzt",
+      "qualified_name": "handler_at_88",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cxhziyz22p8",
+      "qualified_name": "handler_at_101",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C10wuuomtqlm",
+      "qualified_name": "handler_at_113",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C4c3hj2mgm6",
+      "qualified_name": "handler_at_126",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ck6ehp1d6o3",
+      "qualified_name": "handler_at_144",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ck4o7vtvihw",
+      "qualified_name": "handler_at_145",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C173b7craj",
+      "qualified_name": "handler_at_158",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ctnnwditym5",
+      "qualified_name": "handler_at_171",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C17vvlvhdk6v",
+      "qualified_name": "handler_at_184",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cv54usynvay",
+      "qualified_name": "handler_at_202",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C7bap7jmype",
+      "qualified_name": "handler_at_203",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Catiijgexi",
+      "qualified_name": "handler_at_216",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C9jc5hkqoyj",
+      "qualified_name": "handler_at_229",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cghcvpeel8y",
+      "qualified_name": "index",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/modules/notification/notification.route.js:16"
+    },
+    {
+      "id": "Crew0gkpe73",
+      "qualified_name": "find",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:12"
+    },
+    {
+      "id": "C4oedka7oe7",
+      "qualified_name": "create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:13"
+    },
+    {
+      "id": "C3aiso3jyd7",
+      "qualified_name": "update",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:14"
+    },
+    {
+      "id": "Cf5v0fcogw0",
+      "qualified_name": "destroy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:15"
+    },
+    {
+      "id": "Ca6wjtbwhym",
+      "qualified_name": "handler_at_17",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C393iaie0gt",
+      "qualified_name": "handler_at_20",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cywcj91x9od",
+      "qualified_name": "handler_at_30",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C13pn7802qy8",
+      "qualified_name": "handler_at_34",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cv0rab8cwlo",
+      "qualified_name": "handler_at_35",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cxr1o3u55xb",
+      "qualified_name": "handler_at_50",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C12l93pcwmz5",
+      "qualified_name": "handler_at_51",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cnxtgebk698",
+      "qualified_name": "handler_at_63",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C177j6igbja0",
+      "qualified_name": "handler_at_75",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Csu9wk759d",
+      "qualified_name": "handler_at_76",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C1sc6pkxei6",
+      "qualified_name": "handler_at_89",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C14zk6oorrhv",
+      "qualified_name": "handler_at_101",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cx4at6eqcyy",
+      "qualified_name": "handler_at_114",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cblfk5ooogh",
+      "qualified_name": "handler_at_128",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C7ykjlmk3k3",
+      "qualified_name": "handler_at_129",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cv4jck8oess",
+      "qualified_name": "handler_at_142",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cvnc7035e27",
+      "qualified_name": "handler_at_154",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cmkshnkzh7y",
+      "qualified_name": "handler_at_167",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ckipe52t3wx",
+      "qualified_name": "handler_at_181",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ca1tzxy07gp",
+      "qualified_name": "handler_at_182",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Csdy0emdjxh",
+      "qualified_name": "handler_at_195",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C13pzn2p0qvn",
+      "qualified_name": "handler_at_208",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cbwa5flw8v4",
+      "qualified_name": "list",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:11"
+    },
+    {
+      "id": "Ctokmrl0sun",
+      "qualified_name": "find",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:12"
+    },
+    {
+      "id": "Cf63iqw5uyk",
+      "qualified_name": "create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:13"
+    },
+    {
+      "id": "Cynhroxa43r",
+      "qualified_name": "update",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:14"
+    },
+    {
+      "id": "Cpsz06ovffb",
+      "qualified_name": "destroy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:15"
+    },
+    {
+      "id": "Cq135h7wpfu",
+      "qualified_name": "updateOdd",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/modules/match/match.route.js:89"
+    },
+    {
+      "id": "Cd4glj2udg6",
+      "qualified_name": "addWinner",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/modules/match/match.route.js:98"
+    },
+    {
+      "id": "Cje64tgunyr",
+      "qualified_name": "addOdd",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/modules/match/match.route.js:80"
+    },
+    {
+      "id": "C44bkep6e53",
+      "qualified_name": "removeOdd",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/modules/match/match.route.js:94"
+    },
+    {
+      "id": "Cooldauqvxh",
+      "qualified_name": "addPlayer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/modules/match/match.route.js:58"
+    },
+    {
+      "id": "Ct4a6ck3uxw",
+      "qualified_name": "updatePlayer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/modules/match/match.route.js:67"
+    },
+    {
+      "id": "Cravr4326oj",
+      "qualified_name": "removePlayer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/modules/match/match.route.js:72"
+    },
+    {
+      "id": "C8i7cp5sjx0",
+      "qualified_name": "list",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:11"
+    },
+    {
+      "id": "Cw5g17yv6a2",
+      "qualified_name": "find",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:12"
+    },
+    {
+      "id": "C14bo6c8kwnt",
+      "qualified_name": "create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:13"
+    },
+    {
+      "id": "Csfkwwsdq9g",
+      "qualified_name": "update",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:14"
+    },
+    {
+      "id": "Cvil4w9vm4r",
+      "qualified_name": "updateStatus",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/events/src/repos/match-repo.js:207"
+    },
+    {
+      "id": "C7l64ke9cts",
+      "qualified_name": "destroy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:15"
+    },
+    {
+      "id": "C2m8pi2ttzf",
+      "qualified_name": "list",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:11"
+    },
+    {
+      "id": "Cyqbq3o5r68",
+      "qualified_name": "find",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:12"
+    },
+    {
+      "id": "Cclclsdblif",
+      "qualified_name": "create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:13"
+    },
+    {
+      "id": "Ckg1hcq4say",
+      "qualified_name": "update",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:14"
+    },
+    {
+      "id": "C3l6zg1ffud",
+      "qualified_name": "destroy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:15"
+    },
+    {
+      "id": "Cxtn0bxd9ea",
+      "qualified_name": "getUser",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/services/auth-service.js:20"
+    },
+    {
+      "id": "Csvwhq2lzmf",
+      "qualified_name": "parseToken",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/middlewares/auth-middleware.js:23"
+    },
+    {
+      "id": "Cnrt9tjpmay",
+      "qualified_name": "index",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/modules/notification/notification.route.js:16"
+    },
+    {
+      "id": "C95fn5k3wv9",
+      "qualified_name": "find",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:12"
+    },
+    {
+      "id": "Ca6jq2twbth",
+      "qualified_name": "create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:13"
+    },
+    {
+      "id": "C17uovbnvi67",
+      "qualified_name": "update",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:14"
+    },
+    {
+      "id": "Cqhrfahr1an",
+      "qualified_name": "updateSeen",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/modules/notification/notification.route.js:44"
+    },
+    {
+      "id": "C1xpxp7usbm",
+      "qualified_name": "destroy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:15"
+    },
+    {
+      "id": "Cgwmxofc40q",
+      "qualified_name": "handler_at_29",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C13mrnnxw7z3",
+      "qualified_name": "handler_at_32",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C1877bd9julq",
+      "qualified_name": "handler_at_36",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ccytnj8r1d1",
+      "qualified_name": "handler_at_40",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C4a4ukkhmjk",
+      "qualified_name": "handler_at_41",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C7rpjxbgnz2",
+      "qualified_name": "handler_at_54",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cwq9vjg7g6t",
+      "qualified_name": "handler_at_66",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cfsmjlsl2y3",
+      "qualified_name": "handler_at_79",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C9p4w3svlpf",
+      "qualified_name": "handler_at_80",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C2yy1hw4opk",
+      "qualified_name": "handler_at_94",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cpzh2kofsic",
+      "qualified_name": "handler_at_108",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ccyxq27zswa",
+      "qualified_name": "handler_at_122",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cfomrsttva6",
+      "qualified_name": "handler_at_136",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C10tdazi16bm",
+      "qualified_name": "handler_at_137",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C11vhi4b9y4q",
+      "qualified_name": "handler_at_151",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cy30of3ola2",
+      "qualified_name": "handler_at_165",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C17z2sv1gs4e",
+      "qualified_name": "handler_at_179",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cloo93buhw",
+      "qualified_name": "handler_at_194",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Copgspvbaik",
+      "qualified_name": "handler_at_195",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C71jkhradrs",
+      "qualified_name": "handler_at_208",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cha3n18oihq",
+      "qualified_name": "handler_at_221",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C14l2cjjs6rk",
+      "qualified_name": "handler_at_235",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cwveweb3xal",
+      "qualified_name": "handler_at_236",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C99s7ntamc",
+      "qualified_name": "handler_at_249",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cg21sclwnxm",
+      "qualified_name": "handler_at_261",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cz0gfrzngst",
+      "qualified_name": "handler_at_275",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C15mgq57wob8",
+      "qualified_name": "handler_at_276",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cbvojcapi6",
+      "qualified_name": "handler_at_289",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C14gqxys43ub",
+      "qualified_name": "handler_at_301",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cw9xok3195r",
+      "qualified_name": "list",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:11"
+    },
+    {
+      "id": "Cwuypyanaky",
+      "qualified_name": "listByUser",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/repos/notification-repo.js:95"
+    },
+    {
+      "id": "C3pohhj18tw",
+      "qualified_name": "find",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:12"
+    },
+    {
+      "id": "C9sfcbps43g",
+      "qualified_name": "create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:13"
+    },
+    {
+      "id": "Coedl161n7l",
+      "qualified_name": "update",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:14"
+    },
+    {
+      "id": "C44murac8sy",
+      "qualified_name": "destroy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:15"
+    },
+    {
+      "id": "Czr8uwat89s",
+      "qualified_name": "getUser",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/services/auth-service.js:20"
+    },
+    {
+      "id": "C14r33t3xo6c",
+      "qualified_name": "getMatches",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:132"
+    },
+    {
+      "id": "Ct5vokz5le3",
+      "qualified_name": "createMatch",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:133"
+    },
+    {
+      "id": "C17zjv34n6y2",
+      "qualified_name": "updateMatch",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:134"
+    },
+    {
+      "id": "Cejl6nuq4wr",
+      "qualified_name": "destroyMatch",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:135"
+    },
+    {
+      "id": "C1g7ivomd40",
+      "qualified_name": "findMatch",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:136"
+    },
+    {
+      "id": "C1353ibpxlnu",
+      "qualified_name": "openBetting",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:137"
+    },
+    {
+      "id": "C18bgz599tlv",
+      "qualified_name": "closeBetting",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:138"
+    },
+    {
+      "id": "C13z4dlrh0kb",
+      "qualified_name": "enableDrawOdd",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:139"
+    },
+    {
+      "id": "C183lhewokaq",
+      "qualified_name": "disableDrawOdd",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:140"
+    },
+    {
+      "id": "Crqp083npq8",
+      "qualified_name": "updateMatchStatus",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:141"
+    },
+    {
+      "id": "Ccnahbfkpqw",
+      "qualified_name": "getMatchPlayers",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:142"
+    },
+    {
+      "id": "C148b8uz3m0f",
+      "qualified_name": "addMatchPlayer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:143"
+    },
+    {
+      "id": "Cxj4ewrfrlw",
+      "qualified_name": "updateMatchPlayer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:144"
+    },
+    {
+      "id": "C104ftmdhoer",
+      "qualified_name": "deleteMatchPlayer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:145"
+    },
+    {
+      "id": "Csm4sw2er4r",
+      "qualified_name": "addMatchWinner",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/event-service.js:146"
+    },
+    {
+      "id": "C160dfdz4jpg",
+      "qualified_name": "getTransactions",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/transaction-service.js:55"
+    },
+    {
+      "id": "Cu1q5d59bgg",
+      "qualified_name": "createTransaction",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/transaction-service.js:56"
+    },
+    {
+      "id": "Ci0w0auu00z",
+      "qualified_name": "updateTransaction",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/transaction-service.js:57"
+    },
+    {
+      "id": "C11hf4p3lnxz",
+      "qualified_name": "destroyTransaction",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/transaction-service.js:58"
+    },
+    {
+      "id": "Cprhm0glp33",
+      "qualified_name": "findTransaction",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/transaction-service.js:59"
+    },
+    {
+      "id": "Cjtyl28vcss",
+      "qualified_name": "getWallets",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:53"
+    },
+    {
+      "id": "Cp7hcghf4pj",
+      "qualified_name": "getUserWallet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:54"
+    },
+    {
+      "id": "Czejbr04h8b",
+      "qualified_name": "createWallet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:55"
+    },
+    {
+      "id": "Cww081h54c5",
+      "qualified_name": "updateWallet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:56"
+    },
+    {
+      "id": "Ce75l8e9uey",
+      "qualified_name": "destroyWallet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:57"
+    },
+    {
+      "id": "Cog28fa8nry",
+      "qualified_name": "parseToken",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/middlewares/auth-middleware.js:23"
+    },
+    {
+      "id": "C12ct8jz9deb",
+      "qualified_name": "list",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:11"
+    },
+    {
+      "id": "C5k0axgcpnd",
+      "qualified_name": "find",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:12"
+    },
+    {
+      "id": "Ch7cgn3adz6",
+      "qualified_name": "create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:13"
+    },
+    {
+      "id": "Cqeq5bkpixy",
+      "qualified_name": "update",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:14"
+    },
+    {
+      "id": "Ckpqra1qlu5",
+      "qualified_name": "destroy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:15"
+    },
+    {
+      "id": "Czbb7cf0fy6",
+      "qualified_name": "handler_at_19",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C12qh728ir3g",
+      "qualified_name": "handler_at_60",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cmywkqnl40n",
+      "qualified_name": "handler_at_73",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C9dvy83wcty",
+      "qualified_name": "handler_at_78",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cfq3lvswva4",
+      "qualified_name": "handler_at_79",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C14oujte1i9p",
+      "qualified_name": "handler_at_92",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C15m77n2xnm9",
+      "qualified_name": "handler_at_105",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C745qi1qj",
+      "qualified_name": "handler_at_118",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Coz644gihjw",
+      "qualified_name": "handler_at_130",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C14pao775qhk",
+      "qualified_name": "handler_at_143",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cw4ry5nse5",
+      "qualified_name": "handler_at_144",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cjwsfzz39mc",
+      "qualified_name": "handler_at_157",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C32w4svhgu3",
+      "qualified_name": "handler_at_177",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cf9b5og9kvm",
+      "qualified_name": "handler_at_190",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ckgybtybbhv",
+      "qualified_name": "handler_at_210",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cjik0l9tbvl",
+      "qualified_name": "handler_at_213",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cqbm4zjgdav",
+      "qualified_name": "handler_at_228",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ccc6u3lzs9m",
+      "qualified_name": "handler_at_241",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Czr5mktexnc",
+      "qualified_name": "handler_at_261",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C42ty2dl9dr",
+      "qualified_name": "handler_at_274",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cmi007973py",
+      "qualified_name": "handler_at_294",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Czc8duio3vs",
+      "qualified_name": "handler_at_297",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ces46ncdjw5",
+      "qualified_name": "handler_at_312",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C62lv3a0bwa",
+      "qualified_name": "handler_at_325",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cmsz9iu9di4",
+      "qualified_name": "handler_at_338",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cesberessra",
+      "qualified_name": "handler_at_351",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C17uwrbqad0j",
+      "qualified_name": "handler_at_364",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C626ksq2vlx",
+      "qualified_name": "handler_at_367",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C2ygx8czk6b",
+      "qualified_name": "handler_at_382",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ctr48turk71",
+      "qualified_name": "handler_at_395",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Croi4hyrb6t",
+      "qualified_name": "handler_at_408",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ce5b9nehwx4",
+      "qualified_name": "list",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:11"
+    },
+    {
+      "id": "C119tozovmkz",
+      "qualified_name": "find",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:12"
+    },
+    {
+      "id": "Cl67l8o546d",
+      "qualified_name": "create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:13"
+    },
+    {
+      "id": "Cwexr1kl052",
+      "qualified_name": "update",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:14"
+    },
+    {
+      "id": "Ced25lo9cbc",
+      "qualified_name": "destroy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:15"
+    },
+    {
+      "id": "Cshqrii1g14",
+      "qualified_name": "handler_at_16",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C6mbdfvm39u",
+      "qualified_name": "handler_at_44",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C3n90f30hwf",
+      "qualified_name": "handler_at_49",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cvzcrf4n4en",
+      "qualified_name": "handler_at_50",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cg63tw0tob4",
+      "qualified_name": "handler_at_63",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C1260quaehte",
+      "qualified_name": "handler_at_76",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C1883z8j7z3j",
+      "qualified_name": "handler_at_77",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C15v4bwrsx5k",
+      "qualified_name": "handler_at_90",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cy5nf816zi4",
+      "qualified_name": "handler_at_103",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cfa7zgfv5xw",
+      "qualified_name": "handler_at_104",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cj3djwdmjf5",
+      "qualified_name": "handler_at_117",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cbgc3i7zkht",
+      "qualified_name": "handler_at_130",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cvkxvmbsryz",
+      "qualified_name": "handler_at_131",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cvveagb23qo",
+      "qualified_name": "handler_at_144",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C5gu8any24w",
+      "qualified_name": "UserTransactionRepo.list",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:11"
+    },
+    {
+      "id": "Coyx615ou7h",
+      "qualified_name": "UserTransactionRepo.find",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:12"
+    },
+    {
+      "id": "Cn73fxe6kgk",
+      "qualified_name": "UserTransactionRepo.create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:13"
+    },
+    {
+      "id": "C1i72pe4kjb",
+      "qualified_name": "UserTransactionRepo.update",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:14"
+    },
+    {
+      "id": "Cub746l27ac",
+      "qualified_name": "UserTransactionRepo.destroy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/modules/wallet/wallet.route.js:15"
+    },
+    {
+      "id": "Cejnv28olbf",
+      "qualified_name": "UserWalletRepo.getWallets",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:53"
+    },
+    {
+      "id": "C11ohd66xgy0",
+      "qualified_name": "UserWalletRepo.createWallet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:55"
+    },
+    {
+      "id": "Catned7z8rs",
+      "qualified_name": "UserWalletRepo.updateWallet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:56"
+    },
+    {
+      "id": "Cnva37gxzk4",
+      "qualified_name": "UserWalletRepo.destroyWallet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/notifications/src/services/wallet-service.js:57"
+    },
+    {
+      "id": "C5s5n6vxwk2",
+      "qualified_name": "getUser",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-betting-expressgateway/wallet/src/services/auth-service.js:20"
+    },
+    {
+      "id": "C149rhpyumfy",
+      "qualified_name": "<framework-entry>::test::js-test-globals",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Coshfeof7vn",
+      "qualified_name": "<framework-entry>::network::express::get(\"/\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/\")`"
+    },
+    {
+      "id": "Cvs2ziwihqc",
+      "qualified_name": "<framework-entry>::network::express::get(\"/health-check\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/health-check\")`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 2,
+      "members": [
+        "Cuhfs7kslw9"
+      ],
+      "anchors": [],
+      "files": [
+        "Fzicnzjsd1s"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 114,
+      "members": [
+        "C12jakcis5xq"
+      ],
+      "anchors": [
+        "C12jakcis5xq"
+      ],
+      "files": [
+        "F10o3xlxcr47"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 115,
+      "members": [
+        "Cqvcmrnfrb7"
+      ],
+      "anchors": [],
+      "files": [
+        "Fs17k22ugsb"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 123,
+      "members": [
+        "C6qkeu6u6ik"
+      ],
+      "anchors": [
+        "C6qkeu6u6ik"
+      ],
+      "files": [
+        "F138mtlpyiil"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 176,
+      "members": [
+        "Cjdzquhmr4r"
+      ],
+      "anchors": [],
+      "files": [
+        "F13kahnyx8dk"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 345,
+      "members": [
+        "C4oepjp46zp"
+      ],
+      "anchors": [],
+      "files": [
+        "Fkbx7lm4r4a"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 353,
+      "members": [
+        "Czir24458vy"
+      ],
+      "anchors": [
+        "Czir24458vy"
+      ],
+      "files": [
+        "F14fa66yc8ql"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 439,
+      "members": [
+        "Crangudti1a"
+      ],
+      "anchors": [
+        "Crangudti1a"
+      ],
+      "files": [
+        "F80hwho6pus"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 443,
+      "members": [
+        "Ch9xtqp4wxp"
+      ],
+      "anchors": [],
+      "files": [
+        "Fm6pkcfoejd"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 518,
+      "members": [
+        "C13cm34ee91o"
+      ],
+      "anchors": [
+        "C13cm34ee91o"
+      ],
+      "files": [
+        "Fw64g3v2ka7"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 534,
+      "members": [
+        "Cx2w8k74d3l"
+      ],
+      "anchors": [
+        "Cx2w8k74d3l"
+      ],
+      "files": [
+        "Fn9lemuwvd3"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Crangudti1a",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F80hwho6pus",
+      "path": "/storage/cgg-test_repos/app-betting-expressgateway/socket/middlewares/auth-middleware.js",
+      "start_line": 4,
+      "end_line": 17,
+      "size_lines": 14,
+      "signature_hint": "module.exports = function(socket, next)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -86,
+      "region": 439,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cuhfs7kslw9",
+      "qualified_name": "logMessage",
+      "simple_name": "logMessage",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fzicnzjsd1s",
+      "path": "/storage/cgg-test_repos/app-betting-expressgateway/authentication/src/consumer.js",
+      "start_line": 14,
+      "end_line": 16,
+      "size_lines": 3,
+      "signature_hint": "logMessage = (type = 'info', message = '', other = '') =>",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 2,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cqvcmrnfrb7",
+      "qualified_name": "logMessage",
+      "simple_name": "logMessage",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fs17k22ugsb",
+      "path": "/storage/cgg-test_repos/app-betting-expressgateway/betting/src/consumer.js",
+      "start_line": 14,
+      "end_line": 16,
+      "size_lines": 3,
+      "signature_hint": "logMessage = (type = 'info', message = '', other = '') =>",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 115,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjdzquhmr4r",
+      "qualified_name": "logMessage",
+      "simple_name": "logMessage",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13kahnyx8dk",
+      "path": "/storage/cgg-test_repos/app-betting-expressgateway/events/src/consumer.js",
+      "start_line": 14,
+      "end_line": 16,
+      "size_lines": 3,
+      "signature_hint": "logMessage = (type = 'info', message = '', other = '') =>",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 176,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4oepjp46zp",
+      "qualified_name": "logMessage",
+      "simple_name": "logMessage",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fkbx7lm4r4a",
+      "path": "/storage/cgg-test_repos/app-betting-expressgateway/notifications/src/consumer.js",
+      "start_line": 14,
+      "end_line": 16,
+      "size_lines": 3,
+      "signature_hint": "logMessage = (type = 'info', message = '', other = '') =>",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 345,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ch9xtqp4wxp",
+      "qualified_name": "logMessage",
+      "simple_name": "logMessage",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fm6pkcfoejd",
+      "path": "/storage/cgg-test_repos/app-betting-expressgateway/wallet/src/consumer.js",
+      "start_line": 14,
+      "end_line": 16,
+      "size_lines": 3,
+      "signature_hint": "logMessage = (type = 'info', message = '', other = '') =>",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 443,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C12jakcis5xq",
+      "qualified_name": "USER_SIGNUP_EMAIL",
+      "simple_name": "USER_SIGNUP_EMAIL",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F10o3xlxcr47",
+      "path": "/storage/cgg-test_repos/app-betting-expressgateway/authentication/src/tasks/email-tasks.js",
+      "start_line": 4,
+      "end_line": 14,
+      "size_lines": 11,
+      "signature_hint": "USER_SIGNUP_EMAIL = ({ user, token }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -589,
+      "region": 114,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "USER_SIGNUP_EMAIL",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Forgl0ccalm",
+            "path": "/storage/cgg-test_repos/app-betting-expressgateway/authentication/src/tasks/index.js",
+            "line": 4,
+            "name": "USER_SIGNUP_EMAIL"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cx2w8k74d3l",
+      "qualified_name": "USER_WALLET_CREATED",
+      "simple_name": "USER_WALLET_CREATED",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fn9lemuwvd3",
+      "path": "/storage/cgg-test_repos/app-betting-expressgateway/wallet/src/tasks/wallet-tasks.js",
+      "start_line": 3,
+      "end_line": 5,
+      "size_lines": 3,
+      "signature_hint": "USER_WALLET_CREATED = ({ user_id }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -597,
+      "region": 534,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "USER_WALLET_CREATED",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fp08f2c4ugr",
+            "path": "/storage/cgg-test_repos/app-betting-expressgateway/wallet/src/tasks/index.js",
+            "line": 4,
+            "name": "USER_WALLET_CREATED"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C6qkeu6u6ik",
+      "qualified_name": "InvalidArgumentException.constructor",
+      "simple_name": "constructor",
+      "language": "javascript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F138mtlpyiil",
+      "path": "/storage/cgg-test_repos/app-betting-expressgateway/betting/src/helpers/api-error.js",
+      "start_line": 33,
+      "end_line": 35,
+      "size_lines": 3,
+      "signature_hint": "constructor(message)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 123,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Czir24458vy",
+      "qualified_name": "InvalidArgumentException.constructor",
+      "simple_name": "constructor",
+      "language": "javascript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F14fa66yc8ql",
+      "path": "/storage/cgg-test_repos/app-betting-expressgateway/notifications/src/helpers/api-error.js",
+      "start_line": 33,
+      "end_line": 35,
+      "size_lines": 3,
+      "signature_hint": "constructor(message)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 353,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C13cm34ee91o",
+      "qualified_name": "UserRepo.findById",
+      "simple_name": "findById",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fw64g3v2ka7",
+      "path": "/storage/cgg-test_repos/app-betting-expressgateway/wallet/src/repos/user-repo.js",
+      "start_line": 12,
+      "end_line": 18,
+      "size_lines": 7,
+      "signature_hint": "async findById(_id)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -893,
+      "region": 518,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "findById",
+          "sites": 9,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 1,
+          "owner_match_sites": 1,
+          "example": {
+            "file": "F9ih14h7v8q",
+            "path": "/storage/cgg-test_repos/app-betting-expressgateway/authentication/src/middlewares/otp-middleware.js",
+            "line": 6,
+            "name": "findById",
+            "receiver_hint": "UserRepo"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    }
+  ]
+}

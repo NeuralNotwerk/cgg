@@ -1,0 +1,474 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "lua",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 5,
+      "callables": 16,
+      "roots": 3,
+      "reachable": 3,
+      "reachable_pct": 18,
+      "findings": 7
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 16,
+    "edges": 7,
+    "unresolved_call_sites": 49,
+    "roots": 3,
+    "candidates": 13,
+    "reported": 7,
+    "regions": 6,
+    "withheld": [
+      {
+        "language": "lua",
+        "category": "reachable-only-from-dead-code",
+        "reason": "low-root-coverage",
+        "would_have_reported": 6
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Cmnav4fznpk",
+      "qualified_name": "get_and_assert",
+      "language": "lua",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-circuitbreaker-kong/spec/circuit-breaker/01-access_spec.lua:354"
+    },
+    {
+      "id": "C995el8713f",
+      "qualified_name": "update_plugin",
+      "language": "lua",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-circuitbreaker-kong/spec/circuit-breaker/01-access_spec.lua:313"
+    },
+    {
+      "id": "C140vxxj1pit",
+      "qualified_name": "disable_plugin",
+      "language": "lua",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-circuitbreaker-kong/spec/circuit-breaker/01-access_spec.lua:331"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "C1vu74a4le7",
+        "Cvzxbvq8meb"
+      ],
+      "anchors": [
+        "Cvzxbvq8meb"
+      ],
+      "files": [
+        "Fwouw3iippy"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "lua"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 1,
+      "members": [
+        "C13adzdpko3n",
+        "C180b69o7hga",
+        "C1609xi5ypeo",
+        "Co1dannvpjv",
+        "Ccyt5kxcbwy",
+        "Civs6kd6i14"
+      ],
+      "anchors": [
+        "C180b69o7hga",
+        "C1609xi5ypeo"
+      ],
+      "files": [
+        "Fwouw3iippy",
+        "Fxcm2etf5tx"
+      ],
+      "total_lines": 90,
+      "languages": [
+        "lua"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 3,
+      "members": [
+        "C6fx72yaalh"
+      ],
+      "anchors": [
+        "C6fx72yaalh"
+      ],
+      "files": [
+        "Fwouw3iippy"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "lua"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 5,
+      "members": [
+        "Cffkrrc8v70"
+      ],
+      "anchors": [
+        "Cffkrrc8v70"
+      ],
+      "files": [
+        "Fwouw3iippy"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "lua"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 7,
+      "members": [
+        "Ckcqumutqna"
+      ],
+      "anchors": [
+        "Ckcqumutqna"
+      ],
+      "files": [
+        "Fwouw3iippy"
+      ],
+      "total_lines": 43,
+      "languages": [
+        "lua"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 11,
+      "members": [
+        "Cpamvm8rm3d",
+        "Co5oxfwgo93"
+      ],
+      "anchors": [
+        "Co5oxfwgo93"
+      ],
+      "files": [
+        "F139uu5thxpd"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "lua"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Ckcqumutqna",
+      "qualified_name": "CircuitBreakerHandler:init_worker",
+      "simple_name": "init_worker",
+      "language": "lua",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fwouw3iippy",
+      "path": "/storage/cgg-test_repos/app-circuitbreaker-kong/kong/plugins/circuit-breaker/handler.lua",
+      "start_line": 121,
+      "end_line": 163,
+      "size_lines": 43,
+      "signature_hint": "function CircuitBreakerHandler:init_worker() kong.worker_events.register( function (data) if type(data) ~= \"string\" then return end local key_parts = pl_utils.split(data, \":\") if key_parts[1] ~= \"plugins\" or key_parts[2] ~= \"circuit-breaker\" then return end local route_id = key_parts[3] local service_id = key_parts[4] local consumer_id = key_parts[5] local group_prefix, group_suffix if consumer_id ~= \"\" then group_prefix = consumer_id end if route_id ~= \"\" then group_suffix = route_id -- Route level circuit breaker elseif service_id ~= \"\" then group_suffix = service_id -- Service level circuit breaker else group_suffix = \"global\" -- Global circuit breaker end if group_prefix ~= nil then circuit_breakers:remove_breakers_by_group(group_prefix .. \"_\" .. group_suffix) else circuit_breakers:remove_breakers_by_group(group_suffix) end local cache_key = kong.db.plugins:cache_key(\"circuit_breaker_excluded_apis\", service_id, route_id, consumer_id) kong.core_cache:invalidate(cache_key, false) end, \"mlcache\", \"mlcache:invalidations:kong_core_db_cache\" ) end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -957,
+      "region": 7,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C180b69o7hga",
+      "qualified_name": "p_access",
+      "simple_name": "p_access",
+      "language": "lua",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fwouw3iippy",
+      "path": "/storage/cgg-test_repos/app-circuitbreaker-kong/kong/plugins/circuit-breaker/handler.lua",
+      "start_line": 45,
+      "end_line": 68,
+      "size_lines": 24,
+      "signature_hint": "local function p_access(conf) local excluded_apis = helpers.get_excluded_apis(conf) local api_identifier = helpers.get_api_identifier() if excluded_apis[api_identifier] then return end -- Set timeout for request after which it will be treated as a failure ngx.ctx.balancer_data.read_timeout = conf[\"api_call_timeout_ms\"] -- Start before proxy logic over here conf.version = DEFAULT_VERSION local cb = get_circuit_breaker(conf, api_identifier) local _, err_cb = cb:_before() if err_cb then local headers",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -976,
+      "region": 1,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C1609xi5ypeo",
+      "qualified_name": "CircuitBreakerHandler:log",
+      "simple_name": "log",
+      "language": "lua",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fwouw3iippy",
+      "path": "/storage/cgg-test_repos/app-circuitbreaker-kong/kong/plugins/circuit-breaker/handler.lua",
+      "start_line": 102,
+      "end_line": 119,
+      "size_lines": 18,
+      "signature_hint": "function CircuitBreakerHandler:log(conf) local api_identifier = helpers.get_api_identifier() local cb = kong.ctx.plugin.cb if cb == nil then return end if cb._last_state_notified == false then cb._last_state_notified = true -- Prepare latest state change and set it in context. -- This data can be used later to do logging in a different plugin. -- Example",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -982,
+      "region": 1,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cvzxbvq8meb",
+      "qualified_name": "p_header_filter",
+      "simple_name": "p_header_filter",
+      "language": "lua",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fwouw3iippy",
+      "path": "/storage/cgg-test_repos/app-circuitbreaker-kong/kong/plugins/circuit-breaker/handler.lua",
+      "start_line": 80,
+      "end_line": 90,
+      "size_lines": 11,
+      "signature_hint": "local function p_header_filter(conf) if kong.response.get_status() and kong.response.get_status() ~= conf.error_status_code then local cb = kong.ctx.plugin.cb if cb == nil then return end local ok = is_successful(kong.response.get_status()) cb:_after(kong.ctx.plugin.generation, ok) end end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -989,
+      "region": 0,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C6fx72yaalh",
+      "qualified_name": "CircuitBreakerHandler:access",
+      "simple_name": "access",
+      "language": "lua",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fwouw3iippy",
+      "path": "/storage/cgg-test_repos/app-circuitbreaker-kong/kong/plugins/circuit-breaker/handler.lua",
+      "start_line": 71,
+      "end_line": 77,
+      "size_lines": 7,
+      "signature_hint": "function CircuitBreakerHandler:access(conf) local success, err = pcall(p_access, conf) if not success then kong.log.err(\"Error in cb access phase \" .. err) return end end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -993,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cffkrrc8v70",
+      "qualified_name": "CircuitBreakerHandler:header_filter",
+      "simple_name": "header_filter",
+      "language": "lua",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fwouw3iippy",
+      "path": "/storage/cgg-test_repos/app-circuitbreaker-kong/kong/plugins/circuit-breaker/handler.lua",
+      "start_line": 94,
+      "end_line": 100,
+      "size_lines": 7,
+      "signature_hint": "function CircuitBreakerHandler:header_filter(conf) local sucess, err = pcall(p_header_filter, conf) if not sucess then kong.log.err(\"Error in cb header_filter phase \" .. err) return end end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -993,
+      "region": 5,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Co5oxfwgo93",
+      "qualified_name": "cb_schema_validator",
+      "simple_name": "cb_schema_validator",
+      "language": "lua",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F139uu5thxpd",
+      "path": "/storage/cgg-test_repos/app-circuitbreaker-kong/kong/plugins/circuit-breaker/schema.lua",
+      "start_line": 14,
+      "end_line": 16,
+      "size_lines": 3,
+      "signature_hint": "local function cb_schema_validator(conf) return json_validator(conf.excluded_apis) end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -997,
+      "region": 11,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    }
+  ]
+}

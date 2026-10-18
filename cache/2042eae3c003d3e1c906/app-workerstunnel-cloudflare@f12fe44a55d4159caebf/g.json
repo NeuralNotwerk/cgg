@@ -1,0 +1,1327 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "C16ljt00pszt": {
+      "id": "C16ljt00pszt",
+      "qualified_name": "worker_rust::main",
+      "simple_name": "main",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 6,
+      "end_line": 56,
+      "start_byte": 136,
+      "end_byte": 1857,
+      "signature_hint": "async fn main(req: Request, env: Env, _: Context) -> Result<Response>",
+      "attributes": [
+        "#[event(fetch)]"
+      ],
+      "vis": "private"
+    },
+    "C3rg4i686zv": {
+      "id": "C3rg4i686zv",
+      "qualified_name": "worker_rust::main::async_at_36",
+      "simple_name": "async_at_36",
+      "kind": "closure",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 36,
+      "end_line": 53,
+      "start_byte": 1175,
+      "end_byte": 1815,
+      "attributes": [
+        "spawned"
+      ],
+      "vis": "private"
+    },
+    "Cglpov2w1ni": {
+      "id": "Cglpov2w1ni",
+      "qualified_name": "worker_rust::setting",
+      "simple_name": "setting",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 59,
+      "end_line": 64,
+      "start_byte": 1933,
+      "end_byte": 2103,
+      "signature_hint": "fn setting(env: &Env, name: &str) -> Option<String>",
+      "vis": "private"
+    },
+    "C4aig3qr59s": {
+      "id": "C4aig3qr59s",
+      "qualified_name": "worker_rust::serve_http",
+      "simple_name": "serve_http",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 67,
+      "end_line": 91,
+      "start_byte": 2155,
+      "end_byte": 3221,
+      "signature_hint": "async fn serve_http(req: &Request, env: &Env, user_id: &str) -> Result<Response>",
+      "vis": "private"
+    },
+    "Cajpz9q1ps7": {
+      "id": "Cajpz9q1ps7",
+      "qualified_name": "worker_rust::proxy::parse_early_data",
+      "simple_name": "parse_early_data",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 132,
+      "end_line": 148,
+      "start_byte": 4457,
+      "end_byte": 5120,
+      "signature_hint": "pub fn parse_early_data(data: Option<String>) -> Result<Option<Vec<u8>>>",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "Ckep547ikn": {
+      "id": "Ckep547ikn",
+      "qualified_name": "worker_rust::proxy::parse_user_id",
+      "simple_name": "parse_user_id",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 152,
+      "end_line": 173,
+      "start_byte": 5242,
+      "end_byte": 5942,
+      "signature_hint": "pub fn parse_user_id(user_id: &str) -> Option<[u8; 16]>",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "C16dfx6y5xe2": {
+      "id": "C16dfx6y5xe2",
+      "qualified_name": "worker_rust::proxy::nibble",
+      "simple_name": "nibble",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 153,
+      "end_line": 160,
+      "start_byte": 5308,
+      "end_byte": 5579,
+      "signature_hint": "fn nibble(byte: u8) -> Option<u8>",
+      "vis": "private"
+    },
+    "C17zze1979fb": {
+      "id": "C17zze1979fb",
+      "qualified_name": "worker_rust::proxy::user_id_matches",
+      "simple_name": "user_id_matches",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 176,
+      "end_line": 184,
+      "start_byte": 6027,
+      "end_byte": 6391,
+      "signature_hint": "fn user_id_matches(received: &[u8; 16], expected: &[u8; 16]) -> bool",
+      "vis": "private"
+    },
+    "C10x6fjgglby": {
+      "id": "C10x6fjgglby",
+      "qualified_name": "worker_rust::proxy::split_proxy_target",
+      "simple_name": "split_proxy_target",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 187,
+      "end_line": 199,
+      "start_byte": 6478,
+      "end_byte": 6957,
+      "signature_hint": "fn split_proxy_target(entry: &str, default_port: u16) -> (&str, u16)",
+      "vis": "private"
+    },
+    "C11sq4n1ng8j": {
+      "id": "C11sq4n1ng8j",
+      "qualified_name": "worker_rust::proxy::run_tunnel",
+      "simple_name": "run_tunnel",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 201,
+      "end_line": 250,
+      "start_byte": 6963,
+      "end_byte": 8857,
+      "signature_hint": "pub async fn run_tunnel( mut client_socket: WebSocketStream<'_>, user_id: [u8; 16], proxy_ip: &[String], ) -> Result<()>",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "C10jo0scfx4y": {
+      "id": "C10jo0scfx4y",
+      "qualified_name": "worker_rust::proxy::read_tunnel_request",
+      "simple_name": "read_tunnel_request",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 252,
+      "end_line": 303,
+      "start_byte": 8863,
+      "end_byte": 10655,
+      "signature_hint": "async fn read_tunnel_request( client_socket: &mut WebSocketStream<'_>, user_id: &[u8; 16], ) -> Result<TunnelRequest>",
+      "vis": "private"
+    },
+    "Cgiynjejkoi": {
+      "id": "Cgiynjejkoi",
+      "qualified_name": "worker_rust::proxy::process_tcp_outbound",
+      "simple_name": "process_tcp_outbound",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 305,
+      "end_line": 420,
+      "start_byte": 10661,
+      "end_byte": 14268,
+      "signature_hint": "async fn process_tcp_outbound( client_socket: &mut WebSocketStream<'_>, target: &str, port: u16, ) -> Result<()>",
+      "vis": "private"
+    },
+    "Ct16phsai9o": {
+      "id": "Ct16phsai9o",
+      "qualified_name": "worker_rust::proxy::process_udp_outbound",
+      "simple_name": "process_udp_outbound",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 422,
+      "end_line": 500,
+      "start_byte": 14274,
+      "end_byte": 17148,
+      "signature_hint": "async fn process_udp_outbound( client_socket: &mut WebSocketStream<'_>, port: u16, ) -> Result<()>",
+      "vis": "private"
+    },
+    "C16gy6uzk7eu": {
+      "id": "C16gy6uzk7eu",
+      "qualified_name": "worker_rust::proxy::tests::parses_a_canonical_uuid",
+      "simple_name": "parses_a_canonical_uuid",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 512,
+      "end_line": 517,
+      "start_byte": 17463,
+      "end_byte": 17639,
+      "signature_hint": "fn parses_a_canonical_uuid()",
+      "attributes": [
+        "#[test]"
+      ],
+      "vis": "private",
+      "test_role": "case"
+    },
+    "Cqwdgfnziwa": {
+      "id": "Cqwdgfnziwa",
+      "qualified_name": "worker_rust::proxy::tests::accepts_uppercase_and_unhyphenated_forms",
+      "simple_name": "accepts_uppercase_and_unhyphenated_forms",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 520,
+      "end_line": 526,
+      "start_byte": 17665,
+      "end_byte": 17944,
+      "signature_hint": "fn accepts_uppercase_and_unhyphenated_forms()",
+      "attributes": [
+        "#[test]"
+      ],
+      "vis": "private",
+      "test_role": "case"
+    },
+    "C2rwdfhopr1": {
+      "id": "C2rwdfhopr1",
+      "qualified_name": "worker_rust::proxy::tests::rejects_anything_that_is_not_a_uuid",
+      "simple_name": "rejects_anything_that_is_not_a_uuid",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 529,
+      "end_line": 541,
+      "start_byte": 17970,
+      "end_byte": 18460,
+      "signature_hint": "fn rejects_anything_that_is_not_a_uuid()",
+      "attributes": [
+        "#[test]"
+      ],
+      "vis": "private",
+      "test_role": "case"
+    },
+    "C5i20ccefmk": {
+      "id": "C5i20ccefmk",
+      "qualified_name": "worker_rust::proxy::tests::credential_comparison_agrees_with_equality",
+      "simple_name": "credential_comparison_agrees_with_equality",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 544,
+      "end_line": 553,
+      "start_byte": 18486,
+      "end_byte": 18853,
+      "signature_hint": "fn credential_comparison_agrees_with_equality()",
+      "attributes": [
+        "#[test]"
+      ],
+      "vis": "private",
+      "test_role": "case"
+    },
+    "C9xr7ezgs0c": {
+      "id": "C9xr7ezgs0c",
+      "qualified_name": "worker_rust::proxy::tests::proxy_entry_without_a_port_inherits_the_requested_one",
+      "simple_name": "proxy_entry_without_a_port_inherits_the_requested_one",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 556,
+      "end_line": 562,
+      "start_byte": 18879,
+      "end_byte": 19169,
+      "signature_hint": "fn proxy_entry_without_a_port_inherits_the_requested_one()",
+      "attributes": [
+        "#[test]"
+      ],
+      "vis": "private",
+      "test_role": "case"
+    },
+    "C13t5y4n8exb": {
+      "id": "C13t5y4n8exb",
+      "qualified_name": "worker_rust::proxy::tests::proxy_entry_may_pin_its_own_port",
+      "simple_name": "proxy_entry_may_pin_its_own_port",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 565,
+      "end_line": 574,
+      "start_byte": 19195,
+      "end_byte": 19528,
+      "signature_hint": "fn proxy_entry_may_pin_its_own_port()",
+      "attributes": [
+        "#[test]"
+      ],
+      "vis": "private",
+      "test_role": "case"
+    },
+    "Cxzpatzrelk": {
+      "id": "Cxzpatzrelk",
+      "qualified_name": "worker_rust::proxy::tests::bare_ipv6_is_not_read_as_a_host_port_pair",
+      "simple_name": "bare_ipv6_is_not_read_as_a_host_port_pair",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 577,
+      "end_line": 580,
+      "start_byte": 19554,
+      "end_byte": 19771,
+      "signature_hint": "fn bare_ipv6_is_not_read_as_a_host_port_pair()",
+      "attributes": [
+        "#[test]"
+      ],
+      "vis": "private",
+      "test_role": "case"
+    },
+    "Cg11lp3qprq": {
+      "id": "Cg11lp3qprq",
+      "qualified_name": "worker_rust::proxy::tests::unusable_port_suffixes_fall_back_to_the_requested_port",
+      "simple_name": "unusable_port_suffixes_fall_back_to_the_requested_port",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 583,
+      "end_line": 592,
+      "start_byte": 19797,
+      "end_byte": 20137,
+      "signature_hint": "fn unusable_port_suffixes_fall_back_to_the_requested_port()",
+      "attributes": [
+        "#[test]"
+      ],
+      "vis": "private",
+      "test_role": "case"
+    },
+    "C6v3jojccng": {
+      "id": "C6v3jojccng",
+      "qualified_name": "worker_rust::proxy::tests::early_data_is_absent_unless_the_header_carries_it",
+      "simple_name": "early_data_is_absent_unless_the_header_carries_it",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 595,
+      "end_line": 598,
+      "start_byte": 20163,
+      "end_byte": 20370,
+      "signature_hint": "fn early_data_is_absent_unless_the_header_carries_it()",
+      "attributes": [
+        "#[test]"
+      ],
+      "vis": "private",
+      "test_role": "case"
+    },
+    "C3hehpt7v26": {
+      "id": "C3hehpt7v26",
+      "qualified_name": "worker_rust::proxy::tests::early_data_accepts_both_base64_alphabets",
+      "simple_name": "early_data_accepts_both_base64_alphabets",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 601,
+      "end_line": 607,
+      "start_byte": 20396,
+      "end_byte": 20720,
+      "signature_hint": "fn early_data_accepts_both_base64_alphabets()",
+      "attributes": [
+        "#[test]"
+      ],
+      "vis": "private",
+      "test_role": "case"
+    },
+    "C117soopgy5g": {
+      "id": "C117soopgy5g",
+      "qualified_name": "worker_rust::proxy::tests::early_data_ignores_padding",
+      "simple_name": "early_data_ignores_padding",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 610,
+      "end_line": 615,
+      "start_byte": 20746,
+      "end_byte": 20929,
+      "signature_hint": "fn early_data_ignores_padding()",
+      "attributes": [
+        "#[test]"
+      ],
+      "vis": "private",
+      "test_role": "case"
+    },
+    "Cnbmzk5m1ly": {
+      "id": "Cnbmzk5m1ly",
+      "qualified_name": "worker_rust::proxy::tests::early_data_rejects_undecodable_input",
+      "simple_name": "early_data_rejects_undecodable_input",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 618,
+      "end_line": 620,
+      "start_byte": 20955,
+      "end_byte": 21081,
+      "signature_hint": "fn early_data_rejects_undecodable_input()",
+      "attributes": [
+        "#[test]"
+      ],
+      "vis": "private",
+      "test_role": "case"
+    },
+    "Cb6h9tmlwnm": {
+      "id": "Cb6h9tmlwnm",
+      "qualified_name": "worker_rust::ext::ReadStringExt::read_string",
+      "simple_name": "read_string",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 628,
+      "end_line": 628,
+      "start_byte": 21197,
+      "end_byte": 21257,
+      "signature_hint": "async fn read_string(&mut self, n: usize) -> Result<String>;",
+      "attributes": [
+        "abstract"
+      ],
+      "vis": "public"
+    },
+    "C12y691ctiay": {
+      "id": "C12y691ctiay",
+      "qualified_name": "worker_rust::ext::<T as ReadStringExt>::read_string",
+      "simple_name": "read_string",
+      "kind": "function",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 632,
+      "end_line": 641,
+      "start_byte": 21338,
+      "end_byte": 21728,
+      "signature_hint": "async fn read_string(&mut self, n: usize) -> Result<String>",
+      "trait_impl_target": "ReadStringExt"
+    },
+    "Cog15l0q1zr": {
+      "id": "Cog15l0q1zr",
+      "qualified_name": "worker_rust::websocket::WebSocketStream<'a>::new",
+      "simple_name": "new",
+      "kind": "method",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 676,
+      "end_line": 693,
+      "start_byte": 22597,
+      "end_byte": 23075,
+      "signature_hint": "pub fn new( ws: &'a WebSocket, stream: EventStream<'a>, early_data: Option<Vec<u8>>, ) -> Self",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "Cbh1jqakepu": {
+      "id": "Cbh1jqakepu",
+      "qualified_name": "worker_rust::websocket::WebSocketStream<'a>::socket",
+      "simple_name": "socket",
+      "kind": "method",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 696,
+      "end_line": 698,
+      "start_byte": 23164,
+      "end_byte": 23233,
+      "signature_hint": "pub fn socket(&self) -> &'a WebSocket",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "C2uzi8mh7zv": {
+      "id": "C2uzi8mh7zv",
+      "qualified_name": "worker_rust::websocket::WebSocketStream<'a>::poll_backpressure",
+      "simple_name": "poll_backpressure",
+      "kind": "method",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 700,
+      "end_line": 727,
+      "start_byte": 23243,
+      "end_byte": 24283,
+      "signature_hint": "fn poll_backpressure( self: Pin<&mut Self>, cx: &mut Context<'_>, max_buffered_amount: u32, ) -> Poll<Result<()>>",
+      "vis": "private"
+    },
+    "Ceqghs84wtk": {
+      "id": "Ceqghs84wtk",
+      "qualified_name": "worker_rust::websocket::<WebSocketStream<'_> as AsyncRead>::poll_read",
+      "simple_name": "poll_read",
+      "kind": "method",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 731,
+      "end_line": 787,
+      "start_byte": 24344,
+      "end_byte": 26762,
+      "signature_hint": "fn poll_read( self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &mut ReadBuf<'_>, ) -> Poll<Result<()>>",
+      "trait_impl_target": "AsyncRead"
+    },
+    "C1118a4tcj3q": {
+      "id": "C1118a4tcj3q",
+      "qualified_name": "worker_rust::websocket::<WebSocketStream<'_> as AsyncWrite>::poll_write",
+      "simple_name": "poll_write",
+      "kind": "method",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 791,
+      "end_line": 810,
+      "start_byte": 26824,
+      "end_byte": 27476,
+      "signature_hint": "fn poll_write( mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &[u8], ) -> Poll<Result<usize>>",
+      "trait_impl_target": "AsyncWrite"
+    },
+    "Cmh0ru1dqg9": {
+      "id": "Cmh0ru1dqg9",
+      "qualified_name": "worker_rust::websocket::<WebSocketStream<'_> as AsyncWrite>::poll_flush",
+      "simple_name": "poll_flush",
+      "kind": "method",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 812,
+      "end_line": 815,
+      "start_byte": 27486,
+      "end_byte": 27672,
+      "signature_hint": "fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<()>>",
+      "trait_impl_target": "AsyncWrite"
+    },
+    "Ctkxyb8n1hn": {
+      "id": "Ctkxyb8n1hn",
+      "qualified_name": "worker_rust::websocket::<WebSocketStream<'_> as AsyncWrite>::poll_shutdown",
+      "simple_name": "poll_shutdown",
+      "kind": "method",
+      "language": "rust",
+      "file": "F5ob906p13f",
+      "start_line": 817,
+      "end_line": 833,
+      "start_byte": 27682,
+      "end_byte": 28342,
+      "signature_hint": "fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<()>>",
+      "trait_impl_target": "AsyncWrite"
+    },
+    "Cgsb9xpsalr": {
+      "id": "Cgsb9xpsalr",
+      "qualified_name": "<framework-entry>::network::cloudflare-workers::worker_rust::main",
+      "simple_name": "main",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "#[event(fetch)]"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "C18g0vh54ll": {
+      "id": "C18g0vh54ll",
+      "qualified_name": "<framework-entry>::test::cargo-test",
+      "simple_name": "cargo-test",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "#[test]"
+      ],
+      "synthetic": true,
+      "framework_entry": "test"
+    }
+  },
+  "files": {
+    "F5ob906p13f": {
+      "id": "F5ob906p13f",
+      "path": "/storage/cgg-test_repos/app-workerstunnel-cloudflare/src/lib.rs",
+      "language": "rust",
+      "detected_via": "extension:.rs",
+      "blake3": "3842012f7c9d1b1ecebe1786ba9bab560878975d2f54cd2808b62777ad1ddbab",
+      "size_bytes": 28351,
+      "lines": 835,
+      "parse_ms": 5.2956840000000005,
+      "parse_status": "ok"
+    },
+    "Fn7kcdjzuh1": {
+      "id": "Fn7kcdjzuh1",
+      "path": "<framework-entry>",
+      "language": "framework-entry",
+      "detected_via": "synthesized",
+      "blake3": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 0,
+      "lines": 0,
+      "parse_ms": 0.0,
+      "parse_status": "synthetic"
+    }
+  },
+  "edges": [
+    {
+      "src": "C16ljt00pszt",
+      "dst": "Cglpov2w1ni",
+      "site_line": 7,
+      "site_byte": 230,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C16ljt00pszt",
+      "dst": "C4aig3qr59s",
+      "site_line": 15,
+      "site_byte": 452,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C16ljt00pszt",
+      "dst": "Ckep547ikn",
+      "site_line": 19,
+      "site_byte": 570,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C16ljt00pszt",
+      "dst": "Cglpov2w1ni",
+      "site_line": 24,
+      "site_byte": 791,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C16ljt00pszt",
+      "dst": "Cajpz9q1ps7",
+      "site_line": 31,
+      "site_byte": 1016,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C16ljt00pszt",
+      "dst": "C3rg4i686zv",
+      "site_line": 36,
+      "site_byte": 1141,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C3rg4i686zv",
+      "dst": "Cog15l0q1zr",
+      "site_line": 46,
+      "site_byte": 1500,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C3rg4i686zv",
+      "dst": "C11sq4n1ng8j",
+      "site_line": 48,
+      "site_byte": 1578,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4aig3qr59s",
+      "dst": "Cglpov2w1ni",
+      "site_line": 68,
+      "site_byte": 2257,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4aig3qr59s",
+      "dst": "Cglpov2w1ni",
+      "site_line": 79,
+      "site_byte": 2824,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ckep547ikn",
+      "dst": "C16dfx6y5xe2",
+      "site_line": 166,
+      "site_byte": 5741,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ckep547ikn",
+      "dst": "C16dfx6y5xe2",
+      "site_line": 167,
+      "site_byte": 5785,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11sq4n1ng8j",
+      "dst": "C10jo0scfx4y",
+      "site_line": 207,
+      "site_byte": 7174,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11sq4n1ng8j",
+      "dst": "C10x6fjgglby",
+      "site_line": 225,
+      "site_byte": 7861,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11sq4n1ng8j",
+      "dst": "Cgiynjejkoi",
+      "site_line": 228,
+      "site_byte": 7976,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11sq4n1ng8j",
+      "dst": "Ct16phsai9o",
+      "site_line": 243,
+      "site_byte": 8601,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C10jo0scfx4y",
+      "dst": "C17zze1979fb",
+      "site_line": 262,
+      "site_byte": 9260,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cgiynjejkoi",
+      "dst": "Cbh1jqakepu",
+      "site_line": 337,
+      "site_byte": 11772,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C16gy6uzk7eu",
+      "dst": "Ckep547ikn",
+      "site_line": 514,
+      "site_byte": 17534,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cqwdgfnziwa",
+      "dst": "Ckep547ikn",
+      "site_line": 522,
+      "site_byte": 17753,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cqwdgfnziwa",
+      "dst": "Ckep547ikn",
+      "site_line": 525,
+      "site_byte": 17872,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2rwdfhopr1",
+      "dst": "Ckep547ikn",
+      "site_line": 539,
+      "site_byte": 18382,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C5i20ccefmk",
+      "dst": "C17zze1979fb",
+      "site_line": 545,
+      "site_byte": 18556,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C5i20ccefmk",
+      "dst": "C17zze1979fb",
+      "site_line": 551,
+      "site_byte": 18779,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C9xr7ezgs0c",
+      "dst": "C10x6fjgglby",
+      "site_line": 558,
+      "site_byte": 18980,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C9xr7ezgs0c",
+      "dst": "C10x6fjgglby",
+      "site_line": 561,
+      "site_byte": 19099,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C13t5y4n8exb",
+      "dst": "C10x6fjgglby",
+      "site_line": 567,
+      "site_byte": 19275,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C13t5y4n8exb",
+      "dst": "C10x6fjgglby",
+      "site_line": 571,
+      "site_byte": 19417,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cxzpatzrelk",
+      "dst": "C10x6fjgglby",
+      "site_line": 579,
+      "site_byte": 19699,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cg11lp3qprq",
+      "dst": "C10x6fjgglby",
+      "site_line": 590,
+      "site_byte": 20065,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C6v3jojccng",
+      "dst": "Cajpz9q1ps7",
+      "site_line": 596,
+      "site_byte": 20243,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C6v3jojccng",
+      "dst": "Cajpz9q1ps7",
+      "site_line": 597,
+      "site_byte": 20306,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C3hehpt7v26",
+      "dst": "Cajpz9q1ps7",
+      "site_line": 602,
+      "site_byte": 20471,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C3hehpt7v26",
+      "dst": "Cajpz9q1ps7",
+      "site_line": 603,
+      "site_byte": 20550,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C117soopgy5g",
+      "dst": "Cajpz9q1ps7",
+      "site_line": 612,
+      "site_byte": 20820,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cnbmzk5m1ly",
+      "dst": "Cajpz9q1ps7",
+      "site_line": 619,
+      "site_byte": 21019,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1118a4tcj3q",
+      "dst": "C2uzi8mh7zv",
+      "site_line": 796,
+      "site_byte": 26988,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cmh0ru1dqg9",
+      "dst": "C2uzi8mh7zv",
+      "site_line": 813,
+      "site_byte": 27582,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ctkxyb8n1hn",
+      "dst": "C2uzi8mh7zv",
+      "site_line": 818,
+      "site_byte": 27787,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cgsb9xpsalr",
+      "dst": "C16ljt00pszt",
+      "site_line": 6,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "cloudflare-workers"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C18g0vh54ll",
+      "dst": "C16gy6uzk7eu",
+      "site_line": 512,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "cargo-test"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C18g0vh54ll",
+      "dst": "Cqwdgfnziwa",
+      "site_line": 520,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "cargo-test"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C18g0vh54ll",
+      "dst": "C2rwdfhopr1",
+      "site_line": 529,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "cargo-test"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C18g0vh54ll",
+      "dst": "C5i20ccefmk",
+      "site_line": 544,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "cargo-test"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C18g0vh54ll",
+      "dst": "C9xr7ezgs0c",
+      "site_line": 556,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "cargo-test"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C18g0vh54ll",
+      "dst": "C13t5y4n8exb",
+      "site_line": 565,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "cargo-test"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C18g0vh54ll",
+      "dst": "Cxzpatzrelk",
+      "site_line": 577,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "cargo-test"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C18g0vh54ll",
+      "dst": "Cg11lp3qprq",
+      "site_line": 583,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "cargo-test"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C18g0vh54ll",
+      "dst": "C6v3jojccng",
+      "site_line": 595,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "cargo-test"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C18g0vh54ll",
+      "dst": "C3hehpt7v26",
+      "site_line": 601,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "cargo-test"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C18g0vh54ll",
+      "dst": "C117soopgy5g",
+      "site_line": 610,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "cargo-test"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C18g0vh54ll",
+      "dst": "Cnbmzk5m1ly",
+      "site_line": 618,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "cargo-test"
+      },
+      "resolver": "framework-entry"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": "C16ljt00pszt",
+      "file": "F5ob906p13f",
+      "site_line": 33,
+      "site_byte": 1091,
+      "name": "new",
+      "receiver_hint": "WebSocketPair",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C10jo0scfx4y",
+      "file": "F5ob906p13f",
+      "site_line": 284,
+      "site_byte": 10038,
+      "name": "read_string",
+      "receiver_hint": "WebSocketStream",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Ct16phsai9o",
+      "file": "F5ob906p13f",
+      "site_line": 457,
+      "site_byte": 15378,
+      "name": "new",
+      "receiver_hint": "RequestInit",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Ct16phsai9o",
+      "file": "F5ob906p13f",
+      "site_line": 459,
+      "site_byte": 15465,
+      "name": "new",
+      "receiver_hint": "Headers",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C6v3jojccng",
+      "file": "F5ob906p13f",
+      "site_line": 597,
+      "site_byte": 20336,
+      "name": "new",
+      "receiver_hint": "String",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C12y691ctiay",
+      "file": "F5ob906p13f",
+      "site_line": 636,
+      "site_byte": 21560,
+      "name": "new",
+      "receiver_hint": "std::io::Error",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 18.344993,
+    "phases": {
+      "walk_ms": 1.6783620000000001,
+      "parse_ms": 5.2956840000000005,
+      "extract_ms": 11.196207999999999,
+      "resolve_ms": 0.0,
+      "link_ms": 2.0801190000000003,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 36,
+    "files_analyzed": 1,
+    "files_skipped": 35,
+    "files_errored": 0,
+    "bytes_processed": 28351,
+    "callables": 36,
+    "edges": 52,
+    "unresolved_calls": 6,
+    "stdlib_calls": 47,
+    "external_calls": 193,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "rust": {
+        "files": 1,
+        "callables": 34,
+        "edges": 37,
+        "unresolved": 6,
+        "stdlib": 47,
+        "external": 193
+      },
+      "skip:builtin": {
+        "files": 27,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 36,
+      "medium": 4,
+      "low": 0
+    }
+  }
+}

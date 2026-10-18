@@ -1,0 +1,6086 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "fsharp",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "builtin:main",
+        "toplevel:invocation"
+      ],
+      "files": 26,
+      "callables": 188,
+      "roots": 13,
+      "reachable": 15,
+      "reachable_pct": 7,
+      "findings": 113
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 188,
+    "edges": 102,
+    "unresolved_call_sites": 92,
+    "roots": 13,
+    "candidates": 173,
+    "reported": 113,
+    "regions": 96,
+    "withheld": [
+      {
+        "language": "fsharp",
+        "category": "reachable-only-from-dead-code",
+        "reason": "low-root-coverage",
+        "would_have_reported": 60
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "C50ubzhe7y9",
+      "qualified_name": "SimpleProgramBuilder.SimpleProgramBuilder",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs:102"
+    },
+    {
+      "id": "Cu0mjjrepbn",
+      "qualified_name": "ProgramBuilder.ProgramBuilder",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs:101"
+    },
+    {
+      "id": "Clf9v2kubrr",
+      "qualified_name": "bindJsonForRoute",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs:105"
+    },
+    {
+      "id": "Cdj2waxj84s",
+      "qualified_name": "main",
+      "language": "fsharp",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cpf3dc5sdsc",
+      "qualified_name": "main",
+      "language": "fsharp",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Ck1jh65ahfv",
+      "qualified_name": "isDuplicateKeyException",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CommandRepository.fs:29"
+    },
+    {
+      "id": "Cr7hd54riiz",
+      "qualified_name": "runSingleQuery",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/QueryRepository.fs:54"
+    },
+    {
+      "id": "C103444qpc7u",
+      "qualified_name": "getCardQuery",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/QueryRepository.fs:35"
+    },
+    {
+      "id": "Ceh4rao330i",
+      "qualified_name": "getAccountInfoQuery",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/QueryRepository.fs:36"
+    },
+    {
+      "id": "Ctici4mc3es",
+      "qualified_name": "getUserQuery",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/QueryRepository.fs:53"
+    },
+    {
+      "id": "Cfg0wzpd51a",
+      "qualified_name": "getUserCardsQuery",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/QueryRepository.fs:68"
+    },
+    {
+      "id": "Clfbo76gynx",
+      "qualified_name": "getUserAccountInfosQuery",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/QueryRepository.fs:69"
+    },
+    {
+      "id": "Cnewnc466bp",
+      "qualified_name": "getBalanceOperationsQuery",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/QueryRepository.fs:88"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "Cw4vpsfj3xc",
+        "C135tf3l1tki"
+      ],
+      "anchors": [
+        "C135tf3l1tki"
+      ],
+      "files": [
+        "Fsp94spghkm"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 1,
+      "members": [
+        "Cs0490hxdoj"
+      ],
+      "anchors": [
+        "Cs0490hxdoj"
+      ],
+      "files": [
+        "Fsp94spghkm"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 3,
+      "members": [
+        "Cejdhqkbsgm",
+        "C6a5r4p0rc5",
+        "C163xqzzcvek",
+        "Cl0zjkp9qmg",
+        "C46vpq3k333",
+        "C156w8j8a0nn",
+        "Ccma6oevbxx",
+        "C14btrzo2nkv",
+        "C72ozy0tzmq"
+      ],
+      "anchors": [
+        "C46vpq3k333",
+        "C156w8j8a0nn",
+        "Ccma6oevbxx"
+      ],
+      "files": [
+        "F533r31sm5b",
+        "Fqd23g9uy3g",
+        "F1629dxylhzo"
+      ],
+      "total_lines": 78,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 7,
+      "members": [
+        "Ctfdgbt3ggh"
+      ],
+      "anchors": [
+        "Ctfdgbt3ggh"
+      ],
+      "files": [
+        "F533r31sm5b"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 8,
+      "members": [
+        "C10bof0p5m06"
+      ],
+      "anchors": [
+        "C10bof0p5m06"
+      ],
+      "files": [
+        "F533r31sm5b"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 12,
+      "members": [
+        "C14bpu1phi89"
+      ],
+      "anchors": [
+        "C14bpu1phi89"
+      ],
+      "files": [
+        "F13xm6c7r3xb"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 13,
+      "members": [
+        "Cg5yh8x7ynq"
+      ],
+      "anchors": [
+        "Cg5yh8x7ynq"
+      ],
+      "files": [
+        "F13xm6c7r3xb"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 14,
+      "members": [
+        "Cjjnq943kjf"
+      ],
+      "anchors": [
+        "Cjjnq943kjf"
+      ],
+      "files": [
+        "F13xm6c7r3xb"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 15,
+      "members": [
+        "Cj87s2s7eq1"
+      ],
+      "anchors": [
+        "Cj87s2s7eq1"
+      ],
+      "files": [
+        "F13xm6c7r3xb"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 16,
+      "members": [
+        "C8ehynkkkdm",
+        "Ceilh8hgane",
+        "C16v192xflcm"
+      ],
+      "anchors": [
+        "C16v192xflcm"
+      ],
+      "files": [
+        "Fbpkr8wbuob",
+        "Fa5i1b9p4hv",
+        "Fudior91vc7"
+      ],
+      "total_lines": 19,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 17,
+      "members": [
+        "Ckgfxvdkoy3"
+      ],
+      "anchors": [
+        "Ckgfxvdkoy3"
+      ],
+      "files": [
+        "F1zxqzktgqj"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 18,
+      "members": [
+        "Cxu5b1gz8u6"
+      ],
+      "anchors": [
+        "Cxu5b1gz8u6"
+      ],
+      "files": [
+        "F1zxqzktgqj"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 19,
+      "members": [
+        "C20rjql9674"
+      ],
+      "anchors": [
+        "C20rjql9674"
+      ],
+      "files": [
+        "F1zxqzktgqj"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 20,
+      "members": [
+        "Cksqpw9rhmq"
+      ],
+      "anchors": [
+        "Cksqpw9rhmq"
+      ],
+      "files": [
+        "F1zxqzktgqj"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 21,
+      "members": [
+        "Cmcj3xzts6f"
+      ],
+      "anchors": [
+        "Cmcj3xzts6f"
+      ],
+      "files": [
+        "F1zxqzktgqj"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 22,
+      "members": [
+        "C16x744gu68b",
+        "C8fhc9brr0k",
+        "C2erm71v5w1",
+        "C11yq9qhuqt9",
+        "Cbmlzv3sbmg",
+        "Cq0wmegtde1",
+        "Cv9eh6swb95",
+        "Cwdq9vr7dd6",
+        "C12ho7mhg09o",
+        "C2mjku39b4m",
+        "C13uziqx2888",
+        "Cv5ic8587io",
+        "Cya4zdxyjl",
+        "Czysn11jtxc",
+        "C7y3p5yeb47",
+        "C1418setzubi",
+        "C2f301ufcre"
+      ],
+      "anchors": [
+        "C8fhc9brr0k",
+        "C2f301ufcre"
+      ],
+      "files": [
+        "Fa5i1b9p4hv",
+        "F4ysrp6ack8"
+      ],
+      "total_lines": 75,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 23,
+      "members": [
+        "C121z56fea81"
+      ],
+      "anchors": [
+        "C121z56fea81"
+      ],
+      "files": [
+        "Fa5i1b9p4hv"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 24,
+      "members": [
+        "Czel7vck5r5",
+        "Cf71d5qglp5",
+        "Cus22upm4wq",
+        "C1ixbysjrt4",
+        "Clh3zyvdk0w",
+        "Czi0k22xwzq",
+        "Co0bjc79579",
+        "Cmt6l3tc13r",
+        "Cnt0vigyzqk",
+        "C10xyow27txv",
+        "Coow55olz9n",
+        "Cqeqnpsh23s",
+        "Cs12qr9mwf3"
+      ],
+      "anchors": [
+        "Cmt6l3tc13r",
+        "Cnt0vigyzqk",
+        "C10xyow27txv",
+        "Coow55olz9n",
+        "Cqeqnpsh23s",
+        "Cs12qr9mwf3"
+      ],
+      "files": [
+        "Fa5i1b9p4hv",
+        "Fudior91vc7"
+      ],
+      "total_lines": 76,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 26,
+      "members": [
+        "Cmmniyb0soi",
+        "Cergdqkut9y"
+      ],
+      "anchors": [
+        "Cergdqkut9y"
+      ],
+      "files": [
+        "Fa5i1b9p4hv",
+        "Fudior91vc7"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 28,
+      "members": [
+        "Ca5hrwge7fa",
+        "Cqlly34h5v5"
+      ],
+      "anchors": [
+        "Cqlly34h5v5"
+      ],
+      "files": [
+        "Fa5i1b9p4hv",
+        "Fudior91vc7"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 35,
+      "members": [
+        "Chuydi0r3fu"
+      ],
+      "anchors": [
+        "Chuydi0r3fu"
+      ],
+      "files": [
+        "Fa5i1b9p4hv"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 36,
+      "members": [
+        "Cp822tg3lvg"
+      ],
+      "anchors": [
+        "Cp822tg3lvg"
+      ],
+      "files": [
+        "Fa5i1b9p4hv"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 43,
+      "members": [
+        "Cyyeha3nabr"
+      ],
+      "anchors": [
+        "Cyyeha3nabr"
+      ],
+      "files": [
+        "Fa5i1b9p4hv"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 45,
+      "members": [
+        "Coxxbna6ftr",
+        "C8x4dnzbbyz",
+        "C6z4p78q7w8"
+      ],
+      "anchors": [
+        "Coxxbna6ftr",
+        "C6z4p78q7w8"
+      ],
+      "files": [
+        "Fa5i1b9p4hv",
+        "F1629dxylhzo"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 57,
+      "members": [
+        "Cwfkgahjllw",
+        "Chl8dr823rx"
+      ],
+      "anchors": [
+        "Chl8dr823rx"
+      ],
+      "files": [
+        "Fextwqtr74a"
+      ],
+      "total_lines": 19,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 58,
+      "members": [
+        "Cncrsrvkd81",
+        "Cahmkjwc3ez"
+      ],
+      "anchors": [
+        "Cahmkjwc3ez"
+      ],
+      "files": [
+        "Fextwqtr74a",
+        "Fgepfasscev"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 59,
+      "members": [
+        "Crk1tjjjo8w"
+      ],
+      "anchors": [
+        "Crk1tjjjo8w"
+      ],
+      "files": [
+        "Fextwqtr74a"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 60,
+      "members": [
+        "C164aj9xfjej"
+      ],
+      "anchors": [
+        "C164aj9xfjej"
+      ],
+      "files": [
+        "Fextwqtr74a"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 62,
+      "members": [
+        "Cji9k7poprf",
+        "C15xcogih68n",
+        "Cqcf88evgz6",
+        "C12gh8or5ea1",
+        "Cildueiuez0",
+        "Cj1yx29hlqb",
+        "C2uf2rcbanl",
+        "Cml85enuoiy",
+        "Criz8mzge7d",
+        "Camw7jpt3gw",
+        "C13adnj8kqtm",
+        "C4qvqz3ei5o",
+        "Cfgp8ab3r2q",
+        "Cvtlx9dm3db"
+      ],
+      "anchors": [
+        "Cqcf88evgz6",
+        "C12gh8or5ea1",
+        "Cfgp8ab3r2q",
+        "Cvtlx9dm3db"
+      ],
+      "files": [
+        "Fgepfasscev",
+        "F5e6501oqjq",
+        "F3bo3s3nggp"
+      ],
+      "total_lines": 78,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 63,
+      "members": [
+        "Catdy9iu0fx"
+      ],
+      "anchors": [
+        "Catdy9iu0fx"
+      ],
+      "files": [
+        "Fgepfasscev"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 64,
+      "members": [
+        "C7yicvzv6iw"
+      ],
+      "anchors": [
+        "C7yicvzv6iw"
+      ],
+      "files": [
+        "Fgepfasscev"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 69,
+      "members": [
+        "Cyfw98ngjnh"
+      ],
+      "anchors": [
+        "Cyfw98ngjnh"
+      ],
+      "files": [
+        "Fgepfasscev"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 72,
+      "members": [
+        "C7giaeunvjd",
+        "Cio5g6m5x8u"
+      ],
+      "anchors": [
+        "Cio5g6m5x8u"
+      ],
+      "files": [
+        "F8v8o2dn057"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 74,
+      "members": [
+        "Cph2t3rtyak"
+      ],
+      "anchors": [
+        "Cph2t3rtyak"
+      ],
+      "files": [
+        "F8v8o2dn057"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 76,
+      "members": [
+        "Cu7q0dzbrr",
+        "Ctyb922q7aq"
+      ],
+      "anchors": [
+        "Cu7q0dzbrr"
+      ],
+      "files": [
+        "Fqd23g9uy3g",
+        "F1629dxylhzo"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 77,
+      "members": [
+        "Cziur5gmx50",
+        "Cduieu7knsh",
+        "C106s7rk3zk",
+        "C127y2mexc5e",
+        "C5aadqvcp6l",
+        "C13x49e53izq",
+        "C14auc70le3r"
+      ],
+      "anchors": [
+        "C127y2mexc5e",
+        "C13x49e53izq",
+        "C14auc70le3r"
+      ],
+      "files": [
+        "F10xy32m22rr",
+        "Fct6jle6dkw"
+      ],
+      "total_lines": 47,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 83,
+      "members": [
+        "C5geu0nhmff"
+      ],
+      "anchors": [
+        "C5geu0nhmff"
+      ],
+      "files": [
+        "F1629dxylhzo"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 85,
+      "members": [
+        "Cdusi2go4q4"
+      ],
+      "anchors": [
+        "Cdusi2go4q4"
+      ],
+      "files": [
+        "F1629dxylhzo"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 86,
+      "members": [
+        "Cfx87hhq1in"
+      ],
+      "anchors": [
+        "Cfx87hhq1in"
+      ],
+      "files": [
+        "F1629dxylhzo"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 87,
+      "members": [
+        "Co8tguvfxgu"
+      ],
+      "anchors": [
+        "Co8tguvfxgu"
+      ],
+      "files": [
+        "F1629dxylhzo"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 88,
+      "members": [
+        "Cfukcmhp3do"
+      ],
+      "anchors": [
+        "Cfukcmhp3do"
+      ],
+      "files": [
+        "F1629dxylhzo"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 91,
+      "members": [
+        "Cmu6goh0woj",
+        "Cf88ot33jpn"
+      ],
+      "anchors": [
+        "Cmu6goh0woj"
+      ],
+      "files": [
+        "F1629dxylhzo"
+      ],
+      "total_lines": 20,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 93,
+      "members": [
+        "C152l6gch5wa"
+      ],
+      "anchors": [
+        "C152l6gch5wa"
+      ],
+      "files": [
+        "F1629dxylhzo"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 95,
+      "members": [
+        "C1z14pe9ivs"
+      ],
+      "anchors": [
+        "C1z14pe9ivs"
+      ],
+      "files": [
+        "F6uj6s5khp5"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 96,
+      "members": [
+        "C2v4b4dy4y2"
+      ],
+      "anchors": [
+        "C2v4b4dy4y2"
+      ],
+      "files": [
+        "F6uj6s5khp5"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 97,
+      "members": [
+        "C3u12f0n3e0"
+      ],
+      "anchors": [
+        "C3u12f0n3e0"
+      ],
+      "files": [
+        "F6uj6s5khp5"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 98,
+      "members": [
+        "C119ane6qxzr"
+      ],
+      "anchors": [
+        "C119ane6qxzr"
+      ],
+      "files": [
+        "F6uj6s5khp5"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 99,
+      "members": [
+        "Csmpixp6cr7",
+        "C11be9uysptv"
+      ],
+      "anchors": [
+        "C11be9uysptv"
+      ],
+      "files": [
+        "F6uj6s5khp5"
+      ],
+      "total_lines": 23,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 101,
+      "members": [
+        "C17n8rngrzp9"
+      ],
+      "anchors": [
+        "C17n8rngrzp9"
+      ],
+      "files": [
+        "F6uj6s5khp5"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 102,
+      "members": [
+        "Ceptyl9fkyj"
+      ],
+      "anchors": [
+        "Ceptyl9fkyj"
+      ],
+      "files": [
+        "F6uj6s5khp5"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 103,
+      "members": [
+        "Cflobqa7eg9"
+      ],
+      "anchors": [
+        "Cflobqa7eg9"
+      ],
+      "files": [
+        "F6uj6s5khp5"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 104,
+      "members": [
+        "C14thibnkwsg"
+      ],
+      "anchors": [
+        "C14thibnkwsg"
+      ],
+      "files": [
+        "F6uj6s5khp5"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 105,
+      "members": [
+        "Cj5dcf79ig5"
+      ],
+      "anchors": [
+        "Cj5dcf79ig5"
+      ],
+      "files": [
+        "F12s3o81t2ol"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 106,
+      "members": [
+        "Cmxlos44nx1"
+      ],
+      "anchors": [
+        "Cmxlos44nx1"
+      ],
+      "files": [
+        "F12s3o81t2ol"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 107,
+      "members": [
+        "Cxkagpbv0f0"
+      ],
+      "anchors": [
+        "Cxkagpbv0f0"
+      ],
+      "files": [
+        "F12s3o81t2ol"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 108,
+      "members": [
+        "C551htp8l0d"
+      ],
+      "anchors": [
+        "C551htp8l0d"
+      ],
+      "files": [
+        "F12s3o81t2ol"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 109,
+      "members": [
+        "Cj12ze0zer2"
+      ],
+      "anchors": [
+        "Cj12ze0zer2"
+      ],
+      "files": [
+        "F12s3o81t2ol"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 110,
+      "members": [
+        "Czevw0f8xbp"
+      ],
+      "anchors": [
+        "Czevw0f8xbp"
+      ],
+      "files": [
+        "F12s3o81t2ol"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 111,
+      "members": [
+        "Cwr9w0ctjx2"
+      ],
+      "anchors": [
+        "Cwr9w0ctjx2"
+      ],
+      "files": [
+        "F12s3o81t2ol"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 112,
+      "members": [
+        "Cr5bsj0nl3o"
+      ],
+      "anchors": [
+        "Cr5bsj0nl3o"
+      ],
+      "files": [
+        "F12s3o81t2ol"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 115,
+      "members": [
+        "C5uj2ulxng1",
+        "Cmedisubj1h",
+        "Ckwrsqxfxb2",
+        "Cs3l2k41sts"
+      ],
+      "anchors": [
+        "Ckwrsqxfxb2",
+        "Cs3l2k41sts"
+      ],
+      "files": [
+        "F12s3o81t2ol",
+        "F13u2ltso4my"
+      ],
+      "total_lines": 24,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 117,
+      "members": [
+        "C632thtowpo"
+      ],
+      "anchors": [
+        "C632thtowpo"
+      ],
+      "files": [
+        "Fztl7334qj"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 118,
+      "members": [
+        "Cjfh1s5u9mz",
+        "Ckshk6kvn1p",
+        "C7qny8yb96o"
+      ],
+      "anchors": [
+        "Ckshk6kvn1p",
+        "C7qny8yb96o"
+      ],
+      "files": [
+        "Fztl7334qj"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 124,
+      "members": [
+        "C13vob5aqsu4"
+      ],
+      "anchors": [
+        "C13vob5aqsu4"
+      ],
+      "files": [
+        "F13u2ltso4my"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 125,
+      "members": [
+        "Cs2vt91uyfu"
+      ],
+      "anchors": [
+        "Cs2vt91uyfu"
+      ],
+      "files": [
+        "F13u2ltso4my"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 126,
+      "members": [
+        "Cdgfg2wgsv1"
+      ],
+      "anchors": [
+        "Cdgfg2wgsv1"
+      ],
+      "files": [
+        "F13u2ltso4my"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 127,
+      "members": [
+        "Cib5zrf6e0z"
+      ],
+      "anchors": [
+        "Cib5zrf6e0z"
+      ],
+      "files": [
+        "F13u2ltso4my"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 128,
+      "members": [
+        "C7fvdx0tkfy"
+      ],
+      "anchors": [
+        "C7fvdx0tkfy"
+      ],
+      "files": [
+        "F13u2ltso4my"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 129,
+      "members": [
+        "Catyknmjchb"
+      ],
+      "anchors": [
+        "Catyknmjchb"
+      ],
+      "files": [
+        "F13u2ltso4my"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 130,
+      "members": [
+        "C5ljxo4ku2t"
+      ],
+      "anchors": [
+        "C5ljxo4ku2t"
+      ],
+      "files": [
+        "F13u2ltso4my"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 131,
+      "members": [
+        "Cy8myl42t09"
+      ],
+      "anchors": [
+        "Cy8myl42t09"
+      ],
+      "files": [
+        "F13u2ltso4my"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 132,
+      "members": [
+        "Cj2z9c24g9h"
+      ],
+      "anchors": [
+        "Cj2z9c24g9h"
+      ],
+      "files": [
+        "F13u2ltso4my"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 133,
+      "members": [
+        "Cn5euox3ux2",
+        "Cx7wcv6745u"
+      ],
+      "anchors": [
+        "Cx7wcv6745u"
+      ],
+      "files": [
+        "Fct6jle6dkw"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 135,
+      "members": [
+        "Cy3m1r3v6si",
+        "C34jszov3al",
+        "Cj3toniw6th",
+        "Caonn6dn7wq"
+      ],
+      "anchors": [
+        "Cj3toniw6th",
+        "Caonn6dn7wq"
+      ],
+      "files": [
+        "Fct6jle6dkw"
+      ],
+      "total_lines": 32,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 144,
+      "members": [
+        "Ck2vhpr4oq6"
+      ],
+      "anchors": [
+        "Ck2vhpr4oq6"
+      ],
+      "files": [
+        "Fct6jle6dkw"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 152,
+      "members": [
+        "Cyr25nvrfrj"
+      ],
+      "anchors": [
+        "Cyr25nvrfrj"
+      ],
+      "files": [
+        "F14znbnyhrdl"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 153,
+      "members": [
+        "Cnmxlmemudq"
+      ],
+      "anchors": [
+        "Cnmxlmemudq"
+      ],
+      "files": [
+        "F14znbnyhrdl"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 154,
+      "members": [
+        "C108yf3pk9tb"
+      ],
+      "anchors": [
+        "C108yf3pk9tb"
+      ],
+      "files": [
+        "F14znbnyhrdl"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 155,
+      "members": [
+        "C2dk00cdlcf"
+      ],
+      "anchors": [
+        "C2dk00cdlcf"
+      ],
+      "files": [
+        "F14znbnyhrdl"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 156,
+      "members": [
+        "C3u8m4hv6qj"
+      ],
+      "anchors": [
+        "C3u8m4hv6qj"
+      ],
+      "files": [
+        "F14znbnyhrdl"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 157,
+      "members": [
+        "C11zhp616kbj"
+      ],
+      "anchors": [
+        "C11zhp616kbj"
+      ],
+      "files": [
+        "Fjxk9gomcv0"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 158,
+      "members": [
+        "Canyjilg9f5"
+      ],
+      "anchors": [
+        "Canyjilg9f5"
+      ],
+      "files": [
+        "Fjxk9gomcv0"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 159,
+      "members": [
+        "C6xlhiqbwto"
+      ],
+      "anchors": [
+        "C6xlhiqbwto"
+      ],
+      "files": [
+        "Fjxk9gomcv0"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 160,
+      "members": [
+        "C10jxfm1pidv"
+      ],
+      "anchors": [
+        "C10jxfm1pidv"
+      ],
+      "files": [
+        "Fjxk9gomcv0"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 161,
+      "members": [
+        "Cb3zzg0xapo"
+      ],
+      "anchors": [
+        "Cb3zzg0xapo"
+      ],
+      "files": [
+        "Fjxk9gomcv0"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 162,
+      "members": [
+        "Cynj4k7hrrq"
+      ],
+      "anchors": [
+        "Cynj4k7hrrq"
+      ],
+      "files": [
+        "Fjxk9gomcv0"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 163,
+      "members": [
+        "Cw7408ttv1s"
+      ],
+      "anchors": [
+        "Cw7408ttv1s"
+      ],
+      "files": [
+        "Fjxk9gomcv0"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 164,
+      "members": [
+        "C17k1vseoz05"
+      ],
+      "anchors": [
+        "C17k1vseoz05"
+      ],
+      "files": [
+        "Fjxk9gomcv0"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 165,
+      "members": [
+        "C169cw6ktqaj"
+      ],
+      "anchors": [
+        "C169cw6ktqaj"
+      ],
+      "files": [
+        "Fjxk9gomcv0"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 168,
+      "members": [
+        "Csveqys93op"
+      ],
+      "anchors": [
+        "Csveqys93op"
+      ],
+      "files": [
+        "F4ysrp6ack8"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 170,
+      "members": [
+        "Cxmvsmcnxt2"
+      ],
+      "anchors": [
+        "Cxmvsmcnxt2"
+      ],
+      "files": [
+        "F4ysrp6ack8"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 171,
+      "members": [
+        "C1049hrptilr"
+      ],
+      "anchors": [
+        "C1049hrptilr"
+      ],
+      "files": [
+        "F4ysrp6ack8"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 174,
+      "members": [
+        "C6tku9zyx3x"
+      ],
+      "anchors": [
+        "C6tku9zyx3x"
+      ],
+      "files": [
+        "F4ysrp6ack8"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 175,
+      "members": [
+        "C331lyb1r1k"
+      ],
+      "anchors": [
+        "C331lyb1r1k"
+      ],
+      "files": [
+        "F4ysrp6ack8"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 179,
+      "members": [
+        "C7nlkekdhnr"
+      ],
+      "anchors": [
+        "C7nlkekdhnr"
+      ],
+      "files": [
+        "F3bo3s3nggp"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 187,
+      "members": [
+        "Cquyy55xwj"
+      ],
+      "anchors": [
+        "Cquyy55xwj"
+      ],
+      "files": [
+        "F3bo3s3nggp"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "C156w8j8a0nn",
+      "qualified_name": "processPayment",
+      "simple_name": "processPayment",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F533r31sm5b",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardActions.fs",
+      "start_line": 53,
+      "end_line": 84,
+      "size_lines": 32,
+      "signature_hint": "let processPayment (currentDate: DateTimeOffset) (spentToday: Money) card (paymentAmount: MoneyTransaction) = if isCardExpired currentDate card then cardExpiredMessage card.CardNumber |> processPaymentNotAllowed else match card.AccountDetails with | Deactivated -> cardDeactivatedMessage card.CardNumber |> processPaymentNotAllowed | Active accInfo -> if paymentAmount.Value > accInfo.Balance.Value then sprintf \"Insufficent funds on card %s\" card.CardNumber.Value |> processPaymentNotAllowed else match accInfo.DailyLimit with | Limit limit when limit < spentToday + paymentAmount -> sprintf \"Daily limit is exceeded for card %s with daily limit %M. Today was spent %M\" card.CardNumber.Value limit.Value spentToday.Value |> processPaymentNotAllowed (* We could use here the ultimate wild card case like this: | _ -> but it's dangerous because if a new case appears in `DailyLimit` type, we won't get a compile error here, which would remind us to process this new case in here. So this is a safe way to do the same thing. *) | Limit _ | Unlimited -> let newBalance = accInfo.Balance - paymentAmount let updatedCard",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -668,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cmt6l3tc13r",
+      "qualified_name": "processPayment",
+      "simple_name": "processPayment",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fudior91vc7",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardWorkflow.fs",
+      "start_line": 26,
+      "end_line": 45,
+      "size_lines": 20,
+      "signature_hint": "let processPayment (currentDate: DateTimeOffset, payment) = program",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -680,
+      "region": 24,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C11be9uysptv",
+      "qualified_name": "getUserWithCards",
+      "simple_name": "getUserWithCards",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6uj6s5khp5",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDataPipeline.fs",
+      "start_line": 61,
+      "end_line": 77,
+      "size_lines": 17,
+      "signature_hint": "let getUserWithCards (mongoDb: MongoDb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -683,
+      "region": 99,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ccma6oevbxx",
+      "qualified_name": "topUp",
+      "simple_name": "topUp",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F533r31sm5b",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardActions.fs",
+      "start_line": 86,
+      "end_line": 101,
+      "size_lines": 16,
+      "signature_hint": "let topUp (currentDate: DateTimeOffset) card (topUp : MoneyTransaction) = let topUpNotAllowed = operationNotAllowed \"Top up\" if isCardExpired currentDate card then cardExpiredMessage card.CardNumber |> topUpNotAllowed else match card.AccountDetails with | Deactivated -> cardDeactivatedMessage card.CardNumber |> topUpNotAllowed | Active accInfo -> let newBalance = accInfo.Balance + topUp let updatedCard",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -684,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Cu7q0dzbrr",
+      "qualified_name": "create",
+      "simple_name": "create",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fqd23g9uy3g",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/CommonTypes.fs",
+      "start_line": 32,
+      "end_line": 46,
+      "size_lines": 15,
+      "signature_hint": "static member create field n = match n with | 1us -> January |> Ok | 2us -> February |> Ok | 3us -> March |> Ok | 4us -> April |> Ok | 5us -> May |> Ok | 6us -> June |> Ok | 7us -> July |> Ok | 8us -> August |> Ok | 9us -> September |> Ok | 10us -> October |> Ok | 11us -> November |> Ok | 12us -> December |> Ok | _ -> validationError field \"Number must be from 1 to 12\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -685,
+      "region": 76,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ck2vhpr4oq6",
+      "qualified_name": "mapBalanceOperationEntity",
+      "simple_name": "mapBalanceOperationEntity",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fct6jle6dkw",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/EntityToDomainMapping.fs",
+      "start_line": 105,
+      "end_line": 117,
+      "size_lines": 13,
+      "signature_hint": "let mapBalanceOperationEntity (entity: BalanceOperationEntity) = result",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -687,
+      "region": 144,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chl8dr823rx",
+      "qualified_name": "OptionConverter.ReadJson",
+      "simple_name": "ReadJson",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fextwqtr74a",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/OptionConverter.fs",
+      "start_line": 32,
+      "end_line": 43,
+      "size_lines": 12,
+      "signature_hint": "override x.ReadJson(reader, typ, existingValue, serializer) = let innerType = let innerType = typ.GetGenericArguments().[0] if innerType.IsValueType then typedefof<Nullable<_>>.MakeGenericType([|innerType|]) else innerType let cases = getUnionCasesFromCache typ if reader.TokenType = JsonToken.Null then FSharpValue.MakeUnion(cases.[0], Array.empty) else let value = serializer.Deserialize(reader, innerType) if isNull value then FSharpValue.MakeUnion(cases.[0], Array.empty) else FSharpValue.MakeUnion(cases.[1], [|value|])",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -688,
+      "region": 57,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C3u8m4hv6qj",
+      "qualified_name": "getMongoSettings",
+      "simple_name": "getMongoSettings",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14znbnyhrdl",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/AppConfiguration.fs",
+      "start_line": 30,
+      "end_line": 41,
+      "size_lines": 12,
+      "signature_hint": "let getMongoSettings (config: IConfigurationRoot) = let setting = sprintf \"MongoDB:%s\" let database = config.[setting \"Database\"] |> stringSetting \"CardsDb\" let port = config.[setting \"Port\"] |> intSetting 27017 let host = config.[setting \"Host\"] |> stringSetting \"localhost\" let user = config.[setting \"User\"] |> stringSetting \"root\" let password = config.[setting \"Password\"] |> stringSetting \"example\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -688,
+      "region": 156,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C12gh8or5ea1",
+      "qualified_name": "optionToHttpResponseAsync",
+      "simple_name": "optionToHttpResponseAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fgepfasscev",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs",
+      "start_line": 69,
+      "end_line": 79,
+      "size_lines": 11,
+      "signature_hint": "let optionToHttpResponseAsync asyncWorkflow : HttpHandler = fun next ctx -> task",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -689,
+      "region": 62,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cmu6goh0woj",
+      "qualified_name": "combine",
+      "simple_name": "combine",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1629dxylhzo",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Errors.fs",
+      "start_line": 87,
+      "end_line": 97,
+      "size_lines": 11,
+      "signature_hint": "let combine results = let rec loop acc results = match results with | [] -> acc | result :: tail -> match result with | Error e -> Error e | Ok ok -> let acc = Result.map (fun oks -> ok :: oks) acc loop acc tail loop (Ok []) results",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -689,
+      "region": 91,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cxu5b1gz8u6",
+      "qualified_name": "toCardInfoModel",
+      "simple_name": "toCardInfoModel",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1zxqzktgqj",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardDomainQueryModels.fs",
+      "start_line": 50,
+      "end_line": 59,
+      "size_lines": 10,
+      "signature_hint": "let toCardInfoModel card = let (balance, dailyLimit, isActive) = match card.AccountDetails with | Active accInfo -> (accInfo.Balance.Value |> Some, accInfo.DailyLimit.ToDecimalOption(), true) | Deactivated -> (None, None, false)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -690,
+      "region": 18,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7yicvzv6iw",
+      "qualified_name": "errorHandler",
+      "simple_name": "errorHandler",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fgepfasscev",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs",
+      "start_line": 33,
+      "end_line": 42,
+      "size_lines": 10,
+      "signature_hint": "let errorHandler (ex: Exception) (logger: Microsoft.Extensions.Logging.ILogger) = match ex with | :? Newtonsoft.Json.JsonReaderException -> clearResponse >=> RequestErrors.BAD_REQUEST ex.Message | _ -> logger.LogError(EventId(), ex, \"An unhandled exception has occurred while executing the request.\") ex.GetType().FullName |> printf \"%s\" clearResponse >=> ServerErrors.INTERNAL_ERROR ex.Message",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -690,
+      "region": 64,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cqcf88evgz6",
+      "qualified_name": "resultToHttpResponseAsync",
+      "simple_name": "resultToHttpResponseAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fgepfasscev",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs",
+      "start_line": 58,
+      "end_line": 67,
+      "size_lines": 10,
+      "signature_hint": "let resultToHttpResponseAsync asyncWorkflow : HttpHandler = fun next ctx -> task",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -690,
+      "region": 62,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cahmkjwc3ez",
+      "qualified_name": "configureServices",
+      "simple_name": "configureServices",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fgepfasscev",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs",
+      "start_line": 116,
+      "end_line": 125,
+      "size_lines": 10,
+      "signature_hint": "let configureServices (services : IServiceCollection) = // Add Giraffe dependencies services.AddGiraffe() |> ignore let customSettings = JsonSerializerSettings() customSettings.Converters.Add(OptionConverter()) let contractResolver = CamelCasePropertyNamesContractResolver() customSettings.ContractResolver <- contractResolver services.AddSingleton<IJsonSerializer>(NewtonsoftJsonSerializer(customSettings)) |> ignore",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -690,
+      "region": 58,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cs3l2k41sts",
+      "qualified_name": "executeReplaceAsync",
+      "simple_name": "executeReplaceAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13u2ltso4my",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CommandRepository.fs",
+      "start_line": 47,
+      "end_line": 56,
+      "size_lines": 10,
+      "signature_hint": "let inline private executeReplaceAsync (update: _ -> Task<ReplaceOneResult>) arg = async",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -690,
+      "region": 115,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C10xyow27txv",
+      "qualified_name": "topUp",
+      "simple_name": "topUp",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fudior91vc7",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardWorkflow.fs",
+      "start_line": 56,
+      "end_line": 64,
+      "size_lines": 9,
+      "signature_hint": "let topUp (currentDate: DateTimeOffset, topUpCmd) = program",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 24,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Coow55olz9n",
+      "qualified_name": "activateCard",
+      "simple_name": "activateCard",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fudior91vc7",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardWorkflow.fs",
+      "start_line": 66,
+      "end_line": 74,
+      "size_lines": 9,
+      "signature_hint": "let activateCard activateCmd = program",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 24,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C3u12f0n3e0",
+      "qualified_name": "replaceCardAsync",
+      "simple_name": "replaceCardAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6uj6s5khp5",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDataPipeline.fs",
+      "start_line": 39,
+      "end_line": 47,
+      "size_lines": 9,
+      "signature_hint": "let replaceCardAsync (mongoDb: MongoDb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 97,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckwrsqxfxb2",
+      "qualified_name": "executeInsertAsync",
+      "simple_name": "executeInsertAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13u2ltso4my",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CommandRepository.fs",
+      "start_line": 37,
+      "end_line": 45,
+      "size_lines": 9,
+      "signature_hint": "let inline private executeInsertAsync (func: 'a -> Async<unit>) arg = async",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 115,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cs2vt91uyfu",
+      "qualified_name": "createCardAsync",
+      "simple_name": "createCardAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13u2ltso4my",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CommandRepository.fs",
+      "start_line": 63,
+      "end_line": 71,
+      "size_lines": 9,
+      "signature_hint": "let createCardAsync (mongoDb: MongoDb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 125,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14auc70le3r",
+      "qualified_name": "mapUserEntity",
+      "simple_name": "mapUserEntity",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fct6jle6dkw",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/EntityToDomainMapping.fs",
+      "start_line": 95,
+      "end_line": 103,
+      "size_lines": 9,
+      "signature_hint": "let mapUserEntity (entity: UserEntity) (cardEntities: (CardEntity * CardAccountInfoEntity) list) = result",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 77,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C2f301ufcre",
+      "qualified_name": "interpretSimple",
+      "simple_name": "interpretSimple",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4ysrp6ack8",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardProgramInterpreter.fs",
+      "start_line": 67,
+      "end_line": 75,
+      "size_lines": 9,
+      "signature_hint": "let interpretSimple prog = try let interpret = interpretCardProgram (getMongoDb()) async",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 22,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cnt0vigyzqk",
+      "qualified_name": "setDailyLimit",
+      "simple_name": "setDailyLimit",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fudior91vc7",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardWorkflow.fs",
+      "start_line": 47,
+      "end_line": 54,
+      "size_lines": 8,
+      "signature_hint": "let setDailyLimit (currentDate: DateTimeOffset, setDailyLimitCommand) = program",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 24,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cqeqnpsh23s",
+      "qualified_name": "deactivateCard",
+      "simple_name": "deactivateCard",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fudior91vc7",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardWorkflow.fs",
+      "start_line": 76,
+      "end_line": 83,
+      "size_lines": 8,
+      "signature_hint": "let deactivateCard deactivateCmd = program",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 24,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C16v192xflcm",
+      "qualified_name": "createUser",
+      "simple_name": "createUser",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fudior91vc7",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardWorkflow.fs",
+      "start_line": 85,
+      "end_line": 92,
+      "size_lines": 8,
+      "signature_hint": "let createUser (userId, createUserCommand) = program",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 16,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C46vpq3k333",
+      "qualified_name": "setDailyLimit",
+      "simple_name": "setDailyLimit",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F533r31sm5b",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardActions.fs",
+      "start_line": 45,
+      "end_line": 51,
+      "size_lines": 7,
+      "signature_hint": "let setDailyLimit (currentDate: DateTimeOffset) limit card = if isCardExpired currentDate card then cardExpiredMessage card.CardNumber |> setDailyLimitNotAllowed else match card.AccountDetails with | Deactivated -> cardDeactivatedMessage card.CardNumber |> setDailyLimitNotAllowed | Active accInfo ->",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -693,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cergdqkut9y",
+      "qualified_name": "createCard",
+      "simple_name": "createCard",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fudior91vc7",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardWorkflow.fs",
+      "start_line": 94,
+      "end_line": 100,
+      "size_lines": 7,
+      "signature_hint": "let createCard cardCommand = program",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -693,
+      "region": 26,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C164aj9xfjej",
+      "qualified_name": "OptionConverter.WriteJson",
+      "simple_name": "WriteJson",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fextwqtr74a",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/OptionConverter.fs",
+      "start_line": 24,
+      "end_line": 30,
+      "size_lines": 7,
+      "signature_hint": "override x.WriteJson(writer, value, serializer) = let value = if isNull value then null else let _,fields = FSharpValue.GetUnionFields(value, value.GetType()) fields.[0] serializer.Serialize(writer, value)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -693,
+      "region": 60,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvtlx9dm3db",
+      "qualified_name": "logifyResultAsync",
+      "simple_name": "logifyResultAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F3bo3s3nggp",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/Logging.fs",
+      "start_line": 47,
+      "end_line": 53,
+      "size_lines": 7,
+      "signature_hint": "let logifyResultAsync funcName funcAsync x = async",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -693,
+      "region": 62,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cquyy55xwj",
+      "qualified_name": "logifyPlainAsync",
+      "simple_name": "logifyPlainAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F3bo3s3nggp",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/Logging.fs",
+      "start_line": 55,
+      "end_line": 61,
+      "size_lines": 7,
+      "signature_hint": "let logifyPlainAsync funcName funcAsync x = async",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -693,
+      "region": 187,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cs0490hxdoj",
+      "qualified_name": "spentAtDate",
+      "simple_name": "spentAtDate",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fsp94spghkm",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/BalanceOperation.fs",
+      "start_line": 14,
+      "end_line": 19,
+      "size_lines": 6,
+      "signature_hint": "let spentAtDate (date: DateTimeOffset) cardNumber operations = let date = date.Date let operationFilter",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 1,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C20rjql9674",
+      "qualified_name": "toAddressModel",
+      "simple_name": "toAddressModel",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1zxqzktgqj",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardDomainQueryModels.fs",
+      "start_line": 61,
+      "end_line": 66,
+      "size_lines": 6,
+      "signature_hint": "let toAddressModel (address: Address)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 19,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cs12qr9mwf3",
+      "qualified_name": "getCard",
+      "simple_name": "getCard",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fudior91vc7",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardWorkflow.fs",
+      "start_line": 102,
+      "end_line": 107,
+      "size_lines": 6,
+      "signature_hint": "let getCard cardNumber = program",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 24,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C17n8rngrzp9",
+      "qualified_name": "getCardAsync",
+      "simple_name": "getCardAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6uj6s5khp5",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDataPipeline.fs",
+      "start_line": 79,
+      "end_line": 84,
+      "size_lines": 6,
+      "signature_hint": "let getCardAsync (mongoDb: MongoDb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 101,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ceptyl9fkyj",
+      "qualified_name": "getCardWithAccountInfoAsync",
+      "simple_name": "getCardWithAccountInfoAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6uj6s5khp5",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDataPipeline.fs",
+      "start_line": 86,
+      "end_line": 91,
+      "size_lines": 6,
+      "signature_hint": "let getCardWithAccountInfoAsync (mongoDb: MongoDb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 102,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cflobqa7eg9",
+      "qualified_name": "getBalanceOperationsAsync",
+      "simple_name": "getBalanceOperationsAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6uj6s5khp5",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDataPipeline.fs",
+      "start_line": 93,
+      "end_line": 98,
+      "size_lines": 6,
+      "signature_hint": "let getBalanceOperationsAsync (mongoDb: MongoDb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 103,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckgfxvdkoy3",
+      "qualified_name": "toBasicInfoToModel",
+      "simple_name": "toBasicInfoToModel",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1zxqzktgqj",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardDomainQueryModels.fs",
+      "start_line": 44,
+      "end_line": 48,
+      "size_lines": 5,
+      "signature_hint": "let toBasicInfoToModel (basicCard: Card)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 17,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmcj3xzts6f",
+      "qualified_name": "toUserModel",
+      "simple_name": "toUserModel",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1zxqzktgqj",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardDomainQueryModels.fs",
+      "start_line": 73,
+      "end_line": 77,
+      "size_lines": 5,
+      "signature_hint": "let toUserModel (user: User)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 21,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Coxxbna6ftr",
+      "qualified_name": "expectDataRelatedErrorProgram",
+      "simple_name": "expectDataRelatedErrorProgram",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 105,
+      "end_line": 109,
+      "size_lines": 5,
+      "signature_hint": "let expectDataRelatedErrorProgram (prog: Program<Result<_,DataRelatedError>>) = program",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 45,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cqlly34h5v5",
+      "qualified_name": "getUser",
+      "simple_name": "getUser",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fudior91vc7",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardWorkflow.fs",
+      "start_line": 109,
+      "end_line": 113,
+      "size_lines": 5,
+      "signature_hint": "let getUser userId = simpleProgram",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 28,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cph2t3rtyak",
+      "qualified_name": "bindAsync",
+      "simple_name": "bindAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8v8o2dn057",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Common.fs",
+      "start_line": 17,
+      "end_line": 21,
+      "size_lines": 5,
+      "signature_hint": "let bindAsync f a = async",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 74,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6z4p78q7w8",
+      "qualified_name": "expectDataRelatedErrorAsync",
+      "simple_name": "expectDataRelatedErrorAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1629dxylhzo",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Errors.fs",
+      "start_line": 67,
+      "end_line": 71,
+      "size_lines": 5,
+      "signature_hint": "let expectDataRelatedErrorAsync asyncResult = async",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 45,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C1z14pe9ivs",
+      "qualified_name": "createCardAsync",
+      "simple_name": "createCardAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6uj6s5khp5",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDataPipeline.fs",
+      "start_line": 28,
+      "end_line": 32,
+      "size_lines": 5,
+      "signature_hint": "let createCardAsync (mongoDb: MongoDb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 95,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdgfg2wgsv1",
+      "qualified_name": "replaceUserAsync",
+      "simple_name": "replaceUserAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13u2ltso4my",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CommandRepository.fs",
+      "start_line": 73,
+      "end_line": 77,
+      "size_lines": 5,
+      "signature_hint": "let replaceUserAsync (mongoDb: MongoDb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 126,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7fvdx0tkfy",
+      "qualified_name": "replaceCardAsync",
+      "simple_name": "replaceCardAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13u2ltso4my",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CommandRepository.fs",
+      "start_line": 79,
+      "end_line": 83,
+      "size_lines": 5,
+      "signature_hint": "let replaceCardAsync (mongoDb: MongoDb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 128,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5ljxo4ku2t",
+      "qualified_name": "replaceCardAccountInfoAsync",
+      "simple_name": "replaceCardAccountInfoAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13u2ltso4my",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CommandRepository.fs",
+      "start_line": 85,
+      "end_line": 89,
+      "size_lines": 5,
+      "signature_hint": "let replaceCardAccountInfoAsync (mongoDb: MongoDb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 130,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C108yf3pk9tb",
+      "qualified_name": "buildConfig",
+      "simple_name": "buildConfig",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14znbnyhrdl",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/AppConfiguration.fs",
+      "start_line": 18,
+      "end_line": 22,
+      "size_lines": 5,
+      "signature_hint": "let buildConfig() = ConfigurationBuilder() .SetBasePath(Directory.GetCurrentDirectory()) .AddJsonFile(\"appsettings.json\", false, true) .Build()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 154,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cfgp8ab3r2q",
+      "qualified_name": "logifyResult",
+      "simple_name": "logifyResult",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F3bo3s3nggp",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/Logging.fs",
+      "start_line": 41,
+      "end_line": 45,
+      "size_lines": 5,
+      "signature_hint": "let logifyResult funcName func x = sprintf \"start %s with arg\\n%A\" funcName x |> Log.Information let result = func x logResult funcName result result",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 62,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ctfdgbt3ggh",
+      "qualified_name": "deactivate",
+      "simple_name": "deactivate",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F533r31sm5b",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardActions.fs",
+      "start_line": 35,
+      "end_line": 38,
+      "size_lines": 4,
+      "signature_hint": "let deactivate card = match card.AccountDetails with | Deactivated -> card | Active _ ->",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 7,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C10bof0p5m06",
+      "qualified_name": "activate",
+      "simple_name": "activate",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F533r31sm5b",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardActions.fs",
+      "start_line": 40,
+      "end_line": 43,
+      "size_lines": 4,
+      "signature_hint": "let activate (cardAccountInfo: AccountInfo) card = match card.AccountDetails with | Active _ -> card | Deactivated ->",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 8,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cg5yh8x7ynq",
+      "qualified_name": "ToDecimalOption",
+      "simple_name": "ToDecimalOption",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F13xm6c7r3xb",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardDomain.fs",
+      "start_line": 55,
+      "end_line": 58,
+      "size_lines": 4,
+      "signature_hint": "member this.ToDecimalOption() = match this with | Unlimited -> None | Limit limit -> Some limit.Value",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 13,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjjnq943kjf",
+      "qualified_name": "Default",
+      "simple_name": "Default",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F13xm6c7r3xb",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardDomain.fs",
+      "start_line": 78,
+      "end_line": 81,
+      "size_lines": 4,
+      "signature_hint": "static member Default userId",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 14,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cj87s2s7eq1",
+      "qualified_name": "ToDecimal",
+      "simple_name": "ToDecimal",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F13xm6c7r3xb",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardDomain.fs",
+      "start_line": 129,
+      "end_line": 132,
+      "size_lines": 4,
+      "signature_hint": "member this.ToDecimal() = match this with | Increase i -> i.Value | Decrease d -> -d.Value",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 15,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cksqpw9rhmq",
+      "qualified_name": "toCardDetailsModel",
+      "simple_name": "toCardDetailsModel",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1zxqzktgqj",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardDomainQueryModels.fs",
+      "start_line": 68,
+      "end_line": 71,
+      "size_lines": 4,
+      "signature_hint": "let toCardDetailsModel (cardDetails: CardDetails)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 20,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cyfw98ngjnh",
+      "qualified_name": "configureApp",
+      "simple_name": "configureApp",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fgepfasscev",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs",
+      "start_line": 111,
+      "end_line": 114,
+      "size_lines": 4,
+      "signature_hint": "let configureApp (app : IApplicationBuilder) = // Add Giraffe to the ASP.NET Core pipeline app.UseGiraffeErrorHandler(errorHandler) .UseGiraffe webApp",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 69,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C152l6gch5wa",
+      "qualified_name": "ofOption",
+      "simple_name": "ofOption",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1629dxylhzo",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Errors.fs",
+      "start_line": 99,
+      "end_line": 102,
+      "size_lines": 4,
+      "signature_hint": "let ofOption err opt = match opt with | Some v -> Ok v | None -> Error err",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 93,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2v4b4dy4y2",
+      "qualified_name": "createUserAsync",
+      "simple_name": "createUserAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6uj6s5khp5",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDataPipeline.fs",
+      "start_line": 34,
+      "end_line": 37,
+      "size_lines": 4,
+      "signature_hint": "let createUserAsync (mongoDb: MongoDb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 96,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C119ane6qxzr",
+      "qualified_name": "replaceUserAsync",
+      "simple_name": "replaceUserAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6uj6s5khp5",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDataPipeline.fs",
+      "start_line": 49,
+      "end_line": 52,
+      "size_lines": 4,
+      "signature_hint": "let replaceUserAsync (mongoDb: MongoDb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 98,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14thibnkwsg",
+      "qualified_name": "createBalanceOperationAsync",
+      "simple_name": "createBalanceOperationAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6uj6s5khp5",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDataPipeline.fs",
+      "start_line": 100,
+      "end_line": 103,
+      "size_lines": 4,
+      "signature_hint": "let createBalanceOperationAsync (mongoDb: MongoDb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 104,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwr9w0ctjx2",
+      "qualified_name": "IdComparer",
+      "simple_name": "IdComparer",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F12s3o81t2ol",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDomainEntities.fs",
+      "start_line": 62,
+      "end_line": 65,
+      "size_lines": 4,
+      "signature_hint": "member this.IdComparer = <@ System.Func<_,_> (fun c -> c.UserId = this.UserId) @> // MongoDb allowes you to use objects as identifiers, so I used this instead of generating some GUID // which wouldn't mean anything other than something purely DB specific",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 111,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C13vob5aqsu4",
+      "qualified_name": "createUserAsync",
+      "simple_name": "createUserAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13u2ltso4my",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CommandRepository.fs",
+      "start_line": 58,
+      "end_line": 61,
+      "size_lines": 4,
+      "signature_hint": "let createUserAsync (mongoDb : MongoDb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 124,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cj2z9c24g9h",
+      "qualified_name": "createBalanceOperationAsync",
+      "simple_name": "createBalanceOperationAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13u2ltso4my",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CommandRepository.fs",
+      "start_line": 91,
+      "end_line": 94,
+      "size_lines": 4,
+      "signature_hint": "let createBalanceOperationAsync (mongoDb: MongoDb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 132,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cx7wcv6745u",
+      "qualified_name": "valueOrException",
+      "simple_name": "valueOrException",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fct6jle6dkw",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/EntityToDomainMapping.fs",
+      "start_line": 25,
+      "end_line": 28,
+      "size_lines": 4,
+      "signature_hint": "let valueOrException (result: Result< 'a, ValidationError>)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 133,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cnmxlmemudq",
+      "qualified_name": "intSetting",
+      "simple_name": "intSetting",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14znbnyhrdl",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/AppConfiguration.fs",
+      "start_line": 13,
+      "end_line": 16,
+      "size_lines": 4,
+      "signature_hint": "let intSetting defaultValue (str: string) = match Int32.TryParse str with | (false, _) -> defaultValue | (true, setting) -> setting",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 153,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14bpu1phi89",
+      "qualified_name": "ofDecimal",
+      "simple_name": "ofDecimal",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F13xm6c7r3xb",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardDomain.fs",
+      "start_line": 52,
+      "end_line": 54,
+      "size_lines": 3,
+      "signature_hint": "static member ofDecimal dec = if dec > 0m then Money dec |> Limit else Unlimited",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 12,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cio5g6m5x8u",
+      "qualified_name": "isNullOrEmpty",
+      "simple_name": "isNullOrEmpty",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8v8o2dn057",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Common.fs",
+      "start_line": 13,
+      "end_line": 15,
+      "size_lines": 3,
+      "signature_hint": "let inline isNullOrEmpty arg = if arg = null || (length arg) = 0 then true else false",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 72,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cmxlos44nx1",
+      "qualified_name": "EntityId",
+      "simple_name": "EntityId",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F12s3o81t2ol",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDomainEntities.fs",
+      "start_line": 39,
+      "end_line": 41,
+      "size_lines": 3,
+      "signature_hint": "member this.EntityId = this.CardNumber.ToString() // we use this Id comparer quotation (F# alternative to C# Expression) for updating entity by id, // since for different entities identifier has different name and type",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 106,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C632thtowpo",
+      "qualified_name": "ConnectionString",
+      "simple_name": "ConnectionString",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fztl7334qj",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardMongoConfiguration.fs",
+      "start_line": 15,
+      "end_line": 17,
+      "size_lines": 3,
+      "signature_hint": "member this.ConnectionString = if this.User |> isNullOrEmpty then sprintf \"mongodb://%s:%i\" this.Host this.Port else sprintf \"mongodb://%s:%s@%s:%i\" this.User this.Password this.Host this.Port",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 117,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckshk6kvn1p",
+      "qualified_name": "getDatabase",
+      "simple_name": "getDatabase",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fztl7334qj",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardMongoConfiguration.fs",
+      "start_line": 21,
+      "end_line": 23,
+      "size_lines": 3,
+      "signature_hint": "let getDatabase (config: MongoSettings) = let client = createClient config.ConnectionString client.GetDatabase(config.Database)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 118,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C7qny8yb96o",
+      "qualified_name": "getSession",
+      "simple_name": "getSession",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fztl7334qj",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardMongoConfiguration.fs",
+      "start_line": 25,
+      "end_line": 27,
+      "size_lines": 3,
+      "signature_hint": "let getSession (config: MongoSettings) = let client = createClient config.ConnectionString client.StartSession()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 118,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cj3toniw6th",
+      "qualified_name": "mapCardEntity",
+      "simple_name": "mapCardEntity",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fct6jle6dkw",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/EntityToDomainMapping.fs",
+      "start_line": 58,
+      "end_line": 60,
+      "size_lines": 3,
+      "signature_hint": "let mapCardEntity (cardEntity, cardAccountEntity) = validateCardEntity (cardEntity, cardAccountEntity) |> valueOrException",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 135,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Caonn6dn7wq",
+      "qualified_name": "mapCardEntityWithAccountInfo",
+      "simple_name": "mapCardEntityWithAccountInfo",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fct6jle6dkw",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/EntityToDomainMapping.fs",
+      "start_line": 62,
+      "end_line": 64,
+      "size_lines": 3,
+      "signature_hint": "let mapCardEntityWithAccountInfo (cardEntity, cardAccountEntity) = validateCardEntityWithAccInfo (cardEntity, cardAccountEntity) |> valueOrException",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 135,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C13x49e53izq",
+      "qualified_name": "mapUserInfoEntity",
+      "simple_name": "mapUserInfoEntity",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fct6jle6dkw",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/EntityToDomainMapping.fs",
+      "start_line": 91,
+      "end_line": 93,
+      "size_lines": 3,
+      "signature_hint": "let mapUserInfoEntity (entity: UserEntity) = validateUserInfoEntity entity |> valueOrException",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 77,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C2dk00cdlcf",
+      "qualified_name": "configureLog",
+      "simple_name": "configureLog",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14znbnyhrdl",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/AppConfiguration.fs",
+      "start_line": 26,
+      "end_line": 28,
+      "size_lines": 3,
+      "signature_hint": "let configureLog() = let logger = LoggerConfiguration().WriteTo.Console(outputTemplate = logFormat, theme = AnsiConsoleTheme.Code).CreateLogger() Log.Logger <- logger",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 155,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C135tf3l1tki",
+      "qualified_name": "operationFilter",
+      "simple_name": "operationFilter",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fsp94spghkm",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/BalanceOperation.fs",
+      "start_line": 16,
+      "end_line": 17,
+      "size_lines": 2,
+      "signature_hint": "let operationFilter",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 0,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cib5zrf6e0z",
+      "qualified_name": "replaceCommand",
+      "simple_name": "replaceCommand",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13u2ltso4my",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CommandRepository.fs",
+      "start_line": 75,
+      "end_line": 76,
+      "size_lines": 2,
+      "signature_hint": "let replaceCommand (selector: Expression<_>, user, options) = mongoDb.GetCollection(userCollection).ReplaceOneAsync(selector, user, options)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 127,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Catyknmjchb",
+      "qualified_name": "replaceCommand",
+      "simple_name": "replaceCommand",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13u2ltso4my",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CommandRepository.fs",
+      "start_line": 81,
+      "end_line": 82,
+      "size_lines": 2,
+      "signature_hint": "let replaceCommand (selector: Expression<_>, card, options) = mongoDb.GetCollection(cardCollection).ReplaceOneAsync(selector, card, options)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 129,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cy8myl42t09",
+      "qualified_name": "replaceCommand",
+      "simple_name": "replaceCommand",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13u2ltso4my",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CommandRepository.fs",
+      "start_line": 87,
+      "end_line": 88,
+      "size_lines": 2,
+      "signature_hint": "let replaceCommand (selector: Expression<_>, accInfo, options) = mongoDb.GetCollection(cardAccountInfoCollection).ReplaceOneAsync(selector, accInfo, options)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 131,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11zhp616kbj",
+      "qualified_name": "createUser",
+      "simple_name": "createUser",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjxk9gomcv0",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardApi.fs",
+      "start_line": 7,
+      "end_line": 8,
+      "size_lines": 2,
+      "signature_hint": "let createUser arg = arg |> (CardWorkflow.createUser >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.createUser\")",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 157,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Canyjilg9f5",
+      "qualified_name": "createCard",
+      "simple_name": "createCard",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjxk9gomcv0",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardApi.fs",
+      "start_line": 9,
+      "end_line": 10,
+      "size_lines": 2,
+      "signature_hint": "let createCard arg = arg |> (CardWorkflow.createCard >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.createCard\")",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 158,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6xlhiqbwto",
+      "qualified_name": "activateCard",
+      "simple_name": "activateCard",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjxk9gomcv0",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardApi.fs",
+      "start_line": 11,
+      "end_line": 12,
+      "size_lines": 2,
+      "signature_hint": "let activateCard arg = arg |> (CardWorkflow.activateCard >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.activateCard\")",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 159,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C10jxfm1pidv",
+      "qualified_name": "deactivateCard",
+      "simple_name": "deactivateCard",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjxk9gomcv0",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardApi.fs",
+      "start_line": 13,
+      "end_line": 14,
+      "size_lines": 2,
+      "signature_hint": "let deactivateCard arg = arg |> (CardWorkflow.deactivateCard >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.deactivateCard\")",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 160,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cb3zzg0xapo",
+      "qualified_name": "processPayment",
+      "simple_name": "processPayment",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjxk9gomcv0",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardApi.fs",
+      "start_line": 15,
+      "end_line": 16,
+      "size_lines": 2,
+      "signature_hint": "let processPayment arg = arg |> (CardWorkflow.processPayment >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.processPayment\")",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 161,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cynj4k7hrrq",
+      "qualified_name": "topUp",
+      "simple_name": "topUp",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjxk9gomcv0",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardApi.fs",
+      "start_line": 17,
+      "end_line": 18,
+      "size_lines": 2,
+      "signature_hint": "let topUp arg = arg |> (CardWorkflow.topUp >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.topUp\")",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 162,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cw7408ttv1s",
+      "qualified_name": "setDailyLimit",
+      "simple_name": "setDailyLimit",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjxk9gomcv0",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardApi.fs",
+      "start_line": 19,
+      "end_line": 20,
+      "size_lines": 2,
+      "signature_hint": "let setDailyLimit arg = arg |> (CardWorkflow.setDailyLimit >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.setDailyLimit\")",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 163,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17k1vseoz05",
+      "qualified_name": "getCard",
+      "simple_name": "getCard",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjxk9gomcv0",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardApi.fs",
+      "start_line": 21,
+      "end_line": 22,
+      "size_lines": 2,
+      "signature_hint": "let getCard arg = arg |> (CardWorkflow.getCard >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.getCard\")",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 164,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C169cw6ktqaj",
+      "qualified_name": "getUser",
+      "simple_name": "getUser",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjxk9gomcv0",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardApi.fs",
+      "start_line": 23,
+      "end_line": 24,
+      "size_lines": 2,
+      "signature_hint": "let getUser arg = arg |> (CardWorkflow.getUser >> CardProgramInterpreter.interpretSimple |> logifyResultAsync \"CardApi.getUser\")",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 165,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Csveqys93op",
+      "qualified_name": "getCardAsync",
+      "simple_name": "getCardAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4ysrp6ack8",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardProgramInterpreter.fs",
+      "start_line": 14,
+      "end_line": 15,
+      "size_lines": 2,
+      "signature_hint": "let private getCardAsync mongoDb = CardDataPipeline.getCardAsync mongoDb |> logifyPlainAsync \"CardDataPipeline.getCardAsync\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 168,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxmvsmcnxt2",
+      "qualified_name": "getCardWithAccInfoAsync",
+      "simple_name": "getCardWithAccInfoAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4ysrp6ack8",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardProgramInterpreter.fs",
+      "start_line": 20,
+      "end_line": 21,
+      "size_lines": 2,
+      "signature_hint": "let private getCardWithAccInfoAsync mongoDb = CardDataPipeline.getCardWithAccountInfoAsync mongoDb |> logifyPlainAsync \"CardDataPipeline.getCardWithAccountInfoAsync\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 170,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1049hrptilr",
+      "qualified_name": "replaceCardAsync",
+      "simple_name": "replaceCardAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4ysrp6ack8",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardProgramInterpreter.fs",
+      "start_line": 23,
+      "end_line": 24,
+      "size_lines": 2,
+      "signature_hint": "let private replaceCardAsync mongoDb = CardDataPipeline.replaceCardAsync mongoDb |> logifyResultAsync \"CardDataPipeline.replaceCardAsync\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 171,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6tku9zyx3x",
+      "qualified_name": "createCardAsync",
+      "simple_name": "createCardAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4ysrp6ack8",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardProgramInterpreter.fs",
+      "start_line": 32,
+      "end_line": 33,
+      "size_lines": 2,
+      "signature_hint": "let private createCardAsync mongoDb = CardDataPipeline.createCardAsync mongoDb |> logifyResultAsync \"CardPipeline.createCardAsync\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 174,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C331lyb1r1k",
+      "qualified_name": "createUserAsync",
+      "simple_name": "createUserAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4ysrp6ack8",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardProgramInterpreter.fs",
+      "start_line": 35,
+      "end_line": 36,
+      "size_lines": 2,
+      "signature_hint": "let private createUserAsync mongoDb = CardDataPipeline.createUserAsync mongoDb |> logifyResultAsync \"CardDataPipeline.createUserAsync\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 175,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C121z56fea81",
+      "qualified_name": "stop",
+      "simple_name": "stop",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 68,
+      "end_line": 68,
+      "size_lines": 1,
+      "signature_hint": "let stop x = Stop x",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 23,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8fhc9brr0k",
+      "qualified_name": "SimpleProgramBuilder.Bind",
+      "simple_name": "Bind",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 80,
+      "end_line": 80,
+      "size_lines": 1,
+      "signature_hint": "member __.Bind (x, f) = bind f x",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 22,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Chuydi0r3fu",
+      "qualified_name": "SimpleProgramBuilder.Zero",
+      "simple_name": "Zero",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 82,
+      "end_line": 82,
+      "size_lines": 1,
+      "signature_hint": "member __.Zero () = Stop ()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 35,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cp822tg3lvg",
+      "qualified_name": "SimpleProgramBuilder.ReturnFrom",
+      "simple_name": "ReturnFrom",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 83,
+      "end_line": 83,
+      "size_lines": 1,
+      "signature_hint": "member __.ReturnFrom x = x",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 36,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cyyeha3nabr",
+      "qualified_name": "ProgramBuilder.Zero",
+      "simple_name": "Zero",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 98,
+      "end_line": 98,
+      "size_lines": 1,
+      "signature_hint": "member __.Zero () = Stop ()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 43,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Crk1tjjjo8w",
+      "qualified_name": "OptionConverter.CanConvert",
+      "simple_name": "CanConvert",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fextwqtr74a",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/OptionConverter.fs",
+      "start_line": 22,
+      "end_line": 22,
+      "size_lines": 1,
+      "signature_hint": "override x.CanConvert(typ) = typ.IsGenericType && typ.GetGenericTypeDefinition() = typedefof<option<_>>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 59,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Catdy9iu0fx",
+      "qualified_name": "notFound",
+      "simple_name": "notFound",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fgepfasscev",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs",
+      "start_line": 31,
+      "end_line": 31,
+      "size_lines": 1,
+      "signature_hint": "let notFound f = json",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 63,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5geu0nhmff",
+      "qualified_name": "bug",
+      "simple_name": "bug",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1629dxylhzo",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Errors.fs",
+      "start_line": 52,
+      "end_line": 52,
+      "size_lines": 1,
+      "signature_hint": "let bug exc = Bug exc |> Error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 83,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdusi2go4q4",
+      "qualified_name": "notFound",
+      "simple_name": "notFound",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1629dxylhzo",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Errors.fs",
+      "start_line": 56,
+      "end_line": 56,
+      "size_lines": 1,
+      "signature_hint": "let notFound name id = EntityNotFound (name, id) |> Error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 85,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cfx87hhq1in",
+      "qualified_name": "entityInUse",
+      "simple_name": "entityInUse",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1629dxylhzo",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Errors.fs",
+      "start_line": 58,
+      "end_line": 58,
+      "size_lines": 1,
+      "signature_hint": "let entityInUse name = EntityIsInUse name |> Error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 86,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Co8tguvfxgu",
+      "qualified_name": "expectValidationError",
+      "simple_name": "expectValidationError",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1629dxylhzo",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Errors.fs",
+      "start_line": 60,
+      "end_line": 60,
+      "size_lines": 1,
+      "signature_hint": "let expectValidationError result = Result.mapError ValidationError result",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 87,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cfukcmhp3do",
+      "qualified_name": "expectOperationNotAllowedError",
+      "simple_name": "expectOperationNotAllowedError",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1629dxylhzo",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Errors.fs",
+      "start_line": 62,
+      "end_line": 62,
+      "size_lines": 1,
+      "signature_hint": "let expectOperationNotAllowedError result = Result.mapError OperationNotAllowed result",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 88,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cj5dcf79ig5",
+      "qualified_name": "EntityId",
+      "simple_name": "EntityId",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F12s3o81t2ol",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDomainEntities.fs",
+      "start_line": 27,
+      "end_line": 27,
+      "size_lines": 1,
+      "signature_hint": "member this.EntityId = sprintf \"%A\" this",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 105,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxkagpbv0f0",
+      "qualified_name": "IdComparer",
+      "simple_name": "IdComparer",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F12s3o81t2ol",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDomainEntities.fs",
+      "start_line": 42,
+      "end_line": 42,
+      "size_lines": 1,
+      "signature_hint": "member this.IdComparer = <@ System.Func<_,_> (fun c -> c.CardNumber = this.CardNumber) @>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 107,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C551htp8l0d",
+      "qualified_name": "EntityId",
+      "simple_name": "EntityId",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F12s3o81t2ol",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDomainEntities.fs",
+      "start_line": 51,
+      "end_line": 51,
+      "size_lines": 1,
+      "signature_hint": "member this.EntityId = this.CardNumber.ToString()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 108,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cj12ze0zer2",
+      "qualified_name": "IdComparer",
+      "simple_name": "IdComparer",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F12s3o81t2ol",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDomainEntities.fs",
+      "start_line": 52,
+      "end_line": 52,
+      "size_lines": 1,
+      "signature_hint": "member this.IdComparer = <@ System.Func<_,_> (fun c -> c.CardNumber = this.CardNumber) @>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 109,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czevw0f8xbp",
+      "qualified_name": "EntityId",
+      "simple_name": "EntityId",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F12s3o81t2ol",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDomainEntities.fs",
+      "start_line": 61,
+      "end_line": 61,
+      "size_lines": 1,
+      "signature_hint": "member this.EntityId = this.UserId.ToString()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 110,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cr5bsj0nl3o",
+      "qualified_name": "EntityId",
+      "simple_name": "EntityId",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F12s3o81t2ol",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDomainEntities.fs",
+      "start_line": 78,
+      "end_line": 78,
+      "size_lines": 1,
+      "signature_hint": "member this.EntityId = sprintf \"%A\" this.Id",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 112,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C127y2mexc5e",
+      "qualified_name": "mapAddressEntity",
+      "simple_name": "mapAddressEntity",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fct6jle6dkw",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/EntityToDomainMapping.fs",
+      "start_line": 79,
+      "end_line": 79,
+      "size_lines": 1,
+      "signature_hint": "let mapAddressEntity entity = validateAddressEntity entity |> valueOrException",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 77,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cyr25nvrfrj",
+      "qualified_name": "stringSetting",
+      "simple_name": "stringSetting",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14znbnyhrdl",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/AppConfiguration.fs",
+      "start_line": 11,
+      "end_line": 11,
+      "size_lines": 1,
+      "signature_hint": "let stringSetting defaultValue str = Option.ofObj str |> Option.defaultValue defaultValue",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 152,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7nlkekdhnr",
+      "qualified_name": "funcFinishedWithError",
+      "simple_name": "funcFinishedWithError",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F3bo3s3nggp",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/Logging.fs",
+      "start_line": 13,
+      "end_line": 13,
+      "size_lines": 1,
+      "signature_hint": "let private funcFinishedWithError funcName = sprintf \"%s finished with error: %s\" funcName",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 179,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

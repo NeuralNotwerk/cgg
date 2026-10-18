@@ -1,0 +1,958 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "C1vu74a4le7": {
+      "id": "C1vu74a4le7",
+      "qualified_name": "is_successful",
+      "simple_name": "is_successful",
+      "kind": "function",
+      "language": "lua",
+      "file": "Fwouw3iippy",
+      "start_line": 24,
+      "end_line": 26,
+      "start_byte": 665,
+      "end_byte": 782,
+      "signature_hint": "local function is_successful(upstream_status_code) return upstream_status_code and upstream_status_code < 500 end"
+    },
+    "C13adzdpko3n": {
+      "id": "C13adzdpko3n",
+      "qualified_name": "get_circuit_breaker",
+      "simple_name": "get_circuit_breaker",
+      "kind": "function",
+      "language": "lua",
+      "file": "Fwouw3iippy",
+      "start_line": 29,
+      "end_line": 42,
+      "start_byte": 832,
+      "end_byte": 1275,
+      "signature_hint": "local function get_circuit_breaker(conf, api_identifier) local cb_table_key = \"global\" if conf.route_id ~= nil then cb_table_key = conf.route_id elseif conf.service_id ~= nil then cb_table_key = conf.service_id end if conf.consumer_id ~= nil then cb_table_key = conf.consumer_id .. \"_\" .. cb_table_key end return circuit_breakers:get_circuit_breaker(api_identifier, cb_table_key, conf) end"
+    },
+    "C180b69o7hga": {
+      "id": "C180b69o7hga",
+      "qualified_name": "p_access",
+      "simple_name": "p_access",
+      "kind": "function",
+      "language": "lua",
+      "file": "Fwouw3iippy",
+      "start_line": 45,
+      "end_line": 68,
+      "start_byte": 1278,
+      "end_byte": 2104,
+      "signature_hint": "local function p_access(conf) local excluded_apis = helpers.get_excluded_apis(conf) local api_identifier = helpers.get_api_identifier() if excluded_apis[api_identifier] then return end -- Set timeout for request after which it will be treated as a failure ngx.ctx.balancer_data.read_timeout = conf[\"api_call_timeout_ms\"] -- Start before proxy logic over here conf.version = DEFAULT_VERSION local cb = get_circuit_breaker(conf, api_identifier) local _, err_cb = cb:_before() if err_cb then local headers"
+    },
+    "C6fx72yaalh": {
+      "id": "C6fx72yaalh",
+      "qualified_name": "CircuitBreakerHandler:access",
+      "simple_name": "access",
+      "kind": "method",
+      "language": "lua",
+      "file": "Fwouw3iippy",
+      "start_line": 71,
+      "end_line": 77,
+      "start_byte": 2130,
+      "end_byte": 2328,
+      "signature_hint": "function CircuitBreakerHandler:access(conf) local success, err = pcall(p_access, conf) if not success then kong.log.err(\"Error in cb access phase \" .. err) return end end"
+    },
+    "Cvzxbvq8meb": {
+      "id": "Cvzxbvq8meb",
+      "qualified_name": "p_header_filter",
+      "simple_name": "p_header_filter",
+      "kind": "function",
+      "language": "lua",
+      "file": "Fwouw3iippy",
+      "start_line": 80,
+      "end_line": 90,
+      "start_byte": 2331,
+      "end_byte": 2682,
+      "signature_hint": "local function p_header_filter(conf) if kong.response.get_status() and kong.response.get_status() ~= conf.error_status_code then local cb = kong.ctx.plugin.cb if cb == nil then return end local ok = is_successful(kong.response.get_status()) cb:_after(kong.ctx.plugin.generation, ok) end end"
+    },
+    "Cffkrrc8v70": {
+      "id": "Cffkrrc8v70",
+      "qualified_name": "CircuitBreakerHandler:header_filter",
+      "simple_name": "header_filter",
+      "kind": "method",
+      "language": "lua",
+      "file": "Fwouw3iippy",
+      "start_line": 94,
+      "end_line": 100,
+      "start_byte": 2710,
+      "end_byte": 2927,
+      "signature_hint": "function CircuitBreakerHandler:header_filter(conf) local sucess, err = pcall(p_header_filter, conf) if not sucess then kong.log.err(\"Error in cb header_filter phase \" .. err) return end end"
+    },
+    "C1609xi5ypeo": {
+      "id": "C1609xi5ypeo",
+      "qualified_name": "CircuitBreakerHandler:log",
+      "simple_name": "log",
+      "kind": "method",
+      "language": "lua",
+      "file": "Fwouw3iippy",
+      "start_line": 102,
+      "end_line": 119,
+      "start_byte": 2929,
+      "end_byte": 3639,
+      "signature_hint": "function CircuitBreakerHandler:log(conf) local api_identifier = helpers.get_api_identifier() local cb = kong.ctx.plugin.cb if cb == nil then return end if cb._last_state_notified == false then cb._last_state_notified = true -- Prepare latest state change and set it in context. -- This data can be used later to do logging in a different plugin. -- Example"
+    },
+    "Ckcqumutqna": {
+      "id": "Ckcqumutqna",
+      "qualified_name": "CircuitBreakerHandler:init_worker",
+      "simple_name": "init_worker",
+      "kind": "method",
+      "language": "lua",
+      "file": "Fwouw3iippy",
+      "start_line": 121,
+      "end_line": 163,
+      "start_byte": 3641,
+      "end_byte": 5118,
+      "signature_hint": "function CircuitBreakerHandler:init_worker() kong.worker_events.register( function (data) if type(data) ~= \"string\" then return end local key_parts = pl_utils.split(data, \":\") if key_parts[1] ~= \"plugins\" or key_parts[2] ~= \"circuit-breaker\" then return end local route_id = key_parts[3] local service_id = key_parts[4] local consumer_id = key_parts[5] local group_prefix, group_suffix if consumer_id ~= \"\" then group_prefix = consumer_id end if route_id ~= \"\" then group_suffix = route_id -- Route level circuit breaker elseif service_id ~= \"\" then group_suffix = service_id -- Service level circuit breaker else group_suffix = \"global\" -- Global circuit breaker end if group_prefix ~= nil then circuit_breakers:remove_breakers_by_group(group_prefix .. \"_\" .. group_suffix) else circuit_breakers:remove_breakers_by_group(group_suffix) end local cache_key = kong.db.plugins:cache_key(\"circuit_breaker_excluded_apis\", service_id, route_id, consumer_id) kong.core_cache:invalidate(cache_key, false) end, \"mlcache\", \"mlcache:invalidations:kong_core_db_cache\" ) end"
+    },
+    "Co1dannvpjv": {
+      "id": "Co1dannvpjv",
+      "qualified_name": "get_excluded_apis",
+      "simple_name": "get_excluded_apis",
+      "kind": "function",
+      "language": "lua",
+      "file": "Fxcm2etf5tx",
+      "start_line": 5,
+      "end_line": 19,
+      "start_byte": 50,
+      "end_byte": 678,
+      "signature_hint": "local function get_excluded_apis(conf) local service_id = conf.service_id local route_id = conf.route_id local consumer_id = conf.consumer_id local cache_key = kong.db.plugins:cache_key(\"circuit_breaker_excluded_apis\", service_id, route_id, consumer_id) local excluded_apis, err = kong.core_cache:get(cache_key, nil, function(c) return cjson.decode(c[\"excluded_apis\"]) end, conf) if err then error(err) end return excluded_apis end"
+    },
+    "Ccyt5kxcbwy": {
+      "id": "Ccyt5kxcbwy",
+      "qualified_name": "get_api_identifier",
+      "simple_name": "get_api_identifier",
+      "kind": "function",
+      "language": "lua",
+      "file": "Fxcm2etf5tx",
+      "start_line": 21,
+      "end_line": 23,
+      "start_byte": 680,
+      "end_byte": 790,
+      "signature_hint": "local function get_api_identifier() return kong.request.get_method() .. \"_\" .. kong.request.get_path() end"
+    },
+    "Civs6kd6i14": {
+      "id": "Civs6kd6i14",
+      "qualified_name": "set_logger_metrics",
+      "simple_name": "set_logger_metrics",
+      "kind": "function",
+      "language": "lua",
+      "file": "Fxcm2etf5tx",
+      "start_line": 25,
+      "end_line": 40,
+      "start_byte": 792,
+      "end_byte": 1383,
+      "signature_hint": "local function set_logger_metrics(api_identifier, new_state) local upstream_host = kong.ctx.shared.upstream_host or '' if kong.ctx.shared.logger_metrics == nil then kong.ctx.shared.logger_metrics"
+    },
+    "Cpamvm8rm3d": {
+      "id": "Cpamvm8rm3d",
+      "qualified_name": "json_validator",
+      "simple_name": "json_validator",
+      "kind": "function",
+      "language": "lua",
+      "file": "F139uu5thxpd",
+      "start_line": 4,
+      "end_line": 12,
+      "start_byte": 91,
+      "end_byte": 302,
+      "signature_hint": "local function json_validator(config_string) local config_table, err = json_safe.decode(config_string) if config_table == nil then return nil, \"Invalid Json \" .. err end return true end"
+    },
+    "Co5oxfwgo93": {
+      "id": "Co5oxfwgo93",
+      "qualified_name": "cb_schema_validator",
+      "simple_name": "cb_schema_validator",
+      "kind": "function",
+      "language": "lua",
+      "file": "F139uu5thxpd",
+      "start_line": 14,
+      "end_line": 16,
+      "start_byte": 304,
+      "end_byte": 394,
+      "signature_hint": "local function cb_schema_validator(conf) return json_validator(conf.excluded_apis) end"
+    },
+    "Cmnav4fznpk": {
+      "id": "Cmnav4fznpk",
+      "qualified_name": "get_and_assert",
+      "simple_name": "get_and_assert",
+      "kind": "function",
+      "language": "lua",
+      "file": "F12tphwdfaev",
+      "start_line": 121,
+      "end_line": 147,
+      "start_byte": 4602,
+      "end_byte": 5496,
+      "signature_hint": "function (res_status_to_be_generated, res_status_expected, put_delay, api_key, path) local proxy_client = helpers.proxy_client() local headers",
+      "test_role": "support"
+    },
+    "C995el8713f": {
+      "id": "C995el8713f",
+      "qualified_name": "update_plugin",
+      "simple_name": "update_plugin",
+      "kind": "function",
+      "language": "lua",
+      "file": "F12tphwdfaev",
+      "start_line": 149,
+      "end_line": 164,
+      "start_byte": 5528,
+      "end_byte": 6120,
+      "signature_hint": "function(plugin_id, config, enabled) local admin_client = helpers.admin_client() local url = \"/plugins/\" .. plugin_id local admin_res = assert( admin_client:patch(url, { headers = {[\"Content-Type\"] = \"application/json\"}, body = { name = \"circuit-breaker\", config = config, enabled = enabled, }, })) assert.equal(200, admin_res.status) admin_client:close() end",
+      "test_role": "support"
+    },
+    "C140vxxj1pit": {
+      "id": "C140vxxj1pit",
+      "qualified_name": "disable_plugin",
+      "simple_name": "disable_plugin",
+      "kind": "function",
+      "language": "lua",
+      "file": "F12tphwdfaev",
+      "start_line": 166,
+      "end_line": 175,
+      "start_byte": 6153,
+      "end_byte": 6558,
+      "signature_hint": "function(plugin_id) local admin_client = helpers.admin_client() local url = \"/plugins/\" .. plugin_id local admin_res = assert(admin_client:patch(url, { headers = {[\"Content-Type\"] = \"application/json\"}, body = {enabled = false}, })) assert.equal(200, admin_res.status) admin_client:close() end",
+      "test_role": "support"
+    }
+  },
+  "files": {
+    "F113vm3e9yaq": {
+      "id": "F113vm3e9yaq",
+      "path": "/storage/cgg-test_repos/app-circuitbreaker-kong/.ci/scripts/bump-rockspec.sh",
+      "language": "bash",
+      "detected_via": "extension:.sh",
+      "blake3": "01ed6f80d1ac61609a3153212909662268ba4e8a32b95299ae9b4411a2bd343b",
+      "size_bytes": 499,
+      "lines": 22,
+      "parse_ms": 0.416228,
+      "parse_status": "ok"
+    },
+    "F165bliwldof": {
+      "id": "F165bliwldof",
+      "path": "/storage/cgg-test_repos/app-circuitbreaker-kong/.ci/scripts/install-deps.sh",
+      "language": "bash",
+      "detected_via": "extension:.sh",
+      "blake3": "07980ad0d4574311b2f67e8934d4f691cce1efbf7b29818ddc192987fa7d0478",
+      "size_bytes": 136,
+      "lines": 8,
+      "parse_ms": 0.06155000000000001,
+      "parse_status": "ok"
+    },
+    "F16r66xjf7pa": {
+      "id": "F16r66xjf7pa",
+      "path": "/storage/cgg-test_repos/app-circuitbreaker-kong/.ci/scripts/upload.sh",
+      "language": "bash",
+      "detected_via": "extension:.sh",
+      "blake3": "d7d61864c05a63132f512dae57f6848ba9b7f35489e3d79622d1c36789fa5c53",
+      "size_bytes": 85,
+      "lines": 2,
+      "parse_ms": 0.06094,
+      "parse_status": "ok"
+    },
+    "F11jjzooi1j9": {
+      "id": "F11jjzooi1j9",
+      "path": "/storage/cgg-test_repos/app-circuitbreaker-kong/.pongo/pongo-setup.sh",
+      "language": "bash",
+      "detected_via": "extension:.sh",
+      "blake3": "ae38c2e62895ea0cb5961c1359490c8754a8f393c75cb5f91dddd6d6564282a7",
+      "size_bytes": 61,
+      "lines": 2,
+      "parse_ms": 0.11987,
+      "parse_status": "ok"
+    },
+    "Fwouw3iippy": {
+      "id": "Fwouw3iippy",
+      "path": "/storage/cgg-test_repos/app-circuitbreaker-kong/kong/plugins/circuit-breaker/handler.lua",
+      "language": "lua",
+      "detected_via": "extension:.lua",
+      "blake3": "11851f7a6b1b1233a1628964390554f0b1e4ed5f2a82c9d6a8cb005f2732848f",
+      "size_bytes": 5149,
+      "lines": 165,
+      "parse_ms": 0.863685,
+      "parse_status": "ok"
+    },
+    "Fxcm2etf5tx": {
+      "id": "Fxcm2etf5tx",
+      "path": "/storage/cgg-test_repos/app-circuitbreaker-kong/kong/plugins/circuit-breaker/helpers.lua",
+      "language": "lua",
+      "detected_via": "extension:.lua",
+      "blake3": "0f0003404b31227d0322f451b67297a64fb2349981c0fbfb1539a4f35aa30450",
+      "size_bytes": 1529,
+      "lines": 46,
+      "parse_ms": 0.272179,
+      "parse_status": "ok"
+    },
+    "F139uu5thxpd": {
+      "id": "F139uu5thxpd",
+      "path": "/storage/cgg-test_repos/app-circuitbreaker-kong/kong/plugins/circuit-breaker/schema.lua",
+      "language": "lua",
+      "detected_via": "extension:.lua",
+      "blake3": "5d92b95e2c73d5f4297617d0b5d3747bd3d29e4123cc32b305533b6a2eff445d",
+      "size_bytes": 4148,
+      "lines": 127,
+      "parse_ms": 0.356308,
+      "parse_status": "ok"
+    },
+    "F12tphwdfaev": {
+      "id": "F12tphwdfaev",
+      "path": "/storage/cgg-test_repos/app-circuitbreaker-kong/spec/circuit-breaker/01-access_spec.lua",
+      "language": "lua",
+      "detected_via": "extension:.lua",
+      "blake3": "f4f7668e2aa7d3c4a68556b75732ebb7eb3adbc581b0593a73293425fd4f9cb8",
+      "size_bytes": 14389,
+      "lines": 372,
+      "parse_ms": 4.155439,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "F9ya7ow9hrr": {
+      "id": "F9ya7ow9hrr",
+      "path": "/storage/cgg-test_repos/app-circuitbreaker-kong/spec/circuit-breaker/fixtures.lua",
+      "language": "lua",
+      "detected_via": "extension:.lua",
+      "blake3": "cab951077bd237a219e0aed9a18c1ab8d3ecff27a6b924264d20337f7ad6831e",
+      "size_bytes": 1488,
+      "lines": 55,
+      "parse_ms": 0.101569,
+      "parse_status": "ok",
+      "test_role": "directory"
+    }
+  },
+  "edges": [
+    {
+      "src": "C180b69o7hga",
+      "dst": "C13adzdpko3n",
+      "site_line": 58,
+      "site_byte": 1726,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cvzxbvq8meb",
+      "dst": "C1vu74a4le7",
+      "site_line": 87,
+      "site_byte": 2579,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Co5oxfwgo93",
+      "dst": "Cpamvm8rm3d",
+      "site_line": 15,
+      "site_byte": 356,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C180b69o7hga",
+      "dst": "Co1dannvpjv",
+      "site_line": 46,
+      "site_byte": 1334,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C180b69o7hga",
+      "dst": "Ccyt5kxcbwy",
+      "site_line": 47,
+      "site_byte": 1393,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C1609xi5ypeo",
+      "dst": "Ccyt5kxcbwy",
+      "site_line": 103,
+      "site_byte": 2997,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C1609xi5ypeo",
+      "dst": "Civs6kd6i14",
+      "site_line": 115,
+      "site_byte": 3476,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 192,
+      "site_byte": 7028,
+      "name": "update_plugin",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 193,
+      "site_byte": 7106,
+      "name": "update_plugin",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 203,
+      "site_byte": 7475,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 210,
+      "site_byte": 7734,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 211,
+      "site_byte": 7775,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 212,
+      "site_byte": 7816,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 219,
+      "site_byte": 8062,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 221,
+      "site_byte": 8115,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 226,
+      "site_byte": 8309,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 229,
+      "site_byte": 8417,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 234,
+      "site_byte": 8623,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 237,
+      "site_byte": 8727,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 244,
+      "site_byte": 9004,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 247,
+      "site_byte": 9110,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 250,
+      "site_byte": 9306,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 252,
+      "site_byte": 9359,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 257,
+      "site_byte": 9562,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 261,
+      "site_byte": 9733,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 262,
+      "site_byte": 9774,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 264,
+      "site_byte": 9827,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 270,
+      "site_byte": 10123,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 274,
+      "site_byte": 10295,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 277,
+      "site_byte": 10404,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 281,
+      "site_byte": 10548,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 283,
+      "site_byte": 10643,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 286,
+      "site_byte": 10736,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 291,
+      "site_byte": 10896,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 293,
+      "site_byte": 10991,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 296,
+      "site_byte": 11084,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 299,
+      "site_byte": 11203,
+      "name": "update_plugin",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 300,
+      "site_byte": 11307,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 302,
+      "site_byte": 11402,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 305,
+      "site_byte": 11495,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 308,
+      "site_byte": 11605,
+      "name": "update_plugin",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 313,
+      "site_byte": 11814,
+      "name": "update_plugin",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 314,
+      "site_byte": 11913,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 316,
+      "site_byte": 12009,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 319,
+      "site_byte": 12099,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 325,
+      "site_byte": 12336,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 328,
+      "site_byte": 12474,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 331,
+      "site_byte": 12547,
+      "name": "disable_plugin",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 334,
+      "site_byte": 12718,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 337,
+      "site_byte": 12871,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 343,
+      "site_byte": 13088,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 345,
+      "site_byte": 13163,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 346,
+      "site_byte": 13222,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 347,
+      "site_byte": 13281,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 352,
+      "site_byte": 13502,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F12tphwdfaev",
+      "site_line": 354,
+      "site_byte": 13577,
+      "name": "get_and_assert",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 17.095633999999997,
+    "phases": {
+      "walk_ms": 4.992014999999999,
+      "parse_ms": 6.407768,
+      "extract_ms": 5.538802,
+      "resolve_ms": 0.0,
+      "link_ms": 1.686491,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 60,
+    "files_analyzed": 9,
+    "files_skipped": 51,
+    "files_errored": 0,
+    "bytes_processed": 27484,
+    "callables": 16,
+    "edges": 7,
+    "unresolved_calls": 98,
+    "stdlib_calls": 33,
+    "external_calls": 81,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "bash": {
+        "files": 4,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 7,
+        "external": 10
+      },
+      "lua": {
+        "files": 5,
+        "callables": 16,
+        "edges": 3,
+        "unresolved": 98,
+        "stdlib": 26,
+        "external": 71
+      },
+      "skip:builtin": {
+        "files": 31,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      },
+      "skip:binary": {
+        "files": 1,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 7,
+      "medium": 0,
+      "low": 0
+    }
+  }
+}

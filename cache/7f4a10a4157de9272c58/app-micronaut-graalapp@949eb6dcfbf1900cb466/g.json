@@ -1,0 +1,680 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "C15a9j9lxjxq": {
+      "id": "C15a9j9lxjxq",
+      "qualified_name": "warn",
+      "simple_name": "warn",
+      "kind": "function",
+      "language": "bash",
+      "file": "Fyqhpqfl9il",
+      "start_line": 52,
+      "end_line": 54,
+      "start_byte": 1517,
+      "end_byte": 1542,
+      "signature_hint": "warn ()"
+    },
+    "C11lye0zt6ha": {
+      "id": "C11lye0zt6ha",
+      "qualified_name": "die",
+      "simple_name": "die",
+      "kind": "function",
+      "language": "bash",
+      "file": "Fyqhpqfl9il",
+      "start_line": 56,
+      "end_line": 61,
+      "start_byte": 1544,
+      "end_byte": 1597,
+      "signature_hint": "die ()"
+    },
+    "C1iluk5i917": {
+      "id": "C1iluk5i917",
+      "qualified_name": "save",
+      "simple_name": "save",
+      "kind": "function",
+      "language": "bash",
+      "file": "Fyqhpqfl9il",
+      "start_line": 174,
+      "end_line": 177,
+      "start_byte": 5347,
+      "end_byte": 5454,
+      "signature_hint": "save ()"
+    },
+    "Clnsb0ri5le": {
+      "id": "Clnsb0ri5le",
+      "qualified_name": "example.micronaut.Application.main",
+      "simple_name": "main",
+      "kind": "method",
+      "language": "java",
+      "file": "F144d7dwia87",
+      "start_line": 7,
+      "end_line": 9,
+      "start_byte": 100,
+      "end_byte": 188,
+      "signature_hint": "public static void main(String[] args)",
+      "vis": "public"
+    },
+    "Cvmjsn5qagu": {
+      "id": "Cvmjsn5qagu",
+      "qualified_name": "example.micronaut.Conference.Conference",
+      "simple_name": "Conference",
+      "kind": "constructor",
+      "language": "java",
+      "file": "F8d2rzp09we",
+      "start_line": 10,
+      "end_line": 12,
+      "start_byte": 157,
+      "end_byte": 221,
+      "signature_hint": "public Conference(String name)",
+      "vis": "public"
+    },
+    "Cunlqz06h62": {
+      "id": "Cunlqz06h62",
+      "qualified_name": "example.micronaut.Conference.getName",
+      "simple_name": "getName",
+      "kind": "method",
+      "language": "java",
+      "file": "F8d2rzp09we",
+      "start_line": 14,
+      "end_line": 16,
+      "start_byte": 227,
+      "end_byte": 279,
+      "signature_hint": "public String getName()",
+      "vis": "public"
+    },
+    "C4ey4r1fca5": {
+      "id": "C4ey4r1fca5",
+      "qualified_name": "example.micronaut.Conference.setName",
+      "simple_name": "setName",
+      "kind": "method",
+      "language": "java",
+      "file": "F8d2rzp09we",
+      "start_line": 18,
+      "end_line": 20,
+      "start_byte": 285,
+      "end_byte": 351,
+      "signature_hint": "public void setName(String name)",
+      "vis": "public"
+    },
+    "C16e4o4956x5": {
+      "id": "C16e4o4956x5",
+      "qualified_name": "example.micronaut.ConferenceController.ConferenceController",
+      "simple_name": "ConferenceController",
+      "kind": "constructor",
+      "language": "java",
+      "file": "Fy14cfps0h9",
+      "start_line": 11,
+      "end_line": 13,
+      "start_byte": 250,
+      "end_byte": 381,
+      "signature_hint": "public ConferenceController(ConferenceService conferenceService)",
+      "vis": "public"
+    },
+    "Cp6ipdqco81": {
+      "id": "Cp6ipdqco81",
+      "qualified_name": "example.micronaut.ConferenceController.randomConf",
+      "simple_name": "randomConf",
+      "kind": "method",
+      "language": "java",
+      "file": "Fy14cfps0h9",
+      "start_line": 15,
+      "end_line": 18,
+      "start_byte": 387,
+      "end_byte": 506,
+      "signature_hint": "@Get(\"/random\") // <3> public Conference randomConf()",
+      "attributes": [
+        "@Get(\"/random\")"
+      ],
+      "vis": "public"
+    },
+    "C45f9sv08vd": {
+      "id": "C45f9sv08vd",
+      "qualified_name": "example.micronaut.ConferenceService.randomConf",
+      "simple_name": "randomConf",
+      "kind": "method",
+      "language": "java",
+      "file": "F13b058jw19m",
+      "start_line": 21,
+      "end_line": 23,
+      "start_byte": 579,
+      "end_byte": 698,
+      "signature_hint": "public Conference randomConf()",
+      "vis": "public"
+    },
+    "C72iq13n09j": {
+      "id": "C72iq13n09j",
+      "qualified_name": "example.micronaut.ConferenceControllerTest.testHello",
+      "simple_name": "testHello",
+      "kind": "method",
+      "language": "java",
+      "file": "F620he4hhje",
+      "start_line": 20,
+      "end_line": 25,
+      "start_byte": 453,
+      "end_byte": 671,
+      "signature_hint": "@Test public void testHello() throws Exception",
+      "attributes": [
+        "@Test"
+      ],
+      "vis": "public",
+      "test_role": "support"
+    },
+    "Cs0mtcs3uus": {
+      "id": "Cs0mtcs3uus",
+      "qualified_name": "warn",
+      "simple_name": "warn",
+      "kind": "function",
+      "language": "bash",
+      "file": "Fd2dv2doufq",
+      "start_line": 52,
+      "end_line": 54,
+      "start_byte": 1517,
+      "end_byte": 1542,
+      "signature_hint": "warn ()"
+    },
+    "Cfotzrpry0m": {
+      "id": "Cfotzrpry0m",
+      "qualified_name": "die",
+      "simple_name": "die",
+      "kind": "function",
+      "language": "bash",
+      "file": "Fd2dv2doufq",
+      "start_line": 56,
+      "end_line": 61,
+      "start_byte": 1544,
+      "end_byte": 1597,
+      "signature_hint": "die ()"
+    },
+    "Cv7k8a0qp78": {
+      "id": "Cv7k8a0qp78",
+      "qualified_name": "save",
+      "simple_name": "save",
+      "kind": "function",
+      "language": "bash",
+      "file": "Fd2dv2doufq",
+      "start_line": 174,
+      "end_line": 177,
+      "start_byte": 5347,
+      "end_byte": 5454,
+      "signature_hint": "save ()"
+    },
+    "Ckfsl0dpro2": {
+      "id": "Ckfsl0dpro2",
+      "qualified_name": "<framework-entry>::network::micronaut::Get(\"/random\")",
+      "simple_name": "Get(\"/random\")",
+      "kind": "function",
+      "language": "java",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "@Get(\"/random\")"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "C1fuuwhpgef": {
+      "id": "C1fuuwhpgef",
+      "qualified_name": "<framework-entry>::test::junit",
+      "simple_name": "junit",
+      "kind": "function",
+      "language": "java",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "@Test"
+      ],
+      "synthetic": true,
+      "framework_entry": "test"
+    }
+  },
+  "files": {
+    "F4nbv2hj1bg": {
+      "id": "F4nbv2hj1bg",
+      "path": "/storage/cgg-test_repos/app-micronaut-graalapp/build.gradle",
+      "language": "groovy",
+      "detected_via": "extension:.gradle",
+      "blake3": "40e4438390c85b0a11be33d33d41529b986e29d7e91443346e2003875a651385",
+      "size_bytes": 349,
+      "lines": 11,
+      "parse_ms": 0.17398000000000002,
+      "parse_status": "ok"
+    },
+    "Fyul0gynf0h": {
+      "id": "Fyul0gynf0h",
+      "path": "/storage/cgg-test_repos/app-micronaut-graalapp/complete/build-native-image.sh",
+      "language": "bash",
+      "detected_via": "extension:.sh",
+      "blake3": "ce175622edf16201bbc28e3b242e4763affda25812e891dfa8145e4e4b3e8726",
+      "size_bytes": 65,
+      "lines": 2,
+      "parse_ms": 0.028839999999999998,
+      "parse_status": "ok"
+    },
+    "Fa6umdnwr1r": {
+      "id": "Fa6umdnwr1r",
+      "path": "/storage/cgg-test_repos/app-micronaut-graalapp/complete/build.gradle",
+      "language": "groovy",
+      "detected_via": "extension:.gradle",
+      "blake3": "73c50588781b8914593303826f653f731e40a2c93aefbde9a4a2cc9ee9119c23",
+      "size_bytes": 870,
+      "lines": 40,
+      "parse_ms": 0.18445,
+      "parse_status": "ok"
+    },
+    "Fyqhpqfl9il": {
+      "id": "Fyqhpqfl9il",
+      "path": "/storage/cgg-test_repos/app-micronaut-graalapp/complete/gradlew",
+      "language": "bash",
+      "detected_via": "shebang:sh",
+      "blake3": "25c076aaf44a5d9b82e7a618222cdc63549c6e750188e86cb4d593ed811076bf",
+      "size_bytes": 5960,
+      "lines": 188,
+      "parse_ms": 2.223254,
+      "parse_status": "error"
+    },
+    "F144d7dwia87": {
+      "id": "F144d7dwia87",
+      "path": "/storage/cgg-test_repos/app-micronaut-graalapp/complete/src/main/java/example/micronaut/Application.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "abb0bce49273da8300903cfca7beb1aa860f1f3b369ea9368fca3a678247a6cf",
+      "size_bytes": 190,
+      "lines": 10,
+      "parse_ms": 0.08502,
+      "parse_status": "ok"
+    },
+    "F8d2rzp09we": {
+      "id": "F8d2rzp09we",
+      "path": "/storage/cgg-test_repos/app-micronaut-graalapp/complete/src/main/java/example/micronaut/Conference.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "bc6284981837e8d43f43e70b349df7e62634ba54654379c90901d237f29bb050",
+      "size_bytes": 354,
+      "lines": 21,
+      "parse_ms": 0.20719,
+      "parse_status": "ok"
+    },
+    "Fy14cfps0h9": {
+      "id": "Fy14cfps0h9",
+      "path": "/storage/cgg-test_repos/app-micronaut-graalapp/complete/src/main/java/example/micronaut/ConferenceController.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "abb7a2747ca9745271073eee4ce850b8b2d47cb84c3ce92053c346c20d41f534",
+      "size_bytes": 509,
+      "lines": 19,
+      "parse_ms": 0.158509,
+      "parse_status": "ok"
+    },
+    "F13b058jw19m": {
+      "id": "F13b058jw19m",
+      "path": "/storage/cgg-test_repos/app-micronaut-graalapp/complete/src/main/java/example/micronaut/ConferenceService.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "bf3f265f47abd6d91e1c50891e58cb63c3421204b1151c45dbca7089a2d01ae9",
+      "size_bytes": 701,
+      "lines": 24,
+      "parse_ms": 0.24500900000000003,
+      "parse_status": "ok"
+    },
+    "F620he4hhje": {
+      "id": "F620he4hhje",
+      "path": "/storage/cgg-test_repos/app-micronaut-graalapp/complete/src/test/java/example/micronaut/ConferenceControllerTest.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "3ce262a68388dbb63280c26f4beca557171b8fafff78e23f8cf5cdf35d747bab",
+      "size_bytes": 674,
+      "lines": 26,
+      "parse_ms": 0.22683999999999999,
+      "parse_status": "ok",
+      "test_role": "language-rule"
+    },
+    "Fd2dv2doufq": {
+      "id": "Fd2dv2doufq",
+      "path": "/storage/cgg-test_repos/app-micronaut-graalapp/gradlew",
+      "language": "bash",
+      "detected_via": "shebang:sh",
+      "blake3": "25c076aaf44a5d9b82e7a618222cdc63549c6e750188e86cb4d593ed811076bf",
+      "size_bytes": 5960,
+      "lines": 188,
+      "parse_ms": 1.263717,
+      "parse_status": "error"
+    },
+    "Fbr9m42wwyy": {
+      "id": "Fbr9m42wwyy",
+      "path": "/storage/cgg-test_repos/app-micronaut-graalapp/settings.gradle",
+      "language": "groovy",
+      "detected_via": "extension:.gradle",
+      "blake3": "4a50c8c88e2c10ca482b4d9ee9a7ceb0dc24207ab745a43a9d3b318e0a0c5d6d",
+      "size_bytes": 63,
+      "lines": 3,
+      "parse_ms": 0.03451,
+      "parse_status": "ok"
+    },
+    "Fl1vjzfqilb": {
+      "id": "Fl1vjzfqilb",
+      "path": "/storage/cgg-test_repos/app-micronaut-graalapp/travis-build-pr.sh",
+      "language": "bash",
+      "detected_via": "shebang:bash",
+      "blake3": "888d830c8bdd61fd0031997fe58e1029aec5e2b041406b687e765536b0ff171a",
+      "size_bytes": 60,
+      "lines": 6,
+      "parse_ms": 0.028759999999999997,
+      "parse_status": "ok"
+    },
+    "Fx3qu9h36o1": {
+      "id": "Fx3qu9h36o1",
+      "path": "/storage/cgg-test_repos/app-micronaut-graalapp/travis-build.sh",
+      "language": "bash",
+      "detected_via": "shebang:bash",
+      "blake3": "d04965120ba1533b53572b5288f13479063815c2264095a44a6653d5446cc41c",
+      "size_bytes": 428,
+      "lines": 16,
+      "parse_ms": 0.05068,
+      "parse_status": "ok"
+    },
+    "Fn7kcdjzuh1": {
+      "id": "Fn7kcdjzuh1",
+      "path": "<framework-entry>",
+      "language": "framework-entry",
+      "detected_via": "synthesized",
+      "blake3": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 0,
+      "lines": 0,
+      "parse_ms": 0.0,
+      "parse_status": "synthetic"
+    }
+  },
+  "edges": [
+    {
+      "src": "Cp6ipdqco81",
+      "dst": "C45f9sv08vd",
+      "site_line": 17,
+      "site_byte": 469,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ckfsl0dpro2",
+      "dst": "Cp6ipdqco81",
+      "site_line": 15,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "micronaut"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C1fuuwhpgef",
+      "dst": "C72iq13n09j",
+      "site_line": 20,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "junit"
+      },
+      "resolver": "framework-entry"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": null,
+      "file": "Fyqhpqfl9il",
+      "site_line": 94,
+      "site_byte": 2256,
+      "name": "die",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fyqhpqfl9il",
+      "site_line": 101,
+      "site_byte": 2491,
+      "name": "die",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fyqhpqfl9il",
+      "site_line": 116,
+      "site_byte": 3055,
+      "name": "warn",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fyqhpqfl9il",
+      "site_line": 119,
+      "site_byte": 3143,
+      "name": "warn",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fyqhpqfl9il",
+      "site_line": 178,
+      "site_byte": 5466,
+      "name": "save",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F13b058jw19m",
+      "site_line": 12,
+      "site_byte": 268,
+      "name": "Conference",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F13b058jw19m",
+      "site_line": 13,
+      "site_byte": 306,
+      "name": "Conference",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F13b058jw19m",
+      "site_line": 14,
+      "site_byte": 348,
+      "name": "Conference",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F13b058jw19m",
+      "site_line": 15,
+      "site_byte": 396,
+      "name": "Conference",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F13b058jw19m",
+      "site_line": 16,
+      "site_byte": 442,
+      "name": "Conference",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F13b058jw19m",
+      "site_line": 17,
+      "site_byte": 489,
+      "name": "Conference",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F13b058jw19m",
+      "site_line": 18,
+      "site_byte": 531,
+      "name": "Conference",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd2dv2doufq",
+      "site_line": 94,
+      "site_byte": 2256,
+      "name": "die",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd2dv2doufq",
+      "site_line": 101,
+      "site_byte": 2491,
+      "name": "die",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd2dv2doufq",
+      "site_line": 116,
+      "site_byte": 3055,
+      "name": "warn",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd2dv2doufq",
+      "site_line": 119,
+      "site_byte": 3143,
+      "name": "warn",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd2dv2doufq",
+      "site_line": 178,
+      "site_byte": 5466,
+      "name": "save",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 10.176163,
+    "phases": {
+      "walk_ms": 3.93355,
+      "parse_ms": 4.9107590000000005,
+      "extract_ms": 1.2511639999999993,
+      "resolve_ms": 0.0,
+      "link_ms": 1.570176,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 70,
+    "files_analyzed": 13,
+    "files_skipped": 57,
+    "files_errored": 0,
+    "bytes_processed": 16183,
+    "callables": 16,
+    "edges": 3,
+    "unresolved_calls": 27,
+    "stdlib_calls": 41,
+    "external_calls": 49,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "groovy": {
+        "files": 3,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 2,
+        "external": 26
+      },
+      "bash": {
+        "files": 5,
+        "callables": 6,
+        "edges": 0,
+        "unresolved": 20,
+        "stdlib": 34,
+        "external": 18
+      },
+      "java": {
+        "files": 5,
+        "callables": 8,
+        "edges": 0,
+        "unresolved": 7,
+        "stdlib": 5,
+        "external": 5
+      },
+      "skip:builtin": {
+        "files": 30,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      },
+      "skip:binary": {
+        "files": 3,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 0,
+      "medium": 1,
+      "low": 0
+    }
+  }
+}

@@ -1,0 +1,460 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "bash",
+      "class": "script-driven",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 4,
+      "callables": 20,
+      "roots": 3,
+      "reachable": 20,
+      "reachable_pct": 100,
+      "findings": 0
+    },
+    {
+      "language": "rust",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "full",
+      "test_tagging": "full",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "builtin:main",
+        "framework:rule"
+      ],
+      "files": 9,
+      "callables": 63,
+      "roots": 2,
+      "reachable": 61,
+      "reachable_pct": 96,
+      "findings": 2,
+      "blind_spots": [
+        "calls inside macro arguments (format!, writeln!, vec!, assert_eq!)",
+        "symbols named only in attribute string literals (#[serde(deserialize_with = \"…\")]) — serde's are recorded as doubt, never as edges",
+        "functions passed as values inside macro arguments (format!(\"{}\", x.map(f))) — recorded as doubt, never as edges"
+      ]
+    },
+    {
+      "language": "typescript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 5,
+      "callables": 7,
+      "roots": 1,
+      "reachable": 2,
+      "reachable_pct": 28,
+      "findings": 5,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 90,
+    "edges": 173,
+    "unresolved_call_sites": 30,
+    "roots": 6,
+    "candidates": 7,
+    "reported": 7,
+    "regions": 4
+  },
+  "roots": [
+    {
+      "id": "C164ezn5kmet",
+      "qualified_name": "main",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-wificonnect-iron/scripts/raspbian-install.sh:214"
+    },
+    {
+      "id": "C9zrzqxj3l1",
+      "qualified_name": "cross",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-wificonnect-iron/scripts/local-build.sh:19"
+    },
+    {
+      "id": "C2ij9tszt85",
+      "qualified_name": "main",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-wificonnect-iron/scripts/raspbian-install.sh:214"
+    },
+    {
+      "id": "Cpe646ldxzt",
+      "qualified_name": "wifi_connect::main",
+      "language": "rust",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cy6ocb5dyrp",
+      "qualified_name": "wifi_connect::server::<StringError as fmt::Display>::fmt",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Ct6ibqcrfg9",
+      "qualified_name": "App",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-wificonnect-iron/ui/src/components/App.tsx:103"
+    }
+  ],
+  "regions": [
+    {
+      "id": 31,
+      "members": [
+        "Coypqju56y9"
+      ],
+      "anchors": [
+        "Coypqju56y9"
+      ],
+      "files": [
+        "Faj7mbbh4h6"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 79,
+      "members": [
+        "Chm8wqp5hzo"
+      ],
+      "anchors": [
+        "Chm8wqp5hzo"
+      ],
+      "files": [
+        "Fvben7zk96b"
+      ],
+      "total_lines": 15,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 85,
+      "members": [
+        "Cazif0s3m7l",
+        "Ct5opc91jef",
+        "C1515cnt07uu",
+        "C17m356ugi6"
+      ],
+      "anchors": [
+        "C17m356ugi6"
+      ],
+      "files": [
+        "Fhbdr3uw2g5"
+      ],
+      "total_lines": 97,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 89,
+      "members": [
+        "Cburlh7t4pm"
+      ],
+      "anchors": [
+        "Cburlh7t4pm"
+      ],
+      "files": [
+        "F4tklt9gmvs"
+      ],
+      "total_lines": 37,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Chm8wqp5hzo",
+      "qualified_name": "wifi_connect::server::<RedirectMiddleware as AfterMiddleware>::catch",
+      "simple_name": "catch",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "trait_method",
+      "file": "Fvben7zk96b",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/src/server.rs",
+      "start_line": 117,
+      "end_line": 131,
+      "size_lines": 15,
+      "signature_hint": "fn catch(&self, req: &mut Request, err: IronError) -> IronResult<Response>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 115,
+      "region": 79,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "AfterMiddleware"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Coypqju56y9",
+      "qualified_name": "wifi_connect::logger::format",
+      "simple_name": "format",
+      "language": "rust",
+      "kind": "closure",
+      "def_variant": "named_closure",
+      "file": "Faj7mbbh4h6",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/src/logger.rs",
+      "start_line": 11,
+      "end_line": 22,
+      "size_lines": 12,
+      "signature_hint": "let format = |record: &LogRecord|",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 12,
+      "region": 31,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 1
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17m356ugi6",
+      "qualified_name": "NetworkInfoForm",
+      "simple_name": "NetworkInfoForm",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fhbdr3uw2g5",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/ui/src/components/NetworkInfoForm.tsx",
+      "start_line": 69,
+      "end_line": 111,
+      "size_lines": 43,
+      "signature_hint": "NetworkInfoForm = ({ availableNetworks, onSubmit, }: NetworkInfoFormProps) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -57,
+      "region": 85,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cburlh7t4pm",
+      "qualified_name": "Notifications",
+      "simple_name": "Notifications",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4tklt9gmvs",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/ui/src/components/Notifications.tsx",
+      "start_line": 4,
+      "end_line": 40,
+      "size_lines": 37,
+      "signature_hint": "Notifications = ({ hasAvailableNetworks, attemptedConnect, error, }: { hasAvailableNetworks: boolean; attemptedConnect: boolean; error: string; }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -63,
+      "region": 89,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cazif0s3m7l",
+      "qualified_name": "getSchema",
+      "simple_name": "getSchema",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fhbdr3uw2g5",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/ui/src/components/NetworkInfoForm.tsx",
+      "start_line": 7,
+      "end_line": 31,
+      "size_lines": 25,
+      "signature_hint": "getSchema = (availableNetworks: Network[])",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -75,
+      "region": 85,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C17m356ugi6"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ct5opc91jef",
+      "qualified_name": "getUiSchema",
+      "simple_name": "getUiSchema",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fhbdr3uw2g5",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/ui/src/components/NetworkInfoForm.tsx",
+      "start_line": 33,
+      "end_line": 52,
+      "size_lines": 20,
+      "signature_hint": "getUiSchema = (isEnterprise: boolean)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -80,
+      "region": 85,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C17m356ugi6"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1515cnt07uu",
+      "qualified_name": "isEnterpriseNetwork",
+      "simple_name": "isEnterpriseNetwork",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fhbdr3uw2g5",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/ui/src/components/NetworkInfoForm.tsx",
+      "start_line": 54,
+      "end_line": 62,
+      "size_lines": 9,
+      "signature_hint": "isEnterpriseNetwork = ( networks: Network[], selectedNetworkSsid?: string, ) =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 85,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C17m356ugi6"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

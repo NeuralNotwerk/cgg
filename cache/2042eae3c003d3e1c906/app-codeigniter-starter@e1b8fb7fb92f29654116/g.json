@@ -1,0 +1,1435 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "C143bpbam764": {
+      "id": "C143bpbam764",
+      "qualified_name": "Database::__construct",
+      "simple_name": "__construct",
+      "kind": "method",
+      "language": "php",
+      "file": "Fwauu3skd3j",
+      "start_line": 193,
+      "end_line": 203,
+      "start_byte": 5969,
+      "end_byte": 6328,
+      "signature_hint": "public function __construct()"
+    },
+    "C3p30odltgr": {
+      "id": "C3p30odltgr",
+      "qualified_name": "Exceptions::handler",
+      "simple_name": "handler",
+      "kind": "method",
+      "language": "php",
+      "file": "Fkfrji3asg4",
+      "start_line": 102,
+      "end_line": 105,
+      "start_byte": 3853,
+      "end_byte": 3998,
+      "signature_hint": "public function handler(int $statusCode, Throwable $exception)"
+    },
+    "C2xuq9c8cjm": {
+      "id": "C2xuq9c8cjm",
+      "qualified_name": "Mimes::guessTypeFromExtension",
+      "simple_name": "guessTypeFromExtension",
+      "kind": "method",
+      "language": "php",
+      "file": "Fnk7s00zaxs",
+      "start_line": 491,
+      "end_line": 500,
+      "start_byte": 14225,
+      "end_byte": 14571,
+      "signature_hint": "public static function guessTypeFromExtension(string $extension)"
+    },
+    "Ckuuwvg0glj": {
+      "id": "Ckuuwvg0glj",
+      "qualified_name": "Mimes::guessExtensionFromType",
+      "simple_name": "guessExtensionFromType",
+      "kind": "method",
+      "language": "php",
+      "file": "Fnk7s00zaxs",
+      "start_line": 509,
+      "end_line": 533,
+      "start_byte": 14886,
+      "end_byte": 15753,
+      "signature_hint": "public static function guessExtensionFromType(string $type, ?string $proposedExtension = null)"
+    },
+    "Ckx6g5t4prz": {
+      "id": "Ckx6g5t4prz",
+      "qualified_name": "BaseController::initController",
+      "simple_name": "initController",
+      "kind": "method",
+      "language": "php",
+      "file": "Fmh0a4j1ih0",
+      "start_line": 33,
+      "end_line": 44,
+      "start_byte": 780,
+      "end_byte": 1349,
+      "signature_hint": "public function initController(RequestInterface $request, ResponseInterface $response, LoggerInterface $logger)"
+    },
+    "C13cj9cdyqvi": {
+      "id": "C13cj9cdyqvi",
+      "qualified_name": "Home::index",
+      "simple_name": "index",
+      "kind": "method",
+      "language": "php",
+      "file": "F12ubj85zoc5",
+      "start_line": 7,
+      "end_line": 10,
+      "start_byte": 75,
+      "end_byte": 158,
+      "signature_hint": "public function index()"
+    },
+    "Chrfw7zpab1": {
+      "id": "Chrfw7zpab1",
+      "qualified_name": "init",
+      "simple_name": "init",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F2qesmzq9l4",
+      "start_line": 4,
+      "end_line": 49,
+      "start_byte": 63,
+      "end_byte": 1231,
+      "signature_hint": "function init()"
+    },
+    "C8q8uawcxpb": {
+      "id": "C8q8uawcxpb",
+      "qualified_name": "onfocus",
+      "simple_name": "onfocus",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F2qesmzq9l4",
+      "start_line": 27,
+      "end_line": 29,
+      "start_byte": 792,
+      "end_byte": 862,
+      "signature_hint": "tabLinks[id].onfocus = function ()"
+    },
+    "Czeppvnnmm0": {
+      "id": "Czeppvnnmm0",
+      "qualified_name": "showTab",
+      "simple_name": "showTab",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F2qesmzq9l4",
+      "start_line": 51,
+      "end_line": 73,
+      "start_byte": 1233,
+      "end_byte": 1822,
+      "signature_hint": "function showTab()"
+    },
+    "Cn5y2m7la74": {
+      "id": "Cn5y2m7la74",
+      "qualified_name": "getFirstChildWithTagName",
+      "simple_name": "getFirstChildWithTagName",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F2qesmzq9l4",
+      "start_line": 75,
+      "end_line": 84,
+      "start_byte": 1824,
+      "end_byte": 2065,
+      "signature_hint": "function getFirstChildWithTagName(element, tagName)"
+    },
+    "Csnag0j61ww": {
+      "id": "Csnag0j61ww",
+      "qualified_name": "getHash",
+      "simple_name": "getHash",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F2qesmzq9l4",
+      "start_line": 86,
+      "end_line": 90,
+      "start_byte": 2067,
+      "end_byte": 2171,
+      "signature_hint": "function getHash(url)"
+    },
+    "C4edlci46a1": {
+      "id": "C4edlci46a1",
+      "qualified_name": "toggle",
+      "simple_name": "toggle",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F2qesmzq9l4",
+      "start_line": 92,
+      "end_line": 116,
+      "start_byte": 2173,
+      "end_byte": 2819,
+      "signature_hint": "function toggle(elem)"
+    },
+    "C4e4m4wq6v3": {
+      "id": "C4e4m4wq6v3",
+      "qualified_name": "preload::__construct",
+      "simple_name": "__construct",
+      "kind": "method",
+      "language": "php",
+      "file": "F10pdlmzc24k",
+      "start_line": 69,
+      "end_line": 72,
+      "start_byte": 2098,
+      "end_byte": 2172,
+      "signature_hint": "public function __construct()"
+    },
+    "C17ej8pgdn91": {
+      "id": "C17ej8pgdn91",
+      "qualified_name": "preload::loadAutoloader",
+      "simple_name": "loadAutoloader",
+      "kind": "method",
+      "language": "php",
+      "file": "F10pdlmzc24k",
+      "start_line": 74,
+      "end_line": 80,
+      "start_byte": 2178,
+      "end_byte": 2382,
+      "signature_hint": "private function loadAutoloader()"
+    },
+    "C6pbno4nlol": {
+      "id": "C6pbno4nlol",
+      "qualified_name": "preload::load",
+      "simple_name": "load",
+      "kind": "method",
+      "language": "php",
+      "file": "F10pdlmzc24k",
+      "start_line": 85,
+      "end_line": 109,
+      "start_byte": 2427,
+      "end_byte": 3374,
+      "signature_hint": "public function load()"
+    },
+    "Cpuhe2rfq0w": {
+      "id": "Cpuhe2rfq0w",
+      "qualified_name": "ExampleMigration::up",
+      "simple_name": "up",
+      "kind": "method",
+      "language": "php",
+      "file": "Fqv2zy8zk6u",
+      "start_line": 11,
+      "end_line": 31,
+      "start_byte": 172,
+      "end_byte": 1074,
+      "signature_hint": "public function up()",
+      "test_role": "support"
+    },
+    "C4lg77d8iqk": {
+      "id": "C4lg77d8iqk",
+      "qualified_name": "ExampleMigration::down",
+      "simple_name": "down",
+      "kind": "method",
+      "language": "php",
+      "file": "Fqv2zy8zk6u",
+      "start_line": 33,
+      "end_line": 36,
+      "start_byte": 1080,
+      "end_byte": 1166,
+      "signature_hint": "public function down()",
+      "test_role": "support"
+    },
+    "Cmreek0l057": {
+      "id": "Cmreek0l057",
+      "qualified_name": "ExampleSeeder::run",
+      "simple_name": "run",
+      "kind": "method",
+      "language": "php",
+      "file": "F9ll3zqbm6d",
+      "start_line": 9,
+      "end_line": 40,
+      "start_byte": 123,
+      "end_byte": 1210,
+      "signature_hint": "public function run()",
+      "test_role": "support"
+    },
+    "C17oa1gyit3": {
+      "id": "C17oa1gyit3",
+      "qualified_name": "ConfigReader::__construct",
+      "simple_name": "__construct",
+      "kind": "method",
+      "language": "php",
+      "file": "Fidwe0qzs2c",
+      "start_line": 16,
+      "end_line": 18,
+      "start_byte": 279,
+      "end_byte": 320,
+      "signature_hint": "public function __construct()",
+      "test_role": "support"
+    },
+    "C66qhpboieu": {
+      "id": "C66qhpboieu",
+      "qualified_name": "ExampleDatabaseTest::testModelFindAll",
+      "simple_name": "testModelFindAll",
+      "kind": "method",
+      "language": "php",
+      "file": "Feggio2a75d",
+      "start_line": 17,
+      "end_line": 26,
+      "start_byte": 327,
+      "end_byte": 593,
+      "signature_hint": "public function testModelFindAll()",
+      "test_role": "support"
+    },
+    "Ciotf30901m": {
+      "id": "Ciotf30901m",
+      "qualified_name": "ExampleDatabaseTest::testSoftDeleteLeavesRow",
+      "simple_name": "testSoftDeleteLeavesRow",
+      "kind": "method",
+      "language": "php",
+      "file": "Feggio2a75d",
+      "start_line": 28,
+      "end_line": 45,
+      "start_byte": 599,
+      "end_byte": 1223,
+      "signature_hint": "public function testSoftDeleteLeavesRow()",
+      "test_role": "support"
+    },
+    "Co9gi8vkdqa": {
+      "id": "Co9gi8vkdqa",
+      "qualified_name": "ExampleSessionTest::testSessionSimple",
+      "simple_name": "testSessionSimple",
+      "kind": "method",
+      "language": "php",
+      "file": "Fifqqxg40wb",
+      "start_line": 10,
+      "end_line": 16,
+      "start_byte": 126,
+      "end_byte": 320,
+      "signature_hint": "public function testSessionSimple()",
+      "test_role": "support"
+    },
+    "Cwq3cjjxpmv": {
+      "id": "Cwq3cjjxpmv",
+      "qualified_name": "HealthTest::testIsDefinedAppPath",
+      "simple_name": "testIsDefinedAppPath",
+      "kind": "method",
+      "language": "php",
+      "file": "Fmrhkkuzbgl",
+      "start_line": 12,
+      "end_line": 15,
+      "start_byte": 176,
+      "end_byte": 279,
+      "signature_hint": "public function testIsDefinedAppPath()",
+      "test_role": "support"
+    },
+    "C145mgj29zxo": {
+      "id": "C145mgj29zxo",
+      "qualified_name": "HealthTest::testBaseUrlHasBeenSet",
+      "simple_name": "testBaseUrlHasBeenSet",
+      "kind": "method",
+      "language": "php",
+      "file": "Fmrhkkuzbgl",
+      "start_line": 17,
+      "end_line": 48,
+      "start_byte": 285,
+      "end_byte": 1437,
+      "signature_hint": "public function testBaseUrlHasBeenSet()",
+      "test_role": "support"
+    },
+    "Ccsgvwzvink": {
+      "id": "Ccsgvwzvink",
+      "qualified_name": "<framework-entry>::network::codeigniter::BaseController::initController",
+      "simple_name": "initController",
+      "kind": "function",
+      "language": "php",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "declares `Controller`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cso4hy7od6u": {
+      "id": "Cso4hy7od6u",
+      "qualified_name": "<framework-entry>::network::codeigniter::get(\"/\")",
+      "simple_name": "get(\"/\")",
+      "kind": "function",
+      "language": "php",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `$routes::get(\"/\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    }
+  },
+  "files": {
+    "Fdujtxyx7wr": {
+      "id": "Fdujtxyx7wr",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Common.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "7c4d2615fc691c41a424bf9978deaa9ce58dda1d028665fe609faa61dedd26e5",
+      "size_bytes": 521,
+      "lines": 15,
+      "parse_ms": 0.06751,
+      "parse_status": "ok"
+    },
+    "Fv6fb1mi13y": {
+      "id": "Fv6fb1mi13y",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/App.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "ff0946e075bcabbb1db618c0fd1c879ccdb83c636e0b8455b1a0b322ff5005bc",
+      "size_bytes": 7906,
+      "lines": 202,
+      "parse_ms": 0.309338,
+      "parse_status": "ok"
+    },
+    "Fgcqoom6ocd": {
+      "id": "Fgcqoom6ocd",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Autoload.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "1930acf3db9af914fa87380a475b9f0480a47dcb7aab08b22ddb97ead8e48e7b",
+      "size_bytes": 3009,
+      "lines": 92,
+      "parse_ms": 0.086459,
+      "parse_status": "ok"
+    },
+    "Fxuligx9423": {
+      "id": "Fxuligx9423",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Boot/development.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "98c618e96a3a874c89f4b1c3f14fbd480c7a569d5caa46c524b4c8f3640dd448",
+      "size_bytes": 1362,
+      "lines": 34,
+      "parse_ms": 0.073489,
+      "parse_status": "ok"
+    },
+    "Fh55mg16vf1": {
+      "id": "Fh55mg16vf1",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Boot/production.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "53c255d79e48d5479681117c63c85df3d9226e4f3ee6f56db9cf823a1a017956",
+      "size_bytes": 1005,
+      "lines": 25,
+      "parse_ms": 0.0522,
+      "parse_status": "ok"
+    },
+    "F70zz00rqia": {
+      "id": "F70zz00rqia",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Boot/testing.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "fb9c82c96608ee6a10f0bbaf6cafb376673045397bde457059925dba0dd3d1f0",
+      "size_bytes": 1444,
+      "lines": 38,
+      "parse_ms": 0.149149,
+      "parse_status": "ok"
+    },
+    "F5yg7sh0yzq": {
+      "id": "F5yg7sh0yzq",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/CURLRequest.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "46879a08c68ad46a4b5eb74e3ea89167968a4f72aceee2456e1429309c30e835",
+      "size_bytes": 1074,
+      "lines": 36,
+      "parse_ms": 0.08393,
+      "parse_status": "ok"
+    },
+    "F14bii8ot5nu": {
+      "id": "F14bii8ot5nu",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Cache.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "afb063c85eb56b22f23b1012b4344c7cf1f67f8519b42ee97f4807e0a75247b3",
+      "size_bytes": 7251,
+      "lines": 198,
+      "parse_ms": 0.599747,
+      "parse_status": "ok"
+    },
+    "Fxyoidlfcx9": {
+      "id": "Fxyoidlfcx9",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Constants.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "0afdd13cda0fc22d9def2733d8061e2732f1c0499d888d0f4bd8a1c14845ca8b",
+      "size_bytes": 3640,
+      "lines": 79,
+      "parse_ms": 0.494598,
+      "parse_status": "ok"
+    },
+    "F64mnhnadad": {
+      "id": "F64mnhnadad",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/ContentSecurityPolicy.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "6eefa1939662387202d2d3f4d2fbfb147aad45fcef56bc080d7f004d8a7f86c5",
+      "size_bytes": 5239,
+      "lines": 216,
+      "parse_ms": 0.430188,
+      "parse_status": "ok"
+    },
+    "Fi0vx0ul41u": {
+      "id": "Fi0vx0ul41u",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Cookie.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "3f7749eb62ffc4bc8c23242aeabe06a3288b209aab8b2ba0c81eb749606ce29b",
+      "size_bytes": 3546,
+      "lines": 107,
+      "parse_ms": 0.19230899999999998,
+      "parse_status": "ok"
+    },
+    "Ftzxvrveqni": {
+      "id": "Ftzxvrveqni",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Cors.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "0ae3cdfbf141dbd1dae5a8a13f9e4c5533b79e76d9ec4db0e703d35e52f374ae",
+      "size_bytes": 3511,
+      "lines": 105,
+      "parse_ms": 0.18515900000000002,
+      "parse_status": "ok"
+    },
+    "Fwauu3skd3j": {
+      "id": "Fwauu3skd3j",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Database.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "e22b8734d707e576978c26fee43ba12984dfe35d5720eb758ffbd38ef1ce5c3d",
+      "size_bytes": 6331,
+      "lines": 204,
+      "parse_ms": 0.840736,
+      "parse_status": "ok"
+    },
+    "F14qjrr966i3": {
+      "id": "F14qjrr966i3",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/DocTypes.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "4e67c2c1909aef1efc3e1ca2453a8ac49d2baa0fcabfbe0a7710a7b6e05160c0",
+      "size_bytes": 3058,
+      "lines": 43,
+      "parse_ms": 0.278129,
+      "parse_status": "ok"
+    },
+    "F7vnbh78xbi": {
+      "id": "F7vnbh78xbi",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Email.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "cdc2a0e4644e76666c6783cf1ed7eb31bfb31905d0cbc3fa309b15b6e472ae70",
+      "size_bytes": 2456,
+      "lines": 126,
+      "parse_ms": 0.382448,
+      "parse_status": "ok"
+    },
+    "Fzfvl84pa9w": {
+      "id": "Fzfvl84pa9w",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Encryption.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "edf8396ff01d330f0fb304b6a614a957c8f321c63bee81336dccbc43949e7cf7",
+      "size_bytes": 3570,
+      "lines": 109,
+      "parse_ms": 0.216029,
+      "parse_status": "ok"
+    },
+    "F1q1k1ngu3y": {
+      "id": "F1q1k1ngu3y",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Events.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "6294e9a23d27c7089c9fdfd905b83f16fc26d6fb93bbd36a253308bdc3b9a695",
+      "size_bytes": 1956,
+      "lines": 57,
+      "parse_ms": 0.21995900000000002,
+      "parse_status": "ok"
+    },
+    "Fkfrji3asg4": {
+      "id": "Fkfrji3asg4",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Exceptions.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "aba819b92f23883b2c990878409f988f5d0edd3265b41c98075a88a15a36293d",
+      "size_bytes": 4001,
+      "lines": 106,
+      "parse_ms": 0.188259,
+      "parse_status": "ok"
+    },
+    "F9la58nrpfi": {
+      "id": "F9la58nrpfi",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Feature.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "b127715e5d9a5bb089b248f7cb592e40498f70a3fe680b0d3c14c049f5e80cb1",
+      "size_bytes": 1024,
+      "lines": 37,
+      "parse_ms": 0.212059,
+      "parse_status": "ok"
+    },
+    "F3m2rgtox1p": {
+      "id": "F3m2rgtox1p",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Filters.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "eec1ea797fd09012db8c19aa2b5283ba9276d702e0b085dd4c11b7465e4b676d",
+      "size_bytes": 3334,
+      "lines": 110,
+      "parse_ms": 0.31750799999999996,
+      "parse_status": "ok"
+    },
+    "Fqyyepfndyo": {
+      "id": "Fqyyepfndyo",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/ForeignCharacters.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "2b2f3c2d9ae8ad3b93258b9902941770009d0b521b3e5a573a57db0263e029d7",
+      "size_bytes": 174,
+      "lines": 12,
+      "parse_ms": 0.02266,
+      "parse_status": "ok"
+    },
+    "F7louz0ubj6": {
+      "id": "F7louz0ubj6",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Format.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "923bd1bd4ac4a7d0eaf8a32e4e5fd24b65d2c2e35ff013c8bbcd6746a7e8ba34",
+      "size_bytes": 2560,
+      "lines": 73,
+      "parse_ms": 0.14008900000000002,
+      "parse_status": "ok"
+    },
+    "Fc99ben4q8s": {
+      "id": "Fc99ben4q8s",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Generators.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "bf4df3b0c78d148251a8d34d314263a39ac91008be10b28677b6a5230e9da933",
+      "size_bytes": 2133,
+      "lines": 44,
+      "parse_ms": 0.15348900000000001,
+      "parse_status": "ok"
+    },
+    "Fq4urlw8k0h": {
+      "id": "Fq4urlw8k0h",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Honeypot.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "364c361fbe93a6b497265e7ee16538615b18ea2538ab6fda7139b1afa42ed5fd",
+      "size_bytes": 855,
+      "lines": 42,
+      "parse_ms": 0.084609,
+      "parse_status": "ok"
+    },
+    "Fw2d21ml68t": {
+      "id": "Fw2d21ml68t",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Hostnames.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "a51fef08b0ba69a923f49149f41e52a5e4a6bbbbf07fa25ba3641dcdb618c58d",
+      "size_bytes": 2243,
+      "lines": 40,
+      "parse_ms": 1.472973,
+      "parse_status": "ok"
+    },
+    "Fdczcjyx4po": {
+      "id": "Fdczcjyx4po",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Images.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "21ebd9a9214d5bd2d7587a1203b8aaa0dd48548d7531c5646da39baa679aab30",
+      "size_bytes": 756,
+      "lines": 33,
+      "parse_ms": 0.200499,
+      "parse_status": "ok"
+    },
+    "Fyfoleryp20": {
+      "id": "Fyfoleryp20",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Kint.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "106d257f53eabfbe7e748b3e342654251c8ea76809d4b37a383222740946db43",
+      "size_bytes": 1887,
+      "lines": 63,
+      "parse_ms": 0.316448,
+      "parse_status": "ok"
+    },
+    "F13cbfmdvg20": {
+      "id": "F13cbfmdvg20",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Logger.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "c6f973ff25c586ec53c6ff68b902b49bbbc27195b9e9c6f6a8556400456d2ef3",
+      "size_bytes": 6060,
+      "lines": 151,
+      "parse_ms": 0.49875699999999995,
+      "parse_status": "ok"
+    },
+    "Fe1ctrpn1ty": {
+      "id": "Fe1ctrpn1ty",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Migrations.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "a42039833358bce90123a6d9759576eaa5257bc29320edc064c2f08f3df8eef3",
+      "size_bytes": 2156,
+      "lines": 65,
+      "parse_ms": 0.178589,
+      "parse_status": "ok"
+    },
+    "Fnk7s00zaxs": {
+      "id": "Fnk7s00zaxs",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Mimes.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "149578993b6699267fcd6c716f99eec592393db9b56e200d5916d33ba4d78c15",
+      "size_bytes": 15756,
+      "lines": 534,
+      "parse_ms": 5.4691719999999995,
+      "parse_status": "ok"
+    },
+    "F14vn2vx2dqy": {
+      "id": "F14vn2vx2dqy",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Modules.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "8c17a4143637dad5d14800537a87a849adee2b326a4e1e4f46d35cd09def1d89",
+      "size_bytes": 2296,
+      "lines": 82,
+      "parse_ms": 0.09105,
+      "parse_status": "ok"
+    },
+    "Fg89kai2tw9": {
+      "id": "Fg89kai2tw9",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Optimize.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "73e240bfc9e374320520ebbd760e170c99d3226116c883170f4cfe60ef5ce867",
+      "size_bytes": 1008,
+      "lines": 32,
+      "parse_ms": 0.039969000000000005,
+      "parse_status": "ok"
+    },
+    "Fpds3uy7pp7": {
+      "id": "Fpds3uy7pp7",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Pager.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "2f56ab51d10ac81a37df51d2bacca22895a274d5b60021e20d9f2eab07c627b1",
+      "size_bytes": 1189,
+      "lines": 37,
+      "parse_ms": 0.07452,
+      "parse_status": "ok"
+    },
+    "Fsmt8scy7y3": {
+      "id": "Fsmt8scy7y3",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Paths.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "df705c68ff44fb50f9fede03338ea0b58453aa0bd268c78a9ec063319c764802",
+      "size_bytes": 3334,
+      "lines": 90,
+      "parse_ms": 0.118349,
+      "parse_status": "ok"
+    },
+    "F11ewcr17h1u": {
+      "id": "F11ewcr17h1u",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Publisher.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "3433e35573e3ea9096d0705e1488443f102862de1145cd73f55b55faa08f7a6f",
+      "size_bytes": 807,
+      "lines": 28,
+      "parse_ms": 0.043029,
+      "parse_status": "ok"
+    },
+    "F931aakejxy": {
+      "id": "F931aakejxy",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Routes.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "6b0f4b7b5e53c48fb8a594f51074bad8f9a6c54f3d5039ee73d28cd9e1ac103c",
+      "size_bytes": 118,
+      "lines": 6,
+      "parse_ms": 0.02585,
+      "parse_status": "ok"
+    },
+    "F7xb6d0stoq": {
+      "id": "F7xb6d0stoq",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Routing.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "6dac6d3ca3b3c67677c17441c322a77c5c9f412aa7a29a5fdc9cf8c5ae599419",
+      "size_bytes": 3949,
+      "lines": 149,
+      "parse_ms": 0.19819900000000001,
+      "parse_status": "ok"
+    },
+    "Fl5505izysm": {
+      "id": "Fl5505izysm",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Security.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "ec0c46e26f5858e71db3b3759abc2af44f35ce1492135e8e760f5556684489b3",
+      "size_bytes": 2853,
+      "lines": 86,
+      "parse_ms": 0.1298,
+      "parse_status": "ok"
+    },
+    "Fiv31lg9nh8": {
+      "id": "Fiv31lg9nh8",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Services.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "1c223c7b0dba4764ca27db3da89a1253962838d962150e0c27255320c3a40724",
+      "size_bytes": 921,
+      "lines": 32,
+      "parse_ms": 0.02602,
+      "parse_status": "ok"
+    },
+    "Ffs3gjdq0b": {
+      "id": "Ffs3gjdq0b",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Session.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "2fc1b49f0e4c56591f676890f27cfc7a5d0ffcb690f61fdba9585ff5d2894a4b",
+      "size_bytes": 4640,
+      "lines": 128,
+      "parse_ms": 0.176729,
+      "parse_status": "ok"
+    },
+    "Fw62urnj9db": {
+      "id": "Fw62urnj9db",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Toolbar.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "b9555c3016479fe72f25a4fe2776ec1cd7c6534f4767a6e186213963927b6a7a",
+      "size_bytes": 5775,
+      "lines": 147,
+      "parse_ms": 0.308678,
+      "parse_status": "ok"
+    },
+    "F4mgcucbtqf": {
+      "id": "F4mgcucbtqf",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/UserAgents.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "7f06cdafe54a7c3f218d1f296101373a37f0703450627910fe92fe5a336394f0",
+      "size_bytes": 10327,
+      "lines": 262,
+      "parse_ms": 1.639901,
+      "parse_status": "ok"
+    },
+    "Ffe914g8tps": {
+      "id": "Ffe914g8tps",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Validation.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "7fa0ad4814c80cc875a4100aff452438d69689149c90ef349618f19d7313522f",
+      "size_bytes": 1192,
+      "lines": 44,
+      "parse_ms": 0.11181899999999999,
+      "parse_status": "ok"
+    },
+    "F3oj5qt4l8b": {
+      "id": "F3oj5qt4l8b",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/View.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "c70b369c933acefcd8d9f81c591e0d491adcf01bc76703c5ca1f27fa3336945c",
+      "size_bytes": 2544,
+      "lines": 73,
+      "parse_ms": 0.171419,
+      "parse_status": "ok"
+    },
+    "Fjbmevfub83": {
+      "id": "Fjbmevfub83",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/WorkerMode.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "03f03413181709d171fe6d0c8a795df59a3611c21f60334f4e9ad58b6e98e44e",
+      "size_bytes": 1722,
+      "lines": 62,
+      "parse_ms": 0.10731,
+      "parse_status": "ok"
+    },
+    "Fmh0a4j1ih0": {
+      "id": "Fmh0a4j1ih0",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Controllers/BaseController.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "3fa287920ed9c60e98cce6de4fb18b5fa68ccd751eb4fc9135dca31865a88158",
+      "size_bytes": 1352,
+      "lines": 45,
+      "parse_ms": 0.11352,
+      "parse_status": "ok"
+    },
+    "F12ubj85zoc5": {
+      "id": "F12ubj85zoc5",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Controllers/Home.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "94689afaccb514bcec5fac1a31262091053cf564f7dfa331416b374ac1c2ddd0",
+      "size_bytes": 161,
+      "lines": 11,
+      "parse_ms": 0.03661,
+      "parse_status": "ok"
+    },
+    "Ftozt1yju8x": {
+      "id": "Ftozt1yju8x",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Language/en/Validation.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "5a21d3ca0c7d1576dde0489e09cb50ef8002f8f672d119aefe8ba19e2c50c5bc",
+      "size_bytes": 115,
+      "lines": 4,
+      "parse_ms": 0.00841,
+      "parse_status": "ok"
+    },
+    "Fp0vyfhckum": {
+      "id": "Fp0vyfhckum",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Views/errors/cli/error_404.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "c34e3f1b0d3fe9cd657dbcc9d3b11a70f7d0f1b5b50eea67420d7a616d85cf06",
+      "size_bytes": 102,
+      "lines": 7,
+      "parse_ms": 0.038729999999999994,
+      "parse_status": "ok"
+    },
+    "Fwdaalm8ge4": {
+      "id": "Fwdaalm8ge4",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Views/errors/cli/error_exception.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "6c43ab580561bdee6178b1406983cc898cf57bc13bc049281a046ff9663834d2",
+      "size_bytes": 2207,
+      "lines": 65,
+      "parse_ms": 0.727177,
+      "parse_status": "ok"
+    },
+    "F14teaalzlx0": {
+      "id": "F14teaalzlx0",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Views/errors/cli/production.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "6ff3bb5dcffc02fed19150aae7165e8c9e0a9d2d336ceb4cd085e258125dac33",
+      "size_bytes": 139,
+      "lines": 5,
+      "parse_ms": 0.01509,
+      "parse_status": "ok"
+    },
+    "F2qesmzq9l4": {
+      "id": "F2qesmzq9l4",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Views/errors/html/debug.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "a73828d0d8b3c7ef2817ea30cd0c7954a055b0311cde6bd8493b5b94ed7d3679",
+      "size_bytes": 2820,
+      "lines": 116,
+      "parse_ms": 0.5491969999999999,
+      "parse_status": "ok"
+    },
+    "F1f0yp1t2cb": {
+      "id": "F1f0yp1t2cb",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Views/errors/html/error_400.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "985225302494c425160cd075738b77316585e0dac81ddadc7d23cbf929023b5a",
+      "size_bytes": 1997,
+      "lines": 84,
+      "parse_ms": 0.108769,
+      "parse_status": "ok"
+    },
+    "F37q5hj2l09": {
+      "id": "F37q5hj2l09",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Views/errors/html/error_404.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "eec5f8fa6f7d057f82bf52a92fb1811fa5482a56b731a9616e682644f0ca7674",
+      "size_bytes": 2039,
+      "lines": 84,
+      "parse_ms": 0.0942,
+      "parse_status": "ok"
+    },
+    "Femibe71be6": {
+      "id": "Femibe71be6",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Views/errors/html/error_exception.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "471c78eec9006d7d3f54c9689d27df98e7959999f091e48c198641d8aaef5eea",
+      "size_bytes": 16998,
+      "lines": 429,
+      "parse_ms": 2.7156469999999997,
+      "parse_status": "error"
+    },
+    "Fhhdp67a107": {
+      "id": "Fhhdp67a107",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Views/errors/html/production.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "77a6c8e3eb15e551e4e36d33766a85bd942b82c9b1c8b4771b8ffeaaf48985c5",
+      "size_bytes": 500,
+      "lines": 25,
+      "parse_ms": 0.127599,
+      "parse_status": "ok"
+    },
+    "Fb4c12okd1s": {
+      "id": "Fb4c12okd1s",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Views/welcome_message.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "10d9759ea480b857a421020cab3c650d0d2bac4e6e7efb7397975854881e16b7",
+      "size_bytes": 17352,
+      "lines": 331,
+      "parse_ms": 0.625827,
+      "parse_status": "ok"
+    },
+    "F12g2d8wo16a": {
+      "id": "F12g2d8wo16a",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/builds",
+      "language": "php",
+      "detected_via": "shebang:php",
+      "blake3": "852deece02ebc07376d36da69b613e4c49c8ff6da54a81cd8c1082f8dc39b283",
+      "size_bytes": 4129,
+      "lines": 128,
+      "parse_ms": 0.9860750000000001,
+      "parse_status": "ok"
+    },
+    "F10pdlmzc24k": {
+      "id": "F10pdlmzc24k",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/preload.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "2428c5fa13dcbd3639187238b774e737973569a8482b8e10abcceffa31cef050",
+      "size_bytes": 3403,
+      "lines": 112,
+      "parse_ms": 0.367578,
+      "parse_status": "ok"
+    },
+    "Fvod81ibuf0": {
+      "id": "Fvod81ibuf0",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/public/index.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "5db2dd92806318cf67e0038c651be13273debf630b2d4f34bc6bbcee3e914926",
+      "size_bytes": 1730,
+      "lines": 59,
+      "parse_ms": 0.15664,
+      "parse_status": "ok"
+    },
+    "Fsj4jwyz3xj": {
+      "id": "Fsj4jwyz3xj",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/spark",
+      "language": "php",
+      "detected_via": "shebang:php",
+      "blake3": "608cf3bb323809c24ee7c7c2b624b2ac48d0331cf2729273ce5515d0ef210d9f",
+      "size_bytes": 2668,
+      "lines": 87,
+      "parse_ms": 0.189379,
+      "parse_status": "ok"
+    },
+    "Fqv2zy8zk6u": {
+      "id": "Fqv2zy8zk6u",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/tests/_support/Database/Migrations/2020-02-22-222222_example_migration.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "51f31d5ad4435efc6e3d34c2f03fc6987acc11c794a490835c1a7266e82ce943",
+      "size_bytes": 1169,
+      "lines": 37,
+      "parse_ms": 0.262509,
+      "parse_status": "ok",
+      "test_role": "directory"
+    },
+    "F9ll3zqbm6d": {
+      "id": "F9ll3zqbm6d",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/tests/_support/Database/Seeds/ExampleSeeder.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "2ac99c30f56d481236caf9fcda70fbc10b17cc7a6d6562b3dfb51bd4d5934880",
+      "size_bytes": 1213,
+      "lines": 41,
+      "parse_ms": 0.18729900000000002,
+      "parse_status": "ok",
+      "test_role": "directory"
+    },
+    "Fidwe0qzs2c": {
+      "id": "Fidwe0qzs2c",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/tests/_support/Libraries/ConfigReader.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "c4a48f3f49c94061ce8c3a47c1e5a5a2e0c72a0cbc22bd618aa5b76b04906b9e",
+      "size_bytes": 323,
+      "lines": 19,
+      "parse_ms": 0.031279999999999995,
+      "parse_status": "ok",
+      "test_role": "directory"
+    },
+    "Fbmlitllhol": {
+      "id": "Fbmlitllhol",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/tests/_support/Models/ExampleModel.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "26ae4564a6d2f87d53f945a546b3a9783a174e8d52367f972233869341586173",
+      "size_bytes": 554,
+      "lines": 24,
+      "parse_ms": 0.09741999999999999,
+      "parse_status": "ok",
+      "test_role": "directory"
+    },
+    "Feggio2a75d": {
+      "id": "Feggio2a75d",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/tests/database/ExampleDatabaseTest.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "b13c1d002a344ef10bcf0441628a94bfc9873defa98231c5e2a71dc1191a390c",
+      "size_bytes": 1226,
+      "lines": 46,
+      "parse_ms": 0.210109,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "Fifqqxg40wb": {
+      "id": "Fifqqxg40wb",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/tests/session/ExampleSessionTest.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "df4e08f71bf11228750a5f02634734ce56f7e3b8c0c9024bd9b09fadc16cd833",
+      "size_bytes": 323,
+      "lines": 17,
+      "parse_ms": 0.06435,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "Fmrhkkuzbgl": {
+      "id": "Fmrhkkuzbgl",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/tests/unit/HealthTest.php",
+      "language": "php",
+      "detected_via": "extension:.php",
+      "blake3": "cba9e63a632e5ffc1c6b86f9d9d6d168a7d48c0ef74df2f39fac8e8ff8d2b6f3",
+      "size_bytes": 1440,
+      "lines": 49,
+      "parse_ms": 0.203819,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "Fn7kcdjzuh1": {
+      "id": "Fn7kcdjzuh1",
+      "path": "<framework-entry>",
+      "language": "framework-entry",
+      "detected_via": "synthesized",
+      "blake3": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 0,
+      "lines": 0,
+      "parse_ms": 0.0,
+      "parse_status": "synthetic"
+    }
+  },
+  "edges": [
+    {
+      "src": "Chrfw7zpab1",
+      "dst": "Cn5y2m7la74",
+      "site_line": 13,
+      "site_byte": 379,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Chrfw7zpab1",
+      "dst": "Csnag0j61ww",
+      "site_line": 14,
+      "site_byte": 457,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Czeppvnnmm0",
+      "dst": "Csnag0j61ww",
+      "site_line": 53,
+      "site_byte": 1275,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4e4m4wq6v3",
+      "dst": "C17ej8pgdn91",
+      "site_line": 71,
+      "site_byte": 2142,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C145mgj29zxo",
+      "dst": "C17oa1gyit3",
+      "site_line": 41,
+      "site_byte": 1164,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ccsgvwzvink",
+      "dst": "Ckx6g5t4prz",
+      "site_line": 33,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "codeigniter"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cso4hy7od6u",
+      "dst": "C13cj9cdyqvi",
+      "site_line": 6,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "codeigniter"
+      },
+      "resolver": "framework-entry"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": null,
+      "file": "Femibe71be6",
+      "site_line": 124,
+      "site_byte": 4894,
+      "name": "__construct",
+      "receiver_hint": "ReflectionMethod",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Femibe71be6",
+      "site_line": 124,
+      "site_byte": 4950,
+      "name": "__construct",
+      "receiver_hint": "ReflectionFunction",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "C17ej8pgdn91",
+      "file": "F10pdlmzc24k",
+      "site_line": 76,
+      "site_byte": 2241,
+      "name": "__construct",
+      "receiver_hint": "Paths",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "C6pbno4nlol",
+      "file": "F10pdlmzc24k",
+      "site_line": 88,
+      "site_byte": 2529,
+      "name": "__construct",
+      "receiver_hint": "RecursiveDirectoryIterator",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "C6pbno4nlol",
+      "file": "F10pdlmzc24k",
+      "site_line": 89,
+      "site_byte": 2604,
+      "name": "__construct",
+      "receiver_hint": "RecursiveIteratorIterator",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "C6pbno4nlol",
+      "file": "F10pdlmzc24k",
+      "site_line": 90,
+      "site_byte": 2672,
+      "name": "__construct",
+      "receiver_hint": "RegexIterator",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvod81ibuf0",
+      "site_line": 54,
+      "site_byte": 1602,
+      "name": "__construct",
+      "receiver_hint": "Paths",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fsj4jwyz3xj",
+      "site_line": 82,
+      "site_byte": 2538,
+      "name": "__construct",
+      "receiver_hint": "Paths",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "C66qhpboieu",
+      "file": "Feggio2a75d",
+      "site_line": 19,
+      "site_byte": 391,
+      "name": "__construct",
+      "receiver_hint": "ExampleModel",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "Ciotf30901m",
+      "file": "Feggio2a75d",
+      "site_line": 30,
+      "site_byte": 670,
+      "name": "__construct",
+      "receiver_hint": "ExampleModel",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "C145mgj29zxo",
+      "file": "Fmrhkkuzbgl",
+      "site_line": 32,
+      "site_byte": 804,
+      "name": "__construct",
+      "receiver_hint": "App",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 23.504063,
+    "phases": {
+      "walk_ms": 5.522063,
+      "parse_ms": 25.096364000000005,
+      "extract_ms": 0.0,
+      "resolve_ms": 0.0,
+      "link_ms": 1.648232,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 133,
+    "files_analyzed": 68,
+    "files_skipped": 65,
+    "files_errored": 0,
+    "bytes_processed": 206453,
+    "callables": 26,
+    "edges": 7,
+    "unresolved_calls": 11,
+    "stdlib_calls": 171,
+    "external_calls": 207,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "php": {
+        "files": 67,
+        "callables": 18,
+        "edges": 1,
+        "unresolved": 11,
+        "stdlib": 160,
+        "external": 204
+      },
+      "javascript": {
+        "files": 1,
+        "callables": 6,
+        "edges": 3,
+        "unresolved": 0,
+        "stdlib": 11,
+        "external": 3
+      },
+      "skip:builtin": {
+        "files": 32,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      },
+      "skip:binary": {
+        "files": 1,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 5,
+      "medium": 0,
+      "low": 0
+    }
+  }
+}

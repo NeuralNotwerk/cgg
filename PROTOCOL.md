@@ -52,6 +52,7 @@ pointers — line numbers drift, re-locate by symbol).
    `cargo build --release -p cgg` then `python3 scripts/docs-check.py`
 5. Correctness A/B over the WHOLE corpus (never a subset):
    `python3 target/remediation/tools/graph_ab.py target/remediation/bins/<WS>-before target/release/cgg target/remediation/ab/<WS> --parallel 6`
+   (a shim for `scripts/graph-ab.py`; results are cached by binary sha256 + repo git state in `target/remediation/cache`, so the baseline side is a cache hit when it is the previous workstream's final binary. Copy `target/release/cgg` to `bins/` ONLY with `target/remediation/tools/stash_bin.sh <NAME>` (records sha256, `--version` and source commit in `bins/MANIFEST.tsv`; refuses to overwrite) and pass that copy, never a binary you will overwrite mid-run. Every build now prints its identity: `cgg 0.11.0 (dev g<commit>+d<diff>)` for interim builds, bare `cgg 0.11.0` only for official ones. Never install an interim build into PATH; commit with `CGG_INSTALL_DIR=""`, and the hook also refuses to replace an official install.)
    (≈15–25 min). Read report.txt, by_language.tsv. Classify EVERY dropped
    and added edge and every dead-high change into pattern classes with
    counts (script it over dropped.jsonl/added.jsonl/changed.jsonl/

@@ -1,0 +1,2107 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "powershell",
+      "class": "script-driven",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 31,
+      "callables": 62,
+      "roots": 1,
+      "reachable": 1,
+      "reachable_pct": 1,
+      "findings": 25
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 62,
+    "edges": 23,
+    "unresolved_call_sites": 395,
+    "roots": 1,
+    "candidates": 61,
+    "reported": 25,
+    "regions": 39,
+    "withheld": [
+      {
+        "language": "powershell",
+        "category": "reachable-only-from-dead-code",
+        "reason": "script-driven",
+        "would_have_reported": 6
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Cfmb9s32lh6",
+      "qualified_name": "CreateTestModule",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/powershell-psget/Test/PublishPSResource.Tests.ps1:100"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "Cgn79to1699"
+      ],
+      "anchors": [
+        "Cgn79to1699"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 1,
+      "members": [
+        "C4e8qrywqcs"
+      ],
+      "anchors": [
+        "C4e8qrywqcs"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 2,
+      "members": [
+        "C7fbwrctfis"
+      ],
+      "anchors": [
+        "C7fbwrctfis"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 3,
+      "members": [
+        "Cligknf7taj"
+      ],
+      "anchors": [
+        "Cligknf7taj"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 4,
+      "members": [
+        "Cirbrt8ohhs"
+      ],
+      "anchors": [
+        "Cirbrt8ohhs"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 5,
+      "members": [
+        "Cttintbl1i2"
+      ],
+      "anchors": [
+        "Cttintbl1i2"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 6,
+      "members": [
+        "Chi00ves86j"
+      ],
+      "anchors": [
+        "Chi00ves86j"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 7,
+      "members": [
+        "Cd2xc4ddn5a"
+      ],
+      "anchors": [
+        "Cd2xc4ddn5a"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 8,
+      "members": [
+        "Cahta2p93rr"
+      ],
+      "anchors": [
+        "Cahta2p93rr"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 9,
+      "members": [
+        "C7b1bna5ty"
+      ],
+      "anchors": [
+        "C7b1bna5ty"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 10,
+      "members": [
+        "C16el4ika1i3"
+      ],
+      "anchors": [
+        "C16el4ika1i3"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 11,
+      "members": [
+        "C55q56pf864"
+      ],
+      "anchors": [
+        "C55q56pf864"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 12,
+      "members": [
+        "Cntnt7sopl3"
+      ],
+      "anchors": [
+        "Cntnt7sopl3"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 13,
+      "members": [
+        "Cxqbw2nmkdg"
+      ],
+      "anchors": [
+        "Cxqbw2nmkdg"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 14,
+      "members": [
+        "C68r1lecmt9"
+      ],
+      "anchors": [
+        "C68r1lecmt9"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 15,
+      "members": [
+        "C16w5h25d1u4"
+      ],
+      "anchors": [
+        "C16w5h25d1u4"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 16,
+      "members": [
+        "C2pi84upmkq"
+      ],
+      "anchors": [
+        "C2pi84upmkq"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 17,
+      "members": [
+        "C15zrosbn9yy"
+      ],
+      "anchors": [
+        "C15zrosbn9yy"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 22,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 18,
+      "members": [
+        "Cdbm8agppbg"
+      ],
+      "anchors": [
+        "Cdbm8agppbg"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 19,
+      "members": [
+        "C133soyv0q54"
+      ],
+      "anchors": [
+        "C133soyv0q54"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 20,
+      "members": [
+        "Ccx8kkund6g",
+        "C10tzex4qj9",
+        "C15wruifmoix",
+        "C131f15tim7g",
+        "Cpdodk8d4es",
+        "Clr9ul4nctd",
+        "Cz8ab4kvel4",
+        "Cbuxerhhdde"
+      ],
+      "anchors": [
+        "C10tzex4qj9",
+        "C15wruifmoix",
+        "C131f15tim7g",
+        "Cpdodk8d4es",
+        "Clr9ul4nctd",
+        "Cz8ab4kvel4"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 285,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 26,
+      "members": [
+        "C68z66ctk17",
+        "Ccj4u9fit83"
+      ],
+      "anchors": [
+        "Ccj4u9fit83"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 71,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 29,
+      "members": [
+        "Cqwee5mz0gb"
+      ],
+      "anchors": [
+        "Cqwee5mz0gb"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 23,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 30,
+      "members": [
+        "C15wrb0bzk2s"
+      ],
+      "anchors": [
+        "C15wrb0bzk2s"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 32,
+      "members": [
+        "C7d2ow6dnw7"
+      ],
+      "anchors": [
+        "C7d2ow6dnw7"
+      ],
+      "files": [
+        "F1601cp4gd3s"
+      ],
+      "total_lines": 54,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 34,
+      "members": [
+        "Cotg9hpzhhy",
+        "Co26msyo4ro",
+        "Cx5bjyprjna",
+        "Cakorkfc4zn",
+        "Cpgwhvub1ct",
+        "Ccyi96sh82e",
+        "Cn5ebpk1flt",
+        "Cp7s2tvwzoo",
+        "C60s1off9w9",
+        "C15tf2xf282o",
+        "C4xkee4g0uu",
+        "C17qqlgkdki7",
+        "Clnohc3m70t",
+        "C9rpm9xen1j",
+        "Ceziewvkfdb"
+      ],
+      "anchors": [
+        "Cakorkfc4zn",
+        "Cpgwhvub1ct",
+        "Ccyi96sh82e",
+        "Cn5ebpk1flt",
+        "Cp7s2tvwzoo",
+        "C60s1off9w9",
+        "C15tf2xf282o",
+        "C4xkee4g0uu",
+        "C17qqlgkdki7",
+        "Clnohc3m70t",
+        "C9rpm9xen1j",
+        "Ceziewvkfdb"
+      ],
+      "files": [
+        "F1qwtyjcp0c"
+      ],
+      "total_lines": 1672,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 37,
+      "members": [
+        "C4hgga9px25"
+      ],
+      "anchors": [
+        "C4hgga9px25"
+      ],
+      "files": [
+        "F1qwtyjcp0c"
+      ],
+      "total_lines": 125,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 38,
+      "members": [
+        "C2guu424chu"
+      ],
+      "anchors": [
+        "C2guu424chu"
+      ],
+      "files": [
+        "F1qwtyjcp0c"
+      ],
+      "total_lines": 124,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 40,
+      "members": [
+        "C3lirldxs52"
+      ],
+      "anchors": [
+        "C3lirldxs52"
+      ],
+      "files": [
+        "F1qwtyjcp0c"
+      ],
+      "total_lines": 62,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 44,
+      "members": [
+        "Cuy8yoedxjk"
+      ],
+      "anchors": [
+        "Cuy8yoedxjk"
+      ],
+      "files": [
+        "F1qwtyjcp0c"
+      ],
+      "total_lines": 64,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 47,
+      "members": [
+        "Cj1js290epv"
+      ],
+      "anchors": [
+        "Cj1js290epv"
+      ],
+      "files": [
+        "F1qwtyjcp0c"
+      ],
+      "total_lines": 148,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 48,
+      "members": [
+        "Cr3e8nbx052"
+      ],
+      "anchors": [
+        "Cr3e8nbx052"
+      ],
+      "files": [
+        "F1qwtyjcp0c"
+      ],
+      "total_lines": 142,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 49,
+      "members": [
+        "Cbulgb7w4dh"
+      ],
+      "anchors": [
+        "Cbulgb7w4dh"
+      ],
+      "files": [
+        "F1qwtyjcp0c"
+      ],
+      "total_lines": 94,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 50,
+      "members": [
+        "Czk8gber8uf"
+      ],
+      "anchors": [
+        "Czk8gber8uf"
+      ],
+      "files": [
+        "F1qwtyjcp0c"
+      ],
+      "total_lines": 132,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 53,
+      "members": [
+        "Cn9hycc2ww5"
+      ],
+      "anchors": [
+        "Cn9hycc2ww5"
+      ],
+      "files": [
+        "F1qwtyjcp0c"
+      ],
+      "total_lines": 126,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 54,
+      "members": [
+        "C13s6yidxr48"
+      ],
+      "anchors": [
+        "C13s6yidxr48"
+      ],
+      "files": [
+        "F1qwtyjcp0c"
+      ],
+      "total_lines": 75,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 57,
+      "members": [
+        "C56vzu46fo4"
+      ],
+      "anchors": [
+        "C56vzu46fo4"
+      ],
+      "files": [
+        "F1qwtyjcp0c"
+      ],
+      "total_lines": 68,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 60,
+      "members": [
+        "Cq4t80gwqdj"
+      ],
+      "anchors": [
+        "Cq4t80gwqdj"
+      ],
+      "files": [
+        "F1qwtyjcp0c"
+      ],
+      "total_lines": 143,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 61,
+      "members": [
+        "C3q56fcdefm"
+      ],
+      "anchors": [
+        "C3q56fcdefm"
+      ],
+      "files": [
+        "F1qwtyjcp0c"
+      ],
+      "total_lines": 153,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Ceziewvkfdb",
+      "qualified_name": "Update-Script",
+      "simple_name": "Update-Script",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 2764,
+      "end_line": 2880,
+      "size_lines": 117,
+      "signature_hint": "function Update-Script",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1183,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cakorkfc4zn",
+      "qualified_name": "Find-Module",
+      "simple_name": "Find-Module",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 410,
+      "end_line": 564,
+      "size_lines": 155,
+      "signature_hint": "function Find-Module",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1645,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Find-Module",
+          "sites": 25,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F15scu052fpb",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/FindPSResource.Tests.ps1",
+            "line": 26,
+            "name": "Find-Module"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C3q56fcdefm",
+      "qualified_name": "Update-ScriptFileInfo",
+      "simple_name": "Update-ScriptFileInfo",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 3026,
+      "end_line": 3178,
+      "size_lines": 153,
+      "signature_hint": "function Update-ScriptFileInfo",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1647,
+      "region": 61,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Update-ScriptFileInfo",
+          "sites": 21,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fvjms5lgce7",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/UpdatePSScriptFileInfo.Tests.ps1",
+            "line": 45,
+            "name": "Update-ScriptFileInfo"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C15tf2xf282o",
+      "qualified_name": "Save-Module",
+      "simple_name": "Save-Module",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 1849,
+      "end_line": 1999,
+      "size_lines": 151,
+      "signature_hint": "function Save-Module",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1649,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Save-Module",
+          "sites": 13,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fq4q2wu87eu",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/SavePSResource.Tests.ps1",
+            "line": 38,
+            "name": "Save-Module"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C4xkee4g0uu",
+      "qualified_name": "Save-Script",
+      "simple_name": "Save-Script",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 2001,
+      "end_line": 2150,
+      "size_lines": 150,
+      "signature_hint": "function Save-Script",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1650,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Save-Script",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fq4q2wu87eu",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/SavePSResource.Tests.ps1",
+            "line": 85,
+            "name": "Save-Script"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cp7s2tvwzoo",
+      "qualified_name": "Install-Module",
+      "simple_name": "Install-Module",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 1037,
+      "end_line": 1184,
+      "size_lines": 148,
+      "signature_hint": "function Install-Module",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1652,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Install-Module",
+          "sites": 63,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F4itzl9w4yr",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/InstallPSResource.Tests.ps1",
+            "line": 37,
+            "name": "Install-Module"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cj1js290epv",
+      "qualified_name": "New-ScriptFileInfo",
+      "simple_name": "New-ScriptFileInfo",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 1329,
+      "end_line": 1476,
+      "size_lines": 148,
+      "signature_hint": "function New-ScriptFileInfo",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1652,
+      "region": 47,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "New-ScriptFileInfo",
+          "sites": 18,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F12ikm18bo3x",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/NewPSScriptFile.Tests.ps1",
+            "line": 27,
+            "name": "New-ScriptFileInfo"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cpgwhvub1ct",
+      "qualified_name": "Find-Script",
+      "simple_name": "Find-Script",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 629,
+      "end_line": 774,
+      "size_lines": 146,
+      "signature_hint": "function Find-Script",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1654,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Find-Script",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F15scu052fpb",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/FindPSResource.Tests.ps1",
+            "line": 148,
+            "name": "Find-Script"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cq4t80gwqdj",
+      "qualified_name": "Update-ModuleManifest",
+      "simple_name": "Update-ModuleManifest",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 2882,
+      "end_line": 3024,
+      "size_lines": 143,
+      "signature_hint": "function Update-ModuleManifest",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1657,
+      "region": 60,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Update-ModuleManifest",
+          "sites": 29,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F15s41nwg11",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/UpdatePSModuleManifest.Tests.ps1",
+            "line": 30,
+            "name": "Update-ModuleManifest"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C60s1off9w9",
+      "qualified_name": "Install-Script",
+      "simple_name": "Install-Script",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 1186,
+      "end_line": 1327,
+      "size_lines": 142,
+      "signature_hint": "function Install-Script",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1658,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Install-Script",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F4itzl9w4yr",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/InstallPSResource.Tests.ps1",
+            "line": 222,
+            "name": "Install-Script"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cr3e8nbx052",
+      "qualified_name": "Publish-Module",
+      "simple_name": "Publish-Module",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 1478,
+      "end_line": 1619,
+      "size_lines": 142,
+      "signature_hint": "function Publish-Module",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1658,
+      "region": 48,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Publish-Module",
+          "sites": 13,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fvnion2qyk1",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/PublishPSResource.Tests.ps1",
+            "line": 121,
+            "name": "Publish-Module"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czk8gber8uf",
+      "qualified_name": "Register-PSRepository",
+      "simple_name": "Register-PSRepository",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 1716,
+      "end_line": 1847,
+      "size_lines": 132,
+      "signature_hint": "function Register-PSRepository",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1668,
+      "region": 50,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Register-PSRepository",
+          "sites": 19,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9zqf5w325o",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/RegisterPSResourceRepository.Tests.ps1",
+            "line": 46,
+            "name": "Register-PSRepository"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cn9hycc2ww5",
+      "qualified_name": "Set-PSRepository",
+      "simple_name": "Set-PSRepository",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 2152,
+      "end_line": 2277,
+      "size_lines": 126,
+      "signature_hint": "function Set-PSRepository",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1674,
+      "region": 53,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Set-PSRepository",
+          "sites": 10,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F187mihndkys",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/SetPSResourceRepository.ps1",
+            "line": 46,
+            "name": "Set-PSRepository"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4hgga9px25",
+      "qualified_name": "Find-Command",
+      "simple_name": "Find-Command",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 159,
+      "end_line": 283,
+      "size_lines": 125,
+      "signature_hint": "function Find-Command",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1675,
+      "region": 37,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Find-Command",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F15scu052fpb",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/FindPSResource.Tests.ps1",
+            "line": 121,
+            "name": "Find-Command"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2guu424chu",
+      "qualified_name": "Find-DscResource",
+      "simple_name": "Find-DscResource",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 285,
+      "end_line": 408,
+      "size_lines": 124,
+      "signature_hint": "function Find-DscResource",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1676,
+      "region": 38,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Find-DscResource",
+          "sites": 5,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F15scu052fpb",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/FindPSResource.Tests.ps1",
+            "line": 105,
+            "name": "Find-DscResource"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C9rpm9xen1j",
+      "qualified_name": "Update-Module",
+      "simple_name": "Update-Module",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 2643,
+      "end_line": 2762,
+      "size_lines": 120,
+      "signature_hint": "function Update-Module",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1680,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Update-Module",
+          "sites": 22,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fw2muyrn051",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/UpdatePSResource.Tests.ps1",
+            "line": 31,
+            "name": "Update-Module"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C17qqlgkdki7",
+      "qualified_name": "Uninstall-Module",
+      "simple_name": "Uninstall-Module",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 2355,
+      "end_line": 2465,
+      "size_lines": 111,
+      "signature_hint": "function Uninstall-Module",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1689,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Uninstall-Module",
+          "sites": 23,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F15y33an62w6",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/UninstallPSResource.Tests.ps1",
+            "line": 37,
+            "name": "Uninstall-Module"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Clnohc3m70t",
+      "qualified_name": "Uninstall-Script",
+      "simple_name": "Uninstall-Script",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 2467,
+      "end_line": 2572,
+      "size_lines": 106,
+      "signature_hint": "function Uninstall-Script",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1694,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Uninstall-Script",
+          "sites": 5,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F15y33an62w6",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/UninstallPSResource.Tests.ps1",
+            "line": 44,
+            "name": "Uninstall-Script"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ccyi96sh82e",
+      "qualified_name": "Get-InstalledModule",
+      "simple_name": "Get-InstalledModule",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 776,
+      "end_line": 874,
+      "size_lines": 99,
+      "signature_hint": "function Get-InstalledModule",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1701,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Get-InstalledModule",
+          "sites": 11,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fdotbvr5cso",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/GetInstalledPSResource.Tests.ps1",
+            "line": 32,
+            "name": "Get-InstalledModule"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cn5ebpk1flt",
+      "qualified_name": "Get-InstalledScript",
+      "simple_name": "Get-InstalledScript",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 876,
+      "end_line": 970,
+      "size_lines": 95,
+      "signature_hint": "function Get-InstalledScript",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1705,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Get-InstalledScript",
+          "sites": 6,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fdotbvr5cso",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/GetInstalledPSResource.Tests.ps1",
+            "line": 41,
+            "name": "Get-InstalledScript"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cbulgb7w4dh",
+      "qualified_name": "Publish-Script",
+      "simple_name": "Publish-Script",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 1621,
+      "end_line": 1714,
+      "size_lines": 94,
+      "signature_hint": "function Publish-Script",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1706,
+      "region": 49,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Publish-Script",
+          "sites": 8,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fvnion2qyk1",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/PublishPSResource.Tests.ps1",
+            "line": 256,
+            "name": "Publish-Script"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C13s6yidxr48",
+      "qualified_name": "Test-ScriptFileInfo",
+      "simple_name": "Test-ScriptFileInfo",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 2279,
+      "end_line": 2353,
+      "size_lines": 75,
+      "signature_hint": "function Test-ScriptFileInfo",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1725,
+      "region": 54,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Test-ScriptFileInfo",
+          "sites": 8,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F68iwazylni",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/TestPSScriptFile.Tests.ps1",
+            "line": 29,
+            "name": "Test-ScriptFileInfo"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C56vzu46fo4",
+      "qualified_name": "Unregister-PSRepository",
+      "simple_name": "Unregister-PSRepository",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 2574,
+      "end_line": 2641,
+      "size_lines": 68,
+      "signature_hint": "function Unregister-PSRepository",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1732,
+      "region": 57,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Unregister-PSRepository",
+          "sites": 9,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9zqf5w325o",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/RegisterPSResourceRepository.Tests.ps1",
+            "line": 136,
+            "name": "Unregister-PSRepository"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cuy8yoedxjk",
+      "qualified_name": "Get-PSRepository",
+      "simple_name": "Get-PSRepository",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 972,
+      "end_line": 1035,
+      "size_lines": 64,
+      "signature_hint": "function Get-PSRepository",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1736,
+      "region": 44,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Get-PSRepository",
+          "sites": 11,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fn0ltqrezb6",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/GetPSResourceRepository.Tests.ps1",
+            "line": 31,
+            "name": "Get-PSRepository"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3lirldxs52",
+      "qualified_name": "Find-RoleCapability",
+      "simple_name": "Find-RoleCapability",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1qwtyjcp0c",
+      "path": "/storage/cgg-test_repos/powershell-psget/src/PowerShellGet.psm1",
+      "start_line": 566,
+      "end_line": 627,
+      "size_lines": 62,
+      "signature_hint": "function Find-RoleCapability",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1738,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Find-RoleCapability",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F15scu052fpb",
+            "path": "/storage/cgg-test_repos/powershell-psget/Test/FindPSResource.Tests.ps1",
+            "line": 195,
+            "name": "Find-RoleCapability"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

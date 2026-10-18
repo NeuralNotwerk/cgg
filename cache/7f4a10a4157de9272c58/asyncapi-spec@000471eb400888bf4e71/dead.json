@@ -1,0 +1,1694 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "asyncapi",
+      "class": "descriptor",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 25,
+      "callables": 296,
+      "roots": 4,
+      "reachable": 10,
+      "reachable_pct": 3,
+      "findings": 0
+    },
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 6,
+      "callables": 12,
+      "roots": 4,
+      "reachable": 5,
+      "reachable_pct": 41,
+      "findings": 7,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 308,
+    "edges": 395,
+    "unresolved_call_sites": 56,
+    "roots": 8,
+    "candidates": 293,
+    "reported": 7,
+    "regions": 61,
+    "withheld": [
+      {
+        "language": "asyncapi",
+        "category": "never-referenced",
+        "reason": "descriptor-language",
+        "would_have_reported": 89
+      },
+      {
+        "language": "asyncapi",
+        "category": "reachable-only-from-dead-code",
+        "reason": "descriptor-language",
+        "would_have_reported": 195
+      },
+      {
+        "language": "asyncapi",
+        "category": "dead-cycle",
+        "reason": "descriptor-language",
+        "would_have_reported": 2
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "C16mcm2v348q",
+      "qualified_name": "convertExampleDir",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/asyncapi-spec/scripts/converter/index.js:56"
+    },
+    {
+      "id": "Ck4mqzgaoij",
+      "qualified_name": "userSignUp",
+      "language": "asyncapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/asyncapi-spec/scripts/validation/base-doc-combined.json:387"
+    },
+    {
+      "id": "Cly6aswmz7v",
+      "qualified_name": "userId",
+      "language": "asyncapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/asyncapi-spec/scripts/validation/base-doc-combined.json:392"
+    },
+    {
+      "id": "C5zonc50t7y",
+      "qualified_name": "user",
+      "language": "asyncapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/asyncapi-spec/scripts/validation/base-doc-combined.json:550"
+    },
+    {
+      "id": "C38xzua66x0",
+      "qualified_name": "userSignupReply",
+      "language": "asyncapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/asyncapi-spec/scripts/validation/base-doc-combined.json:571"
+    },
+    {
+      "id": "C9we5s572io",
+      "qualified_name": "extractCommentsAndExamples",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/asyncapi-spec/scripts/validation/embedded-examples-validation.js:48"
+    },
+    {
+      "id": "C16w1ouao11w",
+      "qualified_name": "applyUpdates",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/asyncapi-spec/scripts/validation/embedded-examples-validation.js:107"
+    },
+    {
+      "id": "C48aclxgq5g",
+      "qualified_name": "validateParser",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/asyncapi-spec/scripts/validation/embedded-examples-validation.js:109"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "Cipg1ro0q5w"
+      ],
+      "anchors": [
+        "Cipg1ro0q5w"
+      ],
+      "files": [
+        "Fyo7lppc8a1"
+      ],
+      "total_lines": 20,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 1,
+      "members": [
+        "C16mjf2n19la",
+        "Ckh1a4im5ip",
+        "Cl1egz2zgbv",
+        "C163g729vc12"
+      ],
+      "anchors": [
+        "C163g729vc12"
+      ],
+      "files": [
+        "F8aqlt8fatc",
+        "F1355ugeeqas"
+      ],
+      "total_lines": 553,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 5,
+      "members": [
+        "Cwo007tkoau",
+        "C14lnsy4jwqx"
+      ],
+      "anchors": [
+        "C14lnsy4jwqx"
+      ],
+      "files": [
+        "Fyuyophvr0u"
+      ],
+      "total_lines": 503,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 7,
+      "members": [
+        "C2xlh1vxh4r",
+        "C15xsuuq8an6",
+        "C2vx6y95xqb",
+        "Cn3pvlwg64j",
+        "Clps39aoqfy",
+        "Czg0q9qgfnr",
+        "Crpjz3cea0u",
+        "C2ggr1nb1l4",
+        "Cwvd8x6e2wg",
+        "C5d4fx3jef",
+        "Ci2lgne82gl",
+        "Cy2alnpqqeg",
+        "Ctjywkk28ag"
+      ],
+      "anchors": [
+        "Ctjywkk28ag"
+      ],
+      "files": [
+        "F17ll8shc3wy"
+      ],
+      "total_lines": 194,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 12,
+      "members": [
+        "Cufcmqbdk1l"
+      ],
+      "anchors": [
+        "Cufcmqbdk1l"
+      ],
+      "files": [
+        "F17ll8shc3wy"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 14,
+      "members": [
+        "C864moi2bsf"
+      ],
+      "anchors": [
+        "C864moi2bsf"
+      ],
+      "files": [
+        "F17ll8shc3wy"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 15,
+      "members": [
+        "Cl31kieegil"
+      ],
+      "anchors": [
+        "Cl31kieegil"
+      ],
+      "files": [
+        "F17ll8shc3wy"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 16,
+      "members": [
+        "Cnbuvwg2viq"
+      ],
+      "anchors": [
+        "Cnbuvwg2viq"
+      ],
+      "files": [
+        "F17ll8shc3wy"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 24,
+      "members": [
+        "C157jsx6ocrc",
+        "C15tsdr5m9o4",
+        "Cfwciqk40y6",
+        "Cmeivvmeb4z",
+        "C4z3ph9x567",
+        "Cd8ugk0606u",
+        "Cej022sl0j8",
+        "C7lbvjrstci",
+        "C17lqv78ft7x",
+        "C13k5ztx2swi",
+        "C17f5c4v8oad",
+        "C127ytn4gkkh",
+        "Cli8zkuf11x",
+        "Czge01c4wen",
+        "Cgd5uxs6mg3",
+        "Cokaqt3e9qm",
+        "Ct7luz58os3",
+        "C112jnj7kc66",
+        "Caj05tu7p5w",
+        "C104fbodedkq",
+        "Cei8tbjp5c7",
+        "C14jmaj776bp",
+        "C18agrahk986",
+        "Crorr8d88kj",
+        "C16hh5sv0kwl",
+        "C4djg4c8k8g",
+        "Cbezgqzgqrb",
+        "Cz48kavkq8l",
+        "Cnv4plw1965",
+        "Cxansh5gbfd",
+        "Cm3gefqjcc8",
+        "Czz37vqus0",
+        "Cvpt0153jnt",
+        "Cppzipqcejq"
+      ],
+      "anchors": [
+        "C17lqv78ft7x",
+        "Cli8zkuf11x",
+        "Czge01c4wen",
+        "Ct7luz58os3",
+        "C112jnj7kc66",
+        "C16hh5sv0kwl",
+        "Cm3gefqjcc8",
+        "Cppzipqcejq"
+      ],
+      "files": [
+        "Fk1o90ozf8d",
+        "Fw972ji7jep",
+        "Fen7t8y7d7a",
+        "Fluh3ya4e42"
+      ],
+      "total_lines": 235,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 29,
+      "members": [
+        "C17wdqpwsasg",
+        "C2efmt1jf1o",
+        "Cawsgd7iy6e",
+        "C10fh07vwv85",
+        "Cetkj5cv6wm",
+        "Ckwk8cuuf53",
+        "Cnorapcfzr5"
+      ],
+      "anchors": [
+        "Cnorapcfzr5"
+      ],
+      "files": [
+        "F1i5bpgo62p"
+      ],
+      "total_lines": 52,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 36,
+      "members": [
+        "Cs2jfyv122h",
+        "Cj87wm6f01t",
+        "C14qd21sldp4",
+        "Czq8sg9keen",
+        "Ceyp6fa2woz",
+        "Czokild36fi",
+        "Chf3on0qkvo",
+        "C1ngslp88mt",
+        "C5wu9fkiu6i",
+        "Cwxaxzhwmla"
+      ],
+      "anchors": [
+        "Ceyp6fa2woz",
+        "C5wu9fkiu6i",
+        "Cwxaxzhwmla"
+      ],
+      "files": [
+        "Fecbztjx1zu"
+      ],
+      "total_lines": 65,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 46,
+      "members": [
+        "C3hb22s1ws7",
+        "Cqsw7nl8ptg",
+        "C16j47t5jj56",
+        "Cvo3cnee48"
+      ],
+      "anchors": [
+        "Cvo3cnee48"
+      ],
+      "files": [
+        "Fn0xkata705"
+      ],
+      "total_lines": 153,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 50,
+      "members": [
+        "C16ucj6xz6tj",
+        "C15mkpnb8u9s",
+        "Csrfeptid0f",
+        "Ctqtgif6fjo",
+        "C9gxq6cdxcu",
+        "C11x99e0pqgh",
+        "Cn4kg5usz42",
+        "C4h5n8yukgs",
+        "C30vwdt3ps8",
+        "C9boanm6l9q",
+        "Cb1em31ixtl",
+        "Ckiuczbamjv",
+        "Ckh5kdlf6uv",
+        "C6kjph5fd2p",
+        "C283ugeoxzb",
+        "Cvb4f7xkfjt",
+        "C14iyf3f4q5a",
+        "Cofqu5p8lpt",
+        "Cdswwottild",
+        "Cj7s4ujk5lj",
+        "Cp4l3ezhh9g",
+        "Cegst2bz11",
+        "Cdbi0hkd2ht",
+        "C95nf4oz923",
+        "C17exqk8waw1",
+        "Cpv85puclf4",
+        "C13skwr158k1",
+        "C16yayrvuz79",
+        "Ca6j3mfthnv",
+        "Ckt3iu0gf00",
+        "C21cw1p9ynk",
+        "C16y86m9rm8y",
+        "C2l0gvrqn0r",
+        "Cnlj52vyn4j",
+        "Cut5urmmdce",
+        "Ctzmf3u9vp9",
+        "C6mefya1lwz",
+        "Cwj6535tidb",
+        "Cq6znllo3w9",
+        "C973yvr97l5",
+        "C7heovg9h9j",
+        "C4g8ks9nicn",
+        "C7ji527y4u8",
+        "C14dbtoecrvj",
+        "C1126m77myef",
+        "Cmnihkh8pyo",
+        "Ca9sq58bnc5",
+        "Cfdohn5o0b9",
+        "C9kc0eq20ti",
+        "C4ciu963it8",
+        "Cxsyrvf7mcj"
+      ],
+      "anchors": [
+        "C16ucj6xz6tj",
+        "C15mkpnb8u9s",
+        "Csrfeptid0f",
+        "C9gxq6cdxcu",
+        "C11x99e0pqgh",
+        "Cdbi0hkd2ht",
+        "C95nf4oz923",
+        "C17exqk8waw1",
+        "Cpv85puclf4",
+        "C13skwr158k1",
+        "C16yayrvuz79",
+        "Ca6j3mfthnv",
+        "Ckt3iu0gf00",
+        "C16y86m9rm8y",
+        "C2l0gvrqn0r",
+        "C4ciu963it8",
+        "Cxsyrvf7mcj"
+      ],
+      "cycles": [
+        [
+          "Cp4l3ezhh9g",
+          "Cfdohn5o0b9"
+        ]
+      ],
+      "files": [
+        "F920sq2m831",
+        "F6vsbldr2j3"
+      ],
+      "total_lines": 531,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 51,
+      "members": [
+        "C166azbh0tae"
+      ],
+      "anchors": [
+        "C166azbh0tae"
+      ],
+      "files": [
+        "F920sq2m831"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 71,
+      "members": [
+        "Cur86l2jb18"
+      ],
+      "anchors": [
+        "Cur86l2jb18"
+      ],
+      "files": [
+        "F920sq2m831"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 72,
+      "members": [
+        "Ceh7xogu5rp"
+      ],
+      "anchors": [
+        "Ceh7xogu5rp"
+      ],
+      "files": [
+        "F920sq2m831"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 73,
+      "members": [
+        "Cyg0s2xo0fv"
+      ],
+      "anchors": [
+        "Cyg0s2xo0fv"
+      ],
+      "files": [
+        "F920sq2m831"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 74,
+      "members": [
+        "Czoxbxfr0r0"
+      ],
+      "anchors": [
+        "Czoxbxfr0r0"
+      ],
+      "files": [
+        "F920sq2m831"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 76,
+      "members": [
+        "Ciw24eub8ba"
+      ],
+      "anchors": [
+        "Ciw24eub8ba"
+      ],
+      "files": [
+        "F920sq2m831"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 77,
+      "members": [
+        "C57jf56pfic"
+      ],
+      "anchors": [
+        "C57jf56pfic"
+      ],
+      "files": [
+        "F920sq2m831"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 85,
+      "members": [
+        "Cxwvj92bton"
+      ],
+      "anchors": [
+        "Cxwvj92bton"
+      ],
+      "files": [
+        "F6vsbldr2j3"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 105,
+      "members": [
+        "C16ek5k6km8c"
+      ],
+      "anchors": [
+        "C16ek5k6km8c"
+      ],
+      "files": [
+        "F6vsbldr2j3"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 106,
+      "members": [
+        "C17h8yta1y31"
+      ],
+      "anchors": [
+        "C17h8yta1y31"
+      ],
+      "files": [
+        "F6vsbldr2j3"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 107,
+      "members": [
+        "C2w042mxxjn"
+      ],
+      "anchors": [
+        "C2w042mxxjn"
+      ],
+      "files": [
+        "F6vsbldr2j3"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 108,
+      "members": [
+        "Cj904632c4z"
+      ],
+      "anchors": [
+        "Cj904632c4z"
+      ],
+      "files": [
+        "F6vsbldr2j3"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 110,
+      "members": [
+        "Cncl8jy7q4g"
+      ],
+      "anchors": [
+        "Cncl8jy7q4g"
+      ],
+      "files": [
+        "F6vsbldr2j3"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 111,
+      "members": [
+        "Cp0usmx15fj"
+      ],
+      "anchors": [
+        "Cp0usmx15fj"
+      ],
+      "files": [
+        "F6vsbldr2j3"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 112,
+      "members": [
+        "Crcdm7w8nqn"
+      ],
+      "anchors": [
+        "Crcdm7w8nqn"
+      ],
+      "files": [
+        "F6vsbldr2j3"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 113,
+      "members": [
+        "C1372ql3e80x"
+      ],
+      "anchors": [
+        "C1372ql3e80x"
+      ],
+      "files": [
+        "F6vsbldr2j3"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 114,
+      "members": [
+        "Cw4nx120jch"
+      ],
+      "anchors": [
+        "Cw4nx120jch"
+      ],
+      "files": [
+        "F6vsbldr2j3"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 115,
+      "members": [
+        "Cdvx6b3hy0o"
+      ],
+      "anchors": [
+        "Cdvx6b3hy0o"
+      ],
+      "files": [
+        "F6vsbldr2j3"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 117,
+      "members": [
+        "Ct6ve14xic6"
+      ],
+      "anchors": [
+        "Ct6ve14xic6"
+      ],
+      "files": [
+        "F6vsbldr2j3"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 118,
+      "members": [
+        "Cv68hjpog1m"
+      ],
+      "anchors": [
+        "Cv68hjpog1m"
+      ],
+      "files": [
+        "F6vsbldr2j3"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 119,
+      "members": [
+        "Cwe1hu317yt"
+      ],
+      "anchors": [
+        "Cwe1hu317yt"
+      ],
+      "files": [
+        "F6vsbldr2j3"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 120,
+      "members": [
+        "C12e99p47g1q"
+      ],
+      "anchors": [
+        "C12e99p47g1q"
+      ],
+      "files": [
+        "F6vsbldr2j3"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 121,
+      "members": [
+        "C3mco836xw1"
+      ],
+      "anchors": [
+        "C3mco836xw1"
+      ],
+      "files": [
+        "F6vsbldr2j3"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 124,
+      "members": [
+        "Ceg6a52jty8",
+        "Cl67b2bc30s",
+        "C124251ad38",
+        "Cdeoed9c1ey"
+      ],
+      "anchors": [
+        "C124251ad38",
+        "Cdeoed9c1ey"
+      ],
+      "files": [
+        "Fzuuctjdoq2"
+      ],
+      "total_lines": 40,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 141,
+      "members": [
+        "Cmhogjg23fh",
+        "Con3akafk9y",
+        "C8svnzlfujz",
+        "C2b7nts72yf",
+        "C11g8bbbt4ig",
+        "C3kg8zr0f1p"
+      ],
+      "anchors": [
+        "C3kg8zr0f1p"
+      ],
+      "files": [
+        "F6fe49231dj"
+      ],
+      "total_lines": 90,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 147,
+      "members": [
+        "Cmidig6drs5",
+        "Cc78ytjs4pe"
+      ],
+      "anchors": [],
+      "files": [
+        "F16pcxjnnqon"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 148,
+      "members": [
+        "Cipt4r9xo34",
+        "C3wq24qsb7a"
+      ],
+      "anchors": [],
+      "files": [
+        "F16pcxjnnqon"
+      ],
+      "total_lines": 29,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 151,
+      "members": [
+        "Cuga8t5wh0e",
+        "C14aba1p4z54"
+      ],
+      "anchors": [],
+      "files": [
+        "Fcbm2v7znfo"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 152,
+      "members": [
+        "Cxan7077fmx",
+        "Cy1insyl560"
+      ],
+      "anchors": [],
+      "files": [
+        "Fcbm2v7znfo"
+      ],
+      "total_lines": 26,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 155,
+      "members": [
+        "Cvoeikmw8dw",
+        "C9cai2ptkkh",
+        "C171142p7dfq"
+      ],
+      "anchors": [
+        "C171142p7dfq"
+      ],
+      "files": [
+        "Fcy1nrm5hb0"
+      ],
+      "total_lines": 19,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 158,
+      "members": [
+        "C7q3ro7g38z",
+        "C8ms0nwgjjt",
+        "Cjk636kz4sh",
+        "C82uh263qtz",
+        "Chnzyq7kyim",
+        "Czaxgm79fha",
+        "Csmjq1fknbt",
+        "C3filn1e4ls",
+        "C16sxo91jgtn",
+        "C13md1udorc8",
+        "Czfh2qrrnix",
+        "C1wn0o09hx2",
+        "C14e1sh8pxa3",
+        "Cughk8dn09c",
+        "Cf7oyv010jd",
+        "C61zrgjtcbv",
+        "Cd115k01ddw",
+        "Crgj34z4wj3",
+        "Cvchi1htppg",
+        "Ccza7bh97zp",
+        "Cqa2blpfb2",
+        "C11v7dq1zklk",
+        "C10mawveemz2",
+        "Cs5jymkdyyx",
+        "Cvq877jai7y",
+        "Cot5jnnp2oi",
+        "Caw0gol3jlu",
+        "C1mkd6sp5cg",
+        "C17supt0va4c",
+        "Cutqm54pb2d",
+        "Cdd8jzv6p97",
+        "Cpa5zfrizus",
+        "Cnjui5p40lp",
+        "Cs5stm9fd4r",
+        "Ctkhmupnurs",
+        "Cw05opdwtzj",
+        "C54igby6a21",
+        "C146dpw0hmld",
+        "C3e100xyoqd",
+        "C7dmsco8tqb",
+        "Ctyojan43d0",
+        "Cfsj2glgh0u",
+        "Cb5wxy65f9f",
+        "C7ks3lh1o3",
+        "Csfmyk02sj1",
+        "Cz1t9sfib4f",
+        "C3y2g10g1n",
+        "C3y33ki79sh",
+        "Cg91y9y7p4h",
+        "Cjjwdid36bc",
+        "C12miagcss4v"
+      ],
+      "anchors": [
+        "Cjjwdid36bc",
+        "C12miagcss4v"
+      ],
+      "files": [
+        "Fdmlrf2s5yb"
+      ],
+      "total_lines": 889,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 204,
+      "members": [
+        "Cmudmiueelx"
+      ],
+      "anchors": [
+        "Cmudmiueelx"
+      ],
+      "files": [
+        "Fdmlrf2s5yb"
+      ],
+      "total_lines": 19,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 210,
+      "members": [
+        "C144ka34u5sr",
+        "C7zg6a34cws",
+        "Cr2p0u9xnio",
+        "Cbjdbqhirwh",
+        "C6y7qt2x88v",
+        "C7bligz4c70",
+        "Cs8snidcp33",
+        "Cmz5dz9p5z7"
+      ],
+      "anchors": [
+        "C7zg6a34cws",
+        "Cbjdbqhirwh",
+        "C7bligz4c70",
+        "Cmz5dz9p5z7"
+      ],
+      "files": [
+        "F13ns8w01bn0",
+        "F17bfkr8sdpk",
+        "Fg6pybt7jzm",
+        "F2uwctzykqq"
+      ],
+      "total_lines": 48,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 211,
+      "members": [
+        "Cne0i1czf3e",
+        "C15u2hec02jz",
+        "C3f6ffobg81",
+        "Ctsv4z1i7db"
+      ],
+      "anchors": [
+        "C15u2hec02jz",
+        "Ctsv4z1i7db"
+      ],
+      "files": [
+        "F13ns8w01bn0",
+        "Fb1x90ww72k"
+      ],
+      "total_lines": 22,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 212,
+      "members": [
+        "Catznvtkus0",
+        "C12tjrlau96r"
+      ],
+      "anchors": [
+        "C12tjrlau96r"
+      ],
+      "files": [
+        "F13ns8w01bn0"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 213,
+      "members": [
+        "C2r0mzr021a",
+        "Cchpbhrhrnv"
+      ],
+      "anchors": [
+        "Cchpbhrhrnv"
+      ],
+      "files": [
+        "F13ns8w01bn0"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 219,
+      "members": [
+        "C2mwg40zgn3",
+        "C16yyvoxgvac"
+      ],
+      "anchors": [
+        "C16yyvoxgvac"
+      ],
+      "files": [
+        "F17bfkr8sdpk"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 223,
+      "members": [
+        "Cri77p8rju1",
+        "C46aj5visao"
+      ],
+      "anchors": [
+        "C46aj5visao"
+      ],
+      "files": [
+        "Fb1x90ww72k"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 230,
+      "members": [
+        "Cawhnangif9",
+        "Cyog4am2pzk",
+        "C28jq8dz53s",
+        "Ckr0l30vkt2",
+        "C12cf2qqribb",
+        "Ccaqjh06whf",
+        "C17409r47ata",
+        "C188krbcp8o3",
+        "C1ilpi5qpty",
+        "C10x441meztr",
+        "Ck13oiqhrht",
+        "Cpqjs7dzcyo",
+        "Cttwxlffk2n",
+        "Cnadmb3hrr2",
+        "Caks5yxqb6w",
+        "Cb0ft51p1ut"
+      ],
+      "anchors": [
+        "C17409r47ata",
+        "Cttwxlffk2n",
+        "Cb0ft51p1ut"
+      ],
+      "files": [
+        "Fe85k3g3fbe"
+      ],
+      "total_lines": 115,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 246,
+      "members": [
+        "Cxo3vdvrjj6",
+        "Cmdppqi8vam",
+        "C161sngmsblr",
+        "Chf7bu26vcs",
+        "Cte86nwq22c",
+        "Cwica0j3e1b",
+        "C15juhtvsthq",
+        "C40q7asb7iz",
+        "Cr56gqs3yxo",
+        "C464kxvv90d",
+        "Cifawvyqm3d",
+        "Crw08i1rpdi",
+        "Cw91rb3xp2s",
+        "C11pm6cgmvju",
+        "C14jj0d8wyoq",
+        "Cruqw1fb4ro"
+      ],
+      "anchors": [
+        "C15juhtvsthq",
+        "Cw91rb3xp2s",
+        "Cruqw1fb4ro"
+      ],
+      "files": [
+        "Frx3qmz349j"
+      ],
+      "total_lines": 115,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 278,
+      "members": [
+        "C963aj7ld99",
+        "Ckn7o4vjckn",
+        "Cta9mcihw84",
+        "C12xml9gz2to",
+        "C4fs4jyni4",
+        "C11x6nk1gwjm",
+        "Cibvk111ptf"
+      ],
+      "anchors": [
+        "Cibvk111ptf"
+      ],
+      "files": [
+        "Fxhqkzqazhf"
+      ],
+      "total_lines": 244,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 289,
+      "members": [
+        "C2680ttvrxr"
+      ],
+      "anchors": [
+        "C2680ttvrxr"
+      ],
+      "files": [
+        "F166km1l0qai"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 292,
+      "members": [
+        "C1iw4bgrheq"
+      ],
+      "anchors": [
+        "C1iw4bgrheq"
+      ],
+      "files": [
+        "F166km1l0qai"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 293,
+      "members": [
+        "Co2r5wphqwr"
+      ],
+      "anchors": [
+        "Co2r5wphqwr"
+      ],
+      "files": [
+        "F166km1l0qai"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 294,
+      "members": [
+        "C6yj52dtigr"
+      ],
+      "anchors": [
+        "C6yj52dtigr"
+      ],
+      "files": [
+        "F166km1l0qai"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 295,
+      "members": [
+        "Cylj1heu7ei"
+      ],
+      "anchors": [
+        "Cylj1heu7ei"
+      ],
+      "files": [
+        "F166km1l0qai"
+      ],
+      "total_lines": 15,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 298,
+      "members": [
+        "Cjt0xxesmfq",
+        "Czovwpibnil"
+      ],
+      "anchors": [
+        "Czovwpibnil"
+      ],
+      "files": [
+        "F166km1l0qai"
+      ],
+      "total_lines": 80,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 302,
+      "members": [
+        "C9e1d0yy5bz"
+      ],
+      "anchors": [
+        "C9e1d0yy5bz"
+      ],
+      "files": [
+        "F166km1l0qai"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "asyncapi"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "C14lnsy4jwqx",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fyuyophvr0u",
+      "path": "/storage/cgg-test_repos/asyncapi-spec/.github/workflows/scripts/mailchimp/htmlContent.js",
+      "start_line": 19,
+      "end_line": 512,
+      "size_lines": 494,
+      "signature_hint": "module.exports = (link, title) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 394,
+      "region": 5,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Ckh1a4im5ip",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8aqlt8fatc",
+      "path": "/storage/cgg-test_repos/asyncapi-spec/.github/workflows/scripts/kit/htmlContent.js",
+      "start_line": 21,
+      "end_line": 510,
+      "size_lines": 490,
+      "signature_hint": "module.exports = (link, title) =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 390,
+      "region": 1,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C163g729vc12"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C163g729vc12",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1355ugeeqas",
+      "path": "/storage/cgg-test_repos/asyncapi-spec/.github/workflows/scripts/kit/index.js",
+      "start_line": 33,
+      "end_line": 62,
+      "size_lines": 30,
+      "signature_hint": "module.exports = async (link, title) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -70,
+      "region": 1,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cl1egz2zgbv",
+      "qualified_name": "sanitizeLinkAndTitle",
+      "simple_name": "sanitizeLinkAndTitle",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1355ugeeqas",
+      "path": "/storage/cgg-test_repos/asyncapi-spec/.github/workflows/scripts/kit/index.js",
+      "start_line": 8,
+      "end_line": 31,
+      "size_lines": 24,
+      "signature_hint": "sanitizeLinkAndTitle = (link, title) =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -76,
+      "region": 1,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C163g729vc12"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cipg1ro0q5w",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fyo7lppc8a1",
+      "path": "/storage/cgg-test_repos/asyncapi-spec/.github/scripts/remove-toc.js",
+      "start_line": 6,
+      "end_line": 25,
+      "size_lines": 20,
+      "signature_hint": "module.exports = (givenSpec) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -80,
+      "region": 0,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16mjf2n19la",
+      "qualified_name": "escapeHtml",
+      "simple_name": "escapeHtml",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8aqlt8fatc",
+      "path": "/storage/cgg-test_repos/asyncapi-spec/.github/workflows/scripts/kit/htmlContent.js",
+      "start_line": 11,
+      "end_line": 19,
+      "size_lines": 9,
+      "signature_hint": "function escapeHtml(text)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 1,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Ckh1a4im5ip"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwo007tkoau",
+      "qualified_name": "escapeHtml",
+      "simple_name": "escapeHtml",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fyuyophvr0u",
+      "path": "/storage/cgg-test_repos/asyncapi-spec/.github/workflows/scripts/mailchimp/htmlContent.js",
+      "start_line": 9,
+      "end_line": 17,
+      "size_lines": 9,
+      "signature_hint": "function escapeHtml(text)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 5,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C14lnsy4jwqx"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

@@ -1,0 +1,3744 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "C164ezn5kmet": {
+      "id": "C164ezn5kmet",
+      "qualified_name": "main",
+      "simple_name": "main",
+      "kind": "function",
+      "language": "bash",
+      "file": "F2ejh413dxf",
+      "start_line": 12,
+      "end_line": 119,
+      "start_byte": 235,
+      "end_byte": 3308,
+      "signature_hint": "main()"
+    },
+    "Ciekfbj5p6g": {
+      "id": "Ciekfbj5p6g",
+      "qualified_name": "circle",
+      "simple_name": "circle",
+      "kind": "function",
+      "language": "bash",
+      "file": "F2ejh413dxf",
+      "start_line": 121,
+      "end_line": 125,
+      "start_byte": 3310,
+      "end_byte": 3429,
+      "signature_hint": "circle()"
+    },
+    "Cfjrjm3o53i": {
+      "id": "Cfjrjm3o53i",
+      "qualified_name": "say",
+      "simple_name": "say",
+      "kind": "function",
+      "language": "bash",
+      "file": "F2ejh413dxf",
+      "start_line": 127,
+      "end_line": 129,
+      "start_byte": 3431,
+      "end_byte": 3490,
+      "signature_hint": "say()"
+    },
+    "Cya04y4t91l": {
+      "id": "Cya04y4t91l",
+      "qualified_name": "err",
+      "simple_name": "err",
+      "kind": "function",
+      "language": "bash",
+      "file": "F2ejh413dxf",
+      "start_line": 131,
+      "end_line": 134,
+      "start_byte": 3492,
+      "end_byte": 3584,
+      "signature_hint": "err()"
+    },
+    "Cgbeakzpgx5": {
+      "id": "Cgbeakzpgx5",
+      "qualified_name": "need_cmd",
+      "simple_name": "need_cmd",
+      "kind": "function",
+      "language": "bash",
+      "file": "F2ejh413dxf",
+      "start_line": 136,
+      "end_line": 140,
+      "start_byte": 3586,
+      "end_byte": 3699,
+      "signature_hint": "need_cmd()"
+    },
+    "Cm5bjyowmep": {
+      "id": "Cm5bjyowmep",
+      "qualified_name": "ensure",
+      "simple_name": "ensure",
+      "kind": "function",
+      "language": "bash",
+      "file": "F2ejh413dxf",
+      "start_line": 142,
+      "end_line": 147,
+      "start_byte": 3701,
+      "end_byte": 3788,
+      "signature_hint": "ensure()"
+    },
+    "C9zrzqxj3l1": {
+      "id": "C9zrzqxj3l1",
+      "qualified_name": "cross",
+      "simple_name": "cross",
+      "kind": "function",
+      "language": "bash",
+      "file": "Fr1o9nuzkla",
+      "start_line": 13,
+      "end_line": 15,
+      "start_byte": 122,
+      "end_byte": 206,
+      "signature_hint": "cross()"
+    },
+    "C6pqdxus24q": {
+      "id": "C6pqdxus24q",
+      "qualified_name": "usage",
+      "simple_name": "usage",
+      "kind": "function",
+      "language": "bash",
+      "file": "Ffxvbotiw8e",
+      "start_line": 21,
+      "end_line": 32,
+      "start_byte": 395,
+      "end_byte": 598,
+      "signature_hint": "usage()"
+    },
+    "C2ij9tszt85": {
+      "id": "C2ij9tszt85",
+      "qualified_name": "main",
+      "simple_name": "main",
+      "kind": "function",
+      "language": "bash",
+      "file": "Ffxvbotiw8e",
+      "start_line": 34,
+      "end_line": 63,
+      "start_byte": 600,
+      "end_byte": 1115,
+      "signature_hint": "main()"
+    },
+    "C60g3atbrzr": {
+      "id": "C60g3atbrzr",
+      "qualified_name": "check_os_version",
+      "simple_name": "check_os_version",
+      "kind": "function",
+      "language": "bash",
+      "file": "Ffxvbotiw8e",
+      "start_line": 65,
+      "end_line": 75,
+      "start_byte": 1117,
+      "end_byte": 1395,
+      "signature_hint": "check_os_version()"
+    },
+    "Cs1nvn96vel": {
+      "id": "Cs1nvn96vel",
+      "qualified_name": "activate_network_manager",
+      "simple_name": "activate_network_manager",
+      "kind": "function",
+      "language": "bash",
+      "file": "Ffxvbotiw8e",
+      "start_line": 77,
+      "end_line": 119,
+      "start_byte": 1397,
+      "end_byte": 2511,
+      "signature_hint": "activate_network_manager()"
+    },
+    "C2eatvxhixx": {
+      "id": "C2eatvxhixx",
+      "qualified_name": "disable_dhcpcd",
+      "simple_name": "disable_dhcpcd",
+      "kind": "function",
+      "language": "bash",
+      "file": "Ffxvbotiw8e",
+      "start_line": 121,
+      "end_line": 137,
+      "start_byte": 2513,
+      "end_byte": 2981,
+      "signature_hint": "disable_dhcpcd()"
+    },
+    "C15gey52ft6p": {
+      "id": "C15gey52ft6p",
+      "qualified_name": "service_load_state",
+      "simple_name": "service_load_state",
+      "kind": "function",
+      "language": "bash",
+      "file": "Ffxvbotiw8e",
+      "start_line": 139,
+      "end_line": 141,
+      "start_byte": 2983,
+      "end_byte": 3059,
+      "signature_hint": "service_load_state()"
+    },
+    "Cvnokr51dc2": {
+      "id": "Cvnokr51dc2",
+      "qualified_name": "service_active_state",
+      "simple_name": "service_active_state",
+      "kind": "function",
+      "language": "bash",
+      "file": "Ffxvbotiw8e",
+      "start_line": 143,
+      "end_line": 145,
+      "start_byte": 3061,
+      "end_byte": 3141,
+      "signature_hint": "service_active_state()"
+    },
+    "Cbwq6apk5dp": {
+      "id": "Cbwq6apk5dp",
+      "qualified_name": "confirm_installation",
+      "simple_name": "confirm_installation",
+      "kind": "function",
+      "language": "bash",
+      "file": "Ffxvbotiw8e",
+      "start_line": 147,
+      "end_line": 159,
+      "start_byte": 3143,
+      "end_byte": 3480,
+      "signature_hint": "confirm_installation()"
+    },
+    "C11qi56gq88w": {
+      "id": "C11qi56gq88w",
+      "qualified_name": "install_wfc",
+      "simple_name": "install_wfc",
+      "kind": "function",
+      "language": "bash",
+      "file": "Ffxvbotiw8e",
+      "start_line": 161,
+      "end_line": 190,
+      "start_byte": 3482,
+      "end_byte": 4251,
+      "signature_hint": "install_wfc()"
+    },
+    "Ckgrg3109s8": {
+      "id": "Ckgrg3109s8",
+      "qualified_name": "say",
+      "simple_name": "say",
+      "kind": "function",
+      "language": "bash",
+      "file": "Ffxvbotiw8e",
+      "start_line": 192,
+      "end_line": 194,
+      "start_byte": 4253,
+      "end_byte": 4309,
+      "signature_hint": "say()"
+    },
+    "C10vbxjlsaug": {
+      "id": "C10vbxjlsaug",
+      "qualified_name": "err",
+      "simple_name": "err",
+      "kind": "function",
+      "language": "bash",
+      "file": "Ffxvbotiw8e",
+      "start_line": 196,
+      "end_line": 199,
+      "start_byte": 4311,
+      "end_byte": 4400,
+      "signature_hint": "err()"
+    },
+    "C67n037k7th": {
+      "id": "C67n037k7th",
+      "qualified_name": "need_cmd",
+      "simple_name": "need_cmd",
+      "kind": "function",
+      "language": "bash",
+      "file": "Ffxvbotiw8e",
+      "start_line": 201,
+      "end_line": 205,
+      "start_byte": 4402,
+      "end_byte": 4515,
+      "signature_hint": "need_cmd()"
+    },
+    "C4wuxz4r0jf": {
+      "id": "C4wuxz4r0jf",
+      "qualified_name": "ensure",
+      "simple_name": "ensure",
+      "kind": "function",
+      "language": "bash",
+      "file": "Ffxvbotiw8e",
+      "start_line": 207,
+      "end_line": 212,
+      "start_byte": 4517,
+      "end_byte": 4604,
+      "signature_hint": "ensure()"
+    },
+    "C2d9fow5oum": {
+      "id": "C2d9fow5oum",
+      "qualified_name": "wifi_connect::config::get_config",
+      "simple_name": "get_config",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fxyiw2rdo6f",
+      "start_line": 28,
+      "end_line": 170,
+      "start_byte": 691,
+      "end_byte": 5594,
+      "signature_hint": "pub fn get_config() -> Config",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "Cs7tjvfvrdd": {
+      "id": "Cs7tjvfvrdd",
+      "qualified_name": "wifi_connect::config::get_ui_directory",
+      "simple_name": "get_ui_directory",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fxyiw2rdo6f",
+      "start_line": 172,
+      "end_line": 186,
+      "start_byte": 5596,
+      "end_byte": 6025,
+      "signature_hint": "fn get_ui_directory(cmd_ui_directory: Option<&str>) -> PathBuf",
+      "vis": "private"
+    },
+    "Cpe78b60k4b": {
+      "id": "Cpe78b60k4b",
+      "qualified_name": "wifi_connect::config::get_install_ui_directory",
+      "simple_name": "get_install_ui_directory",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fxyiw2rdo6f",
+      "start_line": 191,
+      "end_line": 218,
+      "start_byte": 6236,
+      "end_byte": 6975,
+      "signature_hint": "fn get_install_ui_directory() -> Option<PathBuf>",
+      "vis": "private"
+    },
+    "Cnk0njt9wtt": {
+      "id": "Cnk0njt9wtt",
+      "qualified_name": "wifi_connect::dnsmasq::start_dnsmasq",
+      "simple_name": "start_dnsmasq",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fnvzat161h0",
+      "start_line": 8,
+      "end_line": 25,
+      "start_byte": 103,
+      "end_byte": 682,
+      "signature_hint": "pub fn start_dnsmasq(config: &Config, device: &Device) -> Result<Child>",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "Cb8aosob7ru": {
+      "id": "Cb8aosob7ru",
+      "qualified_name": "wifi_connect::dnsmasq::stop_dnsmasq",
+      "simple_name": "stop_dnsmasq",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fnvzat161h0",
+      "start_line": 27,
+      "end_line": 33,
+      "start_byte": 684,
+      "end_byte": 797,
+      "signature_hint": "pub fn stop_dnsmasq(dnsmasq: &mut Child) -> Result<()>",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "Cqjwvmd7zwy": {
+      "id": "Cqjwvmd7zwy",
+      "qualified_name": "wifi_connect::errors::exit_code",
+      "simple_name": "exit_code",
+      "kind": "function",
+      "language": "rust",
+      "file": "F8e6xft6g4k",
+      "start_line": 109,
+      "end_line": 134,
+      "start_byte": 2948,
+      "end_byte": 3984,
+      "signature_hint": "pub fn exit_code(e: &Error) -> i32",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "C9rkswkmzgm": {
+      "id": "C9rkswkmzgm",
+      "qualified_name": "wifi_connect::exit::exit",
+      "simple_name": "exit",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fhu1cslqi6y",
+      "start_line": 9,
+      "end_line": 11,
+      "start_byte": 148,
+      "end_byte": 245,
+      "signature_hint": "pub fn exit(exit_tx: &Sender<ExitResult>, error: Error)",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "C7555gl4e03": {
+      "id": "C7555gl4e03",
+      "qualified_name": "wifi_connect::exit::block_exit_signals",
+      "simple_name": "block_exit_signals",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fhu1cslqi6y",
+      "start_line": 14,
+      "end_line": 18,
+      "start_byte": 323,
+      "end_byte": 481,
+      "signature_hint": "pub fn block_exit_signals() -> Result<()>",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "Cgz51gi84nq": {
+      "id": "Cgz51gi84nq",
+      "qualified_name": "wifi_connect::exit::trap_exit_signals",
+      "simple_name": "trap_exit_signals",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fhu1cslqi6y",
+      "start_line": 21,
+      "end_line": 29,
+      "start_byte": 535,
+      "end_byte": 735,
+      "signature_hint": "pub fn trap_exit_signals() -> Result<()>",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "Cvagdoz8njh": {
+      "id": "Cvagdoz8njh",
+      "qualified_name": "wifi_connect::exit::create_exit_sigmask",
+      "simple_name": "create_exit_sigmask",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fhu1cslqi6y",
+      "start_line": 31,
+      "end_line": 40,
+      "start_byte": 737,
+      "end_byte": 912,
+      "signature_hint": "fn create_exit_sigmask() -> SigSet",
+      "vis": "private"
+    },
+    "C2ade149akh": {
+      "id": "C2ade149akh",
+      "qualified_name": "wifi_connect::logger::init",
+      "simple_name": "init",
+      "kind": "function",
+      "language": "rust",
+      "file": "Faj7mbbh4h6",
+      "start_line": 5,
+      "end_line": 30,
+      "start_byte": 91,
+      "end_byte": 805,
+      "signature_hint": "pub fn init()",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "Coypqju56y9": {
+      "id": "Coypqju56y9",
+      "qualified_name": "wifi_connect::logger::format",
+      "simple_name": "format",
+      "kind": "closure",
+      "language": "rust",
+      "file": "Faj7mbbh4h6",
+      "start_line": 11,
+      "end_line": 22,
+      "start_byte": 263,
+      "end_byte": 639,
+      "signature_hint": "let format = |record: &LogRecord|",
+      "vis": "private"
+    },
+    "Cpe646ldxzt": {
+      "id": "Cpe646ldxzt",
+      "qualified_name": "wifi_connect::main",
+      "simple_name": "main",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fxbjv4o1zkb",
+      "start_line": 48,
+      "end_line": 61,
+      "start_byte": 790,
+      "end_byte": 1171,
+      "signature_hint": "fn main()",
+      "vis": "private"
+    },
+    "Cgu9cmxl3vj": {
+      "id": "Cgu9cmxl3vj",
+      "qualified_name": "wifi_connect::run",
+      "simple_name": "run",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fxbjv4o1zkb",
+      "start_line": 63,
+      "end_line": 88,
+      "start_byte": 1173,
+      "end_byte": 1605,
+      "signature_hint": "fn run() -> Result<()>",
+      "vis": "private"
+    },
+    "C17e176meqgn": {
+      "id": "C17e176meqgn",
+      "qualified_name": "wifi_connect::run::closure_at_76",
+      "simple_name": "closure_at_76",
+      "kind": "closure",
+      "language": "rust",
+      "file": "Fxbjv4o1zkb",
+      "start_line": 76,
+      "end_line": 78,
+      "start_byte": 1392,
+      "end_byte": 1460,
+      "attributes": [
+        "spawned"
+      ],
+      "vis": "private"
+    },
+    "Cpvkswtg14": {
+      "id": "Cpvkswtg14",
+      "qualified_name": "wifi_connect::network::NetworkCommandHandler::new",
+      "simple_name": "new",
+      "kind": "method",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 53,
+      "end_line": 89,
+      "start_byte": 1208,
+      "end_byte": 2269,
+      "signature_hint": "fn new(config: &Config, exit_tx: &Sender<ExitResult>) -> Result<Self>",
+      "vis": "private"
+    },
+    "Clofji0spvl": {
+      "id": "Clofji0spvl",
+      "qualified_name": "wifi_connect::network::NetworkCommandHandler::spawn_server",
+      "simple_name": "spawn_server",
+      "kind": "method",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 91,
+      "end_line": 112,
+      "start_byte": 2275,
+      "end_byte": 2918,
+      "signature_hint": "fn spawn_server( config: &Config, exit_tx: &Sender<ExitResult>, server_rx: Receiver<NetworkCommandResponse>, network_tx: Sender<NetworkCommand>, )",
+      "vis": "private"
+    },
+    "Cpkvb8rvycm": {
+      "id": "Cpkvb8rvycm",
+      "qualified_name": "wifi_connect::network::NetworkCommandHandler::spawn_server::closure_at_102",
+      "simple_name": "closure_at_102",
+      "kind": "closure",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 102,
+      "end_line": 111,
+      "start_byte": 2675,
+      "end_byte": 2910,
+      "attributes": [
+        "spawned"
+      ],
+      "vis": "private"
+    },
+    "Cp376o5y7rj": {
+      "id": "Cp376o5y7rj",
+      "qualified_name": "wifi_connect::network::NetworkCommandHandler::spawn_activity_timeout",
+      "simple_name": "spawn_activity_timeout",
+      "kind": "method",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 114,
+      "end_line": 131,
+      "start_byte": 2924,
+      "end_byte": 3476,
+      "signature_hint": "fn spawn_activity_timeout(config: &Config, network_tx: Sender<NetworkCommand>)",
+      "vis": "private"
+    },
+    "C13w5i89uvb0": {
+      "id": "C13w5i89uvb0",
+      "qualified_name": "wifi_connect::network::NetworkCommandHandler::spawn_activity_timeout::closure_at_121",
+      "simple_name": "closure_at_121",
+      "kind": "closure",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 121,
+      "end_line": 130,
+      "start_byte": 3150,
+      "end_byte": 3468,
+      "attributes": [
+        "spawned"
+      ],
+      "vis": "private"
+    },
+    "Cdwpqhhjxfv": {
+      "id": "Cdwpqhhjxfv",
+      "qualified_name": "wifi_connect::network::NetworkCommandHandler::spawn_trap_exit_signals",
+      "simple_name": "spawn_trap_exit_signals",
+      "kind": "method",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 133,
+      "end_line": 146,
+      "start_byte": 3482,
+      "end_byte": 3968,
+      "signature_hint": "fn spawn_trap_exit_signals(exit_tx: &Sender<ExitResult>, network_tx: Sender<NetworkCommand>)",
+      "vis": "private"
+    },
+    "C2vpbgbjq4d": {
+      "id": "C2vpbgbjq4d",
+      "qualified_name": "wifi_connect::network::NetworkCommandHandler::spawn_trap_exit_signals::closure_at_136",
+      "simple_name": "closure_at_136",
+      "kind": "closure",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 136,
+      "end_line": 145,
+      "start_byte": 3644,
+      "end_byte": 3960,
+      "attributes": [
+        "spawned"
+      ],
+      "vis": "private"
+    },
+    "C1ke9m64dtk": {
+      "id": "C1ke9m64dtk",
+      "qualified_name": "wifi_connect::network::NetworkCommandHandler::run",
+      "simple_name": "run",
+      "kind": "method",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 148,
+      "end_line": 151,
+      "start_byte": 3974,
+      "end_byte": 4103,
+      "signature_hint": "fn run(&mut self, exit_tx: &Sender<ExitResult>)",
+      "vis": "private"
+    },
+    "Chewodz1hgq": {
+      "id": "Chewodz1hgq",
+      "qualified_name": "wifi_connect::network::NetworkCommandHandler::run_loop",
+      "simple_name": "run_loop",
+      "kind": "method",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 153,
+      "end_line": 182,
+      "start_byte": 4109,
+      "end_byte": 5047,
+      "signature_hint": "fn run_loop(&mut self) -> ExitResult",
+      "vis": "private"
+    },
+    "Cn5m1ufuu2i": {
+      "id": "Cn5m1ufuu2i",
+      "qualified_name": "wifi_connect::network::NetworkCommandHandler::receive_network_command",
+      "simple_name": "receive_network_command",
+      "kind": "method",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 184,
+      "end_line": 193,
+      "start_byte": 5053,
+      "end_byte": 5450,
+      "signature_hint": "fn receive_network_command(&self) -> Result<NetworkCommand>",
+      "vis": "private"
+    },
+    "Cen71hhreg2": {
+      "id": "Cen71hhreg2",
+      "qualified_name": "wifi_connect::network::NetworkCommandHandler::stop",
+      "simple_name": "stop",
+      "kind": "method",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 195,
+      "end_line": 203,
+      "start_byte": 5456,
+      "end_byte": 5758,
+      "signature_hint": "fn stop(&mut self, exit_tx: &Sender<ExitResult>, result: ExitResult)",
+      "vis": "private"
+    },
+    "Cfeo6c2btjc": {
+      "id": "Cfeo6c2btjc",
+      "qualified_name": "wifi_connect::network::NetworkCommandHandler::activate",
+      "simple_name": "activate",
+      "kind": "method",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 205,
+      "end_line": 213,
+      "start_byte": 5764,
+      "end_byte": 6043,
+      "signature_hint": "fn activate(&mut self) -> ExitResult",
+      "vis": "private"
+    },
+    "Capm70q3axc": {
+      "id": "Capm70q3axc",
+      "qualified_name": "wifi_connect::network::NetworkCommandHandler::connect",
+      "simple_name": "connect",
+      "kind": "method",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 215,
+      "end_line": 270,
+      "start_byte": 6049,
+      "end_byte": 8234,
+      "signature_hint": "fn connect(&mut self, ssid: &str, identity: &str, passphrase: &str) -> Result<bool>",
+      "vis": "private"
+    },
+    "Ctkblryojga": {
+      "id": "Ctkblryojga",
+      "qualified_name": "wifi_connect::network::init_access_point_credentials",
+      "simple_name": "init_access_point_credentials",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 273,
+      "end_line": 296,
+      "start_byte": 8238,
+      "end_byte": 9020,
+      "signature_hint": "fn init_access_point_credentials( access_point: &AccessPoint, identity: &str, passphrase: &str, ) -> AccessPointCredentials",
+      "vis": "private"
+    },
+    "Cpfgyppw9z2": {
+      "id": "Cpfgyppw9z2",
+      "qualified_name": "wifi_connect::network::process_network_commands",
+      "simple_name": "process_network_commands",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 298,
+      "end_line": 308,
+      "start_byte": 9022,
+      "end_byte": 9356,
+      "signature_hint": "pub fn process_network_commands(config: &Config, exit_tx: &Sender<ExitResult>)",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "C12rjj7r3nxx": {
+      "id": "C12rjj7r3nxx",
+      "qualified_name": "wifi_connect::network::init_networking",
+      "simple_name": "init_networking",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 310,
+      "end_line": 314,
+      "start_byte": 9358,
+      "end_byte": 9554,
+      "signature_hint": "pub fn init_networking(config: &Config) -> Result<()>",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "Ceyjgpivf4l": {
+      "id": "Ceyjgpivf4l",
+      "qualified_name": "wifi_connect::network::find_device",
+      "simple_name": "find_device",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 316,
+      "end_line": 343,
+      "start_byte": 9556,
+      "end_byte": 10474,
+      "signature_hint": "pub fn find_device(manager: &NetworkManager, interface: &Option<String>) -> Result<Device>",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "C15sbr0fst7r": {
+      "id": "C15sbr0fst7r",
+      "qualified_name": "wifi_connect::network::find_wifi_managed_device",
+      "simple_name": "find_wifi_managed_device",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 345,
+      "end_line": 355,
+      "start_byte": 10476,
+      "end_byte": 10774,
+      "signature_hint": "fn find_wifi_managed_device(devices: Vec<Device>) -> Result<Option<Device>>",
+      "vis": "private"
+    },
+    "C15l5uoz4ygr": {
+      "id": "C15l5uoz4ygr",
+      "qualified_name": "wifi_connect::network::get_access_points",
+      "simple_name": "get_access_points",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 357,
+      "end_line": 359,
+      "start_byte": 10776,
+      "end_byte": 10920,
+      "signature_hint": "fn get_access_points(device: &Device) -> Result<Vec<AccessPoint>>",
+      "vis": "private"
+    },
+    "Cigxneesrys": {
+      "id": "Cigxneesrys",
+      "qualified_name": "wifi_connect::network::get_access_points_impl",
+      "simple_name": "get_access_points_impl",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 361,
+      "end_line": 395,
+      "start_byte": 10922,
+      "end_byte": 12117,
+      "signature_hint": "fn get_access_points_impl(device: &Device) -> Result<Vec<AccessPoint>>",
+      "vis": "private"
+    },
+    "Cnbitbeej7x": {
+      "id": "Cnbitbeej7x",
+      "qualified_name": "wifi_connect::network::get_access_points_ssids",
+      "simple_name": "get_access_points_ssids",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 397,
+      "end_line": 402,
+      "start_byte": 12119,
+      "end_byte": 12293,
+      "signature_hint": "fn get_access_points_ssids(access_points: &[AccessPoint]) -> Vec<&str>",
+      "vis": "private"
+    },
+    "Cbxg3q2z50g": {
+      "id": "Cbxg3q2z50g",
+      "qualified_name": "wifi_connect::network::get_networks",
+      "simple_name": "get_networks",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 404,
+      "end_line": 406,
+      "start_byte": 12295,
+      "end_byte": 12418,
+      "signature_hint": "fn get_networks(access_points: &[AccessPoint]) -> Vec<Network>",
+      "vis": "private"
+    },
+    "Cix95pmlv37": {
+      "id": "Cix95pmlv37",
+      "qualified_name": "wifi_connect::network::get_network_info",
+      "simple_name": "get_network_info",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 408,
+      "end_line": 413,
+      "start_byte": 12420,
+      "end_byte": 12633,
+      "signature_hint": "fn get_network_info(access_point: &AccessPoint) -> Network",
+      "vis": "private"
+    },
+    "Cm1fdqasbuc": {
+      "id": "Cm1fdqasbuc",
+      "qualified_name": "wifi_connect::network::get_network_security",
+      "simple_name": "get_network_security",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 415,
+      "end_line": 427,
+      "start_byte": 12635,
+      "end_byte": 13029,
+      "signature_hint": "fn get_network_security(access_point: &AccessPoint) -> &str",
+      "vis": "private"
+    },
+    "Csznoqoar9b": {
+      "id": "Csznoqoar9b",
+      "qualified_name": "wifi_connect::network::find_access_point",
+      "simple_name": "find_access_point",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 429,
+      "end_line": 439,
+      "start_byte": 13031,
+      "end_byte": 13375,
+      "signature_hint": "fn find_access_point<'a>(access_points: &'a [AccessPoint], ssid: &str) -> Option<&'a AccessPoint>",
+      "vis": "private"
+    },
+    "Cr2x5uye3by": {
+      "id": "Cr2x5uye3by",
+      "qualified_name": "wifi_connect::network::create_portal",
+      "simple_name": "create_portal",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 441,
+      "end_line": 446,
+      "start_byte": 13377,
+      "end_byte": 13665,
+      "signature_hint": "fn create_portal(device: &Device, config: &Config) -> Result<Connection>",
+      "vis": "private"
+    },
+    "C1lui66imwz": {
+      "id": "C1lui66imwz",
+      "qualified_name": "wifi_connect::network::create_portal_impl",
+      "simple_name": "create_portal_impl",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 448,
+      "end_line": 459,
+      "start_byte": 13667,
+      "end_byte": 14073,
+      "signature_hint": "fn create_portal_impl( device: &Device, ssid: &str, gateway: &Ipv4Addr, passphrase: &Option<&str>, ) -> Result<Connection>",
+      "vis": "private"
+    },
+    "Cjqoz1w0f53": {
+      "id": "Cjqoz1w0f53",
+      "qualified_name": "wifi_connect::network::stop_portal",
+      "simple_name": "stop_portal",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 461,
+      "end_line": 463,
+      "start_byte": 14075,
+      "end_byte": 14231,
+      "signature_hint": "fn stop_portal(connection: &Connection, config: &Config) -> Result<()>",
+      "vis": "private"
+    },
+    "C171le2mfxw2": {
+      "id": "C171le2mfxw2",
+      "qualified_name": "wifi_connect::network::stop_portal_impl",
+      "simple_name": "stop_portal_impl",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 465,
+      "end_line": 472,
+      "start_byte": 14233,
+      "end_byte": 14532,
+      "signature_hint": "fn stop_portal_impl(connection: &Connection, config: &Config) -> Result<()>",
+      "vis": "private"
+    },
+    "Cjeju3attls": {
+      "id": "Cjeju3attls",
+      "qualified_name": "wifi_connect::network::wait_for_connectivity",
+      "simple_name": "wait_for_connectivity",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 474,
+      "end_line": 505,
+      "start_byte": 14534,
+      "end_byte": 15447,
+      "signature_hint": "fn wait_for_connectivity(manager: &NetworkManager, timeout: u64) -> Result<bool>",
+      "vis": "private"
+    },
+    "Ch1e96kwvqf": {
+      "id": "Ch1e96kwvqf",
+      "qualified_name": "wifi_connect::network::start_network_manager_service",
+      "simple_name": "start_network_manager_service",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 507,
+      "end_line": 529,
+      "start_byte": 15449,
+      "end_byte": 16153,
+      "signature_hint": "pub fn start_network_manager_service() -> Result<()>",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "Cu5km4wmsh7": {
+      "id": "Cu5km4wmsh7",
+      "qualified_name": "wifi_connect::network::delete_exising_wifi_connect_ap_profile",
+      "simple_name": "delete_exising_wifi_connect_ap_profile",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 531,
+      "end_line": 545,
+      "start_byte": 16155,
+      "end_byte": 16644,
+      "signature_hint": "fn delete_exising_wifi_connect_ap_profile(ssid: &str) -> Result<()>",
+      "vis": "private"
+    },
+    "C1x6b98rdsg": {
+      "id": "C1x6b98rdsg",
+      "qualified_name": "wifi_connect::network::delete_existing_connections_to_same_network",
+      "simple_name": "delete_existing_connections_to_same_network",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 547,
+      "end_line": 568,
+      "start_byte": 16646,
+      "end_byte": 17382,
+      "signature_hint": "fn delete_existing_connections_to_same_network(manager: &NetworkManager, ssid: &str)",
+      "vis": "private"
+    },
+    "Cy8jiznexhz": {
+      "id": "Cy8jiznexhz",
+      "qualified_name": "wifi_connect::network::is_same_ssid",
+      "simple_name": "is_same_ssid",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 570,
+      "end_line": 572,
+      "start_byte": 17384,
+      "end_byte": 17501,
+      "signature_hint": "fn is_same_ssid(connection: &Connection, ssid: &str) -> bool",
+      "vis": "private"
+    },
+    "C17p21dnb2on": {
+      "id": "C17p21dnb2on",
+      "qualified_name": "wifi_connect::network::connection_ssid_as_str",
+      "simple_name": "connection_ssid_as_str",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 574,
+      "end_line": 577,
+      "start_byte": 17503,
+      "end_byte": 17699,
+      "signature_hint": "fn connection_ssid_as_str(connection: &Connection) -> Option<&str>",
+      "vis": "private"
+    },
+    "C167w0ugdhad": {
+      "id": "C167w0ugdhad",
+      "qualified_name": "wifi_connect::network::is_access_point_connection",
+      "simple_name": "is_access_point_connection",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 579,
+      "end_line": 581,
+      "start_byte": 17701,
+      "end_byte": 17840,
+      "signature_hint": "fn is_access_point_connection(connection: &Connection) -> bool",
+      "vis": "private"
+    },
+    "Chcybh6x15k": {
+      "id": "Chcybh6x15k",
+      "qualified_name": "wifi_connect::network::is_wifi_connection",
+      "simple_name": "is_wifi_connection",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fcg61k609fm",
+      "start_line": 583,
+      "end_line": 585,
+      "start_byte": 17842,
+      "end_byte": 17952,
+      "signature_hint": "fn is_wifi_connection(connection: &Connection) -> bool",
+      "vis": "private"
+    },
+    "C15tbqhkmlnx": {
+      "id": "C15tbqhkmlnx",
+      "qualified_name": "wifi_connect::privileges::require_root",
+      "simple_name": "require_root",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fvs5503llos",
+      "start_line": 5,
+      "end_line": 13,
+      "start_byte": 39,
+      "end_byte": 252,
+      "signature_hint": "pub fn require_root() -> Result<()>",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "Cy6ocb5dyrp": {
+      "id": "Cy6ocb5dyrp",
+      "qualified_name": "wifi_connect::server::<StringError as fmt::Display>::fmt",
+      "simple_name": "fmt",
+      "kind": "method",
+      "language": "rust",
+      "file": "Fvben7zk96b",
+      "start_line": 39,
+      "end_line": 41,
+      "start_byte": 914,
+      "end_byte": 1007,
+      "signature_hint": "fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result",
+      "trait_impl_target": "Display"
+    },
+    "C17zu2aa93hf": {
+      "id": "C17zu2aa93hf",
+      "qualified_name": "wifi_connect::server::<StringError as StdError>::description",
+      "simple_name": "description",
+      "kind": "method",
+      "language": "rust",
+      "file": "Fvben7zk96b",
+      "start_line": 45,
+      "end_line": 47,
+      "start_byte": 1047,
+      "end_byte": 1100,
+      "signature_hint": "fn description(&self) -> &str",
+      "trait_impl_target": "StdError"
+    },
+    "C102r1og3uc2": {
+      "id": "C102r1og3uc2",
+      "qualified_name": "wifi_connect::server::get_request_ref",
+      "simple_name": "get_request_ref",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fvben7zk96b",
+      "start_line": 50,
+      "end_line": 60,
+      "start_byte": 1104,
+      "end_byte": 1408,
+      "signature_hint": "macro_rules! get_request_ref",
+      "attributes": [
+        "macro"
+      ],
+      "vis": "private"
+    },
+    "C337d2fqjkc": {
+      "id": "C337d2fqjkc",
+      "qualified_name": "wifi_connect::server::get_param",
+      "simple_name": "get_param",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fvben7zk96b",
+      "start_line": 62,
+      "end_line": 86,
+      "start_byte": 1410,
+      "end_byte": 2308,
+      "signature_hint": "macro_rules! get_param",
+      "attributes": [
+        "macro"
+      ],
+      "vis": "private"
+    },
+    "C46dsarvu31": {
+      "id": "C46dsarvu31",
+      "qualified_name": "wifi_connect::server::get_request_state",
+      "simple_name": "get_request_state",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fvben7zk96b",
+      "start_line": 88,
+      "end_line": 99,
+      "start_byte": 2310,
+      "end_byte": 2581,
+      "signature_hint": "macro_rules! get_request_state",
+      "attributes": [
+        "macro"
+      ],
+      "vis": "private"
+    },
+    "C1paqiktsfd": {
+      "id": "C1paqiktsfd",
+      "qualified_name": "wifi_connect::server::exit_with_error",
+      "simple_name": "exit_with_error",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fvben7zk96b",
+      "start_line": 101,
+      "end_line": 112,
+      "start_byte": 2583,
+      "end_byte": 2991,
+      "signature_hint": "fn exit_with_error<E>(state: &RequestSharedState, e: E, e_kind: ErrorKind) -> IronResult<Response> where E: ::std::error::Error + Send + 'static,",
+      "vis": "private"
+    },
+    "Chm8wqp5hzo": {
+      "id": "Chm8wqp5hzo",
+      "qualified_name": "wifi_connect::server::<RedirectMiddleware as AfterMiddleware>::catch",
+      "simple_name": "catch",
+      "kind": "method",
+      "language": "rust",
+      "file": "Fvben7zk96b",
+      "start_line": 117,
+      "end_line": 131,
+      "start_byte": 3071,
+      "end_byte": 3599,
+      "signature_hint": "fn catch(&self, req: &mut Request, err: IronError) -> IronResult<Response>",
+      "trait_impl_target": "AfterMiddleware"
+    },
+    "C1182uh9j6lw": {
+      "id": "C1182uh9j6lw",
+      "qualified_name": "wifi_connect::server::start_server",
+      "simple_name": "start_server",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fvben7zk96b",
+      "start_line": 134,
+      "end_line": 180,
+      "start_byte": 3603,
+      "end_byte": 5106,
+      "signature_hint": "pub fn start_server( gateway: Ipv4Addr, listening_port: u16, server_rx: Receiver<NetworkCommandResponse>, network_tx: Sender<NetworkCommand>, exit_tx: Sender<ExitResult>, ui_directory: &PathBuf, )",
+      "visibility": "pub",
+      "vis": "public"
+    },
+    "Cdaw86ozx0p": {
+      "id": "Cdaw86ozx0p",
+      "qualified_name": "wifi_connect::server::networks",
+      "simple_name": "networks",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fvben7zk96b",
+      "start_line": 182,
+      "end_line": 204,
+      "start_byte": 5108,
+      "end_byte": 5979,
+      "signature_hint": "fn networks(req: &mut Request) -> IronResult<Response>",
+      "vis": "private"
+    },
+    "C173lbfdr8u6": {
+      "id": "C173lbfdr8u6",
+      "qualified_name": "wifi_connect::server::connect",
+      "simple_name": "connect",
+      "kind": "function",
+      "language": "rust",
+      "file": "Fvben7zk96b",
+      "start_line": 206,
+      "end_line": 230,
+      "start_byte": 5981,
+      "end_byte": 6818,
+      "signature_hint": "fn connect(req: &mut Request) -> IronResult<Response>",
+      "vis": "private"
+    },
+    "Ct6ibqcrfg9": {
+      "id": "Ct6ibqcrfg9",
+      "qualified_name": "App",
+      "simple_name": "App",
+      "kind": "function",
+      "language": "typescript",
+      "file": "F59gkf7hjj0",
+      "start_line": 34,
+      "end_line": 101,
+      "start_byte": 847,
+      "end_byte": 2403,
+      "signature_hint": "App = () =>"
+    },
+    "Cw62fsljhvv": {
+      "id": "Cw62fsljhvv",
+      "qualified_name": "onConnect",
+      "simple_name": "onConnect",
+      "kind": "function",
+      "language": "typescript",
+      "file": "F59gkf7hjj0",
+      "start_line": 60,
+      "end_line": 79,
+      "start_byte": 1530,
+      "end_byte": 1957,
+      "signature_hint": "onConnect = (data: NetworkInfo) =>"
+    },
+    "Cazif0s3m7l": {
+      "id": "Cazif0s3m7l",
+      "qualified_name": "getSchema",
+      "simple_name": "getSchema",
+      "kind": "function",
+      "language": "typescript",
+      "file": "Fhbdr3uw2g5",
+      "start_line": 7,
+      "end_line": 31,
+      "start_byte": 253,
+      "end_byte": 723,
+      "signature_hint": "getSchema = (availableNetworks: Network[])"
+    },
+    "Ct5opc91jef": {
+      "id": "Ct5opc91jef",
+      "qualified_name": "getUiSchema",
+      "simple_name": "getUiSchema",
+      "kind": "function",
+      "language": "typescript",
+      "file": "Fhbdr3uw2g5",
+      "start_line": 33,
+      "end_line": 52,
+      "start_byte": 732,
+      "end_byte": 1093,
+      "signature_hint": "getUiSchema = (isEnterprise: boolean)"
+    },
+    "C1515cnt07uu": {
+      "id": "C1515cnt07uu",
+      "qualified_name": "isEnterpriseNetwork",
+      "simple_name": "isEnterpriseNetwork",
+      "kind": "function",
+      "language": "typescript",
+      "file": "Fhbdr3uw2g5",
+      "start_line": 54,
+      "end_line": 62,
+      "start_byte": 1102,
+      "end_byte": 1307,
+      "signature_hint": "isEnterpriseNetwork = ( networks: Network[], selectedNetworkSsid?: string, ) =>"
+    },
+    "C17m356ugi6": {
+      "id": "C17m356ugi6",
+      "qualified_name": "NetworkInfoForm",
+      "simple_name": "NetworkInfoForm",
+      "kind": "function",
+      "language": "typescript",
+      "file": "Fhbdr3uw2g5",
+      "start_line": 69,
+      "end_line": 111,
+      "start_byte": 1430,
+      "end_byte": 2357,
+      "signature_hint": "NetworkInfoForm = ({ availableNetworks, onSubmit, }: NetworkInfoFormProps) =>"
+    },
+    "Cburlh7t4pm": {
+      "id": "Cburlh7t4pm",
+      "qualified_name": "Notifications",
+      "simple_name": "Notifications",
+      "kind": "function",
+      "language": "typescript",
+      "file": "F4tklt9gmvs",
+      "start_line": 4,
+      "end_line": 40,
+      "start_byte": 86,
+      "end_byte": 943,
+      "signature_hint": "Notifications = ({ hasAvailableNetworks, attemptedConnect, error, }: { hasAvailableNetworks: boolean; attemptedConnect: boolean; error: string; }) =>"
+    }
+  },
+  "files": {
+    "F2ejh413dxf": {
+      "id": "F2ejh413dxf",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/scripts/deploy.sh",
+      "language": "bash",
+      "detected_via": "shebang:bash",
+      "blake3": "c3cb12b023f9dd0ef00bab43e535dc87ff174a691b5c54fd533889bba91a643b",
+      "size_bytes": 3810,
+      "lines": 149,
+      "parse_ms": 0.908027,
+      "parse_status": "ok"
+    },
+    "Fr1o9nuzkla": {
+      "id": "Fr1o9nuzkla",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/scripts/local-build.sh",
+      "language": "bash",
+      "detected_via": "shebang:bash",
+      "blake3": "ed096d0c7a3c1d660e8b1e0ed70990c17e255209a19aaf2464c95dbc4ac09a75",
+      "size_bytes": 308,
+      "lines": 19,
+      "parse_ms": 0.07629,
+      "parse_status": "ok"
+    },
+    "Ffxvbotiw8e": {
+      "id": "Ffxvbotiw8e",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/scripts/raspbian-install.sh",
+      "language": "bash",
+      "detected_via": "shebang:bash",
+      "blake3": "aeac71d9d317e3defd4668cad63e0297d125a59d5a6fdbc973a54e1f02c80dd7",
+      "size_bytes": 4626,
+      "lines": 214,
+      "parse_ms": 0.723778,
+      "parse_status": "ok"
+    },
+    "Fmcg07l7rpx": {
+      "id": "Fmcg07l7rpx",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/scripts/start.sh",
+      "language": "bash",
+      "detected_via": "shebang:bash",
+      "blake3": "4f0e49d3a74917166711d70f655e102685026166cdcd516a61f669d8b1fc29d0",
+      "size_bytes": 948,
+      "lines": 33,
+      "parse_ms": 0.078969,
+      "parse_status": "ok"
+    },
+    "Fxyiw2rdo6f": {
+      "id": "Fxyiw2rdo6f",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/src/config.rs",
+      "language": "rust",
+      "detected_via": "extension:.rs",
+      "blake3": "21c3537a7801480ceb573ffc8ea1a2d7700e75db17f8fc5b4bb59244a6740a8b",
+      "size_bytes": 6976,
+      "lines": 218,
+      "parse_ms": 1.930745,
+      "parse_status": "ok"
+    },
+    "Fnvzat161h0": {
+      "id": "Fnvzat161h0",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/src/dnsmasq.rs",
+      "language": "rust",
+      "detected_via": "extension:.rs",
+      "blake3": "4819bbd2ec617b225d07fa8c91688172bb9f23fda61a293f24dbfd7f98d31786",
+      "size_bytes": 798,
+      "lines": 33,
+      "parse_ms": 0.22199899999999997,
+      "parse_status": "ok"
+    },
+    "F8e6xft6g4k": {
+      "id": "F8e6xft6g4k",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/src/errors.rs",
+      "language": "rust",
+      "detected_via": "extension:.rs",
+      "blake3": "29a1aff12f7f21fb5ba879585b38acd9fdea5eb6c70d70b75ca84106e6a40080",
+      "size_bytes": 3985,
+      "lines": 134,
+      "parse_ms": 0.572719,
+      "parse_status": "ok"
+    },
+    "Fhu1cslqi6y": {
+      "id": "Fhu1cslqi6y",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/src/exit.rs",
+      "language": "rust",
+      "detected_via": "extension:.rs",
+      "blake3": "82993a19a028bbae205ce7c803040146555a477be476ee2d8eb16d1daca5e980",
+      "size_bytes": 913,
+      "lines": 40,
+      "parse_ms": 0.384659,
+      "parse_status": "ok"
+    },
+    "Faj7mbbh4h6": {
+      "id": "Faj7mbbh4h6",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/src/logger.rs",
+      "language": "rust",
+      "detected_via": "extension:.rs",
+      "blake3": "139c68f642e4522446bc7ddc5dd4cb528cc7ee687584e6a320dc23524b6fc253",
+      "size_bytes": 806,
+      "lines": 30,
+      "parse_ms": 0.18199,
+      "parse_status": "ok"
+    },
+    "Fxbjv4o1zkb": {
+      "id": "Fxbjv4o1zkb",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/src/main.rs",
+      "language": "rust",
+      "detected_via": "extension:.rs",
+      "blake3": "8817fb36fc854d4dc1bc7174ca83dd396fefd81bd9191984b31e3714e4116878",
+      "size_bytes": 1606,
+      "lines": 88,
+      "parse_ms": 0.327539,
+      "parse_status": "ok"
+    },
+    "Fcg61k609fm": {
+      "id": "Fcg61k609fm",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/src/network.rs",
+      "language": "rust",
+      "detected_via": "extension:.rs",
+      "blake3": "e600cddc47cb7102d4226616f33282b10d83ae422ce69ea081330e176e4595e0",
+      "size_bytes": 17953,
+      "lines": 585,
+      "parse_ms": 3.044832,
+      "parse_status": "ok"
+    },
+    "Fvs5503llos": {
+      "id": "Fvs5503llos",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/src/privileges.rs",
+      "language": "rust",
+      "detected_via": "extension:.rs",
+      "blake3": "296cb0d5506982232d79b6e732d54afcf929ffe1147c00734d4643a6729d21f4",
+      "size_bytes": 253,
+      "lines": 13,
+      "parse_ms": 0.06476,
+      "parse_status": "ok"
+    },
+    "Fvben7zk96b": {
+      "id": "Fvben7zk96b",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/src/server.rs",
+      "language": "rust",
+      "detected_via": "extension:.rs",
+      "blake3": "9cdb20fc5a983fde9162830bcb5ff8aa9f21a5a007698c1803d4d5bdc45abbe1",
+      "size_bytes": 6819,
+      "lines": 230,
+      "parse_ms": 1.3589959999999999,
+      "parse_status": "ok"
+    },
+    "F59gkf7hjj0": {
+      "id": "F59gkf7hjj0",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/ui/src/components/App.tsx",
+      "language": "typescript",
+      "detected_via": "extension:.tsx",
+      "blake3": "4a962bdd511a45f8601692c17c58f0d96adb8b2582cac165ff319b748e51da86",
+      "size_bytes": 2426,
+      "lines": 103,
+      "parse_ms": 0.936808,
+      "parse_status": "ok"
+    },
+    "Fhbdr3uw2g5": {
+      "id": "Fhbdr3uw2g5",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/ui/src/components/NetworkInfoForm.tsx",
+      "language": "typescript",
+      "detected_via": "extension:.tsx",
+      "blake3": "a91f4fe18366f954bce02a8cd5c4d628fcdfde7f2c7a7e2c1b9a53123b1411e0",
+      "size_bytes": 2359,
+      "lines": 111,
+      "parse_ms": 0.731658,
+      "parse_status": "ok"
+    },
+    "F4tklt9gmvs": {
+      "id": "F4tklt9gmvs",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/ui/src/components/Notifications.tsx",
+      "language": "typescript",
+      "detected_via": "extension:.tsx",
+      "blake3": "2b2a6f77a51ddef07a826fb5fc6cc0408ede99cabb69275d15d3a173a438f2d4",
+      "size_bytes": 945,
+      "lines": 40,
+      "parse_ms": 0.136639,
+      "parse_status": "ok"
+    },
+    "Ft4butz15qf": {
+      "id": "Ft4butz15qf",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/ui/src/index.tsx",
+      "language": "typescript",
+      "detected_via": "extension:.tsx",
+      "blake3": "049f1ead9500c8d99c7c929eae545f95954cf3aa0502c4749e501d8bd6436e6d",
+      "size_bytes": 221,
+      "lines": 8,
+      "parse_ms": 0.03862,
+      "parse_status": "ok"
+    },
+    "Fiz9vudpt6": {
+      "id": "Fiz9vudpt6",
+      "path": "/storage/cgg-test_repos/app-wificonnect-iron/ui/src/react-app-env.d.ts",
+      "language": "typescript",
+      "detected_via": "extension:.ts",
+      "blake3": "cbaaa84785c0de684f3ae0c82b5052749d0fa5205383590974ff847190e5154f",
+      "size_bytes": 40,
+      "lines": 1,
+      "parse_ms": 0.027719999999999998,
+      "parse_status": "ok"
+    }
+  },
+  "edges": [
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cgbeakzpgx5",
+      "site_line": 13,
+      "site_byte": 248,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cgbeakzpgx5",
+      "site_line": 14,
+      "site_byte": 266,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cgbeakzpgx5",
+      "site_line": 15,
+      "site_byte": 282,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cgbeakzpgx5",
+      "site_line": 16,
+      "site_byte": 301,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cgbeakzpgx5",
+      "site_line": 17,
+      "site_byte": 319,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cgbeakzpgx5",
+      "site_line": 18,
+      "site_byte": 336,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cgbeakzpgx5",
+      "site_line": 19,
+      "site_byte": 354,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cgbeakzpgx5",
+      "site_line": 20,
+      "site_byte": 371,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cgbeakzpgx5",
+      "site_line": 21,
+      "site_byte": 393,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cfjrjm3o53i",
+      "site_line": 24,
+      "site_byte": 450,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cm5bjyowmep",
+      "site_line": 33,
+      "site_byte": 680,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cm5bjyowmep",
+      "site_line": 35,
+      "site_byte": 880,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cya04y4t91l",
+      "site_line": 38,
+      "site_byte": 961,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cm5bjyowmep",
+      "site_line": 41,
+      "site_byte": 1020,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cfjrjm3o53i",
+      "site_line": 45,
+      "site_byte": 1112,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Ciekfbj5p6g",
+      "site_line": 50,
+      "site_byte": 1244,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cm5bjyowmep",
+      "site_line": 51,
+      "site_byte": 1318,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cfjrjm3o53i",
+      "site_line": 54,
+      "site_byte": 1421,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cm5bjyowmep",
+      "site_line": 55,
+      "site_byte": 1450,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cm5bjyowmep",
+      "site_line": 55,
+      "site_byte": 1476,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cm5bjyowmep",
+      "site_line": 66,
+      "site_byte": 1690,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cm5bjyowmep",
+      "site_line": 67,
+      "site_byte": 1726,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cm5bjyowmep",
+      "site_line": 68,
+      "site_byte": 1782,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cm5bjyowmep",
+      "site_line": 69,
+      "site_byte": 1814,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cm5bjyowmep",
+      "site_line": 90,
+      "site_byte": 2458,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cm5bjyowmep",
+      "site_line": 91,
+      "site_byte": 2495,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cm5bjyowmep",
+      "site_line": 100,
+      "site_byte": 2688,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cm5bjyowmep",
+      "site_line": 101,
+      "site_byte": 2734,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cfjrjm3o53i",
+      "site_line": 103,
+      "site_byte": 2781,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cm5bjyowmep",
+      "site_line": 113,
+      "site_byte": 3149,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C164ezn5kmet",
+      "dst": "Cya04y4t91l",
+      "site_line": 116,
+      "site_byte": 3247,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cgbeakzpgx5",
+      "dst": "Cya04y4t91l",
+      "site_line": 138,
+      "site_byte": 3655,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cm5bjyowmep",
+      "dst": "Cya04y4t91l",
+      "site_line": 145,
+      "site_byte": 3754,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2ij9tszt85",
+      "dst": "C6pqdxus24q",
+      "site_line": 38,
+      "site_byte": 695,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2ij9tszt85",
+      "dst": "C67n037k7th",
+      "site_line": 49,
+      "site_byte": 874,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2ij9tszt85",
+      "dst": "C67n037k7th",
+      "site_line": 50,
+      "site_byte": 890,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2ij9tszt85",
+      "dst": "C67n037k7th",
+      "site_line": 51,
+      "site_byte": 908,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2ij9tszt85",
+      "dst": "C67n037k7th",
+      "site_line": 52,
+      "site_byte": 931,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2ij9tszt85",
+      "dst": "C67n037k7th",
+      "site_line": 53,
+      "site_byte": 952,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2ij9tszt85",
+      "dst": "C67n037k7th",
+      "site_line": 54,
+      "site_byte": 970,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2ij9tszt85",
+      "dst": "C60g3atbrzr",
+      "site_line": 56,
+      "site_byte": 991,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2ij9tszt85",
+      "dst": "C11qi56gq88w",
+      "site_line": 58,
+      "site_byte": 1013,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2ij9tszt85",
+      "dst": "Cs1nvn96vel",
+      "site_line": 60,
+      "site_byte": 1030,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2ij9tszt85",
+      "dst": "Ckgrg3109s8",
+      "site_line": 62,
+      "site_byte": 1060,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C60g3atbrzr",
+      "dst": "C10vbxjlsaug",
+      "site_line": 73,
+      "site_byte": 1322,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "C15gey52ft6p",
+      "site_line": 78,
+      "site_byte": 1438,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "Ckgrg3109s8",
+      "site_line": 79,
+      "site_byte": 1504,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "Cbwq6apk5dp",
+      "site_line": 81,
+      "site_byte": 1551,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "Ckgrg3109s8",
+      "site_line": 85,
+      "site_byte": 1659,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 87,
+      "site_byte": 1704,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 89,
+      "site_byte": 1740,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "C2eatvxhixx",
+      "site_line": 91,
+      "site_byte": 1799,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "Ckgrg3109s8",
+      "site_line": 93,
+      "site_byte": 1823,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 95,
+      "site_byte": 1867,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 97,
+      "site_byte": 1923,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "Ckgrg3109s8",
+      "site_line": 99,
+      "site_byte": 1966,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "Cvnokr51dc2",
+      "site_line": 101,
+      "site_byte": 2025,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "Ckgrg3109s8",
+      "site_line": 102,
+      "site_byte": 2094,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "Cbwq6apk5dp",
+      "site_line": 104,
+      "site_byte": 2158,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "C2eatvxhixx",
+      "site_line": 106,
+      "site_byte": 2192,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "Ckgrg3109s8",
+      "site_line": 108,
+      "site_byte": 2220,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 110,
+      "site_byte": 2268,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 112,
+      "site_byte": 2325,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "Cvnokr51dc2",
+      "site_line": 116,
+      "site_byte": 2401,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs1nvn96vel",
+      "dst": "C10vbxjlsaug",
+      "site_line": 117,
+      "site_byte": 2466,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2eatvxhixx",
+      "dst": "Cvnokr51dc2",
+      "site_line": 122,
+      "site_byte": 2544,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2eatvxhixx",
+      "dst": "Ckgrg3109s8",
+      "site_line": 123,
+      "site_byte": 2601,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2eatvxhixx",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 125,
+      "site_byte": 2653,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2eatvxhixx",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 127,
+      "site_byte": 2696,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2eatvxhixx",
+      "dst": "Cvnokr51dc2",
+      "site_line": 129,
+      "site_byte": 2750,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2eatvxhixx",
+      "dst": "C10vbxjlsaug",
+      "site_line": 130,
+      "site_byte": 2811,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2eatvxhixx",
+      "dst": "Ckgrg3109s8",
+      "site_line": 132,
+      "site_byte": 2867,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2eatvxhixx",
+      "dst": "Ckgrg3109s8",
+      "site_line": 135,
+      "site_byte": 2946,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C15gey52ft6p",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 140,
+      "site_byte": 3010,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cvnokr51dc2",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 144,
+      "site_byte": 3090,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11qi56gq88w",
+      "dst": "Ckgrg3109s8",
+      "site_line": 167,
+      "site_byte": 3630,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11qi56gq88w",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 169,
+      "site_byte": 3700,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11qi56gq88w",
+      "dst": "Ckgrg3109s8",
+      "site_line": 171,
+      "site_byte": 3758,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11qi56gq88w",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 173,
+      "site_byte": 3826,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11qi56gq88w",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 175,
+      "site_byte": 3849,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11qi56gq88w",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 177,
+      "site_byte": 3913,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11qi56gq88w",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 179,
+      "site_byte": 3980,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11qi56gq88w",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 181,
+      "site_byte": 4022,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11qi56gq88w",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 183,
+      "site_byte": 4063,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11qi56gq88w",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 185,
+      "site_byte": 4119,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11qi56gq88w",
+      "dst": "C4wuxz4r0jf",
+      "site_line": 187,
+      "site_byte": 4171,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11qi56gq88w",
+      "dst": "Ckgrg3109s8",
+      "site_line": 189,
+      "site_byte": 4207,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C67n037k7th",
+      "dst": "C10vbxjlsaug",
+      "site_line": 203,
+      "site_byte": 4471,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4wuxz4r0jf",
+      "dst": "C10vbxjlsaug",
+      "site_line": 210,
+      "site_byte": 4570,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C2d9fow5oum",
+      "dst": "Cs7tjvfvrdd",
+      "site_line": 158,
+      "site_byte": 5359,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs7tjvfvrdd",
+      "dst": "Cpe78b60k4b",
+      "site_line": 181,
+      "site_byte": 5911,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C7555gl4e03",
+      "dst": "Cvagdoz8njh",
+      "site_line": 15,
+      "site_byte": 382,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cgz51gi84nq",
+      "dst": "Cvagdoz8njh",
+      "site_line": 22,
+      "site_byte": 593,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cpe646ldxzt",
+      "dst": "Cgu9cmxl3vj",
+      "site_line": 49,
+      "site_byte": 826,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cgu9cmxl3vj",
+      "dst": "C17e176meqgn",
+      "site_line": 76,
+      "site_byte": 1378,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cpvkswtg14",
+      "dst": "Cdwpqhhjxfv",
+      "site_line": 56,
+      "site_byte": 1339,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cpvkswtg14",
+      "dst": "Ceyjgpivf4l",
+      "site_line": 61,
+      "site_byte": 1524,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cpvkswtg14",
+      "dst": "C15l5uoz4ygr",
+      "site_line": 63,
+      "site_byte": 1596,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cpvkswtg14",
+      "dst": "Cr2x5uye3by",
+      "site_line": 65,
+      "site_byte": 1663,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cpvkswtg14",
+      "dst": "Clofji0spvl",
+      "site_line": 71,
+      "site_byte": 1811,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cpvkswtg14",
+      "dst": "Cp376o5y7rj",
+      "site_line": 73,
+      "site_byte": 1888,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Clofji0spvl",
+      "dst": "Cpkvb8rvycm",
+      "site_line": 102,
+      "site_byte": 2661,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cp376o5y7rj",
+      "dst": "C13w5i89uvb0",
+      "site_line": 121,
+      "site_byte": 3136,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cdwpqhhjxfv",
+      "dst": "C2vpbgbjq4d",
+      "site_line": 136,
+      "site_byte": 3630,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1ke9m64dtk",
+      "dst": "Chewodz1hgq",
+      "site_line": 149,
+      "site_byte": 4045,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1ke9m64dtk",
+      "dst": "Cen71hhreg2",
+      "site_line": 150,
+      "site_byte": 4070,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Chewodz1hgq",
+      "dst": "Cn5m1ufuu2i",
+      "site_line": 155,
+      "site_byte": 4189,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Chewodz1hgq",
+      "dst": "Cfeo6c2btjc",
+      "site_line": 159,
+      "site_byte": 4317,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Chewodz1hgq",
+      "dst": "Capm70q3axc",
+      "site_line": 176,
+      "site_byte": 4892,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cen71hhreg2",
+      "dst": "C171le2mfxw2",
+      "site_line": 199,
+      "site_byte": 5660,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cfeo6c2btjc",
+      "dst": "Cbxg3q2z50g",
+      "site_line": 208,
+      "site_byte": 5858,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Capm70q3axc",
+      "dst": "C1x6b98rdsg",
+      "site_line": 216,
+      "site_byte": 6143,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Capm70q3axc",
+      "dst": "Cjqoz1w0f53",
+      "site_line": 219,
+      "site_byte": 6285,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Capm70q3axc",
+      "dst": "C15l5uoz4ygr",
+      "site_line": 224,
+      "site_byte": 6405,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Capm70q3axc",
+      "dst": "Csznoqoar9b",
+      "site_line": 226,
+      "site_byte": 6476,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Capm70q3axc",
+      "dst": "Ctkblryojga",
+      "site_line": 231,
+      "site_byte": 6687,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Capm70q3axc",
+      "dst": "Cjeju3attls",
+      "site_line": 236,
+      "site_byte": 6959,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Capm70q3axc",
+      "dst": "C15l5uoz4ygr",
+      "site_line": 265,
+      "site_byte": 8092,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Capm70q3axc",
+      "dst": "Cr2x5uye3by",
+      "site_line": 267,
+      "site_byte": 8165,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cpfgyppw9z2",
+      "dst": "Cpvkswtg14",
+      "site_line": 299,
+      "site_byte": 9139,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C12rjj7r3nxx",
+      "dst": "Ch1e96kwvqf",
+      "site_line": 311,
+      "site_byte": 9418,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C12rjj7r3nxx",
+      "dst": "Cu5km4wmsh7",
+      "site_line": 313,
+      "site_byte": 9457,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ceyjgpivf4l",
+      "dst": "C15sbr0fst7r",
+      "site_line": 336,
+      "site_byte": 10279,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C15l5uoz4ygr",
+      "dst": "Cigxneesrys",
+      "site_line": 358,
+      "site_byte": 10848,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cigxneesrys",
+      "dst": "Cnbitbeej7x",
+      "site_line": 383,
+      "site_byte": 11806,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cix95pmlv37",
+      "dst": "Cm1fdqasbuc",
+      "site_line": 411,
+      "site_byte": 12578,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cr2x5uye3by",
+      "dst": "C1lui66imwz",
+      "site_line": 444,
+      "site_byte": 13532,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjqoz1w0f53",
+      "dst": "C171le2mfxw2",
+      "site_line": 462,
+      "site_byte": 14152,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cu5km4wmsh7",
+      "dst": "C167w0ugdhad",
+      "site_line": 535,
+      "site_byte": 16330,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cu5km4wmsh7",
+      "dst": "Cy8jiznexhz",
+      "site_line": 535,
+      "site_byte": 16372,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1x6b98rdsg",
+      "dst": "Chcybh6x15k",
+      "site_line": 557,
+      "site_byte": 17001,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1x6b98rdsg",
+      "dst": "Cy8jiznexhz",
+      "site_line": 557,
+      "site_byte": 17035,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cy8jiznexhz",
+      "dst": "C17p21dnb2on",
+      "site_line": 571,
+      "site_byte": 17451,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C167w0ugdhad",
+      "dst": "Chcybh6x15k",
+      "site_line": 580,
+      "site_byte": 17770,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Chm8wqp5hzo",
+      "dst": "C46dsarvu31",
+      "site_line": 119,
+      "site_byte": 3204,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cdaw86ozx0p",
+      "dst": "C46dsarvu31",
+      "site_line": 185,
+      "site_byte": 5241,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cdaw86ozx0p",
+      "dst": "C1paqiktsfd",
+      "site_line": 188,
+      "site_byte": 5360,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cdaw86ozx0p",
+      "dst": "C1paqiktsfd",
+      "site_line": 195,
+      "site_byte": 5641,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cdaw86ozx0p",
+      "dst": "C1paqiktsfd",
+      "site_line": 200,
+      "site_byte": 5839,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C173lbfdr8u6",
+      "dst": "C102r1og3uc2",
+      "site_line": 208,
+      "site_byte": 6099,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C173lbfdr8u6",
+      "dst": "C337d2fqjkc",
+      "site_line": 209,
+      "site_byte": 6182,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C173lbfdr8u6",
+      "dst": "C337d2fqjkc",
+      "site_line": 210,
+      "site_byte": 6241,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C173lbfdr8u6",
+      "dst": "C337d2fqjkc",
+      "site_line": 211,
+      "site_byte": 6306,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C173lbfdr8u6",
+      "dst": "C46dsarvu31",
+      "site_line": 217,
+      "site_byte": 6487,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C173lbfdr8u6",
+      "dst": "C1paqiktsfd",
+      "site_line": 226,
+      "site_byte": 6686,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C17m356ugi6",
+      "dst": "C1515cnt07uu",
+      "site_line": 75,
+      "site_byte": 1608,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C17m356ugi6",
+      "dst": "Cazif0s3m7l",
+      "site_line": 99,
+      "site_byte": 2092,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C17m356ugi6",
+      "dst": "Ct5opc91jef",
+      "site_line": 100,
+      "site_byte": 2136,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cpe646ldxzt",
+      "dst": "Cqjwvmd7zwy",
+      "site_line": 59,
+      "site_byte": 1149,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cgu9cmxl3vj",
+      "dst": "C7555gl4e03",
+      "site_line": 64,
+      "site_byte": 1202,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cgu9cmxl3vj",
+      "dst": "C2ade149akh",
+      "site_line": 66,
+      "site_byte": 1230,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cgu9cmxl3vj",
+      "dst": "C2d9fow5oum",
+      "site_line": 68,
+      "site_byte": 1264,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cgu9cmxl3vj",
+      "dst": "C15tbqhkmlnx",
+      "site_line": 70,
+      "site_byte": 1283,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cgu9cmxl3vj",
+      "dst": "C12rjj7r3nxx",
+      "site_line": 72,
+      "site_byte": 1305,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C17e176meqgn",
+      "dst": "Cpfgyppw9z2",
+      "site_line": 77,
+      "site_byte": 1410,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cpvkswtg14",
+      "dst": "Cnk0njt9wtt",
+      "site_line": 67,
+      "site_byte": 1720,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cpkvb8rvycm",
+      "dst": "C1182uh9j6lw",
+      "site_line": 103,
+      "site_byte": 2697,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C2vpbgbjq4d",
+      "dst": "Cgz51gi84nq",
+      "site_line": 137,
+      "site_byte": 3682,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C2vpbgbjq4d",
+      "dst": "C9rkswkmzgm",
+      "site_line": 138,
+      "site_byte": 3720,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cen71hhreg2",
+      "dst": "Cb8aosob7ru",
+      "site_line": 196,
+      "site_byte": 5543,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cpfgyppw9z2",
+      "dst": "C9rkswkmzgm",
+      "site_line": 302,
+      "site_byte": 9265,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cpfgyppw9z2",
+      "dst": "Cgu9cmxl3vj",
+      "site_line": 307,
+      "site_byte": 9325,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cpfgyppw9z2",
+      "dst": "C1ke9m64dtk",
+      "site_line": 307,
+      "site_byte": 9325,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cigxneesrys",
+      "dst": "C15l5uoz4ygr",
+      "site_line": 369,
+      "site_byte": 11298,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C1paqiktsfd",
+      "dst": "C9rkswkmzgm",
+      "site_line": 107,
+      "site_byte": 2848,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C1182uh9j6lw",
+      "dst": "C9rkswkmzgm",
+      "site_line": 175,
+      "site_byte": 4983,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": null,
+      "file": "F2ejh413dxf",
+      "site_line": 149,
+      "site_byte": 3790,
+      "name": "main",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fr1o9nuzkla",
+      "site_line": 17,
+      "site_byte": 208,
+      "name": "cross",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fr1o9nuzkla",
+      "site_line": 19,
+      "site_byte": 254,
+      "name": "cross",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ffxvbotiw8e",
+      "site_line": 214,
+      "site_byte": 4606,
+      "name": "main",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 103,
+      "site_byte": 2826,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 99,
+      "site_byte": 2713,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 95,
+      "site_byte": 2620,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 91,
+      "site_byte": 2531,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 87,
+      "site_byte": 2432,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 83,
+      "site_byte": 2303,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 78,
+      "site_byte": 2127,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 74,
+      "site_byte": 1982,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 70,
+      "site_byte": 1883,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 66,
+      "site_byte": 1784,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 62,
+      "site_byte": 1687,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 58,
+      "site_byte": 1598,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 53,
+      "site_byte": 1465,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 48,
+      "site_byte": 1308,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 43,
+      "site_byte": 1093,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 39,
+      "site_byte": 969,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 35,
+      "site_byte": 855,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 31,
+      "site_byte": 747,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 27,
+      "site_byte": 642,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 23,
+      "site_byte": 534,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F8e6xft6g4k",
+      "site_line": 19,
+      "site_byte": 429,
+      "name": "description",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cpe646ldxzt",
+      "file": "Fxbjv4o1zkb",
+      "site_line": 59,
+      "site_byte": 1135,
+      "name": "exit",
+      "receiver_hint": "process",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cy6ocb5dyrp",
+      "file": "Fvben7zk96b",
+      "site_line": 40,
+      "site_byte": 977,
+      "name": "fmt",
+      "receiver_hint": "fmt::Debug",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C1paqiktsfd",
+      "file": "Fvben7zk96b",
+      "site_line": 105,
+      "site_byte": 2757,
+      "name": "description",
+      "receiver_hint": "ErrorKind",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C1182uh9j6lw",
+      "file": "Fvben7zk96b",
+      "site_line": 165,
+      "site_byte": 4632,
+      "name": "new",
+      "receiver_hint": "Chain",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 20.395645000000002,
+    "phases": {
+      "walk_ms": 5.320136,
+      "parse_ms": 11.746747999999998,
+      "extract_ms": 3.1687020000000015,
+      "resolve_ms": 0.0,
+      "link_ms": 2.243994,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 128,
+    "files_analyzed": 18,
+    "files_skipped": 110,
+    "files_errored": 0,
+    "bytes_processed": 55792,
+    "callables": 90,
+    "edges": 166,
+    "unresolved_calls": 54,
+    "stdlib_calls": 81,
+    "external_calls": 310,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "bash": {
+        "files": 4,
+        "callables": 20,
+        "edges": 89,
+        "unresolved": 8,
+        "stdlib": 7,
+        "external": 9
+      },
+      "rust": {
+        "files": 9,
+        "callables": 63,
+        "edges": 61,
+        "unresolved": 46,
+        "stdlib": 68,
+        "external": 277
+      },
+      "typescript": {
+        "files": 5,
+        "callables": 7,
+        "edges": 3,
+        "unresolved": 0,
+        "stdlib": 6,
+        "external": 24
+      },
+      "skip:builtin": {
+        "files": 80,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      },
+      "skip:binary": {
+        "files": 4,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 162,
+      "medium": 10,
+      "low": 0
+    }
+  }
+}

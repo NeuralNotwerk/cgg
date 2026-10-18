@@ -1,0 +1,4947 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "Crhpu50wplf": {
+      "id": "Crhpu50wplf",
+      "qualified_name": "PingTokenSync::run",
+      "simple_name": "run",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fwplfgkeckb",
+      "start_line": 7,
+      "end_line": 7,
+      "start_byte": 146,
+      "end_byte": 247,
+      "signature_hint": "def run(config: Configuration, client: HttpClient)"
+    },
+    "Czujllzl2iz": {
+      "id": "Czujllzl2iz",
+      "qualified_name": "PlexTokenDeleteSync::run",
+      "simple_name": "run",
+      "kind": "function",
+      "language": "scala",
+      "file": "F14goou7kdh5",
+      "start_line": 16,
+      "end_line": 47,
+      "start_byte": 395,
+      "end_byte": 1718,
+      "signature_hint": "def run(config: Configuration, client: HttpClient)"
+    },
+    "C4eu8uf48gt": {
+      "id": "C4eu8uf48gt",
+      "qualified_name": "PlexTokenDeleteSync::missingIdsOnPlex",
+      "simple_name": "missingIdsOnPlex",
+      "kind": "function",
+      "language": "scala",
+      "file": "F14goou7kdh5",
+      "start_line": 49,
+      "end_line": 68,
+      "start_byte": 1722,
+      "end_byte": 2621,
+      "signature_hint": "private def missingIdsOnPlex( client: HttpClient )(config: Configuration)(existingItems: Set[Item], watchlist: Set[Item])"
+    },
+    "Cwpn9kth8ba": {
+      "id": "Cwpn9kth8ba",
+      "qualified_name": "PlexTokenDeleteSync::deleteMovie",
+      "simple_name": "deleteMovie",
+      "kind": "function",
+      "language": "scala",
+      "file": "F14goou7kdh5",
+      "start_line": 70,
+      "end_line": 78,
+      "start_byte": 2625,
+      "end_byte": 3041,
+      "signature_hint": "private def deleteMovie(client: HttpClient, config: Configuration)(movie: Item)"
+    },
+    "Cqol1646f2f": {
+      "id": "Cqol1646f2f",
+      "qualified_name": "PlexTokenDeleteSync::deleteSeries",
+      "simple_name": "deleteSeries",
+      "kind": "function",
+      "language": "scala",
+      "file": "F14goou7kdh5",
+      "start_line": 78,
+      "end_line": 88,
+      "start_byte": 3041,
+      "end_byte": 3705,
+      "signature_hint": "private def deleteSeries(client: HttpClient, config: Configuration)(show: Item)"
+    },
+    "Czccqvnpk00": {
+      "id": "Czccqvnpk00",
+      "qualified_name": "PlexTokenSync::run",
+      "simple_name": "run",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fg1q28fl6l0",
+      "start_line": 16,
+      "end_line": 57,
+      "start_byte": 389,
+      "end_byte": 2095,
+      "signature_hint": "def run(config: Configuration, client: HttpClient, runFullSync: Boolean)"
+    },
+    "Cbh9k71r9lv": {
+      "id": "Cbh9k71r9lv",
+      "qualified_name": "PlexTokenSync::missingIds",
+      "simple_name": "missingIds",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fg1q28fl6l0",
+      "start_line": 59,
+      "end_line": 97,
+      "start_byte": 2099,
+      "end_byte": 3967,
+      "signature_hint": "private def missingIds( client: HttpClient )(config: Configuration)(existingItems: Set[Item], watchlist: Set[Item])"
+    },
+    "C2610o9k4pk": {
+      "id": "C2610o9k4pk",
+      "qualified_name": "Server::reportFailure",
+      "simple_name": "reportFailure",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fzanxxu9j91",
+      "start_line": 14,
+      "end_line": 17,
+      "start_byte": 394,
+      "end_byte": 687,
+      "signature_hint": "override protected def reportFailure(err: Throwable)",
+      "attributes": [
+        "override"
+      ]
+    },
+    "C166xg8or5i2": {
+      "id": "C166xg8or5i2",
+      "qualified_name": "Server::run",
+      "simple_name": "run",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fzanxxu9j91",
+      "start_line": 19,
+      "end_line": 33,
+      "start_byte": 691,
+      "end_byte": 1241,
+      "signature_hint": "def run(args: List[String])"
+    },
+    "C8dojwv5rws": {
+      "id": "C8dojwv5rws",
+      "qualified_name": "Server::fetchLatestConfig",
+      "simple_name": "fetchLatestConfig",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fzanxxu9j91",
+      "start_line": 35,
+      "end_line": 38,
+      "start_byte": 1245,
+      "end_byte": 1352,
+      "signature_hint": "private def fetchLatestConfig(configRef: Ref[IO, Configuration])"
+    },
+    "Cqjek5o7rui": {
+      "id": "Cqjek5o7rui",
+      "qualified_name": "Server::pingTokenSync",
+      "simple_name": "pingTokenSync",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fzanxxu9j91",
+      "start_line": 38,
+      "end_line": 46,
+      "start_byte": 1352,
+      "end_byte": 1664,
+      "signature_hint": "private def pingTokenSync(configRef: Ref[IO, Configuration], httpClient: HttpClient)"
+    },
+    "Co51kvl14pv": {
+      "id": "Co51kvl14pv",
+      "qualified_name": "Server::plexRssSync",
+      "simple_name": "plexRssSync",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fzanxxu9j91",
+      "start_line": 46,
+      "end_line": 57,
+      "start_byte": 1664,
+      "end_byte": 2023,
+      "signature_hint": "private def plexRssSync( configRef: Ref[IO, Configuration], httpClient: HttpClient )"
+    },
+    "Cp6zs6vz67y": {
+      "id": "Cp6zs6vz67y",
+      "qualified_name": "Server::plexFullSync",
+      "simple_name": "plexFullSync",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fzanxxu9j91",
+      "start_line": 57,
+      "end_line": 68,
+      "start_byte": 2023,
+      "end_byte": 2371,
+      "signature_hint": "private def plexFullSync( configRef: Ref[IO, Configuration], httpClient: HttpClient )"
+    },
+    "Crzvbimyvuc": {
+      "id": "Crzvbimyvuc",
+      "qualified_name": "Server::plexTokenDeleteSync",
+      "simple_name": "plexTokenDeleteSync",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fzanxxu9j91",
+      "start_line": 68,
+      "end_line": 75,
+      "start_byte": 2371,
+      "end_byte": 2731,
+      "signature_hint": "private def plexTokenDeleteSync(configRef: Ref[IO, Configuration], httpClient: HttpClient)"
+    },
+    "Cnqpn9f83l2": {
+      "id": "Cnqpn9f83l2",
+      "qualified_name": "Configuration::Configuration",
+      "simple_name": "Configuration",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fwzdajberio",
+      "start_line": 7,
+      "end_line": 13,
+      "start_byte": 95,
+      "end_byte": 338,
+      "signature_hint": "case class Configuration( refreshInterval: FiniteDuration, sonarrConfiguration: SonarrConfiguration, radarrConfiguration: RadarrConfiguration, plexConfiguration: PlexConfiguration, deleteConfiguration: DeleteConfiguration )"
+    },
+    "Ch57t9lkqs3": {
+      "id": "Ch57t9lkqs3",
+      "qualified_name": "SonarrConfiguration::SonarrConfiguration",
+      "simple_name": "SonarrConfiguration",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fwzdajberio",
+      "start_line": 15,
+      "end_line": 24,
+      "start_byte": 340,
+      "end_byte": 617,
+      "signature_hint": "case class SonarrConfiguration( sonarrBaseUrl: Uri, sonarrApiKey: String, sonarrQualityProfileId: Int, sonarrRootFolder: String, sonarrBypassIgnored: Boolean, sonarrSeasonMonitoring: String, sonarrLanguageProfileId: Int, sonarrTagIds: Set[Int] )"
+    },
+    "C14rsv9bxn3t": {
+      "id": "C14rsv9bxn3t",
+      "qualified_name": "RadarrConfiguration::RadarrConfiguration",
+      "simple_name": "RadarrConfiguration",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fwzdajberio",
+      "start_line": 26,
+      "end_line": 33,
+      "start_byte": 619,
+      "end_byte": 826,
+      "signature_hint": "case class RadarrConfiguration( radarrBaseUrl: Uri, radarrApiKey: String, radarrQualityProfileId: Int, radarrRootFolder: String, radarrBypassIgnored: Boolean, radarrTagIds: Set[Int] )"
+    },
+    "Cgven6whedw": {
+      "id": "Cgven6whedw",
+      "qualified_name": "PlexConfiguration::PlexConfiguration",
+      "simple_name": "PlexConfiguration",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fwzdajberio",
+      "start_line": 35,
+      "end_line": 40,
+      "start_byte": 828,
+      "end_byte": 975,
+      "signature_hint": "case class PlexConfiguration( plexWatchlistUrls: Set[Uri], plexTokens: Set[String], skipFriendSync: Boolean, hasPlexPass: Boolean )"
+    },
+    "Csyrvbhif2h": {
+      "id": "Csyrvbhif2h",
+      "qualified_name": "DeleteConfiguration::DeleteConfiguration",
+      "simple_name": "DeleteConfiguration",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fwzdajberio",
+      "start_line": 42,
+      "end_line": 48,
+      "start_byte": 977,
+      "end_byte": 1168,
+      "signature_hint": "case class DeleteConfiguration( movieDeleting: Boolean, endedShowDeleting: Boolean, continuingShowDeleting: Boolean, deleteInterval: FiniteDuration, deleteFiles: Boolean )"
+    },
+    "C15poev7c1fc": {
+      "id": "C15poev7c1fc",
+      "qualified_name": "ConfigurationReader::getConfigOption",
+      "simple_name": "getConfigOption",
+      "kind": "method",
+      "language": "scala",
+      "file": "Fzsmpxualaf",
+      "start_line": 4,
+      "end_line": 4,
+      "start_byte": 53,
+      "end_byte": 101,
+      "signature_hint": "def getConfigOption(key: String)",
+      "attributes": [
+        "abstract"
+      ]
+    },
+    "Crmxx4oeyl6": {
+      "id": "Crmxx4oeyl6",
+      "qualified_name": "ConfigurationRedactor::redactToString",
+      "simple_name": "redactToString",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fxw001l0jam",
+      "start_line": 4,
+      "end_line": 40,
+      "start_byte": 56,
+      "end_byte": 2053,
+      "signature_hint": "def redactToString(config: Configuration)"
+    },
+    "Cxookce0746": {
+      "id": "Cxookce0746",
+      "qualified_name": "ConfigurationUtils::create",
+      "simple_name": "create",
+      "kind": "function",
+      "language": "scala",
+      "file": "F16kabu51obq",
+      "start_line": 28,
+      "end_line": 90,
+      "start_byte": 601,
+      "end_byte": 3375,
+      "signature_hint": "def create(configReader: ConfigurationReader, client: HttpClient)"
+    },
+    "C4cs0o798v4": {
+      "id": "C4cs0o798v4",
+      "qualified_name": "ConfigurationUtils::findCorrectUrl",
+      "simple_name": "findCorrectUrl",
+      "kind": "function",
+      "language": "scala",
+      "file": "F16kabu51obq",
+      "start_line": 92,
+      "end_line": 115,
+      "start_byte": 3379,
+      "end_byte": 4157,
+      "signature_hint": "private def findCorrectUrl(client: HttpClient)(urls: Seq[String], apiKey: String)"
+    },
+    "Cl8qtu8wsy5": {
+      "id": "Cl8qtu8wsy5",
+      "qualified_name": "ConfigurationUtils::getSonarrConfig",
+      "simple_name": "getSonarrConfig",
+      "kind": "function",
+      "language": "scala",
+      "file": "F16kabu51obq",
+      "start_line": 115,
+      "end_line": 157,
+      "start_byte": 4157,
+      "end_byte": 6351,
+      "signature_hint": "private def getSonarrConfig( configReader: ConfigurationReader, client: HttpClient )"
+    },
+    "C14mkc8y9yaj": {
+      "id": "C14mkc8y9yaj",
+      "qualified_name": "ConfigurationUtils::getRadarrConfig",
+      "simple_name": "getRadarrConfig",
+      "kind": "function",
+      "language": "scala",
+      "file": "F16kabu51obq",
+      "start_line": 159,
+      "end_line": 191,
+      "start_byte": 6355,
+      "end_byte": 8049,
+      "signature_hint": "private def getRadarrConfig( configReader: ConfigurationReader, client: HttpClient )"
+    },
+    "Cum7bamx4y8": {
+      "id": "Cum7bamx4y8",
+      "qualified_name": "ConfigurationUtils::getTagIdsFromConfig",
+      "simple_name": "getTagIdsFromConfig",
+      "kind": "function",
+      "language": "scala",
+      "file": "F16kabu51obq",
+      "start_line": 193,
+      "end_line": 214,
+      "start_byte": 8053,
+      "end_byte": 8802,
+      "signature_hint": "private def getTagIdsFromConfig(client: HttpClient, url: Uri, apiKey: String)(tags: String)"
+    },
+    "Czm3dlcey3t": {
+      "id": "Czm3dlcey3t",
+      "qualified_name": "ConfigurationUtils::getQualityProfileId",
+      "simple_name": "getQualityProfileId",
+      "kind": "function",
+      "language": "scala",
+      "file": "F16kabu51obq",
+      "start_line": 216,
+      "end_line": 235,
+      "start_byte": 8806,
+      "end_byte": 9632,
+      "signature_hint": "private def getQualityProfileId(allProfiles: List[QualityProfile], maybeEnvVariable: Option[String])"
+    },
+    "Coxoly00sxm": {
+      "id": "Coxoly00sxm",
+      "qualified_name": "ConfigurationUtils::selectRootFolder",
+      "simple_name": "selectRootFolder",
+      "kind": "function",
+      "language": "scala",
+      "file": "F16kabu51obq",
+      "start_line": 235,
+      "end_line": 258,
+      "start_byte": 9632,
+      "end_byte": 10501,
+      "signature_hint": "private def selectRootFolder(allRootFolders: List[RootFolder], maybeEnvVariable: Option[String])"
+    },
+    "Cvr1otglaho": {
+      "id": "Cvr1otglaho",
+      "qualified_name": "ConfigurationUtils::normalizePath",
+      "simple_name": "normalizePath",
+      "kind": "function",
+      "language": "scala",
+      "file": "F16kabu51obq",
+      "start_line": 258,
+      "end_line": 262,
+      "start_byte": 10501,
+      "end_byte": 10657,
+      "signature_hint": "private def normalizePath(path: String)"
+    },
+    "Coi5t7gl8j7": {
+      "id": "Coi5t7gl8j7",
+      "qualified_name": "ConfigurationUtils::getPlexWatchlistUrls",
+      "simple_name": "getPlexWatchlistUrls",
+      "kind": "function",
+      "language": "scala",
+      "file": "F16kabu51obq",
+      "start_line": 262,
+      "end_line": 302,
+      "start_byte": 10657,
+      "end_byte": 12082,
+      "signature_hint": "private def getPlexWatchlistUrls( client: HttpClient )(configReader: ConfigurationReader, tokens: Set[String], skipFriendSync: Boolean)"
+    },
+    "C11zprvv0e79": {
+      "id": "C11zprvv0e79",
+      "qualified_name": "ConfigurationUtils::getPlexTokens",
+      "simple_name": "getPlexTokens",
+      "kind": "function",
+      "language": "scala",
+      "file": "F16kabu51obq",
+      "start_line": 304,
+      "end_line": 313,
+      "start_byte": 12086,
+      "end_byte": 12370,
+      "signature_hint": "private def getPlexTokens(configReader: ConfigurationReader)"
+    },
+    "Cgjzrkp1heq": {
+      "id": "Cgjzrkp1heq",
+      "qualified_name": "ConfigurationUtils::toPlexUri",
+      "simple_name": "toPlexUri",
+      "kind": "function",
+      "language": "scala",
+      "file": "F16kabu51obq",
+      "start_line": 313,
+      "end_line": 332,
+      "start_byte": 12370,
+      "end_byte": 12902,
+      "signature_hint": "private def toPlexUri(url: String)"
+    },
+    "Cfhbrqe9hp9": {
+      "id": "Cfhbrqe9hp9",
+      "qualified_name": "ConfigurationUtils::throwError",
+      "simple_name": "throwError",
+      "kind": "function",
+      "language": "scala",
+      "file": "F16kabu51obq",
+      "start_line": 334,
+      "end_line": 337,
+      "start_byte": 12906,
+      "end_byte": 13036,
+      "signature_hint": "private def throwError(message: String)"
+    },
+    "C3fqv1xtjb8": {
+      "id": "C3fqv1xtjb8",
+      "qualified_name": "ConfigurationUtils::toArr",
+      "simple_name": "toArr",
+      "kind": "function",
+      "language": "scala",
+      "file": "F16kabu51obq",
+      "start_line": 339,
+      "end_line": 349,
+      "start_byte": 13040,
+      "end_byte": 13453,
+      "signature_hint": "private def toArr( client: HttpClient )(baseUrl: Uri, apiKey: String, endpoint: String, payload: Option[Json] = None)"
+    },
+    "Ciz92w5n6qi": {
+      "id": "Ciz92w5n6qi",
+      "qualified_name": "ConfigurationUtils::getRssFromPlexToken",
+      "simple_name": "getRssFromPlexToken",
+      "kind": "function",
+      "language": "scala",
+      "file": "F16kabu51obq",
+      "start_line": 349,
+      "end_line": 371,
+      "start_byte": 13453,
+      "end_byte": 14391,
+      "signature_hint": "private def getRssFromPlexToken(client: HttpClient)(token: String, rssType: String)"
+    },
+    "C2cjqxyp3ce": {
+      "id": "C2cjqxyp3ce",
+      "qualified_name": "FileAndSystemPropertyReader::getConfigOption",
+      "simple_name": "getConfigOption",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fease8kgvd2",
+      "start_line": 52,
+      "end_line": 58,
+      "start_byte": 1721,
+      "end_byte": 1889,
+      "signature_hint": "override def getConfigOption(key: String)",
+      "attributes": [
+        "override"
+      ]
+    },
+    "Cj9tpuj98uh": {
+      "id": "Cj9tpuj98uh",
+      "qualified_name": "FileAndSystemPropertyReader::flattenYaml",
+      "simple_name": "flattenYaml",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fease8kgvd2",
+      "start_line": 58,
+      "end_line": 80,
+      "start_byte": 1889,
+      "end_byte": 2568,
+      "signature_hint": "private def flattenYaml(yaml: Map[String, _])"
+    },
+    "Cs4l5cvl3y4": {
+      "id": "Cs4l5cvl3y4",
+      "qualified_name": "LanguageProfile::LanguageProfile",
+      "simple_name": "LanguageProfile",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "F161e1wbcoqa",
+      "start_line": 3,
+      "end_line": 3,
+      "start_byte": 23,
+      "end_byte": 95,
+      "signature_hint": "private[configuration] case class LanguageProfile(name: String, id: Int)"
+    },
+    "C2xstm898z3": {
+      "id": "C2xstm898z3",
+      "qualified_name": "QualityProfile::QualityProfile",
+      "simple_name": "QualityProfile",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fi5i3w2rhki",
+      "start_line": 3,
+      "end_line": 3,
+      "start_byte": 23,
+      "end_byte": 94,
+      "signature_hint": "private[configuration] case class QualityProfile(name: String, id: Int)"
+    },
+    "Chrcfhdtk63": {
+      "id": "Chrcfhdtk63",
+      "qualified_name": "RootFolder::RootFolder",
+      "simple_name": "RootFolder",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fl9aynqxuz7",
+      "start_line": 3,
+      "end_line": 3,
+      "start_byte": 23,
+      "end_byte": 102,
+      "signature_hint": "private[configuration] case class RootFolder(path: String, accessible: Boolean)"
+    },
+    "C11bf7sex5uu": {
+      "id": "C11bf7sex5uu",
+      "qualified_name": "SystemPropertyReader::getConfigOption",
+      "simple_name": "getConfigOption",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fg7ic1tf1l",
+      "start_line": 4,
+      "end_line": 4,
+      "start_byte": 83,
+      "end_byte": 174,
+      "signature_hint": "override def getConfigOption(key: String)",
+      "attributes": [
+        "override"
+      ]
+    },
+    "Ccc7gez7fft": {
+      "id": "Ccc7gez7fft",
+      "qualified_name": "HttpClient::httpRequest",
+      "simple_name": "httpRequest",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fvidpi63r9u",
+      "start_line": 36,
+      "end_line": 41,
+      "start_byte": 1011,
+      "end_byte": 1231,
+      "signature_hint": "def httpRequest( method: Method, url: Uri, apiKey: Option[String] = None, payload: Option[Json] = None )"
+    },
+    "Cvoisnahvzb": {
+      "id": "Cvoisnahvzb",
+      "qualified_name": "HttpClient::makeHttpRequest",
+      "simple_name": "makeHttpRequest",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fvidpi63r9u",
+      "start_line": 43,
+      "end_line": 75,
+      "start_byte": 1235,
+      "end_byte": 2404,
+      "signature_hint": "private def makeHttpRequest( method: Method, url: Uri, apiKey: Option[String] = None, payload: Option[Json] = None )"
+    },
+    "Cyz5cufrc0b": {
+      "id": "Cyz5cufrc0b",
+      "qualified_name": "GraphQLQuery::GraphQLQuery",
+      "simple_name": "GraphQLQuery",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fwaxs26lc39",
+      "start_line": 5,
+      "end_line": 5,
+      "start_byte": 37,
+      "end_byte": 107,
+      "signature_hint": "case class GraphQLQuery(query: String, variables: Option[Json] = None)"
+    },
+    "C1044kl6kqfs": {
+      "id": "C1044kl6kqfs",
+      "qualified_name": "Item::Item",
+      "simple_name": "Item",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "F1zybb2h68j",
+      "start_line": 3,
+      "end_line": 3,
+      "start_byte": 15,
+      "end_byte": 115,
+      "signature_hint": "case class Item(title: String, guids: List[String], category: String, ended: Option[Boolean] = None)"
+    },
+    "Cu5kdg06buo": {
+      "id": "Cu5kdg06buo",
+      "qualified_name": "Item::getTvdbId",
+      "simple_name": "getTvdbId",
+      "kind": "function",
+      "language": "scala",
+      "file": "F1zybb2h68j",
+      "start_line": 4,
+      "end_line": 7,
+      "start_byte": 120,
+      "end_byte": 240,
+      "signature_hint": "def getTvdbId: Option[Long] = guids.find(_.startsWith(\"tvdb://\")).flatMap(_.stripPrefix(\"tvdb://\").toLongOption)"
+    },
+    "Cm7knoz3sea": {
+      "id": "Cm7knoz3sea",
+      "qualified_name": "Item::getTmdbId",
+      "simple_name": "getTmdbId",
+      "kind": "function",
+      "language": "scala",
+      "file": "F1zybb2h68j",
+      "start_line": 7,
+      "end_line": 10,
+      "start_byte": 240,
+      "end_byte": 360,
+      "signature_hint": "def getTmdbId: Option[Long] = guids.find(_.startsWith(\"tmdb://\")).flatMap(_.stripPrefix(\"tmdb://\").toLongOption)"
+    },
+    "Ch2obsm6b38": {
+      "id": "Ch2obsm6b38",
+      "qualified_name": "Item::getRadarrId",
+      "simple_name": "getRadarrId",
+      "kind": "function",
+      "language": "scala",
+      "file": "F1zybb2h68j",
+      "start_line": 10,
+      "end_line": 13,
+      "start_byte": 360,
+      "end_byte": 486,
+      "signature_hint": "def getRadarrId: Option[Long] = guids.find(_.startsWith(\"radarr://\")).flatMap(_.stripPrefix(\"radarr://\").toLongOption)"
+    },
+    "Cimsu9c4nk0": {
+      "id": "Cimsu9c4nk0",
+      "qualified_name": "Item::getSonarrId",
+      "simple_name": "getSonarrId",
+      "kind": "function",
+      "language": "scala",
+      "file": "F1zybb2h68j",
+      "start_line": 13,
+      "end_line": 16,
+      "start_byte": 486,
+      "end_byte": 612,
+      "signature_hint": "def getSonarrId: Option[Long] = guids.find(_.startsWith(\"sonarr://\")).flatMap(_.stripPrefix(\"sonarr://\").toLongOption)"
+    },
+    "C1dd5ugivso": {
+      "id": "C1dd5ugivso",
+      "qualified_name": "Item::matches",
+      "simple_name": "matches",
+      "kind": "function",
+      "language": "scala",
+      "file": "F1zybb2h68j",
+      "start_line": 16,
+      "end_line": 22,
+      "start_byte": 612,
+      "end_byte": 841,
+      "signature_hint": "def matches(that: Any)"
+    },
+    "Cu7nespaf3b": {
+      "id": "Cu7nespaf3b",
+      "qualified_name": "MediaContainer::MediaContainer",
+      "simple_name": "MediaContainer",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fouvqy77z5q",
+      "start_line": 3,
+      "end_line": 3,
+      "start_byte": 14,
+      "end_byte": 118,
+      "signature_hint": "private[plex] case class MediaContainer(Metadata: List[TokenWatchlistItem] = List.empty, totalSize: Int)"
+    },
+    "Cc7hjme7w21": {
+      "id": "Cc7hjme7w21",
+      "qualified_name": "PlexUtils::fetchWatchlistFromRss",
+      "simple_name": "fetchWatchlistFromRss",
+      "kind": "function",
+      "language": "scala",
+      "file": "F31n61p56a0",
+      "start_line": 25,
+      "end_line": 45,
+      "start_byte": 603,
+      "end_byte": 1500,
+      "signature_hint": "protected def fetchWatchlistFromRss(client: HttpClient)(url: Uri)"
+    },
+    "Cbw2sjv9yqi": {
+      "id": "Cbw2sjv9yqi",
+      "qualified_name": "PlexUtils::ping",
+      "simple_name": "ping",
+      "kind": "function",
+      "language": "scala",
+      "file": "F31n61p56a0",
+      "start_line": 47,
+      "end_line": 66,
+      "start_byte": 1504,
+      "end_byte": 2163,
+      "signature_hint": "protected def ping(client: HttpClient)(config: PlexConfiguration)"
+    },
+    "C7adtts2ern": {
+      "id": "C7adtts2ern",
+      "qualified_name": "PlexUtils::getSelfWatchlist",
+      "simple_name": "getSelfWatchlist",
+      "kind": "function",
+      "language": "scala",
+      "file": "F31n61p56a0",
+      "start_line": 66,
+      "end_line": 92,
+      "start_byte": 2163,
+      "end_byte": 3303,
+      "signature_hint": "protected def getSelfWatchlist( config: PlexConfiguration, client: HttpClient, containerStart: Int = 0 )"
+    },
+    "Czwdsd11pra": {
+      "id": "Czwdsd11pra",
+      "qualified_name": "PlexUtils::getOthersWatchlist",
+      "simple_name": "getOthersWatchlist",
+      "kind": "function",
+      "language": "scala",
+      "file": "F31n61p56a0",
+      "start_line": 94,
+      "end_line": 105,
+      "start_byte": 3307,
+      "end_byte": 3773,
+      "signature_hint": "protected def getOthersWatchlist(config: PlexConfiguration, client: HttpClient)"
+    },
+    "Cck2o8c93l5": {
+      "id": "Cck2o8c93l5",
+      "qualified_name": "PlexUtils::getFriends",
+      "simple_name": "getFriends",
+      "kind": "function",
+      "language": "scala",
+      "file": "F31n61p56a0",
+      "start_line": 105,
+      "end_line": 135,
+      "start_byte": 3773,
+      "end_byte": 4791,
+      "signature_hint": "protected def getFriends(config: PlexConfiguration, client: HttpClient)"
+    },
+    "Cs2gmpn11kg": {
+      "id": "Cs2gmpn11kg",
+      "qualified_name": "PlexUtils::getWatchlistIdsForUser",
+      "simple_name": "getWatchlistIdsForUser",
+      "kind": "function",
+      "language": "scala",
+      "file": "F31n61p56a0",
+      "start_line": 135,
+      "end_line": 185,
+      "start_byte": 4791,
+      "end_byte": 6864,
+      "signature_hint": "protected def getWatchlistIdsForUser(config: PlexConfiguration, client: HttpClient, token: String)( user: User, page: Option[String] = None )"
+    },
+    "C1qtyy0blqn": {
+      "id": "C1qtyy0blqn",
+      "qualified_name": "PlexUtils::toItems",
+      "simple_name": "toItems",
+      "kind": "function",
+      "language": "scala",
+      "file": "F31n61p56a0",
+      "start_line": 189,
+      "end_line": 205,
+      "start_byte": 7008,
+      "end_byte": 7635,
+      "signature_hint": "private def toItems(config: PlexConfiguration, client: HttpClient)(plex: TokenWatchlist)"
+    },
+    "C1s7hlkffxl": {
+      "id": "C1s7hlkffxl",
+      "qualified_name": "PlexUtils::toItems",
+      "simple_name": "toItems",
+      "kind": "function",
+      "language": "scala",
+      "file": "F31n61p56a0",
+      "start_line": 205,
+      "end_line": 223,
+      "start_byte": 7635,
+      "end_byte": 8366,
+      "signature_hint": "private def toItems( config: PlexConfiguration, client: HttpClient, i: TokenWatchlistItem )"
+    },
+    "C58kd2pikpe": {
+      "id": "C58kd2pikpe",
+      "qualified_name": "PlexUtils::cleanKey",
+      "simple_name": "cleanKey",
+      "kind": "function",
+      "language": "scala",
+      "file": "F31n61p56a0",
+      "start_line": 225,
+      "end_line": 227,
+      "start_byte": 8370,
+      "end_byte": 8479,
+      "signature_hint": "private def cleanKey(path: String)"
+    },
+    "C15ibwczo9cv": {
+      "id": "C15ibwczo9cv",
+      "qualified_name": "RssFeedGenerated::RssFeedGenerated",
+      "simple_name": "RssFeedGenerated",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fupxu69cx3y",
+      "start_line": 3,
+      "end_line": 3,
+      "start_byte": 14,
+      "end_byte": 65,
+      "signature_hint": "case class RssFeedGenerated(RSSInfo: List[RssInfo])"
+    },
+    "Ch4p8ynyaq5": {
+      "id": "Ch4p8ynyaq5",
+      "qualified_name": "RssInfo::RssInfo",
+      "simple_name": "RssInfo",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fupxu69cx3y",
+      "start_line": 5,
+      "end_line": 5,
+      "start_byte": 67,
+      "end_byte": 98,
+      "signature_hint": "case class RssInfo(url: String)"
+    },
+    "Cmzurzk4ymv": {
+      "id": "Cmzurzk4ymv",
+      "qualified_name": "TokenWatchlist::TokenWatchlist",
+      "simple_name": "TokenWatchlist",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "F11h7eg48vbv",
+      "start_line": 3,
+      "end_line": 3,
+      "start_byte": 14,
+      "end_byte": 85,
+      "signature_hint": "private[plex] case class TokenWatchlist(MediaContainer: MediaContainer)"
+    },
+    "Crwag5yj0ry": {
+      "id": "Crwag5yj0ry",
+      "qualified_name": "TokenWatchlistFriend::TokenWatchlistFriend",
+      "simple_name": "TokenWatchlistFriend",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fzay3zyoobj",
+      "start_line": 3,
+      "end_line": 3,
+      "start_byte": 14,
+      "end_byte": 80,
+      "signature_hint": "private[plex] case class TokenWatchlistFriend(data: WatchlistData)"
+    },
+    "Cspn746nwbl": {
+      "id": "Cspn746nwbl",
+      "qualified_name": "WatchlistData::WatchlistData",
+      "simple_name": "WatchlistData",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fzay3zyoobj",
+      "start_line": 5,
+      "end_line": 5,
+      "start_byte": 82,
+      "end_byte": 145,
+      "signature_hint": "private[plex] case class WatchlistData(user: WatchlistUserData)"
+    },
+    "C1gihim6lr6": {
+      "id": "C1gihim6lr6",
+      "qualified_name": "WatchlistUserData::WatchlistUserData",
+      "simple_name": "WatchlistUserData",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fzay3zyoobj",
+      "start_line": 7,
+      "end_line": 7,
+      "start_byte": 147,
+      "end_byte": 216,
+      "signature_hint": "private[plex] case class WatchlistUserData(watchlist: WatchlistNodes)"
+    },
+    "Ce5kndj2fr4": {
+      "id": "Ce5kndj2fr4",
+      "qualified_name": "WatchlistNodes::WatchlistNodes",
+      "simple_name": "WatchlistNodes",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fzay3zyoobj",
+      "start_line": 9,
+      "end_line": 9,
+      "start_byte": 218,
+      "end_byte": 305,
+      "signature_hint": "private[plex] case class WatchlistNodes(nodes: List[WatchlistNode], pageInfo: PageInfo)"
+    },
+    "Cm6pta867s6": {
+      "id": "Cm6pta867s6",
+      "qualified_name": "PageInfo::PageInfo",
+      "simple_name": "PageInfo",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fzay3zyoobj",
+      "start_line": 11,
+      "end_line": 11,
+      "start_byte": 307,
+      "end_byte": 389,
+      "signature_hint": "private[plex] case class PageInfo(hasNextPage: Boolean, endCursor: Option[String])"
+    },
+    "C95j0slw932": {
+      "id": "C95j0slw932",
+      "qualified_name": "WatchlistNode::WatchlistNode",
+      "simple_name": "WatchlistNode",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fzay3zyoobj",
+      "start_line": 13,
+      "end_line": 13,
+      "start_byte": 391,
+      "end_byte": 472,
+      "signature_hint": "private[plex] case class WatchlistNode(id: String, title: String, `type`: String)"
+    },
+    "Clywttpzz2": {
+      "id": "Clywttpzz2",
+      "qualified_name": "WatchlistNode::toTokenWatchlistItem",
+      "simple_name": "toTokenWatchlistItem",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fzay3zyoobj",
+      "start_line": 14,
+      "end_line": 16,
+      "start_byte": 477,
+      "end_byte": 634,
+      "signature_hint": "def toTokenWatchlistItem: TokenWatchlistItem = TokenWatchlistItem(title = title, guid = id, key = s\"/library/metadata/$id\", `type` = `type`.toLowerCase)"
+    },
+    "Cwk0krvdnvv": {
+      "id": "Cwk0krvdnvv",
+      "qualified_name": "TokenWatchlistItem::TokenWatchlistItem",
+      "simple_name": "TokenWatchlistItem",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fevejicuqgk",
+      "start_line": 3,
+      "end_line": 9,
+      "start_byte": 14,
+      "end_byte": 168,
+      "signature_hint": "private[plex] case class TokenWatchlistItem( title: String, guid: String, `type`: String, key: String, Guid: List[Guid] = List.empty )"
+    },
+    "C24veuzf8dd": {
+      "id": "C24veuzf8dd",
+      "qualified_name": "Guid::Guid",
+      "simple_name": "Guid",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fevejicuqgk",
+      "start_line": 11,
+      "end_line": 11,
+      "start_byte": 170,
+      "end_byte": 211,
+      "signature_hint": "private[plex] case class Guid(id: String)"
+    },
+    "Ca6mni0ra83": {
+      "id": "Ca6mni0ra83",
+      "qualified_name": "Users::Users",
+      "simple_name": "Users",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fezld2sa9nj",
+      "start_line": 3,
+      "end_line": 3,
+      "start_byte": 14,
+      "end_byte": 56,
+      "signature_hint": "private[plex] case class Users(data: Data)"
+    },
+    "C2x8xe1xomr": {
+      "id": "C2x8xe1xomr",
+      "qualified_name": "Data::Data",
+      "simple_name": "Data",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fezld2sa9nj",
+      "start_line": 5,
+      "end_line": 5,
+      "start_byte": 58,
+      "end_byte": 117,
+      "signature_hint": "private[plex] case class Data(allFriendsV2: List[FriendV2])"
+    },
+    "C87h1mzkbo0": {
+      "id": "C87h1mzkbo0",
+      "qualified_name": "FriendV2::FriendV2",
+      "simple_name": "FriendV2",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fezld2sa9nj",
+      "start_line": 7,
+      "end_line": 7,
+      "start_byte": 119,
+      "end_byte": 164,
+      "signature_hint": "private[plex] case class FriendV2(user: User)"
+    },
+    "Cdz84qy8mer": {
+      "id": "Cdz84qy8mer",
+      "qualified_name": "User::User",
+      "simple_name": "User",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fezld2sa9nj",
+      "start_line": 9,
+      "end_line": 9,
+      "start_byte": 166,
+      "end_byte": 225,
+      "signature_hint": "private[plex] case class User(id: String, username: String)"
+    },
+    "Cxe0igd89pr": {
+      "id": "Cxe0igd89pr",
+      "qualified_name": "Watchlist::Watchlist",
+      "simple_name": "Watchlist",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fwspx7qfq6x",
+      "start_line": 5,
+      "end_line": 5,
+      "start_byte": 33,
+      "end_byte": 85,
+      "signature_hint": "private[plex] case class Watchlist(items: Set[Item])"
+    },
+    "C2jbddi4l2h": {
+      "id": "C2jbddi4l2h",
+      "qualified_name": "AddOptions::AddOptions",
+      "simple_name": "AddOptions",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fpv23iscebw",
+      "start_line": 3,
+      "end_line": 3,
+      "start_byte": 16,
+      "end_byte": 77,
+      "signature_hint": "private case class AddOptions(searchForMovie: Boolean = true)"
+    },
+    "Cpfuewsqo4i": {
+      "id": "Cpfuewsqo4i",
+      "qualified_name": "RadarrConversions::toItem",
+      "simple_name": "toItem",
+      "kind": "function",
+      "language": "scala",
+      "file": "F100511bz5nn",
+      "start_line": 6,
+      "end_line": 11,
+      "start_byte": 79,
+      "end_byte": 284,
+      "signature_hint": "def toItem(movie: RadarrMovie)"
+    },
+    "C6loa3usj4j": {
+      "id": "C6loa3usj4j",
+      "qualified_name": "RadarrConversions::toItem",
+      "simple_name": "toItem",
+      "kind": "function",
+      "language": "scala",
+      "file": "F100511bz5nn",
+      "start_line": 13,
+      "end_line": 15,
+      "start_byte": 288,
+      "end_byte": 419,
+      "signature_hint": "def toItem(movie: RadarrMovieExclusion)"
+    },
+    "C7so2xl3icw": {
+      "id": "C7so2xl3icw",
+      "qualified_name": "RadarrDelete::RadarrDelete",
+      "simple_name": "RadarrDelete",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fteu5rx550f",
+      "start_line": 3,
+      "end_line": 9,
+      "start_byte": 16,
+      "end_byte": 188,
+      "signature_hint": "private case class RadarrDelete( title: String, tmdbId: Long, qualityProfileId: Int = 6, rootFolderPath: String, addOptions: AddOptions = AddOptions() )"
+    },
+    "C82qwkqyh8d": {
+      "id": "C82qwkqyh8d",
+      "qualified_name": "RadarrMovie::RadarrMovie",
+      "simple_name": "RadarrMovie",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fvjtvquujvy",
+      "start_line": 3,
+      "end_line": 3,
+      "start_byte": 16,
+      "end_byte": 125,
+      "signature_hint": "private[radarr] case class RadarrMovie(title: String, imdbId: Option[String], tmdbId: Option[Long], id: Long)"
+    },
+    "Czk4qh21njz": {
+      "id": "Czk4qh21njz",
+      "qualified_name": "RadarrMovieExclusion::RadarrMovieExclusion",
+      "simple_name": "RadarrMovieExclusion",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "F5knhc9i4qo",
+      "start_line": 3,
+      "end_line": 8,
+      "start_byte": 16,
+      "end_byte": 157,
+      "signature_hint": "private[radarr] case class RadarrMovieExclusion( movieTitle: String, imdbId: Option[String], tmdbId: Option[Long], id: Long )"
+    },
+    "Cyfgcxtwtpr": {
+      "id": "Cyfgcxtwtpr",
+      "qualified_name": "RadarrPost::RadarrPost",
+      "simple_name": "RadarrPost",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fwbndb6b2ju",
+      "start_line": 3,
+      "end_line": 10,
+      "start_byte": 16,
+      "end_byte": 225,
+      "signature_hint": "private case class RadarrPost( title: String, tmdbId: Long, qualityProfileId: Int = 6, rootFolderPath: String, addOptions: AddOptions = AddOptions(), tags: List[Int] = List.empty[Int] )"
+    },
+    "C5qefltlr77": {
+      "id": "C5qefltlr77",
+      "qualified_name": "RadarrUtils::fetchMovies",
+      "simple_name": "fetchMovies",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fvsgt8xszrz",
+      "start_line": 19,
+      "end_line": 32,
+      "start_byte": 466,
+      "end_byte": 989,
+      "signature_hint": "protected def fetchMovies( client: HttpClient )(apiKey: String, baseUrl: Uri, bypass: Boolean)"
+    },
+    "Ctnr1us4cvm": {
+      "id": "Ctnr1us4cvm",
+      "qualified_name": "RadarrUtils::addToRadarr",
+      "simple_name": "addToRadarr",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fvsgt8xszrz",
+      "start_line": 32,
+      "end_line": 51,
+      "start_byte": 989,
+      "end_byte": 1613,
+      "signature_hint": "protected def addToRadarr(client: HttpClient)(config: RadarrConfiguration)(item: Item)"
+    },
+    "C10dyje3uobw": {
+      "id": "C10dyje3uobw",
+      "qualified_name": "RadarrUtils::deleteFromRadarr",
+      "simple_name": "deleteFromRadarr",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fvsgt8xszrz",
+      "start_line": 53,
+      "end_line": 66,
+      "start_byte": 1617,
+      "end_byte": 2102,
+      "signature_hint": "protected def deleteFromRadarr(client: HttpClient, config: RadarrConfiguration, deleteFiles: Boolean)( item: Item )"
+    },
+    "C182s1ckfm61": {
+      "id": "C182s1ckfm61",
+      "qualified_name": "RadarrUtils::getToArr",
+      "simple_name": "getToArr",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fvsgt8xszrz",
+      "start_line": 68,
+      "end_line": 77,
+      "start_byte": 2106,
+      "end_byte": 2575,
+      "signature_hint": "private def getToArr[T: Decoder]( client: HttpClient )(baseUrl: Uri, apiKey: String, endpoint: String)"
+    },
+    "Cc1ytoqjmrm": {
+      "id": "Cc1ytoqjmrm",
+      "qualified_name": "RadarrUtils::postToArr",
+      "simple_name": "postToArr",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fvsgt8xszrz",
+      "start_line": 77,
+      "end_line": 88,
+      "start_byte": 2575,
+      "end_byte": 3088,
+      "signature_hint": "private def postToArr[T: Decoder]( client: HttpClient )(baseUrl: Uri, apiKey: String, endpoint: String)(payload: Json)"
+    },
+    "Cbu7uwyzjx0": {
+      "id": "Cbu7uwyzjx0",
+      "qualified_name": "RadarrUtils::deleteToArr",
+      "simple_name": "deleteToArr",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fvsgt8xszrz",
+      "start_line": 88,
+      "end_line": 98,
+      "start_byte": 3088,
+      "end_byte": 3581,
+      "signature_hint": "private def deleteToArr( client: HttpClient )(baseUrl: Uri, apiKey: String, id: Long, deleteFiles: Boolean)"
+    },
+    "C19snwzfju8": {
+      "id": "C19snwzfju8",
+      "qualified_name": "SonarrAddOptions::SonarrAddOptions",
+      "simple_name": "SonarrAddOptions",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fllobgk8xn2",
+      "start_line": 3,
+      "end_line": 7,
+      "start_byte": 16,
+      "end_byte": 178,
+      "signature_hint": "private[sonarr] case class SonarrAddOptions( monitor: String, searchForCutoffUnmetEpisodes: Boolean = true, searchForMissingEpisodes: Boolean = true )"
+    },
+    "Cxwtc2wmjr3": {
+      "id": "Cxwtc2wmjr3",
+      "qualified_name": "SonarrConversions::toItem",
+      "simple_name": "toItem",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fbxg5a1nzow",
+      "start_line": 6,
+      "end_line": 11,
+      "start_byte": 79,
+      "end_byte": 297,
+      "signature_hint": "def toItem(series: SonarrSeries)"
+    },
+    "Cm7blgy6eqj": {
+      "id": "Cm7blgy6eqj",
+      "qualified_name": "SonarrPost::SonarrPost",
+      "simple_name": "SonarrPost",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fv2b9x32unr",
+      "start_line": 3,
+      "end_line": 12,
+      "start_byte": 16,
+      "end_byte": 279,
+      "signature_hint": "private[sonarr] case class SonarrPost( title: String, tvdbId: Long, qualityProfileId: Int, rootFolderPath: String, addOptions: SonarrAddOptions, languageProfileId: Int, monitored: Boolean = true, tags: List[Int] = List.empty[Int] )"
+    },
+    "C146uugeiimr": {
+      "id": "C146uugeiimr",
+      "qualified_name": "SonarrSeries::SonarrSeries",
+      "simple_name": "SonarrSeries",
+      "kind": "constructor",
+      "language": "scala",
+      "file": "Fhgptq82dd7",
+      "start_line": 3,
+      "end_line": 9,
+      "start_byte": 16,
+      "end_byte": 172,
+      "signature_hint": "private[sonarr] case class SonarrSeries( title: String, imdbId: Option[String], tvdbId: Option[Long], id: Long, ended: Option[Boolean] )"
+    },
+    "Crvbtgl7id": {
+      "id": "Crvbtgl7id",
+      "qualified_name": "SonarrUtils::fetchSeries",
+      "simple_name": "fetchSeries",
+      "kind": "function",
+      "language": "scala",
+      "file": "F6rsitc1hye",
+      "start_line": 18,
+      "end_line": 31,
+      "start_byte": 442,
+      "end_byte": 958,
+      "signature_hint": "protected def fetchSeries( client: HttpClient )(apiKey: String, baseUrl: Uri, bypass: Boolean)"
+    },
+    "C17suzo5f3ot": {
+      "id": "C17suzo5f3ot",
+      "qualified_name": "SonarrUtils::addToSonarr",
+      "simple_name": "addToSonarr",
+      "kind": "function",
+      "language": "scala",
+      "file": "F6rsitc1hye",
+      "start_line": 31,
+      "end_line": 54,
+      "start_byte": 958,
+      "end_byte": 1717,
+      "signature_hint": "protected def addToSonarr(client: HttpClient)(config: SonarrConfiguration)(item: Item)"
+    },
+    "C135ljpddx29": {
+      "id": "C135ljpddx29",
+      "qualified_name": "SonarrUtils::deleteFromSonarr",
+      "simple_name": "deleteFromSonarr",
+      "kind": "function",
+      "language": "scala",
+      "file": "F6rsitc1hye",
+      "start_line": 56,
+      "end_line": 69,
+      "start_byte": 1721,
+      "end_byte": 2203,
+      "signature_hint": "protected def deleteFromSonarr(client: HttpClient, config: SonarrConfiguration, deleteFiles: Boolean)( item: Item )"
+    },
+    "Cmqo1cqlvx2": {
+      "id": "Cmqo1cqlvx2",
+      "qualified_name": "SonarrUtils::deleteToArr",
+      "simple_name": "deleteToArr",
+      "kind": "function",
+      "language": "scala",
+      "file": "F6rsitc1hye",
+      "start_line": 71,
+      "end_line": 81,
+      "start_byte": 2207,
+      "end_byte": 2705,
+      "signature_hint": "private def deleteToArr( client: HttpClient )(baseUrl: Uri, apiKey: String, id: Long, deleteFiles: Boolean)"
+    },
+    "Cnjc5lho1qj": {
+      "id": "Cnjc5lho1qj",
+      "qualified_name": "SonarrUtils::getToArr",
+      "simple_name": "getToArr",
+      "kind": "function",
+      "language": "scala",
+      "file": "F6rsitc1hye",
+      "start_line": 83,
+      "end_line": 92,
+      "start_byte": 2709,
+      "end_byte": 3178,
+      "signature_hint": "private def getToArr[T: Decoder]( client: HttpClient )(baseUrl: Uri, apiKey: String, endpoint: String)"
+    },
+    "Cjzuhoyvjv4": {
+      "id": "Cjzuhoyvjv4",
+      "qualified_name": "SonarrUtils::postToArr",
+      "simple_name": "postToArr",
+      "kind": "function",
+      "language": "scala",
+      "file": "F6rsitc1hye",
+      "start_line": 92,
+      "end_line": 102,
+      "start_byte": 3178,
+      "end_byte": 3688,
+      "signature_hint": "private def postToArr[T: Decoder]( client: HttpClient )(baseUrl: Uri, apiKey: String, endpoint: String)(payload: Json)"
+    },
+    "Cdj0nqspmxo": {
+      "id": "Cdj0nqspmxo",
+      "qualified_name": "PlexTokenSyncSpec::createConfiguration",
+      "simple_name": "createConfiguration",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fwuhuii9azo",
+      "start_line": 31,
+      "end_line": 66,
+      "start_byte": 1081,
+      "end_byte": 2172,
+      "signature_hint": "private def createConfiguration( plexTokens: Set[String] )",
+      "test_role": "support"
+    },
+    "Caynrxetz64": {
+      "id": "Caynrxetz64",
+      "qualified_name": "PlexTokenSyncSpec::defaultPlexMock",
+      "simple_name": "defaultPlexMock",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fwuhuii9azo",
+      "start_line": 68,
+      "end_line": 162,
+      "start_byte": 2176,
+      "end_byte": 5483,
+      "signature_hint": "private def defaultPlexMock(httpClient: HttpClient)",
+      "test_role": "support"
+    },
+    "C17b8z5iunre": {
+      "id": "C17b8z5iunre",
+      "qualified_name": "PlexTokenSyncSpec::defaultRadarrMock",
+      "simple_name": "defaultRadarrMock",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fwuhuii9azo",
+      "start_line": 164,
+      "end_line": 249,
+      "start_byte": 5487,
+      "end_byte": 8181,
+      "signature_hint": "private def defaultRadarrMock(httpClient: HttpClient)",
+      "test_role": "support"
+    },
+    "C10nlwxchb9d": {
+      "id": "C10nlwxchb9d",
+      "qualified_name": "PlexTokenSyncSpec::defaultSonarrMock",
+      "simple_name": "defaultSonarrMock",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fwuhuii9azo",
+      "start_line": 251,
+      "end_line": 271,
+      "start_byte": 8185,
+      "end_byte": 8897,
+      "signature_hint": "private def defaultSonarrMock(httpClient: HttpClient)",
+      "test_role": "support"
+    },
+    "C5bpgntnn8e": {
+      "id": "C5bpgntnn8e",
+      "qualified_name": "ConfigurationUtilsSpec::createMockConfigReader",
+      "simple_name": "createMockConfigReader",
+      "kind": "function",
+      "language": "scala",
+      "file": "Feoer57o38d",
+      "start_line": 170,
+      "end_line": 208,
+      "start_byte": 6604,
+      "end_byte": 9741,
+      "signature_hint": "private def createMockConfigReader( sonarrApiKey: Option[String] = Some(\"sonarr-api-key\"), sonarrRootFolder: Option[String] = None, radarrRootFolder: Option[String] = None, radarrApiKey: Option[String] = Some(\"radarr-api-key\"), plexWatchlist1: Option[String] = None, plexWatchlist2: Option[String] = None, plexToken: Option[String] = Some(\"test-token\"), qualityProfile: Option[String] = None, tags: Option[String] = None )",
+      "test_role": "support"
+    },
+    "Cmhxtxvyc4d": {
+      "id": "Cmhxtxvyc4d",
+      "qualified_name": "ConfigurationUtilsSpec::createMockHttpClient",
+      "simple_name": "createMockHttpClient",
+      "kind": "function",
+      "language": "scala",
+      "file": "Feoer57o38d",
+      "start_line": 210,
+      "end_line": 316,
+      "start_byte": 9745,
+      "end_byte": 13937,
+      "signature_hint": "private def createMockHttpClient()",
+      "test_role": "support"
+    },
+    "C12sd4kkllc3": {
+      "id": "C12sd4kkllc3",
+      "qualified_name": "ItemSpec::punch",
+      "simple_name": "punch",
+      "kind": "function",
+      "language": "scala",
+      "file": "F7ra45ewbkf",
+      "start_line": 90,
+      "end_line": 90,
+      "start_byte": 2565,
+      "end_byte": 2627,
+      "signature_hint": "private def punch: String = UUID.randomUUID().toString.take(5)",
+      "test_role": "support"
+    },
+    "C8ssfbfqc2g": {
+      "id": "C8ssfbfqc2g",
+      "qualified_name": "PlexUtilsSpec::createConfiguration",
+      "simple_name": "createConfiguration",
+      "kind": "function",
+      "language": "scala",
+      "file": "Fe2d786lkwh",
+      "start_line": 284,
+      "end_line": 289,
+      "start_byte": 9564,
+      "end_byte": 9821,
+      "signature_hint": "private def createConfiguration(plexTokens: Set[String])",
+      "test_role": "support"
+    }
+  },
+  "files": {
+    "Fg6rhlkcsso": {
+      "id": "Fg6rhlkcsso",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/docker/entrypoint.sh",
+      "language": "bash",
+      "detected_via": "shebang:bash",
+      "blake3": "64ce38ae3bbbcec9466caecee14080a799643744547c1a5b988804aa8b8af400",
+      "size_bytes": 2228,
+      "lines": 98,
+      "parse_ms": 0.673139,
+      "parse_status": "ok"
+    },
+    "Fwplfgkeckb": {
+      "id": "Fwplfgkeckb",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/PingTokenSync.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "0f030eec1bdcd72cc38ebfada825a8d7e9dbc3e024a432811b45eb9f06b9da8b",
+      "size_bytes": 250,
+      "lines": 8,
+      "parse_ms": 0.290079,
+      "parse_status": "ok"
+    },
+    "F14goou7kdh5": {
+      "id": "F14goou7kdh5",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/PlexTokenDeleteSync.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "fe9b6eb0861df8eb220443490c2caedac3ebfead1ffd2da3a94d9a57af57a572",
+      "size_bytes": 3707,
+      "lines": 88,
+      "parse_ms": 1.586365,
+      "parse_status": "ok"
+    },
+    "Fg1q28fl6l0": {
+      "id": "Fg1q28fl6l0",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/PlexTokenSync.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "5d1bb7da7d2d3314ea3a6de23af62e88117b6a7cd18ce4081481257e41d51564",
+      "size_bytes": 3971,
+      "lines": 99,
+      "parse_ms": 0.897067,
+      "parse_status": "ok"
+    },
+    "Fzanxxu9j91": {
+      "id": "Fzanxxu9j91",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/Server.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "1b81eca1369dd6a045d11b1f195bff5402b1f4e082adf0c1b5e4b2dd11ca82b6",
+      "size_bytes": 2733,
+      "lines": 75,
+      "parse_ms": 0.5964889999999999,
+      "parse_status": "ok"
+    },
+    "Fwzdajberio": {
+      "id": "Fwzdajberio",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/Configuration.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "14fb29f3b25997cefa672b812f68eb535399b640be86b3df015bcd6343a85da3",
+      "size_bytes": 1169,
+      "lines": 48,
+      "parse_ms": 0.218449,
+      "parse_status": "ok"
+    },
+    "Fzsmpxualaf": {
+      "id": "Fzsmpxualaf",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/ConfigurationReader.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "ed8e1d9cca39115511fd810e3ae35d78c007c7a825c9207006c6432526f77e93",
+      "size_bytes": 104,
+      "lines": 5,
+      "parse_ms": 0.03192,
+      "parse_status": "ok"
+    },
+    "Fxw001l0jam": {
+      "id": "Fxw001l0jam",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/ConfigurationRedactor.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "ed11414ee88a5580dfd3f696cc1d3c51598d110b768197650cd31e78d8c3ce16",
+      "size_bytes": 2055,
+      "lines": 40,
+      "parse_ms": 0.262749,
+      "parse_status": "ok"
+    },
+    "F16kabu51obq": {
+      "id": "F16kabu51obq",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/ConfigurationUtils.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "96a85f74296e422894d77bd6860510e9a368136add1677e7832b5e61e572b6b4",
+      "size_bytes": 14395,
+      "lines": 373,
+      "parse_ms": 5.262244999999999,
+      "parse_status": "ok"
+    },
+    "Fease8kgvd2": {
+      "id": "Fease8kgvd2",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/FileAndSystemPropertyReader.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "38aeeec347132003b492e98b1658a304f63d11c1c2e4f6f3ba25f593fab37556",
+      "size_bytes": 2571,
+      "lines": 81,
+      "parse_ms": 1.1751369999999999,
+      "parse_status": "ok"
+    },
+    "Fc7pzvf4aym": {
+      "id": "Fc7pzvf4aym",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/Keys.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "5725d82cbdfd3a828c93e8fd5900dc06c8ae7e95eae0e42454ca28bc7955ad34",
+      "size_bytes": 1164,
+      "lines": 31,
+      "parse_ms": 0.19061,
+      "parse_status": "ok"
+    },
+    "F161e1wbcoqa": {
+      "id": "F161e1wbcoqa",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/LanguageProfile.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "f6fdbe74e212d60967780d9c325367ecaee185bf7ba019335d45ec12ff2a53b8",
+      "size_bytes": 96,
+      "lines": 3,
+      "parse_ms": 0.05521,
+      "parse_status": "ok"
+    },
+    "Fi5i3w2rhki": {
+      "id": "Fi5i3w2rhki",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/QualityProfile.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "f47ee8999892ae333056b4094a11156ffd72df2c75b0a5bfc3c1082105c8ff04",
+      "size_bytes": 95,
+      "lines": 3,
+      "parse_ms": 0.04317,
+      "parse_status": "ok"
+    },
+    "Fl9aynqxuz7": {
+      "id": "Fl9aynqxuz7",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/RootFolder.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "f89da6ef3803c27210146296e35fe8bcc4535f73aba8686ca512050956a91180",
+      "size_bytes": 103,
+      "lines": 3,
+      "parse_ms": 0.06004,
+      "parse_status": "ok"
+    },
+    "Fg7ic1tf1l": {
+      "id": "Fg7ic1tf1l",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/SystemPropertyReader.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "678a6eea9255ffb638ec85fee2b8f73c4a3cd740ca042afe10213534e670e83a",
+      "size_bytes": 177,
+      "lines": 5,
+      "parse_ms": 0.06409000000000001,
+      "parse_status": "ok"
+    },
+    "Fvidpi63r9u": {
+      "id": "Fvidpi63r9u",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/http/HttpClient.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "82ff4728dc4167c298087bf1253d3bcbd2902016637ba6d3082ffd9eb37d2f6b",
+      "size_bytes": 2407,
+      "lines": 76,
+      "parse_ms": 0.848108,
+      "parse_status": "ok"
+    },
+    "Fwaxs26lc39": {
+      "id": "Fwaxs26lc39",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/model/GraphQLQuery.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "b64a133aa5a5afcfa53c92245957836f6dad6a97efef18988816598fc31d649e",
+      "size_bytes": 108,
+      "lines": 5,
+      "parse_ms": 0.05084,
+      "parse_status": "ok"
+    },
+    "F1zybb2h68j": {
+      "id": "F1zybb2h68j",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/model/Item.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "581cd044e68be7dc96c26d140a0a7ede0772c12de71492fc4759054279b4e1e8",
+      "size_bytes": 844,
+      "lines": 23,
+      "parse_ms": 0.270979,
+      "parse_status": "ok"
+    },
+    "Fouvqy77z5q": {
+      "id": "Fouvqy77z5q",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/MediaContainer.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "4ad0a606eeaf6da051da915d5fda1743dbe3e93394fe93f36ab4539c2897e1f7",
+      "size_bytes": 119,
+      "lines": 3,
+      "parse_ms": 0.04523,
+      "parse_status": "ok"
+    },
+    "F31n61p56a0": {
+      "id": "F31n61p56a0",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/PlexUtils.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "ee4fb635e223b78049dbf9d9094fcc6accaaca6f00ea5e42bfdb0b86a3651255",
+      "size_bytes": 8481,
+      "lines": 227,
+      "parse_ms": 1.9552850000000002,
+      "parse_status": "ok"
+    },
+    "Fupxu69cx3y": {
+      "id": "Fupxu69cx3y",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/RssFeedGenerated.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "5237f44c9efbd187f4fdea55003c302938f9bb7dd5f78d6663770b03e093785f",
+      "size_bytes": 99,
+      "lines": 5,
+      "parse_ms": 0.282889,
+      "parse_status": "ok"
+    },
+    "F11h7eg48vbv": {
+      "id": "F11h7eg48vbv",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/TokenWatchlist.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "12e5e2bc09cbc4e5cbae7adb474d70445652b79ab8497171be4ca2081ee6aa33",
+      "size_bytes": 86,
+      "lines": 3,
+      "parse_ms": 0.03826,
+      "parse_status": "ok"
+    },
+    "Fzay3zyoobj": {
+      "id": "Fzay3zyoobj",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/TokenWatchlistFriend.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "21262e79f899dacbf33ad50af754c047e0b8043ac902a8903414cabf3db5207e",
+      "size_bytes": 636,
+      "lines": 16,
+      "parse_ms": 0.2231,
+      "parse_status": "ok"
+    },
+    "Fevejicuqgk": {
+      "id": "Fevejicuqgk",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/TokenWatchlistItem.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "a86f23a48f8223bb28bd828e66d545f469003c2e2e66eb1dedf16075ac19847b",
+      "size_bytes": 212,
+      "lines": 11,
+      "parse_ms": 0.07181,
+      "parse_status": "ok"
+    },
+    "Fezld2sa9nj": {
+      "id": "Fezld2sa9nj",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/User.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "4d47bbf0b26a56fd7cd2ff47df5ed55fabc50df703ea7e2d566d7fde175101af",
+      "size_bytes": 226,
+      "lines": 9,
+      "parse_ms": 0.07539,
+      "parse_status": "ok"
+    },
+    "Fwspx7qfq6x": {
+      "id": "Fwspx7qfq6x",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/Watchlist.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "c08bc7fc4a2c85b24204bc1f3ae0acf2e60a1310e20de8b142851698686cbe7e",
+      "size_bytes": 86,
+      "lines": 5,
+      "parse_ms": 0.038009999999999995,
+      "parse_status": "ok"
+    },
+    "Fpv23iscebw": {
+      "id": "Fpv23iscebw",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/radarr/AddOptions.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "4873c80301030d71b02b896c366e26a17f1263effcf1910e00e51f4043077657",
+      "size_bytes": 78,
+      "lines": 3,
+      "parse_ms": 0.028589999999999997,
+      "parse_status": "ok"
+    },
+    "F100511bz5nn": {
+      "id": "F100511bz5nn",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/radarr/RadarrConversions.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "b6741accde992778ae791f51647f0e70557507bb9f5d8dbdca876ce3f899d8e0",
+      "size_bytes": 422,
+      "lines": 16,
+      "parse_ms": 0.15798900000000002,
+      "parse_status": "ok"
+    },
+    "Fteu5rx550f": {
+      "id": "Fteu5rx550f",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/radarr/RadarrDelete.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "707f4c77405dbd2ceeafa4049ade62705e9a6ee105e4fd7c070c42c934a9b3f4",
+      "size_bytes": 189,
+      "lines": 9,
+      "parse_ms": 0.0543,
+      "parse_status": "ok"
+    },
+    "Fvjtvquujvy": {
+      "id": "Fvjtvquujvy",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/radarr/RadarrMovie.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "619ecc6e151a34f515f54ce80247d7a73c1c4cd29c08187a0b773da018f4169f",
+      "size_bytes": 126,
+      "lines": 3,
+      "parse_ms": 0.07886,
+      "parse_status": "ok"
+    },
+    "F5knhc9i4qo": {
+      "id": "F5knhc9i4qo",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/radarr/RadarrMovieExclusion.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "f07071397dc85cc79e08689964a2ba8060f22c28b31a1212893bca8e2e659f28",
+      "size_bytes": 158,
+      "lines": 8,
+      "parse_ms": 0.046950000000000006,
+      "parse_status": "ok"
+    },
+    "Fwbndb6b2ju": {
+      "id": "Fwbndb6b2ju",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/radarr/RadarrPost.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "b12532fc1b76c07fbbd3d84d316804f4e119f768a77feb565330fb9155937363",
+      "size_bytes": 226,
+      "lines": 10,
+      "parse_ms": 0.064339,
+      "parse_status": "ok"
+    },
+    "Fvsgt8xszrz": {
+      "id": "Fvsgt8xszrz",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/radarr/RadarrUtils.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "01a6e566e9f4ea11b5a4e8b24f52719fe6de6773c440adbe39231d0ff69549f2",
+      "size_bytes": 3584,
+      "lines": 99,
+      "parse_ms": 1.168417,
+      "parse_status": "ok"
+    },
+    "Fllobgk8xn2": {
+      "id": "Fllobgk8xn2",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/sonarr/SonarrAddOptions.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "86058983b0e47d23bc0f4e9d98c4d077a3ed0f42e35aa8c566311f511db0a820",
+      "size_bytes": 179,
+      "lines": 7,
+      "parse_ms": 0.049519,
+      "parse_status": "ok"
+    },
+    "Fbxg5a1nzow": {
+      "id": "Fbxg5a1nzow",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/sonarr/SonarrConversions.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "e96bed46bfdb8bab8b9edfeb4d5f054cd91a455f626cd75ebdf37175106b76de",
+      "size_bytes": 300,
+      "lines": 12,
+      "parse_ms": 0.1023,
+      "parse_status": "ok"
+    },
+    "Fv2b9x32unr": {
+      "id": "Fv2b9x32unr",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/sonarr/SonarrPost.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "3af239865bcae190a55fbab0d18ad7dabd3889f9e143ec50de2c2a2c8aa46cef",
+      "size_bytes": 280,
+      "lines": 12,
+      "parse_ms": 0.07399,
+      "parse_status": "ok"
+    },
+    "Fhgptq82dd7": {
+      "id": "Fhgptq82dd7",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/sonarr/SonarrSeries.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "e50f074b12bc466d2ac9949d98fde0e49347a8c90af63bc3cf2d6c56272354c6",
+      "size_bytes": 173,
+      "lines": 9,
+      "parse_ms": 0.054,
+      "parse_status": "ok"
+    },
+    "F6rsitc1hye": {
+      "id": "F6rsitc1hye",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/sonarr/SonarrUtils.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "228e75627fd57f330a2488ca1d12b2ba8afdad7556f5329abd9a61e26f971bad",
+      "size_bytes": 3690,
+      "lines": 102,
+      "parse_ms": 0.922937,
+      "parse_status": "ok"
+    },
+    "Fwuhuii9azo": {
+      "id": "Fwuhuii9azo",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/test/scala/PlexTokenSyncSpec.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "a0595897a88ffd1f105312a7c17e52fb1979ba7d6a73f4aa81c39a97dfc1330a",
+      "size_bytes": 8901,
+      "lines": 273,
+      "parse_ms": 1.763115,
+      "parse_status": "ok",
+      "test_role": "language-rule"
+    },
+    "Feoer57o38d": {
+      "id": "Feoer57o38d",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/test/scala/configuration/ConfigurationUtilsSpec.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "6ea574e8d8bb5a49a9ef74e401913e58b92536b2418295a70ec817e20ac5b946",
+      "size_bytes": 13940,
+      "lines": 317,
+      "parse_ms": 2.644763,
+      "parse_status": "ok",
+      "test_role": "language-rule"
+    },
+    "F7ra45ewbkf": {
+      "id": "F7ra45ewbkf",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/test/scala/model/ItemSpec.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "73e92f4657aa8a38040836e85251f73eb560c2dc4699991bb628fecf9b46003d",
+      "size_bytes": 2630,
+      "lines": 91,
+      "parse_ms": 0.679358,
+      "parse_status": "ok",
+      "test_role": "language-rule"
+    },
+    "Fe2d786lkwh": {
+      "id": "Fe2d786lkwh",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/test/scala/plex/PlexUtilsSpec.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "2811c21c330ff8eb8344a5663e4b6a68e45dd874fbf9af361b479aecbc8de360",
+      "size_bytes": 9824,
+      "lines": 290,
+      "parse_ms": 1.935165,
+      "parse_status": "ok",
+      "test_role": "language-rule"
+    },
+    "Fw1jyhyhi39": {
+      "id": "Fw1jyhyhi39",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/test/scala/radarr/RadarrUtilsSpec.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "bff233f47c3f21d5aa557981d7359264bc29eb3d7979a2be3b52f59ffd9de1bf",
+      "size_bytes": 2987,
+      "lines": 86,
+      "parse_ms": 0.602429,
+      "parse_status": "ok",
+      "test_role": "language-rule"
+    },
+    "Fl8btc0r2nu": {
+      "id": "Fl8btc0r2nu",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/test/scala/sonarr/SonarrUtilsSpec.scala",
+      "language": "scala",
+      "detected_via": "extension:.scala",
+      "blake3": "da1aa95e5ca2673f69e77208e8fdf28d6d07ff9a5a6249f502c9d200ed249f6c",
+      "size_bytes": 3149,
+      "lines": 95,
+      "parse_ms": 0.643609,
+      "parse_status": "ok",
+      "test_role": "language-rule"
+    }
+  },
+  "edges": [
+    {
+      "src": "Czujllzl2iz",
+      "dst": "C4eu8uf48gt",
+      "site_line": 37,
+      "site_byte": 1446,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4eu8uf48gt",
+      "dst": "Cqol1646f2f",
+      "site_line": 60,
+      "site_byte": 2243,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4eu8uf48gt",
+      "dst": "Cwpn9kth8ba",
+      "site_line": 62,
+      "site_byte": 2321,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Czccqvnpk00",
+      "dst": "Cbh9k71r9lv",
+      "site_line": 47,
+      "site_byte": 1846,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C166xg8or5i2",
+      "dst": "Cqjek5o7rui",
+      "site_line": 27,
+      "site_byte": 1002,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C166xg8or5i2",
+      "dst": "Co51kvl14pv",
+      "site_line": 28,
+      "site_byte": 1048,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C166xg8or5i2",
+      "dst": "Crzvbimyvuc",
+      "site_line": 29,
+      "site_byte": 1092,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C166xg8or5i2",
+      "dst": "Cp6zs6vz67y",
+      "site_line": 30,
+      "site_byte": 1144,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cqjek5o7rui",
+      "dst": "C8dojwv5rws",
+      "site_line": 40,
+      "site_byte": 1475,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cqjek5o7rui",
+      "dst": "Cqjek5o7rui",
+      "site_line": 43,
+      "site_byte": 1609,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Co51kvl14pv",
+      "dst": "C8dojwv5rws",
+      "site_line": 51,
+      "site_byte": 1801,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Co51kvl14pv",
+      "dst": "Co51kvl14pv",
+      "site_line": 54,
+      "site_byte": 1970,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cp6zs6vz67y",
+      "dst": "C8dojwv5rws",
+      "site_line": 62,
+      "site_byte": 2161,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cp6zs6vz67y",
+      "dst": "Cp6zs6vz67y",
+      "site_line": 65,
+      "site_byte": 2317,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Crzvbimyvuc",
+      "dst": "C8dojwv5rws",
+      "site_line": 70,
+      "site_byte": 2500,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Crzvbimyvuc",
+      "dst": "Crzvbimyvuc",
+      "site_line": 73,
+      "site_byte": 2673,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cxookce0746",
+      "dst": "Cl8qtu8wsy5",
+      "site_line": 30,
+      "site_byte": 735,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cxookce0746",
+      "dst": "C14mkc8y9yaj",
+      "site_line": 36,
+      "site_byte": 1267,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cxookce0746",
+      "dst": "C11zprvv0e79",
+      "site_line": 39,
+      "site_byte": 1543,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cxookce0746",
+      "dst": "Coi5t7gl8j7",
+      "site_line": 41,
+      "site_byte": 1715,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4cs0o798v4",
+      "dst": "C3fqv1xtjb8",
+      "site_line": 101,
+      "site_byte": 3834,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4cs0o798v4",
+      "dst": "C4cs0o798v4",
+      "site_line": 107,
+      "site_byte": 4014,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4cs0o798v4",
+      "dst": "C4cs0o798v4",
+      "site_line": 111,
+      "site_byte": 4101,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cl8qtu8wsy5",
+      "dst": "Cfhbrqe9hp9",
+      "site_line": 119,
+      "site_byte": 4382,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cl8qtu8wsy5",
+      "dst": "C4cs0o798v4",
+      "site_line": 125,
+      "site_byte": 4667,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cl8qtu8wsy5",
+      "dst": "C3fqv1xtjb8",
+      "site_line": 126,
+      "site_byte": 4732,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cl8qtu8wsy5",
+      "dst": "Coxoly00sxm",
+      "site_line": 130,
+      "site_byte": 4952,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cl8qtu8wsy5",
+      "dst": "Cfhbrqe9hp9",
+      "site_line": 132,
+      "site_byte": 5074,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cl8qtu8wsy5",
+      "dst": "C3fqv1xtjb8",
+      "site_line": 134,
+      "site_byte": 5176,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cl8qtu8wsy5",
+      "dst": "Czm3dlcey3t",
+      "site_line": 138,
+      "site_byte": 5445,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cl8qtu8wsy5",
+      "dst": "Cfhbrqe9hp9",
+      "site_line": 140,
+      "site_byte": 5543,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cl8qtu8wsy5",
+      "dst": "C3fqv1xtjb8",
+      "site_line": 142,
+      "site_byte": 5646,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cl8qtu8wsy5",
+      "dst": "Cfhbrqe9hp9",
+      "site_line": 150,
+      "site_byte": 6019,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cl8qtu8wsy5",
+      "dst": "Cum7bamx4y8",
+      "site_line": 154,
+      "site_byte": 6179,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14mkc8y9yaj",
+      "dst": "Cfhbrqe9hp9",
+      "site_line": 163,
+      "site_byte": 6575,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14mkc8y9yaj",
+      "dst": "C4cs0o798v4",
+      "site_line": 169,
+      "site_byte": 6860,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14mkc8y9yaj",
+      "dst": "C3fqv1xtjb8",
+      "site_line": 170,
+      "site_byte": 6925,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14mkc8y9yaj",
+      "dst": "Coxoly00sxm",
+      "site_line": 174,
+      "site_byte": 7145,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14mkc8y9yaj",
+      "dst": "Cfhbrqe9hp9",
+      "site_line": 176,
+      "site_byte": 7267,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14mkc8y9yaj",
+      "dst": "C3fqv1xtjb8",
+      "site_line": 178,
+      "site_byte": 7369,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14mkc8y9yaj",
+      "dst": "Czm3dlcey3t",
+      "site_line": 182,
+      "site_byte": 7638,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14mkc8y9yaj",
+      "dst": "Cfhbrqe9hp9",
+      "site_line": 184,
+      "site_byte": 7736,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14mkc8y9yaj",
+      "dst": "Cum7bamx4y8",
+      "site_line": 188,
+      "site_byte": 7896,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cum7bamx4y8",
+      "dst": "C3fqv1xtjb8",
+      "site_line": 200,
+      "site_byte": 8404,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Czm3dlcey3t",
+      "dst": "Cfhbrqe9hp9",
+      "site_line": 219,
+      "site_byte": 8989,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Czm3dlcey3t",
+      "dst": "Cfhbrqe9hp9",
+      "site_line": 231,
+      "site_byte": 9518,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Coxoly00sxm",
+      "dst": "Cfhbrqe9hp9",
+      "site_line": 238,
+      "site_byte": 9817,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Coxoly00sxm",
+      "dst": "Cvr1otglaho",
+      "site_line": 242,
+      "site_byte": 10004,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Coxoly00sxm",
+      "dst": "Cvr1otglaho",
+      "site_line": 242,
+      "site_byte": 10029,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Coxoly00sxm",
+      "dst": "Cfhbrqe9hp9",
+      "site_line": 245,
+      "site_byte": 10107,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Coxoly00sxm",
+      "dst": "Cfhbrqe9hp9",
+      "site_line": 254,
+      "site_byte": 10401,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Coi5t7gl8j7",
+      "dst": "Ciz92w5n6qi",
+      "site_line": 275,
+      "site_byte": 11131,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Coi5t7gl8j7",
+      "dst": "Ciz92w5n6qi",
+      "site_line": 281,
+      "site_byte": 11384,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cgjzrkp1heq",
+      "dst": "Cfhbrqe9hp9",
+      "site_line": 321,
+      "site_byte": 12573,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cgjzrkp1heq",
+      "dst": "Cfhbrqe9hp9",
+      "site_line": 325,
+      "site_byte": 12680,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cgjzrkp1heq",
+      "dst": "Cfhbrqe9hp9",
+      "site_line": 329,
+      "site_byte": 12789,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cj9tpuj98uh",
+      "dst": "Cj9tpuj98uh",
+      "site_line": 72,
+      "site_byte": 2301,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C7adtts2ern",
+      "dst": "C1qtyy0blqn",
+      "site_line": 82,
+      "site_byte": 2915,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C7adtts2ern",
+      "dst": "C7adtts2ern",
+      "site_line": 85,
+      "site_byte": 3076,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Czwdsd11pra",
+      "dst": "Cck2o8c93l5",
+      "site_line": 96,
+      "site_byte": 3451,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Czwdsd11pra",
+      "dst": "Cs2gmpn11kg",
+      "site_line": 98,
+      "site_byte": 3549,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Czwdsd11pra",
+      "dst": "C1s7hlkffxl",
+      "site_line": 102,
+      "site_byte": 3702,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cs2gmpn11kg",
+      "dst": "Cs2gmpn11kg",
+      "site_line": 181,
+      "site_byte": 6579,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1qtyy0blqn",
+      "dst": "C1s7hlkffxl",
+      "site_line": 192,
+      "site_byte": 7171,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1s7hlkffxl",
+      "dst": "C58kd2pikpe",
+      "site_line": 211,
+      "site_byte": 7796,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C6loa3usj4j",
+      "dst": "Cpfuewsqo4i",
+      "site_line": 13,
+      "site_byte": 336,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C6loa3usj4j",
+      "dst": "C6loa3usj4j",
+      "site_line": 13,
+      "site_byte": 336,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C5qefltlr77",
+      "dst": "C182s1ckfm61",
+      "site_line": 23,
+      "site_byte": 632,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C5qefltlr77",
+      "dst": "C182s1ckfm61",
+      "site_line": 28,
+      "site_byte": 835,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ctnr1us4cvm",
+      "dst": "Cc1ytoqjmrm",
+      "site_line": 41,
+      "site_byte": 1304,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C10dyje3uobw",
+      "dst": "Cbu7uwyzjx0",
+      "site_line": 61,
+      "site_byte": 1920,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Crvbtgl7id",
+      "dst": "Cnjc5lho1qj",
+      "site_line": 22,
+      "site_byte": 607,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Crvbtgl7id",
+      "dst": "Cnjc5lho1qj",
+      "site_line": 27,
+      "site_byte": 804,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C17suzo5f3ot",
+      "dst": "Cjzuhoyvjv4",
+      "site_line": 44,
+      "site_byte": 1398,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C135ljpddx29",
+      "dst": "Cmqo1cqlvx2",
+      "site_line": 64,
+      "site_byte": 2022,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Crhpu50wplf",
+      "dst": "Cbw2sjv9yqi",
+      "site_line": 7,
+      "site_byte": 209,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czujllzl2iz",
+      "dst": "C7adtts2ern",
+      "site_line": 18,
+      "site_byte": 506,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czujllzl2iz",
+      "dst": "Czwdsd11pra",
+      "site_line": 21,
+      "site_byte": 693,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czujllzl2iz",
+      "dst": "Cc7hjme7w21",
+      "site_line": 23,
+      "site_byte": 866,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czujllzl2iz",
+      "dst": "C5qefltlr77",
+      "site_line": 26,
+      "site_byte": 1019,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czujllzl2iz",
+      "dst": "Crvbtgl7id",
+      "site_line": 31,
+      "site_byte": 1202,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwpn9kth8ba",
+      "dst": "C10dyje3uobw",
+      "site_line": 72,
+      "site_byte": 2795,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cqol1646f2f",
+      "dst": "C135ljpddx29",
+      "site_line": 80,
+      "site_byte": 3244,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cqol1646f2f",
+      "dst": "C135ljpddx29",
+      "site_line": 82,
+      "site_byte": 3447,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czccqvnpk00",
+      "dst": "C7adtts2ern",
+      "site_line": 20,
+      "site_byte": 557,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czccqvnpk00",
+      "dst": "Czwdsd11pra",
+      "site_line": 29,
+      "site_byte": 974,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czccqvnpk00",
+      "dst": "Cc7hjme7w21",
+      "site_line": 31,
+      "site_byte": 1147,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czccqvnpk00",
+      "dst": "C5qefltlr77",
+      "site_line": 36,
+      "site_byte": 1421,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czccqvnpk00",
+      "dst": "Crvbtgl7id",
+      "site_line": 41,
+      "site_byte": 1620,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cbh9k71r9lv",
+      "dst": "C17suzo5f3ot",
+      "site_line": 74,
+      "site_byte": 2857,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cbh9k71r9lv",
+      "dst": "Ctnr1us4cvm",
+      "site_line": 84,
+      "site_byte": 3374,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C166xg8or5i2",
+      "dst": "Cxookce0746",
+      "site_line": 24,
+      "site_byte": 860,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cqjek5o7rui",
+      "dst": "Crhpu50wplf",
+      "site_line": 41,
+      "site_byte": 1520,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Co51kvl14pv",
+      "dst": "Czccqvnpk00",
+      "site_line": 52,
+      "site_byte": 1846,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cp6zs6vz67y",
+      "dst": "Czccqvnpk00",
+      "site_line": 63,
+      "site_byte": 2206,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Crzvbimyvuc",
+      "dst": "Czujllzl2iz",
+      "site_line": 71,
+      "site_byte": 2545,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxookce0746",
+      "dst": "C15poev7c1fc",
+      "site_line": 31,
+      "site_byte": 797,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxookce0746",
+      "dst": "C15poev7c1fc",
+      "site_line": 34,
+      "site_byte": 1064,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxookce0746",
+      "dst": "C15poev7c1fc",
+      "site_line": 35,
+      "site_byte": 1170,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxookce0746",
+      "dst": "C15poev7c1fc",
+      "site_line": 38,
+      "site_byte": 1440,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxookce0746",
+      "dst": "C15poev7c1fc",
+      "site_line": 40,
+      "site_byte": 1594,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxookce0746",
+      "dst": "C15poev7c1fc",
+      "site_line": 42,
+      "site_byte": 1811,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxookce0746",
+      "dst": "C15poev7c1fc",
+      "site_line": 43,
+      "site_byte": 1928,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxookce0746",
+      "dst": "C15poev7c1fc",
+      "site_line": 44,
+      "site_byte": 2053,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxookce0746",
+      "dst": "C15poev7c1fc",
+      "site_line": 48,
+      "site_byte": 2203,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxookce0746",
+      "dst": "C15poev7c1fc",
+      "site_line": 49,
+      "site_byte": 2321,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxookce0746",
+      "dst": "Crmxx4oeyl6",
+      "site_line": 87,
+      "site_byte": 3317,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cl8qtu8wsy5",
+      "dst": "C15poev7c1fc",
+      "site_line": 119,
+      "site_byte": 4324,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cl8qtu8wsy5",
+      "dst": "C15poev7c1fc",
+      "site_line": 120,
+      "site_byte": 4451,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cl8qtu8wsy5",
+      "dst": "C15poev7c1fc",
+      "site_line": 130,
+      "site_byte": 4985,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cl8qtu8wsy5",
+      "dst": "C15poev7c1fc",
+      "site_line": 137,
+      "site_byte": 5379,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cl8qtu8wsy5",
+      "dst": "C15poev7c1fc",
+      "site_line": 152,
+      "site_byte": 6111,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C14mkc8y9yaj",
+      "dst": "C15poev7c1fc",
+      "site_line": 163,
+      "site_byte": 6517,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C14mkc8y9yaj",
+      "dst": "C15poev7c1fc",
+      "site_line": 164,
+      "site_byte": 6644,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C14mkc8y9yaj",
+      "dst": "C15poev7c1fc",
+      "site_line": 174,
+      "site_byte": 7178,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C14mkc8y9yaj",
+      "dst": "C15poev7c1fc",
+      "site_line": 181,
+      "site_byte": 7572,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C14mkc8y9yaj",
+      "dst": "C15poev7c1fc",
+      "site_line": 186,
+      "site_byte": 7828,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Coi5t7gl8j7",
+      "dst": "C2cjqxyp3ce",
+      "site_line": 266,
+      "site_byte": 10871,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Coi5t7gl8j7",
+      "dst": "C11bf7sex5uu",
+      "site_line": 266,
+      "site_byte": 10871,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Coi5t7gl8j7",
+      "dst": "C2cjqxyp3ce",
+      "site_line": 267,
+      "site_byte": 10928,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Coi5t7gl8j7",
+      "dst": "C11bf7sex5uu",
+      "site_line": 267,
+      "site_byte": 10928,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C11zprvv0e79",
+      "dst": "C15poev7c1fc",
+      "site_line": 305,
+      "site_byte": 12166,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C3fqv1xtjb8",
+      "dst": "Ccc7gez7fft",
+      "site_line": 344,
+      "site_byte": 13244,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C3fqv1xtjb8",
+      "dst": "Ccc7gez7fft",
+      "site_line": 346,
+      "site_byte": 13354,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ciz92w5n6qi",
+      "dst": "Ccc7gez7fft",
+      "site_line": 357,
+      "site_byte": 13825,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C2cjqxyp3ce",
+      "dst": "C11bf7sex5uu",
+      "site_line": 56,
+      "site_byte": 1844,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cc7hjme7w21",
+      "dst": "Ccc7gez7fft",
+      "site_line": 31,
+      "site_byte": 868,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cbw2sjv9yqi",
+      "dst": "Ccc7gez7fft",
+      "site_line": 55,
+      "site_byte": 1835,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C7adtts2ern",
+      "dst": "Ccc7gez7fft",
+      "site_line": 80,
+      "site_byte": 2731,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cck2o8c93l5",
+      "dst": "Ccc7gez7fft",
+      "site_line": 120,
+      "site_byte": 4280,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cs2gmpn11kg",
+      "dst": "Ccc7gez7fft",
+      "site_line": 175,
+      "site_byte": 6221,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C1s7hlkffxl",
+      "dst": "Ccc7gez7fft",
+      "site_line": 217,
+      "site_byte": 8072,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C182s1ckfm61",
+      "dst": "Ccc7gez7fft",
+      "site_line": 72,
+      "site_byte": 2286,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cc1ytoqjmrm",
+      "dst": "Ccc7gez7fft",
+      "site_line": 82,
+      "site_byte": 2776,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cbu7uwyzjx0",
+      "dst": "Ccc7gez7fft",
+      "site_line": 95,
+      "site_byte": 3421,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cmqo1cqlvx2",
+      "dst": "Ccc7gez7fft",
+      "site_line": 78,
+      "site_byte": 2545,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cnjc5lho1qj",
+      "dst": "Ccc7gez7fft",
+      "site_line": 87,
+      "site_byte": 2889,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjzuhoyvjv4",
+      "dst": "Ccc7gez7fft",
+      "site_line": 97,
+      "site_byte": 3379,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": "C166xg8or5i2",
+      "file": "Fzanxxu9j91",
+      "site_line": 21,
+      "site_byte": 811,
+      "name": "HttpClient",
+      "receiver_hint": "HttpClient",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fease8kgvd2",
+      "site_line": 17,
+      "site_byte": 504,
+      "name": "getConfigOption",
+      "receiver_hint": "SystemPropertyReader",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fease8kgvd2",
+      "site_line": 41,
+      "site_byte": 1472,
+      "name": "flattenYaml",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fvidpi63r9u",
+      "site_line": 33,
+      "site_byte": 937,
+      "name": "makeHttpRequest",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fwuhuii9azo",
+      "site_line": 21,
+      "site_byte": 788,
+      "name": "createConfiguration",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fwuhuii9azo",
+      "site_line": 22,
+      "site_byte": 844,
+      "name": "defaultPlexMock",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fwuhuii9azo",
+      "site_line": 23,
+      "site_byte": 880,
+      "name": "defaultRadarrMock",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fwuhuii9azo",
+      "site_line": 24,
+      "site_byte": 918,
+      "name": "defaultSonarrMock",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fwuhuii9azo",
+      "site_line": 26,
+      "site_byte": 974,
+      "name": "run",
+      "receiver_hint": "PlexTokenSync",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 18,
+      "site_byte": 539,
+      "name": "createMockConfigReader",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 19,
+      "site_byte": 591,
+      "name": "createMockHttpClient",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 21,
+      "site_byte": 632,
+      "name": "create",
+      "receiver_hint": "ConfigurationUtils",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 30,
+      "site_byte": 1039,
+      "name": "createMockConfigReader",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 31,
+      "site_byte": 1110,
+      "name": "createMockHttpClient",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 33,
+      "site_byte": 1186,
+      "name": "create",
+      "receiver_hint": "ConfigurationUtils",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 40,
+      "site_byte": 1359,
+      "name": "createMockConfigReader",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 41,
+      "site_byte": 1430,
+      "name": "createMockHttpClient",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 43,
+      "site_byte": 1506,
+      "name": "create",
+      "receiver_hint": "ConfigurationUtils",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 50,
+      "site_byte": 1717,
+      "name": "createMockConfigReader",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 51,
+      "site_byte": 1769,
+      "name": "createMockHttpClient",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 53,
+      "site_byte": 1810,
+      "name": "create",
+      "receiver_hint": "ConfigurationUtils",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 60,
+      "site_byte": 2093,
+      "name": "createMockConfigReader",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 61,
+      "site_byte": 2178,
+      "name": "createMockHttpClient",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 63,
+      "site_byte": 2219,
+      "name": "create",
+      "receiver_hint": "ConfigurationUtils",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 70,
+      "site_byte": 2524,
+      "name": "createMockConfigReader",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 71,
+      "site_byte": 2610,
+      "name": "createMockHttpClient",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 73,
+      "site_byte": 2651,
+      "name": "create",
+      "receiver_hint": "ConfigurationUtils",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 80,
+      "site_byte": 2956,
+      "name": "createMockConfigReader",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 81,
+      "site_byte": 3042,
+      "name": "createMockHttpClient",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 83,
+      "site_byte": 3083,
+      "name": "create",
+      "receiver_hint": "ConfigurationUtils",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 90,
+      "site_byte": 3384,
+      "name": "createMockConfigReader",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 91,
+      "site_byte": 3471,
+      "name": "createMockHttpClient",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 93,
+      "site_byte": 3547,
+      "name": "create",
+      "receiver_hint": "ConfigurationUtils",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 100,
+      "site_byte": 3758,
+      "name": "createMockConfigReader",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 101,
+      "site_byte": 3810,
+      "name": "createMockHttpClient",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 103,
+      "site_byte": 3851,
+      "name": "create",
+      "receiver_hint": "ConfigurationUtils",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 110,
+      "site_byte": 4134,
+      "name": "createMockConfigReader",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 111,
+      "site_byte": 4219,
+      "name": "createMockHttpClient",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 113,
+      "site_byte": 4260,
+      "name": "create",
+      "receiver_hint": "ConfigurationUtils",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 120,
+      "site_byte": 4565,
+      "name": "createMockConfigReader",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 121,
+      "site_byte": 4651,
+      "name": "createMockHttpClient",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 123,
+      "site_byte": 4692,
+      "name": "create",
+      "receiver_hint": "ConfigurationUtils",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 130,
+      "site_byte": 4997,
+      "name": "createMockConfigReader",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 131,
+      "site_byte": 5083,
+      "name": "createMockHttpClient",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 133,
+      "site_byte": 5124,
+      "name": "create",
+      "receiver_hint": "ConfigurationUtils",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 140,
+      "site_byte": 5425,
+      "name": "createMockConfigReader",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 141,
+      "site_byte": 5512,
+      "name": "createMockHttpClient",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 143,
+      "site_byte": 5588,
+      "name": "create",
+      "receiver_hint": "ConfigurationUtils",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 150,
+      "site_byte": 5779,
+      "name": "createMockConfigReader",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 151,
+      "site_byte": 5871,
+      "name": "createMockHttpClient",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 153,
+      "site_byte": 5912,
+      "name": "create",
+      "receiver_hint": "ConfigurationUtils",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 161,
+      "site_byte": 6243,
+      "name": "createMockConfigReader",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 162,
+      "site_byte": 6318,
+      "name": "createMockHttpClient",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Feoer57o38d",
+      "site_line": 164,
+      "site_byte": 6359,
+      "name": "create",
+      "receiver_hint": "ConfigurationUtils",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 33,
+      "site_byte": 966,
+      "name": "fetchWatchlistFromRss",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 50,
+      "site_byte": 1378,
+      "name": "fetchWatchlistFromRss",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 57,
+      "site_byte": 1620,
+      "name": "createConfiguration",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 70,
+      "site_byte": 1981,
+      "name": "ping",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 77,
+      "site_byte": 2183,
+      "name": "createConfiguration",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 112,
+      "site_byte": 3435,
+      "name": "getSelfWatchlist",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 122,
+      "site_byte": 3872,
+      "name": "createConfiguration",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 135,
+      "site_byte": 4359,
+      "name": "getSelfWatchlist",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 144,
+      "site_byte": 4686,
+      "name": "createConfiguration",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 179,
+      "site_byte": 5878,
+      "name": "getSelfWatchlist",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 189,
+      "site_byte": 6293,
+      "name": "createConfiguration",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 208,
+      "site_byte": 6912,
+      "name": "getFriends",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 219,
+      "site_byte": 7383,
+      "name": "createConfiguration",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 230,
+      "site_byte": 7756,
+      "name": "getWatchlistIdsForUser",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 247,
+      "site_byte": 8376,
+      "name": "createConfiguration",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 269,
+      "site_byte": 9086,
+      "name": "getWatchlistIdsForUser",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw1jyhyhi39",
+      "site_line": 41,
+      "site_byte": 1366,
+      "name": "fetchMovies",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw1jyhyhi39",
+      "site_line": 81,
+      "site_byte": 2810,
+      "name": "fetchMovies",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fl8btc0r2nu",
+      "site_line": 43,
+      "site_byte": 1408,
+      "name": "fetchSeries",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fl8btc0r2nu",
+      "site_line": 90,
+      "site_byte": 2972,
+      "name": "fetchSeries",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "C4eu8uf48gt",
+      "file": "F14goou7kdh5",
+      "site_line": 54,
+      "site_byte": 1972,
+      "name": "matches",
+      "receiver_hint": "_",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cbh9k71r9lv",
+      "file": "Fg1q28fl6l0",
+      "site_line": 64,
+      "site_byte": 2354,
+      "name": "matches",
+      "receiver_hint": "_",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cxookce0746",
+      "file": "F16kabu51obq",
+      "site_line": 51,
+      "site_byte": 2473,
+      "name": "Configuration",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cxookce0746",
+      "file": "F16kabu51obq",
+      "site_line": 53,
+      "site_byte": 2550,
+      "name": "SonarrConfiguration",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cxookce0746",
+      "file": "F16kabu51obq",
+      "site_line": 63,
+      "site_byte": 2804,
+      "name": "RadarrConfiguration",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cxookce0746",
+      "file": "F16kabu51obq",
+      "site_line": 71,
+      "site_byte": 2993,
+      "name": "PlexConfiguration",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cxookce0746",
+      "file": "F16kabu51obq",
+      "site_line": 77,
+      "site_byte": 3118,
+      "name": "DeleteConfiguration",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cck2o8c93l5",
+      "file": "F31n61p56a0",
+      "site_line": 111,
+      "site_byte": 4040,
+      "name": "GraphQLQuery",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cs2gmpn11kg",
+      "file": "F31n61p56a0",
+      "site_line": 141,
+      "site_byte": 5085,
+      "name": "GraphQLQuery",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C1s7hlkffxl",
+      "file": "F31n61p56a0",
+      "site_line": 222,
+      "site_byte": 8319,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Clywttpzz2",
+      "file": "Fzay3zyoobj",
+      "site_line": 15,
+      "site_byte": 528,
+      "name": "TokenWatchlistItem",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cpfuewsqo4i",
+      "file": "F100511bz5nn",
+      "site_line": 6,
+      "site_byte": 118,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C6loa3usj4j",
+      "file": "F100511bz5nn",
+      "site_line": 14,
+      "site_byte": 348,
+      "name": "RadarrMovie",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C7so2xl3icw",
+      "file": "Fteu5rx550f",
+      "site_line": 8,
+      "site_byte": 174,
+      "name": "AddOptions",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cyfgcxtwtpr",
+      "file": "Fwbndb6b2ju",
+      "site_line": 8,
+      "site_byte": 172,
+      "name": "AddOptions",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Ctnr1us4cvm",
+      "file": "Fvsgt8xszrz",
+      "site_line": 33,
+      "site_byte": 1106,
+      "name": "RadarrPost",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cxwtc2wmjr3",
+      "file": "Fbxg5a1nzow",
+      "site_line": 6,
+      "site_byte": 120,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C17suzo5f3ot",
+      "file": "F6rsitc1hye",
+      "site_line": 33,
+      "site_byte": 1081,
+      "name": "SonarrAddOptions",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C17suzo5f3ot",
+      "file": "F6rsitc1hye",
+      "site_line": 34,
+      "site_byte": 1144,
+      "name": "SonarrPost",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cdj0nqspmxo",
+      "file": "Fwuhuii9azo",
+      "site_line": 33,
+      "site_byte": 1165,
+      "name": "Configuration",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cdj0nqspmxo",
+      "file": "Fwuhuii9azo",
+      "site_line": 35,
+      "site_byte": 1218,
+      "name": "SonarrConfiguration",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cdj0nqspmxo",
+      "file": "Fwuhuii9azo",
+      "site_line": 45,
+      "site_byte": 1564,
+      "name": "RadarrConfiguration",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cdj0nqspmxo",
+      "file": "Fwuhuii9azo",
+      "site_line": 53,
+      "site_byte": 1837,
+      "name": "PlexConfiguration",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cdj0nqspmxo",
+      "file": "Fwuhuii9azo",
+      "site_line": 59,
+      "site_byte": 1986,
+      "name": "DeleteConfiguration",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Caynrxetz64",
+      "file": "Fwuhuii9azo",
+      "site_line": 102,
+      "site_byte": 3450,
+      "name": "GraphQLQuery",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F7ra45ewbkf",
+      "site_line": 10,
+      "site_byte": 257,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F7ra45ewbkf",
+      "site_line": 18,
+      "site_byte": 454,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F7ra45ewbkf",
+      "site_line": 26,
+      "site_byte": 690,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F7ra45ewbkf",
+      "site_line": 34,
+      "site_byte": 929,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F7ra45ewbkf",
+      "site_line": 47,
+      "site_byte": 1422,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F7ra45ewbkf",
+      "site_line": 55,
+      "site_byte": 1659,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F7ra45ewbkf",
+      "site_line": 61,
+      "site_byte": 1822,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F7ra45ewbkf",
+      "site_line": 67,
+      "site_byte": 1992,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F7ra45ewbkf",
+      "site_line": 73,
+      "site_byte": 2143,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F7ra45ewbkf",
+      "site_line": 79,
+      "site_byte": 2306,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F7ra45ewbkf",
+      "site_line": 85,
+      "site_byte": 2476,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 117,
+      "site_byte": 3645,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 184,
+      "site_byte": 6088,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 190,
+      "site_byte": 6348,
+      "name": "GraphQLQuery",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 213,
+      "site_byte": 7117,
+      "name": "User",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 214,
+      "site_byte": 7195,
+      "name": "User",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 231,
+      "site_byte": 7820,
+      "name": "User",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 237,
+      "site_byte": 8050,
+      "name": "TokenWatchlistItem",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 270,
+      "site_byte": 9150,
+      "name": "User",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe2d786lkwh",
+      "site_line": 276,
+      "site_byte": 9380,
+      "name": "TokenWatchlistItem",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C8ssfbfqc2g",
+      "file": "Fe2d786lkwh",
+      "site_line": 284,
+      "site_byte": 9642,
+      "name": "PlexConfiguration",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw1jyhyhi39",
+      "site_line": 48,
+      "site_byte": 1676,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw1jyhyhi39",
+      "site_line": 51,
+      "site_byte": 1818,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fw1jyhyhi39",
+      "site_line": 55,
+      "site_byte": 2021,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fl8btc0r2nu",
+      "site_line": 50,
+      "site_byte": 1747,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fl8btc0r2nu",
+      "site_line": 58,
+      "site_byte": 1972,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fl8btc0r2nu",
+      "site_line": 62,
+      "site_byte": 2166,
+      "name": "Item",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 34.217597000000005,
+    "phases": {
+      "walk_ms": 4.962306,
+      "parse_ms": 26.377290000000006,
+      "extract_ms": 2.7076609999999945,
+      "resolve_ms": 0.0,
+      "link_ms": 2.484723,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 113,
+    "files_analyzed": 44,
+    "files_skipped": 69,
+    "files_errored": 0,
+    "bytes_processed": 98958,
+    "callables": 108,
+    "edges": 138,
+    "unresolved_calls": 176,
+    "stdlib_calls": 173,
+    "external_calls": 997,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "bash": {
+        "files": 1,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      },
+      "scala": {
+        "files": 43,
+        "callables": 108,
+        "edges": 75,
+        "unresolved": 176,
+        "stdlib": 173,
+        "external": 997
+      },
+      "skip:builtin": {
+        "files": 30,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      },
+      "skip:binary": {
+        "files": 1,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 132,
+      "medium": 6,
+      "low": 0
+    }
+  }
+}

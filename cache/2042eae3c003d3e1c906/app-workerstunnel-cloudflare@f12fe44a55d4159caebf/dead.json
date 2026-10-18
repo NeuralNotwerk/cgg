@@ -1,0 +1,487 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "rust",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "full",
+      "test_tagging": "full",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "builtin:main",
+        "framework:entry-node",
+        "framework:test-harness"
+      ],
+      "files": 1,
+      "callables": 34,
+      "roots": 15,
+      "reachable": 27,
+      "reachable_pct": 79,
+      "findings": 7,
+      "blind_spots": [
+        "calls inside macro arguments (format!, writeln!, vec!, assert_eq!)",
+        "symbols named only in attribute string literals (#[serde(deserialize_with = \"…\")]) — serde's are recorded as doubt, never as edges",
+        "functions passed as values inside macro arguments (format!(\"{}\", x.map(f))) — recorded as doubt, never as edges"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 34,
+    "edges": 54,
+    "unresolved_call_sites": 6,
+    "roots": 15,
+    "candidates": 7,
+    "reported": 7,
+    "regions": 3
+  },
+  "roots": [
+    {
+      "id": "C16ljt00pszt",
+      "qualified_name": "worker_rust::main",
+      "language": "rust",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "C16gy6uzk7eu",
+      "qualified_name": "worker_rust::proxy::tests::parses_a_canonical_uuid",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cqwdgfnziwa",
+      "qualified_name": "worker_rust::proxy::tests::accepts_uppercase_and_unhyphenated_forms",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "C2rwdfhopr1",
+      "qualified_name": "worker_rust::proxy::tests::rejects_anything_that_is_not_a_uuid",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "C5i20ccefmk",
+      "qualified_name": "worker_rust::proxy::tests::credential_comparison_agrees_with_equality",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "C9xr7ezgs0c",
+      "qualified_name": "worker_rust::proxy::tests::proxy_entry_without_a_port_inherits_the_requested_one",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "C13t5y4n8exb",
+      "qualified_name": "worker_rust::proxy::tests::proxy_entry_may_pin_its_own_port",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cxzpatzrelk",
+      "qualified_name": "worker_rust::proxy::tests::bare_ipv6_is_not_read_as_a_host_port_pair",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cg11lp3qprq",
+      "qualified_name": "worker_rust::proxy::tests::unusable_port_suffixes_fall_back_to_the_requested_port",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "C6v3jojccng",
+      "qualified_name": "worker_rust::proxy::tests::early_data_is_absent_unless_the_header_carries_it",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "C3hehpt7v26",
+      "qualified_name": "worker_rust::proxy::tests::early_data_accepts_both_base64_alphabets",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "C117soopgy5g",
+      "qualified_name": "worker_rust::proxy::tests::early_data_ignores_padding",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cnbmzk5m1ly",
+      "qualified_name": "worker_rust::proxy::tests::early_data_rejects_undecodable_input",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cgsb9xpsalr",
+      "qualified_name": "<framework-entry>::network::cloudflare-workers::worker_rust::main",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::cloudflare-workers::worker_rust::main`"
+    },
+    {
+      "id": "C18g0vh54ll",
+      "qualified_name": "<framework-entry>::test::cargo-test",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::cargo-test`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 25,
+      "members": [
+        "Cb6h9tmlwnm",
+        "C12y691ctiay"
+      ],
+      "anchors": [
+        "Cb6h9tmlwnm"
+      ],
+      "files": [
+        "F5ob906p13f"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 29,
+      "members": [
+        "C2uzi8mh7zv",
+        "C1118a4tcj3q",
+        "Cmh0ru1dqg9",
+        "Ctkxyb8n1hn"
+      ],
+      "anchors": [
+        "C1118a4tcj3q",
+        "Cmh0ru1dqg9",
+        "Ctkxyb8n1hn"
+      ],
+      "files": [
+        "F5ob906p13f"
+      ],
+      "total_lines": 69,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 30,
+      "members": [
+        "Ceqghs84wtk"
+      ],
+      "anchors": [
+        "Ceqghs84wtk"
+      ],
+      "files": [
+        "F5ob906p13f"
+      ],
+      "total_lines": 57,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "C2uzi8mh7zv",
+      "qualified_name": "worker_rust::websocket::WebSocketStream<'a>::poll_backpressure",
+      "simple_name": "poll_backpressure",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F5ob906p13f",
+      "path": "/storage/cgg-test_repos/app-workerstunnel-cloudflare/src/lib.rs",
+      "start_line": 700,
+      "end_line": 727,
+      "size_lines": 28,
+      "signature_hint": "fn poll_backpressure( self: Pin<&mut Self>, cx: &mut Context<'_>, max_buffered_amount: u32, ) -> Poll<Result<()>>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 628,
+      "region": 29,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 3,
+          "example": "C1118a4tcj3q"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C12y691ctiay",
+      "qualified_name": "worker_rust::ext::<T as ReadStringExt>::read_string",
+      "simple_name": "read_string",
+      "language": "rust",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F5ob906p13f",
+      "path": "/storage/cgg-test_repos/app-workerstunnel-cloudflare/src/lib.rs",
+      "start_line": 632,
+      "end_line": 641,
+      "size_lines": 10,
+      "signature_hint": "async fn read_string(&mut self, n: usize) -> Result<String>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 410,
+      "region": 25,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cb6h9tmlwnm"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ceqghs84wtk",
+      "qualified_name": "worker_rust::websocket::<WebSocketStream<'_> as AsyncRead>::poll_read",
+      "simple_name": "poll_read",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "trait_method",
+      "file": "F5ob906p13f",
+      "path": "/storage/cgg-test_repos/app-workerstunnel-cloudflare/src/lib.rs",
+      "start_line": 731,
+      "end_line": 787,
+      "size_lines": 57,
+      "signature_hint": "fn poll_read( self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &mut ReadBuf<'_>, ) -> Poll<Result<()>>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 157,
+      "region": 30,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "AsyncRead"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1118a4tcj3q",
+      "qualified_name": "worker_rust::websocket::<WebSocketStream<'_> as AsyncWrite>::poll_write",
+      "simple_name": "poll_write",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "trait_method",
+      "file": "F5ob906p13f",
+      "path": "/storage/cgg-test_repos/app-workerstunnel-cloudflare/src/lib.rs",
+      "start_line": 791,
+      "end_line": 810,
+      "size_lines": 20,
+      "signature_hint": "fn poll_write( mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &[u8], ) -> Poll<Result<usize>>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 120,
+      "region": 29,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "AsyncWrite"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ctkxyb8n1hn",
+      "qualified_name": "worker_rust::websocket::<WebSocketStream<'_> as AsyncWrite>::poll_shutdown",
+      "simple_name": "poll_shutdown",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "trait_method",
+      "file": "F5ob906p13f",
+      "path": "/storage/cgg-test_repos/app-workerstunnel-cloudflare/src/lib.rs",
+      "start_line": 817,
+      "end_line": 833,
+      "size_lines": 17,
+      "signature_hint": "fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<()>>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 117,
+      "region": 29,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "AsyncWrite"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cmh0ru1dqg9",
+      "qualified_name": "worker_rust::websocket::<WebSocketStream<'_> as AsyncWrite>::poll_flush",
+      "simple_name": "poll_flush",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "trait_method",
+      "file": "F5ob906p13f",
+      "path": "/storage/cgg-test_repos/app-workerstunnel-cloudflare/src/lib.rs",
+      "start_line": 812,
+      "end_line": 815,
+      "size_lines": 4,
+      "signature_hint": "fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<()>>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 104,
+      "region": 29,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "AsyncWrite"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cb6h9tmlwnm",
+      "qualified_name": "worker_rust::ext::ReadStringExt::read_string",
+      "simple_name": "read_string",
+      "language": "rust",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F5ob906p13f",
+      "path": "/storage/cgg-test_repos/app-workerstunnel-cloudflare/src/lib.rs",
+      "start_line": 628,
+      "end_line": 628,
+      "size_lines": 1,
+      "signature_hint": "async fn read_string(&mut self, n: usize) -> Result<String>;",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 25,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "ReadStringExt",
+          "impls": 1,
+          "unresolved_sites": 1,
+          "called_impls": 0
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    }
+  ]
+}

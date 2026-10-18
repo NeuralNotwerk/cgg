@@ -1,0 +1,1056 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "disabled:no-roots-found"
+  },
+  "capabilities": [
+    {
+      "language": "proto",
+      "class": "descriptor",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "builtin:test-name"
+      ],
+      "files": 26,
+      "callables": 269,
+      "roots": 2,
+      "reachable": 2,
+      "reachable_pct": 0,
+      "findings": 0
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 269,
+    "edges": 314,
+    "unresolved_call_sites": 0,
+    "roots": 2,
+    "candidates": 267,
+    "reported": 0,
+    "regions": 39,
+    "withheld": [
+      {
+        "language": "proto",
+        "category": "never-referenced",
+        "reason": "descriptor-language",
+        "would_have_reported": 77
+      },
+      {
+        "language": "proto",
+        "category": "reachable-only-from-dead-code",
+        "reason": "descriptor-language",
+        "would_have_reported": 174
+      },
+      {
+        "language": "proto",
+        "category": "dead-cycle",
+        "reason": "descriptor-language",
+        "would_have_reported": 16
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "C77z5wrn8rb",
+      "qualified_name": "grpc.testing.TestOrcaReport",
+      "language": "proto",
+      "kind": "test-entry",
+      "rule": "builtin:test-name",
+      "detail": "name `TestOrcaReport` matches a test convention"
+    },
+    {
+      "id": "Cmdgsqxudla",
+      "qualified_name": "grpc.testing.TestService",
+      "language": "proto",
+      "kind": "test-entry",
+      "rule": "builtin:test-name",
+      "detail": "name `TestService` matches a test convention"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "Cgmskb7j09y",
+        "C12x3niwiq0g",
+        "Cgydu72qiis",
+        "C13a9ga7265z",
+        "Co9kr9qrd0w",
+        "Ccm57ujz147",
+        "Crlv0xb5ixu",
+        "C9un5bwy3pd",
+        "Chr7n2pratv",
+        "C13ur1f4xwyt",
+        "Cim0jj0izwb",
+        "C5j0tswgv1a",
+        "C17kb7bnydod",
+        "Csuxaz4c62c",
+        "C10vhatre1ui",
+        "Cjlkjx62v8z",
+        "C4520ivfphi",
+        "Csvuzz07pbp",
+        "C189fjvvb44g",
+        "Cutgoq89vv9",
+        "C11ndl3ucj2k",
+        "Czg4ag0tcb7",
+        "Cpl2ohidd51",
+        "Ce57e076jes",
+        "C11i9bztwkpq",
+        "C3ai2tc889s",
+        "Cxqga6zpsm2",
+        "C9izpj0aiup",
+        "C6a302gnsu1",
+        "C5on8pl1vj4",
+        "C10ubrp1tp0m",
+        "C16xeoil9r4k",
+        "Czw677v9g3a",
+        "C16xowozm3k6",
+        "Cf92i15nvqw",
+        "Cuvj2kt4rol",
+        "Cebyaml1zka",
+        "Cpzfmxgxet7",
+        "Chgq1t5vxa4",
+        "C16uvn9ygh4n",
+        "C124cmh0y2sz",
+        "Cd6a20r37lv",
+        "Clx33lu3j0f",
+        "Crm5wjjiizf",
+        "Ckc4dr38et7",
+        "Cz4ozup54k7",
+        "Cm0ij7l0guh",
+        "C8a3dqnwxjg",
+        "Ctq9n81wxbk",
+        "Caqnt3l83tv",
+        "Ct522kuolds",
+        "Cadug2oazoz",
+        "Cinlbzbrn1o",
+        "C7zgsnivcp9",
+        "Cky4ombygiw",
+        "Cfqt8xqpiaj",
+        "C6b08pqpic5",
+        "Cff1v2h120b",
+        "C78sc5lv612",
+        "Cm3cugsks5m",
+        "Ckgtdsncxg1",
+        "Cpmxqcnerr",
+        "C2jgp43ad00",
+        "Ckz5g0u2ifb",
+        "C9vsyk03ymo",
+        "C94x320ji1i",
+        "Clqj0mltop"
+      ],
+      "anchors": [
+        "Cgmskb7j09y",
+        "Chr7n2pratv",
+        "C189fjvvb44g",
+        "Cz4ozup54k7",
+        "C6b08pqpic5",
+        "C2jgp43ad00",
+        "Ckz5g0u2ifb",
+        "C9vsyk03ymo",
+        "C94x320ji1i",
+        "Clqj0mltop"
+      ],
+      "files": [
+        "Fshdsxfz3id",
+        "Fxqxn353dqs",
+        "Fdmkiiyomft",
+        "F7f21ygg1za",
+        "Fqhc9xyz7cf",
+        "Fd16bgbfq9c",
+        "F17yq8n1yld8",
+        "Fedowctf25w",
+        "F2t27cbkneu",
+        "F15ad5rje561",
+        "Fdfvm391a5e"
+      ],
+      "total_lines": 767,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 14,
+      "members": [
+        "Cexwwnq6u34",
+        "Cauuads8ah9",
+        "C17c2nnsqlah",
+        "C12knx0mlimk",
+        "C231rpe6274",
+        "Cezvho1l29h",
+        "Czumfsu0rw9",
+        "C13ob3mepvt2",
+        "C9kveb8w2iv",
+        "Cy8vbqz7fiv",
+        "C4p0ung5b19",
+        "Cdyygcszl3k",
+        "C3z1p72kkvy",
+        "Cwefxd5w9xq",
+        "C14t6brou3xl",
+        "Cxlm3r433p4",
+        "Cdu5piva3x3",
+        "Cw47u4surz",
+        "Cm01e10amds",
+        "Cy0s6ehptb2",
+        "C4fv4r35wmr",
+        "Cu4b622u76q",
+        "Cel5scwihhe",
+        "Chuwovvg193",
+        "Cymztynuc00",
+        "C5fmplrotf",
+        "C123zugeb26v",
+        "Chmgkpijj8g",
+        "C2euhktybyf",
+        "Caf171uvjsu",
+        "C8yu3a6o863",
+        "C4xhhhke7tk",
+        "Cscxkiix7k0",
+        "Cyt2yqqtm0w",
+        "Cjeol48q14l",
+        "Ca1l486360h",
+        "Cfya3ydfxlt",
+        "Cvnmittuqra"
+      ],
+      "anchors": [
+        "Cw47u4surz",
+        "Cm01e10amds",
+        "Cy0s6ehptb2",
+        "C4fv4r35wmr",
+        "Cu4b622u76q",
+        "Cel5scwihhe",
+        "Chuwovvg193"
+      ],
+      "files": [
+        "Fxvrl32orbz"
+      ],
+      "total_lines": 419,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 31,
+      "members": [
+        "Ccyiy1vlb1i"
+      ],
+      "anchors": [
+        "Ccyiy1vlb1i"
+      ],
+      "files": [
+        "Fxvrl32orbz"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 32,
+      "members": [
+        "Cjzj84if5d2"
+      ],
+      "anchors": [
+        "Cjzj84if5d2"
+      ],
+      "files": [
+        "Fxvrl32orbz"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 33,
+      "members": [
+        "Clyc16hkq66"
+      ],
+      "anchors": [
+        "Clyc16hkq66"
+      ],
+      "files": [
+        "Fxvrl32orbz"
+      ],
+      "total_lines": 36,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 34,
+      "members": [
+        "Czwpfv5z1cb"
+      ],
+      "anchors": [
+        "Czwpfv5z1cb"
+      ],
+      "files": [
+        "Fxvrl32orbz"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 60,
+      "members": [
+        "C21ve5cckwm"
+      ],
+      "anchors": [
+        "C21ve5cckwm"
+      ],
+      "files": [
+        "Ffnj7jwoaia"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 61,
+      "members": [
+        "Cwfke3wrayr",
+        "C780phbbn5l",
+        "Ckuu4l1kysy"
+      ],
+      "anchors": [
+        "Cwfke3wrayr"
+      ],
+      "files": [
+        "Ffnj7jwoaia"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 64,
+      "members": [
+        "Crpig8ev1gh",
+        "Cbyzzflbvrs",
+        "Celo6objkne",
+        "Ckxd24s1k2h",
+        "Cuhey2e6phb",
+        "Cywxwy9svn5",
+        "C1373u46oik2",
+        "Cyf9ab8v9n1",
+        "Cz6s10q7vgw",
+        "Ctllwi37jl9",
+        "Cqfsfdr3csm",
+        "Cl2w82pwri1",
+        "Ceddm907rw6",
+        "Cpr0qcg9f03",
+        "Cyr42xb4lz5",
+        "Ctfigc28acw",
+        "Czu8fm2erej",
+        "Caan5z1l0me"
+      ],
+      "anchors": [
+        "Crpig8ev1gh",
+        "Cpr0qcg9f03"
+      ],
+      "files": [
+        "Fyi90pxtv0c",
+        "F8np997pghr",
+        "F8zq00cjq27"
+      ],
+      "total_lines": 258,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 77,
+      "members": [
+        "Co893vfkvs3"
+      ],
+      "anchors": [
+        "Co893vfkvs3"
+      ],
+      "files": [
+        "F8np997pghr"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 83,
+      "members": [
+        "Cvrc7stwrdz",
+        "C122aqn8kq3r",
+        "Ct9qvwg0wcl",
+        "C8mi53u76f4",
+        "Ch02r056ef",
+        "Ccsh0bd7d3m",
+        "C44x2qor3ww"
+      ],
+      "anchors": [
+        "Ch02r056ef",
+        "Ccsh0bd7d3m",
+        "C44x2qor3ww"
+      ],
+      "files": [
+        "F15szv6et505"
+      ],
+      "total_lines": 20,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 87,
+      "members": [
+        "C6zewu2n21z"
+      ],
+      "anchors": [
+        "C6zewu2n21z"
+      ],
+      "files": [
+        "F15szv6et505"
+      ],
+      "total_lines": 40,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 91,
+      "members": [
+        "C16pj07rcm2n"
+      ],
+      "anchors": [
+        "C16pj07rcm2n"
+      ],
+      "files": [
+        "F7f21ygg1za"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 102,
+      "members": [
+        "Ca4fyvw9tsq"
+      ],
+      "anchors": [
+        "Ca4fyvw9tsq"
+      ],
+      "files": [
+        "F837t3kypio"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 103,
+      "members": [
+        "Cg4fneb8n9",
+        "Cnbmch7i2ws",
+        "Cpq7wfzs7k",
+        "C17z0kpyyfsm",
+        "Cdp5w1nawh0",
+        "Cxzr2mm4oz3",
+        "C3euyo5uhdo",
+        "C9e9tsfchgq",
+        "C183u5e78vd0"
+      ],
+      "anchors": [
+        "Cg4fneb8n9"
+      ],
+      "files": [
+        "F837t3kypio"
+      ],
+      "total_lines": 152,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 112,
+      "members": [
+        "C8nn9nnmdo6",
+        "C10ktc1zsnu0",
+        "C14lhxs0fbkk"
+      ],
+      "anchors": [
+        "C14lhxs0fbkk"
+      ],
+      "files": [
+        "F11jv3imbfas"
+      ],
+      "total_lines": 38,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 114,
+      "members": [
+        "Ck77uygeh3e"
+      ],
+      "anchors": [
+        "Ck77uygeh3e"
+      ],
+      "files": [
+        "F11jv3imbfas"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 116,
+      "members": [
+        "Ce0xo0jjxrd",
+        "Cgw19y4mezc",
+        "Clao10dtrmw",
+        "Cjkp3qc32ki",
+        "Coqg3tcwxrz",
+        "C12fv1mq2t0a",
+        "Cuxhc615dta",
+        "C11ad039kkaj",
+        "Cj2ls47mi2f",
+        "C7iegopocd7",
+        "Cxl14t4dcd",
+        "C109mqa4bg0e",
+        "C14vuz44fu6",
+        "C158esn1soei",
+        "C179531v96fw",
+        "Cwey8tewsje",
+        "Ctlhnl4wknz",
+        "Cqfg0ed6k2n",
+        "C1k09iq0gmi",
+        "Co7az43q7sn",
+        "Cnsw8a8ot4b",
+        "C15rzwkdf55z",
+        "Cvjqc7d1bwz",
+        "C32qhcm0byq",
+        "C3gzz99r3ak",
+        "Ct91z86fho1",
+        "Cdjfbczguvu",
+        "Cbzjpvu1c9g",
+        "Cuh4orrfhy6",
+        "Cxth1ib8st8",
+        "Cb72rre2gfd",
+        "Cp3t5wa0qqk",
+        "Cpe015qeyiy",
+        "Cmzrzlgnkk8",
+        "C13oeyenawa0",
+        "C70cvrw00x4",
+        "Cxnrnvffjhu",
+        "Ctg8t616j3z",
+        "C867kt9ydc3",
+        "Cjkih38mp8t",
+        "Cgqdzr830ik",
+        "Cv7ys8fefne",
+        "Ca3lzn899o8",
+        "Cfuh1wwoli2",
+        "C1zj9xv0eod",
+        "C14p14weipcm",
+        "C5h937wbbme",
+        "C174oloyf64f",
+        "C2289zej85e",
+        "C11fqgl4894i",
+        "Corytao6qwi",
+        "Cmx6or11pw1"
+      ],
+      "anchors": [
+        "Coqg3tcwxrz",
+        "Cxth1ib8st8",
+        "Cb72rre2gfd",
+        "Cp3t5wa0qqk",
+        "Cpe015qeyiy",
+        "Cmzrzlgnkk8",
+        "C5h937wbbme",
+        "C174oloyf64f",
+        "C2289zej85e",
+        "C11fqgl4894i",
+        "Corytao6qwi",
+        "Cmx6or11pw1"
+      ],
+      "cycles": [
+        [
+          "C7iegopocd7",
+          "Cxl14t4dcd",
+          "C109mqa4bg0e",
+          "C14vuz44fu6",
+          "C158esn1soei",
+          "C179531v96fw",
+          "Ctlhnl4wknz",
+          "C1k09iq0gmi",
+          "Cnsw8a8ot4b",
+          "C15rzwkdf55z",
+          "Cvjqc7d1bwz",
+          "C32qhcm0byq",
+          "Ct91z86fho1",
+          "Cdjfbczguvu",
+          "Cbzjpvu1c9g",
+          "Cuh4orrfhy6"
+        ]
+      ],
+      "files": [
+        "Fti9mm6irc4",
+        "Fb2ef5n4kti",
+        "F3fclywnloj",
+        "Fd16bgbfq9c",
+        "F15ad5rje561"
+      ],
+      "total_lines": 1059,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 121,
+      "members": [
+        "Cehda4rp9vj"
+      ],
+      "anchors": [
+        "Cehda4rp9vj"
+      ],
+      "files": [
+        "F3zf8cu84hk"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 122,
+      "members": [
+        "Crb75z29sec",
+        "Cc0nnu1j19w",
+        "Cqliphnq7uv",
+        "Cql0ovd8xn3",
+        "C8qwcojna9u",
+        "C17jju42xepy",
+        "C1it9ldowpy",
+        "C1bbvfeod91",
+        "C17qhahuaxlz"
+      ],
+      "anchors": [
+        "Crb75z29sec"
+      ],
+      "files": [
+        "F3zf8cu84hk"
+      ],
+      "total_lines": 91,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 131,
+      "members": [
+        "Ca514lv2ke0"
+      ],
+      "anchors": [
+        "Ca514lv2ke0"
+      ],
+      "files": [
+        "Fie4xv405p2"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 132,
+      "members": [
+        "C17nt1s80quy",
+        "Cqj6akf1bda",
+        "Cdnp0ehfmj2",
+        "Cqiij8vgwsn",
+        "Cfgc49796fl",
+        "Cof78ozp0ug",
+        "Cqeo8dps98v",
+        "Clpnw60v6n",
+        "Cm09pfiir1t"
+      ],
+      "anchors": [
+        "C17nt1s80quy"
+      ],
+      "files": [
+        "Fie4xv405p2"
+      ],
+      "total_lines": 91,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 165,
+      "members": [
+        "Cyt2kocuui2"
+      ],
+      "anchors": [
+        "Cyt2kocuui2"
+      ],
+      "files": [
+        "F3fclywnloj"
+      ],
+      "total_lines": 22,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 186,
+      "members": [
+        "C14e0vy7c2dd",
+        "Cku00qitwia",
+        "Cfih3hbtnpa"
+      ],
+      "anchors": [
+        "Cfih3hbtnpa"
+      ],
+      "files": [
+        "Fqhc9xyz7cf",
+        "Fdfvm391a5e"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 193,
+      "members": [
+        "C8yd10ais94",
+        "C15jz8ftkz77",
+        "Cyhdbcl10v0",
+        "Cpx1bxg8tsg",
+        "Chkafoux68d",
+        "Cxlmj1kgysr",
+        "Cxtv4lwxyiz",
+        "Ch60xe2g05q",
+        "C1475lz4kef1",
+        "C1nha1swp95",
+        "Cm36sy6e645",
+        "Cfznxevhra8",
+        "Cz5h94te39f",
+        "Czneg88sntr"
+      ],
+      "anchors": [
+        "Chkafoux68d",
+        "Cxlmj1kgysr",
+        "Cxtv4lwxyiz",
+        "Ch60xe2g05q",
+        "C1475lz4kef1",
+        "C1nha1swp95",
+        "Cm36sy6e645",
+        "Cfznxevhra8",
+        "Cz5h94te39f",
+        "Czneg88sntr"
+      ],
+      "files": [
+        "Fro53zz2woe",
+        "Fd16bgbfq9c",
+        "F15ad5rje561"
+      ],
+      "total_lines": 22,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 210,
+      "members": [
+        "C3nvibo9nsb",
+        "Cj6mnt08167",
+        "C10fa683cdy1"
+      ],
+      "anchors": [
+        "C10fa683cdy1"
+      ],
+      "files": [
+        "Fd16bgbfq9c",
+        "F15ad5rje561"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 214,
+      "members": [
+        "C6ita0xtp7n"
+      ],
+      "anchors": [
+        "C6ita0xtp7n"
+      ],
+      "files": [
+        "Fd16bgbfq9c"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 217,
+      "members": [
+        "Cfidrvks25j",
+        "C12ptjqg5nmf",
+        "C12prmn4yjk9"
+      ],
+      "anchors": [
+        "C12prmn4yjk9"
+      ],
+      "files": [
+        "Fd16bgbfq9c",
+        "F15ad5rje561"
+      ],
+      "total_lines": 20,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 223,
+      "members": [
+        "C96jsztt4se"
+      ],
+      "anchors": [
+        "C96jsztt4se"
+      ],
+      "files": [
+        "Fedowctf25w"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 239,
+      "members": [
+        "C7jbdtuzdp3"
+      ],
+      "anchors": [
+        "C7jbdtuzdp3"
+      ],
+      "files": [
+        "F15ad5rje561"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 241,
+      "members": [
+        "Crcpkuvcjef"
+      ],
+      "anchors": [
+        "Crcpkuvcjef"
+      ],
+      "files": [
+        "F15ad5rje561"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 244,
+      "members": [
+        "C7szfda77b3"
+      ],
+      "anchors": [
+        "C7szfda77b3"
+      ],
+      "files": [
+        "F15ad5rje561"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 247,
+      "members": [
+        "C186dnfml40l"
+      ],
+      "anchors": [
+        "C186dnfml40l"
+      ],
+      "files": [
+        "F15ad5rje561"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 251,
+      "members": [
+        "Cj20kg2j5ii"
+      ],
+      "anchors": [
+        "Cj20kg2j5ii"
+      ],
+      "files": [
+        "F15ad5rje561"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 255,
+      "members": [
+        "C3hg6nr270o"
+      ],
+      "anchors": [
+        "C3hg6nr270o"
+      ],
+      "files": [
+        "F15ad5rje561"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 257,
+      "members": [
+        "Ccdkvclcj5a"
+      ],
+      "anchors": [
+        "Ccdkvclcj5a"
+      ],
+      "files": [
+        "Fdfvm391a5e"
+      ],
+      "total_lines": 23,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 262,
+      "members": [
+        "C9jv82xrqud",
+        "Cinmj3etech",
+        "Ci3vk6cz36w"
+      ],
+      "anchors": [
+        "Ci3vk6cz36w"
+      ],
+      "files": [
+        "F14fdunwz9fd"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 264,
+      "members": [
+        "Crort4me2r1",
+        "Cm8ary6bid2",
+        "C1fhoqomvrx"
+      ],
+      "anchors": [
+        "C1fhoqomvrx"
+      ],
+      "files": [
+        "F14fdunwz9fd"
+      ],
+      "total_lines": 15,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 266,
+      "members": [
+        "Coyb4doi5wr"
+      ],
+      "anchors": [
+        "Coyb4doi5wr"
+      ],
+      "files": [
+        "F14fdunwz9fd"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": []
+}

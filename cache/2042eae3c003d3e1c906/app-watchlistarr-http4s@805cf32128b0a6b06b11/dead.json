@@ -1,0 +1,3087 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "scala",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 43,
+      "callables": 108,
+      "roots": 9,
+      "reachable": 9,
+      "reachable_pct": 8,
+      "findings": 45
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 108,
+    "edges": 140,
+    "unresolved_call_sites": 126,
+    "roots": 9,
+    "candidates": 99,
+    "reported": 45,
+    "regions": 46,
+    "withheld": [
+      {
+        "language": "scala",
+        "category": "reachable-only-from-dead-code",
+        "reason": "low-root-coverage",
+        "would_have_reported": 53
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Cj9tpuj98uh",
+      "qualified_name": "FileAndSystemPropertyReader::flattenYaml",
+      "language": "scala",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/FileAndSystemPropertyReader.scala:41"
+    },
+    {
+      "id": "Cvoisnahvzb",
+      "qualified_name": "HttpClient::makeHttpRequest",
+      "language": "scala",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/http/HttpClient.scala:33"
+    },
+    {
+      "id": "Cdj0nqspmxo",
+      "qualified_name": "PlexTokenSyncSpec::createConfiguration",
+      "language": "scala",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-watchlistarr-http4s/src/test/scala/plex/PlexUtilsSpec.scala:247"
+    },
+    {
+      "id": "Caynrxetz64",
+      "qualified_name": "PlexTokenSyncSpec::defaultPlexMock",
+      "language": "scala",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-watchlistarr-http4s/src/test/scala/PlexTokenSyncSpec.scala:22"
+    },
+    {
+      "id": "C17b8z5iunre",
+      "qualified_name": "PlexTokenSyncSpec::defaultRadarrMock",
+      "language": "scala",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-watchlistarr-http4s/src/test/scala/PlexTokenSyncSpec.scala:23"
+    },
+    {
+      "id": "C10nlwxchb9d",
+      "qualified_name": "PlexTokenSyncSpec::defaultSonarrMock",
+      "language": "scala",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-watchlistarr-http4s/src/test/scala/PlexTokenSyncSpec.scala:24"
+    },
+    {
+      "id": "C5bpgntnn8e",
+      "qualified_name": "ConfigurationUtilsSpec::createMockConfigReader",
+      "language": "scala",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-watchlistarr-http4s/src/test/scala/configuration/ConfigurationUtilsSpec.scala:161"
+    },
+    {
+      "id": "Cmhxtxvyc4d",
+      "qualified_name": "ConfigurationUtilsSpec::createMockHttpClient",
+      "language": "scala",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-watchlistarr-http4s/src/test/scala/configuration/ConfigurationUtilsSpec.scala:162"
+    },
+    {
+      "id": "C8ssfbfqc2g",
+      "qualified_name": "PlexUtilsSpec::createConfiguration",
+      "language": "scala",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-watchlistarr-http4s/src/test/scala/plex/PlexUtilsSpec.scala:247"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "Crhpu50wplf",
+        "Czujllzl2iz",
+        "C4eu8uf48gt",
+        "Cwpn9kth8ba",
+        "Cqol1646f2f",
+        "Czccqvnpk00",
+        "Cbh9k71r9lv",
+        "C166xg8or5i2",
+        "C8dojwv5rws",
+        "Cqjek5o7rui",
+        "Co51kvl14pv",
+        "Cp6zs6vz67y",
+        "Crzvbimyvuc",
+        "C15poev7c1fc",
+        "Crmxx4oeyl6",
+        "Cxookce0746",
+        "C4cs0o798v4",
+        "Cl8qtu8wsy5",
+        "C14mkc8y9yaj",
+        "Cum7bamx4y8",
+        "Czm3dlcey3t",
+        "Coxoly00sxm",
+        "Cvr1otglaho",
+        "Coi5t7gl8j7",
+        "C11zprvv0e79",
+        "Cgjzrkp1heq",
+        "Cfhbrqe9hp9",
+        "C3fqv1xtjb8",
+        "Ciz92w5n6qi",
+        "C2cjqxyp3ce",
+        "C11bf7sex5uu",
+        "Ccc7gez7fft",
+        "Cc7hjme7w21",
+        "Cbw2sjv9yqi",
+        "C7adtts2ern",
+        "Czwdsd11pra",
+        "Cck2o8c93l5",
+        "Cs2gmpn11kg",
+        "C1qtyy0blqn",
+        "C1s7hlkffxl",
+        "C58kd2pikpe",
+        "C5qefltlr77",
+        "Ctnr1us4cvm",
+        "C10dyje3uobw",
+        "C182s1ckfm61",
+        "Cc1ytoqjmrm",
+        "Cbu7uwyzjx0",
+        "Crvbtgl7id",
+        "C17suzo5f3ot",
+        "C135ljpddx29",
+        "Cmqo1cqlvx2",
+        "Cnjc5lho1qj",
+        "Cjzuhoyvjv4"
+      ],
+      "anchors": [
+        "C166xg8or5i2",
+        "Cgjzrkp1heq"
+      ],
+      "files": [
+        "Fwplfgkeckb",
+        "F14goou7kdh5",
+        "Fg1q28fl6l0",
+        "Fzanxxu9j91",
+        "Fzsmpxualaf",
+        "Fxw001l0jam",
+        "F16kabu51obq",
+        "Fease8kgvd2",
+        "Fg7ic1tf1l",
+        "Fvidpi63r9u",
+        "F31n61p56a0",
+        "Fvsgt8xszrz",
+        "F6rsitc1hye"
+      ],
+      "total_lines": 975,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 7,
+      "members": [
+        "C2610o9k4pk"
+      ],
+      "anchors": [
+        "C2610o9k4pk"
+      ],
+      "files": [
+        "Fzanxxu9j91"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 14,
+      "members": [
+        "Cnqpn9f83l2"
+      ],
+      "anchors": [
+        "Cnqpn9f83l2"
+      ],
+      "files": [
+        "Fwzdajberio"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 15,
+      "members": [
+        "Ch57t9lkqs3"
+      ],
+      "anchors": [
+        "Ch57t9lkqs3"
+      ],
+      "files": [
+        "Fwzdajberio"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 16,
+      "members": [
+        "C14rsv9bxn3t"
+      ],
+      "anchors": [
+        "C14rsv9bxn3t"
+      ],
+      "files": [
+        "Fwzdajberio"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 17,
+      "members": [
+        "Cgven6whedw"
+      ],
+      "anchors": [
+        "Cgven6whedw"
+      ],
+      "files": [
+        "Fwzdajberio"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 18,
+      "members": [
+        "Csyrvbhif2h"
+      ],
+      "anchors": [
+        "Csyrvbhif2h"
+      ],
+      "files": [
+        "Fwzdajberio"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 37,
+      "members": [
+        "Cs4l5cvl3y4"
+      ],
+      "anchors": [
+        "Cs4l5cvl3y4"
+      ],
+      "files": [
+        "F161e1wbcoqa"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 38,
+      "members": [
+        "C2xstm898z3"
+      ],
+      "anchors": [
+        "C2xstm898z3"
+      ],
+      "files": [
+        "Fi5i3w2rhki"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 39,
+      "members": [
+        "Chrcfhdtk63"
+      ],
+      "anchors": [
+        "Chrcfhdtk63"
+      ],
+      "files": [
+        "Fl9aynqxuz7"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 43,
+      "members": [
+        "Cyz5cufrc0b"
+      ],
+      "anchors": [
+        "Cyz5cufrc0b"
+      ],
+      "files": [
+        "Fwaxs26lc39"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 44,
+      "members": [
+        "C1044kl6kqfs"
+      ],
+      "anchors": [
+        "C1044kl6kqfs"
+      ],
+      "files": [
+        "F1zybb2h68j"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 45,
+      "members": [
+        "Cu5kdg06buo"
+      ],
+      "anchors": [
+        "Cu5kdg06buo"
+      ],
+      "files": [
+        "F1zybb2h68j"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 46,
+      "members": [
+        "Cm7knoz3sea"
+      ],
+      "anchors": [
+        "Cm7knoz3sea"
+      ],
+      "files": [
+        "F1zybb2h68j"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 47,
+      "members": [
+        "Ch2obsm6b38"
+      ],
+      "anchors": [
+        "Ch2obsm6b38"
+      ],
+      "files": [
+        "F1zybb2h68j"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 48,
+      "members": [
+        "Cimsu9c4nk0"
+      ],
+      "anchors": [
+        "Cimsu9c4nk0"
+      ],
+      "files": [
+        "F1zybb2h68j"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 49,
+      "members": [
+        "C1dd5ugivso"
+      ],
+      "anchors": [
+        "C1dd5ugivso"
+      ],
+      "files": [
+        "F1zybb2h68j"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 50,
+      "members": [
+        "Cu7nespaf3b"
+      ],
+      "anchors": [
+        "Cu7nespaf3b"
+      ],
+      "files": [
+        "Fouvqy77z5q"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 60,
+      "members": [
+        "C15ibwczo9cv"
+      ],
+      "anchors": [
+        "C15ibwczo9cv"
+      ],
+      "files": [
+        "Fupxu69cx3y"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 61,
+      "members": [
+        "Ch4p8ynyaq5"
+      ],
+      "anchors": [
+        "Ch4p8ynyaq5"
+      ],
+      "files": [
+        "Fupxu69cx3y"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 62,
+      "members": [
+        "Cmzurzk4ymv"
+      ],
+      "anchors": [
+        "Cmzurzk4ymv"
+      ],
+      "files": [
+        "F11h7eg48vbv"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 63,
+      "members": [
+        "Crwag5yj0ry"
+      ],
+      "anchors": [
+        "Crwag5yj0ry"
+      ],
+      "files": [
+        "Fzay3zyoobj"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 64,
+      "members": [
+        "Cspn746nwbl"
+      ],
+      "anchors": [
+        "Cspn746nwbl"
+      ],
+      "files": [
+        "Fzay3zyoobj"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 65,
+      "members": [
+        "C1gihim6lr6"
+      ],
+      "anchors": [
+        "C1gihim6lr6"
+      ],
+      "files": [
+        "Fzay3zyoobj"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 66,
+      "members": [
+        "Ce5kndj2fr4"
+      ],
+      "anchors": [
+        "Ce5kndj2fr4"
+      ],
+      "files": [
+        "Fzay3zyoobj"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 67,
+      "members": [
+        "Cm6pta867s6"
+      ],
+      "anchors": [
+        "Cm6pta867s6"
+      ],
+      "files": [
+        "Fzay3zyoobj"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 68,
+      "members": [
+        "C95j0slw932"
+      ],
+      "anchors": [
+        "C95j0slw932"
+      ],
+      "files": [
+        "Fzay3zyoobj"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 69,
+      "members": [
+        "Clywttpzz2"
+      ],
+      "anchors": [
+        "Clywttpzz2"
+      ],
+      "files": [
+        "Fzay3zyoobj"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 70,
+      "members": [
+        "Cwk0krvdnvv"
+      ],
+      "anchors": [
+        "Cwk0krvdnvv"
+      ],
+      "files": [
+        "Fevejicuqgk"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 71,
+      "members": [
+        "C24veuzf8dd"
+      ],
+      "anchors": [
+        "C24veuzf8dd"
+      ],
+      "files": [
+        "Fevejicuqgk"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 72,
+      "members": [
+        "Ca6mni0ra83"
+      ],
+      "anchors": [
+        "Ca6mni0ra83"
+      ],
+      "files": [
+        "Fezld2sa9nj"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 73,
+      "members": [
+        "C2x8xe1xomr"
+      ],
+      "anchors": [
+        "C2x8xe1xomr"
+      ],
+      "files": [
+        "Fezld2sa9nj"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 74,
+      "members": [
+        "C87h1mzkbo0"
+      ],
+      "anchors": [
+        "C87h1mzkbo0"
+      ],
+      "files": [
+        "Fezld2sa9nj"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 75,
+      "members": [
+        "Cdz84qy8mer"
+      ],
+      "anchors": [
+        "Cdz84qy8mer"
+      ],
+      "files": [
+        "Fezld2sa9nj"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 76,
+      "members": [
+        "Cxe0igd89pr"
+      ],
+      "anchors": [
+        "Cxe0igd89pr"
+      ],
+      "files": [
+        "Fwspx7qfq6x"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 77,
+      "members": [
+        "C2jbddi4l2h"
+      ],
+      "anchors": [
+        "C2jbddi4l2h"
+      ],
+      "files": [
+        "Fpv23iscebw"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 78,
+      "members": [
+        "Cpfuewsqo4i",
+        "C6loa3usj4j"
+      ],
+      "anchors": [],
+      "files": [
+        "F100511bz5nn"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 80,
+      "members": [
+        "C7so2xl3icw"
+      ],
+      "anchors": [
+        "C7so2xl3icw"
+      ],
+      "files": [
+        "Fteu5rx550f"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 81,
+      "members": [
+        "C82qwkqyh8d"
+      ],
+      "anchors": [
+        "C82qwkqyh8d"
+      ],
+      "files": [
+        "Fvjtvquujvy"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 82,
+      "members": [
+        "Czk4qh21njz"
+      ],
+      "anchors": [
+        "Czk4qh21njz"
+      ],
+      "files": [
+        "F5knhc9i4qo"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 83,
+      "members": [
+        "Cyfgcxtwtpr"
+      ],
+      "anchors": [
+        "Cyfgcxtwtpr"
+      ],
+      "files": [
+        "Fwbndb6b2ju"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 90,
+      "members": [
+        "C19snwzfju8"
+      ],
+      "anchors": [
+        "C19snwzfju8"
+      ],
+      "files": [
+        "Fllobgk8xn2"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 91,
+      "members": [
+        "Cxwtc2wmjr3"
+      ],
+      "anchors": [
+        "Cxwtc2wmjr3"
+      ],
+      "files": [
+        "Fbxg5a1nzow"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 92,
+      "members": [
+        "Cm7blgy6eqj"
+      ],
+      "anchors": [
+        "Cm7blgy6eqj"
+      ],
+      "files": [
+        "Fv2b9x32unr"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 93,
+      "members": [
+        "C146uugeiimr"
+      ],
+      "anchors": [
+        "C146uugeiimr"
+      ],
+      "files": [
+        "Fhgptq82dd7"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 106,
+      "members": [
+        "C12sd4kkllc3"
+      ],
+      "anchors": [
+        "C12sd4kkllc3"
+      ],
+      "files": [
+        "F7ra45ewbkf"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "scala"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cgjzrkp1heq",
+      "qualified_name": "ConfigurationUtils::toPlexUri",
+      "simple_name": "toPlexUri",
+      "language": "scala",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F16kabu51obq",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/ConfigurationUtils.scala",
+      "start_line": 313,
+      "end_line": 332,
+      "size_lines": 20,
+      "signature_hint": "private def toPlexUri(url: String)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -980,
+      "region": 0,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C166xg8or5i2",
+      "qualified_name": "Server::run",
+      "simple_name": "run",
+      "language": "scala",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fzanxxu9j91",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/Server.scala",
+      "start_line": 19,
+      "end_line": 33,
+      "size_lines": 15,
+      "signature_hint": "def run(args: List[String])",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -985,
+      "region": 0,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "Cxwtc2wmjr3",
+      "qualified_name": "SonarrConversions::toItem",
+      "simple_name": "toItem",
+      "language": "scala",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fbxg5a1nzow",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/sonarr/SonarrConversions.scala",
+      "start_line": 6,
+      "end_line": 11,
+      "size_lines": 6,
+      "signature_hint": "def toItem(series: SonarrSeries)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -994,
+      "region": 91,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cu5kdg06buo",
+      "qualified_name": "Item::getTvdbId",
+      "simple_name": "getTvdbId",
+      "language": "scala",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1zybb2h68j",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/model/Item.scala",
+      "start_line": 4,
+      "end_line": 7,
+      "size_lines": 4,
+      "signature_hint": "def getTvdbId: Option[Long] = guids.find(_.startsWith(\"tvdb://\")).flatMap(_.stripPrefix(\"tvdb://\").toLongOption)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -996,
+      "region": 45,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cm7knoz3sea",
+      "qualified_name": "Item::getTmdbId",
+      "simple_name": "getTmdbId",
+      "language": "scala",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1zybb2h68j",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/model/Item.scala",
+      "start_line": 7,
+      "end_line": 10,
+      "size_lines": 4,
+      "signature_hint": "def getTmdbId: Option[Long] = guids.find(_.startsWith(\"tmdb://\")).flatMap(_.stripPrefix(\"tmdb://\").toLongOption)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -996,
+      "region": 46,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ch2obsm6b38",
+      "qualified_name": "Item::getRadarrId",
+      "simple_name": "getRadarrId",
+      "language": "scala",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1zybb2h68j",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/model/Item.scala",
+      "start_line": 10,
+      "end_line": 13,
+      "size_lines": 4,
+      "signature_hint": "def getRadarrId: Option[Long] = guids.find(_.startsWith(\"radarr://\")).flatMap(_.stripPrefix(\"radarr://\").toLongOption)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -996,
+      "region": 47,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cimsu9c4nk0",
+      "qualified_name": "Item::getSonarrId",
+      "simple_name": "getSonarrId",
+      "language": "scala",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1zybb2h68j",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/model/Item.scala",
+      "start_line": 13,
+      "end_line": 16,
+      "size_lines": 4,
+      "signature_hint": "def getSonarrId: Option[Long] = guids.find(_.startsWith(\"sonarr://\")).flatMap(_.stripPrefix(\"sonarr://\").toLongOption)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -996,
+      "region": 48,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Clywttpzz2",
+      "qualified_name": "WatchlistNode::toTokenWatchlistItem",
+      "simple_name": "toTokenWatchlistItem",
+      "language": "scala",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fzay3zyoobj",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/TokenWatchlistFriend.scala",
+      "start_line": 14,
+      "end_line": 16,
+      "size_lines": 3,
+      "signature_hint": "def toTokenWatchlistItem: TokenWatchlistItem = TokenWatchlistItem(title = title, guid = id, key = s\"/library/metadata/$id\", `type` = `type`.toLowerCase)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -997,
+      "region": 69,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7so2xl3icw",
+      "qualified_name": "RadarrDelete::RadarrDelete",
+      "simple_name": "RadarrDelete",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fteu5rx550f",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/radarr/RadarrDelete.scala",
+      "start_line": 3,
+      "end_line": 9,
+      "size_lines": 7,
+      "signature_hint": "private case class RadarrDelete( title: String, tmdbId: Long, qualityProfileId: Int = 6, rootFolderPath: String, addOptions: AddOptions = AddOptions() )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1293,
+      "region": 80,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C146uugeiimr",
+      "qualified_name": "SonarrSeries::SonarrSeries",
+      "simple_name": "SonarrSeries",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fhgptq82dd7",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/sonarr/SonarrSeries.scala",
+      "start_line": 3,
+      "end_line": 9,
+      "size_lines": 7,
+      "signature_hint": "private[sonarr] case class SonarrSeries( title: String, imdbId: Option[String], tvdbId: Option[Long], id: Long, ended: Option[Boolean] )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1293,
+      "region": 93,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czk4qh21njz",
+      "qualified_name": "RadarrMovieExclusion::RadarrMovieExclusion",
+      "simple_name": "RadarrMovieExclusion",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F5knhc9i4qo",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/radarr/RadarrMovieExclusion.scala",
+      "start_line": 3,
+      "end_line": 8,
+      "size_lines": 6,
+      "signature_hint": "private[radarr] case class RadarrMovieExclusion( movieTitle: String, imdbId: Option[String], tmdbId: Option[Long], id: Long )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1294,
+      "region": 82,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2610o9k4pk",
+      "qualified_name": "Server::reportFailure",
+      "simple_name": "reportFailure",
+      "language": "scala",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fzanxxu9j91",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/Server.scala",
+      "start_line": 14,
+      "end_line": 17,
+      "size_lines": 4,
+      "signature_hint": "override protected def reportFailure(err: Throwable)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1296,
+      "region": 7,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "IOApp"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cs4l5cvl3y4",
+      "qualified_name": "LanguageProfile::LanguageProfile",
+      "simple_name": "LanguageProfile",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F161e1wbcoqa",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/LanguageProfile.scala",
+      "start_line": 3,
+      "end_line": 3,
+      "size_lines": 1,
+      "signature_hint": "private[configuration] case class LanguageProfile(name: String, id: Int)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 37,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2xstm898z3",
+      "qualified_name": "QualityProfile::QualityProfile",
+      "simple_name": "QualityProfile",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fi5i3w2rhki",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/QualityProfile.scala",
+      "start_line": 3,
+      "end_line": 3,
+      "size_lines": 1,
+      "signature_hint": "private[configuration] case class QualityProfile(name: String, id: Int)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 38,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chrcfhdtk63",
+      "qualified_name": "RootFolder::RootFolder",
+      "simple_name": "RootFolder",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fl9aynqxuz7",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/RootFolder.scala",
+      "start_line": 3,
+      "end_line": 3,
+      "size_lines": 1,
+      "signature_hint": "private[configuration] case class RootFolder(path: String, accessible: Boolean)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 39,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cu7nespaf3b",
+      "qualified_name": "MediaContainer::MediaContainer",
+      "simple_name": "MediaContainer",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fouvqy77z5q",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/MediaContainer.scala",
+      "start_line": 3,
+      "end_line": 3,
+      "size_lines": 1,
+      "signature_hint": "private[plex] case class MediaContainer(Metadata: List[TokenWatchlistItem] = List.empty, totalSize: Int)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 50,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C15ibwczo9cv",
+      "qualified_name": "RssFeedGenerated::RssFeedGenerated",
+      "simple_name": "RssFeedGenerated",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fupxu69cx3y",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/RssFeedGenerated.scala",
+      "start_line": 3,
+      "end_line": 3,
+      "size_lines": 1,
+      "signature_hint": "case class RssFeedGenerated(RSSInfo: List[RssInfo])",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 60,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ch4p8ynyaq5",
+      "qualified_name": "RssInfo::RssInfo",
+      "simple_name": "RssInfo",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fupxu69cx3y",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/RssFeedGenerated.scala",
+      "start_line": 5,
+      "end_line": 5,
+      "size_lines": 1,
+      "signature_hint": "case class RssInfo(url: String)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 61,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmzurzk4ymv",
+      "qualified_name": "TokenWatchlist::TokenWatchlist",
+      "simple_name": "TokenWatchlist",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F11h7eg48vbv",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/TokenWatchlist.scala",
+      "start_line": 3,
+      "end_line": 3,
+      "size_lines": 1,
+      "signature_hint": "private[plex] case class TokenWatchlist(MediaContainer: MediaContainer)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 62,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Crwag5yj0ry",
+      "qualified_name": "TokenWatchlistFriend::TokenWatchlistFriend",
+      "simple_name": "TokenWatchlistFriend",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fzay3zyoobj",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/TokenWatchlistFriend.scala",
+      "start_line": 3,
+      "end_line": 3,
+      "size_lines": 1,
+      "signature_hint": "private[plex] case class TokenWatchlistFriend(data: WatchlistData)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 63,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cspn746nwbl",
+      "qualified_name": "WatchlistData::WatchlistData",
+      "simple_name": "WatchlistData",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fzay3zyoobj",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/TokenWatchlistFriend.scala",
+      "start_line": 5,
+      "end_line": 5,
+      "size_lines": 1,
+      "signature_hint": "private[plex] case class WatchlistData(user: WatchlistUserData)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 64,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1gihim6lr6",
+      "qualified_name": "WatchlistUserData::WatchlistUserData",
+      "simple_name": "WatchlistUserData",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fzay3zyoobj",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/TokenWatchlistFriend.scala",
+      "start_line": 7,
+      "end_line": 7,
+      "size_lines": 1,
+      "signature_hint": "private[plex] case class WatchlistUserData(watchlist: WatchlistNodes)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 65,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ce5kndj2fr4",
+      "qualified_name": "WatchlistNodes::WatchlistNodes",
+      "simple_name": "WatchlistNodes",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fzay3zyoobj",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/TokenWatchlistFriend.scala",
+      "start_line": 9,
+      "end_line": 9,
+      "size_lines": 1,
+      "signature_hint": "private[plex] case class WatchlistNodes(nodes: List[WatchlistNode], pageInfo: PageInfo)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 66,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cm6pta867s6",
+      "qualified_name": "PageInfo::PageInfo",
+      "simple_name": "PageInfo",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fzay3zyoobj",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/TokenWatchlistFriend.scala",
+      "start_line": 11,
+      "end_line": 11,
+      "size_lines": 1,
+      "signature_hint": "private[plex] case class PageInfo(hasNextPage: Boolean, endCursor: Option[String])",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 67,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C95j0slw932",
+      "qualified_name": "WatchlistNode::WatchlistNode",
+      "simple_name": "WatchlistNode",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fzay3zyoobj",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/TokenWatchlistFriend.scala",
+      "start_line": 13,
+      "end_line": 13,
+      "size_lines": 1,
+      "signature_hint": "private[plex] case class WatchlistNode(id: String, title: String, `type`: String)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 68,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C24veuzf8dd",
+      "qualified_name": "Guid::Guid",
+      "simple_name": "Guid",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fevejicuqgk",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/TokenWatchlistItem.scala",
+      "start_line": 11,
+      "end_line": 11,
+      "size_lines": 1,
+      "signature_hint": "private[plex] case class Guid(id: String)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 71,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ca6mni0ra83",
+      "qualified_name": "Users::Users",
+      "simple_name": "Users",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fezld2sa9nj",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/User.scala",
+      "start_line": 3,
+      "end_line": 3,
+      "size_lines": 1,
+      "signature_hint": "private[plex] case class Users(data: Data)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 72,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2x8xe1xomr",
+      "qualified_name": "Data::Data",
+      "simple_name": "Data",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fezld2sa9nj",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/User.scala",
+      "start_line": 5,
+      "end_line": 5,
+      "size_lines": 1,
+      "signature_hint": "private[plex] case class Data(allFriendsV2: List[FriendV2])",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 73,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C87h1mzkbo0",
+      "qualified_name": "FriendV2::FriendV2",
+      "simple_name": "FriendV2",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fezld2sa9nj",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/User.scala",
+      "start_line": 7,
+      "end_line": 7,
+      "size_lines": 1,
+      "signature_hint": "private[plex] case class FriendV2(user: User)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 74,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxe0igd89pr",
+      "qualified_name": "Watchlist::Watchlist",
+      "simple_name": "Watchlist",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fwspx7qfq6x",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/Watchlist.scala",
+      "start_line": 5,
+      "end_line": 5,
+      "size_lines": 1,
+      "signature_hint": "private[plex] case class Watchlist(items: Set[Item])",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1299,
+      "region": 76,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1dd5ugivso",
+      "qualified_name": "Item::matches",
+      "simple_name": "matches",
+      "language": "scala",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1zybb2h68j",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/model/Item.scala",
+      "start_line": 16,
+      "end_line": 22,
+      "size_lines": 7,
+      "signature_hint": "def matches(that: Any)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1493,
+      "region": 49,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "matches",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F14goou7kdh5",
+            "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/PlexTokenDeleteSync.scala",
+            "line": 54,
+            "name": "matches",
+            "receiver_hint": "_"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ch57t9lkqs3",
+      "qualified_name": "SonarrConfiguration::SonarrConfiguration",
+      "simple_name": "SonarrConfiguration",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fwzdajberio",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/Configuration.scala",
+      "start_line": 15,
+      "end_line": 24,
+      "size_lines": 10,
+      "signature_hint": "case class SonarrConfiguration( sonarrBaseUrl: Uri, sonarrApiKey: String, sonarrQualityProfileId: Int, sonarrRootFolder: String, sonarrBypassIgnored: Boolean, sonarrSeasonMonitoring: String, sonarrLanguageProfileId: Int, sonarrTagIds: Set[Int] )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1790,
+      "region": 15,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "SonarrConfiguration",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F16kabu51obq",
+            "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/ConfigurationUtils.scala",
+            "line": 53,
+            "name": "SonarrConfiguration"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cm7blgy6eqj",
+      "qualified_name": "SonarrPost::SonarrPost",
+      "simple_name": "SonarrPost",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fv2b9x32unr",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/sonarr/SonarrPost.scala",
+      "start_line": 3,
+      "end_line": 12,
+      "size_lines": 10,
+      "signature_hint": "private[sonarr] case class SonarrPost( title: String, tvdbId: Long, qualityProfileId: Int, rootFolderPath: String, addOptions: SonarrAddOptions, languageProfileId: Int, monitored: Boolean = true, tags: List[Int] = List.empty[Int] )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1790,
+      "region": 92,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "SonarrPost",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F6rsitc1hye",
+            "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/sonarr/SonarrUtils.scala",
+            "line": 34,
+            "name": "SonarrPost"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14rsv9bxn3t",
+      "qualified_name": "RadarrConfiguration::RadarrConfiguration",
+      "simple_name": "RadarrConfiguration",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fwzdajberio",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/Configuration.scala",
+      "start_line": 26,
+      "end_line": 33,
+      "size_lines": 8,
+      "signature_hint": "case class RadarrConfiguration( radarrBaseUrl: Uri, radarrApiKey: String, radarrQualityProfileId: Int, radarrRootFolder: String, radarrBypassIgnored: Boolean, radarrTagIds: Set[Int] )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1792,
+      "region": 16,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "RadarrConfiguration",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F16kabu51obq",
+            "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/ConfigurationUtils.scala",
+            "line": 63,
+            "name": "RadarrConfiguration"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cyfgcxtwtpr",
+      "qualified_name": "RadarrPost::RadarrPost",
+      "simple_name": "RadarrPost",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fwbndb6b2ju",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/radarr/RadarrPost.scala",
+      "start_line": 3,
+      "end_line": 10,
+      "size_lines": 8,
+      "signature_hint": "private case class RadarrPost( title: String, tmdbId: Long, qualityProfileId: Int = 6, rootFolderPath: String, addOptions: AddOptions = AddOptions(), tags: List[Int] = List.empty[Int] )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1792,
+      "region": 83,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "RadarrPost",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fvsgt8xszrz",
+            "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/radarr/RadarrUtils.scala",
+            "line": 33,
+            "name": "RadarrPost"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnqpn9f83l2",
+      "qualified_name": "Configuration::Configuration",
+      "simple_name": "Configuration",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fwzdajberio",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/Configuration.scala",
+      "start_line": 7,
+      "end_line": 13,
+      "size_lines": 7,
+      "signature_hint": "case class Configuration( refreshInterval: FiniteDuration, sonarrConfiguration: SonarrConfiguration, radarrConfiguration: RadarrConfiguration, plexConfiguration: PlexConfiguration, deleteConfiguration: DeleteConfiguration )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1793,
+      "region": 14,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Configuration",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F16kabu51obq",
+            "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/ConfigurationUtils.scala",
+            "line": 51,
+            "name": "Configuration"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Csyrvbhif2h",
+      "qualified_name": "DeleteConfiguration::DeleteConfiguration",
+      "simple_name": "DeleteConfiguration",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fwzdajberio",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/Configuration.scala",
+      "start_line": 42,
+      "end_line": 48,
+      "size_lines": 7,
+      "signature_hint": "case class DeleteConfiguration( movieDeleting: Boolean, endedShowDeleting: Boolean, continuingShowDeleting: Boolean, deleteInterval: FiniteDuration, deleteFiles: Boolean )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1793,
+      "region": 18,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "DeleteConfiguration",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F16kabu51obq",
+            "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/ConfigurationUtils.scala",
+            "line": 77,
+            "name": "DeleteConfiguration"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwk0krvdnvv",
+      "qualified_name": "TokenWatchlistItem::TokenWatchlistItem",
+      "simple_name": "TokenWatchlistItem",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fevejicuqgk",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/TokenWatchlistItem.scala",
+      "start_line": 3,
+      "end_line": 9,
+      "size_lines": 7,
+      "signature_hint": "private[plex] case class TokenWatchlistItem( title: String, guid: String, `type`: String, key: String, Guid: List[Guid] = List.empty )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1793,
+      "region": 70,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "TokenWatchlistItem",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fzay3zyoobj",
+            "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/TokenWatchlistFriend.scala",
+            "line": 15,
+            "name": "TokenWatchlistItem"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cgven6whedw",
+      "qualified_name": "PlexConfiguration::PlexConfiguration",
+      "simple_name": "PlexConfiguration",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fwzdajberio",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/Configuration.scala",
+      "start_line": 35,
+      "end_line": 40,
+      "size_lines": 6,
+      "signature_hint": "case class PlexConfiguration( plexWatchlistUrls: Set[Uri], plexTokens: Set[String], skipFriendSync: Boolean, hasPlexPass: Boolean )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1794,
+      "region": 17,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "PlexConfiguration",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F16kabu51obq",
+            "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/configuration/ConfigurationUtils.scala",
+            "line": 71,
+            "name": "PlexConfiguration"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C19snwzfju8",
+      "qualified_name": "SonarrAddOptions::SonarrAddOptions",
+      "simple_name": "SonarrAddOptions",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fllobgk8xn2",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/sonarr/SonarrAddOptions.scala",
+      "start_line": 3,
+      "end_line": 7,
+      "size_lines": 5,
+      "signature_hint": "private[sonarr] case class SonarrAddOptions( monitor: String, searchForCutoffUnmetEpisodes: Boolean = true, searchForMissingEpisodes: Boolean = true )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1795,
+      "region": 90,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "SonarrAddOptions",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F6rsitc1hye",
+            "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/sonarr/SonarrUtils.scala",
+            "line": 33,
+            "name": "SonarrAddOptions"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cyz5cufrc0b",
+      "qualified_name": "GraphQLQuery::GraphQLQuery",
+      "simple_name": "GraphQLQuery",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fwaxs26lc39",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/model/GraphQLQuery.scala",
+      "start_line": 5,
+      "end_line": 5,
+      "size_lines": 1,
+      "signature_hint": "case class GraphQLQuery(query: String, variables: Option[Json] = None)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1799,
+      "region": 43,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "GraphQLQuery",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F31n61p56a0",
+            "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/PlexUtils.scala",
+            "line": 111,
+            "name": "GraphQLQuery"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1044kl6kqfs",
+      "qualified_name": "Item::Item",
+      "simple_name": "Item",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F1zybb2h68j",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/model/Item.scala",
+      "start_line": 3,
+      "end_line": 3,
+      "size_lines": 1,
+      "signature_hint": "case class Item(title: String, guids: List[String], category: String, ended: Option[Boolean] = None)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1799,
+      "region": 44,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Item",
+          "sites": 22,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F31n61p56a0",
+            "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/PlexUtils.scala",
+            "line": 222,
+            "name": "Item"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdz84qy8mer",
+      "qualified_name": "User::User",
+      "simple_name": "User",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fezld2sa9nj",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/plex/User.scala",
+      "start_line": 9,
+      "end_line": 9,
+      "size_lines": 1,
+      "signature_hint": "private[plex] case class User(id: String, username: String)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1799,
+      "region": 75,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "User",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fe2d786lkwh",
+            "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/test/scala/plex/PlexUtilsSpec.scala",
+            "line": 213,
+            "name": "User"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2jbddi4l2h",
+      "qualified_name": "AddOptions::AddOptions",
+      "simple_name": "AddOptions",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fpv23iscebw",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/radarr/AddOptions.scala",
+      "start_line": 3,
+      "end_line": 3,
+      "size_lines": 1,
+      "signature_hint": "private case class AddOptions(searchForMovie: Boolean = true)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1799,
+      "region": 77,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "AddOptions",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fteu5rx550f",
+            "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/radarr/RadarrDelete.scala",
+            "line": 8,
+            "name": "AddOptions"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C82qwkqyh8d",
+      "qualified_name": "RadarrMovie::RadarrMovie",
+      "simple_name": "RadarrMovie",
+      "language": "scala",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fvjtvquujvy",
+      "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/radarr/RadarrMovie.scala",
+      "start_line": 3,
+      "end_line": 3,
+      "size_lines": 1,
+      "signature_hint": "private[radarr] case class RadarrMovie(title: String, imdbId: Option[String], tmdbId: Option[Long], id: Long)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1799,
+      "region": 81,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "RadarrMovie",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F100511bz5nn",
+            "path": "/storage/cgg-test_repos/app-watchlistarr-http4s/src/main/scala/radarr/RadarrConversions.scala",
+            "line": 14,
+            "name": "RadarrMovie"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

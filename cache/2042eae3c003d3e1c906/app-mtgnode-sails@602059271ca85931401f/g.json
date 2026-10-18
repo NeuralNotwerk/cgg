@@ -1,0 +1,4449 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "C63fbsqx0yw": {
+      "id": "C63fbsqx0yw",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F60r8nv5u9k",
+      "start_line": 15,
+      "end_line": 81,
+      "start_byte": 478,
+      "end_byte": 2132,
+      "signature_hint": "module.exports = function(grunt)"
+    },
+    "C72b1d89dv5": {
+      "id": "C72b1d89dv5",
+      "qualified_name": "loadTasks",
+      "simple_name": "loadTasks",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F60r8nv5u9k",
+      "start_line": 46,
+      "end_line": 51,
+      "start_byte": 1290,
+      "end_byte": 1436,
+      "signature_hint": "function loadTasks(relPath)"
+    },
+    "Clalmn3qvr9": {
+      "id": "Clalmn3qvr9",
+      "qualified_name": "invokeConfigFn",
+      "simple_name": "invokeConfigFn",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F60r8nv5u9k",
+      "start_line": 57,
+      "end_line": 63,
+      "start_byte": 1557,
+      "end_byte": 1702,
+      "signature_hint": "function invokeConfigFn(tasks)"
+    },
+    "Cwppj0uge8h": {
+      "id": "Cwppj0uge8h",
+      "qualified_name": "default",
+      "simple_name": "default",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F60r8nv5u9k",
+      "start_line": 74,
+      "end_line": 74,
+      "start_byte": 1921,
+      "end_byte": 2006,
+      "signature_hint": "registerDefinitions.default = function (grunt)"
+    },
+    "Cprn8xg8c1g": {
+      "id": "Cprn8xg8c1g",
+      "qualified_name": "login",
+      "simple_name": "login",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fyox1rgyc8v",
+      "start_line": 11,
+      "end_line": 22,
+      "start_byte": 227,
+      "end_byte": 473,
+      "signature_hint": "exports.login = function(req, res)"
+    },
+    "Csk3dw4mdpu": {
+      "id": "Csk3dw4mdpu",
+      "qualified_name": "authenticate",
+      "simple_name": "authenticate",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fyox1rgyc8v",
+      "start_line": 25,
+      "end_line": 41,
+      "start_byte": 503,
+      "end_byte": 910,
+      "signature_hint": "exports.authenticate = function(req, res)"
+    },
+    "C1wtxgb919d": {
+      "id": "C1wtxgb919d",
+      "qualified_name": "CardLibrary",
+      "simple_name": "CardLibrary",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F138guv921je",
+      "start_line": 16,
+      "end_line": 79,
+      "start_byte": 305,
+      "end_byte": 1765,
+      "signature_hint": "function CardLibrary()"
+    },
+    "C1012pfc5dsq": {
+      "id": "C1012pfc5dsq",
+      "qualified_name": "get",
+      "simple_name": "get",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F138guv921je",
+      "start_line": 27,
+      "end_line": 31,
+      "start_byte": 492,
+      "end_byte": 612,
+      "signature_hint": "this.get = function(id)"
+    },
+    "Cezyas6fdng": {
+      "id": "Cezyas6fdng",
+      "qualified_name": "getBy",
+      "simple_name": "getBy",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F138guv921je",
+      "start_line": 34,
+      "end_line": 44,
+      "start_byte": 645,
+      "end_byte": 970,
+      "signature_hint": "this.getBy = function(criteria)"
+    },
+    "Cudqm6zpvjv": {
+      "id": "Cudqm6zpvjv",
+      "qualified_name": "getByIdArray",
+      "simple_name": "getByIdArray",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F138guv921je",
+      "start_line": 47,
+      "end_line": 63,
+      "start_byte": 1006,
+      "end_byte": 1351,
+      "signature_hint": "this.getByIdArray = function(card_array)"
+    },
+    "Copn0in7qr3": {
+      "id": "Copn0in7qr3",
+      "qualified_name": "searchByName",
+      "simple_name": "searchByName",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F138guv921je",
+      "start_line": 66,
+      "end_line": 70,
+      "start_byte": 1380,
+      "end_byte": 1531,
+      "signature_hint": "this.searchByName = function(name)"
+    },
+    "Cityeeospmp": {
+      "id": "Cityeeospmp",
+      "qualified_name": "searchByNameAndSet",
+      "simple_name": "searchByNameAndSet",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F138guv921je",
+      "start_line": 73,
+      "end_line": 78,
+      "start_byte": 1568,
+      "end_byte": 1763,
+      "signature_hint": "this.searchByNameAndSet = function(name, set)"
+    },
+    "Ch8qcn3ip6m": {
+      "id": "Ch8qcn3ip6m",
+      "qualified_name": "DeckLibrary",
+      "simple_name": "DeckLibrary",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F4lbgmrqr6k",
+      "start_line": 17,
+      "end_line": 39,
+      "start_byte": 352,
+      "end_byte": 888,
+      "signature_hint": "function DeckLibrary()"
+    },
+    "Cm5138ywmw7": {
+      "id": "Cm5138ywmw7",
+      "qualified_name": "parse",
+      "simple_name": "parse",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F4lbgmrqr6k",
+      "start_line": 20,
+      "end_line": 38,
+      "start_byte": 398,
+      "end_byte": 886,
+      "signature_hint": "this.parse = function(text, format)"
+    },
+    "C30unut5zrw": {
+      "id": "C30unut5zrw",
+      "qualified_name": "SetLibrary",
+      "simple_name": "SetLibrary",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F13zn6nqc7kc",
+      "start_line": 17,
+      "end_line": 35,
+      "start_byte": 363,
+      "end_byte": 770,
+      "signature_hint": "function SetLibrary()"
+    },
+    "Cpa426pajk0": {
+      "id": "Cpa426pajk0",
+      "qualified_name": "getSetInfo",
+      "simple_name": "getSetInfo",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F13zn6nqc7kc",
+      "start_line": 20,
+      "end_line": 24,
+      "start_byte": 425,
+      "end_byte": 551,
+      "signature_hint": "this.getSetInfo = function(set_code)"
+    },
+    "Csckx113rpz": {
+      "id": "Csckx113rpz",
+      "qualified_name": "getSetsInfo",
+      "simple_name": "getSetsInfo",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F13zn6nqc7kc",
+      "start_line": 27,
+      "end_line": 29,
+      "start_byte": 578,
+      "end_byte": 630,
+      "signature_hint": "this.getSetsInfo = function()"
+    },
+    "C4sodwdiogc": {
+      "id": "C4sodwdiogc",
+      "qualified_name": "getCards",
+      "simple_name": "getCards",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F13zn6nqc7kc",
+      "start_line": 32,
+      "end_line": 34,
+      "start_byte": 680,
+      "end_byte": 768,
+      "signature_hint": "this.getCards = function(set_code)"
+    },
+    "Cn9esxu4klv": {
+      "id": "Cn9esxu4klv",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F14hv46nz302",
+      "start_line": 10,
+      "end_line": 22,
+      "start_byte": 301,
+      "end_byte": 727,
+      "signature_hint": "module.exports = function(req, res, next)"
+    },
+    "Cen0teohhow": {
+      "id": "Cen0teohhow",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fpdd34oee7u",
+      "start_line": 6,
+      "end_line": 25,
+      "start_byte": 85,
+      "end_byte": 531,
+      "signature_hint": "module.exports = function (req, res, ok)"
+    },
+    "C13il1r776e2": {
+      "id": "C13il1r776e2",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F2ys9qqd2au",
+      "start_line": 21,
+      "end_line": 69,
+      "start_byte": 604,
+      "end_byte": 2402,
+      "signature_hint": "module.exports = function badRequest(validationErrors, redirectTo)"
+    },
+    "C9xpd1zstij": {
+      "id": "C9xpd1zstij",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Flyxxl5q2kn",
+      "start_line": 12,
+      "end_line": 51,
+      "start_byte": 208,
+      "end_byte": 1091,
+      "signature_hint": "module.exports = function forbidden(message)"
+    },
+    "C1445dosxl9p": {
+      "id": "C1445dosxl9p",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fnu5mh9fao0",
+      "start_line": 12,
+      "end_line": 40,
+      "start_byte": 213,
+      "end_byte": 880,
+      "signature_hint": "module.exports = function notFound()"
+    },
+    "Cjj6qhtayip": {
+      "id": "Cjj6qhtayip",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fayvm9zqs9x",
+      "start_line": 14,
+      "end_line": 84,
+      "start_byte": 289,
+      "end_byte": 2337,
+      "signature_hint": "module.exports = function serverError (errors)"
+    },
+    "Cvdorumtuo4": {
+      "id": "Cvdorumtuo4",
+      "qualified_name": "readabilify",
+      "simple_name": "readabilify",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fayvm9zqs9x",
+      "start_line": 65,
+      "end_line": 73,
+      "start_byte": 1770,
+      "end_byte": 2010,
+      "signature_hint": "function readabilify(value)"
+    },
+    "C9ork4kh3ce": {
+      "id": "C9ork4kh3ce",
+      "qualified_name": "get",
+      "simple_name": "get",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fwhpo6vr4j6",
+      "start_line": 38,
+      "end_line": 40,
+      "start_byte": 1049,
+      "end_byte": 1149,
+      "signature_hint": "Socket.prototype.get = function (url, data, cb)"
+    },
+    "C1wrddbyoel": {
+      "id": "C1wrddbyoel",
+      "qualified_name": "post",
+      "simple_name": "post",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fwhpo6vr4j6",
+      "start_line": 54,
+      "end_line": 56,
+      "start_byte": 1497,
+      "end_byte": 1599,
+      "signature_hint": "Socket.prototype.post = function (url, data, cb)"
+    },
+    "C5l2ndhzis": {
+      "id": "C5l2ndhzis",
+      "qualified_name": "put",
+      "simple_name": "put",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fwhpo6vr4j6",
+      "start_line": 70,
+      "end_line": 72,
+      "start_byte": 1951,
+      "end_byte": 2051,
+      "signature_hint": "Socket.prototype.put = function (url, data, cb)"
+    },
+    "Ckyi60c1j9i": {
+      "id": "Ckyi60c1j9i",
+      "qualified_name": "request",
+      "simple_name": "request",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fwhpo6vr4j6",
+      "start_line": 99,
+      "end_line": 155,
+      "start_byte": 2672,
+      "end_byte": 4134,
+      "signature_hint": "function request (url, data, cb, method)"
+    },
+    "C17inhfdxo3c": {
+      "id": "C17inhfdxo3c",
+      "qualified_name": "afterEmitted",
+      "simple_name": "afterEmitted",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fwhpo6vr4j6",
+      "start_line": 132,
+      "end_line": 154,
+      "start_byte": 3425,
+      "end_byte": 4128,
+      "signature_hint": "function afterEmitted (result)"
+    },
+    "Cgzhhwvfzm3": {
+      "id": "Cgzhhwvfzm3",
+      "qualified_name": "LeftPanel",
+      "simple_name": "LeftPanel",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fd6ym9l871",
+      "start_line": 259,
+      "end_line": 292,
+      "start_byte": 5869,
+      "end_byte": 6679,
+      "signature_hint": "function LeftPanel()"
+    },
+    "C21tojr72hq": {
+      "id": "C21tojr72hq",
+      "qualified_name": "handler_at_280",
+      "simple_name": "handler_at_280",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fd6ym9l871",
+      "start_line": 280,
+      "end_line": 282,
+      "start_byte": 6343,
+      "end_byte": 6427,
+      "signature_hint": "function()",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Cljkfgy4yyc": {
+      "id": "Cljkfgy4yyc",
+      "qualified_name": "RightPanel",
+      "simple_name": "RightPanel",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fd6ym9l871",
+      "start_line": 296,
+      "end_line": 329,
+      "start_byte": 6718,
+      "end_byte": 7609,
+      "signature_hint": "function RightPanel()"
+    },
+    "C1144o76d9h6": {
+      "id": "C1144o76d9h6",
+      "qualified_name": "handler_at_317",
+      "simple_name": "handler_at_317",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fd6ym9l871",
+      "start_line": 317,
+      "end_line": 319,
+      "start_byte": 7275,
+      "end_byte": 7361,
+      "signature_hint": "function()",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C124edab5dbx": {
+      "id": "C124edab5dbx",
+      "qualified_name": "Controls",
+      "simple_name": "Controls",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fd6ym9l871",
+      "start_line": 333,
+      "end_line": 428,
+      "start_byte": 7642,
+      "end_byte": 9938,
+      "signature_hint": "function Controls()"
+    },
+    "Cno2nc8frp4": {
+      "id": "Cno2nc8frp4",
+      "qualified_name": "currentDriver",
+      "simple_name": "currentDriver",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Frk13ekad55",
+      "start_line": 18,
+      "end_line": 20,
+      "start_byte": 385,
+      "end_byte": 485,
+      "signature_hint": "this.currentDriver = function(card)"
+    },
+    "Clpfj7pr3vv": {
+      "id": "Clpfj7pr3vv",
+      "qualified_name": "currentDriver",
+      "simple_name": "currentDriver",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fs3f5crum2p",
+      "start_line": 139,
+      "end_line": 146,
+      "start_byte": 2470,
+      "end_byte": 2689,
+      "signature_hint": "this.currentDriver = function(card)"
+    },
+    "C6mpq231jyf": {
+      "id": "C6mpq231jyf",
+      "qualified_name": "currentDriver",
+      "simple_name": "currentDriver",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F3a3whd0oln",
+      "start_line": 21,
+      "end_line": 27,
+      "start_byte": 428,
+      "end_byte": 633,
+      "signature_hint": "this.currentDriver = function(card)"
+    },
+    "Csxar2ovt5o": {
+      "id": "Csxar2ovt5o",
+      "qualified_name": "CardTemplate",
+      "simple_name": "CardTemplate",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Feot0x4xyjf",
+      "start_line": 21,
+      "end_line": 82,
+      "start_byte": 494,
+      "end_byte": 2079,
+      "signature_hint": "function CardTemplate(id_prefix)"
+    },
+    "Ca3mgeiktn1": {
+      "id": "Ca3mgeiktn1",
+      "qualified_name": "compile",
+      "simple_name": "compile",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Feot0x4xyjf",
+      "start_line": 29,
+      "end_line": 34,
+      "start_byte": 670,
+      "end_byte": 794,
+      "signature_hint": "function compile(id)"
+    },
+    "Cx7vivr0kk1": {
+      "id": "Cx7vivr0kk1",
+      "qualified_name": "specialCases",
+      "simple_name": "specialCases",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Feot0x4xyjf",
+      "start_line": 42,
+      "end_line": 50,
+      "start_byte": 972,
+      "end_byte": 1255,
+      "signature_hint": "function specialCases(card, context)"
+    },
+    "Ccwv65bi8wp": {
+      "id": "Ccwv65bi8wp",
+      "qualified_name": "render",
+      "simple_name": "render",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Feot0x4xyjf",
+      "start_line": 53,
+      "end_line": 70,
+      "start_byte": 1286,
+      "end_byte": 1803,
+      "signature_hint": "this.render = function(card, indexOverride)"
+    },
+    "Cv2n9984lvk": {
+      "id": "Cv2n9984lvk",
+      "qualified_name": "renderDummy",
+      "simple_name": "renderDummy",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Feot0x4xyjf",
+      "start_line": 72,
+      "end_line": 74,
+      "start_byte": 1810,
+      "end_byte": 1903,
+      "signature_hint": "this.renderDummy = function()"
+    },
+    "Cfuo7oxxou6": {
+      "id": "Cfuo7oxxou6",
+      "qualified_name": "renderSearch",
+      "simple_name": "renderSearch",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Feot0x4xyjf",
+      "start_line": 76,
+      "end_line": 81,
+      "start_byte": 1910,
+      "end_byte": 2074,
+      "signature_hint": "this.renderSearch = function(card, index_override)"
+    },
+    "C7taeth9ciq": {
+      "id": "C7taeth9ciq",
+      "qualified_name": "addSide",
+      "simple_name": "addSide",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fe3iajb7ueg",
+      "start_line": 15,
+      "end_line": 17,
+      "start_byte": 225,
+      "end_byte": 301,
+      "signature_hint": "function addSide(o, side)"
+    },
+    "Cnpau9gb0i": {
+      "id": "Cnpau9gb0i",
+      "qualified_name": "dispatchRealtimeEvent",
+      "simple_name": "dispatchRealtimeEvent",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fe3iajb7ueg",
+      "start_line": 25,
+      "end_line": 30,
+      "start_byte": 450,
+      "end_byte": 622,
+      "signature_hint": "o.dispatchRealtimeEvent = function(head, body)"
+    },
+    "Ct6i1b51x75": {
+      "id": "Ct6i1b51x75",
+      "qualified_name": "dispatchBothEvents",
+      "simple_name": "dispatchBothEvents",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fe3iajb7ueg",
+      "start_line": 32,
+      "end_line": 35,
+      "start_byte": 631,
+      "end_byte": 787,
+      "signature_hint": "o.dispatchBothEvents = function(head, body)"
+    },
+    "Cndahpi00z6": {
+      "id": "Cndahpi00z6",
+      "qualified_name": "handler_at_42",
+      "simple_name": "handler_at_42",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fe3iajb7ueg",
+      "start_line": 42,
+      "end_line": 45,
+      "start_byte": 929,
+      "end_byte": 1055,
+      "signature_hint": "function(e)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Clw9txxm2b8": {
+      "id": "Clw9txxm2b8",
+      "qualified_name": "handler_at_74",
+      "simple_name": "handler_at_74",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fe3iajb7ueg",
+      "start_line": 74,
+      "end_line": 83,
+      "start_byte": 1802,
+      "end_byte": 2091,
+      "signature_hint": "function()",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C1000oqq8ibo": {
+      "id": "C1000oqq8ibo",
+      "qualified_name": "handler_at_80",
+      "simple_name": "handler_at_80",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fe3iajb7ueg",
+      "start_line": 80,
+      "end_line": 82,
+      "start_byte": 1986,
+      "end_byte": 2083,
+      "signature_hint": "function(m)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C12okuoyvuk6": {
+      "id": "C12okuoyvuk6",
+      "qualified_name": "pkg",
+      "simple_name": "pkg",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fufiytcojnk",
+      "start_line": 13,
+      "end_line": 21,
+      "start_byte": 198,
+      "end_byte": 513,
+      "signature_hint": "function pkg(pkgName, content)"
+    },
+    "Cx08213d29n": {
+      "id": "Cx08213d29n",
+      "qualified_name": "optapply",
+      "simple_name": "optapply",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fufiytcojnk",
+      "start_line": 24,
+      "end_line": 27,
+      "start_byte": 553,
+      "end_byte": 656,
+      "signature_hint": "function optapply(scope, fn, args)"
+    },
+    "Cqcrjglwo6s": {
+      "id": "Cqcrjglwo6s",
+      "qualified_name": "otpcall",
+      "simple_name": "otpcall",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fufiytcojnk",
+      "start_line": 30,
+      "end_line": 33,
+      "start_byte": 694,
+      "end_byte": 826,
+      "signature_hint": "function otpcall(scope, fn)"
+    },
+    "C5qc9y8ofmv": {
+      "id": "C5qc9y8ofmv",
+      "qualified_name": "Battlefield",
+      "simple_name": "Battlefield",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fbof4lw1yil",
+      "start_line": 9,
+      "end_line": 61,
+      "start_byte": 126,
+      "end_byte": 1206,
+      "signature_hint": "function Battlefield(side)"
+    },
+    "C16nq619hzyv": {
+      "id": "C16nq619hzyv",
+      "qualified_name": "emitters",
+      "simple_name": "emitters",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fbof4lw1yil",
+      "start_line": 38,
+      "end_line": 44,
+      "start_byte": 660,
+      "end_byte": 856,
+      "signature_hint": "this.emitters = function()"
+    },
+    "Cp2y75xi74n": {
+      "id": "Cp2y75xi74n",
+      "qualified_name": "Exile",
+      "simple_name": "Exile",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F6cetbp9gwb",
+      "start_line": 9,
+      "end_line": 37,
+      "start_byte": 114,
+      "end_byte": 628,
+      "signature_hint": "function Exile(side)"
+    },
+    "C10xwks02l07": {
+      "id": "C10xwks02l07",
+      "qualified_name": "Graveyard",
+      "simple_name": "Graveyard",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F11v688pp6s3",
+      "start_line": 9,
+      "end_line": 37,
+      "start_byte": 120,
+      "end_byte": 642,
+      "signature_hint": "function Graveyard(side)"
+    },
+    "Cxzdyslm8xb": {
+      "id": "Cxzdyslm8xb",
+      "qualified_name": "Hand",
+      "simple_name": "Hand",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fkk1dm18n1j",
+      "start_line": 9,
+      "end_line": 134,
+      "start_byte": 112,
+      "end_byte": 2882,
+      "signature_hint": "function Hand(side)"
+    },
+    "Cm8orq6dzgy": {
+      "id": "Cm8orq6dzgy",
+      "qualified_name": "drawCard",
+      "simple_name": "drawCard",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fkk1dm18n1j",
+      "start_line": 27,
+      "end_line": 57,
+      "start_byte": 550,
+      "end_byte": 1176,
+      "signature_hint": "function drawCard(d, e)"
+    },
+    "Ctw3uqddbex": {
+      "id": "Ctw3uqddbex",
+      "qualified_name": "reorganize",
+      "simple_name": "reorganize",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fkk1dm18n1j",
+      "start_line": 59,
+      "end_line": 87,
+      "start_byte": 1182,
+      "end_byte": 1857,
+      "signature_hint": "function reorganize()"
+    },
+    "C6j5glqj7oy": {
+      "id": "C6j5glqj7oy",
+      "qualified_name": "Area",
+      "simple_name": "Area",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fx9arzrje54",
+      "start_line": 11,
+      "end_line": 185,
+      "start_byte": 161,
+      "end_byte": 5053,
+      "signature_hint": "function Area(side)"
+    },
+    "Crn2nckpmiy": {
+      "id": "Crn2nckpmiy",
+      "qualified_name": "init",
+      "simple_name": "init",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fx9arzrje54",
+      "start_line": 30,
+      "end_line": 101,
+      "start_byte": 723,
+      "end_byte": 2823,
+      "signature_hint": "this.init = function()"
+    },
+    "Ccsi2hwoo02": {
+      "id": "Ccsi2hwoo02",
+      "qualified_name": "moveTo",
+      "simple_name": "moveTo",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fx9arzrje54",
+      "start_line": 103,
+      "end_line": 111,
+      "start_byte": 2830,
+      "end_byte": 3019,
+      "signature_hint": "this.moveTo = function(area, id, e)"
+    },
+    "Chzv80awhgp": {
+      "id": "Chzv80awhgp",
+      "qualified_name": "moveFrom",
+      "simple_name": "moveFrom",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fx9arzrje54",
+      "start_line": 113,
+      "end_line": 121,
+      "start_byte": 3026,
+      "end_byte": 3217,
+      "signature_hint": "this.moveFrom = function(area, id, e)"
+    },
+    "Cbrblen0eo5": {
+      "id": "Cbrblen0eo5",
+      "qualified_name": "selectCard",
+      "simple_name": "selectCard",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fx9arzrje54",
+      "start_line": 123,
+      "end_line": 125,
+      "start_byte": 3224,
+      "end_byte": 3306,
+      "signature_hint": "this.selectCard = function(id)"
+    },
+    "C3ifl378wus": {
+      "id": "C3ifl378wus",
+      "qualified_name": "receive",
+      "simple_name": "receive",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fx9arzrje54",
+      "start_line": 127,
+      "end_line": 132,
+      "start_byte": 3313,
+      "end_byte": 3487,
+      "signature_hint": "this.receive = function(name, fn)"
+    },
+    "C5400sx87b3": {
+      "id": "C5400sx87b3",
+      "qualified_name": "bindOnCards",
+      "simple_name": "bindOnCards",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fx9arzrje54",
+      "start_line": 134,
+      "end_line": 136,
+      "start_byte": 3494,
+      "end_byte": 3582,
+      "signature_hint": "this.bindOnCards = function(name, fn)"
+    },
+    "Ctroitrxtn": {
+      "id": "Ctroitrxtn",
+      "qualified_name": "slurp",
+      "simple_name": "slurp",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fx9arzrje54",
+      "start_line": 172,
+      "end_line": 184,
+      "start_byte": 4676,
+      "end_byte": 5048,
+      "signature_hint": "this.slurp = function($card, classes, cb)"
+    },
+    "Cv6su6t3h4a": {
+      "id": "Cv6su6t3h4a",
+      "qualified_name": "Library",
+      "simple_name": "Library",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F11a39rhrr4p",
+      "start_line": 9,
+      "end_line": 81,
+      "start_byte": 118,
+      "end_byte": 1713,
+      "signature_hint": "function Library(side)"
+    },
+    "C10f5ox8mojo": {
+      "id": "C10f5ox8mojo",
+      "qualified_name": "emitters",
+      "simple_name": "emitters",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F11a39rhrr4p",
+      "start_line": 21,
+      "end_line": 28,
+      "start_byte": 349,
+      "end_byte": 552,
+      "signature_hint": "this.emitters = function()"
+    },
+    "Cehzwjwtpdw": {
+      "id": "Cehzwjwtpdw",
+      "qualified_name": "handler_at_24",
+      "simple_name": "handler_at_24",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "F11a39rhrr4p",
+      "start_line": 24,
+      "end_line": 27,
+      "start_byte": 468,
+      "end_byte": 544,
+      "signature_hint": "function()",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C13j32hi5qge": {
+      "id": "C13j32hi5qge",
+      "qualified_name": "onUpdate",
+      "simple_name": "onUpdate",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F11a39rhrr4p",
+      "start_line": 70,
+      "end_line": 78,
+      "start_byte": 1459,
+      "end_byte": 1690,
+      "signature_hint": "this.onUpdate = function(cards)"
+    },
+    "Cqncezu0dj4": {
+      "id": "Cqncezu0dj4",
+      "qualified_name": "_m",
+      "simple_name": "_m",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F15g1mrr0eam",
+      "start_line": 29,
+      "end_line": 31,
+      "start_byte": 629,
+      "end_byte": 700,
+      "signature_hint": "function _m(fn, args)"
+    },
+    "Cth792o9qnh": {
+      "id": "Cth792o9qnh",
+      "qualified_name": "DelayedModules",
+      "simple_name": "DelayedModules",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F15g1mrr0eam",
+      "start_line": 34,
+      "end_line": 69,
+      "start_byte": 725,
+      "end_byte": 1926,
+      "signature_hint": "function DelayedModules()"
+    },
+    "Cvttdks9r2m": {
+      "id": "Cvttdks9r2m",
+      "qualified_name": "Chat",
+      "simple_name": "Chat",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fvwh5gp5krg",
+      "start_line": 10,
+      "end_line": 68,
+      "start_byte": 162,
+      "end_byte": 1491,
+      "signature_hint": "function Chat()"
+    },
+    "Cvgc72dezpx": {
+      "id": "Cvgc72dezpx",
+      "qualified_name": "Counter",
+      "simple_name": "Counter",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F13tc8ib7q0e",
+      "start_line": 11,
+      "end_line": 24,
+      "start_byte": 169,
+      "end_byte": 574,
+      "signature_hint": "function Counter(model, side)"
+    },
+    "Cy9k9eoday": {
+      "id": "Cy9k9eoday",
+      "qualified_name": "update",
+      "simple_name": "update",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F13tc8ib7q0e",
+      "start_line": 20,
+      "end_line": 22,
+      "start_byte": 418,
+      "end_byte": 502,
+      "signature_hint": "function update(d, e)"
+    },
+    "C2tl8ljrdt9": {
+      "id": "C2tl8ljrdt9",
+      "qualified_name": "Drag",
+      "simple_name": "Drag",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F4vym3sxg89",
+      "start_line": 11,
+      "end_line": 71,
+      "start_byte": 181,
+      "end_byte": 1555,
+      "signature_hint": "function Drag()"
+    },
+    "C155i4fekpgo": {
+      "id": "C155i4fekpgo",
+      "qualified_name": "add",
+      "simple_name": "add",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F4vym3sxg89",
+      "start_line": 22,
+      "end_line": 38,
+      "start_byte": 373,
+      "end_byte": 777,
+      "signature_hint": "this.add = function($card)"
+    },
+    "Cnk7hhv347t": {
+      "id": "Cnk7hhv347t",
+      "qualified_name": "fn",
+      "simple_name": "fn",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F4vym3sxg89",
+      "start_line": 40,
+      "end_line": 55,
+      "start_byte": 784,
+      "end_byte": 1186,
+      "signature_hint": "this.fn = function(e, ui)"
+    },
+    "Ccpyz6135aa": {
+      "id": "Ccpyz6135aa",
+      "qualified_name": "DeckChoiceModal",
+      "simple_name": "DeckChoiceModal",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F22saj7djws",
+      "start_line": 12,
+      "end_line": 41,
+      "start_byte": 236,
+      "end_byte": 821,
+      "signature_hint": "function DeckChoiceModal()"
+    },
+    "C166x5c0frpu": {
+      "id": "C166x5c0frpu",
+      "qualified_name": "SearchCardsModal",
+      "simple_name": "SearchCardsModal",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F22saj7djws",
+      "start_line": 44,
+      "end_line": 98,
+      "start_byte": 873,
+      "end_byte": 2181,
+      "signature_hint": "function SearchCardsModal()"
+    },
+    "Cvikz3qe2qa": {
+      "id": "Cvikz3qe2qa",
+      "qualified_name": "handler_at_58",
+      "simple_name": "handler_at_58",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "F22saj7djws",
+      "start_line": 58,
+      "end_line": 60,
+      "start_byte": 1246,
+      "end_byte": 1303,
+      "signature_hint": "function()",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C3e3uedjs39": {
+      "id": "C3e3uedjs39",
+      "qualified_name": "Points",
+      "simple_name": "Points",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fnpig3noswy",
+      "start_line": 10,
+      "end_line": 35,
+      "start_byte": 198,
+      "end_byte": 892,
+      "signature_hint": "function Points(type, side)"
+    },
+    "C11eft7ihfg5": {
+      "id": "C11eft7ihfg5",
+      "qualified_name": "Plugin",
+      "simple_name": "Plugin",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fhf5ap3xn6g",
+      "start_line": 20,
+      "end_line": 28,
+      "start_byte": 419,
+      "end_byte": 655,
+      "signature_hint": "function Plugin(element, options)"
+    },
+    "C48m0y73dka": {
+      "id": "C48m0y73dka",
+      "qualified_name": "handler_at_40",
+      "simple_name": "handler_at_40",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fhf5ap3xn6g",
+      "start_line": 40,
+      "end_line": 46,
+      "start_byte": 969,
+      "end_byte": 1193,
+      "signature_hint": "function()",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Cfkm3xkvdd2": {
+      "id": "Cfkm3xkvdd2",
+      "qualified_name": "Plugin",
+      "simple_name": "Plugin",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fj3uq6ifmrt",
+      "start_line": 20,
+      "end_line": 29,
+      "start_byte": 438,
+      "end_byte": 693,
+      "signature_hint": "function Plugin(element, options)"
+    },
+    "C4mlx3yxoqz": {
+      "id": "C4mlx3yxoqz",
+      "qualified_name": "handler_at_37",
+      "simple_name": "handler_at_37",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fj3uq6ifmrt",
+      "start_line": 37,
+      "end_line": 54,
+      "start_byte": 875,
+      "end_byte": 1271,
+      "signature_hint": "function(e)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Cxo9cwzpbei": {
+      "id": "Cxo9cwzpbei",
+      "qualified_name": "handler_at_57",
+      "simple_name": "handler_at_57",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fj3uq6ifmrt",
+      "start_line": 57,
+      "end_line": 72,
+      "start_byte": 1338,
+      "end_byte": 1719,
+      "signature_hint": "function(e)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Cp9hppbserh": {
+      "id": "Cp9hppbserh",
+      "qualified_name": "handler_at_14",
+      "simple_name": "handler_at_14",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fipwvok1gg4",
+      "start_line": 14,
+      "end_line": 18,
+      "start_byte": 286,
+      "end_byte": 397,
+      "signature_hint": "function(games)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Clh1bb8e27u": {
+      "id": "Clh1bb8e27u",
+      "qualified_name": "handler_at_21",
+      "simple_name": "handler_at_21",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fipwvok1gg4",
+      "start_line": 21,
+      "end_line": 28,
+      "start_byte": 452,
+      "end_byte": 646,
+      "signature_hint": "function(message)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C1bzkkt25id": {
+      "id": "C1bzkkt25id",
+      "qualified_name": "handler_at_36",
+      "simple_name": "handler_at_36",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fipwvok1gg4",
+      "start_line": 36,
+      "end_line": 38,
+      "start_byte": 830,
+      "end_byte": 899,
+      "signature_hint": "function(game)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C7h5rd8w0wi": {
+      "id": "C7h5rd8w0wi",
+      "qualified_name": "_renderListItem",
+      "simple_name": "_renderListItem",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fipwvok1gg4",
+      "start_line": 47,
+      "end_line": 53,
+      "start_byte": 962,
+      "end_byte": 1145,
+      "signature_hint": "function _renderListItem(game)"
+    },
+    "C69wa2z79v0": {
+      "id": "C69wa2z79v0",
+      "qualified_name": "_destroyListItem",
+      "simple_name": "_destroyListItem",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fipwvok1gg4",
+      "start_line": 56,
+      "end_line": 58,
+      "start_byte": 1172,
+      "end_byte": 1247,
+      "signature_hint": "function _destroyListItem(id)"
+    },
+    "Cf7b8yhpfku": {
+      "id": "Cf7b8yhpfku",
+      "qualified_name": "handler_at_10",
+      "simple_name": "handler_at_10",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "F56ca404n9i",
+      "start_line": 10,
+      "end_line": 17,
+      "start_byte": 262,
+      "end_byte": 425,
+      "signature_hint": "function(result)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Cxahvy0hjvo": {
+      "id": "Cxahvy0hjvo",
+      "qualified_name": "bootstrap",
+      "simple_name": "bootstrap",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fci5wdup67w",
+      "start_line": 11,
+      "end_line": 16,
+      "start_byte": 311,
+      "end_byte": 546,
+      "signature_hint": "module.exports.bootstrap = function (cb)"
+    },
+    "Ciz7oovzdf3": {
+      "id": "Ciz7oovzdf3",
+      "qualified_name": "handler_at_8",
+      "simple_name": "handler_at_8",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fgjvjpc0cq3",
+      "start_line": 8,
+      "end_line": 23,
+      "start_byte": 205,
+      "end_byte": 584,
+      "signature_hint": "function(err, response, body)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Ccbl1bayf7c": {
+      "id": "Ccbl1bayf7c",
+      "qualified_name": "finished",
+      "simple_name": "finished",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fgjvjpc0cq3",
+      "start_line": 26,
+      "end_line": 30,
+      "start_byte": 589,
+      "end_byte": 706,
+      "signature_hint": "function finished()"
+    },
+    "Cr9xnrrcg74": {
+      "id": "Cr9xnrrcg74",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fg9yxeg3ztm",
+      "start_line": 12,
+      "end_line": 20,
+      "start_byte": 291,
+      "end_byte": 451,
+      "signature_hint": "module.exports = function(grunt)"
+    },
+    "C96p0anrw7t": {
+      "id": "C96p0anrw7t",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F148oahhngwl",
+      "start_line": 12,
+      "end_line": 38,
+      "start_byte": 321,
+      "end_byte": 779,
+      "signature_hint": "module.exports = function(grunt)"
+    },
+    "Cz71n5rzv9v": {
+      "id": "Cz71n5rzv9v",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fsxfkd0h3l3",
+      "start_line": 13,
+      "end_line": 27,
+      "start_byte": 369,
+      "end_byte": 699,
+      "signature_hint": "module.exports = function(grunt)"
+    },
+    "C12gyf137d9t": {
+      "id": "C12gyf137d9t",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fck0ftpm0l4",
+      "start_line": 16,
+      "end_line": 38,
+      "start_byte": 455,
+      "end_byte": 810,
+      "signature_hint": "module.exports = function(grunt)"
+    },
+    "C2748dpaw6q": {
+      "id": "C2748dpaw6q",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fkl1udag4mx",
+      "start_line": 11,
+      "end_line": 21,
+      "start_byte": 253,
+      "end_byte": 474,
+      "signature_hint": "module.exports = function(grunt)"
+    },
+    "C146tsi2pssv": {
+      "id": "C146tsi2pssv",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fqx53qtsat6",
+      "start_line": 15,
+      "end_line": 45,
+      "start_byte": 435,
+      "end_byte": 1306,
+      "signature_hint": "module.exports = function(grunt)"
+    },
+    "Cwoinpnssst": {
+      "id": "Cwoinpnssst",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F13kfyi2j2qy",
+      "start_line": 13,
+      "end_line": 28,
+      "start_byte": 391,
+      "end_byte": 658,
+      "signature_hint": "module.exports = function(grunt)"
+    },
+    "Cdkg0f7i31a": {
+      "id": "Cdkg0f7i31a",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fag4gt1oxw3",
+      "start_line": 14,
+      "end_line": 152,
+      "start_byte": 425,
+      "end_byte": 4124,
+      "signature_hint": "module.exports = function(grunt)"
+    },
+    "Co46vhmq7b7": {
+      "id": "Co46vhmq7b7",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fq90hnika8m",
+      "start_line": 14,
+      "end_line": 27,
+      "start_byte": 412,
+      "end_byte": 624,
+      "signature_hint": "module.exports = function(grunt)"
+    },
+    "Cure24tbie6": {
+      "id": "Cure24tbie6",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F4rpd6lezdl",
+      "start_line": 12,
+      "end_line": 22,
+      "start_byte": 239,
+      "end_byte": 458,
+      "signature_hint": "module.exports = function(grunt)"
+    },
+    "Cag5n547n56": {
+      "id": "Cag5n547n56",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F2iz95cy7jv",
+      "start_line": 13,
+      "end_line": 32,
+      "start_byte": 339,
+      "end_byte": 658,
+      "signature_hint": "module.exports = function(grunt)"
+    },
+    "Cb4tfisgb6g": {
+      "id": "Cb4tfisgb6g",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fpprixiv1gu",
+      "start_line": 1,
+      "end_line": 8,
+      "start_byte": 0,
+      "end_byte": 145,
+      "signature_hint": "module.exports = function (grunt)"
+    },
+    "C6ootyf2ygx": {
+      "id": "C6ootyf2ygx",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Flxqbmaevz7",
+      "start_line": 1,
+      "end_line": 11,
+      "start_byte": 0,
+      "end_byte": 189,
+      "signature_hint": "module.exports = function (grunt)"
+    },
+    "Ct7rxwg15qv": {
+      "id": "Ct7rxwg15qv",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F14bj5i6e4ch",
+      "start_line": 1,
+      "end_line": 9,
+      "start_byte": 0,
+      "end_byte": 152,
+      "signature_hint": "module.exports = function (grunt)"
+    },
+    "Cnbpt5qy3d2": {
+      "id": "Cnbpt5qy3d2",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fo4o67x7w4v",
+      "start_line": 1,
+      "end_line": 3,
+      "start_byte": 0,
+      "end_byte": 112,
+      "signature_hint": "module.exports = function (grunt)"
+    },
+    "Cuk7qvd65bk": {
+      "id": "Cuk7qvd65bk",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F6h1m3xapbc",
+      "start_line": 1,
+      "end_line": 7,
+      "start_byte": 0,
+      "end_byte": 154,
+      "signature_hint": "module.exports = function (grunt)"
+    },
+    "Cxq01aechm3": {
+      "id": "Cxq01aechm3",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F11ub6uynai8",
+      "start_line": 1,
+      "end_line": 7,
+      "start_byte": 0,
+      "end_byte": 175,
+      "signature_hint": "module.exports = function (grunt)"
+    },
+    "Cbmqegmi5b4": {
+      "id": "Cbmqegmi5b4",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F179bgjw6q4i",
+      "start_line": 1,
+      "end_line": 7,
+      "start_byte": 0,
+      "end_byte": 181,
+      "signature_hint": "module.exports = function (grunt)"
+    },
+    "Ca8t7gb5dxm": {
+      "id": "Ca8t7gb5dxm",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fvzqoygoay2",
+      "start_line": 1,
+      "end_line": 11,
+      "start_byte": 0,
+      "end_byte": 205,
+      "signature_hint": "module.exports = function (grunt)"
+    },
+    "Ccym63gpgwv": {
+      "id": "Ccym63gpgwv",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fw5mikoyypf",
+      "start_line": 1,
+      "end_line": 8,
+      "start_byte": 0,
+      "end_byte": 134,
+      "signature_hint": "module.exports = function (grunt)"
+    }
+  },
+  "files": {
+    "F60r8nv5u9k": {
+      "id": "F60r8nv5u9k",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/Gruntfile.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "f9b13df5d69345e1d1ff5a74171fd64983a97c7bdaee302314f9015decedcaa5",
+      "size_bytes": 2134,
+      "lines": 81,
+      "parse_ms": 0.35603799999999997,
+      "parse_status": "ok"
+    },
+    "F128ywp1gnj9": {
+      "id": "F128ywp1gnj9",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/controllers/CardController.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "446977bb587676ba894f912ad03d3753d8b9351cf560df299e5e959abf1976f8",
+      "size_bytes": 583,
+      "lines": 26,
+      "parse_ms": 0.105869,
+      "parse_status": "ok"
+    },
+    "Fszgtv9p2uf": {
+      "id": "Fszgtv9p2uf",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/controllers/DebugController.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "3ed9475ae22dd107e0caf46afec00f758f58ea30b63f2dd743acb1499e2f48ef",
+      "size_bytes": 375,
+      "lines": 19,
+      "parse_ms": 0.056749999999999995,
+      "parse_status": "ok"
+    },
+    "Fxclgk42ts7": {
+      "id": "Fxclgk42ts7",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/controllers/DeckBuilderController.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "51af93526964382299457931f5743f1ffd7e45043c62a12f0df3aee38a6d4928",
+      "size_bytes": 502,
+      "lines": 24,
+      "parse_ms": 0.06927000000000001,
+      "parse_status": "ok"
+    },
+    "Fetl761qw2y": {
+      "id": "Fetl761qw2y",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/controllers/DeckController.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "6919056a7b9d94edb83dfd5ddee9cc482ad3bf28aa8b4c4eed3f86d5dcddaba0",
+      "size_bytes": 638,
+      "lines": 28,
+      "parse_ms": 0.108539,
+      "parse_status": "ok"
+    },
+    "Flwozjjajij": {
+      "id": "Flwozjjajij",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/controllers/GameController.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "17274a24eb225de1f4871915f18159380b61f18ed8d1dd1e391d17f3963688db",
+      "size_bytes": 675,
+      "lines": 32,
+      "parse_ms": 0.09977,
+      "parse_status": "ok"
+    },
+    "F185eedtg6th": {
+      "id": "F185eedtg6th",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/controllers/LobbyController.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "80d8c7c92480c4d6a395249fbef2d90ca526949accd6040013179f8e9f2b5c16",
+      "size_bytes": 204,
+      "lines": 11,
+      "parse_ms": 0.02497,
+      "parse_status": "ok"
+    },
+    "Fyox1rgyc8v": {
+      "id": "Fyox1rgyc8v",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/controllers/LoginController.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "905c788f352c8491fd89068404418a7b370238e0feb9532a9363c0bae0f112c6",
+      "size_bytes": 912,
+      "lines": 41,
+      "parse_ms": 0.13017,
+      "parse_status": "ok"
+    },
+    "F15a3e3uieap": {
+      "id": "F15a3e3uieap",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/controllers/PlaygroundController.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "8c0ce286ecfc931ccebefdb3518b1e939fadb92e26937c5fb2be8160ce98b809",
+      "size_bytes": 3123,
+      "lines": 148,
+      "parse_ms": 0.547548,
+      "parse_status": "ok"
+    },
+    "Fxourllqq05": {
+      "id": "Fxourllqq05",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/controllers/SetController.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "3773d17ceb601b858659fd694711ce31b33bea27dd8f726b6b7fd226dcf0c20d",
+      "size_bytes": 676,
+      "lines": 30,
+      "parse_ms": 0.144329,
+      "parse_status": "ok"
+    },
+    "Fsw280sbtip": {
+      "id": "Fsw280sbtip",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/controllers/UserController.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "5b7de5ae54517943a17ef1fcaf1c98ede0cfcdba9f5875dd0c0cfcab7851dd37",
+      "size_bytes": 314,
+      "lines": 16,
+      "parse_ms": 0.049499999999999995,
+      "parse_status": "ok"
+    },
+    "F138guv921je": {
+      "id": "F138guv921je",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/libraries/Card.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "3280753f176fdd372163ab98d5e478641c9950bb1d177b255b87b7dd59e2f847",
+      "size_bytes": 1830,
+      "lines": 83,
+      "parse_ms": 0.650937,
+      "parse_status": "ok"
+    },
+    "F4lbgmrqr6k": {
+      "id": "F4lbgmrqr6k",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/libraries/Deck.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "8cd52a666d3adb5f9e31fb5f8d77d546932b460c78cb0580a9ec890c4dbfd470",
+      "size_bytes": 953,
+      "lines": 43,
+      "parse_ms": 0.31315899999999997,
+      "parse_status": "ok"
+    },
+    "F13zn6nqc7kc": {
+      "id": "F13zn6nqc7kc",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/libraries/Set.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "5024029233f56395d282279ca87402cb3245eefc2222648c7910d56b9b0aaa70",
+      "size_bytes": 834,
+      "lines": 39,
+      "parse_ms": 0.308818,
+      "parse_status": "ok"
+    },
+    "Fr4yx6lu7i4": {
+      "id": "Fr4yx6lu7i4",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/models/Deck.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "194d98a0a7e27156215db328b98afedfafcafff0bc93fcb8d94b68709677dccc",
+      "size_bytes": 293,
+      "lines": 14,
+      "parse_ms": 0.06533,
+      "parse_status": "ok"
+    },
+    "F18bknbjjus8": {
+      "id": "F18bknbjjus8",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/models/Game.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "6c9615aaafaf2f92732effc92de619556fc5d82bafae4ab6727dc61109987438",
+      "size_bytes": 961,
+      "lines": 44,
+      "parse_ms": 0.336479,
+      "parse_status": "ok"
+    },
+    "Fuyxlzmse9": {
+      "id": "Fuyxlzmse9",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/models/User.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "caeed1825ad441cd1cf8e42a13ec27cab64dda790447dacd03e7b7b5493116eb",
+      "size_bytes": 581,
+      "lines": 26,
+      "parse_ms": 0.201419,
+      "parse_status": "ok"
+    },
+    "F14hv46nz302": {
+      "id": "F14hv46nz302",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/policies/authentication.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "28b0aabcea41f5a06588cdddd99865c61ecce627755f5a8b22129d2a480df51e",
+      "size_bytes": 729,
+      "lines": 22,
+      "parse_ms": 0.10697899999999999,
+      "parse_status": "ok"
+    },
+    "Fpdd34oee7u": {
+      "id": "Fpdd34oee7u",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/policies/views_globals.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "ffd38671764653cf1b06815dafd32e2a4a09bdce48895e0e21ba262a3b57c763",
+      "size_bytes": 533,
+      "lines": 25,
+      "parse_ms": 0.205759,
+      "parse_status": "ok"
+    },
+    "F2ys9qqd2au": {
+      "id": "F2ys9qqd2au",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/responses/badRequest.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "9ca63c33c90675ebb246e56d87951089cd92be251a0a263f79991914c6a8eb24",
+      "size_bytes": 2404,
+      "lines": 69,
+      "parse_ms": 0.337978,
+      "parse_status": "ok"
+    },
+    "Flyxxl5q2kn": {
+      "id": "Flyxxl5q2kn",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/responses/forbidden.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "455f0af57976a93b79f95b0f0ca8d46c7d1d0189e0c3450712fda36f82f972ca",
+      "size_bytes": 1093,
+      "lines": 51,
+      "parse_ms": 0.320838,
+      "parse_status": "ok"
+    },
+    "Fnu5mh9fao0": {
+      "id": "Fnu5mh9fao0",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/responses/notFound.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "5e39521bb3268458face5db945e3b05a1b85e594fb1b0c1442351658161f4673",
+      "size_bytes": 882,
+      "lines": 40,
+      "parse_ms": 0.259848,
+      "parse_status": "ok"
+    },
+    "Fayvm9zqs9x": {
+      "id": "Fayvm9zqs9x",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/responses/serverError.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "2083d917c39ed64b3ef875809da7169335edcd0e9f17242ae0406e382123b34b",
+      "size_bytes": 2339,
+      "lines": 84,
+      "parse_ms": 0.6780970000000001,
+      "parse_status": "ok"
+    },
+    "Fwn5j1b8wl9": {
+      "id": "Fwn5j1b8wl9",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/app.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "fd0c42d6c361bf8b55af90eed97cc1a4c1cbe27f96d904fa015bb69776ed3051",
+      "size_bytes": 1556,
+      "lines": 53,
+      "parse_ms": 0.326958,
+      "parse_status": "ok"
+    },
+    "Fwhpo6vr4j6": {
+      "id": "Fwhpo6vr4j6",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/sails.io.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "da4cf896961a01de03b813ceced4c652da3c41c291eca5d4ddf7b5901e5b2abd",
+      "size_bytes": 4306,
+      "lines": 166,
+      "parse_ms": 0.906465,
+      "parse_status": "ok"
+    },
+    "Fd6ym9l871": {
+      "id": "Fd6ym9l871",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/deck-builder/controller.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "7639a4ab94a3d2e24555f3707dc0b47a401ea3fbd033303f368c81847dc73c31",
+      "size_bytes": 10324,
+      "lines": 443,
+      "parse_ms": 1.8892010000000001,
+      "parse_status": "ok"
+    },
+    "Frk13ekad55": {
+      "id": "Frk13ekad55",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/driver/gatherer.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "1f38a7060ffaeaeb148a40864d1b9286fab8df79712b1c645a10de61ca3f952d",
+      "size_bytes": 502,
+      "lines": 21,
+      "parse_ms": 0.04609,
+      "parse_status": "ok"
+    },
+    "Fs3f5crum2p": {
+      "id": "Fs3f5crum2p",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/driver/magiccards.info.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "e29e81d988c89d1c1861fc8ec0bc53f5931afc2690047847849649fedcb7832d",
+      "size_bytes": 2706,
+      "lines": 147,
+      "parse_ms": 0.501308,
+      "parse_status": "ok"
+    },
+    "F3a3whd0oln": {
+      "id": "F3a3whd0oln",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/driver/mtgimage.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "11cfb56d69b05921550cb87af091a9a0c42c9353ea76e318a550fd49ee9cda26",
+      "size_bytes": 650,
+      "lines": 28,
+      "parse_ms": 0.15685,
+      "parse_status": "ok"
+    },
+    "Feot0x4xyjf": {
+      "id": "Feot0x4xyjf",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/driver/template.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "589eead0950b56ed6b60f1be31d5d1b4f9345a190d9d700adcc806b62d4ba2aa",
+      "size_bytes": 2176,
+      "lines": 87,
+      "parse_ms": 0.556458,
+      "parse_status": "ok"
+    },
+    "Fe3iajb7ueg": {
+      "id": "Fe3iajb7ueg",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/generic/realtime.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "95b1934fa789ef3df2de278592a4e2615aeb321e6846196a83ea42a180f8cb36",
+      "size_bytes": 2206,
+      "lines": 91,
+      "parse_ms": 0.5261779999999999,
+      "parse_status": "ok"
+    },
+    "Fufiytcojnk": {
+      "id": "Fufiytcojnk",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/generic/utilities.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "1d241339cf2c974105cf355911bb020829fbd720f7debae2054de20178a495e0",
+      "size_bytes": 971,
+      "lines": 44,
+      "parse_ms": 0.263699,
+      "parse_status": "ok"
+    },
+    "Fyrui34zjhv": {
+      "id": "Fyrui34zjhv",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/mtgnode.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "f628216eeb43820c3ee1ba3cb32e8279e922d9fc122c689a5e4c176a7f1f8c6c",
+      "size_bytes": 353,
+      "lines": 24,
+      "parse_ms": 0.07329,
+      "parse_status": "ok"
+    },
+    "Fbof4lw1yil": {
+      "id": "Fbof4lw1yil",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.area.battlefield.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "6754b7cf22370a5f45891c6059911e0c3665337c3ab6c6a0d75ba6e0768d55fe",
+      "size_bytes": 1378,
+      "lines": 69,
+      "parse_ms": 0.327578,
+      "parse_status": "ok"
+    },
+    "F6cetbp9gwb": {
+      "id": "F6cetbp9gwb",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.area.exile.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "e3e173e5ab59035ade59cad62404b485c774e6b33b7df72115f32ce7083c36a9",
+      "size_bytes": 738,
+      "lines": 44,
+      "parse_ms": 0.174309,
+      "parse_status": "ok"
+    },
+    "F11v688pp6s3": {
+      "id": "F11v688pp6s3",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.area.graveyard.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "623fa16b9da40712f9b756f4b81e1da7fa5385303b174ad7f5efe8c240bafde7",
+      "size_bytes": 760,
+      "lines": 44,
+      "parse_ms": 0.181129,
+      "parse_status": "ok"
+    },
+    "Fkk1dm18n1j": {
+      "id": "Fkk1dm18n1j",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.area.hand.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "ad294d114077a27f0fb5e5dada08db4e0eced47de02fb46e05926df8803b2a9c",
+      "size_bytes": 2990,
+      "lines": 141,
+      "parse_ms": 0.831216,
+      "parse_status": "ok"
+    },
+    "Fx9arzrje54": {
+      "id": "Fx9arzrje54",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.area.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "da9292c87d944a873632ae533878098f4a5d0758f7f5e20abc531c13cfae85a6",
+      "size_bytes": 5155,
+      "lines": 192,
+      "parse_ms": 1.416723,
+      "parse_status": "ok"
+    },
+    "F11a39rhrr4p": {
+      "id": "F11a39rhrr4p",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.area.library.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "b88778dc8dd4f3348f7c46f7cd8a31a504f93009e2328f2ad821a50c729441d1",
+      "size_bytes": 1827,
+      "lines": 88,
+      "parse_ms": 0.44498699999999997,
+      "parse_status": "ok"
+    },
+    "F15g1mrr0eam": {
+      "id": "F15g1mrr0eam",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.controller.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "e1a7f35f6eb43de9b7c1b0a01edf8750b890e97aad8317ad4920542321ab77e7",
+      "size_bytes": 2724,
+      "lines": 109,
+      "parse_ms": 0.719137,
+      "parse_status": "ok"
+    },
+    "F1079uqq2d8p": {
+      "id": "F1079uqq2d8p",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.hacks.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "c5825a00d575f5730c5278e488f35740a32b2d4d5fa609be99e0838af97e87ea",
+      "size_bytes": 4096,
+      "lines": 161,
+      "parse_ms": 0.652197,
+      "parse_status": "ok"
+    },
+    "F103tfiucpy7": {
+      "id": "F103tfiucpy7",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.helpers.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "c3f2bb760787706e581aeb9eaa7e1efa353a066cc071f3507fd81fcfedaf2efe",
+      "size_bytes": 1986,
+      "lines": 86,
+      "parse_ms": 0.306858,
+      "parse_status": "ok"
+    },
+    "F10nyosk2j3t": {
+      "id": "F10nyosk2j3t",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "6eb4711458597a098c4a7c4fd79bf4edcc5cc07207d773b1658e07a0329cc003",
+      "size_bytes": 449,
+      "lines": 26,
+      "parse_ms": 0.07059,
+      "parse_status": "ok"
+    },
+    "Fvwh5gp5krg": {
+      "id": "Fvwh5gp5krg",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.module.chat.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "bbe3cd65c71bbbc1d89918f7ebfed1a2462c504ab629356b1b3bf969c66fc817",
+      "size_bytes": 1601,
+      "lines": 75,
+      "parse_ms": 0.279198,
+      "parse_status": "ok"
+    },
+    "F13tc8ib7q0e": {
+      "id": "F13tc8ib7q0e",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.module.counter.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "2b3493cff68949ad819c2f825811ac1e93a513cd1c8313edb8e00b06c9c42d56",
+      "size_bytes": 690,
+      "lines": 31,
+      "parse_ms": 0.11728999999999999,
+      "parse_status": "ok"
+    },
+    "F4vym3sxg89": {
+      "id": "F4vym3sxg89",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.module.drag.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "3a62fb80110697739691def4ef0fe1fa0d5bb51121921d61e393290effd5a6f9",
+      "size_bytes": 1665,
+      "lines": 78,
+      "parse_ms": 0.293108,
+      "parse_status": "ok"
+    },
+    "F22saj7djws": {
+      "id": "F22saj7djws",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.module.modals.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "0c23a8d95d7aa27b3b3fc7519d2754df508b5af4e31facd932fe2d93f106346b",
+      "size_bytes": 2361,
+      "lines": 108,
+      "parse_ms": 0.399398,
+      "parse_status": "ok"
+    },
+    "Fnpig3noswy": {
+      "id": "Fnpig3noswy",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.module.points.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "4fcd43484fe199a82859f59d7ca6a434a0b6a43cc8b37e042c743f0484fc7988",
+      "size_bytes": 1006,
+      "lines": 42,
+      "parse_ms": 0.181719,
+      "parse_status": "ok"
+    },
+    "Fg2xqgf3cwp": {
+      "id": "Fg2xqgf3cwp",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.properties.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "9431a5c001dc80049f60ec9de441344c1e77f0d2821778fb3436679fdad54e24",
+      "size_bytes": 3252,
+      "lines": 166,
+      "parse_ms": 0.433998,
+      "parse_status": "ok"
+    },
+    "F11j2r0y014l": {
+      "id": "F11j2r0y014l",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.services.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "7a7ad7d9e00f90465080ce6877c7da91f21c9f0c34b871e8e028918f6c45bf32",
+      "size_bytes": 1036,
+      "lines": 50,
+      "parse_ms": 0.15344,
+      "parse_status": "ok"
+    },
+    "Fhf5ap3xn6g": {
+      "id": "Fhf5ap3xn6g",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/plugins/card_viewer.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "2a954dc625e42c21930a814c86abeb4442c82699d50094b5ce29f5fbf75ea5e7",
+      "size_bytes": 1460,
+      "lines": 58,
+      "parse_ms": 0.236509,
+      "parse_status": "ok"
+    },
+    "Fj3uq6ifmrt": {
+      "id": "Fj3uq6ifmrt",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/plugins/context_menu.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "2029e470982f17489f87b573750aeb9e64b17d9377ab2486986c70d72c2c2962",
+      "size_bytes": 2095,
+      "lines": 89,
+      "parse_ms": 0.32038900000000003,
+      "parse_status": "ok"
+    },
+    "Fipwvok1gg4": {
+      "id": "Fipwvok1gg4",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/simple/lobby.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "e1cbc54de3c76bdb7cf296c4b61d1d4a06f874ba3d6d62cb92046c0c693f45ae",
+      "size_bytes": 1252,
+      "lines": 59,
+      "parse_ms": 0.216509,
+      "parse_status": "ok"
+    },
+    "F56ca404n9i": {
+      "id": "F56ca404n9i",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/simple/login.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "b1af4c73f7493f47d21db2d755e247df56904b978690f33ea68f7ce11aa094f8",
+      "size_bytes": 583,
+      "lines": 26,
+      "parse_ms": 0.11704,
+      "parse_status": "ok"
+    },
+    "Fj4msh5klt0": {
+      "id": "Fj4msh5klt0",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/config/blueprints.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "2d7a64781f83c68f98a33c898b28a2ad3434ce9df3e9858cb1135990d8cad5d1",
+      "size_bytes": 5103,
+      "lines": 152,
+      "parse_ms": 0.13569900000000001,
+      "parse_status": "ok"
+    },
+    "Fci5wdup67w": {
+      "id": "Fci5wdup67w",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/config/bootstrap.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "614dd4811cf3d6701252ca9cc2fb49e13ba3edc82e4624ae5ac2eedaf492a79a",
+      "size_bytes": 547,
+      "lines": 16,
+      "parse_ms": 0.029859999999999998,
+      "parse_status": "ok"
+    },
+    "F15qbrocmba6": {
+      "id": "F15qbrocmba6",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/config/connections.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "ec1694c804a7ef537166c1178227644d7f6d5d8f2653f771bd9aee42b8fb0a44",
+      "size_bytes": 1207,
+      "lines": 33,
+      "parse_ms": 0.046239999999999996,
+      "parse_status": "ok"
+    },
+    "Fahs9r4596y": {
+      "id": "Fahs9r4596y",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/config/cors.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "26c5e37b2fa502c9585ddd89939f52a0c1ec09af8f8666d89dec0c75f4006c1b",
+      "size_bytes": 1632,
+      "lines": 49,
+      "parse_ms": 0.05248,
+      "parse_status": "ok"
+    },
+    "Frjyvdbu5gd": {
+      "id": "Frjyvdbu5gd",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/config/csrf.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "9dd8b93f98923620cc07130f61e94dfbe0b6b368b53eed6436243e202f9fda91",
+      "size_bytes": 1758,
+      "lines": 40,
+      "parse_ms": 0.038220000000000004,
+      "parse_status": "ok"
+    },
+    "F2tuw06i1a9": {
+      "id": "F2tuw06i1a9",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/config/express.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "7b1fd6ed9f620a862b1821572c5128de3bc03b903f239c4b784484494600b3a1",
+      "size_bytes": 4126,
+      "lines": 119,
+      "parse_ms": 0.108439,
+      "parse_status": "ok"
+    },
+    "Fys9qzjbh4w": {
+      "id": "Fys9qzjbh4w",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/config/globals.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "c447dd5e429d5ead99ebc9ac068817c0b0c780287630014b7d7bb58f9c16540c",
+      "size_bytes": 99,
+      "lines": 7,
+      "parse_ms": 0.025689,
+      "parse_status": "ok"
+    },
+    "Fdd2ba6rn98": {
+      "id": "Fdd2ba6rn98",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/config/i18n.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "8c82ebb8d7c1c9548e7eb862cbd4c7b580412aba1a9aa4e13a02d27336216cde",
+      "size_bytes": 392,
+      "lines": 17,
+      "parse_ms": 0.02758,
+      "parse_status": "ok"
+    },
+    "F128jmyq6rtb": {
+      "id": "F128jmyq6rtb",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/config/local.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "1ed65021276bbe6c705a43800828ec1cf292e400f51d901ea170b0da669f3a0f",
+      "size_bytes": 3048,
+      "lines": 70,
+      "parse_ms": 0.07671,
+      "parse_status": "ok"
+    },
+    "Fgiplxs7trk": {
+      "id": "Fgiplxs7trk",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/config/log.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "30cf44186708adf6331aa37cc0ac9abd57c024dd6ec7e1b2a6c1932053b4a32b",
+      "size_bytes": 844,
+      "lines": 27,
+      "parse_ms": 0.03151,
+      "parse_status": "ok"
+    },
+    "Fo08ozparz6": {
+      "id": "Fo08ozparz6",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/config/models.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "341b15eefbd1ca8531d897e556a58d06f1a27bdbfa6300375a050a319944a357",
+      "size_bytes": 354,
+      "lines": 16,
+      "parse_ms": 0.019360000000000002,
+      "parse_status": "ok"
+    },
+    "F12ilrckx1x6": {
+      "id": "F12ilrckx1x6",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/config/mtgnode.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "d8d96d2c5a16eb80b047df80a01fe90ee1f5ca2e23dabaa0a5d6ac2b6a51a6fe",
+      "size_bytes": 239,
+      "lines": 15,
+      "parse_ms": 0.02086,
+      "parse_status": "ok"
+    },
+    "F52vxm64le9": {
+      "id": "F52vxm64le9",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/config/policies.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "6b86cc59f7e08076bd1933fefe67d4d9b757e313d203c049c71b3d75c9f7fe69",
+      "size_bytes": 2887,
+      "lines": 86,
+      "parse_ms": 0.07578,
+      "parse_status": "ok"
+    },
+    "F10iygt40g3": {
+      "id": "F10iygt40g3",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/config/routes.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "afca52f1acd150a399e1646760e99869e06018708549a238629302e1647cf7c9",
+      "size_bytes": 1290,
+      "lines": 32,
+      "parse_ms": 0.201949,
+      "parse_status": "ok"
+    },
+    "Fan00re9u62": {
+      "id": "Fan00re9u62",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/config/session.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "03b9b8f1ab2c6ecdd20486688bc9eb979974300df78e97b5750557da0db6033a",
+      "size_bytes": 1985,
+      "lines": 64,
+      "parse_ms": 0.0632,
+      "parse_status": "ok"
+    },
+    "Fxszcon23tw": {
+      "id": "Fxszcon23tw",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/config/sockets.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "c77efdb678152a66bd690a00ee8687f256e944ff811deb7af4b79c0b5ca8a8fd",
+      "size_bytes": 9097,
+      "lines": 221,
+      "parse_ms": 0.279839,
+      "parse_status": "ok"
+    },
+    "Falc7bxw1gp": {
+      "id": "Falc7bxw1gp",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/config/views.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "87bf171709af4a86767c33823d7c28794910ffd82ab162e1cc6d4fd53f8458a7",
+      "size_bytes": 2502,
+      "lines": 70,
+      "parse_ms": 0.065599,
+      "parse_status": "ok"
+    },
+    "Fw1jwjt2hx2": {
+      "id": "Fw1jwjt2hx2",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/scripts/cards.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "3f809dc666cb280ea20770cc802834f0988ae6def9f369e38e6cd5aee64147b8",
+      "size_bytes": 1172,
+      "lines": 51,
+      "parse_ms": 0.218719,
+      "parse_status": "ok"
+    },
+    "Fgjvjpc0cq3": {
+      "id": "Fgjvjpc0cq3",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/scripts/magiccards-sets.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "798143a69efa3bbcfde9fe8a40dc59f5dd2046940a885ddf033f44e18637abd3",
+      "size_bytes": 707,
+      "lines": 30,
+      "parse_ms": 0.16106,
+      "parse_status": "ok"
+    },
+    "Fklkjzn01g2": {
+      "id": "Fklkjzn01g2",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/scripts/sets.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "88a9c6c838999b9bc586ff8774240a5cb865e6e01cc6ca942b43a55e7a800748",
+      "size_bytes": 460,
+      "lines": 27,
+      "parse_ms": 0.096929,
+      "parse_status": "ok"
+    },
+    "Fg9yxeg3ztm": {
+      "id": "Fg9yxeg3ztm",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/clean.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "f673b191eb80110c11c58953b5ca9736ffd9552a5d730455c0732fa5a005cda1",
+      "size_bytes": 453,
+      "lines": 20,
+      "parse_ms": 0.04341,
+      "parse_status": "ok"
+    },
+    "F148oahhngwl": {
+      "id": "F148oahhngwl",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/coffee.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "fd65324592a5535746654eadb3d7b2eec1425ff3b307b20f0ade8ac5b21fe194",
+      "size_bytes": 781,
+      "lines": 38,
+      "parse_ms": 0.09211,
+      "parse_status": "ok"
+    },
+    "Fsxfkd0h3l3": {
+      "id": "Fsxfkd0h3l3",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/concat.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "7c0e1c671bfa9092dd317ef8fab885f62afa69436a49dc223cd29ee3f7f20a05",
+      "size_bytes": 701,
+      "lines": 27,
+      "parse_ms": 0.08164,
+      "parse_status": "ok"
+    },
+    "Fck0ftpm0l4": {
+      "id": "Fck0ftpm0l4",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/copy.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "7daae903fafaa7d82fa068747fedd11057527115cc234b4f193f8a4441a7a1ae",
+      "size_bytes": 812,
+      "lines": 38,
+      "parse_ms": 0.07802,
+      "parse_status": "ok"
+    },
+    "Fkl1udag4mx": {
+      "id": "Fkl1udag4mx",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/cssmin.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "78274ada1e9f48b2c126db474c5b43e789b5e5a478c0412c7b1408835724af39",
+      "size_bytes": 476,
+      "lines": 21,
+      "parse_ms": 0.0408,
+      "parse_status": "ok"
+    },
+    "Fqx53qtsat6": {
+      "id": "Fqx53qtsat6",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/jst.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "030fafe4aead6d336f8c042037525ce6013afdb4961de71e8187db909ae87edf",
+      "size_bytes": 1308,
+      "lines": 45,
+      "parse_ms": 0.07535,
+      "parse_status": "ok"
+    },
+    "F13kfyi2j2qy": {
+      "id": "F13kfyi2j2qy",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/less.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "6d436bae40394d0b2b98c4e421245545ca159ac39352133f76fdd8b4469dcde5",
+      "size_bytes": 660,
+      "lines": 28,
+      "parse_ms": 0.05764,
+      "parse_status": "ok"
+    },
+    "Fag4gt1oxw3": {
+      "id": "Fag4gt1oxw3",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/sails-linker.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "44ccf3f5e1702871330e9f6f5faeafbf3c628f57230994ad1a9510839e4dd97d",
+      "size_bytes": 4126,
+      "lines": 152,
+      "parse_ms": 0.481818,
+      "parse_status": "ok"
+    },
+    "Fq90hnika8m": {
+      "id": "Fq90hnika8m",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/sync.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "b74e1e8a519db8f250cebef225ecb597067568c09dd24c0eee42cc51a8c19e26",
+      "size_bytes": 626,
+      "lines": 27,
+      "parse_ms": 0.053579,
+      "parse_status": "ok"
+    },
+    "F4rpd6lezdl": {
+      "id": "F4rpd6lezdl",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/uglify.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "f936bca3c9de8bfb406f655576bffdb0f2ad37eb46ef4dbb881b02389812eb1e",
+      "size_bytes": 460,
+      "lines": 22,
+      "parse_ms": 0.042799000000000004,
+      "parse_status": "ok"
+    },
+    "F2iz95cy7jv": {
+      "id": "F2iz95cy7jv",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/watch.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "d072444e921c090b275c702591d451558a60ac41b77d47ac978434fc187a7f31",
+      "size_bytes": 660,
+      "lines": 32,
+      "parse_ms": 0.055859,
+      "parse_status": "ok"
+    },
+    "Fsk07ln0wpt": {
+      "id": "Fsk07ln0wpt",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/pipeline.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "d0f23ff594b089862981ba57b8b756c5c59d94ccbe574b38fdfed5ed90d40dcd",
+      "size_bytes": 2314,
+      "lines": 79,
+      "parse_ms": 0.12272899999999999,
+      "parse_status": "ok"
+    },
+    "Fpprixiv1gu": {
+      "id": "Fpprixiv1gu",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/build.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "c167d941e46c143ea914ccda04c76f581457f891532e6b20b5375e4d2f757008",
+      "size_bytes": 147,
+      "lines": 8,
+      "parse_ms": 0.02863,
+      "parse_status": "ok"
+    },
+    "Flxqbmaevz7": {
+      "id": "Flxqbmaevz7",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/buildProd.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "066a146df8ba9ee3dba699b9c8d732bcf70fe112293204b197c1c4275b628493",
+      "size_bytes": 191,
+      "lines": 11,
+      "parse_ms": 0.03345,
+      "parse_status": "ok"
+    },
+    "F14bj5i6e4ch": {
+      "id": "F14bj5i6e4ch",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/compileAssets.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "b0c37a57181477b66a563f4bd5bdc591faeeaf5514b9da96170a0cffff4c0181",
+      "size_bytes": 154,
+      "lines": 9,
+      "parse_ms": 0.027399999999999997,
+      "parse_status": "ok"
+    },
+    "Fo4o67x7w4v": {
+      "id": "Fo4o67x7w4v",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/default.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "948fbce3189d460b34d612389304490144ae2a566a59ac73a32e0ed2d5a82598",
+      "size_bytes": 114,
+      "lines": 3,
+      "parse_ms": 0.02307,
+      "parse_status": "ok"
+    },
+    "F6h1m3xapbc": {
+      "id": "F6h1m3xapbc",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/linkAssets.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "1ee1a253ba0207ae371c0a20fdec6bad0d12f6b51b68f437210661f7672f606d",
+      "size_bytes": 156,
+      "lines": 7,
+      "parse_ms": 0.02349,
+      "parse_status": "ok"
+    },
+    "F11ub6uynai8": {
+      "id": "F11ub6uynai8",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/linkAssetsBuild.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "3a7b5cac65bc19d57fe9aa2fc56c4f5e0899895f5a479216c01876448a5917d6",
+      "size_bytes": 177,
+      "lines": 7,
+      "parse_ms": 0.02343,
+      "parse_status": "ok"
+    },
+    "F179bgjw6q4i": {
+      "id": "F179bgjw6q4i",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/linkAssetsBuildProd.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "54e63612e96525dbf1b00892fddfc166000a3710c3efb5ca041ac4393f2463eb",
+      "size_bytes": 183,
+      "lines": 7,
+      "parse_ms": 0.0363,
+      "parse_status": "ok"
+    },
+    "Fvzqoygoay2": {
+      "id": "Fvzqoygoay2",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/prod.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "a09ee66f53a0832dbbc7cfcfe942a8ad3d667005373bcaf9917e103983cd8836",
+      "size_bytes": 207,
+      "lines": 11,
+      "parse_ms": 0.03242,
+      "parse_status": "ok"
+    },
+    "Fw5mikoyypf": {
+      "id": "Fw5mikoyypf",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/syncAssets.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "3c0e2f415e1f8c59d35e6bb49024ce9c2bf2105e8037b59377503f673324717f",
+      "size_bytes": 136,
+      "lines": 8,
+      "parse_ms": 0.024640000000000002,
+      "parse_status": "ok"
+    }
+  },
+  "edges": [
+    {
+      "src": "C63fbsqx0yw",
+      "dst": "C72b1d89dv5",
+      "site_line": 69,
+      "site_byte": 1757,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C63fbsqx0yw",
+      "dst": "C72b1d89dv5",
+      "site_line": 70,
+      "site_byte": 1810,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C63fbsqx0yw",
+      "dst": "Clalmn3qvr9",
+      "site_line": 78,
+      "site_byte": 2056,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C63fbsqx0yw",
+      "dst": "Clalmn3qvr9",
+      "site_line": 79,
+      "site_byte": 2093,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C9ork4kh3ce",
+      "dst": "Ckyi60c1j9i",
+      "site_line": 39,
+      "site_byte": 1110,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1wrddbyoel",
+      "dst": "Ckyi60c1j9i",
+      "site_line": 55,
+      "site_byte": 1559,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C5l2ndhzis",
+      "dst": "Ckyi60c1j9i",
+      "site_line": 71,
+      "site_byte": 2012,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Csxar2ovt5o",
+      "dst": "Ca3mgeiktn1",
+      "site_line": 36,
+      "site_byte": 834,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Csxar2ovt5o",
+      "dst": "Ca3mgeiktn1",
+      "site_line": 37,
+      "site_byte": 869,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Csxar2ovt5o",
+      "dst": "Ca3mgeiktn1",
+      "site_line": 38,
+      "site_byte": 911,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ccwv65bi8wp",
+      "dst": "Cx7vivr0kk1",
+      "site_line": 66,
+      "site_byte": 1705,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cnpau9gb0i",
+      "dst": "C7taeth9ciq",
+      "site_line": 28,
+      "site_byte": 583,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ct6i1b51x75",
+      "dst": "Cnpau9gb0i",
+      "site_line": 33,
+      "site_byte": 685,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ct6i1b51x75",
+      "dst": "C7taeth9ciq",
+      "site_line": 34,
+      "site_byte": 758,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cm8orq6dzgy",
+      "dst": "Ctw3uqddbex",
+      "site_line": 40,
+      "site_byte": 820,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cxzdyslm8xb",
+      "dst": "Ctw3uqddbex",
+      "site_line": 114,
+      "site_byte": 2409,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cth792o9qnh",
+      "dst": "Cqncezu0dj4",
+      "site_line": 39,
+      "site_byte": 879,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cth792o9qnh",
+      "dst": "Cqncezu0dj4",
+      "site_line": 41,
+      "site_byte": 989,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cth792o9qnh",
+      "dst": "Cqncezu0dj4",
+      "site_line": 43,
+      "site_byte": 1099,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cth792o9qnh",
+      "dst": "Cqncezu0dj4",
+      "site_line": 45,
+      "site_byte": 1209,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cth792o9qnh",
+      "dst": "Cqncezu0dj4",
+      "site_line": 49,
+      "site_byte": 1319,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cth792o9qnh",
+      "dst": "Cqncezu0dj4",
+      "site_line": 55,
+      "site_byte": 1516,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cth792o9qnh",
+      "dst": "Cqncezu0dj4",
+      "site_line": 56,
+      "site_byte": 1598,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cth792o9qnh",
+      "dst": "Cqncezu0dj4",
+      "site_line": 59,
+      "site_byte": 1705,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cth792o9qnh",
+      "dst": "Cqncezu0dj4",
+      "site_line": 63,
+      "site_byte": 1830,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cp9hppbserh",
+      "dst": "C7h5rd8w0wi",
+      "site_line": 16,
+      "site_byte": 362,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Clh1bb8e27u",
+      "dst": "C7h5rd8w0wi",
+      "site_line": 25,
+      "site_byte": 535,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Clh1bb8e27u",
+      "dst": "C69wa2z79v0",
+      "site_line": 27,
+      "site_byte": 613,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ciz7oovzdf3",
+      "dst": "Ccbl1bayf7c",
+      "site_line": 21,
+      "site_byte": 565,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cm5138ywmw7",
+      "dst": "Cityeeospmp",
+      "site_line": 28,
+      "site_byte": 612,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cm5138ywmw7",
+      "dst": "Copn0in7qr3",
+      "site_line": 30,
+      "site_byte": 697,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C4sodwdiogc",
+      "dst": "Cezyas6fdng",
+      "site_line": 33,
+      "site_byte": 728,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C9xpd1zstij",
+      "dst": "Ccwv65bi8wp",
+      "site_line": 42,
+      "site_byte": 825,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C9xpd1zstij",
+      "dst": "Ccwv65bi8wp",
+      "site_line": 49,
+      "site_byte": 1058,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C1445dosxl9p",
+      "dst": "Ccwv65bi8wp",
+      "site_line": 31,
+      "site_byte": 622,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C1445dosxl9p",
+      "dst": "Ccwv65bi8wp",
+      "site_line": 38,
+      "site_byte": 847,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjj6qhtayip",
+      "dst": "Ccwv65bi8wp",
+      "site_line": 77,
+      "site_byte": 2045,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjj6qhtayip",
+      "dst": "Ccwv65bi8wp",
+      "site_line": 82,
+      "site_byte": 2296,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C5qc9y8ofmv",
+      "dst": "Ct6i1b51x75",
+      "site_line": 23,
+      "site_byte": 392,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C16nq619hzyv",
+      "dst": "C5400sx87b3",
+      "site_line": 41,
+      "site_byte": 723,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C5qc9y8ofmv",
+      "dst": "C3ifl378wus",
+      "site_line": 50,
+      "site_byte": 920,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C5qc9y8ofmv",
+      "dst": "C3ifl378wus",
+      "site_line": 56,
+      "site_byte": 1089,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C5qc9y8ofmv",
+      "dst": "Crn2nckpmiy",
+      "site_line": 60,
+      "site_byte": 1190,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cp2y75xi74n",
+      "dst": "Ctroitrxtn",
+      "site_line": 32,
+      "site_byte": 573,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cp2y75xi74n",
+      "dst": "Crn2nckpmiy",
+      "site_line": 36,
+      "site_byte": 612,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C10xwks02l07",
+      "dst": "Ctroitrxtn",
+      "site_line": 32,
+      "site_byte": 587,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C10xwks02l07",
+      "dst": "Crn2nckpmiy",
+      "site_line": 36,
+      "site_byte": 626,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxzdyslm8xb",
+      "dst": "Cnpau9gb0i",
+      "site_line": 97,
+      "site_byte": 2030,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxzdyslm8xb",
+      "dst": "C3ifl378wus",
+      "site_line": 121,
+      "site_byte": 2502,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxzdyslm8xb",
+      "dst": "C3ifl378wus",
+      "site_line": 123,
+      "site_byte": 2545,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxzdyslm8xb",
+      "dst": "C3ifl378wus",
+      "site_line": 128,
+      "site_byte": 2707,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxzdyslm8xb",
+      "dst": "Crn2nckpmiy",
+      "site_line": 133,
+      "site_byte": 2866,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C6j5glqj7oy",
+      "dst": "Cxahvy0hjvo",
+      "site_line": 12,
+      "site_byte": 187,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cv6su6t3h4a",
+      "dst": "Cv2n9984lvk",
+      "site_line": 17,
+      "site_byte": 284,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cv6su6t3h4a",
+      "dst": "Ct6i1b51x75",
+      "site_line": 49,
+      "site_byte": 1002,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cv6su6t3h4a",
+      "dst": "Ctroitrxtn",
+      "site_line": 63,
+      "site_byte": 1310,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cv6su6t3h4a",
+      "dst": "Crn2nckpmiy",
+      "site_line": 80,
+      "site_byte": 1697,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cvttdks9r2m",
+      "dst": "Cxahvy0hjvo",
+      "site_line": 11,
+      "site_byte": 184,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C2tl8ljrdt9",
+      "dst": "Cxahvy0hjvo",
+      "site_line": 12,
+      "site_byte": 203,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ccpyz6135aa",
+      "dst": "Cxahvy0hjvo",
+      "site_line": 13,
+      "site_byte": 269,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C166x5c0frpu",
+      "dst": "Cxahvy0hjvo",
+      "site_line": 45,
+      "site_byte": 907,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C3e3uedjs39",
+      "dst": "Cxahvy0hjvo",
+      "site_line": 11,
+      "site_byte": 232,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C11eft7ihfg5",
+      "dst": "Crn2nckpmiy",
+      "site_line": 27,
+      "site_byte": 639,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cfkm3xkvdd2",
+      "dst": "Crn2nckpmiy",
+      "site_line": 28,
+      "site_byte": 677,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": null,
+      "file": "F138guv921je",
+      "site_line": 83,
+      "site_byte": 1811,
+      "name": "CardLibrary",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F4lbgmrqr6k",
+      "site_line": 43,
+      "site_byte": 934,
+      "name": "DeckLibrary",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F13zn6nqc7kc",
+      "site_line": 39,
+      "site_byte": 816,
+      "name": "SetLibrary",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fwhpo6vr4j6",
+      "site_line": 87,
+      "site_byte": 2458,
+      "name": "request",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd6ym9l871",
+      "site_line": 142,
+      "site_byte": 3081,
+      "name": "request",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd6ym9l871",
+      "site_line": 152,
+      "site_byte": 3288,
+      "name": "request",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd6ym9l871",
+      "site_line": 162,
+      "site_byte": 3495,
+      "name": "request",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd6ym9l871",
+      "site_line": 202,
+      "site_byte": 4623,
+      "name": "request",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd6ym9l871",
+      "site_line": 210,
+      "site_byte": 4867,
+      "name": "request",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd6ym9l871",
+      "site_line": 231,
+      "site_byte": 5370,
+      "name": "request",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd6ym9l871",
+      "site_line": 248,
+      "site_byte": 5735,
+      "name": "request",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15g1mrr0eam",
+      "site_line": 85,
+      "site_byte": 2132,
+      "name": "_m",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15g1mrr0eam",
+      "site_line": 86,
+      "site_byte": 2162,
+      "name": "_m",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15g1mrr0eam",
+      "site_line": 87,
+      "site_byte": 2205,
+      "name": "_m",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15g1mrr0eam",
+      "site_line": 89,
+      "site_byte": 2264,
+      "name": "_m",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15g1mrr0eam",
+      "site_line": 90,
+      "site_byte": 2325,
+      "name": "_m",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F1079uqq2d8p",
+      "site_line": 39,
+      "site_byte": 1018,
+      "name": "request",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fhf5ap3xn6g",
+      "site_line": 54,
+      "site_byte": 1396,
+      "name": "Plugin",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fj3uq6ifmrt",
+      "site_line": 85,
+      "site_byte": 2031,
+      "name": "Plugin",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F128ywp1gnj9",
+      "site_line": 11,
+      "site_byte": 238,
+      "name": "get",
+      "receiver_hint": "card_library",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F128ywp1gnj9",
+      "site_line": 19,
+      "site_byte": 398,
+      "name": "parse",
+      "receiver_hint": "JSON",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fszgtv9p2uf",
+      "site_line": 15,
+      "site_byte": 334,
+      "name": "parse",
+      "receiver_hint": "JSON",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fetl761qw2y",
+      "site_line": 12,
+      "site_byte": 279,
+      "name": "parse",
+      "receiver_hint": "deck_library",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Csk3dw4mdpu",
+      "file": "Fyox1rgyc8v",
+      "site_line": 28,
+      "site_byte": 575,
+      "name": "authenticate",
+      "receiver_hint": "User",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C17inhfdxo3c",
+      "file": "Fwhpo6vr4j6",
+      "site_line": 138,
+      "site_byte": 3582,
+      "name": "parse",
+      "receiver_hint": "io.JSON",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd6ym9l871",
+      "site_line": 174,
+      "site_byte": 3804,
+      "name": "get",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd6ym9l871",
+      "site_line": 175,
+      "site_byte": 3853,
+      "name": "get",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd6ym9l871",
+      "site_line": 183,
+      "site_byte": 4081,
+      "name": "get",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd6ym9l871",
+      "site_line": 191,
+      "site_byte": 4294,
+      "name": "get",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd6ym9l871",
+      "site_line": 192,
+      "site_byte": 4342,
+      "name": "get",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd6ym9l871",
+      "site_line": 193,
+      "site_byte": 4387,
+      "name": "get",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fd6ym9l871",
+      "site_line": 226,
+      "site_byte": 5261,
+      "name": "get",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cgzhhwvfzm3",
+      "file": "Fd6ym9l871",
+      "site_line": 288,
+      "site_byte": 6554,
+      "name": "get",
+      "receiver_hint": "d",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cgzhhwvfzm3",
+      "file": "Fd6ym9l871",
+      "site_line": 289,
+      "site_byte": 6628,
+      "name": "render",
+      "receiver_hint": "_template",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cljkfgy4yyc",
+      "file": "Fd6ym9l871",
+      "site_line": 325,
+      "site_byte": 7486,
+      "name": "get",
+      "receiver_hint": "d",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cljkfgy4yyc",
+      "file": "Fd6ym9l871",
+      "site_line": 326,
+      "site_byte": 7558,
+      "name": "render",
+      "receiver_hint": "_template",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C124edab5dbx",
+      "file": "Fd6ym9l871",
+      "site_line": 411,
+      "site_byte": 9496,
+      "name": "get",
+      "receiver_hint": "d",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C124edab5dbx",
+      "file": "Fd6ym9l871",
+      "site_line": 415,
+      "site_byte": 9612,
+      "name": "get",
+      "receiver_hint": "d",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C124edab5dbx",
+      "file": "Fd6ym9l871",
+      "site_line": 423,
+      "site_byte": 9819,
+      "name": "get",
+      "receiver_hint": "d",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Ca3mgeiktn1",
+      "file": "Feot0x4xyjf",
+      "site_line": 33,
+      "site_byte": 756,
+      "name": "compile",
+      "receiver_hint": "Handlebars",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe3iajb7ueg",
+      "site_line": 22,
+      "site_byte": 387,
+      "name": "get",
+      "receiver_hint": "socket",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe3iajb7ueg",
+      "site_line": 22,
+      "site_byte": 398,
+      "name": "url",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe3iajb7ueg",
+      "site_line": 22,
+      "site_byte": 403,
+      "name": "cb",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe3iajb7ueg",
+      "site_line": 59,
+      "site_byte": 1558,
+      "name": "head",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe3iajb7ueg",
+      "site_line": 60,
+      "site_byte": 1474,
+      "name": "get",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe3iajb7ueg",
+      "site_line": 61,
+      "site_byte": 1517,
+      "name": "get",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fe3iajb7ueg",
+      "site_line": 74,
+      "site_byte": 1778,
+      "name": "get",
+      "receiver_hint": "socket",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C16nq619hzyv",
+      "file": "Fbof4lw1yil",
+      "site_line": 42,
+      "site_byte": 770,
+      "name": "dispatchBothEvents",
+      "receiver_hint": "_this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C5qc9y8ofmv",
+      "file": "Fbof4lw1yil",
+      "site_line": 51,
+      "site_byte": 983,
+      "name": "selectCard",
+      "receiver_hint": "_this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cm8orq6dzgy",
+      "file": "Fkk1dm18n1j",
+      "site_line": 49,
+      "site_byte": 1002,
+      "name": "add",
+      "receiver_hint": "playground.registers.drag",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Ctw3uqddbex",
+      "file": "Fkk1dm18n1j",
+      "site_line": 73,
+      "site_byte": 1535,
+      "name": "get",
+      "receiver_hint": "$cards",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Crn2nckpmiy",
+      "file": "Fx9arzrje54",
+      "site_line": 78,
+      "site_byte": 2159,
+      "name": "dispatchBothEvents",
+      "receiver_hint": "_this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Crn2nckpmiy",
+      "file": "Fx9arzrje54",
+      "site_line": 88,
+      "site_byte": 2454,
+      "name": "dispatchBothEvents",
+      "receiver_hint": "_this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Crn2nckpmiy",
+      "file": "Fx9arzrje54",
+      "site_line": 96,
+      "site_byte": 2722,
+      "name": "moveFrom",
+      "receiver_hint": "_this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C6j5glqj7oy",
+      "file": "Fx9arzrje54",
+      "site_line": 143,
+      "site_byte": 3745,
+      "name": "get",
+      "receiver_hint": "d",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C6j5glqj7oy",
+      "file": "Fx9arzrje54",
+      "site_line": 154,
+      "site_byte": 4070,
+      "name": "selectCard",
+      "receiver_hint": "_this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cehzwjwtpdw",
+      "file": "F11a39rhrr4p",
+      "site_line": 26,
+      "site_byte": 490,
+      "name": "moveTo",
+      "receiver_hint": "_this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F1079uqq2d8p",
+      "site_line": 105,
+      "site_byte": 2684,
+      "name": "get",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F1079uqq2d8p",
+      "site_line": 105,
+      "site_byte": 2693,
+      "name": "property",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "F1079uqq2d8p",
+      "site_line": 121,
+      "site_byte": 3123,
+      "name": "get",
+      "receiver_hint": "this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F1079uqq2d8p",
+      "site_line": 121,
+      "site_byte": 3132,
+      "name": "library",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "F103tfiucpy7",
+      "site_line": 54,
+      "site_byte": 1369,
+      "name": "get",
+      "receiver_hint": "d",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F103tfiucpy7",
+      "site_line": 54,
+      "site_byte": 1375,
+      "name": "from",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "F103tfiucpy7",
+      "site_line": 55,
+      "site_byte": 1402,
+      "name": "get",
+      "receiver_hint": "d",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F103tfiucpy7",
+      "site_line": 55,
+      "site_byte": 1408,
+      "name": "to",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": "Cvttdks9r2m",
+      "file": "Fvwh5gp5krg",
+      "site_line": 44,
+      "site_byte": 883,
+      "name": "dispatchBothEvents",
+      "receiver_hint": "_this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cvttdks9r2m",
+      "file": "Fvwh5gp5krg",
+      "site_line": 54,
+      "site_byte": 1115,
+      "name": "get",
+      "receiver_hint": "d",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cy9k9eoday",
+      "file": "F13tc8ib7q0e",
+      "site_line": 21,
+      "site_byte": 462,
+      "name": "get",
+      "receiver_hint": "d",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cnk7hhv347t",
+      "file": "F4vym3sxg89",
+      "site_line": 54,
+      "site_byte": 1131,
+      "name": "dispatchRealtimeEvent",
+      "receiver_hint": "_this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Ccpyz6135aa",
+      "file": "F22saj7djws",
+      "site_line": 27,
+      "site_byte": 559,
+      "name": "dispatchBothEvents",
+      "receiver_hint": "_this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C166x5c0frpu",
+      "file": "F22saj7djws",
+      "site_line": 85,
+      "site_byte": 1939,
+      "name": "get",
+      "receiver_hint": "d",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C3e3uedjs39",
+      "file": "Fnpig3noswy",
+      "site_line": 25,
+      "site_byte": 624,
+      "name": "dispatchBothEvents",
+      "receiver_hint": "_this",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C3e3uedjs39",
+      "file": "Fnpig3noswy",
+      "site_line": 33,
+      "site_byte": 864,
+      "name": "get",
+      "receiver_hint": "d",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fhf5ap3xn6g",
+      "site_line": 40,
+      "site_byte": 948,
+      "name": "cards",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fj3uq6ifmrt",
+      "site_line": 37,
+      "site_byte": 851,
+      "name": "selector",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fipwvok1gg4",
+      "site_line": 14,
+      "site_byte": 252,
+      "name": "get",
+      "receiver_hint": "socket",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fipwvok1gg4",
+      "site_line": 36,
+      "site_byte": 823,
+      "name": "name",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "F56ca404n9i",
+      "site_line": 6,
+      "site_byte": 124,
+      "name": "post",
+      "receiver_hint": "$",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F56ca404n9i",
+      "site_line": 6,
+      "site_byte": 178,
+      "name": "attr",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "F56ca404n9i",
+      "site_line": 6,
+      "site_byte": 178,
+      "name": "$(this)",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "F56ca404n9i",
+      "site_line": 6,
+      "site_byte": 222,
+      "name": "attr",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "F56ca404n9i",
+      "site_line": 6,
+      "site_byte": 222,
+      "name": "$(this)",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgjvjpc0cq3",
+      "site_line": 8,
+      "site_byte": 200,
+      "name": "url",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 28.829479000000003,
+    "phases": {
+      "walk_ms": 5.231175,
+      "parse_ms": 21.85251899999999,
+      "extract_ms": 1.5832760000000086,
+      "resolve_ms": 0.0,
+      "link_ms": 2.761476,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 167,
+    "files_analyzed": 95,
+    "files_skipped": 72,
+    "files_errored": 0,
+    "bytes_processed": 142713,
+    "callables": 118,
+    "edges": 64,
+    "unresolved_calls": 101,
+    "stdlib_calls": 88,
+    "external_calls": 640,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "javascript": {
+        "files": 95,
+        "callables": 118,
+        "edges": 29,
+        "unresolved": 101,
+        "stdlib": 88,
+        "external": 640
+      },
+      "skip:builtin": {
+        "files": 30,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      },
+      "skip:binary": {
+        "files": 3,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 32,
+      "medium": 33,
+      "low": 0
+    }
+  }
+}

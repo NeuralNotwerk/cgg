@@ -1,0 +1,880 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "C15a9j9lxjxq": {
+      "id": "C15a9j9lxjxq",
+      "qualified_name": "warn",
+      "simple_name": "warn",
+      "kind": "function",
+      "language": "bash",
+      "file": "Fyqhpqfl9il",
+      "start_line": 92,
+      "end_line": 94,
+      "start_byte": 3468,
+      "end_byte": 3497,
+      "signature_hint": "warn ()"
+    },
+    "C11lye0zt6ha": {
+      "id": "C11lye0zt6ha",
+      "qualified_name": "die",
+      "simple_name": "die",
+      "kind": "function",
+      "language": "bash",
+      "file": "Fyqhpqfl9il",
+      "start_line": 96,
+      "end_line": 101,
+      "start_byte": 3499,
+      "end_byte": 3556,
+      "signature_hint": "die ()"
+    },
+    "C8sgdis875m": {
+      "id": "C8sgdis875m",
+      "qualified_name": "find_maven_basedir",
+      "simple_name": "find_maven_basedir",
+      "kind": "function",
+      "language": "bash",
+      "file": "Fis6ml8u6dj",
+      "start_line": 166,
+      "end_line": 188,
+      "start_byte": 4927,
+      "end_byte": 5353,
+      "signature_hint": "find_maven_basedir()"
+    },
+    "C168133tml45": {
+      "id": "C168133tml45",
+      "qualified_name": "concat_lines",
+      "simple_name": "concat_lines",
+      "kind": "function",
+      "language": "bash",
+      "file": "Fis6ml8u6dj",
+      "start_line": 191,
+      "end_line": 195,
+      "start_byte": 5390,
+      "end_byte": 5472,
+      "signature_hint": "concat_lines()"
+    },
+    "Cfzbu3vl049": {
+      "id": "Cfzbu3vl049",
+      "qualified_name": "com.example.batchprocessing.BatchConfiguration.reader",
+      "simple_name": "reader",
+      "kind": "method",
+      "language": "java",
+      "file": "Fly1xrruebu",
+      "start_line": 23,
+      "end_line": 32,
+      "start_byte": 1031,
+      "end_byte": 1311,
+      "signature_hint": "@Bean public FlatFileItemReader<Person> reader()",
+      "attributes": [
+        "@Bean"
+      ],
+      "vis": "public"
+    },
+    "Cqj13e30q5e": {
+      "id": "Cqj13e30q5e",
+      "qualified_name": "com.example.batchprocessing.BatchConfiguration.processor",
+      "simple_name": "processor",
+      "kind": "method",
+      "language": "java",
+      "file": "Fly1xrruebu",
+      "start_line": 34,
+      "end_line": 37,
+      "start_byte": 1314,
+      "end_byte": 1400,
+      "signature_hint": "@Bean public PersonItemProcessor processor()",
+      "attributes": [
+        "@Bean"
+      ],
+      "vis": "public"
+    },
+    "Cvv2d7cqrv4": {
+      "id": "Cvv2d7cqrv4",
+      "qualified_name": "com.example.batchprocessing.BatchConfiguration.writer",
+      "simple_name": "writer",
+      "kind": "method",
+      "language": "java",
+      "file": "Fly1xrruebu",
+      "start_line": 39,
+      "end_line": 46,
+      "start_byte": 1403,
+      "end_byte": 1671,
+      "signature_hint": "@Bean public JdbcBatchItemWriter<Person> writer(DataSource dataSource)",
+      "attributes": [
+        "@Bean"
+      ],
+      "vis": "public"
+    },
+    "Cl6rmsomfgd": {
+      "id": "Cl6rmsomfgd",
+      "qualified_name": "com.example.batchprocessing.BatchConfiguration.importUserJob",
+      "simple_name": "importUserJob",
+      "kind": "method",
+      "language": "java",
+      "file": "Fly1xrruebu",
+      "start_line": 50,
+      "end_line": 56,
+      "start_byte": 1726,
+      "end_byte": 1939,
+      "signature_hint": "@Bean public Job importUserJob(JobRepository jobRepository, Step step1, JobCompletionNotificationListener listener)",
+      "attributes": [
+        "@Bean"
+      ],
+      "vis": "public"
+    },
+    "Ccpg2eqw0s4": {
+      "id": "Ccpg2eqw0s4",
+      "qualified_name": "com.example.batchprocessing.BatchConfiguration.step1",
+      "simple_name": "step1",
+      "kind": "method",
+      "language": "java",
+      "file": "Fly1xrruebu",
+      "start_line": 58,
+      "end_line": 68,
+      "start_byte": 1942,
+      "end_byte": 2355,
+      "signature_hint": "@Bean public Step step1(JobRepository jobRepository, DataSourceTransactionManager transactionManager, FlatFileItemReader<Person> reader, PersonItemProcessor processor, JdbcBatchItemWriter<Person> writer)",
+      "attributes": [
+        "@Bean"
+      ],
+      "vis": "public"
+    },
+    "C12mnvibesqg": {
+      "id": "C12mnvibesqg",
+      "qualified_name": "com.example.batchprocessing.BatchProcessingApplication.main",
+      "simple_name": "main",
+      "kind": "method",
+      "language": "java",
+      "file": "F931whk3tm",
+      "start_line": 9,
+      "end_line": 11,
+      "start_byte": 226,
+      "end_byte": 371,
+      "signature_hint": "public static void main(String[] args)",
+      "vis": "public"
+    },
+    "Cpuwnac4kys": {
+      "id": "Cpuwnac4kys",
+      "qualified_name": "com.example.batchprocessing.JobCompletionNotificationListener.JobCompletionNotificationListener",
+      "simple_name": "JobCompletionNotificationListener",
+      "kind": "constructor",
+      "language": "java",
+      "file": "Febf9v74r06",
+      "start_line": 20,
+      "end_line": 22,
+      "start_byte": 669,
+      "end_byte": 777,
+      "signature_hint": "public JobCompletionNotificationListener(JdbcTemplate jdbcTemplate)",
+      "vis": "public"
+    },
+    "Ca492yaqezw": {
+      "id": "Ca492yaqezw",
+      "qualified_name": "com.example.batchprocessing.JobCompletionNotificationListener.afterJob",
+      "simple_name": "afterJob",
+      "kind": "method",
+      "language": "java",
+      "file": "Febf9v74r06",
+      "start_line": 24,
+      "end_line": 33,
+      "start_byte": 780,
+      "end_byte": 1154,
+      "signature_hint": "@Override public void afterJob(JobExecution jobExecution)",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "public"
+    },
+    "C10s055kdsdz": {
+      "id": "C10s055kdsdz",
+      "qualified_name": "com.example.batchprocessing.PersonItemProcessor.process",
+      "simple_name": "process",
+      "kind": "method",
+      "language": "java",
+      "file": "Fm8tjccm5uu",
+      "start_line": 12,
+      "end_line": 22,
+      "start_byte": 331,
+      "end_byte": 676,
+      "signature_hint": "@Override public Person process(final Person person)",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "public"
+    },
+    "C1xw5uehcvi": {
+      "id": "C1xw5uehcvi",
+      "qualified_name": "com.example.batchprocessing.BatchConfigurationTest.setUp",
+      "simple_name": "setUp",
+      "kind": "method",
+      "language": "java",
+      "file": "Fh7mjiowwmw",
+      "start_line": 37,
+      "end_line": 40,
+      "start_byte": 1681,
+      "end_byte": 1769,
+      "signature_hint": "@BeforeEach void setUp()",
+      "attributes": [
+        "@BeforeEach"
+      ],
+      "vis": "internal",
+      "test_role": "support"
+    },
+    "Cq0c711j2t0": {
+      "id": "Cq0c711j2t0",
+      "qualified_name": "com.example.batchprocessing.BatchConfigurationTest.tearDown",
+      "simple_name": "tearDown",
+      "kind": "method",
+      "language": "java",
+      "file": "Fh7mjiowwmw",
+      "start_line": 42,
+      "end_line": 45,
+      "start_byte": 1775,
+      "end_byte": 1867,
+      "signature_hint": "@AfterEach void tearDown()",
+      "attributes": [
+        "@AfterEach"
+      ],
+      "vis": "internal",
+      "test_role": "support"
+    },
+    "C12neac6m8p5": {
+      "id": "C12neac6m8p5",
+      "qualified_name": "com.example.batchprocessing.BatchConfigurationTest.importUserJob_WhenJobEnds_ThenStatusCompleted",
+      "simple_name": "importUserJob_WhenJobEnds_ThenStatusCompleted",
+      "kind": "method",
+      "language": "java",
+      "file": "Fh7mjiowwmw",
+      "start_line": 47,
+      "end_line": 51,
+      "start_byte": 1873,
+      "end_byte": 2114,
+      "signature_hint": "@Test void importUserJob_WhenJobEnds_ThenStatusCompleted() throws Exception",
+      "attributes": [
+        "@Test"
+      ],
+      "vis": "internal",
+      "test_role": "support"
+    },
+    "Cevfwqopm3y": {
+      "id": "Cevfwqopm3y",
+      "qualified_name": "warn",
+      "simple_name": "warn",
+      "kind": "function",
+      "language": "bash",
+      "file": "F2fev12hqd0",
+      "start_line": 92,
+      "end_line": 94,
+      "start_byte": 3468,
+      "end_byte": 3497,
+      "signature_hint": "warn ()"
+    },
+    "C2r9zlv5u0c": {
+      "id": "C2r9zlv5u0c",
+      "qualified_name": "die",
+      "simple_name": "die",
+      "kind": "function",
+      "language": "bash",
+      "file": "F2fev12hqd0",
+      "start_line": 96,
+      "end_line": 101,
+      "start_byte": 3499,
+      "end_byte": 3556,
+      "signature_hint": "die ()"
+    },
+    "C16srnaitakx": {
+      "id": "C16srnaitakx",
+      "qualified_name": "find_maven_basedir",
+      "simple_name": "find_maven_basedir",
+      "kind": "function",
+      "language": "bash",
+      "file": "F15hbfo02qly",
+      "start_line": 166,
+      "end_line": 188,
+      "start_byte": 4927,
+      "end_byte": 5353,
+      "signature_hint": "find_maven_basedir()"
+    },
+    "Cqqh1vzqww1": {
+      "id": "Cqqh1vzqww1",
+      "qualified_name": "concat_lines",
+      "simple_name": "concat_lines",
+      "kind": "function",
+      "language": "bash",
+      "file": "F15hbfo02qly",
+      "start_line": 191,
+      "end_line": 195,
+      "start_byte": 5390,
+      "end_byte": 5472,
+      "signature_hint": "concat_lines()"
+    },
+    "C147himmgnrv": {
+      "id": "C147himmgnrv",
+      "qualified_name": "com.example.batchprocessing.BatchProcessingApplication.main",
+      "simple_name": "main",
+      "kind": "method",
+      "language": "java",
+      "file": "Fjbvbkqfnjo",
+      "start_line": 9,
+      "end_line": 11,
+      "start_byte": 226,
+      "end_byte": 334,
+      "signature_hint": "public static void main(String[] args)",
+      "vis": "public"
+    },
+    "Csm3jqg4xuf": {
+      "id": "Csm3jqg4xuf",
+      "qualified_name": "<framework-entry>::queue::spring-batch::com.example.batchprocessing.JobCompletionNotificationListener.afterJob",
+      "simple_name": "com.example.batchprocessing.JobCompletionNotificationListener.afterJob",
+      "kind": "function",
+      "language": "java",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "declares `JobExecutionListener`"
+      ],
+      "synthetic": true,
+      "framework_entry": "queue"
+    },
+    "Csjsmv3kf5f": {
+      "id": "Csjsmv3kf5f",
+      "qualified_name": "<framework-entry>::queue::spring-batch::com.example.batchprocessing.PersonItemProcessor.process",
+      "simple_name": "com.example.batchprocessing.PersonItemProcessor.process",
+      "kind": "function",
+      "language": "java",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "declares `ItemProcessor<Person, Person>`"
+      ],
+      "synthetic": true,
+      "framework_entry": "queue"
+    },
+    "C1fuuwhpgef": {
+      "id": "C1fuuwhpgef",
+      "qualified_name": "<framework-entry>::test::junit",
+      "simple_name": "junit",
+      "kind": "function",
+      "language": "java",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "@BeforeEach"
+      ],
+      "synthetic": true,
+      "framework_entry": "test"
+    }
+  },
+  "files": {
+    "Fa6umdnwr1r": {
+      "id": "Fa6umdnwr1r",
+      "path": "/storage/cgg-test_repos/app-gs-batch-processing/complete/build.gradle",
+      "language": "groovy",
+      "detected_via": "extension:.gradle",
+      "blake3": "e651d1810092237346980c9f2d1a9ea886cba425a663e704c9b7f296b8bb18f2",
+      "size_bytes": 534,
+      "lines": 28,
+      "parse_ms": 0.16385,
+      "parse_status": "ok"
+    },
+    "Fyqhpqfl9il": {
+      "id": "Fyqhpqfl9il",
+      "path": "/storage/cgg-test_repos/app-gs-batch-processing/complete/gradlew",
+      "language": "bash",
+      "detected_via": "shebang:sh",
+      "blake3": "30dcbbbe0438565ecdab8076d541367378db16e8ee56d779dba3f40dc16ffe31",
+      "size_bytes": 8706,
+      "lines": 249,
+      "parse_ms": 0.929487,
+      "parse_status": "error"
+    },
+    "Fis6ml8u6dj": {
+      "id": "Fis6ml8u6dj",
+      "path": "/storage/cgg-test_repos/app-gs-batch-processing/complete/mvnw",
+      "language": "bash",
+      "detected_via": "shebang:sh",
+      "blake3": "430b92f3b4df9bb70efeec06ee3ab29be275655665aad3129a43d17ce695db48",
+      "size_bytes": 9895,
+      "lines": 305,
+      "parse_ms": 1.456517,
+      "parse_status": "ok"
+    },
+    "F85s9xhq4pz": {
+      "id": "F85s9xhq4pz",
+      "path": "/storage/cgg-test_repos/app-gs-batch-processing/complete/settings.gradle",
+      "language": "groovy",
+      "detected_via": "extension:.gradle",
+      "blake3": "bae15468707cd24a137025bb8ee7ac20286efb7a780a82330e7da246efb4f9e1",
+      "size_bytes": 38,
+      "lines": 1,
+      "parse_ms": 0.02353,
+      "parse_status": "ok"
+    },
+    "Fly1xrruebu": {
+      "id": "Fly1xrruebu",
+      "path": "/storage/cgg-test_repos/app-gs-batch-processing/complete/src/main/java/com/example/batchprocessing/BatchConfiguration.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "c9469404b5867acbe5953f34512990c5113092a69aeb2b45ffa1f5940ae30ab6",
+      "size_bytes": 2377,
+      "lines": 70,
+      "parse_ms": 0.660099,
+      "parse_status": "ok"
+    },
+    "F931whk3tm": {
+      "id": "F931whk3tm",
+      "path": "/storage/cgg-test_repos/app-gs-batch-processing/complete/src/main/java/com/example/batchprocessing/BatchProcessingApplication.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "84094dc500574d0085e1e089716fca0ea14a70d73edb392059c91bc7d6274dfa",
+      "size_bytes": 374,
+      "lines": 12,
+      "parse_ms": 0.17116,
+      "parse_status": "ok"
+    },
+    "Febf9v74r06": {
+      "id": "Febf9v74r06",
+      "path": "/storage/cgg-test_repos/app-gs-batch-processing/complete/src/main/java/com/example/batchprocessing/JobCompletionNotificationListener.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "0486fe0bb691db0e241d73e278caa270979b551fc165e94b978392c89fd0d310",
+      "size_bytes": 1157,
+      "lines": 34,
+      "parse_ms": 0.20573999999999998,
+      "parse_status": "ok"
+    },
+    "F15mc83r27kf": {
+      "id": "F15mc83r27kf",
+      "path": "/storage/cgg-test_repos/app-gs-batch-processing/complete/src/main/java/com/example/batchprocessing/Person.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "43ac381f327432b555f8bf6d7f62f5053af2e5fe062c614365c1fabfc9cae96f",
+      "size_bytes": 99,
+      "lines": 5,
+      "parse_ms": 0.02125,
+      "parse_status": "ok"
+    },
+    "Fm8tjccm5uu": {
+      "id": "Fm8tjccm5uu",
+      "path": "/storage/cgg-test_repos/app-gs-batch-processing/complete/src/main/java/com/example/batchprocessing/PersonItemProcessor.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "0d932a8973f7493d2db0f1e2bcf558bf3d6eb9d4d4c600d480ec09eac70b0f85",
+      "size_bytes": 680,
+      "lines": 24,
+      "parse_ms": 0.11608,
+      "parse_status": "ok"
+    },
+    "Fh7mjiowwmw": {
+      "id": "Fh7mjiowwmw",
+      "path": "/storage/cgg-test_repos/app-gs-batch-processing/complete/src/test/java/com/example/batchprocessing/BatchConfigurationTest.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "858487ca1974a428b57807f6b742a6074e8856539aca52e2214b9929a15c6480",
+      "size_bytes": 2117,
+      "lines": 52,
+      "parse_ms": 0.684388,
+      "parse_status": "ok",
+      "test_role": "language-rule"
+    },
+    "F81zvqea3cp": {
+      "id": "F81zvqea3cp",
+      "path": "/storage/cgg-test_repos/app-gs-batch-processing/initial/build.gradle",
+      "language": "groovy",
+      "detected_via": "extension:.gradle",
+      "blake3": "e651d1810092237346980c9f2d1a9ea886cba425a663e704c9b7f296b8bb18f2",
+      "size_bytes": 534,
+      "lines": 28,
+      "parse_ms": 0.07681,
+      "parse_status": "ok"
+    },
+    "F2fev12hqd0": {
+      "id": "F2fev12hqd0",
+      "path": "/storage/cgg-test_repos/app-gs-batch-processing/initial/gradlew",
+      "language": "bash",
+      "detected_via": "shebang:sh",
+      "blake3": "30dcbbbe0438565ecdab8076d541367378db16e8ee56d779dba3f40dc16ffe31",
+      "size_bytes": 8706,
+      "lines": 249,
+      "parse_ms": 1.9633150000000001,
+      "parse_status": "error"
+    },
+    "F15hbfo02qly": {
+      "id": "F15hbfo02qly",
+      "path": "/storage/cgg-test_repos/app-gs-batch-processing/initial/mvnw",
+      "language": "bash",
+      "detected_via": "shebang:sh",
+      "blake3": "430b92f3b4df9bb70efeec06ee3ab29be275655665aad3129a43d17ce695db48",
+      "size_bytes": 9895,
+      "lines": 305,
+      "parse_ms": 1.583736,
+      "parse_status": "ok"
+    },
+    "Foffcl20b81": {
+      "id": "Foffcl20b81",
+      "path": "/storage/cgg-test_repos/app-gs-batch-processing/initial/settings.gradle",
+      "language": "groovy",
+      "detected_via": "extension:.gradle",
+      "blake3": "bae15468707cd24a137025bb8ee7ac20286efb7a780a82330e7da246efb4f9e1",
+      "size_bytes": 38,
+      "lines": 1,
+      "parse_ms": 0.053470000000000004,
+      "parse_status": "ok"
+    },
+    "Fjbvbkqfnjo": {
+      "id": "Fjbvbkqfnjo",
+      "path": "/storage/cgg-test_repos/app-gs-batch-processing/initial/src/main/java/com/example/batchprocessing/BatchProcessingApplication.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "e9bfbcc2b96257b954170f1ed72260cc8da6dea4eaa12249f391e739631f8b70",
+      "size_bytes": 338,
+      "lines": 13,
+      "parse_ms": 0.118959,
+      "parse_status": "ok"
+    },
+    "Fn7kcdjzuh1": {
+      "id": "Fn7kcdjzuh1",
+      "path": "<framework-entry>",
+      "language": "framework-entry",
+      "detected_via": "synthesized",
+      "blake3": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 0,
+      "lines": 0,
+      "parse_ms": 0.0,
+      "parse_status": "synthetic"
+    }
+  },
+  "edges": [
+    {
+      "src": "Ccpg2eqw0s4",
+      "dst": "Cvv2d7cqrv4",
+      "site_line": 61,
+      "site_byte": 2165,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ccpg2eqw0s4",
+      "dst": "Cqj13e30q5e",
+      "site_line": 61,
+      "site_byte": 2165,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ccpg2eqw0s4",
+      "dst": "Cfzbu3vl049",
+      "site_line": 61,
+      "site_byte": 2165,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Csm3jqg4xuf",
+      "dst": "Ca492yaqezw",
+      "site_line": 24,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "spring-batch"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Csjsmv3kf5f",
+      "dst": "C10s055kdsdz",
+      "site_line": 12,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "spring-batch"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C1fuuwhpgef",
+      "dst": "C1xw5uehcvi",
+      "site_line": 37,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "junit"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C1fuuwhpgef",
+      "dst": "Cq0c711j2t0",
+      "site_line": 42,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "junit"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C1fuuwhpgef",
+      "dst": "C12neac6m8p5",
+      "site_line": 47,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "junit"
+      },
+      "resolver": "framework-entry"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": null,
+      "file": "Fyqhpqfl9il",
+      "site_line": 127,
+      "site_byte": 4247,
+      "name": "die",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fyqhpqfl9il",
+      "site_line": 136,
+      "site_byte": 4504,
+      "name": "die",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fyqhpqfl9il",
+      "site_line": 150,
+      "site_byte": 5035,
+      "name": "warn",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fyqhpqfl9il",
+      "site_line": 158,
+      "site_byte": 5341,
+      "name": "warn",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fyqhpqfl9il",
+      "site_line": 220,
+      "site_byte": 7773,
+      "name": "die",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fis6ml8u6dj",
+      "site_line": 197,
+      "site_byte": 5484,
+      "name": "find_maven_basedir",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fis6ml8u6dj",
+      "site_line": 285,
+      "site_byte": 9101,
+      "name": "concat_lines",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": "Cqj13e30q5e",
+      "file": "Fly1xrruebu",
+      "site_line": 36,
+      "site_byte": 1371,
+      "name": "PersonItemProcessor",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F2fev12hqd0",
+      "site_line": 127,
+      "site_byte": 4247,
+      "name": "die",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F2fev12hqd0",
+      "site_line": 136,
+      "site_byte": 4504,
+      "name": "die",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F2fev12hqd0",
+      "site_line": 150,
+      "site_byte": 5035,
+      "name": "warn",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F2fev12hqd0",
+      "site_line": 158,
+      "site_byte": 5341,
+      "name": "warn",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F2fev12hqd0",
+      "site_line": 220,
+      "site_byte": 7773,
+      "name": "die",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15hbfo02qly",
+      "site_line": 197,
+      "site_byte": 5484,
+      "name": "find_maven_basedir",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15hbfo02qly",
+      "site_line": 285,
+      "site_byte": 9101,
+      "name": "concat_lines",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 17.515063,
+    "phases": {
+      "walk_ms": 8.604137,
+      "parse_ms": 8.228391000000002,
+      "extract_ms": 0.5079559999999983,
+      "resolve_ms": 0.0,
+      "link_ms": 2.098924,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 93,
+    "files_analyzed": 15,
+    "files_skipped": 78,
+    "files_errored": 0,
+    "bytes_processed": 45488,
+    "callables": 24,
+    "edges": 8,
+    "unresolved_calls": 29,
+    "stdlib_calls": 68,
+    "external_calls": 120,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "groovy": {
+        "files": 4,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 14
+      },
+      "bash": {
+        "files": 4,
+        "callables": 8,
+        "edges": 0,
+        "unresolved": 28,
+        "stdlib": 64,
+        "external": 66
+      },
+      "java": {
+        "files": 7,
+        "callables": 13,
+        "edges": 0,
+        "unresolved": 1,
+        "stdlib": 4,
+        "external": 40
+      },
+      "skip:builtin": {
+        "files": 50,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      },
+      "skip:binary": {
+        "files": 4,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 0,
+      "medium": 3,
+      "low": 0
+    }
+  }
+}

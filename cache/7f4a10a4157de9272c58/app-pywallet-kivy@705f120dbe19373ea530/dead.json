@@ -1,0 +1,2555 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "kivy",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "kivy:kv-binding"
+      ],
+      "files": 15,
+      "callables": 39,
+      "roots": 39,
+      "reachable": 39,
+      "reachable_pct": 100,
+      "findings": 0,
+      "blind_spots": [
+        "ids.foo lookups",
+        "canvas instruction properties",
+        "#:include files are not followed",
+        "KV embedded in Python strings (`Builder.load_string`) is not seen"
+      ]
+    },
+    {
+      "language": "python",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "full",
+      "test_tagging": "full",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "builtin:lifecycle",
+        "framework:entry-node",
+        "framework:rule",
+        "framework:test-harness",
+        "toplevel:invocation"
+      ],
+      "files": 35,
+      "callables": 280,
+      "roots": 97,
+      "reachable": 256,
+      "reachable_pct": 91,
+      "findings": 24,
+      "blind_spots": [
+        "getattr/setattr and other string-dispatched calls"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 319,
+    "edges": 592,
+    "unresolved_call_sites": 113,
+    "roots": 136,
+    "candidates": 38,
+    "reported": 24,
+    "regions": 21,
+    "withheld": [
+      {
+        "language": "python",
+        "category": "only-used-by-tests",
+        "reason": "missing-signal",
+        "would_have_reported": 14
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Cx09khwn93w",
+      "qualified_name": "main.PyWalletApp.build",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:base-type`"
+    },
+    {
+      "id": "C9teouxnhql",
+      "qualified_name": "main.configure_sentry",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-pywallet-kivy/src/main.py:94"
+    },
+    {
+      "id": "C126k0gp4ajb",
+      "qualified_name": "pyethapp_accounts.Account.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Caiq6a2uxo2",
+      "qualified_name": "pyethapp_accounts.Account.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "C6fzj8omp55",
+      "qualified_name": "pywalib.PyWalib.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C6tdw25ddc1",
+      "qualified_name": "AboutOverview.on_ref_press:12",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C6zzd2lvt8",
+      "qualified_name": "AboutDiagnostic.on_release:32",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C151c68mevvj",
+      "qualified_name": "About.on_tab_press:40",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C17f4lf02arp",
+      "qualified_name": "About.on_tab_press:47",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Ce05xsoe6ek",
+      "qualified_name": "About.on_tab_press:54",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Ctjrhnu8dme",
+      "qualified_name": "AboutScreen.on_pre_enter:61",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cizixizihfk",
+      "qualified_name": "pywallet.about.AboutChangelog.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C17dhqvb84jv",
+      "qualified_name": "pywallet.about.AboutOverview.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C4i36mpn7m8",
+      "qualified_name": "pywallet.addressbutton.AddressButton.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C3tcisb6c3f",
+      "qualified_name": "pywallet.addressbutton.AddressButton.set_font_and_shorten.on_parent_size",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "Cqw16zom50r",
+      "qualified_name": "pywallet.addressbutton.AddressButton.on_address_property",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "Cocwnkrdlbp",
+      "qualified_name": "pywallet.aliasform.AliasForm.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C10lnsa3sor6",
+      "qualified_name": "pywallet.controller.Controller.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cd0ljyz0g14",
+      "qualified_name": "pywallet.controller.Controller.on_keyboard",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "C8fvhmabobw",
+      "qualified_name": "pywallet.controller.Controller.update_toolbar_title_balance",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "Ct6z2xkqv61",
+      "qualified_name": "FlashQrCodeScreen.on_pre_enter:6",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C2jpidnggc4",
+      "qualified_name": "FlashQrCodeScreen.on_pre_leave:9",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cvs7oc3mt1m",
+      "qualified_name": "pywallet.flashqrcode.FlashQrCodeScreen.on_symbols",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "C17ghxkt0p4",
+      "qualified_name": "pywallet.history.History.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cq0mcoy5aik",
+      "qualified_name": "pywallet.history.History.on_current_account",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "Catywi8ixqu",
+      "qualified_name": "pywallet.history.History.update_history_list",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "C7kkknz35r5",
+      "qualified_name": "ManageExisting.on_release:21",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cwlgh1gdj7c",
+      "qualified_name": "ManageExisting.on_release:52",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Chj045a28lk",
+      "qualified_name": "ManageExisting.on_release:57",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C551obmkpdp",
+      "qualified_name": "CreateNewAccount.on_active:98",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cu3krdh6sdr",
+      "qualified_name": "CreateNewAccount.on_release:123",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cur118w9pod",
+      "qualified_name": "ManageKeystoreBottomNavigation.on_tab_press:132",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cur1qxp7o7w",
+      "qualified_name": "ManageKeystoreBottomNavigation.on_tab_press:141",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cr9pnrl982g",
+      "qualified_name": "ManageKeystoreBottomNavigation.on_tab_press:149",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cuwots9xc70",
+      "qualified_name": "ManageKeystoreScreen.on_pre_enter:156",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cmkq3nf5d9b",
+      "qualified_name": "pywallet.managekeystore.ManageExisting.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cxmr2cb34tq",
+      "qualified_name": "pywallet.managekeystore.ManageExisting.on_current_account",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "C4ph6ulpxei",
+      "qualified_name": "pywallet.managekeystore.CreateNewAccount.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cphzlnjb08j",
+      "qualified_name": "pywallet.managekeystore.ImportKeystore.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C14amksihh45",
+      "qualified_name": "Navigation.on_release:7",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cgprua042lr",
+      "qualified_name": "Navigation.on_release:11",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Culoxw2bpz5",
+      "qualified_name": "Navigation.on_release:15",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C45qxyf2wvf",
+      "qualified_name": "Navigation.on_release:19",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cg01b9o2ua4",
+      "qualified_name": "Navigation.on_release:23",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C10vqvo24jiz",
+      "qualified_name": "pywallet.navigation.NavigationDrawerTwoLineListItem.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Ctb1vce6d4q",
+      "qualified_name": "Overview.on_release:11",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cni2vtvd1p7",
+      "qualified_name": "OverviewScreen.on_pre_enter:18",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Ce0dw6b5xjs",
+      "qualified_name": "OverviewScreen.on_pre_leave:23",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C108v3q9rxq8",
+      "qualified_name": "OverviewScreen.on_title_property:25",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cehrsgyc1fo",
+      "qualified_name": "OverviewBottomNavigation.on_pre_enter:36",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Claeq5ocuo1",
+      "qualified_name": "OverviewBottomNavigation.on_pre_leave:41",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Chk4nl7je97",
+      "qualified_name": "OverviewBottomNavigation.on_pre_enter:51",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C1kdn1ary4m",
+      "qualified_name": "OverviewBottomNavigation.on_pre_enter:59",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cthztxqovt0",
+      "qualified_name": "pywallet.overview.Overview.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cykrp4p4ym5",
+      "qualified_name": "pywallet.overview.Overview.on_current_account",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "C69lo5v0vkv",
+      "qualified_name": "pywallet.overview.Overview.on_alias_updated",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "C3izlugyd47",
+      "qualified_name": "Receive.on_release:9",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C4vcq7x9a8v",
+      "qualified_name": "pywallet.receive.Receive.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cvqt7430xo1",
+      "qualified_name": "pywallet.receive.Receive.on_current_account",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "Cv03gmmf0la",
+      "qualified_name": "pywallet.receive.Receive.on_address_property",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "Cec8jy55v78",
+      "qualified_name": "pywallet.receive.Receive.on_alias_updated",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "C14vb1tfbskl",
+      "qualified_name": "MDTextField.on_release:18",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C8gh8zp71pc",
+      "qualified_name": "MDTextField.on_text:24",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cbofivbjvka",
+      "qualified_name": "MDTextField.on_release:29",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cez41rd61kq",
+      "qualified_name": "pywallet.send.Send.on_password",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "C2ut140ja62",
+      "qualified_name": "kv.on_pre_enter:6",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C4q0jgf4259",
+      "qualified_name": "kv.on_pre_leave:8",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C134m5qtvx14",
+      "qualified_name": "MDLabel.on_active:78",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C4f1pmlrk9z",
+      "qualified_name": "SettingsScreen.kv_rule:5",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C188xeaelzlc",
+      "qualified_name": "SwitchAccountScreen.on_pre_enter:13",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C337xkxct5x",
+      "qualified_name": "pywallet.switchaccount.SwitchAccount.on_release",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "Cwospk1y9aq",
+      "qualified_name": "pywallet.toolbar.PWToolbar.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C10hqte4arb7",
+      "qualified_name": "pywallet.utils.StringIOCBWrite.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Ca5sxlawgmh",
+      "qualified_name": "pywallet.utils.Dialog.on_dialog_dismiss",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "C10cirwh1ub5",
+      "qualified_name": "test_settings.TestSettings.setUpClass",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Cqy73s8bdos",
+      "qualified_name": "test_settings.TestSettings.setUp",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Cfy3nar9ggy",
+      "qualified_name": "test_settings.TestSettings.tearDown",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "C113mblc3osn",
+      "qualified_name": "test_settings.TestSettings.test_get_set_stored_network",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Ca9igobleiu",
+      "qualified_name": "test_settings.TestSettings.test_is_stored_mainnet",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Cpt3vtdevhh",
+      "qualified_name": "test_settings.TestSettings.test_is_stored_testnet",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Cax849qry02",
+      "qualified_name": "test_settings.TestSettings.test_get_set_stored_gas_price",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Cvuvof3bn06",
+      "qualified_name": "test_settings.TestSettings.test_get_set_is_persistent_keystore",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "C15e7cpfpn58",
+      "qualified_name": "test_settings.TestSettings.test_get_android_keystore_prefix",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Ctb45f2efmx",
+      "qualified_name": "tests.test_import.ModulesImportTestCase.test_hashlib_sha3",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "C3ncxvvly55",
+      "qualified_name": "tests.test_import.ModulesImportTestCase.test_zbarcam",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "C81mjq6c75n",
+      "qualified_name": "tests.test_pywalib.PywalibModuleTestCase.test_handle_etherscan_response_json",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Cgkinlz4td7",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.setUp",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "C11fhzyh0h36",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.tearDown",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Cd1qoqzgpeg",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.helper_new_account",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "Cjj2eff6g5u",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_new_account",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Czahzfj0y16",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.helper_test_new_account_security_ratio_ok",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "Cwt36vlwngb",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.helper_test_new_account_security_ratio_error",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "C6jxx2e1dag",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_new_account_security_ratio",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "C103hwfxyhhn",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_update_account_password",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "C2axds73zo1",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_deleted_account_dir",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Cgv9hycr9pg",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_delete_account",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "C3je9byr3ur",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_delete_account_already_exists",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "C8cu9acn571",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_get_balance",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Cgivvo12bnx",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_get_balance_web3",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Cy0muvq94md",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.helper_test_get_history",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "Cvhqp9d9wg6",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_get_transaction_history",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Cgakgk91jdj",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_get_out_transaction_history",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Cksbyzjeeol",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_get_nonce",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "C65yvh3vx6r",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_get_nonce_no_out_transaction",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "C1jxuqj0x71",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_get_nonce_no_transaction",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Clsam4c7b89",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_handle_web3_exception",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "C57uf6yna07",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_transact",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "C14zqha7jrtp",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_transact_no_sender",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Czhon0ci65r",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_transact_no_funds",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "C15pffxqu9rm",
+      "qualified_name": "tests.test_pywalib.PywalibTestCase.test_get_default_keystore_path",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Cmkbvtafxe6",
+      "qualified_name": "tests.test_testsuite.TestSuitetTestCase.test_testsuite",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "C8etv6iimnf",
+      "qualified_name": "test_ui_base.Test.setUp",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Cb1gqp9g4mw",
+      "qualified_name": "test_ui_base.Test.tearDown",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Cu12kawy6l1",
+      "qualified_name": "test_ui_base.Test.pause",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "Cpjm3nshn6h",
+      "qualified_name": "test_ui_base.Test.advance_frames",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "C2hy2zl9pi0",
+      "qualified_name": "test_ui_base.Test.helper_setup",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "Cl2ub7bos78",
+      "qualified_name": "test_ui_base.Test.helper_test_empty_account",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "C14y1byj97g",
+      "qualified_name": "test_ui_base.Test.helper_test_back_home_empty_account",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "Cwjcdvwcymy",
+      "qualified_name": "test_ui_base.Test.helper_test_create_first_account",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "Colcamvvwzu",
+      "qualified_name": "test_ui_base.Test.helper_test_create_account_form",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "Ct5ouu98213",
+      "qualified_name": "test_ui_base.Test.helper_test_on_send_click",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "Ccvt9634zmc",
+      "qualified_name": "test_ui_base.Test.helper_test_send",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "C8jk9c74dsj",
+      "qualified_name": "test_ui_base.Test.helper_load_switch_account",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "Cfslboc754b",
+      "qualified_name": "test_ui_base.Test.helper_test_address_alias",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "Cy3adb3d5u4",
+      "qualified_name": "test_ui_base.Test.helper_test_delete_account",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "C10ybo4cmaea",
+      "qualified_name": "test_ui_base.Test.helper_test_delete_account_none_selected",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "Cez6wqzrdjo",
+      "qualified_name": "test_ui_base.Test.helper_confirm_account_deletion",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "Crvnk4j5c7y",
+      "qualified_name": "test_ui_base.Test.helper_test_delete_account_twice",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "C3n2hl1azmo",
+      "qualified_name": "test_ui_base.Test.helper_test_dismiss_dialog_twice",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "C5uyy4hvpjs",
+      "qualified_name": "test_ui_base.Test.helper_test_controller_fetch_balance",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "Cgouel7z9re",
+      "qualified_name": "test_ui_base.Test.helper_test_delete_last_account",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "Cycpejla1ap",
+      "qualified_name": "test_ui_base.Test.helper_test_about",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "Cjj3rjf8miz",
+      "qualified_name": "test_ui_base.Test.helper_test_flashqrcode",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "Cr379bwpa0j",
+      "qualified_name": "test_ui_base.Test.run_test",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `test:py-unittest:base-type`"
+    },
+    {
+      "id": "Cwmmpelwxvf",
+      "qualified_name": "test_ui_base.Test.test_ui_base",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::py-unittest`"
+    },
+    {
+      "id": "Ch7itwvaqy9",
+      "qualified_name": "<framework-entry>::test::py-unittest",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::py-unittest`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "C5nrh3orcsa"
+      ],
+      "anchors": [
+        "C5nrh3orcsa"
+      ],
+      "files": [
+        "Ftetniqdb07"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 6,
+      "members": [
+        "Con0x52wtpj"
+      ],
+      "anchors": [
+        "Con0x52wtpj"
+      ],
+      "files": [
+        "Fdjmvfqwtwx"
+      ],
+      "total_lines": 21,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 7,
+      "members": [
+        "Cv6o1h37ov"
+      ],
+      "anchors": [
+        "Cv6o1h37ov"
+      ],
+      "files": [
+        "Fdjmvfqwtwx"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 8,
+      "members": [
+        "Cgytt2sqkni",
+        "Cmb5ac90w8z"
+      ],
+      "anchors": [
+        "Cmb5ac90w8z"
+      ],
+      "files": [
+        "Fdjmvfqwtwx"
+      ],
+      "total_lines": 22,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 13,
+      "members": [
+        "Crnarncsti9"
+      ],
+      "anchors": [
+        "Crnarncsti9"
+      ],
+      "files": [
+        "Fdjmvfqwtwx"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 15,
+      "members": [
+        "C11d1gbpzv0o"
+      ],
+      "anchors": [
+        "C11d1gbpzv0o"
+      ],
+      "files": [
+        "Fdjmvfqwtwx"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 16,
+      "members": [
+        "Cn67umcelwu"
+      ],
+      "anchors": [
+        "Cn67umcelwu"
+      ],
+      "files": [
+        "Fdjmvfqwtwx"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 62,
+      "members": [
+        "Cp79cgat3xq"
+      ],
+      "anchors": [
+        "Cp79cgat3xq"
+      ],
+      "files": [
+        "Flmqe0henfp"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 67,
+      "members": [
+        "Cv8tt77j8s8"
+      ],
+      "anchors": [
+        "Cv8tt77j8s8"
+      ],
+      "files": [
+        "Flmqe0henfp"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 70,
+      "members": [
+        "C7yozxo4zzd"
+      ],
+      "anchors": [
+        "C7yozxo4zzd"
+      ],
+      "files": [
+        "Flmqe0henfp"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 92,
+      "members": [
+        "C2g9446r6v9"
+      ],
+      "anchors": [
+        "C2g9446r6v9"
+      ],
+      "files": [
+        "Flmqe0henfp"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 157,
+      "members": [
+        "Cmdcydbzlqe"
+      ],
+      "anchors": [
+        "Cmdcydbzlqe"
+      ],
+      "files": [
+        "Fq9rfpwptcw"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 158,
+      "members": [
+        "C9akksm8c7l"
+      ],
+      "anchors": [
+        "C9akksm8c7l"
+      ],
+      "files": [
+        "Fq9rfpwptcw"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 181,
+      "members": [
+        "Cdh1ttyt037"
+      ],
+      "anchors": [
+        "Cdh1ttyt037"
+      ],
+      "files": [
+        "Flmwhpf0r4u"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 186,
+      "members": [
+        "C1qph95a6rr"
+      ],
+      "anchors": [
+        "C1qph95a6rr"
+      ],
+      "files": [
+        "Fobu52h4psn"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 221,
+      "members": [
+        "Cromql52zsr"
+      ],
+      "anchors": [
+        "Cromql52zsr"
+      ],
+      "files": [
+        "F9lt5oz5vzb"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 229,
+      "members": [
+        "C4hbh1sbthv",
+        "Cxpc7pb12xj"
+      ],
+      "anchors": [
+        "Cxpc7pb12xj"
+      ],
+      "files": [
+        "Fshqztv500l"
+      ],
+      "total_lines": 29,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 231,
+      "members": [
+        "Cvorcjkslc5"
+      ],
+      "anchors": [
+        "Cvorcjkslc5"
+      ],
+      "files": [
+        "F15lkoaz5ou9"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 236,
+      "members": [
+        "C99q8ng3iei",
+        "Cbywdxj1k01"
+      ],
+      "anchors": [
+        "C99q8ng3iei"
+      ],
+      "files": [
+        "F11ygu2vkb58"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 238,
+      "members": [
+        "C41b3n6mqxr"
+      ],
+      "anchors": [
+        "C41b3n6mqxr"
+      ],
+      "files": [
+        "F11ygu2vkb58"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 242,
+      "members": [
+        "C17u61g1ounv"
+      ],
+      "anchors": [
+        "C17u61g1ounv"
+      ],
+      "files": [
+        "F11ygu2vkb58"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cdh1ttyt037",
+      "qualified_name": "pywallet.selectioncontrols.CustomMDSwitch._set_colors",
+      "simple_name": "_set_colors",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Flmwhpf0r4u",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/selectioncontrols.py",
+      "start_line": 12,
+      "end_line": 19,
+      "size_lines": 8,
+      "signature_hint": "def _set_colors(self, *args)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 308,
+      "region": 181,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "MDSwitch"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmdcydbzlqe",
+      "qualified_name": "pywallet.navigation.NavigationDrawerTwoLineListItem._update_specific_text_color",
+      "simple_name": "_update_specific_text_color",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fq9rfpwptcw",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/navigation.py",
+      "start_line": 38,
+      "end_line": 39,
+      "size_lines": 2,
+      "signature_hint": "def _update_specific_text_color(self, instance, value)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 302,
+      "region": 157,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "NavigationDrawerHeaderBase"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C9akksm8c7l",
+      "qualified_name": "pywallet.navigation.NavigationDrawerTwoLineListItem._set_active",
+      "simple_name": "_set_active",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fq9rfpwptcw",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/navigation.py",
+      "start_line": 41,
+      "end_line": 42,
+      "size_lines": 2,
+      "signature_hint": "def _set_active(self, active, list)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 302,
+      "region": 158,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "NavigationDrawerHeaderBase"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Con0x52wtpj",
+      "qualified_name": "pyethapp_accounts.Account.new",
+      "simple_name": "new",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "class_method",
+      "file": "Fdjmvfqwtwx",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pyethapp_accounts.py",
+      "start_line": 45,
+      "end_line": 65,
+      "size_lines": 21,
+      "signature_hint": "def new(cls, password: bytes, key: bytes = None, uuid=None, path=None, iterations=None)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 121,
+      "region": 6,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cgytt2sqkni",
+      "qualified_name": "pyethapp_accounts.Account.dump",
+      "simple_name": "dump",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fdjmvfqwtwx",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pyethapp_accounts.py",
+      "start_line": 81,
+      "end_line": 99,
+      "size_lines": 19,
+      "signature_hint": "def dump(self, include_address=True, include_id=True)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 119,
+      "region": 8,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cmb5ac90w8z"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cv6o1h37ov",
+      "qualified_name": "pyethapp_accounts.Account.load",
+      "simple_name": "load",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "class_method",
+      "file": "Fdjmvfqwtwx",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pyethapp_accounts.py",
+      "start_line": 68,
+      "end_line": 79,
+      "size_lines": 12,
+      "signature_hint": "def load(cls, path, password: bytes = None)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 112,
+      "region": 7,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cbywdxj1k01",
+      "qualified_name": "pywallet.utils.run_in_thread.run",
+      "simple_name": "run",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F11ygu2vkb58",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/utils.py",
+      "start_line": 34,
+      "end_line": 37,
+      "size_lines": 4,
+      "signature_hint": "def run(*k, **kw)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 104,
+      "region": 236,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C99q8ng3iei"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmb5ac90w8z",
+      "qualified_name": "pyethapp_accounts.Account.dump_to_disk",
+      "simple_name": "dump_to_disk",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fdjmvfqwtwx",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pyethapp_accounts.py",
+      "start_line": 101,
+      "end_line": 103,
+      "size_lines": 3,
+      "signature_hint": "def dump_to_disk(self, include_address=True, include_id=True)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 8,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C4hbh1sbthv",
+      "qualified_name": "pywallet.switchaccount.SwitchAccount.create_item",
+      "simple_name": "create_item",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fshqztv500l",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/switchaccount.py",
+      "start_line": 27,
+      "end_line": 44,
+      "size_lines": 18,
+      "signature_hint": "def create_item(self, account)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -182,
+      "region": 229,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "BoxLayout"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cxpc7pb12xj"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "Cxpc7pb12xj",
+      "qualified_name": "pywallet.switchaccount.SwitchAccount.load_account_list",
+      "simple_name": "load_account_list",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fshqztv500l",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/switchaccount.py",
+      "start_line": 46,
+      "end_line": 56,
+      "size_lines": 11,
+      "signature_hint": "def load_account_list(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -189,
+      "region": 229,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "BoxLayout"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Crnarncsti9",
+      "qualified_name": "pyethapp_accounts.Account.pubkey",
+      "simple_name": "pubkey",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "Fdjmvfqwtwx",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pyethapp_accounts.py",
+      "start_line": 144,
+      "end_line": 152,
+      "size_lines": 9,
+      "signature_hint": "def pubkey(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -191,
+      "region": 13,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C1qph95a6rr",
+      "qualified_name": "pywallet.send.MDFloatInput.insert_text",
+      "simple_name": "insert_text",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fobu52h4psn",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/send.py",
+      "start_line": 30,
+      "end_line": 36,
+      "size_lines": 7,
+      "signature_hint": "def insert_text(self, substring, from_undo=False)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -193,
+      "region": 186,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "MDTextField"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvorcjkslc5",
+      "qualified_name": "pywallet.textfields.FloatInput.insert_text",
+      "simple_name": "insert_text",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F15lkoaz5ou9",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/textfields.py",
+      "start_line": 13,
+      "end_line": 19,
+      "size_lines": 7,
+      "signature_hint": "def insert_text(self, substring, from_undo=False)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -193,
+      "region": 231,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "MDTextField"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5nrh3orcsa",
+      "qualified_name": "main.DebugRavenClient.captureException",
+      "simple_name": "captureException",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ftetniqdb07",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/main.py",
+      "start_line": 38,
+      "end_line": 39,
+      "size_lines": 2,
+      "signature_hint": "def captureException(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -198,
+      "region": 0,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2g9446r6v9",
+      "qualified_name": "pywallet.controller.Controller.on_alias_updated",
+      "simple_name": "on_alias_updated",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Flmqe0henfp",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/controller.py",
+      "start_line": 389,
+      "end_line": 390,
+      "size_lines": 2,
+      "signature_hint": "def on_alias_updated(self, *args)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -198,
+      "region": 92,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "FloatLayout"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cromql52zsr",
+      "qualified_name": "pywallet.settings_screen.SettingsScreen.is_ui_testnet",
+      "simple_name": "is_ui_testnet",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F9lt5oz5vzb",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/settings_screen.py",
+      "start_line": 144,
+      "end_line": 145,
+      "size_lines": 2,
+      "signature_hint": "def is_ui_testnet(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -198,
+      "region": 221,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Screen"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C99q8ng3iei",
+      "qualified_name": "pywallet.utils.run_in_thread",
+      "simple_name": "run_in_thread",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F11ygu2vkb58",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/utils.py",
+      "start_line": 16,
+      "end_line": 38,
+      "size_lines": 23,
+      "signature_hint": "def run_in_thread(fn)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -377,
+      "region": 236,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "run_in_thread",
+          "sites": 6,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fcx0eops74v",
+            "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/about.py",
+            "line": 62,
+            "name": "run_in_thread"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C41b3n6mqxr",
+      "qualified_name": "pywallet.utils.load_kv_from_py",
+      "simple_name": "load_kv_from_py",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F11ygu2vkb58",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/utils.py",
+      "start_line": 41,
+      "end_line": 51,
+      "size_lines": 11,
+      "signature_hint": "def load_kv_from_py(f)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -389,
+      "region": 238,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "load_kv_from_py",
+          "sites": 15,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fcx0eops74v",
+            "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/about.py",
+            "line": 13,
+            "name": "load_kv_from_py"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cv8tt77j8s8",
+      "qualified_name": "pywallet.controller.Controller.about",
+      "simple_name": "about",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "Flmqe0henfp",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/controller.py",
+      "start_line": 117,
+      "end_line": 121,
+      "size_lines": 5,
+      "signature_hint": "def about(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -495,
+      "region": 67,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "FloatLayout"
+        },
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cp79cgat3xq",
+      "qualified_name": "pywallet.controller.Controller.overview",
+      "simple_name": "overview",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "Flmqe0henfp",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/controller.py",
+      "start_line": 88,
+      "end_line": 90,
+      "size_lines": 3,
+      "signature_hint": "def overview(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -497,
+      "region": 62,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "FloatLayout"
+        },
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C7yozxo4zzd",
+      "qualified_name": "pywallet.controller.Controller.toolbar",
+      "simple_name": "toolbar",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "Flmqe0henfp",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/controller.py",
+      "start_line": 134,
+      "end_line": 135,
+      "size_lines": 2,
+      "signature_hint": "def toolbar(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -498,
+      "region": 70,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "FloatLayout"
+        },
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17u61g1ounv",
+      "qualified_name": "pywallet.utils.StringIOCBWrite.write",
+      "simple_name": "write",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11ygu2vkb58",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pywallet/utils.py",
+      "start_line": 90,
+      "end_line": 97,
+      "size_lines": 8,
+      "signature_hint": "def write(self, s)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 242,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "StringIO"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "write",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fdjmvfqwtwx",
+            "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pyethapp_accounts.py",
+            "line": 103,
+            "name": "write",
+            "receiver_hint": "f"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cn67umcelwu",
+      "qualified_name": "pyethapp_accounts.Account.uuid",
+      "simple_name": "uuid",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fdjmvfqwtwx",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pyethapp_accounts.py",
+      "start_line": 183,
+      "end_line": 190,
+      "size_lines": 8,
+      "signature_hint": "def uuid(self, value)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -992,
+      "region": 16,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 3,
+          "file_local_candidates": 2,
+          "example": {
+            "file": "Fdjmvfqwtwx",
+            "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pyethapp_accounts.py",
+            "line": 97,
+            "name": "uuid",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 2
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "uuid",
+          "sites": 3,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 3,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fdjmvfqwtwx",
+            "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pyethapp_accounts.py",
+            "line": 97,
+            "name": "uuid",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11d1gbpzv0o",
+      "qualified_name": "pyethapp_accounts.Account.uuid",
+      "simple_name": "uuid",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "Fdjmvfqwtwx",
+      "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pyethapp_accounts.py",
+      "start_line": 172,
+      "end_line": 180,
+      "size_lines": 9,
+      "signature_hint": "def uuid(self)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1291,
+      "region": 15,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 3,
+          "file_local_candidates": 2,
+          "example": {
+            "file": "Fdjmvfqwtwx",
+            "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pyethapp_accounts.py",
+            "line": 97,
+            "name": "uuid",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 2
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "uuid",
+          "sites": 3,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 3,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fdjmvfqwtwx",
+            "path": "/storage/cgg-test_repos/app-pywallet-kivy/src/pyethapp_accounts.py",
+            "line": 97,
+            "name": "uuid",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

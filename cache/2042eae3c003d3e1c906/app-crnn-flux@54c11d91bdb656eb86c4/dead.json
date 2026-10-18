@@ -1,0 +1,3110 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "julia",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 26,
+      "callables": 146,
+      "roots": 99,
+      "reachable": 107,
+      "reachable_pct": 73,
+      "findings": 39
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 146,
+    "edges": 64,
+    "unresolved_call_sites": 191,
+    "roots": 99,
+    "candidates": 39,
+    "reported": 39,
+    "regions": 39
+  },
+  "roots": [
+    {
+      "id": "Czqw1l4g7xq",
+      "qualified_name": "plot_sol",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/callback.jl:108"
+    },
+    {
+      "id": "C8i0e6hlivt",
+      "qualified_name": "plot_loss",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/callback.jl:181"
+    },
+    {
+      "id": "Cguqrnmuc97",
+      "qualified_name": "load_exp",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/dataset.jl:17"
+    },
+    {
+      "id": "C14p8nk3whfo",
+      "qualified_name": "p2vec",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case3/case3.jl:267"
+    },
+    {
+      "id": "Cptk6czcs86",
+      "qualified_name": "display_p",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:210"
+    },
+    {
+      "id": "Cvjrus64we4",
+      "qualified_name": "loss_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:253"
+    },
+    {
+      "id": "C84dsv1duwg",
+      "qualified_name": "plot_sol",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/callback.jl:108"
+    },
+    {
+      "id": "Cqyk1tgx0xc",
+      "qualified_name": "plot_loss",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/callback.jl:181"
+    },
+    {
+      "id": "Cf6dsfgw3pc",
+      "qualified_name": "load_exp",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/dataset.jl:17"
+    },
+    {
+      "id": "C7ewaib8bq",
+      "qualified_name": "p2vec",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case3/case3.jl:267"
+    },
+    {
+      "id": "C9ao1jjlehx",
+      "qualified_name": "display_p",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:210"
+    },
+    {
+      "id": "Cd71rcd2jly",
+      "qualified_name": "loss_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:253"
+    },
+    {
+      "id": "Cledk45jhvw",
+      "qualified_name": "make_plots",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/post_Plotting.jl:344"
+    },
+    {
+      "id": "Cqxvjdryq8l",
+      "qualified_name": "A_Ea_plots",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/post_Plotting.jl:273"
+    },
+    {
+      "id": "Cwz88ujep69",
+      "qualified_name": "p2vec",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case3/case3.jl:267"
+    },
+    {
+      "id": "Cgbh89tvj5k",
+      "qualified_name": "display_p",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:210"
+    },
+    {
+      "id": "Cgqdpwkgh9y",
+      "qualified_name": "Y2density",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/HyChem/crnn_pyrolysis_mass.jl:110"
+    },
+    {
+      "id": "Cd0spvs1vzs",
+      "qualified_name": "Y2C",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/HyChem/crnn_pyrolysis_mass.jl:117"
+    },
+    {
+      "id": "C4hkagdbf0v",
+      "qualified_name": "predict_n_ode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/HyChem/crnn_pyrolysis_mass.jl:160"
+    },
+    {
+      "id": "Cv6d9nj0o0c",
+      "qualified_name": "loss_n_ode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/HyChem/crnn_pyrolysis_mass.jl:201"
+    },
+    {
+      "id": "Cbptljg59yf",
+      "qualified_name": "max_min",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_qssa.jl:71"
+    },
+    {
+      "id": "Ccds62iv49v",
+      "qualified_name": "p2vec",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case3/case3.jl:267"
+    },
+    {
+      "id": "Cd9tortsgbg",
+      "qualified_name": "predict_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:171"
+    },
+    {
+      "id": "Chvtihkeb9g",
+      "qualified_name": "display_p",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:210"
+    },
+    {
+      "id": "C13pm5z5j0nx",
+      "qualified_name": "loss_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:253"
+    },
+    {
+      "id": "C14n49ycc72u",
+      "qualified_name": "max_min",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_qssa.jl:71"
+    },
+    {
+      "id": "C3ra3992acv",
+      "qualified_name": "p2vec",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case3/case3.jl:267"
+    },
+    {
+      "id": "Cuzqhku3g3w",
+      "qualified_name": "predict_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:171"
+    },
+    {
+      "id": "C13i42ukmhuv",
+      "qualified_name": "display_p",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:210"
+    },
+    {
+      "id": "Cmuu7uixmsr",
+      "qualified_name": "loss_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:253"
+    },
+    {
+      "id": "C13u3eaez77n",
+      "qualified_name": "max_min",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_qssa.jl:71"
+    },
+    {
+      "id": "C14b7uppwmh5",
+      "qualified_name": "p2vec",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case3/case3.jl:267"
+    },
+    {
+      "id": "Cjwsdxjkxom",
+      "qualified_name": "pred_ode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case1 rev/case1.jl:129"
+    },
+    {
+      "id": "Ch280ui6bvc",
+      "qualified_name": "display_p",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:210"
+    },
+    {
+      "id": "C15lu6yhw88g",
+      "qualified_name": "loss_ode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case1 rev/case1.jl:201"
+    },
+    {
+      "id": "Cpit2edk4y9",
+      "qualified_name": "Arrhenius",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case2/case2_pruning.jl:87"
+    },
+    {
+      "id": "Ccbr0v4op8u",
+      "qualified_name": "max_min",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_qssa.jl:71"
+    },
+    {
+      "id": "Cwk0u2dq7cd",
+      "qualified_name": "p2vec",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case3/case3.jl:267"
+    },
+    {
+      "id": "C80qawpl5bj",
+      "qualified_name": "display_p",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:210"
+    },
+    {
+      "id": "C6gy5sdwxzs",
+      "qualified_name": "predict_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:171"
+    },
+    {
+      "id": "Ccrh7waofnd",
+      "qualified_name": "loss_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:253"
+    },
+    {
+      "id": "C9benya2c29",
+      "qualified_name": "Arrhenius",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case2/case2_pruning.jl:87"
+    },
+    {
+      "id": "Cz3wwzelk8s",
+      "qualified_name": "max_min",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_qssa.jl:71"
+    },
+    {
+      "id": "Ce98p5hh5sc",
+      "qualified_name": "p2vec",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case3/case3.jl:267"
+    },
+    {
+      "id": "Cza59vtnsu3",
+      "qualified_name": "predict_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:171"
+    },
+    {
+      "id": "Cjagio3385j",
+      "qualified_name": "display_p",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:210"
+    },
+    {
+      "id": "Ckuhx745g2o",
+      "qualified_name": "display_grad",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case2/case2_missing.jl:280"
+    },
+    {
+      "id": "C11xua828hno",
+      "qualified_name": "loss_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:253"
+    },
+    {
+      "id": "Czbod53uz46",
+      "qualified_name": "Arrhenius",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case2/case2_pruning.jl:87"
+    },
+    {
+      "id": "C2igqu4vmm2",
+      "qualified_name": "max_min",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_qssa.jl:71"
+    },
+    {
+      "id": "Cimbrqedpei",
+      "qualified_name": "p2vec",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case3/case3.jl:267"
+    },
+    {
+      "id": "C4j7yt9spaj",
+      "qualified_name": "predict_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:171"
+    },
+    {
+      "id": "Cji528lamo0",
+      "qualified_name": "display_p",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:210"
+    },
+    {
+      "id": "Ce5ex6z4ans",
+      "qualified_name": "loss_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:253"
+    },
+    {
+      "id": "C4g8srrwexk",
+      "qualified_name": "p2vec",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case3/case3.jl:267"
+    },
+    {
+      "id": "Chbwf3eopup",
+      "qualified_name": "display_p",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:210"
+    },
+    {
+      "id": "C17bttino2hk",
+      "qualified_name": "display_grad",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case2/case2_missing.jl:280"
+    },
+    {
+      "id": "C3gsxuggmmv",
+      "qualified_name": "max_min",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_qssa.jl:71"
+    },
+    {
+      "id": "C188szzs5ao",
+      "qualified_name": "predict_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:171"
+    },
+    {
+      "id": "Cum5wqfp08e",
+      "qualified_name": "loss_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:253"
+    },
+    {
+      "id": "Cqp2f512bxy",
+      "qualified_name": "display_grad",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case2/case2_missing.jl:280"
+    },
+    {
+      "id": "Cdwpbswcmwb",
+      "qualified_name": "max_min",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_qssa.jl:71"
+    },
+    {
+      "id": "C2q15ymbwls",
+      "qualified_name": "predict_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:171"
+    },
+    {
+      "id": "Cac8s6af8hu",
+      "qualified_name": "loss_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:253"
+    },
+    {
+      "id": "C4b4hw9fagt",
+      "qualified_name": "p2vec",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case3/case3.jl:267"
+    },
+    {
+      "id": "Cqwcc83qoug",
+      "qualified_name": "display_p",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:210"
+    },
+    {
+      "id": "Cwpmo8wgokt",
+      "qualified_name": "display_grad",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case2/case2_missing.jl:280"
+    },
+    {
+      "id": "Cqf971swrds",
+      "qualified_name": "max_min",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_qssa.jl:71"
+    },
+    {
+      "id": "Clb8m9uadqg",
+      "qualified_name": "predict_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:171"
+    },
+    {
+      "id": "C15w01mcgzzo",
+      "qualified_name": "loss_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:253"
+    },
+    {
+      "id": "Cuc59mql1ja",
+      "qualified_name": "p2vec",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case3/case3.jl:267"
+    },
+    {
+      "id": "Cy2hhdivddb",
+      "qualified_name": "display_p",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:210"
+    },
+    {
+      "id": "C3p5kx33lnm",
+      "qualified_name": "p2vec",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case3/case3.jl:267"
+    },
+    {
+      "id": "C14h0eytwfee",
+      "qualified_name": "display_p",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:210"
+    },
+    {
+      "id": "C12fmyfywtyo",
+      "qualified_name": "display_grad",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case2/case2_missing.jl:280"
+    },
+    {
+      "id": "C6jj66nem7y",
+      "qualified_name": "max_min",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_qssa.jl:71"
+    },
+    {
+      "id": "Cme4pp25q3s",
+      "qualified_name": "predict_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:171"
+    },
+    {
+      "id": "Cr5tzro2quv",
+      "qualified_name": "loss_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:253"
+    },
+    {
+      "id": "Cbh4fvqu5az",
+      "qualified_name": "max_min",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_qssa.jl:71"
+    },
+    {
+      "id": "Ck6yf90m462",
+      "qualified_name": "p2vec",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case3/case3.jl:267"
+    },
+    {
+      "id": "Chbhjmfwes2",
+      "qualified_name": "display_p",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:210"
+    },
+    {
+      "id": "C16u9uulznxb",
+      "qualified_name": "predict_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:171"
+    },
+    {
+      "id": "Cicof2nwl7q",
+      "qualified_name": "loss_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:253"
+    },
+    {
+      "id": "C4z12kqb8t0",
+      "qualified_name": "max_min",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_qssa.jl:71"
+    },
+    {
+      "id": "Cmtik4q5u2",
+      "qualified_name": "p2vec",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case3/case3.jl:267"
+    },
+    {
+      "id": "Cscjc1zfdqk",
+      "qualified_name": "display_p",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:210"
+    },
+    {
+      "id": "Cjry299jdh8",
+      "qualified_name": "predict_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:171"
+    },
+    {
+      "id": "Cknbvfwxa4r",
+      "qualified_name": "loss_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:253"
+    },
+    {
+      "id": "C138k8skubpy",
+      "qualified_name": "loss_lm",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_lm.jl:217"
+    },
+    {
+      "id": "C3wtdwwyjyg",
+      "qualified_name": "max_min",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_qssa.jl:71"
+    },
+    {
+      "id": "Cbpbzf0p8k",
+      "qualified_name": "p2vec",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case3/case3.jl:267"
+    },
+    {
+      "id": "Cncwv2hzbw5",
+      "qualified_name": "display_p",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:210"
+    },
+    {
+      "id": "Czeyg2gpjej",
+      "qualified_name": "predict_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:171"
+    },
+    {
+      "id": "Cef3rkog1r1",
+      "qualified_name": "loss_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:253"
+    },
+    {
+      "id": "C12n7gfgwlgj",
+      "qualified_name": "max_min",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_qssa.jl:71"
+    },
+    {
+      "id": "C14b2n5gotx7",
+      "qualified_name": "p2vec",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/case3/case3.jl:267"
+    },
+    {
+      "id": "Ckcbar80jm9",
+      "qualified_name": "display_p",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:210"
+    },
+    {
+      "id": "Ckrrhd0xrsi",
+      "qualified_name": "predict_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:171"
+    },
+    {
+      "id": "Cyoj7tqxwuu",
+      "qualified_name": "loss_neuralode",
+      "language": "julia",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl:253"
+    }
+  ],
+  "regions": [
+    {
+      "id": 6,
+      "members": [
+        "Ce7aam1tvjr"
+      ],
+      "anchors": [
+        "Ce7aam1tvjr"
+      ],
+      "files": [
+        "Fznehlb0yha"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 8,
+      "members": [
+        "Cqsp19skgrh"
+      ],
+      "anchors": [
+        "Cqsp19skgrh"
+      ],
+      "files": [
+        "Fznehlb0yha"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 9,
+      "members": [
+        "C16usp5uozx9"
+      ],
+      "anchors": [
+        "C16usp5uozx9"
+      ],
+      "files": [
+        "Fznehlb0yha"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 15,
+      "members": [
+        "C3997c63awj"
+      ],
+      "anchors": [
+        "C3997c63awj"
+      ],
+      "files": [
+        "Fb4cfc0z971"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 16,
+      "members": [
+        "C8px9dg4qab"
+      ],
+      "anchors": [
+        "C8px9dg4qab"
+      ],
+      "files": [
+        "Fb4cfc0z971"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 17,
+      "members": [
+        "Cdifd7cu1ht"
+      ],
+      "anchors": [
+        "Cdifd7cu1ht"
+      ],
+      "files": [
+        "Fb4cfc0z971"
+      ],
+      "total_lines": 21,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 22,
+      "members": [
+        "C166gh84m6mc"
+      ],
+      "anchors": [
+        "C166gh84m6mc"
+      ],
+      "files": [
+        "Fb4cfc0z971"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 24,
+      "members": [
+        "C14khc53jvn4"
+      ],
+      "anchors": [
+        "C14khc53jvn4"
+      ],
+      "files": [
+        "Fb4cfc0z971"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 25,
+      "members": [
+        "C9n3ivkp3dx"
+      ],
+      "anchors": [
+        "C9n3ivkp3dx"
+      ],
+      "files": [
+        "Fb4cfc0z971"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 26,
+      "members": [
+        "C11azgy7nqyf"
+      ],
+      "anchors": [
+        "C11azgy7nqyf"
+      ],
+      "files": [
+        "Fb4cfc0z971"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 28,
+      "members": [
+        "C14iu9j3mggp"
+      ],
+      "anchors": [
+        "C14iu9j3mggp"
+      ],
+      "files": [
+        "Fb4cfc0z971"
+      ],
+      "total_lines": 39,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 37,
+      "members": [
+        "Cf5fhvxbk50"
+      ],
+      "anchors": [
+        "Cf5fhvxbk50"
+      ],
+      "files": [
+        "F8ppjptp0wu"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 40,
+      "members": [
+        "C2jbaagf5l1"
+      ],
+      "anchors": [
+        "C2jbaagf5l1"
+      ],
+      "files": [
+        "F17pxnlzlepn"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 43,
+      "members": [
+        "Ch8kzba7zov"
+      ],
+      "anchors": [
+        "Ch8kzba7zov"
+      ],
+      "files": [
+        "F17pxnlzlepn"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 47,
+      "members": [
+        "Cetke470kb0"
+      ],
+      "anchors": [
+        "Cetke470kb0"
+      ],
+      "files": [
+        "F103wqogzd5i"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 50,
+      "members": [
+        "Cb7ta9z6o8l"
+      ],
+      "anchors": [
+        "Cb7ta9z6o8l"
+      ],
+      "files": [
+        "F103wqogzd5i"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 56,
+      "members": [
+        "Cu4lovhsxfq"
+      ],
+      "anchors": [
+        "Cu4lovhsxfq"
+      ],
+      "files": [
+        "Foidhlqh2he"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 60,
+      "members": [
+        "C13q4h5tzkwq"
+      ],
+      "anchors": [
+        "C13q4h5tzkwq"
+      ],
+      "files": [
+        "Fb1r45xko0i"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 65,
+      "members": [
+        "C15f1hl4cyr2"
+      ],
+      "anchors": [
+        "C15f1hl4cyr2"
+      ],
+      "files": [
+        "Fb1r45xko0i"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 68,
+      "members": [
+        "C25ynd6z359"
+      ],
+      "anchors": [
+        "C25ynd6z359"
+      ],
+      "files": [
+        "Fxx70zom694"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 72,
+      "members": [
+        "C3vq871l1jj"
+      ],
+      "anchors": [
+        "C3vq871l1jj"
+      ],
+      "files": [
+        "Fxx70zom694"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 77,
+      "members": [
+        "Ccxn88q2itf"
+      ],
+      "anchors": [
+        "Ccxn88q2itf"
+      ],
+      "files": [
+        "Fwbpms6ko1"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 81,
+      "members": [
+        "C2wg4n5ayf4"
+      ],
+      "anchors": [
+        "C2wg4n5ayf4"
+      ],
+      "files": [
+        "Fwbpms6ko1"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 88,
+      "members": [
+        "Caic8x7y9bo"
+      ],
+      "anchors": [
+        "Caic8x7y9bo"
+      ],
+      "files": [
+        "Ff4yw3g4hdn"
+      ],
+      "total_lines": 21,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 90,
+      "members": [
+        "Cpmqv1u5rqe"
+      ],
+      "anchors": [
+        "Cpmqv1u5rqe"
+      ],
+      "files": [
+        "Ff4yw3g4hdn"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 94,
+      "members": [
+        "C5vuqxs6d10"
+      ],
+      "anchors": [
+        "C5vuqxs6d10"
+      ],
+      "files": [
+        "Frb5cilmj1w"
+      ],
+      "total_lines": 21,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 96,
+      "members": [
+        "Chil9dj781o"
+      ],
+      "anchors": [
+        "Chil9dj781o"
+      ],
+      "files": [
+        "Frb5cilmj1w"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 102,
+      "members": [
+        "Cwa1zfnmwnt"
+      ],
+      "anchors": [
+        "Cwa1zfnmwnt"
+      ],
+      "files": [
+        "Fvxum5tqffc"
+      ],
+      "total_lines": 21,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 104,
+      "members": [
+        "Czoyc6zb6ks"
+      ],
+      "anchors": [
+        "Czoyc6zb6ks"
+      ],
+      "files": [
+        "Fvxum5tqffc"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 112,
+      "members": [
+        "Cfmq694e3zg"
+      ],
+      "anchors": [
+        "Cfmq694e3zg"
+      ],
+      "files": [
+        "Ffm7it4hiz9"
+      ],
+      "total_lines": 53,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 114,
+      "members": [
+        "Caygop5f1i4"
+      ],
+      "anchors": [
+        "Caygop5f1i4"
+      ],
+      "files": [
+        "Ffm7it4hiz9"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 117,
+      "members": [
+        "C3kx7wy4y3p"
+      ],
+      "anchors": [
+        "C3kx7wy4y3p"
+      ],
+      "files": [
+        "Fyognsek6c"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 121,
+      "members": [
+        "Czjtihbgiz7"
+      ],
+      "anchors": [
+        "Czjtihbgiz7"
+      ],
+      "files": [
+        "Fyognsek6c"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 124,
+      "members": [
+        "C4gmgc9ubn9"
+      ],
+      "anchors": [
+        "C4gmgc9ubn9"
+      ],
+      "files": [
+        "Fadzx4dhi0e"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 128,
+      "members": [
+        "Cth3rg9nqix"
+      ],
+      "anchors": [
+        "Cth3rg9nqix"
+      ],
+      "files": [
+        "Fadzx4dhi0e"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 132,
+      "members": [
+        "Crbr4rzgf9s"
+      ],
+      "anchors": [
+        "Crbr4rzgf9s"
+      ],
+      "files": [
+        "Fz7qp7a9d0y"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 136,
+      "members": [
+        "Cv3het2fk65"
+      ],
+      "anchors": [
+        "Cv3het2fk65"
+      ],
+      "files": [
+        "Fz7qp7a9d0y"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 139,
+      "members": [
+        "C80x9po07to"
+      ],
+      "anchors": [
+        "C80x9po07to"
+      ],
+      "files": [
+        "F15hoy5yar9"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 143,
+      "members": [
+        "C11ni650fabo"
+      ],
+      "anchors": [
+        "C11ni650fabo"
+      ],
+      "files": [
+        "F15hoy5yar9"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "julia"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cfmq694e3zg",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ffm7it4hiz9",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/gene-regulatory-network/gene-regulatory.jl",
+      "start_line": 77,
+      "end_line": 129,
+      "size_lines": 53,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) #= Species",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -947,
+      "region": 112,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Caic8x7y9bo",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ff4yw3g4hdn",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case3/case3.jl",
+      "start_line": 83,
+      "end_line": 103,
+      "size_lines": 21,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) # [\"S\"(1), \"MAPKKK\"(2), \"MAPKKK*\"(3), \"MAPKK\"(4), \"MAPKK*\"(5), # \"MAPK\"(6), \"MAPK*\"(7), \"TF\"(8), \"TF*\"(9)] r1 = k[1] * y[1] * y[2] r2 = k[2] * y[3] * y[4] r3 = k[3] * y[5] * y[6] r4 = k[4] * y[7] * y[8] r5 = k[5] * y[3] r6 = k[6] * y[5] r7 = k[7] * y[7] r8 = k[8] * y[9] dydt[1] = 0 dydt[2] = -r1 + r5 dydt[3] = r1 - r5 dydt[4] = -r2 + r6 dydt[5] = r2 - r6 dydt[6] = -r3 + r7 dydt[7] = r3 - r7 dydt[8] = -r4 + r8 dydt[9] = r4 - r8 end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -979,
+      "region": 88,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5vuqxs6d10",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Frb5cilmj1w",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case3/case3_pruning.jl",
+      "start_line": 52,
+      "end_line": 72,
+      "size_lines": 21,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) # [\"S\"(1), \"MAPKKK\"(2), \"MAPKKK*\"(3), \"MAPKK\"(4), \"MAPKK*\"(5), # \"MAPK\"(6), \"MAPK*\"(7), \"TF\"(8), \"TF*\"(9)] r1 = k[1] * y[1] * y[2] r2 = k[2] * y[3] * y[4] r3 = k[3] * y[5] * y[6] r4 = k[4] * y[7] * y[8] r5 = k[5] * y[3] r6 = k[6] * y[5] r7 = k[7] * y[7] r8 = k[8] * y[9] dydt[1] = 0 dydt[2] = -r1 + r5 dydt[3] = r1 - r5 dydt[4] = -r2 + r6 dydt[5] = r2 - r6 dydt[6] = -r3 + r7 dydt[7] = r3 - r7 dydt[8] = -r4 + r8 dydt[9] = r4 - r8 end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -979,
+      "region": 94,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwa1zfnmwnt",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fvxum5tqffc",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/gene-regulatory-network/gene-regulatory-pruning.jl",
+      "start_line": 52,
+      "end_line": 72,
+      "size_lines": 21,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) # [\"S\"(1), \"MAPKKK\"(2), \"MAPKKK*\"(3), \"MAPKK\"(4), \"MAPKK*\"(5), # \"MAPK\"(6), \"MAPK*\"(7), \"TF\"(8), \"TF*\"(9)] r1 = k[1] * y[1] * y[2] r2 = k[2] * y[3] * y[4] r3 = k[3] * y[5] * y[6] r4 = k[4] * y[7] * y[8] r5 = k[5] * y[3] r6 = k[6] * y[5] r7 = k[7] * y[7] r8 = k[8] * y[9] dydt[1] = 0 dydt[2] = -r1 + r5 dydt[3] = r1 - r5 dydt[4] = -r2 + r6 dydt[5] = r2 - r6 dydt[6] = -r3 + r7 dydt[7] = r3 - r7 dydt[8] = -r4 + r8 dydt[9] = r4 - r8 end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -979,
+      "region": 102,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C80x9po07to",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F15hoy5yar9",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl",
+      "start_line": 49,
+      "end_line": 66,
+      "size_lines": 18,
+      "signature_hint": "function trueODEfunc(dsdt, s, k, t) r1 = k[1] * s[1] * s[6] / (1 + (s[6] / K1)^q) r2 = k[2] * s[2] * (N - s[5]) r3 = k[3] * s[3] * (A - s[6]) r4 = k[4] * s[4] * s[5] r5 = k[5] * s[6] r6 = k[6] * s[2] * s[5] r7 = 13 * s[7] r8 = 13 * (s[4] - s[7]) dsdt[1] = J0 - r1 dsdt[2] = 2 * r1 - r2 - r6 dsdt[3] = r2 - r3 dsdt[4] = r3 - r4 - r8 dsdt[5] = r2 - r4 - r6 dsdt[6] = -2 * r1 + 2 * r3 - r5 dsdt[7] = phi * r8 - r7 end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -982,
+      "region": 139,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C166gh84m6mc",
+      "qualified_name": "crnn!",
+      "simple_name": "crnn!",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fb4cfc0z971",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/network.jl",
+      "start_line": 152,
+      "end_line": 165,
+      "size_lines": 14,
+      "signature_hint": "function crnn!(du, u, p_for_crnn, t) w_in_Ea_temp, w_in_b_temp, w_out_temp, w_delH_temp, w_in_order_temp, w_A_temp=p_for_crnn logX = @. log(clamp(u, lb_clamp, 10.0)) #log of species concentrations T = getsampletemp(t, T0, beta) #current temperature #all params have to be scaled back up for physically meaningful application in ode's temp_term= reshape(hcat(log(T), R/T)*hcat(w_in_b_temp.*p_scales[7:9], w_in_Ea_temp.*p_scales[4:6]*10^5)', 3) rxn_ord_term=w_in_order_temp.*p_scales[13:15].*logX rxn_rates= @. exp(temp_term+rxn_ord_term+w_A_temp.*p_scales[1:3] ) du .= -rxn_rates #consume each of three reactants at specified rates #produce c2 and c3 at the according rates",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -986,
+      "region": 22,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ce7aam1tvjr",
+      "qualified_name": "crnn!",
+      "simple_name": "crnn!",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fznehlb0yha",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode/src/network.jl",
+      "start_line": 68,
+      "end_line": 80,
+      "size_lines": 13,
+      "signature_hint": "function crnn!(du, u, p, t) #given a current concentration, parameter vector, and time #return the three concentration gradients logX = @. log(clamp(u, lb, 10.0)) T = getsampletemp(t, T0, beta) temp_term= reshape(hcat(log(T), R/T)*hcat(w_in_b, w_in_Ea*10^5)', 3) rxn_ord_term=w_in_order.*logX rxn_rates= @. exp(temp_term+rxn_ord_term+w_A ) du .= -rxn_rates #each reaction consumes the corresponding reactant #first and second reactions also produce c2 and c3",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -987,
+      "region": 6,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C13q4h5tzkwq",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fb1r45xko0i",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case2/case2.jl",
+      "start_line": 38,
+      "end_line": 50,
+      "size_lines": 13,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) # TG(1),ROH(2),DG(3),MG(4),GL(5),R'CO2R(6) r1 = k[1] * y[1] * y[2]; r2 = k[2] * y[3] * y[2]; r3 = k[3] * y[4] * y[2]; dydt[1] = - r1; # TG dydt[2] = - r1 - r2 - r3; # TG dydt[3] = r1 - r2; # DG dydt[4] = r2 - r3; # MG dydt[5] = r3; # GL dydt[6] = r1 + r2 + r3; # R'CO2R dydt[7] = 0.f0; end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -987,
+      "region": 60,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C25ynd6z359",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fxx70zom694",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case2/case2_missing.jl",
+      "start_line": 44,
+      "end_line": 56,
+      "size_lines": 13,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) # TG(1),ROH(2),DG(3),MG(4),GL(5),R'CO2R(6) r1 = k[1] * y[1] * y[2]; r2 = k[2] * y[3] * y[2]; r3 = k[3] * y[4] * y[2]; dydt[1] = - r1; # TG dydt[2] = - r1 - r2 - r3; # TG dydt[3] = r1 - r2; # DG dydt[4] = r2 - r3; # MG dydt[5] = r3; # GL dydt[6] = r1 + r2 + r3; # R'CO2R dydt[7] = 0.f0; end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -987,
+      "region": 68,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccxn88q2itf",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fwbpms6ko1",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case2/case2_pruning.jl",
+      "start_line": 43,
+      "end_line": 55,
+      "size_lines": 13,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) # TG(1),ROH(2),DG(3),MG(4),GL(5),R'CO2R(6) r1 = k[1] * y[1] * y[2]; r2 = k[2] * y[3] * y[2]; r3 = k[3] * y[4] * y[2]; dydt[1] = - r1; # TG dydt[2] = - r1 - r2 - r3; # TG dydt[3] = r1 - r2; # DG dydt[4] = r2 - r3; # MG dydt[5] = r3; # GL dydt[6] = r1 + r2 + r3; # R'CO2R dydt[7] = 0.f0; end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -987,
+      "region": 77,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cf5fhvxbk50",
+      "qualified_name": "crnn!",
+      "simple_name": "crnn!",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8ppjptp0wu",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/HyChem/crnn_pyrolysis_mass.jl",
+      "start_line": 121,
+      "end_line": 131,
+      "size_lines": 11,
+      "signature_hint": "function crnn!(du, u, p, t) P = itpP(t) T = itpT(t) Y = clamp.(u, lb, 10) density = Y2density(Y, P, T) C = Y2C(Y, density) logX = @. log(clamp(C, lb, 10)) w_in_x = w_in' * vcat(logX, - 1 / R / T, log(T)) wdot = w_out * (@. exp(w_in_x + w_b)) @. du = wdot * l_MW / density * dydt_scale end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -989,
+      "region": 37,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cu4lovhsxfq",
+      "qualified_name": "crnn!",
+      "simple_name": "crnn!",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Foidhlqh2he",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case1 rev/case1.jl",
+      "start_line": 80,
+      "end_line": 89,
+      "size_lines": 10,
+      "signature_hint": "function crnn!(du, u, p, t) w_in_f = clamp.(-w_out, 0, 2.5); w_in_b = clamp.(w_out, 0, 2.5); u_in = @. log(clamp(u, lb, Inf)) w_in_x_f = w_in_f' * u_in; w_in_x_b = w_in_b' * u_in; du .= w_out * @. (exp(w_in_x_f + w_kf) - exp(w_in_x_b + w_kb)); end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -990,
+      "region": 56,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3kx7wy4y3p",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fyognsek6c",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn.jl",
+      "start_line": 56,
+      "end_line": 63,
+      "size_lines": 8,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) r1 = k[1] * y[1] r2 = k[2] * y[2] * y[2] r3 = k[3] * y[2] * y[3] dydt[1] = -r1 + r3 dydt[2] = r1 - r2 - r3 dydt[3] = r2 end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -992,
+      "region": 117,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4gmgc9ubn9",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fadzx4dhi0e",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_lm.jl",
+      "start_line": 57,
+      "end_line": 64,
+      "size_lines": 8,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) r1 = k[1] * y[1] r2 = k[2] * y[2] * y[2] r3 = k[3] * y[2] * y[3] dydt[1] = -r1 + r3 dydt[2] = r1 - r2 - r3 dydt[3] = r2 end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -992,
+      "region": 124,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Crbr4rzgf9s",
+      "qualified_name": "rober!",
+      "simple_name": "rober!",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fz7qp7a9d0y",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_qssa.jl",
+      "start_line": 49,
+      "end_line": 56,
+      "size_lines": 8,
+      "signature_hint": "function rober!(dydt, y, k, t) r1 = k[1] * y[1] r2 = k[2] * y[2] * y[2] r3 = k[3] * y[2] * y[3] dydt[1] = -r1 + r3 dydt[2] = r1 - r2 - r3 dydt[3] = r2 end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -992,
+      "region": 132,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2jbaagf5l1",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F17pxnlzlepn",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case1/case1.jl",
+      "start_line": 38,
+      "end_line": 44,
+      "size_lines": 7,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) dydt[1] = -2 * k[1] * y[1]^2 - k[2] * y[1]; dydt[2] = k[1] * y[1]^2 - k[4] * y[2] * y[4]; dydt[3] = k[2] * y[1] - k[3] * y[3]; dydt[4] = k[3] * y[3] - k[4] * y[2] * y[4]; dydt[5] = k[4] * y[2] * y[4]; end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -993,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cetke470kb0",
+      "qualified_name": "trueODEfunc",
+      "simple_name": "trueODEfunc",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F103wqogzd5i",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case1/case1_hardthreshhold.jl",
+      "start_line": 38,
+      "end_line": 44,
+      "size_lines": 7,
+      "signature_hint": "function trueODEfunc(dydt, y, k, t) dydt[1] = -2 * k[1] * y[1]^2 - k[2] * y[1]; dydt[2] = k[1] * y[1]^2 - k[4] * y[2] * y[4]; dydt[3] = k[2] * y[1] - k[3] * y[3]; dydt[4] = k[3] * y[3] - k[4] * y[2] * y[4]; dydt[5] = k[4] * y[2] * y[4]; end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -993,
+      "region": 47,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3vq871l1jj",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fxx70zom694",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case2/case2_missing.jl",
+      "start_line": 120,
+      "end_line": 125,
+      "size_lines": 6,
+      "signature_hint": "function crnn(du, u, p, t) logX = @. log(clamp(u[1:end - 1], lb, ub)); w_in_x = w_in' * vcat(logX, -1.f0 / R / u[end]); du .= vcat(w_out * (@. exp(w_in_x + w_b)), 0.f0); end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -994,
+      "region": 72,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3997c63awj",
+      "qualified_name": "extend_dims",
+      "simple_name": "extend_dims",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fb4cfc0z971",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/network.jl",
+      "start_line": 53,
+      "end_line": 57,
+      "size_lines": 5,
+      "signature_hint": "function extend_dims(A,which_dim) #for expanding p in sigma() s = [size(A)...] insert!(s,which_dim,1) return reshape(A, s...) end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -995,
+      "region": 15,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C15f1hl4cyr2",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fb1r45xko0i",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case2/case2.jl",
+      "start_line": 114,
+      "end_line": 118,
+      "size_lines": 5,
+      "signature_hint": "function crnn(du, u, p, t) logX = @. log(clamp(u[1:end - 1], lb, ub)) w_in_x = w_in' * vcat(logX, inv_R / u[end]) du .= vcat(w_out * (@. exp(w_in_x + w_b)), 0.f0) end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -995,
+      "region": 65,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2wg4n5ayf4",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fwbpms6ko1",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case2/case2_pruning.jl",
+      "start_line": 121,
+      "end_line": 125,
+      "size_lines": 5,
+      "signature_hint": "function crnn(du, u, p, t) logX = @. log(clamp(u[1:end - 1], lb, ub)); w_in_x = w_in' * vcat(logX, -1.f0 / R / u[end]); du .= vcat(w_out * (@. exp(w_in_x + w_b)), 0.f0); end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -995,
+      "region": 81,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cpmqv1u5rqe",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ff4yw3g4hdn",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case3/case3.jl",
+      "start_line": 162,
+      "end_line": 166,
+      "size_lines": 5,
+      "signature_hint": "function crnn(du, u, p, t) w_in_x = w_in' * @. log(clamp(u, lb, ub)) # w_in_x = w_in' * @. ((log(clamp(u, lb, ub)) - logy_mean) / logy_std); du .= w_out * (@. exp(w_in_x + w_b)) .* dy_std_ end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -995,
+      "region": 90,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chil9dj781o",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Frb5cilmj1w",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case3/case3_pruning.jl",
+      "start_line": 131,
+      "end_line": 135,
+      "size_lines": 5,
+      "signature_hint": "function crnn(du, u, p, t) w_in_x = w_in' * @. log(clamp(u, lb, ub)) # w_in_x = w_in' * @. ((log(clamp(u, lb, ub)) - logy_mean) / logy_std); du .= w_out * (@. exp(w_in_x + w_b)) .* dy_std_ end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -995,
+      "region": 96,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czoyc6zb6ks",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fvxum5tqffc",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/gene-regulatory-network/gene-regulatory-pruning.jl",
+      "start_line": 131,
+      "end_line": 135,
+      "size_lines": 5,
+      "signature_hint": "function crnn(du, u, p, t) w_in_x = w_in' * @. log(clamp(u, lb, ub)) # w_in_x = w_in' * @. ((log(clamp(u, lb, ub)) - logy_mean) / logy_std); du .= w_out * (@. exp(w_in_x + w_b)) .* dy_std_ end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -995,
+      "region": 104,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cv3het2fk65",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fz7qp7a9d0y",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_qssa.jl",
+      "start_line": 122,
+      "end_line": 126,
+      "size_lines": 5,
+      "signature_hint": "function crnn(du, u, p, t) u_ = vcat(@views(u[1]), rep(@views(u[[1, 3]])), @views(u[3])) w_in_x = w_in' * @. log(clamp(u_, lb, ub)) du .= w_out * (@. exp(w_in_x + w_b)) end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -995,
+      "region": 136,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11ni650fabo",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F15hoy5yar9",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/yeast-glycolysis/yeast_glycolysis.jl",
+      "start_line": 138,
+      "end_line": 142,
+      "size_lines": 5,
+      "signature_hint": "function crnn(du, u, pcrnn, t) u_ = vcat(u, rep(u)) w_in_x = w_in' * @. log(clamp(u_, lb, ub)) du .= (w_out * (@. exp(w_in_x + w_b)))[1:ns] .+ w_J end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -995,
+      "region": 143,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ch8kzba7zov",
+      "qualified_name": "crnn!",
+      "simple_name": "crnn!",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F17pxnlzlepn",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case1/case1.jl",
+      "start_line": 80,
+      "end_line": 83,
+      "size_lines": 4,
+      "signature_hint": "function crnn!(du, u, p, t) w_in_x = w_in' * @. log(clamp(u, lb, ub)); du .= w_out * @. exp(w_in_x + w_b); end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -996,
+      "region": 43,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cb7ta9z6o8l",
+      "qualified_name": "crnn!",
+      "simple_name": "crnn!",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F103wqogzd5i",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/case1/case1_hardthreshhold.jl",
+      "start_line": 84,
+      "end_line": 87,
+      "size_lines": 4,
+      "signature_hint": "function crnn!(du, u, p, t) w_in_x = w_in' * @. log(clamp(u, lb, ub)); du .= w_out * @. exp(w_in_x + w_b); end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -996,
+      "region": 50,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Caygop5f1i4",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ffm7it4hiz9",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/gene-regulatory-network/gene-regulatory.jl",
+      "start_line": 164,
+      "end_line": 167,
+      "size_lines": 4,
+      "signature_hint": "function crnn(du, u, p, t) w_in_x = w_in' * @. log(clamp(u, lb, ub)) du .= w_out * (@. exp(w_in_x + w_b)) end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -996,
+      "region": 114,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czjtihbgiz7",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fyognsek6c",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn.jl",
+      "start_line": 113,
+      "end_line": 116,
+      "size_lines": 4,
+      "signature_hint": "function crnn(du, u, p, t) w_in_x = w_in' * @. log(clamp(u, lb, Inf)) du .= w_out * (@. exp(w_in_x + w_b)) .* dydt_scale end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -996,
+      "region": 121,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cth3rg9nqix",
+      "qualified_name": "crnn",
+      "simple_name": "crnn",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fadzx4dhi0e",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/robertson/rober_crnn_lm.jl",
+      "start_line": 114,
+      "end_line": 117,
+      "size_lines": 4,
+      "signature_hint": "function crnn(du, u, p, t) w_in_x = w_in' * @. log(clamp(u, lb, Inf)) du .= w_out * (@. exp(w_in_x + w_b)) .* dydt_scale end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -996,
+      "region": 128,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cqsp19skgrh",
+      "qualified_name": "condition",
+      "simple_name": "condition",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fznehlb0yha",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode/src/network.jl",
+      "start_line": 98,
+      "end_line": 98,
+      "size_lines": 1,
+      "signature_hint": "condition(u, t, integrator) = u[1] < lb * 10.0",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -999,
+      "region": 8,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16usp5uozx9",
+      "qualified_name": "affect!",
+      "simple_name": "affect!",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fznehlb0yha",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode/src/network.jl",
+      "start_line": 99,
+      "end_line": 99,
+      "size_lines": 1,
+      "signature_hint": "affect!(integrator) = terminate!(integrator)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -999,
+      "region": 9,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C9n3ivkp3dx",
+      "qualified_name": "condition",
+      "simple_name": "condition",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fb4cfc0z971",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/network.jl",
+      "start_line": 191,
+      "end_line": 191,
+      "size_lines": 1,
+      "signature_hint": "condition(u, t, integrator) = u[1] < lb_abstol * 10.0",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -999,
+      "region": 25,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11azgy7nqyf",
+      "qualified_name": "affect!",
+      "simple_name": "affect!",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fb4cfc0z971",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/network.jl",
+      "start_line": 192,
+      "end_line": 192,
+      "size_lines": 1,
+      "signature_hint": "affect!(integrator) = terminate!(integrator)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -999,
+      "region": 26,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14iu9j3mggp",
+      "qualified_name": "dlnprob",
+      "simple_name": "dlnprob",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fb4cfc0z971",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/network.jl",
+      "start_line": 222,
+      "end_line": 260,
+      "size_lines": 39,
+      "signature_hint": "function dlnprob(p, i_exp) #to evaluate gradient of loss_neuralode size_curr=size(l_exp_data[i_exp])[1] loss=zeros(size(p)[1]) grad=zeros(size(p)[1],size(p)[2]) for j = 1:size(p)[1] p_temp=deepcopy(p[j, :]) loss_curr=loss_neuralode(p_temp, i_exp) grad_curr = ForwardDiff.gradient(x -> loss_neuralode(x, i_exp), p_temp) #first entry is loss, other three are just reporting grad_curr[1]/=(Normalizer[i_exp, 1]^2) grad_curr[2]/=(Normalizer[i_exp, 2]^2) grad_curr[3]/=(Normalizer[i_exp, 3]^2) grad_curr[4]/=Normalizer[i_exp, 1]^2 grad_curr[5]/=Normalizer[i_exp, 2]^2 grad_curr[6]/=Normalizer[i_exp, 3]^2 grad_curr[7]/=Normalizer[i_exp, 1]^2 grad_curr[8]/=Normalizer[i_exp, 2]^2 grad_curr[9]/=Normalizer[i_exp, 3]^2 grad_curr[10]/=(Normalizer[i_exp, 1]^2) grad_curr[11]/=(Normalizer[i_exp, 2]^2) grad_curr[12]/=(Normalizer[i_exp, 3]^2) grad_curr[13]/=Normalizer[i_exp, 1]^2 grad_curr[14]/=Normalizer[i_exp, 2]^2 grad_curr[15]/=Normalizer[i_exp, 3]^2 grad_curr[16]/=Normalizer[i_exp, 2]^2 grad_curr[17]/=Normalizer[i_exp, 3]^2 loss[j]=loss_curr grad[j, :]=grad_curr end loss=sum(loss)./size(p)[1] #normalize the saved loss by # of particles, note that gradient is still un-normalized to match svgd_kernel return loss, -grad end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1461,
+      "region": 28,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "dlnprob",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F2ne1xtwaa2",
+            "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/crnn_cathode.jl",
+            "line": 27,
+            "name": "dlnprob"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cdifd7cu1ht",
+      "qualified_name": "svgd_kernel",
+      "simple_name": "svgd_kernel",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fb4cfc0z971",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/network.jl",
+      "start_line": 67,
+      "end_line": 87,
+      "size_lines": 21,
+      "signature_hint": "function svgd_kernel(svgd, p, h=-1) distances=pairwise(Euclidean(), p, dims = 1) sq_dist=distances[tril!(trues(size(distances)), -1)] #non-diagonal terms pairwise_dists = distances.^2 if h < 0 # if h < 0, using median trick h = median(sq_dist)^2 h = sqrt(0.5*h / log(size(p)[1]+1)) end Kxy = exp.( -pairwise_dists / h^2 / 2) # the RBF kernel function dxkxy = -Kxy*p sumkxy = sum(Kxy, dims=2) for i = 1:size(p)[2] dxkxy[:, i] = dxkxy[:,i] + p[:,i].*sumkxy end dxkxy = dxkxy / (h^2) return Kxy, dxkxy end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1479,
+      "region": 17,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "svgd_kernel",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F2ne1xtwaa2",
+            "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/crnn_cathode.jl",
+            "line": 36,
+            "name": "svgd_kernel"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14khc53jvn4",
+      "qualified_name": "HRR_getter_post",
+      "simple_name": "HRR_getter_post",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fb4cfc0z971",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/network.jl",
+      "start_line": 177,
+      "end_line": 184,
+      "size_lines": 8,
+      "signature_hint": "function HRR_getter_post(times, u_outputs, p_hrr) logX = @. log(clamp(u_outputs, lb_clamp, 10.0)) # T = getsampletemp(times, T0, beta) temp_term=@. log(T).*(p_hrr[7:9].*p_scales[7:9])'+R/T*(p_hrr[4:6].*p_scales[4:6]*10^5)' rxn_ord_term=transpose(p_hrr[13:15].*p_scales[13:15]).*transpose(logX) rxn_rates= @. exp(temp_term+rxn_ord_term.+(p_hrr[1:3].*p_scales[1:3])' ) return rxn_rates end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1492,
+      "region": 24,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "HRR_getter_post",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fqihkeao78c",
+            "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/post_Plotting.jl",
+            "line": 125,
+            "name": "HRR_getter_post"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C8px9dg4qab",
+      "qualified_name": "norm2",
+      "simple_name": "norm2",
+      "language": "julia",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fb4cfc0z971",
+      "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/network.jl",
+      "start_line": 59,
+      "end_line": 63,
+      "size_lines": 5,
+      "signature_hint": "function norm2(A; dims) #for taking the norm of a slice of p in sigma() B = sum(x -> x^2, A; dims=dims) B .= sqrt.(B) return B end",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1495,
+      "region": 16,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "norm2",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fs78wpnfqbf",
+            "path": "/storage/cgg-test_repos/app-crnn-flux/Cathode_NCM333_UQ/src_333/callback.jl",
+            "line": 116,
+            "name": "norm2"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

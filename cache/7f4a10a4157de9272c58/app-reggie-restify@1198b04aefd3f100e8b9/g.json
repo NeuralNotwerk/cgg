@@ -1,0 +1,2958 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "Ck1l1hkg816": {
+      "id": "Ck1l1hkg816",
+      "qualified_name": "handler_at_42",
+      "simple_name": "handler_at_42",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fb93o0gtuud",
+      "start_line": 42,
+      "end_line": 52,
+      "start_byte": 1327,
+      "end_byte": 1722,
+      "signature_hint": "function (err, resp, body)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Cf8m8eh7z26": {
+      "id": "Cf8m8eh7z26",
+      "qualified_name": "handleDataResponse",
+      "simple_name": "handleDataResponse",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fb93o0gtuud",
+      "start_line": 75,
+      "end_line": 80,
+      "start_byte": 2083,
+      "end_byte": 2253,
+      "signature_hint": "function handleDataResponse (err, statusCode, body)"
+    },
+    "C15sw54o51qj": {
+      "id": "C15sw54o51qj",
+      "qualified_name": "Data",
+      "simple_name": "Data",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 15,
+      "end_line": 26,
+      "start_byte": 320,
+      "end_byte": 686,
+      "signature_hint": "function Data (opts)"
+    },
+    "Cxnqdfi1w0n": {
+      "id": "Cxnqdfi1w0n",
+      "qualified_name": "init",
+      "simple_name": "init",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 28,
+      "end_line": 35,
+      "start_byte": 689,
+      "end_byte": 937,
+      "signature_hint": "Data.prototype.init = function (callback)"
+    },
+    "Ct0ryhnn9p2": {
+      "id": "Ct0ryhnn9p2",
+      "qualified_name": "addPackage",
+      "simple_name": "addPackage",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 37,
+      "end_line": 39,
+      "start_byte": 939,
+      "end_byte": 1006,
+      "signature_hint": "Data.prototype.addPackage = function (pathToPackage, callback)"
+    },
+    "Cx7lz6b5sri": {
+      "id": "Cx7lz6b5sri",
+      "qualified_name": "reloadPackages",
+      "simple_name": "reloadPackages",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 44,
+      "end_line": 61,
+      "start_byte": 1057,
+      "end_byte": 1535,
+      "signature_hint": "Data.prototype.reloadPackages = function (callback)"
+    },
+    "Cl16vd369ei": {
+      "id": "Cl16vd369ei",
+      "qualified_name": "loadPackage",
+      "simple_name": "loadPackage",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 67,
+      "end_line": 140,
+      "start_byte": 1613,
+      "end_byte": 4461,
+      "signature_hint": "Data.prototype.loadPackage = function (pathToPackage, expectedName, expectedVersion, callback)"
+    },
+    "Cfrbcuzxbwr": {
+      "id": "Cfrbcuzxbwr",
+      "qualified_name": "handler_at_94",
+      "simple_name": "handler_at_94",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 94,
+      "end_line": 138,
+      "start_byte": 2590,
+      "end_byte": 4452,
+      "signature_hint": "function ()",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C2bi1n84d3k": {
+      "id": "C2bi1n84d3k",
+      "qualified_name": "handler_at_90",
+      "simple_name": "handler_at_90",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 90,
+      "end_line": 93,
+      "start_byte": 2405,
+      "end_byte": 2571,
+      "signature_hint": "function (err)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Cj59xbe7bdf": {
+      "id": "Cj59xbe7bdf",
+      "qualified_name": "handler_at_85",
+      "simple_name": "handler_at_85",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 85,
+      "end_line": 88,
+      "start_byte": 2178,
+      "end_byte": 2344,
+      "signature_hint": "function (err)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Caxfctsnzll": {
+      "id": "Caxfctsnzll",
+      "qualified_name": "registerCallback",
+      "simple_name": "registerCallback",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 116,
+      "end_line": 120,
+      "start_byte": 3666,
+      "end_byte": 3874,
+      "signature_hint": "registerCallback = function(err)"
+    },
+    "C12672cmi0xj": {
+      "id": "C12672cmi0xj",
+      "qualified_name": "deletePackage",
+      "simple_name": "deletePackage",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 142,
+      "end_line": 169,
+      "start_byte": 4463,
+      "end_byte": 5247,
+      "signature_hint": "Data.prototype.deletePackage = function (name, version, callback)"
+    },
+    "C1190i4c83dg": {
+      "id": "C1190i4c83dg",
+      "qualified_name": "openPackageStream",
+      "simple_name": "openPackageStream",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 171,
+      "end_line": 180,
+      "start_byte": 5249,
+      "end_byte": 5544,
+      "signature_hint": "Data.prototype.openPackageStream = function (name, version, callback)"
+    },
+    "C81ikskic92": {
+      "id": "C81ikskic92",
+      "qualified_name": "whichVersions",
+      "simple_name": "whichVersions",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 183,
+      "end_line": 187,
+      "start_byte": 5569,
+      "end_byte": 5737,
+      "signature_hint": "Data.prototype.whichVersions = function (name)"
+    },
+    "Cmrbuw1n5sl": {
+      "id": "Cmrbuw1n5sl",
+      "qualified_name": "packageMeta",
+      "simple_name": "packageMeta",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 190,
+      "end_line": 193,
+      "start_byte": 5762,
+      "end_byte": 5860,
+      "signature_hint": "Data.prototype.packageMeta = function (name)"
+    },
+    "C4hljninrz8": {
+      "id": "C4hljninrz8",
+      "qualified_name": "index",
+      "simple_name": "index",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 196,
+      "end_line": 213,
+      "start_byte": 5885,
+      "end_byte": 6382,
+      "signature_hint": "Data.prototype.index = function ()"
+    },
+    "Czh7wjla8b8": {
+      "id": "Czh7wjla8b8",
+      "qualified_name": "getAllPackageNames",
+      "simple_name": "getAllPackageNames",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 215,
+      "end_line": 217,
+      "start_byte": 6384,
+      "end_byte": 6474,
+      "signature_hint": "Data.prototype.getAllPackageNames = function()"
+    },
+    "Cenw1t5f48g": {
+      "id": "Cenw1t5f48g",
+      "qualified_name": "_registerPackageVersion",
+      "simple_name": "_registerPackageVersion",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 219,
+      "end_line": 233,
+      "start_byte": 6476,
+      "end_byte": 6992,
+      "signature_hint": "Data.prototype._registerPackageVersion = function (pjsonData, pathToPackage)"
+    },
+    "Cytzfo3prme": {
+      "id": "Cytzfo3prme",
+      "qualified_name": "_doRegisterPackageVersion",
+      "simple_name": "_doRegisterPackageVersion",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 235,
+      "end_line": 258,
+      "start_byte": 6995,
+      "end_byte": 7675,
+      "signature_hint": "Data.prototype._doRegisterPackageVersion = function(pjsonData, pathToPackage, fileStat, fileChecksum)"
+    },
+    "Cqikmxjbdbd": {
+      "id": "Cqikmxjbdbd",
+      "qualified_name": "updatePackageMetadata",
+      "simple_name": "updatePackageMetadata",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 260,
+      "end_line": 273,
+      "start_byte": 7678,
+      "end_byte": 8113,
+      "signature_hint": "Data.prototype.updatePackageMetadata = function(pjsonData)"
+    },
+    "C156ye8ie6qu": {
+      "id": "C156ye8ie6qu",
+      "qualified_name": "_findPackage",
+      "simple_name": "_findPackage",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 275,
+      "end_line": 284,
+      "start_byte": 8115,
+      "end_byte": 8697,
+      "signature_hint": "Data.prototype._findPackage = function (name, version, callback)"
+    },
+    "Ckf3q9dw62l": {
+      "id": "Ckf3q9dw62l",
+      "qualified_name": "_makeTempDir",
+      "simple_name": "_makeTempDir",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 286,
+      "end_line": 295,
+      "start_byte": 8699,
+      "end_byte": 8985,
+      "signature_hint": "Data.prototype._makeTempDir = function (callback)"
+    },
+    "Criyhkazwh4": {
+      "id": "Criyhkazwh4",
+      "qualified_name": "_destroyDir",
+      "simple_name": "_destroyDir",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 297,
+      "end_line": 300,
+      "start_byte": 8987,
+      "end_byte": 9110,
+      "signature_hint": "Data.prototype._destroyDir = function (dir, callback)"
+    },
+    "C14xyog7xq7e": {
+      "id": "C14xyog7xq7e",
+      "qualified_name": "_cp",
+      "simple_name": "_cp",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 302,
+      "end_line": 309,
+      "start_byte": 9112,
+      "end_byte": 9336,
+      "signature_hint": "Data.prototype._cp = function (from, to, callback)"
+    },
+    "C5e7n1ly6ez": {
+      "id": "C5e7n1ly6ez",
+      "qualified_name": "handler_at_304",
+      "simple_name": "handler_at_304",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 304,
+      "end_line": 306,
+      "start_byte": 9208,
+      "end_byte": 9269,
+      "signature_hint": "function ()",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C2er4xtwbg0": {
+      "id": "C2er4xtwbg0",
+      "qualified_name": "_mv",
+      "simple_name": "_mv",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fm5b3iejkf1",
+      "start_line": 311,
+      "end_line": 313,
+      "start_byte": 9338,
+      "end_byte": 9425,
+      "signature_hint": "Data.prototype._mv = function (from, to, callback)"
+    },
+    "Ct1shlbjbwi": {
+      "id": "Ct1shlbjbwi",
+      "qualified_name": "normalizeUrl",
+      "simple_name": "normalizeUrl",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 64,
+      "end_line": 68,
+      "start_byte": 1803,
+      "end_byte": 1893,
+      "signature_hint": "function normalizeUrl(url)"
+    },
+    "Cv69122fydy": {
+      "id": "Cv69122fydy",
+      "qualified_name": "handler_at_78",
+      "simple_name": "handler_at_78",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 78,
+      "end_line": 80,
+      "start_byte": 2162,
+      "end_byte": 2214,
+      "signature_hint": "function (req, res)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Cq22b3y67ch": {
+      "id": "Cq22b3y67ch",
+      "qualified_name": "handler_at_82",
+      "simple_name": "handler_at_82",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 82,
+      "end_line": 106,
+      "start_byte": 2256,
+      "end_byte": 3127,
+      "signature_hint": "function (req, res, next)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Cnb45ipicax": {
+      "id": "Cnb45ipicax",
+      "qualified_name": "handler_at_108",
+      "simple_name": "handler_at_108",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 108,
+      "end_line": 119,
+      "start_byte": 3169,
+      "end_byte": 3498,
+      "signature_hint": "function (req, res, next)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C15224pz94v8": {
+      "id": "C15224pz94v8",
+      "qualified_name": "handler_at_121",
+      "simple_name": "handler_at_121",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 121,
+      "end_line": 124,
+      "start_byte": 3532,
+      "end_byte": 3623,
+      "signature_hint": "function (req, res)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Cqkzkwffyw5": {
+      "id": "Cqkzkwffyw5",
+      "qualified_name": "handler_at_126",
+      "simple_name": "handler_at_126",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 126,
+      "end_line": 132,
+      "start_byte": 3663,
+      "end_byte": 3844,
+      "signature_hint": "function (req, res, next)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C8uz0ibstdl": {
+      "id": "C8uz0ibstdl",
+      "qualified_name": "handler_at_134",
+      "simple_name": "handler_at_134",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 134,
+      "end_line": 136,
+      "start_byte": 3869,
+      "end_byte": 3918,
+      "signature_hint": "function (req, res)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C2jwxy7yz1t": {
+      "id": "C2jwxy7yz1t",
+      "qualified_name": "handler_at_138",
+      "simple_name": "handler_at_138",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 138,
+      "end_line": 143,
+      "start_byte": 3948,
+      "end_byte": 4105,
+      "signature_hint": "function (req, res)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Cqtulihkgxf": {
+      "id": "Cqtulihkgxf",
+      "qualified_name": "handler_at_153",
+      "simple_name": "handler_at_153",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 153,
+      "end_line": 157,
+      "start_byte": 4392,
+      "end_byte": 4553,
+      "signature_hint": "function (req, res)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Cjq6g0qv704": {
+      "id": "Cjq6g0qv704",
+      "qualified_name": "notFound",
+      "simple_name": "notFound",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 159,
+      "end_line": 161,
+      "start_byte": 4557,
+      "end_byte": 4661,
+      "signature_hint": "function notFound(res)"
+    },
+    "Cp2y0aykxjk": {
+      "id": "Cp2y0aykxjk",
+      "qualified_name": "handler_at_163",
+      "simple_name": "handler_at_163",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 163,
+      "end_line": 191,
+      "start_byte": 4684,
+      "end_byte": 5381,
+      "signature_hint": "function (req, res)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Chhymlxpsv3": {
+      "id": "Chhymlxpsv3",
+      "qualified_name": "handler_at_193",
+      "simple_name": "handler_at_193",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 193,
+      "end_line": 204,
+      "start_byte": 5415,
+      "end_byte": 5700,
+      "signature_hint": "function (req, res)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C17or1w3n9uo": {
+      "id": "C17or1w3n9uo",
+      "qualified_name": "listAction",
+      "simple_name": "listAction",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 206,
+      "end_line": 243,
+      "start_byte": 5704,
+      "end_byte": 6566,
+      "signature_hint": "function listAction(req, res)"
+    },
+    "C4ylp31zhu7": {
+      "id": "C4ylp31zhu7",
+      "qualified_name": "getPackageInfo",
+      "simple_name": "getPackageInfo",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 218,
+      "end_line": 242,
+      "start_byte": 5913,
+      "end_byte": 6564,
+      "signature_hint": "function getPackageInfo(packageName)"
+    },
+    "C5ivkjf637w": {
+      "id": "C5ivkjf637w",
+      "qualified_name": "handler_at_245",
+      "simple_name": "handler_at_245",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 245,
+      "end_line": 267,
+      "start_byte": 6611,
+      "end_byte": 7475,
+      "signature_hint": "function (req, res)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C57u2w9j0qi": {
+      "id": "C57u2w9j0qi",
+      "qualified_name": "handler_at_269",
+      "simple_name": "handler_at_269",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 269,
+      "end_line": 275,
+      "start_byte": 7519,
+      "end_byte": 7618,
+      "signature_hint": "function(req, res)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C9b56g8sdky": {
+      "id": "C9b56g8sdky",
+      "qualified_name": "handler_at_277",
+      "simple_name": "handler_at_277",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 277,
+      "end_line": 288,
+      "start_byte": 7651,
+      "end_byte": 7988,
+      "signature_hint": "function(req, res)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Cjpn6symvpl": {
+      "id": "Cjpn6symvpl",
+      "qualified_name": "fix",
+      "simple_name": "fix",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 291,
+      "end_line": 296,
+      "start_byte": 7993,
+      "end_byte": 8125,
+      "signature_hint": "function fix(path)"
+    },
+    "Cbx0vqyb5xq": {
+      "id": "Cbx0vqyb5xq",
+      "qualified_name": "handler_at_298",
+      "simple_name": "handler_at_298",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 298,
+      "end_line": 304,
+      "start_byte": 8160,
+      "end_byte": 8260,
+      "signature_hint": "function(req, res)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Csuhf2qoor7": {
+      "id": "Csuhf2qoor7",
+      "qualified_name": "handler_at_306",
+      "simple_name": "handler_at_306",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 306,
+      "end_line": 318,
+      "start_byte": 8289,
+      "end_byte": 8599,
+      "signature_hint": "function(req, res)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C4883kz0yad": {
+      "id": "C4883kz0yad",
+      "qualified_name": "registerOp",
+      "simple_name": "registerOp",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 352,
+      "end_line": 373,
+      "start_byte": 9552,
+      "end_byte": 10282,
+      "signature_hint": "function registerOp (op1, op2)"
+    },
+    "Cap2cksh1pa": {
+      "id": "Cap2cksh1pa",
+      "qualified_name": "handler_at_355",
+      "simple_name": "handler_at_355",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 355,
+      "end_line": 360,
+      "start_byte": 9706,
+      "end_byte": 9880,
+      "signature_hint": "function (req, res, next)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Cppxoc79751": {
+      "id": "Cppxoc79751",
+      "qualified_name": "handler_at_364",
+      "simple_name": "handler_at_364",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 364,
+      "end_line": 370,
+      "start_byte": 10045,
+      "end_byte": 10269,
+      "signature_hint": "function (req, res, next)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Cv0gzhvvfep": {
+      "id": "Cv0gzhvvfep",
+      "qualified_name": "returnPackageByRange",
+      "simple_name": "returnPackageByRange",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 375,
+      "end_line": 398,
+      "start_byte": 10284,
+      "end_byte": 10993,
+      "signature_hint": "function returnPackageByRange (name, range, res)"
+    },
+    "C3s3bqdbjze": {
+      "id": "C3s3bqdbjze",
+      "qualified_name": "handler_at_394",
+      "simple_name": "handler_at_394",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Ffhmypdcjg1",
+      "start_line": 394,
+      "end_line": 396,
+      "start_byte": 10932,
+      "end_byte": 10984,
+      "signature_hint": "function (err)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Chn9pwd3w9f": {
+      "id": "Chn9pwd3w9f",
+      "qualified_name": "handler_at_4",
+      "simple_name": "handler_at_4",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fh077af7pcl",
+      "start_line": 4,
+      "end_line": 32,
+      "start_byte": 112,
+      "end_byte": 1065,
+      "signature_hint": "function()",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cjz23gsqyck": {
+      "id": "Cjz23gsqyck",
+      "qualified_name": "handler_at_5",
+      "simple_name": "handler_at_5",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fh077af7pcl",
+      "start_line": 5,
+      "end_line": 11,
+      "start_byte": 147,
+      "end_byte": 375,
+      "signature_hint": "function()",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Coo3kzplcvj": {
+      "id": "Coo3kzplcvj",
+      "qualified_name": "handler_at_6",
+      "simple_name": "handler_at_6",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fh077af7pcl",
+      "start_line": 6,
+      "end_line": 10,
+      "start_byte": 190,
+      "end_byte": 369,
+      "signature_hint": "function()",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cf5cia0yc1j": {
+      "id": "Cf5cia0yc1j",
+      "qualified_name": "handler_at_13",
+      "simple_name": "handler_at_13",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fh077af7pcl",
+      "start_line": 13,
+      "end_line": 31,
+      "start_byte": 409,
+      "end_byte": 1061,
+      "signature_hint": "function()",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cvoxu0yurri": {
+      "id": "Cvoxu0yurri",
+      "qualified_name": "handler_at_14",
+      "simple_name": "handler_at_14",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fh077af7pcl",
+      "start_line": 14,
+      "end_line": 22,
+      "start_byte": 452,
+      "end_byte": 752,
+      "signature_hint": "function(done)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C14ytjpv4upc": {
+      "id": "C14ytjpv4upc",
+      "qualified_name": "handler_at_24",
+      "simple_name": "handler_at_24",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fh077af7pcl",
+      "start_line": 24,
+      "end_line": 30,
+      "start_byte": 823,
+      "end_byte": 1055,
+      "signature_hint": "function()",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C3s0j0ftzcc": {
+      "id": "C3s0j0ftzcc",
+      "qualified_name": "givenAPackage",
+      "simple_name": "givenAPackage",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fkv3dg3himv",
+      "start_line": 30,
+      "end_line": 58,
+      "start_byte": 984,
+      "end_byte": 1758,
+      "signature_hint": "function givenAPackage(packageJson)",
+      "test_role": "support"
+    },
+    "C12ui6zbvvt6": {
+      "id": "C12ui6zbvvt6",
+      "qualified_name": "runNpmInDirectory",
+      "simple_name": "runNpmInDirectory",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fkv3dg3himv",
+      "start_line": 70,
+      "end_line": 108,
+      "start_byte": 2065,
+      "end_byte": 3061,
+      "signature_hint": "function runNpmInDirectory(cwd, args, config, callback)",
+      "test_role": "support"
+    },
+    "Cc13edwigys": {
+      "id": "Cc13edwigys",
+      "qualified_name": "cleanNpmCache",
+      "simple_name": "cleanNpmCache",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fkv3dg3himv",
+      "start_line": 113,
+      "end_line": 115,
+      "start_byte": 3124,
+      "end_byte": 3177,
+      "signature_hint": "function cleanNpmCache()",
+      "test_role": "support"
+    },
+    "Cdng64v6bwk": {
+      "id": "Cdng64v6bwk",
+      "qualified_name": "startReggieServer",
+      "simple_name": "startReggieServer",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fkv3dg3himv",
+      "start_line": 121,
+      "end_line": 145,
+      "start_byte": 3232,
+      "end_byte": 4043,
+      "signature_hint": "function startReggieServer(done)",
+      "test_role": "support"
+    },
+    "Cztjlo51wq3": {
+      "id": "Cztjlo51wq3",
+      "qualified_name": "handler_at_129",
+      "simple_name": "handler_at_129",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fkv3dg3himv",
+      "start_line": 129,
+      "end_line": 131,
+      "start_byte": 3569,
+      "end_byte": 3609,
+      "signature_hint": "function()",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C4aerrcl6ya": {
+      "id": "C4aerrcl6ya",
+      "qualified_name": "handler_at_133",
+      "simple_name": "handler_at_133",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fkv3dg3himv",
+      "start_line": 133,
+      "end_line": 140,
+      "start_byte": 3647,
+      "end_byte": 3947,
+      "signature_hint": "function(data)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cbw4h429z13": {
+      "id": "Cbw4h429z13",
+      "qualified_name": "handler_at_142",
+      "simple_name": "handler_at_142",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fkv3dg3himv",
+      "start_line": 142,
+      "end_line": 144,
+      "start_byte": 3985,
+      "end_byte": 4039,
+      "signature_hint": "function(data)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C8k0otalop7": {
+      "id": "C8k0otalop7",
+      "qualified_name": "stopReggieServer",
+      "simple_name": "stopReggieServer",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fkv3dg3himv",
+      "start_line": 147,
+      "end_line": 153,
+      "start_byte": 4045,
+      "end_byte": 4256,
+      "signature_hint": "function stopReggieServer(done)",
+      "test_role": "support"
+    },
+    "Cqj0qbloeqj": {
+      "id": "Cqj0qbloeqj",
+      "qualified_name": "handler_at_151",
+      "simple_name": "handler_at_151",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fkv3dg3himv",
+      "start_line": 151,
+      "end_line": 151,
+      "start_byte": 4206,
+      "end_byte": 4228,
+      "signature_hint": "function()",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cpqoqr8uq3c": {
+      "id": "Cpqoqr8uq3c",
+      "qualified_name": "prepareSandbox",
+      "simple_name": "prepareSandbox",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fkv3dg3himv",
+      "start_line": 155,
+      "end_line": 158,
+      "start_byte": 4258,
+      "end_byte": 4351,
+      "signature_hint": "function prepareSandbox()",
+      "test_role": "support"
+    },
+    "Czpr4zeyeh3": {
+      "id": "Czpr4zeyeh3",
+      "qualified_name": "rmtreeSync",
+      "simple_name": "rmtreeSync",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fkv3dg3himv",
+      "start_line": 164,
+      "end_line": 182,
+      "start_byte": 4463,
+      "end_byte": 4856,
+      "signature_hint": "function rmtreeSync(dir)",
+      "test_role": "support"
+    },
+    "Cii5dy5txfm": {
+      "id": "Cii5dy5txfm",
+      "qualified_name": "anExpiredAuthToken",
+      "simple_name": "anExpiredAuthToken",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fkv3dg3himv",
+      "start_line": 184,
+      "end_line": 193,
+      "start_byte": 4858,
+      "end_byte": 5022,
+      "signature_hint": "function anExpiredAuthToken()",
+      "test_role": "support"
+    },
+    "Cxsso5i7syu": {
+      "id": "Cxsso5i7syu",
+      "qualified_name": "givenData",
+      "simple_name": "givenData",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F36vyae742z",
+      "start_line": 11,
+      "end_line": 13,
+      "start_byte": 194,
+      "end_byte": 239,
+      "signature_hint": "function givenData()",
+      "test_role": "support"
+    },
+    "Cxr0c6oru3n": {
+      "id": "Cxr0c6oru3n",
+      "qualified_name": "givenDataWithSinglePackageVersion",
+      "simple_name": "givenDataWithSinglePackageVersion",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F36vyae742z",
+      "start_line": 15,
+      "end_line": 37,
+      "start_byte": 241,
+      "end_byte": 776,
+      "signature_hint": "function givenDataWithSinglePackageVersion(name, version)",
+      "test_role": "support"
+    },
+    "Cabfnaf2x11": {
+      "id": "Cabfnaf2x11",
+      "qualified_name": "handler_at_6",
+      "simple_name": "handler_at_6",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "F12dmq8pvdmp",
+      "start_line": 6,
+      "end_line": 89,
+      "start_byte": 146,
+      "end_byte": 2602,
+      "signature_hint": "function()",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Ca3zbo8gxba": {
+      "id": "Ca3zbo8gxba",
+      "qualified_name": "handler_at_12",
+      "simple_name": "handler_at_12",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "F12dmq8pvdmp",
+      "start_line": 12,
+      "end_line": 26,
+      "start_byte": 340,
+      "end_byte": 695,
+      "signature_hint": "function(done)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cemi40ovbz0": {
+      "id": "Cemi40ovbz0",
+      "qualified_name": "handler_at_28",
+      "simple_name": "handler_at_28",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "F12dmq8pvdmp",
+      "start_line": 28,
+      "end_line": 45,
+      "start_byte": 754,
+      "end_byte": 1200,
+      "signature_hint": "function(done)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C812ykqq01c": {
+      "id": "C812ykqq01c",
+      "qualified_name": "handler_at_47",
+      "simple_name": "handler_at_47",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "F12dmq8pvdmp",
+      "start_line": 47,
+      "end_line": 61,
+      "start_byte": 1255,
+      "end_byte": 1711,
+      "signature_hint": "function(done)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C159rrz0ypns": {
+      "id": "C159rrz0ypns",
+      "qualified_name": "handler_at_63",
+      "simple_name": "handler_at_63",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "F12dmq8pvdmp",
+      "start_line": 63,
+      "end_line": 88,
+      "start_byte": 1772,
+      "end_byte": 2598,
+      "signature_hint": "function(done)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C229vxy79j1": {
+      "id": "C229vxy79j1",
+      "qualified_name": "expectPackageWasPublished",
+      "simple_name": "expectPackageWasPublished",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F12dmq8pvdmp",
+      "start_line": 91,
+      "end_line": 97,
+      "start_byte": 2606,
+      "end_byte": 2805,
+      "signature_hint": "function expectPackageWasPublished(done, nameAtVersion)",
+      "test_role": "support"
+    },
+    "C1qg6sm7rls": {
+      "id": "C1qg6sm7rls",
+      "qualified_name": "expectPackageNotFoundInSearch",
+      "simple_name": "expectPackageNotFoundInSearch",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F12dmq8pvdmp",
+      "start_line": 99,
+      "end_line": 105,
+      "start_byte": 2807,
+      "end_byte": 3040,
+      "signature_hint": "function expectPackageNotFoundInSearch(done, nameAtVersion)",
+      "test_role": "support"
+    },
+    "C5dpkqe8arp": {
+      "id": "C5dpkqe8arp",
+      "qualified_name": "expectPackageFoundInSearch",
+      "simple_name": "expectPackageFoundInSearch",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F12dmq8pvdmp",
+      "start_line": 107,
+      "end_line": 113,
+      "start_byte": 3042,
+      "end_byte": 3276,
+      "signature_hint": "function expectPackageFoundInSearch(done, nameAtVersion)",
+      "test_role": "support"
+    },
+    "Cvztlfmqtc0": {
+      "id": "Cvztlfmqtc0",
+      "qualified_name": "handler_at_4",
+      "simple_name": "handler_at_4",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fftv2aga4tg",
+      "start_line": 4,
+      "end_line": 14,
+      "start_byte": 107,
+      "end_byte": 415,
+      "signature_hint": "function(done)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C8u70xh8whx": {
+      "id": "C8u70xh8whx",
+      "qualified_name": "handler_at_9",
+      "simple_name": "handler_at_9",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fftv2aga4tg",
+      "start_line": 9,
+      "end_line": 13,
+      "start_byte": 288,
+      "end_byte": 411,
+      "signature_hint": "function(done)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C5fuo3cwxg3": {
+      "id": "C5fuo3cwxg3",
+      "qualified_name": "<framework-entry>::network::restify::get(\"/\")",
+      "simple_name": "get(\"/\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `server.get(\"/\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cn941zby9c6": {
+      "id": "Cn941zby9c6",
+      "qualified_name": "<framework-entry>::network::restify::put(\"/package/:name/:version\")",
+      "simple_name": "put(\"/package/:name/:version\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `server.put(\"/package/:name/:version\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cvpkpnpet2w": {
+      "id": "Cvpkpnpet2w",
+      "qualified_name": "<framework-entry>::network::restify::del(\"/package/:name/:version\")",
+      "simple_name": "del(\"/package/:name/:version\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `server.del(\"/package/:name/:version\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cl3l7f23hr2": {
+      "id": "Cl3l7f23hr2",
+      "qualified_name": "<framework-entry>::network::restify::get(\"/versions/:name\")",
+      "simple_name": "get(\"/versions/:name\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `server.get(\"/versions/:name\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Clr4ly7xktt": {
+      "id": "Clr4ly7xktt",
+      "qualified_name": "<framework-entry>::network::restify::get(\"/package/:name/:range\")",
+      "simple_name": "get(\"/package/:name/:range\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `server.get(\"/package/:name/:range\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cxcfv98enkp": {
+      "id": "Cxcfv98enkp",
+      "qualified_name": "<framework-entry>::network::restify::get(\"/index\")",
+      "simple_name": "get(\"/index\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `server.get(\"/index\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cgbiq7xw0j4": {
+      "id": "Cgbiq7xw0j4",
+      "qualified_name": "<framework-entry>::network::restify::get(\"/info/:name\")",
+      "simple_name": "get(\"/info/:name\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `server.get(\"/info/:name\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "C14kwoxu177e": {
+      "id": "C14kwoxu177e",
+      "qualified_name": "<framework-entry>::network::restify::put(\"/:name\")",
+      "simple_name": "put(\"/:name\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `server.put(\"/:name\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "C439fppipjb": {
+      "id": "C439fppipjb",
+      "qualified_name": "<framework-entry>::network::restify::get(\"/:name\")",
+      "simple_name": "get(\"/:name\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `server.get(\"/:name\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cofm7bba6ba": {
+      "id": "Cofm7bba6ba",
+      "qualified_name": "<framework-entry>::network::restify::get(\"/:name/:version\")",
+      "simple_name": "get(\"/:name/:version\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `server.get(\"/:name/:version\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cf0goszxpz0": {
+      "id": "Cf0goszxpz0",
+      "qualified_name": "<framework-entry>::network::restify::get(\"/-/all\")",
+      "simple_name": "get(\"/-/all\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `server.get(\"/-/all\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "C9bpkq4s2s9": {
+      "id": "C9bpkq4s2s9",
+      "qualified_name": "<framework-entry>::network::restify::get(\"/-/all/since\")",
+      "simple_name": "get(\"/-/all/since\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `server.get(\"/-/all/since\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cfew69r2mw8": {
+      "id": "Cfew69r2mw8",
+      "qualified_name": "<framework-entry>::network::restify::put(\"/:name/-/:filename/-rev/:rev\")",
+      "simple_name": "put(\"/:name/-/:filename/-rev/:rev\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `server.put(\"/:name/-/:filename/-rev/:rev\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cf3sjdwimuv": {
+      "id": "Cf3sjdwimuv",
+      "qualified_name": "<framework-entry>::network::restify::put(\"/:name/:version/-tag/:tag\")",
+      "simple_name": "put(\"/:name/:version/-tag/:tag\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `server.put(\"/:name/:version/-tag/:tag\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cbbcoy2w882": {
+      "id": "Cbbcoy2w882",
+      "qualified_name": "<framework-entry>::network::restify::get(\"/:name/-/:file\")",
+      "simple_name": "get(\"/:name/-/:file\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `server.get(\"/:name/-/:file\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Css4ku0ln1h": {
+      "id": "Css4ku0ln1h",
+      "qualified_name": "<framework-entry>::network::restify::post(\"/_session\")",
+      "simple_name": "post(\"/_session\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `server.post(\"/_session\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "C149rhpyumfy": {
+      "id": "C149rhpyumfy",
+      "qualified_name": "<framework-entry>::test::js-test-globals",
+      "simple_name": "js-test-globals",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `describe(\"Data\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "test"
+    }
+  },
+  "files": {
+    "Fb93o0gtuud": {
+      "id": "Fb93o0gtuud",
+      "path": "/storage/cgg-test_repos/app-reggie-restify/client.js",
+      "language": "javascript",
+      "detected_via": "shebang:node",
+      "blake3": "895c2eb6bdce32b9fa69fc6bad6550118476a7c291ec4bfb89b75e105ff8e0ae",
+      "size_bytes": 2254,
+      "lines": 80,
+      "parse_ms": 0.834028,
+      "parse_status": "ok"
+    },
+    "Fm5b3iejkf1": {
+      "id": "Fm5b3iejkf1",
+      "path": "/storage/cgg-test_repos/app-reggie-restify/lib/data.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "20b91e437b18ce9316527a70c68015e6fab4348d3647a212e301d26397c6d071",
+      "size_bytes": 10314,
+      "lines": 349,
+      "parse_ms": 1.8900849999999998,
+      "parse_status": "ok"
+    },
+    "Ffhmypdcjg1": {
+      "id": "Ffhmypdcjg1",
+      "path": "/storage/cgg-test_repos/app-reggie-restify/server.js",
+      "language": "javascript",
+      "detected_via": "shebang:node",
+      "blake3": "8d9f784108bbf838e8fc1daeb724d7a8eb4b12b99040f04226738e84779ecaad",
+      "size_bytes": 10996,
+      "lines": 400,
+      "parse_ms": 2.467254,
+      "parse_status": "ok"
+    },
+    "Fh077af7pcl": {
+      "id": "Fh077af7pcl",
+      "path": "/storage/cgg-test_repos/app-reggie-restify/test/data.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "9d926b9c96fff4412c79401f719bfd481eba252fb34a638ce8603aa3fdcd597a",
+      "size_bytes": 1067,
+      "lines": 32,
+      "parse_ms": 0.291399,
+      "parse_status": "ok",
+      "test_role": "directory"
+    },
+    "Fkv3dg3himv": {
+      "id": "Fkv3dg3himv",
+      "path": "/storage/cgg-test_repos/app-reggie-restify/test/helpers.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "21b3a4a573d188bdb97036e86832ba50502c888bec7ae664823fa72e7f056698",
+      "size_bytes": 5023,
+      "lines": 193,
+      "parse_ms": 1.004778,
+      "parse_status": "ok",
+      "test_role": "directory"
+    },
+    "F36vyae742z": {
+      "id": "F36vyae742z",
+      "path": "/storage/cgg-test_repos/app-reggie-restify/test/lib/testDataBuilder.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "5d3f973288e1072ece30e543f793b389717221f1c2a30b1156e0dfba5791d12b",
+      "size_bytes": 894,
+      "lines": 42,
+      "parse_ms": 0.508709,
+      "parse_status": "ok",
+      "test_role": "directory"
+    },
+    "F12dmq8pvdmp": {
+      "id": "F12dmq8pvdmp",
+      "path": "/storage/cgg-test_repos/app-reggie-restify/test/npm-protocol.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "b50a4c07a4b8f7002a8adbc9112e5a517ea7426a4b77cf4e4872a05056ad7507",
+      "size_bytes": 3277,
+      "lines": 113,
+      "parse_ms": 1.075627,
+      "parse_status": "ok",
+      "test_role": "directory"
+    },
+    "Fftv2aga4tg": {
+      "id": "Fftv2aga4tg",
+      "path": "/storage/cgg-test_repos/app-reggie-restify/test/server-api-test.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "f6d7e656a3e3a3b8f18073c0e92bb2c45a3fc72663d1cd34c6599c6834380256",
+      "size_bytes": 418,
+      "lines": 14,
+      "parse_ms": 0.07476,
+      "parse_status": "ok",
+      "test_role": "directory"
+    },
+    "Fn7kcdjzuh1": {
+      "id": "Fn7kcdjzuh1",
+      "path": "<framework-entry>",
+      "language": "framework-entry",
+      "detected_via": "synthesized",
+      "blake3": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 0,
+      "lines": 0,
+      "parse_ms": 0.0,
+      "parse_status": "synthetic"
+    }
+  },
+  "edges": [
+    {
+      "src": "Cx7lz6b5sri",
+      "dst": "Cl16vd369ei",
+      "site_line": 49,
+      "site_byte": 1203,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cl16vd369ei",
+      "dst": "Ckf3q9dw62l",
+      "site_line": 76,
+      "site_byte": 1909,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cfrbcuzxbwr",
+      "dst": "Criyhkazwh4",
+      "site_line": 103,
+      "site_byte": 3017,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Caxfctsnzll",
+      "dst": "Cenw1t5f48g",
+      "site_line": 118,
+      "site_byte": 3737,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cfrbcuzxbwr",
+      "dst": "Caxfctsnzll",
+      "site_line": 126,
+      "site_byte": 4109,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cfrbcuzxbwr",
+      "dst": "C2er4xtwbg0",
+      "site_line": 130,
+      "site_byte": 4208,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cfrbcuzxbwr",
+      "dst": "C14xyog7xq7e",
+      "site_line": 135,
+      "site_byte": 4357,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C12672cmi0xj",
+      "dst": "C156ye8ie6qu",
+      "site_line": 145,
+      "site_byte": 4553,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1190i4c83dg",
+      "dst": "C156ye8ie6qu",
+      "site_line": 172,
+      "site_byte": 5323,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4hljninrz8",
+      "dst": "Czh7wjla8b8",
+      "site_line": 199,
+      "site_byte": 5975,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4hljninrz8",
+      "dst": "C81ikskic92",
+      "site_line": 201,
+      "site_byte": 6058,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cenw1t5f48g",
+      "dst": "Cytzfo3prme",
+      "site_line": 230,
+      "site_byte": 6881,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cytzfo3prme",
+      "dst": "Cqikmxjbdbd",
+      "site_line": 237,
+      "site_byte": 7146,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cqkzkwffyw5",
+      "dst": "Cv0gzhvvfep",
+      "site_line": 131,
+      "site_byte": 3803,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cp2y0aykxjk",
+      "dst": "Cjq6g0qv704",
+      "site_line": 166,
+      "site_byte": 4807,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Chhymlxpsv3",
+      "dst": "Cjq6g0qv704",
+      "site_line": 198,
+      "site_byte": 5561,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Chhymlxpsv3",
+      "dst": "Cjq6g0qv704",
+      "site_line": 201,
+      "site_byte": 5648,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C17or1w3n9uo",
+      "dst": "C4ylp31zhu7",
+      "site_line": 213,
+      "site_byte": 5854,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cap2cksh1pa",
+      "dst": "Cv0gzhvvfep",
+      "site_line": 359,
+      "site_byte": 9835,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cppxoc79751",
+      "dst": "Cv0gzhvvfep",
+      "site_line": 369,
+      "site_byte": 10224,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C3s0j0ftzcc",
+      "dst": "Czpr4zeyeh3",
+      "site_line": 43,
+      "site_byte": 1336,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cc13edwigys",
+      "dst": "Czpr4zeyeh3",
+      "site_line": 114,
+      "site_byte": 3153,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cdng64v6bwk",
+      "dst": "Czpr4zeyeh3",
+      "site_line": 123,
+      "site_byte": 3335,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cztjlo51wq3",
+      "dst": "C8k0otalop7",
+      "site_line": 130,
+      "site_byte": 3586,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cpqoqr8uq3c",
+      "dst": "Czpr4zeyeh3",
+      "site_line": 156,
+      "site_byte": 4288,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Czpr4zeyeh3",
+      "dst": "Czpr4zeyeh3",
+      "site_line": 179,
+      "site_byte": 4808,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ca3zbo8gxba",
+      "dst": "C229vxy79j1",
+      "site_line": 24,
+      "site_byte": 634,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cemi40ovbz0",
+      "dst": "C229vxy79j1",
+      "site_line": 43,
+      "site_byte": 1139,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C812ykqq01c",
+      "dst": "C1qg6sm7rls",
+      "site_line": 59,
+      "site_byte": 1646,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C159rrz0ypns",
+      "dst": "C5dpkqe8arp",
+      "site_line": 83,
+      "site_byte": 2507,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cq22b3y67ch",
+      "dst": "Cl16vd369ei",
+      "site_line": 95,
+      "site_byte": 2809,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cnb45ipicax",
+      "dst": "C12672cmi0xj",
+      "site_line": 112,
+      "site_byte": 3266,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C15224pz94v8",
+      "dst": "C81ikskic92",
+      "site_line": 123,
+      "site_byte": 3595,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C8uz0ibstdl",
+      "dst": "C4hljninrz8",
+      "site_line": 135,
+      "site_byte": 3902,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C2jwxy7yz1t",
+      "dst": "Cmrbuw1n5sl",
+      "site_line": 140,
+      "site_byte": 4015,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cqtulihkgxf",
+      "dst": "Cqikmxjbdbd",
+      "site_line": 155,
+      "site_byte": 4483,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cp2y0aykxjk",
+      "dst": "Cmrbuw1n5sl",
+      "site_line": 165,
+      "site_byte": 4756,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cp2y0aykxjk",
+      "dst": "C81ikskic92",
+      "site_line": 168,
+      "site_byte": 4841,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Chhymlxpsv3",
+      "dst": "Cmrbuw1n5sl",
+      "site_line": 197,
+      "site_byte": 5517,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C17or1w3n9uo",
+      "dst": "Czh7wjla8b8",
+      "site_line": 211,
+      "site_byte": 5777,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C4ylp31zhu7",
+      "dst": "C81ikskic92",
+      "site_line": 219,
+      "site_byte": 5972,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C4ylp31zhu7",
+      "dst": "Cmrbuw1n5sl",
+      "site_line": 220,
+      "site_byte": 6027,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C5ivkjf637w",
+      "dst": "Cl16vd369ei",
+      "site_line": 254,
+      "site_byte": 7077,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cv0gzhvvfep",
+      "dst": "C81ikskic92",
+      "site_line": 376,
+      "site_byte": 10372,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cv0gzhvvfep",
+      "dst": "C1190i4c83dg",
+      "site_line": 387,
+      "site_byte": 10702,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Coo3kzplcvj",
+      "dst": "Cxr0c6oru3n",
+      "site_line": 7,
+      "site_byte": 228,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Coo3kzplcvj",
+      "dst": "C4hljninrz8",
+      "site_line": 8,
+      "site_byte": 302,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cvoxu0yurri",
+      "dst": "Cxr0c6oru3n",
+      "site_line": 15,
+      "site_byte": 494,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cvoxu0yurri",
+      "dst": "C12672cmi0xj",
+      "site_line": 17,
+      "site_byte": 573,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cvoxu0yurri",
+      "dst": "C4hljninrz8",
+      "site_line": 18,
+      "site_byte": 657,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C14ytjpv4upc",
+      "dst": "Cxsso5i7syu",
+      "site_line": 25,
+      "site_byte": 861,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C14ytjpv4upc",
+      "dst": "C12672cmi0xj",
+      "site_line": 27,
+      "site_byte": 904,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxsso5i7syu",
+      "dst": "C15sw54o51qj",
+      "site_line": 12,
+      "site_byte": 226,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxr0c6oru3n",
+      "dst": "C15sw54o51qj",
+      "site_line": 19,
+      "site_byte": 427,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ca3zbo8gxba",
+      "dst": "C3s0j0ftzcc",
+      "site_line": 19,
+      "site_byte": 534,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ca3zbo8gxba",
+      "dst": "C12ui6zbvvt6",
+      "site_line": 21,
+      "site_byte": 564,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cemi40ovbz0",
+      "dst": "Cii5dy5txfm",
+      "site_line": 34,
+      "site_byte": 971,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cemi40ovbz0",
+      "dst": "C3s0j0ftzcc",
+      "site_line": 37,
+      "site_byte": 1022,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cemi40ovbz0",
+      "dst": "C12ui6zbvvt6",
+      "site_line": 39,
+      "site_byte": 1052,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C812ykqq01c",
+      "dst": "C3s0j0ftzcc",
+      "site_line": 50,
+      "site_byte": 1389,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C812ykqq01c",
+      "dst": "Cc13edwigys",
+      "site_line": 54,
+      "site_byte": 1528,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C812ykqq01c",
+      "dst": "C12ui6zbvvt6",
+      "site_line": 56,
+      "site_byte": 1558,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C159rrz0ypns",
+      "dst": "C3s0j0ftzcc",
+      "site_line": 66,
+      "site_byte": 1918,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C159rrz0ypns",
+      "dst": "Cc13edwigys",
+      "site_line": 70,
+      "site_byte": 2057,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C159rrz0ypns",
+      "dst": "C12ui6zbvvt6",
+      "site_line": 72,
+      "site_byte": 2087,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C159rrz0ypns",
+      "dst": "C12ui6zbvvt6",
+      "site_line": 80,
+      "site_byte": 2410,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C5fuo3cwxg3",
+      "dst": "Cv69122fydy",
+      "site_line": 78,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "restify"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cn941zby9c6",
+      "dst": "Cq22b3y67ch",
+      "site_line": 82,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "restify"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cvpkpnpet2w",
+      "dst": "Cnb45ipicax",
+      "site_line": 108,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "restify"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cl3l7f23hr2",
+      "dst": "C15224pz94v8",
+      "site_line": 121,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "restify"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Clr4ly7xktt",
+      "dst": "Cqkzkwffyw5",
+      "site_line": 126,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "restify"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cxcfv98enkp",
+      "dst": "C8uz0ibstdl",
+      "site_line": 134,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "restify"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cgbiq7xw0j4",
+      "dst": "C2jwxy7yz1t",
+      "site_line": 138,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "restify"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C14kwoxu177e",
+      "dst": "Cqtulihkgxf",
+      "site_line": 153,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "restify"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C439fppipjb",
+      "dst": "Cp2y0aykxjk",
+      "site_line": 163,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "restify"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cofm7bba6ba",
+      "dst": "Chhymlxpsv3",
+      "site_line": 193,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "restify"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cf0goszxpz0",
+      "dst": "C17or1w3n9uo",
+      "site_line": 151,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "restify"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C9bpkq4s2s9",
+      "dst": "C17or1w3n9uo",
+      "site_line": 150,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "restify"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cfew69r2mw8",
+      "dst": "C5ivkjf637w",
+      "site_line": 245,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "restify"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cf3sjdwimuv",
+      "dst": "C57u2w9j0qi",
+      "site_line": 269,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "restify"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cbbcoy2w882",
+      "dst": "C9b56g8sdky",
+      "site_line": 277,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "restify"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Css4ku0ln1h",
+      "dst": "Csuhf2qoor7",
+      "site_line": 306,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "restify"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C149rhpyumfy",
+      "dst": "Chn9pwd3w9f",
+      "site_line": 4,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "js-test-globals"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C149rhpyumfy",
+      "dst": "Cjz23gsqyck",
+      "site_line": 5,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "js-test-globals"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C149rhpyumfy",
+      "dst": "Coo3kzplcvj",
+      "site_line": 6,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "js-test-globals"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C149rhpyumfy",
+      "dst": "Cf5cia0yc1j",
+      "site_line": 13,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "js-test-globals"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C149rhpyumfy",
+      "dst": "Cvoxu0yurri",
+      "site_line": 14,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "js-test-globals"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C149rhpyumfy",
+      "dst": "C14ytjpv4upc",
+      "site_line": 24,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "js-test-globals"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C149rhpyumfy",
+      "dst": "Cdng64v6bwk",
+      "site_line": 9,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "js-test-globals"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C149rhpyumfy",
+      "dst": "C8k0otalop7",
+      "site_line": 10,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "js-test-globals"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C149rhpyumfy",
+      "dst": "Cpqoqr8uq3c",
+      "site_line": 8,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "js-test-globals"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C149rhpyumfy",
+      "dst": "Cabfnaf2x11",
+      "site_line": 6,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "js-test-globals"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C149rhpyumfy",
+      "dst": "Ca3zbo8gxba",
+      "site_line": 12,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "js-test-globals"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C149rhpyumfy",
+      "dst": "Cemi40ovbz0",
+      "site_line": 28,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "js-test-globals"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C149rhpyumfy",
+      "dst": "C812ykqq01c",
+      "site_line": 47,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "js-test-globals"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C149rhpyumfy",
+      "dst": "C159rrz0ypns",
+      "site_line": 63,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "js-test-globals"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C149rhpyumfy",
+      "dst": "Cvztlfmqtc0",
+      "site_line": 4,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "js-test-globals"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C149rhpyumfy",
+      "dst": "C8u70xh8whx",
+      "site_line": 9,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "js-test-globals"
+      },
+      "resolver": "framework-entry"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": null,
+      "file": "Ffhmypdcjg1",
+      "site_line": 50,
+      "site_byte": 1455,
+      "name": "normalizeUrl",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ffhmypdcjg1",
+      "site_line": 54,
+      "site_byte": 1569,
+      "name": "Data",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ffhmypdcjg1",
+      "site_line": 298,
+      "site_byte": 8138,
+      "name": "fix",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ffhmypdcjg1",
+      "site_line": 343,
+      "site_byte": 9408,
+      "name": "registerOp",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ffhmypdcjg1",
+      "site_line": 347,
+      "site_byte": 9515,
+      "name": "registerOp",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fb93o0gtuud",
+      "site_line": 42,
+      "site_byte": 1315,
+      "name": "packageUrl",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ffhmypdcjg1",
+      "site_line": 150,
+      "site_byte": 4323,
+      "name": "listAction",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Ffhmypdcjg1",
+      "site_line": 151,
+      "site_byte": 4357,
+      "name": "listAction",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": "Chn9pwd3w9f",
+      "file": "Fh077af7pcl",
+      "site_line": 4,
+      "site_byte": 112,
+      "name": "handler_at_4",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Coo3kzplcvj",
+      "file": "Fh077af7pcl",
+      "site_line": 6,
+      "site_byte": 190,
+      "name": "handler_at_6",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cabfnaf2x11",
+      "file": "F12dmq8pvdmp",
+      "site_line": 6,
+      "site_byte": 146,
+      "name": "handler_at_6",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cvztlfmqtc0",
+      "file": "Fftv2aga4tg",
+      "site_line": 4,
+      "site_byte": 107,
+      "name": "handler_at_4",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 11.125849,
+    "phases": {
+      "walk_ms": 1.277066,
+      "parse_ms": 8.14664,
+      "extract_ms": 1.681393,
+      "resolve_ms": 0.0,
+      "link_ms": 1.9414449999999999,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 41,
+    "files_analyzed": 8,
+    "files_skipped": 33,
+    "files_errored": 0,
+    "bytes_processed": 34243,
+    "callables": 98,
+    "edges": 98,
+    "unresolved_calls": 12,
+    "stdlib_calls": 156,
+    "external_calls": 199,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "javascript": {
+        "files": 8,
+        "callables": 81,
+        "edges": 30,
+        "unresolved": 12,
+        "stdlib": 156,
+        "external": 199
+      },
+      "skip:builtin": {
+        "files": 27,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 45,
+      "medium": 27,
+      "low": 0
+    }
+  }
+}
