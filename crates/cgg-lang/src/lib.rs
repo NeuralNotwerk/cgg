@@ -75,6 +75,11 @@ pub struct ExtractCtx<'a> {
     /// handful that could actually fire. Empty means the caller did not
     /// say, and the union is used — the conservative answer.
     language: &'a str,
+
+    /// The file being extracted is test code
+    /// (`cgg_core::classify_test_file`), so a test harness's verbs count
+    /// as registrar verbs in it.
+    test_file: bool,
 }
 
 /// The verb a registrar gates on, lowercased. A rule may name the
@@ -121,12 +126,94 @@ fn builtin_verbs_for(
                 std::collections::HashSet<String>,
             > = std::collections::HashMap::new();
             for spec in cgg_core::frameworks::rules::SPECS {
-                if spec.registrars.is_empty() {
+                // A test harness's verbs gate only test files
+                // ([`builtin_harness_verbs_for`]).
+                if spec.registrars.is_empty() || is_harness(spec) {
                     continue;
                 }
                 m.entry(spec.language)
                     .or_default()
                     .extend(spec.registrars.iter().map(|v| registrar_verb(v)));
+            }
+            m
+        })
+        .get(language)
+}
+
+/// Whether a rule's registrars are a test harness's block verbs.
+fn is_harness(spec: &cgg_core::frameworks::rules::RuleSpec) -> bool {
+    spec.kind == cgg_core::frameworks::TrustKind::Test
+}
+
+/// The test-harness verbs of one language (`describe`, `it`, `test`, …),
+/// lowercased once per process.
+///
+/// Kept apart from [`builtin_verbs_for`] because they are the commonest
+/// call names in a test suite and mean nothing outside one: a gate that
+/// admitted them everywhere would capture `re.test(s)` in production code
+/// and mint a handler per `describe` block of a tree no harness rule
+/// covers. A file classified as test code admits them
+/// ([`ExtractCtx::for_test_file`]).
+fn builtin_harness_verbs_for(
+    language: &str,
+) -> Option<&'static std::collections::HashSet<String>> {
+    #[allow(clippy::type_complexity)]
+    static BY_LANG: std::sync::OnceLock<
+        std::collections::HashMap<&'static str, std::collections::HashSet<String>>,
+    > = std::sync::OnceLock::new();
+    BY_LANG
+        .get_or_init(|| {
+            let mut m: std::collections::HashMap<
+                &'static str,
+                std::collections::HashSet<String>,
+            > = std::collections::HashMap::new();
+            for spec in cgg_core::frameworks::rules::SPECS {
+                if spec.registrars.is_empty() || !is_harness(spec) {
+                    continue;
+                }
+                m.entry(spec.language)
+                    .or_default()
+                    .extend(spec.registrars.iter().map(|v| registrar_verb(v)));
+            }
+            m
+        })
+        .get(language)
+}
+
+/// The receiver-qualified registrars of one language (`lambda.run`),
+/// lowercased, with every unqualified verb of the language beside them.
+fn builtin_registrar_paths_for(
+    language: &str,
+) -> Option<&'static (Vec<String>, std::collections::HashSet<String>)> {
+    #[allow(clippy::type_complexity)]
+    static BY_LANG: std::sync::OnceLock<
+        std::collections::HashMap<
+            &'static str,
+            (Vec<String>, std::collections::HashSet<String>),
+        >,
+    > = std::sync::OnceLock::new();
+    BY_LANG
+        .get_or_init(|| {
+            let mut m: std::collections::HashMap<
+                &'static str,
+                (Vec<String>, std::collections::HashSet<String>),
+            > = std::collections::HashMap::new();
+            for spec in cgg_core::frameworks::rules::SPECS {
+                if spec.registrars.is_empty() || is_harness(spec) {
+                    continue;
+                }
+                let e = m.entry(spec.language).or_default();
+                for v in spec.registrars {
+                    if v.contains(['.', ':']) {
+                        e.0.push(v.to_ascii_lowercase());
+                    } else {
+                        e.1.insert(v.to_ascii_lowercase());
+                    }
+                }
+            }
+            for e in m.values_mut() {
+                e.0.sort();
+                e.0.dedup();
             }
             m
         })
@@ -151,6 +238,7 @@ impl<'a> ExtractCtx<'a> {
             reference_sites: false,
             extra_verbs,
             language: "",
+            test_file: false,
         }
     }
 
@@ -173,6 +261,51 @@ impl<'a> ExtractCtx<'a> {
         Self { language, ..self }
     }
 
+    /// The same context for a file that is (or is not) test code: in one,
+    /// the language's test-harness verbs gate like registrar verbs, so
+    /// `it('adds', () => …)` hands its callback to the harness rule.
+    #[must_use]
+    pub fn for_test_file(self, test_file: bool) -> Self {
+        Self { test_file, ..self }
+    }
+
+    /// Whether a call written as `context` (`Lambda.run`, `app.get`) is a
+    /// registration some rule of this language names *with its receiver*
+    /// when it names one.
+    ///
+    /// [`Self::is_registrar_verb`] gates on the callee's last segment only,
+    /// which is right for argument capture: the rule engine still checks
+    /// the receiver. A plugin that would *mint a callable* for a closure
+    /// handed to the call needs the stricter answer, or every
+    /// `MainActor.run { … }` becomes a handler because some rule
+    /// registers `Lambda.run`.
+    pub fn is_registrar_context(&self, context: &str) -> bool {
+        let verb = context.rsplit(['.', ':']).next().unwrap_or(context);
+        if !self.is_registrar_verb(verb) {
+            return false;
+        }
+        let lower = context.to_ascii_lowercase();
+        let verb = verb.to_ascii_lowercase();
+        if self.extra_verbs.contains(&verb)
+            || (self.test_file
+                && builtin_harness_verbs_for(self.language)
+                    .is_some_and(|s| s.contains(&verb)))
+        {
+            return true;
+        }
+        let Some((paths, bare)) = builtin_registrar_paths_for(self.language) else {
+            // Unscoped context: the per-language tables do not apply.
+            return self.language.is_empty();
+        };
+        bare.contains(&verb)
+            || paths.iter().any(|p| {
+                lower == *p
+                    || lower
+                        .strip_suffix(p.as_str())
+                        .is_some_and(|head| head.ends_with(['.', ':']))
+            })
+    }
+
     /// An ordinary run: no dead-code signals, no user rules.
     ///
     /// What the plugin tests use, and the default for anyone calling
@@ -183,6 +316,7 @@ impl<'a> ExtractCtx<'a> {
             reference_sites: false,
             extra_verbs: no_extra_verbs(),
             language: "",
+            test_file: false,
         }
     }
 
@@ -213,13 +347,19 @@ impl<'a> ExtractCtx<'a> {
             match builtin_verbs_for(self.language) {
                 Some(set) => set,
                 None => {
-                    return !self.extra_verbs.is_empty()
-                        && (self.extra_verbs.contains(verb)
-                            || self.extra_verbs.contains(&verb.to_ascii_lowercase()));
+                    return (self.test_file && self.is_harness_verb(verb))
+                        || (!self.extra_verbs.is_empty()
+                            && (self.extra_verbs.contains(verb)
+                                || self
+                                    .extra_verbs
+                                    .contains(&verb.to_ascii_lowercase())));
                 }
             }
         };
         if builtin.contains(verb) {
+            return true;
+        }
+        if self.test_file && self.is_harness_verb(verb) {
             return true;
         }
         // `is_empty` first: the overwhelmingly common case is no user rules,
@@ -233,6 +373,27 @@ impl<'a> ExtractCtx<'a> {
                 || (!self.extra_verbs.is_empty() && self.extra_verbs.contains(&lower));
         }
         false
+    }
+
+    /// Whether `verb` gates only as a test-harness verb here: this is a
+    /// test file and no route rule or user rule of the language names it.
+    pub fn is_harness_only_verb(&self, verb: &str) -> bool {
+        if !self.test_file || !self.is_harness_verb(verb) {
+            return false;
+        }
+        let lower = verb.to_ascii_lowercase();
+        let routed = builtin_verbs_for(self.language).is_some_and(|s| s.contains(&lower));
+        !routed && !self.extra_verbs.contains(&lower) && !self.extra_verbs.contains(verb)
+    }
+
+    /// Whether `verb` is one of this language's test-harness verbs.
+    pub fn is_harness_verb(&self, verb: &str) -> bool {
+        let Some(set) = builtin_harness_verbs_for(self.language) else {
+            return false;
+        };
+        set.contains(verb)
+            || (verb.bytes().any(|b| b.is_ascii_uppercase())
+                && set.contains(&verb.to_ascii_lowercase()))
     }
 }
 
@@ -406,6 +567,38 @@ mod tests {
 
         // A language with no registrar-bearing rule matches nothing.
         assert!(!ctx.for_language("cobol").is_registrar_verb("Start"));
+    }
+
+    /// WS24: a test harness's block verbs gate only a test file, and only
+    /// in a language with a harness rule that registers them.
+    #[test]
+    fn harness_verbs_gate_only_test_files() {
+        let js = ExtractCtx::plain().for_language("javascript");
+        assert!(!js.is_registrar_verb("describe"));
+        assert!(js.for_test_file(true).is_registrar_verb("describe"));
+        assert!(js.for_test_file(true).is_registrar_verb("beforeEach"));
+        // Route verbs are unaffected by the test switch.
+        assert!(js.is_registrar_verb("get"));
+        assert!(js.for_test_file(true).is_registrar_verb("get"));
+        let py = ExtractCtx::plain()
+            .for_language("python")
+            .for_test_file(true);
+        assert!(!py.is_registrar_verb("describe"));
+    }
+
+    /// WS24: a receiver-qualified registrar mints a handler only through
+    /// its receiver, an unqualified one through any.
+    #[test]
+    fn a_receiver_qualified_registrar_needs_its_receiver() {
+        let swift = ExtractCtx::plain().for_language("swift");
+        assert!(swift.is_registrar_context("Lambda.run"));
+        assert!(swift.is_registrar_context("AWSLambdaRuntime.Lambda.run"));
+        assert!(!swift.is_registrar_context("MainActor.run"));
+        assert!(!swift.is_registrar_context("run"));
+        let js = ExtractCtx::plain().for_language("javascript");
+        assert!(js.is_registrar_context("app.get"));
+        assert!(!js.is_registrar_context("it"));
+        assert!(js.for_test_file(true).is_registrar_context("it"));
     }
 
     /// Two contexts do not see each other's verbs.

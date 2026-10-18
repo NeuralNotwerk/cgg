@@ -21,7 +21,7 @@ impl LanguagePlugin for SwiftPlugin {
 
     fn extract(
         &self,
-        _ctx: &crate::ExtractCtx<'_>,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -29,6 +29,7 @@ impl LanguagePlugin for SwiftPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "swift");
         let mut w = SwiftWalker {
+            ctx: *ctx,
             source,
             facts: &mut facts,
             scope: Vec::new(),
@@ -40,6 +41,8 @@ impl LanguagePlugin for SwiftPlugin {
 }
 
 struct SwiftWalker<'a> {
+    /// The run's extraction switches, for the registrar-verb gate.
+    ctx: crate::ExtractCtx<'a>,
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
@@ -279,6 +282,11 @@ impl<'a> SwiftWalker<'a> {
         if name.is_empty() {
             return;
         }
+        let context = if recv.is_empty() {
+            name.clone()
+        } else {
+            format!("{recv}.{name}")
+        };
         self.facts.references.push(RefRecord {
             name,
             receiver_hint: recv,
@@ -288,6 +296,47 @@ impl<'a> SwiftWalker<'a> {
             arity: call_arity(node),
             ..Default::default()
         });
+        // Shape B: a handler passed by name to a registration call.
+        let extra = super::registrar::capture(&self.ctx, node, self.source, &context);
+        self.facts.references.extend(extra);
+        self.record_inline_handlers(node, &context);
+    }
+
+    /// Shape C: a closure handed to a registration call, `Lambda.run {
+    /// … }`, becomes a `handler_at_<line>` callable the framework rule can
+    /// enter. Only for a call some rule names with its receiver: the verb
+    /// alone (`run`) would mint one for every `MainActor.run { … }`.
+    fn record_inline_handlers(&mut self, node: Node, context: &str) {
+        if !self.ctx.is_registrar_context(context) {
+            return;
+        }
+        let route = super::registrar::route_of(node, self.source);
+        for closure in super::registrar::inline_closures(node) {
+            let line = (closure.start_position().row as u32) + 1;
+            let simple = format!("handler_at_{line}");
+            self.facts.definitions.push(DefRecord {
+                simple_name: simple.clone(),
+                qualified_name: self.qn(&simple),
+                variant: DefVariant::NamedClosure,
+                start_line: line,
+                end_line: (closure.end_position().row as u32) + 1,
+                start_byte: closure.start_byte() as u32,
+                end_byte: closure.end_byte() as u32,
+                signature_hint: super::extract_signature(self.text(closure)),
+                visibility: String::new(),
+                attributes: vec!["synthetic".to_string()],
+                ..Default::default()
+            });
+            self.facts.references.push(RefRecord {
+                name: simple,
+                receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                site_line: line,
+                site_byte: closure.start_byte() as u32,
+                context: context.to_string(),
+                route: route.clone(),
+                ..Default::default()
+            });
+        }
     }
 }
 
@@ -522,6 +571,46 @@ mod tests {
             init.attributes.iter().any(|a| a == "override"),
             "{:?}",
             init.attributes
+        );
+    }
+
+    fn extract_swift(src: &str) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_swift::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        SwiftPlugin.extract(
+            &crate::ExtractCtx::plain().for_language("swift"),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/main.swift"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    /// WS24: the closure handed to `Lambda.run` is a handler the
+    /// aws-lambda rule can enter; `MainActor.run { … }` shares the verb and
+    /// not the receiver, and mints nothing.
+    #[test]
+    fn a_closure_handed_to_a_receiver_named_registrar_is_a_handler() {
+        let f = extract_swift(
+            "Lambda.run { (c, n: String, cb) in\n  greet(n)\n}\nfunc w() async {\n  await MainActor.run {\n    other()\n  }\n}\nLambda.run(handle)\n",
+        );
+        let handlers: Vec<(&str, u32)> = f
+            .definitions
+            .iter()
+            .filter(|d| d.simple_name.starts_with("handler_at_"))
+            .map(|d| (d.simple_name.as_str(), d.end_line))
+            .collect();
+        assert_eq!(handlers, vec![("handler_at_1", 3)]);
+        let refs: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .filter(|r| r.receiver_hint == cgg_core::VALUE_REF_HINT)
+            .map(|r| (r.name.as_str(), r.context.as_str()))
+            .collect();
+        assert_eq!(
+            refs,
+            vec![("handler_at_1", "Lambda.run"), ("handle", "Lambda.run")]
         );
     }
 }

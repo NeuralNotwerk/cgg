@@ -1471,4 +1471,29 @@ namespace A.B.C {
             assert_eq!(abstract_tags(&f, m), vec![false], "{m}");
         }
     }
+
+    /// WS24: a method group named through its type (`Handlers.List`) is a
+    /// registrar argument, like a bare `Local`.
+    #[test]
+    fn a_type_qualified_method_group_is_a_registrar_argument() {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_c_sharp::LANGUAGE.into())
+            .unwrap();
+        let src = "class P { void M() { app.MapGet(\"/a\", Handlers.List); app.MapGet(\"/b\", Local); } }";
+        let tree = p.parse(src, None).unwrap();
+        let f = CSharpPlugin.extract(
+            &crate::ExtractCtx::plain().for_language("csharp"),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.cs"),
+            &tree,
+            src.as_bytes(),
+        );
+        let refs: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .filter(|r| r.receiver_hint == cgg_core::VALUE_REF_HINT)
+            .map(|r| (r.name.as_str(), r.route.as_str()))
+            .collect();
+        assert_eq!(refs, vec![("List", "/a"), ("Local", "/b")]);
+    }
 }

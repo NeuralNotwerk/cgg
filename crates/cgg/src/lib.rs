@@ -465,8 +465,13 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                         // Narrow the registrar-verb gate to this file's
                         // language; the union of every rule in the table
                         // makes each language pay for the others'.
+                        // A test file admits its harness's block verbs
+                        // (`describe`, `it`) to the same gate.
+                        let ctx = extract_ctx.for_language(lang).for_test_file(
+                            cgg_core::classify_test_file(&cand.path, lang).is_some(),
+                        );
                         let mut f = p.extract(
-                            &extract_ctx.for_language(lang),
+                            &ctx,
                             FileId::new(0),
                             &cand.path,
                             &out.tree,

@@ -531,7 +531,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(4237 callables, 13665 edges, 4207 cross-file, 419ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(4292 callables, 13844 edges, 4296 cross-file, 452ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -590,41 +590,42 @@ flowchart LR
   N45["cgg_lang::ExtractCtx&lt;'a&gt;::new"]
   N46["cgg_lang::ExtractCtx&lt;'a&gt;::with_reference_sites"]
   N47["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
-  N48["cgg_lang::longest_line_bytes"]
-  N49["cgg_lang::LanguagePlugin::max_line_bytes"]
-  N50["cgg_lang::PluginRegistry::with_v1_plugins"]
-  N51["cgg_lang::locals::collect"]
-  N52["cgg_lang::notebook::extract_python_source"]
-  N53["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
-  N54["cgg_lang::parser::ParserPool&lt;'r&gt;::parse_file"]
-  N55["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
-  N56["cgg_lang::parser::exceeds_depth"]
-  N57["cgg_lang::plugins::c_macro::expand"]
-  N58["cgg_lang::plugins::cpp::unify_declarations"]
-  N59["cgg_lang::plugins::kivy::&lt;KivyPlugin as LanguagePlugin&gt;::max_line_bytes"]
-  N60["cgg_resolve::cross_file::resolve"]
-  N61["cgg_resolve::descriptor::link_descriptors"]
-  N62["cgg_resolve::dispatch::fanout"]
-  N63["cgg_resolve::dispatch::inheritance_fanout"]
-  N64["cgg_resolve::ffi::link_ffi"]
-  N65["cgg_resolve::frameworks::detect"]
-  N66["cgg_resolve::intra_file::link_file_with_cap"]
-  N67["cgg_resolve::names::owner_from_qn"]
-  N68["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
-  N69["cgg_resolve::type_hints::field_index"]
-  N70["cgg_resolve::type_hints::type_alias_index"]
-  N71["cgg_resolve::type_hints::macro_index"]
-  N72["cgg_resolve::type_hints::resolve_macro_types"]
-  N73["cgg_resolve::type_hints::build_return_type_map"]
-  N74["cgg_resolve::type_hints::propagate_types_with_fields"]
-  N75["cgg_resolve::type_hints::settle_assoc_call_locals"]
-  N76["cgg_resolve::type_hints::settle_closure_args"]
-  N77["cgg_resolve::type_hints::settle_implicit_receivers"]
-  N78["cgg_resolve::unreachable::cap_unreachable_edges"]
-  N79["cgg_resolve::value_refs::prune"]
-  N80["cgg_resolve::value_refs::prune_paren_less"]
-  N81["cgg_resolve::value_refs::tag_reference_edges"]
-  N82["cgg_walk::walk"]
+  N48["cgg_lang::ExtractCtx&lt;'a&gt;::for_test_file"]
+  N49["cgg_lang::longest_line_bytes"]
+  N50["cgg_lang::LanguagePlugin::max_line_bytes"]
+  N51["cgg_lang::PluginRegistry::with_v1_plugins"]
+  N52["cgg_lang::locals::collect"]
+  N53["cgg_lang::notebook::extract_python_source"]
+  N54["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
+  N55["cgg_lang::parser::ParserPool&lt;'r&gt;::parse_file"]
+  N56["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
+  N57["cgg_lang::parser::exceeds_depth"]
+  N58["cgg_lang::plugins::c_macro::expand"]
+  N59["cgg_lang::plugins::cpp::unify_declarations"]
+  N60["cgg_lang::plugins::kivy::&lt;KivyPlugin as LanguagePlugin&gt;::max_line_bytes"]
+  N61["cgg_resolve::cross_file::resolve"]
+  N62["cgg_resolve::descriptor::link_descriptors"]
+  N63["cgg_resolve::dispatch::fanout"]
+  N64["cgg_resolve::dispatch::inheritance_fanout"]
+  N65["cgg_resolve::ffi::link_ffi"]
+  N66["cgg_resolve::frameworks::detect"]
+  N67["cgg_resolve::intra_file::link_file_with_cap"]
+  N68["cgg_resolve::names::owner_from_qn"]
+  N69["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
+  N70["cgg_resolve::type_hints::field_index"]
+  N71["cgg_resolve::type_hints::type_alias_index"]
+  N72["cgg_resolve::type_hints::macro_index"]
+  N73["cgg_resolve::type_hints::resolve_macro_types"]
+  N74["cgg_resolve::type_hints::build_return_type_map"]
+  N75["cgg_resolve::type_hints::propagate_types_with_fields"]
+  N76["cgg_resolve::type_hints::settle_assoc_call_locals"]
+  N77["cgg_resolve::type_hints::settle_closure_args"]
+  N78["cgg_resolve::type_hints::settle_implicit_receivers"]
+  N79["cgg_resolve::unreachable::cap_unreachable_edges"]
+  N80["cgg_resolve::value_refs::prune"]
+  N81["cgg_resolve::value_refs::prune_paren_less"]
+  N82["cgg_resolve::value_refs::tag_reference_edges"]
+  N83["cgg_walk::walk"]
   N2 --> N3
   N3 --> N4
   N3 --> N13
@@ -649,60 +650,61 @@ flowchart LR
   N3 --> N46
   N3 --> N45
   N3 --> N40
-  N3 --> N82
-  N3 --> N50
+  N3 --> N83
+  N3 --> N51
   N3 --> N43
-  N3 --> N53
+  N3 --> N54
   N3 --> N28
   N3 --> N27
   N3 --> N34
   N3 --> N44
-  N3 --> N52
+  N3 --> N53
   N3 -->|19x| N41
-  N3 -->|2x| N55
-  N3 -->|?| N49
-  N3 -->|?| N59
-  N3 -->|2x| N48
-  N3 --> N54
-  N3 --> N56
-  N3 --> N47
-  N3 --> N38
-  N3 --> N51
-  N3 --> N39
+  N3 -->|2x| N56
+  N3 -->|?| N50
+  N3 -->|?| N60
+  N3 -->|2x| N49
+  N3 --> N55
   N3 --> N57
+  N3 -->|?| N48
+  N3 --> N47
+  N3 -->|2x| N42
+  N3 --> N38
+  N3 --> N52
+  N3 --> N39
   N3 --> N58
+  N3 --> N59
   N3 --> N26
   N3 --> N29
-  N3 --> N42
   N3 --> N36
-  N3 --> N67
+  N3 --> N68
   N3 --> N30
   N3 --> N35
-  N3 --> N79
   N3 --> N80
-  N3 --> N73
-  N3 --> N68
+  N3 --> N81
+  N3 --> N74
   N3 --> N69
-  N3 --> N71
-  N3 --> N72
   N3 --> N70
+  N3 --> N72
+  N3 --> N73
+  N3 --> N71
+  N3 --> N77
   N3 --> N76
   N3 --> N75
-  N3 --> N74
-  N3 --> N77
+  N3 --> N78
   N3 --> N33
-  N3 --> N66
+  N3 --> N67
   N3 --> N31
   N3 --> N32
-  N3 --> N60
-  N3 --> N64
   N3 --> N61
-  N3 --> N81
-  N3 --> N78
   N3 --> N65
   N3 --> N62
-  N3 -->|2x| N37
+  N3 --> N82
+  N3 --> N79
+  N3 --> N66
   N3 --> N63
+  N3 -->|2x| N37
+  N3 --> N64
   N3 -->|5x| N21
   N3 --> N25
   N3 -->|2x| N22
@@ -712,7 +714,7 @@ flowchart LR
   N8 --> N28
   N8 -->|3x| N22
   N8 --> N21
-  N9 --> N50
+  N9 --> N51
   N9 --> N22
   N9 --> N21
   N10 --> N22
@@ -727,20 +729,20 @@ flowchart LR
   N16 --> N35
   N16 --> N37
   N23 --> N34
-  N57 --> N47
-  N58 -->|3x| N39
-  N60 -->|6x| N41
-  N60 -->|6x| N67
-  N60 --> N39
-  N61 -->|2x| N67
-  N62 --> N67
-  N63 -->|2x| N67
-  N64 --> N39
-  N65 -->|14x| N41
-  N66 -->|7x| N67
-  N74 -->|3x| N41
-  N75 --> N67
-  N77 --> N67
+  N58 --> N47
+  N59 -->|3x| N39
+  N61 -->|6x| N41
+  N61 -->|6x| N68
+  N61 --> N39
+  N62 -->|2x| N68
+  N63 --> N68
+  N64 -->|2x| N68
+  N65 --> N39
+  N66 -->|14x| N41
+  N67 -->|7x| N68
+  N75 -->|3x| N41
+  N76 --> N68
+  N78 --> N68
 ```
 <!-- cgg:end:self -->
 

@@ -102,6 +102,7 @@ pub fn detect(
         .iter()
         .filter(|r| evidence.is_active(&r.id, &r.language))
         .collect();
+    let harness = HarnessChoice::build(facts, &active, &evidence);
     let mut entries: Vec<FrameworkEntry> = active
         .par_iter()
         .flat_map_iter(|rule| {
@@ -113,7 +114,7 @@ pub fn detect(
 
             {
                 let _s = cgg_core::profile::span("frameworks::match-attributes");
-                match_attributes(graph, rule, &mut entries);
+                match_attributes(graph, rule, &evidence, &mut entries);
             }
             {
                 let _s = cgg_core::profile::span("frameworks::match-base-types");
@@ -132,6 +133,7 @@ pub fn detect(
                     names,
                     rule,
                     &called_in_file,
+                    &harness,
                     &mut entries,
                 );
             }
@@ -429,6 +431,24 @@ impl Detection {
         // gap too. Zero entries beside a name reads as "there are none",
         // and on a framework cgg claims to understand that is the most
         // dangerous line in the table.
+        //
+        // Except the anonymous globals harness when a named harness of its
+        // language took the test files: it stood in for nothing there.
+        let named_harness: HashSet<String> = cov
+            .recognised
+            .iter()
+            .filter(|r| {
+                r.kind == TrustKind::Test
+                    && r.entries > 0
+                    && rules::harness_globals_rank(&r.id, &r.language) != 1
+            })
+            .map(|r| r.language.clone())
+            .collect();
+        cov.recognised.retain(|r| {
+            r.entries > 0
+                || rules::harness_globals_rank(&r.id, &r.language) != 1
+                || !named_harness.contains(&r.language)
+        });
         let mut i = 0;
         while i < cov.recognised.len() {
             if cov.recognised[i].entries == 0 {
@@ -500,7 +520,6 @@ fn prefix_keys(path: &str) -> impl Iterator<Item = &str> {
 /// index by `prefix_index_agrees_with_import_matches` — an index that
 /// silently diverged from it would make rules stop firing with no
 /// symptom other than a coverage table quietly claiming less.
-#[cfg_attr(not(test), allow(dead_code))]
 fn import_matches(path: &str, prefix: &str) -> bool {
     let p = path.trim().trim_matches(|c| c == '"' || c == '\'');
     if p == prefix {
@@ -616,20 +635,45 @@ pub(crate) fn name_pattern_matches(pattern: &str, name: &str) -> bool {
 /// The highest-evidence shape in the set: the framework's own
 /// registration syntax is sitting on the callable. Only the precise
 /// route string is uncertain, never whether this is an entry point.
-fn match_attributes(graph: &Graph, rule: &FrameworkRule, out: &mut Vec<FrameworkEntry>) {
+fn match_attributes(
+    graph: &Graph,
+    rule: &FrameworkRule,
+    evidence: &Detection,
+    out: &mut Vec<FrameworkEntry>,
+) {
     if rule.attributes.is_empty() {
         return;
     }
+    // A JVM annotation is the framework's only where the file imports it
+    // (or writes it qualified): `@Scheduled` over a class of the file's
+    // own package is that package's annotation, whatever another file of
+    // the tree imports.
+    let import_scoped = !rule.detect.is_empty()
+        && rules::IMPORT_SCOPED_ATTRIBUTES.contains(&rule.language.as_str());
     for (id, node) in &graph.callables {
         if node.language != rule.language || node.synthetic {
             continue;
         }
+        // A script (`build.gradle.kts`) is compiled with its host's
+        // default imports, which no line of the file states.
+        let script = || {
+            graph
+                .files
+                .get(&node.file)
+                .is_some_and(|f| f.path.extension().is_some_and(|e| e == "kts"))
+        };
+        let file_imports = !import_scoped
+            || evidence.file_carries(&rule.id, &rule.language, node.file)
+            || script();
         for attr in &node.attributes {
             let key = attribute_key(attr);
             let verb = attribute_verb(attr);
             if !matches_ci_or_pattern(&rule.attributes, key)
                 && !matches_ci_or_pattern(&rule.attributes, verb)
             {
+                continue;
+            }
+            if !file_imports && !rule.detect.iter().any(|p| import_matches(key, p)) {
                 continue;
             }
             let route = match attribute_string_arg(attr) {
@@ -1419,6 +1463,9 @@ fn enclosing_owner_name(graph: &Graph, file: FileId, byte: u32) -> Option<&str> 
 /// call) and a `route` (its first string literal). What differs is only
 /// how the target is named: by identifier (B), by the synthesized name
 /// of an inline closure (C), or by a string that has to be decoded (E).
+// One over clippy's argument threshold: the harness choice joined the
+// shared read-only indexes this matcher already took.
+#[allow(clippy::too_many_arguments)]
 fn match_registrars(
     graph: &Graph,
     facts: &[FileFacts],
@@ -1426,11 +1473,13 @@ fn match_registrars(
     index: &NameIndex,
     rule: &FrameworkRule,
     called_in_file: &HashSet<CallableId>,
+    harness: &HarnessChoice,
     out: &mut Vec<FrameworkEntry>,
 ) {
     if rule.registrars.is_empty() {
         return;
     }
+    let is_harness = rule.kind == TrustKind::Test;
 
     // Walk only the references whose verb some registrar of THIS rule
     // names, instead of every reference in the tree once per rule.
@@ -1438,6 +1487,11 @@ fn match_registrars(
     // phase, because seven active rules each re-scanned ~1,300 files
     // worth of references to reject almost all of them.
     for (f, r) in regs.candidates(rule) {
+        // A test file's `it(…)` belongs to one harness, not to every
+        // harness that shares the verb.
+        if is_harness && !harness.allows(rule, f) {
+            continue;
+        }
         {
             let is_value = r.receiver_hint == VALUE_REF_HINT;
             let is_string = r.receiver_hint == STRING_REF_HINT;
@@ -1609,6 +1663,94 @@ fn match_registrars(
                 site_line: r.site_line,
                 node: rule.node,
             });
+        }
+    }
+}
+
+/// Which test harness owns each test file's block verbs.
+///
+/// `describe`/`it`/`test` are shared by every JavaScript harness, so a
+/// rule-per-harness reading of them would enter each case once per
+/// harness the tree detects. A file that imports harnesses belongs to
+/// those; one that imports none to the language's globals harness
+/// ([`rules::harness_globals_rank`]): the highest-ranked active one, then
+/// the one detected in the most files, then the first in rule order.
+struct HarnessChoice {
+    /// file -> ids of the harness rules its own imports name.
+    imported: HashMap<FileId, Vec<String>>,
+    /// language -> id of its globals harness.
+    globals: HashMap<String, String>,
+    /// languages with any active harness rule.
+    languages: HashSet<String>,
+}
+
+impl HarnessChoice {
+    fn build(
+        facts: &[FileFacts],
+        active: &[&FrameworkRule],
+        evidence: &Detection,
+    ) -> Self {
+        let harnesses: Vec<&FrameworkRule> = active
+            .iter()
+            .copied()
+            .filter(|r| r.kind == TrustKind::Test && !r.registrars.is_empty())
+            .collect();
+        let mut out = Self {
+            imported: HashMap::new(),
+            globals: HashMap::new(),
+            languages: harnesses.iter().map(|r| r.language.clone()).collect(),
+        };
+        if harnesses.is_empty() {
+            return out;
+        }
+        for f in facts {
+            if !out.languages.contains(&f.language) {
+                continue;
+            }
+            let ids: Vec<String> = harnesses
+                .iter()
+                .filter(|r| r.language == f.language)
+                .filter(|r| {
+                    f.imports
+                        .iter()
+                        .any(|i| r.detect.iter().any(|p| import_matches(&i.path, p)))
+                })
+                .map(|r| r.id.clone())
+                .collect();
+            if !ids.is_empty() {
+                out.imported.insert(f.file, ids);
+            }
+        }
+        let mut best: HashMap<String, (u8, u32, usize)> = HashMap::new();
+        for (order, r) in harnesses.iter().enumerate() {
+            let rank = rules::harness_globals_rank(&r.id, &r.language);
+            if rank == 0 {
+                continue;
+            }
+            let hits = evidence
+                .hits
+                .get(&(r.id.clone(), r.language.clone()))
+                .copied()
+                .unwrap_or(0);
+            let key = (rank, hits, usize::MAX - order);
+            if best.get(&r.language).is_none_or(|b| key > *b) {
+                best.insert(r.language.clone(), key);
+                out.globals.insert(r.language.clone(), r.id.clone());
+            }
+        }
+        out
+    }
+
+    /// Whether `rule`'s block verbs in `file` are its own.
+    fn allows(&self, rule: &FrameworkRule, file: &FileFacts) -> bool {
+        if let Some(ids) = self.imported.get(&file.file) {
+            return ids.contains(&rule.id);
+        }
+        match self.globals.get(&rule.language) {
+            Some(id) => *id == rule.id,
+            // No globals harness for the language (a user rule, or one
+            // reached only by import): nothing to arbitrate.
+            None => true,
         }
     }
 }
@@ -3431,5 +3573,185 @@ mod tests {
             out.entries.iter().all(|e| !e.node),
             "lifecycle mints no node"
         );
+    }
+
+    /// WS24: a Kotlin annotation belongs to the framework only in a file
+    /// that imports it, or where it is written qualified. The near miss is
+    /// a same-named annotation of the file's own package.
+    #[test]
+    fn jvm_annotations_match_only_where_the_file_imports_them() {
+        let mut imported = node(0, "app.Jobs.tick", "tick", "kotlin");
+        imported.attributes = vec!["@Scheduled(fixedRate = 1000)".into()];
+        let mut own = node(1, "nearmiss.Local.tick", "tick", "kotlin");
+        own.attributes = vec!["@Scheduled".into()];
+        own.file = FileId::new(1);
+        let mut qualified = node(2, "nearmiss.Local.fq", "fq", "kotlin");
+        qualified.attributes =
+            vec!["@org.springframework.scheduling.annotation.Scheduled".into()];
+        qualified.file = FileId::new(1);
+        let g = graph_with(vec![imported, own, qualified]);
+        let facts = vec![
+            facts_with_import(
+                "kotlin",
+                "Jobs.kt",
+                "org.springframework.scheduling.annotation.Scheduled",
+            ),
+            FileFacts::new(FileId::new(1), PathBuf::from("NearMiss.kt"), "kotlin"),
+        ];
+        assert_eq!(
+            rooted(&detect(&g, &facts, &[])),
+            vec!["app.Jobs.tick".to_string(), "nearmiss.Local.fq".to_string()]
+        );
+
+        // A Gradle Kotlin script carries its host's default imports.
+        let mut task = node(0, "Greet.run", "run", "kotlin");
+        task.attributes = vec!["@Scheduled".into()];
+        let mut g = graph_with(vec![task]);
+        g.files
+            .values_mut()
+            .for_each(|f| f.path = PathBuf::from("build.gradle.kts"));
+        let mut other = facts_with_import(
+            "kotlin",
+            "Jobs.kt",
+            "org.springframework.scheduling.annotation.Scheduled",
+        );
+        other.file = FileId::new(1);
+        let script =
+            FileFacts::new(FileId::new(0), PathBuf::from("build.gradle.kts"), "kotlin");
+        assert_eq!(
+            rooted(&detect(&g, &[script, other], &[])),
+            vec!["Greet.run".to_string()]
+        );
+    }
+
+    /// WS24: Kotlin Android components are matched by their recorded
+    /// supertype, as in Java; the method name alone is not enough.
+    #[test]
+    fn kotlin_android_lifecycle_matches_through_the_supertype() {
+        let mut f = facts_with_import(
+            "kotlin",
+            "MainAct.kt",
+            "androidx.appcompat.app.AppCompatActivity",
+        );
+        let mut nodes = Vec::new();
+        for (i, (qn, name, base)) in [
+            ("app.MainAct.onCreate", "onCreate", "AppCompatActivity"),
+            ("app.MainAct.helper", "helper", "AppCompatActivity"),
+            ("app.Plain.onCreate", "onCreate", "Widget"),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let mut n = node(i as u32, qn, name, "kotlin");
+            n.start_byte = i as u32 * 10;
+            f.definitions.push(DefRecord {
+                simple_name: name.into(),
+                qualified_name: qn.into(),
+                start_byte: n.start_byte,
+                base_types: vec![base.to_string()],
+                ..Default::default()
+            });
+            nodes.push(n);
+        }
+        let out = detect(&graph_with(nodes), &[f], &[]);
+        let got: Vec<(u32, &str)> = out
+            .entries
+            .iter()
+            .map(|e| (e.target.as_u32(), e.framework.as_str()))
+            .collect();
+        assert_eq!(got, vec![(0, "android-activity")], "{:?}", out.entries);
+    }
+
+    /// WS24: Kotlin's `@MethodSource` roots its provider, as Java's does.
+    #[test]
+    fn kotlin_method_source_roots_the_named_member() {
+        let mut t = node(0, "app.KTest.p", "p", "kotlin");
+        t.attributes = vec![
+            "@ParameterizedTest".into(),
+            "@MethodSource(\"provider\")".into(),
+        ];
+        let g = graph_with(vec![
+            t,
+            node(1, "app.KTest.provider", "provider", "kotlin"),
+            node(2, "app.KTest.unusedSource", "unusedSource", "kotlin"),
+        ]);
+        let facts = vec![facts_with_import(
+            "kotlin",
+            "KTest.kt",
+            "org.junit.jupiter.params.provider.MethodSource",
+        )];
+        let out = detect(&g, &facts, &[]);
+        let sources: Vec<u32> = out
+            .entries
+            .iter()
+            .filter(|e| e.framework == "junit-sources")
+            .map(|e| e.target.as_u32())
+            .collect();
+        assert_eq!(sources, vec![1], "{:?}", out.entries);
+    }
+
+    fn block_ref(name: &str, context: &str, line: u32) -> RefRecord {
+        RefRecord {
+            name: name.into(),
+            receiver_hint: VALUE_REF_HINT.to_string(),
+            site_line: line,
+            site_byte: line * 10,
+            context: context.into(),
+            ..Default::default()
+        }
+    }
+
+    /// WS24: a test file's block callbacks belong to the harness it
+    /// imports, else to the tree's globals harness; never to every
+    /// harness that shares the verb.
+    #[test]
+    fn a_test_file_block_belongs_to_one_harness() {
+        // globals file: jest (a config file detects it)
+        let mut a = node(0, "handler_at_3", "handler_at_3", "javascript");
+        a.file = FileId::new(0);
+        // a file importing playwright
+        let mut b = node(1, "handler_at_5", "handler_at_5", "javascript");
+        b.file = FileId::new(1);
+        let g = graph_with(vec![a, b]);
+        let mut f0 =
+            FileFacts::new(FileId::new(0), PathBuf::from("a.test.js"), "javascript");
+        f0.references.push(RefRecord {
+            name: "it".into(),
+            site_line: 3,
+            site_byte: 30,
+            ..Default::default()
+        });
+        f0.references.push(block_ref("handler_at_3", "it", 3));
+        let mut f1 = facts_with_import("javascript", "b.spec.js", "@playwright/test");
+        f1.file = FileId::new(1);
+        f1.references
+            .push(block_ref("handler_at_5", "test.describe", 5));
+        let cfg = FileFacts::new(
+            FileId::new(2),
+            PathBuf::from("jest.config.js"),
+            "javascript",
+        );
+        let out = detect(&g, &[f0.clone(), f1.clone(), cfg], &[]);
+        let got: Vec<(u32, &str)> = out
+            .entries
+            .iter()
+            .map(|e| (e.target.as_u32(), e.framework.as_str()))
+            .collect();
+        assert_eq!(
+            got,
+            vec![(0, "jest"), (1, "playwright")],
+            "{:?}",
+            out.entries
+        );
+        assert!(out.entries.iter().all(|e| e.node), "{:?}", out.entries);
+
+        // No harness import or config anywhere: the anonymous globals rule.
+        let out = detect(&g, &[f0], &[]);
+        let got: Vec<(u32, &str)> = out
+            .entries
+            .iter()
+            .map(|e| (e.target.as_u32(), e.framework.as_str()))
+            .collect();
+        assert_eq!(got, vec![(0, "js-test-globals")], "{:?}", out.entries);
     }
 }

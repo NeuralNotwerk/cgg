@@ -1424,10 +1424,7 @@ impl<'a> JsWalker<'a> {
         // registration. Gating on the verb is what keeps a test suite
         // from minting a synthesized handler per block — four thousand
         // of them on TypeORM, none of which any rule could use.
-        if !self
-            .ctx
-            .is_registrar_verb(super::registrar::last_segment(&context))
-        {
+        if !super::registrar::admits(&self.ctx, &context) {
             return;
         }
         let Some(route) = super::registrar::is_registration_shape(node, self.source)
@@ -1812,5 +1809,49 @@ class Service {
                 .any(|g| g.0 == "P.state" || g.0.ends_with(".h") || g.0 == "h"),
             "{got:?}"
         );
+    }
+
+    fn extract_test_file(src: &str, test_file: bool) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_javascript::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        JavaScriptPlugin.extract(
+            &crate::ExtractCtx::plain()
+                .for_language("javascript")
+                .for_test_file(test_file),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.test.js"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    /// WS24: a test file's `describe`/`it` callbacks are callables the
+    /// harness rule enters; the same calls outside test code mint nothing.
+    #[test]
+    fn test_block_callbacks_are_handlers_only_in_test_files() {
+        let src = "describe('lib', () => {\n  it('works', () => { helper(); });\n  test('named', namedCase);\n});\nre.test(s);\n";
+        let handlers = |f: &FileFacts| -> Vec<String> {
+            f.definitions
+                .iter()
+                .filter(|d| d.simple_name.starts_with("handler_at_"))
+                .map(|d| d.simple_name.clone())
+                .collect()
+        };
+        let f = extract_test_file(src, true);
+        assert_eq!(handlers(&f), vec!["handler_at_1", "handler_at_2"]);
+        let named: Vec<&str> = f
+            .references
+            .iter()
+            .filter(|r| r.receiver_hint == cgg_core::VALUE_REF_HINT)
+            .map(|r| r.name.as_str())
+            .collect();
+        assert!(named.contains(&"namedCase"), "{named:?}");
+        // `re.test(s)` hands no callable over.
+        assert!(!named.contains(&"s"), "{named:?}");
+
+        let f = extract_test_file(src, false);
+        assert!(handlers(&f).is_empty());
     }
 }

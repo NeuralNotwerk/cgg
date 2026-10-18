@@ -232,6 +232,50 @@ otherwise change the default graph.
     same-named files, a sample duplicated per directory) first narrow to
     the copy nearest the caller; a tie stays refused.
 
+- **Framework and test-harness entries missing in Kotlin, C#, Swift and
+  JS/TS (WS24).** Four gaps:
+  - *Kotlin had no copy of 23 Java rules* although its plugin records the
+    annotations and supertypes they read: `@Scheduled`/`@Async`,
+    `@KafkaListener` and the other Spring listeners, `@Bean`/
+    `@EventListener`, `@PostConstruct`/`@PreDestroy`, `@Inject`, JAX-RS,
+    Micronaut, Jackson, Moshi, JPA mapping, servlets, Akka, Storm,
+    Hibernate listeners, JavaFX, Swing, `Closeable`/`Runnable`, Gradle
+    model rules and services, Caliper, TestNG, and `@MethodSource`/
+    `@Parameters` data sources. The Kotlin Android activity, fragment,
+    service, content-provider and application rules matched nothing (their
+    gap text said Kotlin records no supertypes, which stopped being true);
+    they now match by supertype as Java's do. Kotlin's Spring rule gained
+    `@MessageMapping`, `@ExceptionHandler`, `@InitBinder` and
+    `@ModelAttribute`, and its JUnit rule the JUnit 3 `TestCase` base.
+  - *A JVM annotation matched by name in every file once any file
+    imported the framework*, so `@Test` in a JUnit file was also a TestNG
+    entry, `@Before` a Cucumber hook, and a package's own `@Scheduled` a
+    Spring job. In Java and Kotlin an annotation now belongs to a rule only
+    in a file that imports from the rule's packages, or where it is written
+    qualified; a Gradle `.kts` script keeps its host's default imports.
+  - *C# and Swift registrar arguments were not captured.* C#
+    `app.MapGet("/a", Handlers.List)` (a method group through its type)
+    entered nothing; Swift ignored the extraction context, so the
+    aws-lambda `Lambda.run { … }` handler was never bound. Both are now
+    entries. The Swift rule names `Lambda.run` with its receiver, and a
+    handler callable is minted only for a call written through that
+    receiver: `MainActor.run { … }` mints none.
+  - *JS/TS had no test harness.* `jest`, `vitest` and `playwright` were
+    detect-only and `mocha` and `node:test` had no rule. All five now enter
+    the callbacks of `describe`/`it`/`test`/hooks (and their `.only`/
+    `.skip` chains) in test files: each callback is a `handler_at_<line>`
+    callable, the same synthesized closure the route frameworks use, and
+    the case's description is the entry's route. A function passed by name
+    (`test("x", namedCase)`) is entered too. The block verbs gate only files
+    classified as test code, and only called bare or chained off another
+    block verb (`re.test(s)` is not a test). A file that imports a harness
+    belongs to it; one that imports none uses the tree's globals harness
+    (Jest, Mocha or Vitest, detected by import or config file), or a new
+    `js-test-globals` rule when no harness is named anywhere. Calls inside
+    test callbacks now have a caller, so production code that only tests
+    reach is `only-used-by-tests` rather than dead, and nested helpers bind
+    their own `describe` block's copy.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -348,6 +392,35 @@ WS23 (receiver typing; full corpus, 283 repositories, none excluded):
   over the same-named-class cap (all 438 removed C# edges, mostly class
   copies across samples).
 - No dead-code finding changes.
+
+WS24 (framework and harness parity; full corpus, 283 repositories, none
+excluded):
+
+- 133,484 JS/TS callables are added (TypeScript 98,782, JavaScript
+  34,702): one per test-block callback. 469,799 edges are added: 336,918
+  from those callbacks to what they call (186,301 `high`), whose sites
+  were `no-enclosing-callable` before (98,341 fewer unresolved sites), and
+  132,855 `low` harness entry edges (vitest 56,119, jest 32,762, mocha
+  31,992, js-test-globals 8,661, playwright 3,190, node-test 131). Kotlin
+  gains 26 entry edges (`@Parameters` data sources, content providers);
+  most of its new rules mark roots without an edge.
+- 9,731 edges are removed. 7,178 are `low` entries of the wrong JVM
+  harness (Java: TestNG 6,135, JUnit 426, Caliper 341, Cucumber 172,
+  junit-sources 39; Kotlin JUnit 65). Every target but one keeps its own
+  harness's entry; the exception is an AspectJ `@Before` advice that JUnit
+  had claimed. 2,553 JS/TS edges from a function enclosing a test
+  block move to the block's callback, or rebind to the nested helper of
+  the caller's own `describe` block (74 `medium` → `high`).
+- Under `--dead-code`, 26,896 findings leave the report (TypeScript
+  22,348, Kotlin 2,631, JavaScript 1,917): code reached only from tests,
+  now `only-used-by-tests`, and Kotlin Android, Spring and lifecycle
+  members now rooted. 457 are newly reported, none `high` (TypeScript 350,
+  JavaScript 105, Java 2). 404 are production callables that a call inside
+  a test callback rooted by name as a module-level invocation; that call
+  now has a caller and stays an unresolved site, so the finding carries
+  `name-matches-unresolved-site`. 51 are their callees. The Java two are
+  an AspectJ `@Before` advice that a test harness had rooted, and a member
+  of Gradle's own annotation package.
 
 ## [0.11.0] - 2026-10-16
 

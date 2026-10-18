@@ -598,4 +598,29 @@ mod tests {
         assert_eq!(abstract_tags(&f, "K::b"), vec![true]);
         assert_eq!(abstract_tags(&f, "K::c"), vec![false]);
     }
+
+    /// WS24 near miss: C#'s `member_access_expression` is a method group,
+    /// PHP's same-named node (`$this->h`) a property read, never a handler.
+    #[test]
+    fn a_property_read_in_a_registrar_is_no_handler() {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_php::LANGUAGE_PHP.into())
+            .unwrap();
+        let src = "<?php\nRoute::get('/x', $this->h);\n";
+        let tree = p.parse(src, None).unwrap();
+        let f = PhpPlugin.extract(
+            &crate::ExtractCtx::plain().for_language("php"),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.php"),
+            &tree,
+            src.as_bytes(),
+        );
+        assert!(
+            !f.references
+                .iter()
+                .any(|r| r.receiver_hint == cgg_core::VALUE_REF_HINT && r.name == "h"),
+            "{:?}",
+            f.references
+        );
+    }
 }

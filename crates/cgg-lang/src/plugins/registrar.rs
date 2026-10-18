@@ -33,6 +33,7 @@ const ARG_LIST_KINDS: &[&str] = &[
     "argument_list",
     "argument_list_with_parens",
     "parenthesized_expression",
+    "value_arguments",
 ];
 
 /// Node kinds that are a bare reference to something nameable.
@@ -42,6 +43,10 @@ const IDENT_KINDS: &[&str] = &[
     "qualified_identifier",
     "field_expression",
     "member_expression",
+    // C# `Handlers.List` (a method group through its type). PHP's
+    // `$o->p` is the same kind and reads a property: see
+    // `collect_value_refs`.
+    "member_access_expression",
     "selector_expression",
     "attribute",
     "name",
@@ -74,6 +79,7 @@ const STRING_KINDS: &[&str] = &[
     "char_literal",
     "verbatim_string_literal",
     "line_str_text",
+    "line_string_literal",
     "template_string",
     "quoted_attribute_value",
 ];
@@ -175,6 +181,24 @@ pub(crate) fn last_segment(path: &str) -> &str {
     }
 }
 
+/// Whether a call written as `context` passes the registrar gate.
+///
+/// A test harness's block verb counts only called bare or chained off
+/// another of its verbs (`it(…)`, `test.describe.only(…)`): `re.test(s)`
+/// in a test file is a regex, not a test.
+pub(crate) fn admits(ctx: &crate::ExtractCtx<'_>, context: &str) -> bool {
+    let verb = last_segment(context);
+    if !ctx.is_registrar_verb(verb) {
+        return false;
+    }
+    if !ctx.is_harness_only_verb(verb) {
+        return true;
+    }
+    context
+        .split('.')
+        .all(|seg| ctx.is_harness_verb(seg.trim()))
+}
+
 /// Find the argument-list node of a call.
 pub(crate) fn arguments_of<'t>(call: Node<'t>) -> Option<Node<'t>> {
     for f in ["arguments", "argument_list", "parameters"] {
@@ -183,8 +207,18 @@ pub(crate) fn arguments_of<'t>(call: Node<'t>) -> Option<Node<'t>> {
         }
     }
     let mut cursor = call.walk();
-    call.named_children(&mut cursor)
-        .find(|c| is_kind(*c, ARG_LIST_KINDS))
+    let found = call
+        .named_children(&mut cursor)
+        .find(|c| is_kind(*c, ARG_LIST_KINDS) || c.kind() == "call_suffix")?;
+    // Swift hangs the argument list, and any trailing closure, off a
+    // `call_suffix`.
+    if found.kind() == "call_suffix" {
+        let mut c = found.walk();
+        return found
+            .named_children(&mut c)
+            .find(|n| n.kind() == "value_arguments");
+    }
+    Some(found)
 }
 
 /// Whether a call has the shape of a registration that hands off an
@@ -264,9 +298,17 @@ pub(crate) fn inline_closures<'t>(call: Node<'t>) -> Vec<Node<'t>> {
                 out.push(arg);
                 continue;
             }
-            if arg.kind() == "object" {
+            // An options object's pairs, or Swift's labelled slot
+            // (`handler: { … }`).
+            if matches!(arg.kind(), "object" | "value_argument") {
                 let mut pc = arg.walk();
                 for pair in arg.named_children(&mut pc) {
+                    if arg.kind() == "value_argument" {
+                        if is_closure(pair) {
+                            out.push(pair);
+                        }
+                        continue;
+                    }
                     let mut vc = pair.walk();
                     out.extend(pair.named_children(&mut vc).filter(|n| is_closure(*n)));
                 }
@@ -274,6 +316,20 @@ pub(crate) fn inline_closures<'t>(call: Node<'t>) -> Vec<Node<'t>> {
         }
     }
     out.extend(trailing_block(call));
+    // Swift's trailing closures sit in the `call_suffix` beside the
+    // argument list: `Lambda.run { … }`.
+    let mut c = call.walk();
+    for suffix in call
+        .named_children(&mut c)
+        .filter(|n| n.kind() == "call_suffix")
+    {
+        let mut sc = suffix.walk();
+        out.extend(
+            suffix
+                .named_children(&mut sc)
+                .filter(|n| n.kind() == "lambda_literal"),
+        );
+    }
     out
 }
 
@@ -303,7 +359,7 @@ fn string_within(node: Node, source: &[u8]) -> Option<String> {
     }
     if matches!(
         node.kind(),
-        "argument" | "array_element_initializer" | "spread_element"
+        "argument" | "array_element_initializer" | "spread_element" | "value_argument"
     ) {
         let mut cursor = node.walk();
         for child in node.named_children(&mut cursor) {
@@ -432,7 +488,7 @@ pub(crate) fn capture(
     // this gate every `foo(x)` in the tree pays for an argument scan and
     // contributes an inert record — measured on TypeORM that was the
     // whole of a 74% slowdown.
-    if !ctx.is_registrar_verb(last_segment(context)) {
+    if !admits(ctx, context) {
         return out;
     }
     let _s = cgg_core::profile::span("extract::registrar-capture");
@@ -522,7 +578,7 @@ pub(crate) fn capture_value_refs(
 ) -> Vec<RefRecord> {
     // Registrar verbs already went through `capture`, which emits a
     // superset of this. Running both would duplicate every record.
-    if ctx.is_registrar_verb(last_segment(context)) {
+    if admits(ctx, context) {
         return Vec::new();
     }
     let Some(args) = arguments_of(call) else {
@@ -620,6 +676,8 @@ fn collect_value_refs(
             | "keyword_argument"
             | "tuple"
             | "argument"
+            // Swift's labelled argument slot (`handler: f`).
+            | "value_argument"
             // A JS/TS options object. `pair` was already here, but
             // nothing descended into the `object` holding the pairs, so
             // every options-bag registration was invisible:
@@ -853,6 +911,13 @@ fn collect_value_refs(
     }
 
     if !is_kind(arg, IDENT_KINDS) {
+        return;
+    }
+    // Only C#'s shape (`expression`.`name`) names a member that can be a
+    // method group; PHP's (`object`->`name`) is a property read.
+    if kind == "member_access_expression"
+        && arg.child_by_field_name("expression").is_none()
+    {
         return;
     }
     let Ok(text) = arg.utf8_text(source) else {
