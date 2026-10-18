@@ -1,0 +1,22 @@
+WS26 notes (JS/TS done 2026-10-18; next: Go)
+
+Mechanism used: plugin walker records value positions as RefRecord{value_ref:true}
+only when ctx.reference_sites; name on its own token (site_byte); receiver "" (bare),
+"this", or a namespace/require import alias. value_refs::prune drops names no callable
+of the language carries + locals/params (scope::FileLocals). Minified files
+(cgg_lang::MINIFIED_LINE_BYTES, now pub in cgg-lang) get no value refs - no locals there.
+Skip args of registrar-admitted calls (registrar::capture already records them).
+Don't descend into arrays/objects from value_ref_in: the walker visits them itself.
+
+Tools: scratchpad dead_diff.py (all-confidence dead diff over graph_ab OUT/old,new),
+ref_ab.py (full-corpus --reference-edges multiset diff, in-memory). graph_ab only
+diffs HIGH dead findings; JS/TS findings are medium, so dead_diff is required.
+
+Raised findings pattern: withheld(low-root-coverage) -> reported as roots grow. Check
+with summary.withheld per (lang, category).
+
+OPEN: deadcode/roots.rs toplevel:invocation roots EVERY same-(lang,name) callable for a
+module-scope site. 4,801 of 25,169 JS/TS falls came only from a module-scope value ref
+in ANOTHER file. Tried same-file preference for JS/TS (saved as
+target/remediation/wip/WS26-roots.rs.same-file-narrowing): round 3 raised 20,145 findings (calls too),
+net +5.4k, reverted. Needs its own WS, probably value-ref-sites-only.

@@ -1,0 +1,1393 @@
+//! Root discovery.
+//!
+//! Reachability is only as good as its roots, so this is the part of the
+//! engine that decides whether the whole analysis is useful or noise.
+//! Every rule reads only fields cgg actually populates today, and every
+//! root it produces carries the rule that fired and the evidence for it
+//! — a whole-program claim that cannot be inspected cannot be argued
+//! with, and therefore should not be believed.
+
+use std::collections::{HashMap, HashSet};
+
+use cgg_core::audit::{AuditUnresolvedCall, UnresolvedReason};
+use cgg_core::deadcode::{RootKind, RootRecord};
+use cgg_core::frameworks::rules::{RESPONSE_TRAITS, SELF_CONVERTING_WRAPPERS};
+use cgg_core::graph::Graph;
+use cgg_core::ids::CallableId;
+use cgg_core::{FileFacts, ImportRecord};
+
+/// Languages whose module scope binds a bare name to the file's own
+/// declaration of it before anything another file declares: a call or a
+/// function value named at the top level of a file that declares that
+/// name (`module.exports = { run }`, `export default App`) is a use of
+/// the file's own callable, not of every same-named callable in the tree.
+/// A name the file does not declare (an import, a script global) still
+/// credits each callable of that name.
+const FILE_SCOPED_TOPLEVEL_LANGS: &[&str] = &["javascript", "typescript"];
+
+/// Names that are program entry points in every language cgg supports.
+const UNIVERSAL_ENTRY: &[&str] = &["main"];
+
+/// Language-specific entry points, keyed by plugin id.
+const LANG_ENTRY: &[(&str, &[&str])] = &[
+    ("go", &["init", "TestMain"]),
+    ("elixir", &["start", "start_link", "init"]),
+    ("erlang", &["start", "start_link", "init"]),
+    ("c", &["_start", "WinMain", "DllMain"]),
+    ("cpp", &["_start", "WinMain", "DllMain"]),
+    ("zig", &["_start"]),
+    ("asm", &["_start"]),
+    ("rust", &["_start"]),
+];
+
+/// Rust traits whose methods are invoked by syntax, an operator, or a
+/// derive rather than by any call a graph can see. `<T as Display>::fmt`
+/// has no visible caller and never will.
+const IMPLICIT_RUST_TRAITS: &[&str] = &[
+    "Drop",
+    "Display",
+    "Debug",
+    "Default",
+    "From",
+    "Into",
+    "TryFrom",
+    "TryInto",
+    "Deref",
+    "DerefMut",
+    "Iterator",
+    "IntoIterator",
+    "DoubleEndedIterator",
+    "ExactSizeIterator",
+    "PartialEq",
+    "Eq",
+    "PartialOrd",
+    "Ord",
+    "Hash",
+    "Clone",
+    "Copy",
+    "Serialize",
+    "Deserialize",
+    "Error",
+    "FromStr",
+    "Add",
+    "Sub",
+    "Mul",
+    "Div",
+    "Rem",
+    "Neg",
+    "Not",
+    "AddAssign",
+    "SubAssign",
+    "Index",
+    "IndexMut",
+    "Fn",
+    "FnMut",
+    "FnOnce",
+    "Future",
+    "Send",
+    "Sync",
+    "Write",
+    "Read",
+    "AsRef",
+    "AsMut",
+    "Borrow",
+    "BorrowMut",
+    "ToString",
+    // serde drives these from inside the deserializer.
+    "Visitor",
+    "Serializer",
+    "Deserializer",
+    "SeqAccess",
+    "MapAccess",
+];
+
+/// Lifecycle hooks a framework or runtime invokes directly.
+const LIFECYCLE: &[(&str, &[&str])] = &[
+    (
+        "erlang",
+        &[
+            "handle_call",
+            "handle_cast",
+            "handle_info",
+            "terminate",
+            "code_change",
+            "handle_continue",
+        ],
+    ),
+    (
+        "elixir",
+        &[
+            "handle_call",
+            "handle_cast",
+            "handle_info",
+            "terminate",
+            "code_change",
+            "handle_continue",
+        ],
+    ),
+    (
+        "java",
+        &[
+            "main",
+            "run",
+            "call",
+            "onCreate",
+            "onStart",
+            "onResume",
+            "onPause",
+            "onDestroy",
+        ],
+    ),
+    (
+        "kotlin",
+        &[
+            "main",
+            "run",
+            "onCreate",
+            "onStart",
+            "onResume",
+            "onPause",
+            "onDestroy",
+        ],
+    ),
+    (
+        "csharp",
+        &["Main", "Dispose", "ToString", "Equals", "GetHashCode"],
+    ),
+    (
+        "swift",
+        &[
+            "viewDidLoad",
+            "viewWillAppear",
+            "applicationDidFinishLaunching",
+        ],
+    ),
+    ("objc", &["viewDidLoad", "applicationDidFinishLaunching"]),
+];
+
+/// Dunder / conventional names invoked by the language runtime.
+const DUNDER_LANGS: &[&str] =
+    &["python", "ruby", "php", "lua", "javascript", "typescript"];
+const CONVENTIONAL_METHODS: &[&str] = &[
+    "initialize",
+    "to_s",
+    "toString",
+    "equals",
+    "hashCode",
+    "Dispose",
+    "describe",
+];
+
+/// Attribute markers that mean "called from outside this source tree".
+const FFI_EXPORT_ATTRS: &[&str] = &[
+    "no_mangle",
+    "export_name",
+    "pyfunction",
+    "pymethods",
+    "pyclass",
+    "wasm_bindgen",
+    "napi",
+    "uniffi::export",
+    "unsafe(no_mangle)",
+];
+
+/// Attribute markers for framework-invoked callables.
+const FRAMEWORK_ATTRS: &[&str] = &[
+    "app.route",
+    "route",
+    "get",
+    "post",
+    "put",
+    "delete",
+    "patch",
+    "pytest.fixture",
+    "fixture",
+    "click.command",
+    "click.group",
+    "celery.task",
+    "task",
+    "tokio::main",
+    "actix_web::main",
+    "command",
+    "event_handler",
+    // Rust runtime hooks the compiler wires in (`#[panic_handler]`, also
+    // re-exported as `#[defmt::panic_handler]`).
+    "panic_handler",
+    "alloc_error_handler",
+];
+
+/// Attribute markers for test cases and harness hooks.
+const TEST_ATTRS: &[&str] = &[
+    "test",
+    "tokio::test",
+    "async_std::test",
+    "bench",
+    "rstest",
+    "proptest",
+    "quickcheck",
+    "test_case",
+    "pytest.mark",
+    "Test",
+    "Fact",
+    "Theory",
+    "TestMethod",
+];
+
+/// The discovered root set, split by whether liveness proved through it
+/// counts as production liveness or only as test liveness.
+#[derive(Debug, Default)]
+pub(crate) struct RootSet {
+    pub(crate) records: Vec<RootRecord>,
+    /// Node indices of production roots.
+    pub(crate) production: Vec<u32>,
+    /// Node indices of test roots.
+    pub(crate) test: Vec<u32>,
+    /// Node indices of the tests the built-in name/attribute rules
+    /// recognise, whichever rule rooted them. Root coverage is measured
+    /// from production roots plus these: a framework harness (WS18) roots
+    /// far more test code, and letting that reach lift a language over the
+    /// coverage threshold reported findings from languages whose
+    /// production entry points cgg cannot see.
+    pub(crate) coverage_test: Vec<u32>,
+    /// Which rules fired, per language, for the capability table.
+    pub(crate) rules_by_language: HashMap<String, Vec<String>>,
+}
+
+impl RootSet {
+    fn push(
+        &mut self,
+        graph: &Graph,
+        id: CallableId,
+        kind: RootKind,
+        rule: &str,
+        detail: String,
+        seen: &mut HashSet<CallableId>,
+    ) {
+        if !seen.insert(id) {
+            return;
+        }
+        let Some(node) = graph.callables.get(&id) else {
+            return;
+        };
+        let Some(pos) = graph.callables.get_index_of(&id) else {
+            return;
+        };
+        if kind.is_test() {
+            self.test.push(pos as u32);
+        } else {
+            self.production.push(pos as u32);
+        }
+        let rules = self
+            .rules_by_language
+            .entry(node.language.clone())
+            .or_default();
+        if !rules.iter().any(|r| r == rule) {
+            rules.push(rule.to_string());
+        }
+        self.records.push(RootRecord {
+            id,
+            qualified_name: node.qualified_name.clone(),
+            language: node.language.clone(),
+            kind,
+            rule: rule.to_string(),
+            detail,
+        });
+    }
+}
+
+/// Strip the punctuation around an attribute so `#[tokio::test]`,
+/// `@pytest.fixture(scope="module")` and `[Fact]` all compare as their
+/// bare key. Mirrors vulture's `@foo.bar(x, y)` -> `@foo.bar` rule.
+///
+/// **Discards arguments by design.** A rule asking "is this a route?"
+/// must not care which route. Anything that needs the route string
+/// wants [`attribute_string_arg`] instead — the two are deliberately
+/// separate accessors so neither can be mistaken for the other.
+pub fn attribute_key(attr: &str) -> &str {
+    let a = attr.trim();
+    let a = a.strip_prefix("#[").unwrap_or(a);
+    let a = a.strip_prefix('[').unwrap_or(a);
+    let a = a.strip_prefix('@').unwrap_or(a);
+    let a = a.strip_suffix(']').unwrap_or(a);
+    let a = a.split('(').next().unwrap_or(a);
+    let a = a.split('=').next().unwrap_or(a);
+    a.trim()
+}
+
+/// First string-literal argument of an attribute, unquoted.
+///
+/// `@app.route("/users", methods=["POST"])` -> `Some("/users")`.
+/// `#[get("/")]` -> `Some("/")`. `@celery.task` -> `None`.
+///
+/// This is the accessor [`attribute_key`] deliberately is not: an entry
+/// node's identity is the route, and `attribute_key` throws the route
+/// away. Handles `"`, `'` and Python's raw/f prefixes; stops at the
+/// first literal because every framework in the inventory puts the path
+/// first.
+pub fn attribute_string_arg(attr: &str) -> Option<String> {
+    let open = attr.find('(')?;
+    let body = &attr[open + 1..];
+    let chars = body.char_indices().peekable();
+    for (i, c) in chars {
+        if c != '"' && c != '\'' {
+            continue;
+        }
+        // Walk to the matching close quote, honouring backslash escapes.
+        let mut j = i + c.len_utf8();
+        let bytes = body.as_bytes();
+        while j < bytes.len() {
+            if bytes[j] == b'\\' {
+                j += 2;
+                continue;
+            }
+            if bytes[j] == c as u8 {
+                return Some(body[i + 1..j].to_string());
+            }
+            j += 1;
+        }
+        return None;
+    }
+    None
+}
+
+/// Last `.`/`::`-separated segment of an attribute key: the verb.
+/// `app.route` -> `route`, `org.springframework.GetMapping` ->
+/// `GetMapping`, `get` -> `get`.
+pub fn attribute_verb(attr: &str) -> &str {
+    let key = attribute_key(attr);
+    key.rsplit(['.', ':']).next().unwrap_or(key)
+}
+
+fn has_attr(attrs: &[String], wanted: &[&str]) -> Option<String> {
+    for a in attrs {
+        let key = attribute_key(a);
+        if wanted.contains(&key) {
+            return Some(a.trim().to_string());
+        }
+    }
+    None
+}
+
+/// [`has_attr`], also reading a `::`-qualified attribute by its last
+/// segment. In Rust the path names the proc-macro itself:
+/// `#[ntex::test]` IS a test attribute and `#[tauri::command]` a command,
+/// exactly as `#[tokio::test]` is. A `.`-qualified key is a method on
+/// some object (`@cache.get`) and keeps the exact comparison. With
+/// `suffix`, a last segment ending in it also matches — Rust's `*_test`
+/// attribute macros (`#[wasm_bindgen_test]`, `#[crate::rt_test]`).
+fn has_path_attr(
+    attrs: &[String],
+    wanted: &[&str],
+    suffix: Option<&str>,
+) -> Option<String> {
+    if let Some(a) = has_attr(attrs, wanted) {
+        return Some(a);
+    }
+    for a in attrs {
+        let key = attribute_key(a);
+        let last = key.rsplit("::").next().unwrap_or(key);
+        let qualified = last.len() < key.len();
+        if (qualified && wanted.contains(&last))
+            || suffix.is_some_and(|s| last.len() > s.len() && last.ends_with(s))
+        {
+            return Some(a.trim().to_string());
+        }
+    }
+    None
+}
+
+/// Every type name a Rust function's return type mentions outside a
+/// [`SELF_CONVERTING_WRAPPERS`] generic: `-> Result<Json<A>, AppError>`
+/// yields `Result`, `AppError` — never `A`.
+fn rust_returned_types(graph: &Graph) -> HashSet<String> {
+    let mut out = HashSet::new();
+    for c in graph.callables.values() {
+        if c.language != "rust" {
+            continue;
+        }
+        let Some((_, ret)) = c.signature_hint.split_once("->") else {
+            continue;
+        };
+        let ret = ret.split(" where ").next().unwrap_or(ret);
+        let mut stack: Vec<String> = Vec::new();
+        let mut word = String::new();
+        let flush = |word: &mut String, stack: &[String], out: &mut HashSet<String>| {
+            if !word.is_empty() {
+                let wrapped = stack
+                    .iter()
+                    .any(|g| SELF_CONVERTING_WRAPPERS.contains(&g.as_str()));
+                if !wrapped && word.starts_with(char::is_uppercase) {
+                    out.insert(word.clone());
+                }
+            }
+        };
+        let mut last = String::new();
+        for ch in ret.chars() {
+            if ch.is_alphanumeric() || ch == '_' {
+                word.push(ch);
+                continue;
+            }
+            if ch == ':' {
+                // `a::b::C` — only the last segment names the type.
+                word.clear();
+                continue;
+            }
+            flush(&mut word, &stack, &mut out);
+            if !word.is_empty() {
+                last = std::mem::take(&mut word);
+            }
+            match ch {
+                '<' => stack.push(std::mem::take(&mut last)),
+                '>' => {
+                    stack.pop();
+                }
+                _ => last.clear(),
+            }
+        }
+        flush(&mut word, &stack, &mut out);
+    }
+    out
+}
+
+/// Discover roots.
+///
+/// `user_patterns` are `(pattern_label, matcher)` pairs supplied by the
+/// caller; matching is left to the caller so this module stays free of
+/// regex/glob policy.
+pub(crate) fn discover(
+    graph: &Graph,
+    facts: &[FileFacts],
+    user_matches: &[(String, CallableId)],
+    framework_matches: &[(String, CallableId)],
+) -> RootSet {
+    let mut set = RootSet::default();
+    let mut seen: HashSet<CallableId> = HashSet::new();
+    let returned_unwrapped = rust_returned_types(graph);
+
+    // --- Rule: synthesized framework entry nodes -------------------------
+    //
+    // An entry node is where control enters the tree, so it is a root by
+    // construction — and unlike the fiction it replaces, this one is
+    // literally true. The node genuinely has in-degree zero and the
+    // handler it points at genuinely has a caller.
+    //
+    // This is the one place a synthetic node may be a root. Every other
+    // synthetic node is a *sink* (`<external>`, `<stdlib>`); marking one
+    // of those live would say nothing.
+    for (id, node) in &graph.callables {
+        if let Some(kind) = node.framework_entry {
+            // A test harness's node proves test liveness only: code the
+            // tests alone reach is "only used by tests", not production.
+            let root_kind = if kind == cgg_core::frameworks::TrustKind::Test {
+                RootKind::TestEntry
+            } else {
+                RootKind::FrameworkCallback
+            };
+            set.push(
+                graph,
+                *id,
+                root_kind,
+                "framework:entry-node",
+                format!("synthesized entry node `{}`", node.qualified_name),
+                &mut seen,
+            );
+        }
+    }
+    // A test case is the harness's entry, not code "only used by tests":
+    // its own finding would say the test is unused except by tests. So
+    // what a test-harness node points at is a test root itself, which
+    // keeps the helpers only those cases reach in the test-only bucket.
+    let harness: HashSet<CallableId> = graph
+        .callables
+        .iter()
+        .filter(|(_, n)| n.framework_entry == Some(cgg_core::frameworks::TrustKind::Test))
+        .map(|(id, _)| *id)
+        .collect();
+    if !harness.is_empty() {
+        for e in graph.edges.iter().filter(|e| harness.contains(&e.src)) {
+            let Some(src) = graph.callables.get(&e.src) else {
+                continue;
+            };
+            // Test classes in these languages were production roots
+            // before WS18 (every member), so their cases keep counting
+            // toward root coverage exactly as before.
+            if graph.callables.get(&e.dst).is_some_and(|d| {
+                cgg_core::frameworks::rules::TEST_CLASS_MEMBERS_ARE_ROOTS
+                    .contains(&d.language.as_str())
+            }) && let Some(pos) = graph.callables.get_index_of(&e.dst)
+            {
+                set.coverage_test.push(pos as u32);
+            }
+            set.push(
+                graph,
+                e.dst,
+                RootKind::TestEntry,
+                "framework:test-harness",
+                format!("run by `{}`", src.qualified_name),
+                &mut seen,
+            );
+        }
+    }
+
+    // --- Rule: framework-invoked callables with no node ------------------
+    //
+    // Bucket D per §8: `Encoder.forward` has a framework caller but mints
+    // no entry node, because one `Module.forward` node fanning out to
+    // every model is visually useless. Without this rule the handler and
+    // every private helper it calls are reported — the cascade that
+    // doubles the cost of each missed entry point.
+    for (label, id) in framework_matches {
+        let kind = if label.starts_with(cgg_core::frameworks::TEST_ROOT_LABEL_PREFIX) {
+            // A test-class member mark (see `TEST_CLASS_MEMBERS_ARE_ROOTS`):
+            // these were production roots before WS18 and still count
+            // toward root coverage.
+            if let Some(pos) = graph.callables.get_index_of(id) {
+                set.coverage_test.push(pos as u32);
+            }
+            RootKind::TestEntry
+        } else {
+            RootKind::FrameworkCallback
+        };
+        set.push(
+            graph,
+            *id,
+            kind,
+            "framework:rule",
+            format!("invoked by framework rule `{label}`"),
+            &mut seen,
+        );
+    }
+
+    // --- Rule: top-level invocation (all 45 languages) -------------------
+    //
+    // `intra_file` narrows a call to exactly one definition and then
+    // discards the edge when there is no enclosing callable to hang it
+    // on (a call at module top level). The callee is genuinely used, but
+    // nothing in the graph says so. Without this rule every Python, JS,
+    // Ruby, Lua and shell entry point reads as dead.
+    let mut toplevel: HashSet<(String, String)> = HashSet::new();
+    for u in &graph.unresolved {
+        if matches!(
+            u.reason,
+            UnresolvedReason::NoEnclosingCallable | UnresolvedReason::ValueRefNoEnclosing
+        ) {
+            let lang = graph
+                .files
+                .get(&u.file)
+                .map(|f| f.language.clone())
+                .unwrap_or_default();
+            toplevel.insert((lang, u.name.clone()));
+        }
+    }
+    if !toplevel.is_empty() {
+        let mut by_site: HashMap<(String, String), Vec<&AuditUnresolvedCall>> =
+            HashMap::new();
+        for u in graph.unresolved.iter().filter(|u| {
+            matches!(
+                u.reason,
+                UnresolvedReason::NoEnclosingCallable
+                    | UnresolvedReason::ValueRefNoEnclosing
+            )
+        }) {
+            let lang = graph
+                .files
+                .get(&u.file)
+                .map(|f| f.language.clone())
+                .unwrap_or_default();
+            by_site.entry((lang, u.name.clone())).or_default().push(u);
+        }
+        // Where a module's own declaration binds a bare name at its top
+        // level, a site in a file declaring that name credits only the
+        // file's own callables of that name.
+        let declared: HashSet<(cgg_core::FileId, &str)> = graph
+            .callables
+            .values()
+            .filter(|c| FILE_SCOPED_TOPLEVEL_LANGS.contains(&c.language.as_str()))
+            .map(|c| (c.file, c.simple_name.as_str()))
+            .collect();
+        for (id, node) in &graph.callables {
+            if node.synthetic {
+                continue;
+            }
+            let key = (node.language.clone(), node.simple_name.clone());
+            let site = by_site.get(&key).and_then(|sites| {
+                if !FILE_SCOPED_TOPLEVEL_LANGS.contains(&node.language.as_str()) {
+                    return sites.last().copied();
+                }
+                sites
+                    .iter()
+                    .copied()
+                    .find(|u| u.file == node.file)
+                    .or_else(|| {
+                        sites.iter().copied().find(|u| {
+                            !declared.contains(&(u.file, node.simple_name.as_str()))
+                        })
+                    })
+            });
+            if let Some(u) = site {
+                let path = graph
+                    .files
+                    .get(&u.file)
+                    .map(|f| f.path.display().to_string())
+                    .unwrap_or_default();
+                set.push(
+                    graph,
+                    *id,
+                    RootKind::TopLevelInvocation,
+                    "toplevel:invocation",
+                    format!("called from module top level at {path}:{}", u.site_line),
+                    &mut seen,
+                );
+            }
+        }
+    }
+
+    // --- Rule: C-family macro invoked outside any function -------------
+    //
+    // `DEF_GETTER(x)` at file scope uses the macro, but the `#define` is
+    // usually in a header the invoking file includes, which the intra-file
+    // pass cannot see: the site is on record with no enclosing callable
+    // and whichever reason resolution gave up with. Only a callable that
+    // is itself a macro is credited this way.
+    let mut macro_sites: HashMap<&str, &AuditUnresolvedCall> = HashMap::new();
+    for u in &graph.unresolved {
+        if u.src.is_none()
+            && graph
+                .files
+                .get(&u.file)
+                .is_some_and(|f| cgg_core::same_family(&f.language, "c"))
+        {
+            macro_sites.entry(u.name.as_str()).or_insert(u);
+        }
+    }
+    if !macro_sites.is_empty() {
+        for (id, node) in &graph.callables {
+            if !cgg_core::same_family(&node.language, "c")
+                || !node.attributes.iter().any(|a| a == "macro")
+            {
+                continue;
+            }
+            if let Some(u) = macro_sites.get(node.simple_name.as_str()) {
+                let path = graph
+                    .files
+                    .get(&u.file)
+                    .map(|f| f.path.display().to_string())
+                    .unwrap_or_default();
+                set.push(
+                    graph,
+                    *id,
+                    RootKind::TopLevelInvocation,
+                    "toplevel:macro-invocation",
+                    format!(
+                        "macro invoked outside any function at {path}:{}",
+                        u.site_line
+                    ),
+                    &mut seen,
+                );
+            }
+        }
+    }
+
+    // --- Rule: Rust macro invoked by path outside any function ---------
+    //
+    // `crate::for_each_tuple!(impls);` at module level uses the macro, but
+    // a path-written macro name is screened before resolution and never
+    // reaches the unresolved list the top-level rule reads. The macro is
+    // credited by its last path segment, and only a callable that is
+    // itself a `macro_rules!` qualifies.
+    let mut rust_macro_sites: HashMap<&str, (&FileFacts, u32)> = HashMap::new();
+    for f in facts.iter().filter(|f| f.language == "rust") {
+        for r in f.references.iter().filter(|r| r.macro_call) {
+            let inside = f
+                .definitions
+                .iter()
+                .any(|d| d.start_byte <= r.site_byte && r.site_byte < d.end_byte);
+            if inside {
+                continue;
+            }
+            let last = r.name.rsplit("::").next().unwrap_or(&r.name);
+            rust_macro_sites.entry(last).or_insert((f, r.site_line));
+        }
+    }
+    if !rust_macro_sites.is_empty() {
+        let mut ids: Vec<(&CallableId, &cgg_core::graph::CallableNode)> = graph
+            .callables
+            .iter()
+            .filter(|(_, n)| {
+                n.language == "rust"
+                    && !n.synthetic
+                    && n.attributes.iter().any(|a| a == "macro")
+            })
+            .collect();
+        ids.sort_by_key(|(id, _)| **id);
+        for (id, node) in ids {
+            if let Some((f, line)) = rust_macro_sites.get(node.simple_name.as_str()) {
+                set.push(
+                    graph,
+                    *id,
+                    RootKind::TopLevelInvocation,
+                    "toplevel:macro-invocation",
+                    format!(
+                        "macro invoked outside any function at {}:{line}",
+                        f.path.display()
+                    ),
+                    &mut seen,
+                );
+            }
+        }
+    }
+
+    // --- Remaining per-node rules ---------------------------------------
+    for (id, node) in &graph.callables {
+        if node.synthetic {
+            continue;
+        }
+        let lang = node.language.as_str();
+        let test_suffix = (lang == "rust").then_some("_test");
+        if (has_path_attr(&node.attributes, TEST_ATTRS, test_suffix).is_some()
+            || is_test_name(lang, &node.simple_name))
+            && let Some(pos) = graph.callables.get_index_of(id)
+        {
+            set.coverage_test.push(pos as u32);
+        }
+
+        // KV event bindings are invoked by the Kivy runtime, not by
+        // anything in the analyzed Python. Treat every kivy callable as
+        // a lifecycle root so the Python methods they call stay live.
+        if lang == "kivy" {
+            set.push(
+                graph,
+                *id,
+                RootKind::LifecycleCallback,
+                "kivy:kv-binding",
+                "KV event binding invoked by the Kivy runtime".into(),
+                &mut seen,
+            );
+            continue;
+        }
+
+        // Program entry points.
+        let lang_entries = LANG_ENTRY
+            .iter()
+            .find(|(l, _)| *l == lang)
+            .map(|(_, n)| *n)
+            .unwrap_or(&[]);
+        if UNIVERSAL_ENTRY.contains(&node.simple_name.as_str())
+            || lang_entries.contains(&node.simple_name.as_str())
+        {
+            set.push(
+                graph,
+                *id,
+                RootKind::ProgramEntry,
+                "builtin:main",
+                format!("entry point `{}`", node.simple_name),
+                &mut seen,
+            );
+            continue;
+        }
+
+        // FFI exports: callers are outside this tree by definition.
+        // Uses the shared classifier so the export/import distinction is
+        // decided in exactly one place.
+        if let Some((family, crate::ffi::FfiDirection::Export)) =
+            crate::ffi::classify_ffi(&node.attributes)
+        {
+            set.push(
+                graph,
+                *id,
+                RootKind::FfiExport,
+                "ffi:export",
+                format!("exported over {family}"),
+                &mut seen,
+            );
+            continue;
+        }
+        if let Some(a) = has_attr(&node.attributes, FFI_EXPORT_ATTRS) {
+            set.push(graph, *id, RootKind::FfiExport, "ffi:export", a, &mut seen);
+            continue;
+        }
+
+        // Test cases and harness hooks.
+        if let Some(a) = has_path_attr(&node.attributes, TEST_ATTRS, test_suffix) {
+            set.push(
+                graph,
+                *id,
+                RootKind::TestEntry,
+                "builtin:test-attr",
+                a,
+                &mut seen,
+            );
+            continue;
+        }
+        if is_test_name(lang, &node.simple_name) {
+            set.push(
+                graph,
+                *id,
+                RootKind::TestEntry,
+                "builtin:test-name",
+                format!("name `{}` matches a test convention", node.simple_name),
+                &mut seen,
+            );
+            continue;
+        }
+
+        // Framework callbacks.
+        if let Some(a) = has_path_attr(&node.attributes, FRAMEWORK_ATTRS, None) {
+            set.push(
+                graph,
+                *id,
+                RootKind::FrameworkCallback,
+                "builtin:framework-attr",
+                a,
+                &mut seen,
+            );
+            continue;
+        }
+
+        // A web framework's response conversion (`IntoResponse`,
+        // `Responder`) is invoked by the framework on whatever a handler
+        // returns — but only on the type actually returned. `Result<_,
+        // AppError>` hands `AppError` to it; `Json<Resp>` hands it `Json`,
+        // and `Resp`'s own impl is never called. So the impl is a root only
+        // when some function's return type names its type outside a
+        // wrapper that has a conversion of its own.
+        if lang == "rust"
+            && node
+                .trait_impl_target
+                .as_deref()
+                .is_some_and(|t| RESPONSE_TRAITS.contains(&t))
+            && let Some(ty) = crate::names::owner_from_qn(&node.qualified_name)
+            && returned_unwrapped.contains(ty)
+        {
+            set.push(
+                graph,
+                *id,
+                RootKind::FrameworkCallback,
+                "rust:returned-response",
+                format!("`{ty}` is returned by a handler; the framework converts it"),
+                &mut seen,
+            );
+            continue;
+        }
+
+        // Trait methods invoked by syntax, an operator, or a derive. Not
+        // for an impl a macro stamped out: rooting every generated
+        // `Display`/`From` would make the whole generated surface — and
+        // whatever it calls — live whether or not anything uses it.
+        if lang == "rust"
+            && !node.attributes.iter().any(|a| a.starts_with("macro:"))
+            && let Some(t) = &node.trait_impl_target
+        {
+            // `trait_impl_target` keeps generic arguments, so
+            // `From<OutputFormatArg>` must be compared as `From`.
+            let bare = t.split('<').next().unwrap_or(t).trim();
+            if IMPLICIT_RUST_TRAITS.contains(&bare) {
+                set.push(
+                    graph,
+                    *id,
+                    RootKind::LifecycleCallback,
+                    "rust:implicit-trait",
+                    format!("implements `{bare}`, invoked implicitly"),
+                    &mut seen,
+                );
+                continue;
+            }
+        }
+
+        // Runtime-invoked lifecycle and conventional names.
+        let lifecycle = LIFECYCLE
+            .iter()
+            .find(|(l, _)| *l == lang)
+            .map(|(_, n)| *n)
+            .unwrap_or(&[]);
+        if lifecycle.contains(&node.simple_name.as_str())
+            || CONVENTIONAL_METHODS.contains(&node.simple_name.as_str())
+            || (DUNDER_LANGS.contains(&lang) && is_dunder(&node.simple_name))
+        {
+            set.push(
+                graph,
+                *id,
+                RootKind::LifecycleCallback,
+                "builtin:lifecycle",
+                format!("`{}` is invoked by the runtime", node.simple_name),
+                &mut seen,
+            );
+            continue;
+        }
+    }
+
+    // --- Rule: declared exports are public API ---------------------------
+    //
+    // An exported name is reachable from outside the analyzed tree by
+    // definition, so nothing inside it needs to call it.
+    let mut exported: HashSet<String> = HashSet::new();
+    for f in facts {
+        for e in &f.exports {
+            exported.insert(e.name.clone());
+        }
+    }
+    if !exported.is_empty() {
+        for (id, node) in &graph.callables {
+            if node.synthetic {
+                continue;
+            }
+            if exported.contains(&node.simple_name) {
+                set.push(
+                    graph,
+                    *id,
+                    RootKind::ExportedApi,
+                    "lang:export",
+                    format!("exported as `{}`", node.simple_name),
+                    &mut seen,
+                );
+            }
+        }
+    }
+
+    let reexported = collect_rust_reexports(facts);
+    if !reexported.is_empty() {
+        for (id, node) in &graph.callables {
+            if node.synthetic || node.language != "rust" {
+                continue;
+            }
+            let last = node
+                .qualified_name
+                .rsplit("::")
+                .next()
+                .unwrap_or(&node.qualified_name);
+            if reexported.contains(last) {
+                set.push(
+                    graph,
+                    *id,
+                    RootKind::ExportedApi,
+                    "rust:reexport",
+                    format!("re-exported via `pub use` as `{last}`"),
+                    &mut seen,
+                );
+            }
+        }
+    }
+
+    // --- User-declared roots --------------------------------------------
+    for (label, id) in user_matches {
+        set.push(
+            graph,
+            *id,
+            RootKind::UserDeclared,
+            "user:roots",
+            format!("matched `{label}`"),
+            &mut seen,
+        );
+    }
+
+    // Discovery order (IndexMap position), not hash order — this is a
+    // user-facing report and graph order is the readable one.
+    set.records
+        .sort_by_cached_key(|a| graph.callables.get_index_of(&a.id));
+    set.production.sort_unstable();
+    set.test.sort_unstable();
+    set.coverage_test.sort_unstable();
+    for v in set.rules_by_language.values_mut() {
+        v.sort();
+    }
+    set
+}
+
+fn is_dunder(name: &str) -> bool {
+    name.starts_with("__") && name.ends_with("__") && name.len() > 4
+}
+
+/// Name-based test detection. A stopgap until real per-file test
+/// classification lands; it is deliberately conservative, and notably
+/// rejects vulture's `*test*` glob, which swallows `latest`, `contest`
+/// and `protest`.
+fn is_test_name(lang: &str, name: &str) -> bool {
+    // `Test` then a word boundary: `TestFoo`, `Test_foo`, `Test2`, never
+    // `Testing`, `Tester` or PowerShell's `Test-Path` verb form.
+    let word_after = |prefix: &str| {
+        name.strip_prefix(prefix)
+            .and_then(|rest| rest.chars().next())
+            .is_some_and(|c| !c.is_lowercase() && c != '-')
+    };
+    match lang {
+        // `go test`'s own rule: the suffix must not start with a
+        // lowercase letter.
+        "go" => {
+            word_after("Test")
+                || word_after("Benchmark")
+                || word_after("Fuzz")
+                || name == "Example"
+                || word_after("Example")
+        }
+        "python" => name.starts_with("test_") || name == "setUp" || name == "tearDown",
+        "ruby" => name.starts_with("test_"),
+        "rust" => false, // covered by #[test]; a bare `test_` fn is not a test
+        // Pester tests are `Describe`/`It` blocks, never functions, and
+        // `Test-*` is an approved verb for production functions.
+        "powershell" => false,
+        _ => name.starts_with("test_") || name == "Test" || word_after("Test"),
+    }
+}
+
+/// Names re-exported by a Rust `pub use`.
+///
+/// Reads `ImportRecord { kind: "pub-use" }` directly rather than
+/// refactoring `cross_file::resolve`, whose re-export map is a local in
+/// a 50 KB function.
+fn collect_rust_reexports(facts: &[FileFacts]) -> HashSet<String> {
+    let mut out = HashSet::new();
+    for f in facts {
+        if f.language != "rust" {
+            continue;
+        }
+        for imp in &f.imports {
+            if imp.kind != "pub-use" {
+                continue;
+            }
+            let ImportRecord { path, alias, .. } = imp;
+            let name = if alias.is_empty() {
+                path.rsplit("::").next().unwrap_or(path).to_string()
+            } else {
+                alias.clone()
+            };
+            if !name.is_empty() && name != "*" {
+                out.insert(name);
+            }
+        }
+    }
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::deadcode::testutil::{graph_with, node};
+
+    #[test]
+    fn attribute_key_normalizes_every_syntax() {
+        assert_eq!(attribute_key("#[test]"), "test");
+        assert_eq!(attribute_key("#[tokio::test]"), "tokio::test");
+        assert_eq!(attribute_key("@pytest.fixture"), "pytest.fixture");
+        assert_eq!(attribute_key("@app.route('/x')"), "app.route");
+        assert_eq!(attribute_key("[Fact]"), "Fact");
+        assert_eq!(attribute_key("#[export_name = \"x\"]"), "export_name");
+    }
+
+    // WS18: a `::`-qualified attribute is read by its last segment, and
+    // Rust's `*_test` macros are tests; a `.`-qualified decorator keeps
+    // the exact comparison, so `@cache.get` is not a route.
+    #[test]
+    fn path_qualified_attributes_match_by_last_segment_only_for_paths() {
+        let mut t = node(0, "c::t::a", "a", "rust");
+        t.attributes = vec!["#[ntex::test]".into()];
+        let mut r = node(1, "c::t::b", "b", "rust");
+        r.attributes = vec!["#[crate::rt_test]".into()];
+        let mut cmd = node(2, "c::cmd", "cmd", "rust");
+        cmd.attributes = vec!["#[tauri::command]".into()];
+        let mut cached = node(3, "m.lookup", "lookup", "python");
+        cached.attributes = vec!["@cache.get".into()];
+        let helper = node(4, "c::t::helper_test_data", "helper_test_data", "rust");
+        let set = discover(&graph_with(vec![t, r, cmd, cached, helper]), &[], &[], &[]);
+        let by_id = |i: u32| set.records.iter().find(|x| x.id.as_u32() == i);
+        assert_eq!(by_id(0).map(|x| x.kind), Some(RootKind::TestEntry));
+        assert_eq!(by_id(1).map(|x| x.kind), Some(RootKind::TestEntry));
+        assert_eq!(by_id(2).map(|x| x.kind), Some(RootKind::FrameworkCallback));
+        assert!(by_id(3).is_none(), "{:?}", set.records);
+        assert!(by_id(4).is_none(), "{:?}", set.records);
+    }
+
+    // WS18: what a test-harness entry node points at is a test root, so
+    // a test is never "only used by tests"; a non-test entry's target is
+    // reached through the node and is not a root of its own.
+    #[test]
+    fn a_test_harness_node_roots_its_targets_as_tests() {
+        let mut h = node(
+            0,
+            "<framework-entry>::test::cargo-test",
+            "cargo-test",
+            "rust",
+        );
+        h.synthetic = true;
+        h.framework_entry = Some(cgg_core::frameworks::TrustKind::Test);
+        let case = node(1, "c::t::a", "a", "rust");
+        let mut g = graph_with(vec![h, case]);
+        crate::deadcode::testutil::link(&mut g, 0, 1);
+        let set = discover(&g, &[], &[], &[]);
+        assert!(set.production.is_empty(), "{:?}", set.records);
+        let case_root = set.records.iter().find(|r| r.id.as_u32() == 1);
+        assert_eq!(case_root.map(|r| r.kind), Some(RootKind::TestEntry));
+    }
+
+    // Root coverage counts the tests the built-in rules recognise and the
+    // test-class members that were production roots before WS18 — not
+    // every case a framework harness enters.
+    #[test]
+    fn harness_reach_does_not_lift_root_coverage() {
+        let mut h = node(0, "<framework-entry>::test::eunit", "eunit", "erlang");
+        h.synthetic = true;
+        h.framework_entry = Some(cgg_core::frameworks::TrustKind::Test);
+        let case = node(1, "m:add_test", "add_test", "erlang");
+        let mut g = graph_with(vec![h, case]);
+        crate::deadcode::testutil::link(&mut g, 0, 1);
+        let set = discover(&g, &[], &[], &[]);
+        assert!(set.coverage_test.is_empty(), "{:?}", set.coverage_test);
+
+        let mut p = node(
+            0,
+            "<framework-entry>::test::py-unittest",
+            "py-unittest",
+            "python",
+        );
+        p.synthetic = true;
+        p.framework_entry = Some(cgg_core::frameworks::TrustKind::Test);
+        let m = node(1, "m.T.check_a", "check_a", "python");
+        let mut g = graph_with(vec![p, m]);
+        crate::deadcode::testutil::link(&mut g, 0, 1);
+        let set = discover(&g, &[], &[], &[]);
+        assert_eq!(set.coverage_test, vec![1]);
+    }
+
+    #[test]
+    fn main_is_a_production_root() {
+        let g = graph_with(vec![node(0, "crate::main", "main", "rust")]);
+        let set = discover(&g, &[], &[], &[]);
+        assert_eq!(set.production.len(), 1);
+        assert!(set.test.is_empty());
+        assert_eq!(set.records[0].kind, RootKind::ProgramEntry);
+    }
+
+    #[test]
+    fn ffi_exports_are_roots_because_callers_are_out_of_tree() {
+        let mut n = node(0, "crate::ffi_entry", "ffi_entry", "rust");
+        n.attributes = vec!["#[no_mangle]".into()];
+        let set = discover(&graph_with(vec![n]), &[], &[], &[]);
+        assert_eq!(set.records[0].kind, RootKind::FfiExport);
+    }
+
+    #[test]
+    fn tests_are_a_separate_root_class_not_production() {
+        let mut n = node(0, "crate::tests::it_works", "it_works", "rust");
+        n.attributes = vec!["#[test]".into()];
+        let set = discover(&graph_with(vec![n]), &[], &[], &[]);
+        assert!(
+            set.production.is_empty(),
+            "a test must not be a production root"
+        );
+        assert_eq!(set.test.len(), 1);
+        assert_eq!(set.records[0].kind, RootKind::TestEntry);
+    }
+
+    #[test]
+    fn implicit_rust_traits_are_roots() {
+        let mut n = node(0, "<F as Display>::fmt", "fmt", "rust");
+        n.trait_impl_target = Some("Display".into());
+        let set = discover(&graph_with(vec![n]), &[], &[], &[]);
+        assert_eq!(set.records[0].kind, RootKind::LifecycleCallback);
+
+        // A user trait is NOT implicitly invoked.
+        let mut m = node(0, "<F as Storage>::put", "put", "rust");
+        m.trait_impl_target = Some("Storage".into());
+        assert!(
+            discover(&graph_with(vec![m]), &[], &[], &[])
+                .records
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn go_test_naming_requires_more_than_the_prefix() {
+        assert!(is_test_name("go", "TestFoo"));
+        assert!(!is_test_name("go", "Test"));
+        assert!(!is_test_name("go", "Testing"));
+        assert!(is_test_name("go", "Test_foo"));
+        assert!(is_test_name("go", "ExampleFoo"));
+        assert!(!is_test_name("powershell", "Test-Connection"));
+        assert!(!is_test_name("java", "Tester"));
+        assert!(is_test_name("java", "TestFoo"));
+        assert!(
+            !is_test_name("python", "latest"),
+            "vulture's *test* glob bug"
+        );
+        assert!(!is_test_name("python", "contest"));
+        assert!(is_test_name("python", "test_thing"));
+    }
+
+    #[test]
+    fn dunder_methods_are_runtime_invoked() {
+        let n = node(0, "m.C.__init__", "__init__", "python");
+        let set = discover(&graph_with(vec![n]), &[], &[], &[]);
+        assert_eq!(set.records[0].kind, RootKind::LifecycleCallback);
+        assert!(!is_dunder("__x"));
+        assert!(!is_dunder("____"));
+        assert!(is_dunder("__init__"));
+    }
+
+    #[test]
+    fn synthetic_nodes_are_never_roots() {
+        let mut n = node(0, "ext::main", "main", "rust");
+        n.synthetic = true;
+        assert!(
+            discover(&graph_with(vec![n]), &[], &[], &[])
+                .records
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn roots_are_deduplicated_and_ordered_by_id() {
+        let g = graph_with(vec![
+            node(0, "crate::main", "main", "rust"),
+            node(1, "crate::helper", "helper", "rust"),
+        ]);
+        // Declare main again as a user root; it must not appear twice.
+        let set = discover(&g, &[], &[("^main$".into(), CallableId::new(0))], &[]);
+        assert_eq!(set.records.len(), 1);
+        assert_eq!(set.records[0].rule, "builtin:main");
+    }
+
+    #[test]
+    fn generic_trait_arguments_do_not_defeat_the_implicit_trait_rule() {
+        // `trait_impl_target` keeps generics, so an exact-match check
+        // silently missed every parameterised std trait impl.
+        let mut n = node(0, "<T as From<OutputFormatArg>>::from", "from", "rust");
+        n.trait_impl_target = Some("From<OutputFormatArg>".into());
+        let set = discover(&graph_with(vec![n]), &[], &[], &[]);
+        assert_eq!(set.records.len(), 1, "From<...> should match From");
+        assert_eq!(set.records[0].kind, RootKind::LifecycleCallback);
+    }
+
+    // F8: a response conversion is a root only for a type some function
+    // returns unwrapped. `Result<_, AppError>` hands `AppError` to axum;
+    // `Json<Resp>` hands it `Json`, so `Resp`'s own impl stays reportable.
+    #[test]
+    fn response_conversion_is_rooted_only_for_types_returned_unwrapped() {
+        let mut err = node(
+            0,
+            "s::<AppError as IntoResponse>::into_response",
+            "into_response",
+            "rust",
+        );
+        err.trait_impl_target = Some("IntoResponse".into());
+        let mut resp = node(
+            1,
+            "s::<Resp as IntoResponse>::into_response",
+            "into_response",
+            "rust",
+        );
+        resp.trait_impl_target = Some("IntoResponse".into());
+        let mut h = node(2, "s::handler", "handler", "rust");
+        h.signature_hint = "async fn handler() -> Result<Json<Resp>, AppError>".into();
+        let set = discover(&graph_with(vec![err, resp, h]), &[], &[], &[]);
+        let rooted: Vec<u32> = set.records.iter().map(|r| r.id.as_u32()).collect();
+        assert!(rooted.contains(&0), "{rooted:?}");
+        assert!(!rooted.contains(&1), "{rooted:?}");
+    }
+
+    #[test]
+    fn serde_visitor_methods_are_runtime_invoked() {
+        let mut n = node(0, "<R as Visitor<'de>>::visit_map", "visit_map", "rust");
+        n.trait_impl_target = Some("Visitor<'de>".into());
+        assert_eq!(
+            discover(&graph_with(vec![n]), &[], &[], &[]).records.len(),
+            1
+        );
+    }
+
+    // A function passed as a value at module scope (`callback=_set_app`,
+    // an Express middleware in a route list) is recorded as a value ref
+    // with no enclosing callable. Relabelling that record must not cost
+    // the callee its top-level root — measured on flask, it did: roots
+    // fell 1024 -> 995 and 23 real uses became findings.
+    #[test]
+    fn a_module_scope_value_ref_is_a_toplevel_root() {
+        let mut g = graph_with(vec![node(0, "app._set_app", "_set_app", "python")]);
+        g.unresolved.push(cgg_core::AuditUnresolvedCall::new(
+            None,
+            cgg_core::FileId::new(0),
+            7,
+            70,
+            "_set_app".into(),
+            String::new(),
+            cgg_core::UnresolvedReason::ValueRefNoEnclosing,
+        ));
+        let set = discover(&g, &[], &[], &[]);
+        assert_eq!(set.production.len(), 1, "{:?}", set.records);
+        assert_eq!(set.records[0].kind, RootKind::TopLevelInvocation);
+    }
+
+    // WS26: a JS/TS name used at the top level of a file declaring it
+    // (`module.exports = { run }`) credits that file's `run` only; from a
+    // file that does not declare it (an import), every `run`. Other
+    // languages keep crediting by name.
+    #[test]
+    fn a_js_toplevel_site_credits_its_own_files_declaration() {
+        let roots_for = |lang: &str, site_file: u32| -> Vec<u32> {
+            let a = node(0, "run", "run", lang);
+            let mut b = node(1, "Runner.run", "run", lang);
+            b.file = cgg_core::FileId::new(1);
+            let mut g = graph_with(vec![a, b]);
+            for i in [1, 2] {
+                let mut f = g.files[&cgg_core::FileId::new(0)].clone();
+                f.id = cgg_core::FileId::new(i);
+                g.add_file(f);
+            }
+            g.unresolved.push(cgg_core::AuditUnresolvedCall::new(
+                None,
+                cgg_core::FileId::new(site_file),
+                7,
+                70,
+                "run".into(),
+                String::new(),
+                cgg_core::UnresolvedReason::NoEnclosingCallable,
+            ));
+            let set = discover(&g, &[], &[], &[]);
+            let mut ids: Vec<u32> = set
+                .records
+                .iter()
+                .filter(|r| r.kind == RootKind::TopLevelInvocation)
+                .map(|r| u32::from(r.id != CallableId::new(0)))
+                .collect();
+            ids.sort_unstable();
+            ids
+        };
+        assert_eq!(roots_for("javascript", 0), vec![0]);
+        assert_eq!(roots_for("typescript", 1), vec![1]);
+        assert_eq!(roots_for("javascript", 2), vec![0, 1]);
+        assert_eq!(roots_for("python", 0), vec![0, 1]);
+    }
+
+    // WS13: `crate::m!(..)` outside any function credits the macro `m`;
+    // the same invocation inside a function does not (its call is an
+    // edge or an unresolved site of its own), and a non-macro callable
+    // of that name is never credited.
+    #[test]
+    fn a_rust_macro_invoked_by_path_at_module_level_is_a_root() {
+        let mut m = node(0, "k::each", "each", "rust");
+        m.attributes = vec!["macro".into()];
+        let f = node(1, "k::other::each", "each", "rust");
+        let mut inner = node(2, "k::inner", "inner", "rust");
+        inner.attributes = vec!["macro".into()];
+        let g = graph_with(vec![m, f, inner]);
+        let mut facts = FileFacts::new(cgg_core::FileId::new(0), "a.rs".into(), "rust");
+        facts.definitions.push(cgg_core::DefRecord {
+            simple_name: "body".into(),
+            qualified_name: "k::body".into(),
+            start_byte: 100,
+            end_byte: 200,
+            ..Default::default()
+        });
+        for (name, byte) in [("crate::each", 10), ("crate::inner", 150)] {
+            facts.references.push(cgg_core::RefRecord {
+                name: name.into(),
+                site_byte: byte,
+                site_line: 1,
+                macro_call: true,
+                ..Default::default()
+            });
+        }
+        let set = discover(&g, &[facts], &[], &[]);
+        let rooted: Vec<u32> = set.records.iter().map(|r| r.id.as_u32()).collect();
+        assert_eq!(rooted, vec![0], "{:?}", set.records);
+        assert_eq!(set.records[0].kind, RootKind::TopLevelInvocation);
+    }
+}
