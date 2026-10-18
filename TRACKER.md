@@ -127,7 +127,7 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 | WS23 | Go receivers, JVM/.NET/C declared returns, JS/TS locals typing, Swift/Groovy overload sets | 10,26,28,16 | DONE (50c0bb9) | | 10 reproduced (no edge at all); after WS19 |
 | WS24 | Kotlin↔Java rules, C#/Swift registrars, JS/TS harness | 14,22,30 | DONE (877b3fa) | | |
 | WS25 | stdlib head split, reflection screen, shebang token match, filename detection | 17,18,19,20 | DONE (7eca3a0) | | |
-| WS26 | Function values as references, per plugin | 25 | IN PROGRESS | 965e15a f5a877c 9df8695 | JS/TS, .bind, Go done; next Kotlin → C/C++ → Ruby → PHP → Swift → Dart → Scala → Lua → rest |
+| WS26 | Function values as references, per plugin | 25 | IN PROGRESS | 965e15a f5a877c 9df8695 48c4573 | JS/TS, .bind, Go, Kotlin done; next C/C++ → Ruby → PHP → Swift → Dart → Scala → Lua → rest |
 | WS27 | Locals specs Go/C#/C/C++… | 27 | PLANNED | | watch perf |
 | WS28 | Arity narrowing C#/Kotlin/Swift/Groovy/TS | 29 | PLANNED | | |
 | WS29 | Doc corrections + re-score matrix | — | PLANNED | | orchestrator only |
