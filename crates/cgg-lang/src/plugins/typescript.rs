@@ -73,7 +73,11 @@ impl LanguagePlugin for TypeScriptPlugin {
         facts.packages = manifest.names;
         let own_package = manifest.own;
         let exported_as = manifest.exported_as;
-        let mut w = JsWalker::new(*ctx, source, &mut facts);
+        let mut w = JsWalker::new(
+            super::javascript::value_position_ctx(ctx, source),
+            source,
+            &mut facts,
+        );
         w.walk(tree.root_node());
         let mut out = facts;
         super::javascript::push_package_name(&mut out, own_package, exported_as);

@@ -156,7 +156,7 @@ const MAX_TREE_DEPTH: usize = 4000;
 
 /// A line longer than this marks a minified or bundled file (WS14): no
 /// parameter/local scope evidence is collected for it.
-const MINIFIED_LINE_BYTES: usize = 2000;
+const MINIFIED_LINE_BYTES: usize = cgg_lang::MINIFIED_LINE_BYTES;
 
 pub fn analyze(opts: &RunOptions) -> Result<RunOutcome> {
     // Host the whole run on a thread with a large stack. Extraction and

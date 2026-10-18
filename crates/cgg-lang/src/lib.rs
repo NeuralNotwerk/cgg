@@ -401,6 +401,12 @@ pub use cgg_core as core;
 pub use detect::{DetectResult, DetectVerdict, LanguageDetector};
 pub use parser::{ParseOutcome, ParserPool, exceeds_depth};
 
+/// A line longer than this marks a minified or bundled file (WS14). The
+/// pipeline collects no parameter/local scope evidence for one, so a
+/// plugin records no bare value-position name in one either: without
+/// scope evidence its reused short names cannot be told from functions.
+pub const MINIFIED_LINE_BYTES: usize = 2000;
+
 /// Byte length of the longest line in `source`.
 ///
 /// A "line" is the span between consecutive `\n` bytes (or start/end of

@@ -2211,6 +2211,86 @@ fn rust_reference_edges_are_opt_in() {
     assert!(g.contains("crate::tick"), "{g}");
 }
 
+/// WS26 (gap 25): a JavaScript function passed, stored or returned as a
+/// value is a reference — live in the dead-code report and a `ref` edge
+/// under `--reference-edges` — while the default graph is untouched. A
+/// parameter of the same name, a string spelling it and an object key
+/// spelling it are not references.
+#[test]
+fn javascript_function_values_are_references() {
+    let tmp = TempDir::new().unwrap();
+    let src = "function mapper(x) { return x; }\n\
+function stored() {}\n\
+function returned() {}\n\
+function shadowed() {}\n\
+function inString() {}\n\
+function asKey() {}\n\
+function orphan() {}\n\
+class W { onTick() {} start() { [1].forEach(this.onTick); } }\n\
+function make() { return returned; }\n\
+function useParam(shadowed) { [1].forEach(shadowed); }\n\
+export function main(o) {\n\
+  [1].map(mapper);\n\
+  o.cb = stored;\n\
+  log('inString');\n\
+  const t = { asKey: 1 };\n\
+  new W().start();\n\
+  make();\n\
+  useParam(1);\n\
+  return t;\n\
+}\n\
+main({});\n";
+    write(tmp.path(), "app.js", src.as_bytes());
+
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in ["mapper", "stored", "returned", "W.onTick"] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} is referenced as a value, findings: {dead:?}"
+        );
+    }
+    for gone in ["shadowed", "inString", "asKey", "orphan"] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone} has no reference, findings: {dead:?}"
+        );
+    }
+
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .arg("-o")
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain).unwrap().matches("ref|").count(),
+        0
+    );
+    let refs = tmp.path().join("r.mmd");
+    cgg()
+        .args(["--reference-edges", "-o"])
+        .arg(&refs)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&refs).unwrap();
+    assert_eq!(g.matches("ref|").count(), 4, "{g}");
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------

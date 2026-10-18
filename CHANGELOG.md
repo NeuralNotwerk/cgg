@@ -314,6 +314,23 @@ otherwise change the default graph.
     `GetMember`, `GetEvent`, `InvokeMember` and `Delegate.CreateDelegate`
     now cap a same-named finding at `medium`.
 
+- **JavaScript and TypeScript functions passed or stored as values were
+  not references (WS26, gap 25).** `xs.map(mapper)`, `setTimeout(tick)`,
+  `emitter.on('x', onData)` outside a registrar verb, `this.handleClick`
+  passed as an argument, `{ a: f }` and `{ f }` object values,
+  `o.cb = f`, `module.exports = f`, `const g = f`, a class field holding
+  `f`, `return f`, `() => f`, `export default f`, an array element and a
+  JSX attribute (`onClick={f}`) left `f` with no incoming reference, so it
+  was reported dead. Under `--dead-code` and `--reference-edges` each is
+  now recorded as a value reference (`RefRecord::value_ref`), named the
+  way the call would be: bare, through `this`, or through a namespace or
+  `require` import (a member read through any other receiver is a
+  property far more often than a method and is not recorded). A string
+  spelling the name, an object key spelling it, a ternary's condition,
+  and a name a parameter or local binds at the site are not references.
+  Nothing is recorded in a minified file (a line over 2,000 bytes), which
+  has no parameter/local scope evidence. The default graph is unchanged.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -486,6 +503,25 @@ repositories, none excluded):
   are new (39 CMake `low`, 16 Ruby `medium` Rakefile helpers, one Bash
   `low`) and 15 leave the report (`low`), all in files whose detection
   changed.
+
+WS26 (JavaScript/TypeScript function values; full corpus, 283
+repositories, none excluded):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 38,813 reference edges are added (31,715
+  `high`: TypeScript 25,470, JavaScript 13,343). 26 `medium` reference
+  edges are replaced: 20 registrar-captured sites now bind the same
+  callee at `high`, 6 move to the line of the name inside a multi-line
+  argument.
+- Under `--dead-code`, 25,169 findings leave the report (TypeScript
+  13,411, JavaScript 11,758; none `high`). 11,279 previously withheld
+  findings are now reported (11,261 TypeScript/JavaScript
+  `reachable-only-from-dead-code`/`dead-cycle`/`unreachable-from-roots`
+  findings withheld for low root coverage, which the new references lift
+  over the threshold; 18 more in two repositories whose roots or cycles
+  changed), and 274 move `medium` → `low` (an unresolved value reference
+  of the same name is now doubt). Net: 13,890 fewer findings. No `high`
+  finding changes.
 
 ## [0.11.0] - 2026-10-16
 

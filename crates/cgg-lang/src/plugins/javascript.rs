@@ -62,7 +62,7 @@ impl LanguagePlugin for JavaScriptPlugin {
         facts.packages = manifest.names;
         let own_package = manifest.own;
         let exported_as = manifest.exported_as;
-        let mut w = JsWalker::new(*ctx, source, &mut facts);
+        let mut w = JsWalker::new(value_position_ctx(ctx, source), source, &mut facts);
         w.walk(tree.root_node());
         let mut out = facts;
         push_package_name(&mut out, own_package, exported_as);
@@ -74,6 +74,23 @@ impl LanguagePlugin for JavaScriptPlugin {
             out.dyn_uses = super::dynuse::extract(tree, source, "javascript");
         }
         out
+    }
+}
+
+/// The extraction switches for the walk: reference sites are not
+/// recorded in a minified file, which gets no parameter/local scope
+/// evidence (`crate::MINIFIED_LINE_BYTES`), so a value-position name
+/// there could not be told from a parameter.
+pub(crate) fn value_position_ctx<'a>(
+    ctx: &crate::ExtractCtx<'a>,
+    source: &[u8],
+) -> crate::ExtractCtx<'a> {
+    if ctx.reference_sites
+        && crate::longest_line_bytes(source) > crate::MINIFIED_LINE_BYTES
+    {
+        ctx.with_reference_sites(false)
+    } else {
+        *ctx
     }
 }
 
@@ -156,6 +173,9 @@ impl<'a> JsWalker<'a> {
     }
 
     pub(crate) fn walk(&mut self, node: Node) {
+        if self.ctx.reference_sites {
+            self.capture_value_positions(node);
+        }
         match node.kind() {
             "function_declaration" | "generator_function_declaration" => {
                 self.record_function(node);
@@ -343,6 +363,183 @@ impl<'a> JsWalker<'a> {
                 scope_byte: node.start_byte() as u32,
             });
         }
+    }
+
+    /// Value positions, when the run records reference sites: a function
+    /// named without being called. A call's argument (`xs.map(f)`,
+    /// `setTimeout(cb)`), an array element, an object literal's value
+    /// (`{ a: f }`, `{ f }`), a store (`o.cb = f`, `module.exports = f`,
+    /// `const g = f`, a class field), a returned value (`return f`,
+    /// `() => f`), `export default f` and a JSX attribute (`onClick={f}`).
+    ///
+    /// Each name is recorded the way the call it would be if invoked is —
+    /// `f` bare, `this.m` through `this`, `ns.f` through a namespace or
+    /// `require` import — marked `value_ref`, so what it resolves to is a
+    /// reference edge. A member read through any other receiver is a
+    /// property far more often than a method and is not recorded. Names
+    /// no callable carries, and names a local or parameter binds at the
+    /// site, are dropped before resolution (`value_refs::prune`).
+    ///
+    /// The walker visits arrays and object literals itself, so the
+    /// positions below never descend into them: each element is recorded
+    /// once, on the container's own turn.
+    fn capture_value_positions(&mut self, node: Node) {
+        let parent_kind = || node.parent().map(|p| p.kind()).unwrap_or("");
+        match node.kind() {
+            "arguments" => {
+                let Some(call) = node
+                    .parent()
+                    .filter(|p| matches!(p.kind(), "call_expression" | "new_expression"))
+                else {
+                    return;
+                };
+                // A registrar verb's arguments were captured by
+                // `registrar::capture` on the call's own turn.
+                let callee = call
+                    .child_by_field_name("function")
+                    .or_else(|| call.child_by_field_name("constructor"))
+                    .map(|f| self.text(f).to_string())
+                    .unwrap_or_default();
+                if super::registrar::admits(&self.ctx, &callee) {
+                    return;
+                }
+                let mut c = node.walk();
+                let args: Vec<Node> = node.named_children(&mut c).collect();
+                for a in args {
+                    self.value_ref_in(a, 0);
+                }
+            }
+            "array" => {
+                let mut c = node.walk();
+                let items: Vec<Node> = node.named_children(&mut c).collect();
+                for i in items {
+                    self.value_ref_in(i, 0);
+                }
+            }
+            "pair" if parent_kind() == "object" => {
+                if let Some(v) = node.child_by_field_name("value") {
+                    self.value_ref_in(v, 0);
+                }
+            }
+            "shorthand_property_identifier" if parent_kind() == "object" => {
+                self.push_value_ref(node, String::new());
+            }
+            "return_statement" => {
+                if let Some(v) = node.named_child(0) {
+                    self.value_ref_in(v, 0);
+                }
+            }
+            "arrow_function" => {
+                if let Some(b) = node
+                    .child_by_field_name("body")
+                    .filter(|b| b.kind() != "statement_block")
+                {
+                    self.value_ref_in(b, 0);
+                }
+            }
+            "assignment_expression" => {
+                if let Some(v) = node.child_by_field_name("right") {
+                    self.value_ref_in(v, 0);
+                }
+            }
+            "variable_declarator"
+            | "field_definition"
+            | "public_field_definition"
+            | "export_statement" => {
+                if let Some(v) = node.child_by_field_name("value") {
+                    self.value_ref_in(v, 0);
+                }
+            }
+            "jsx_expression" if parent_kind() == "jsx_attribute" => {
+                if let Some(v) = node.named_child(0) {
+                    self.value_ref_in(v, 0);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// The names one value expression stands for: itself, or the
+    /// branches of `a ? f : g` / `f || g`, through parentheses and
+    /// TypeScript's type-only wrappers (`f as H`, `f!`).
+    fn value_ref_in(&mut self, v: Node, depth: u8) {
+        if depth > 4 {
+            return;
+        }
+        match v.kind() {
+            "identifier" => self.push_value_ref(v, String::new()),
+            "member_expression" => {
+                let (Some(obj), Some(prop)) = (
+                    v.child_by_field_name("object"),
+                    v.child_by_field_name("property"),
+                ) else {
+                    return;
+                };
+                let recv = match obj.kind() {
+                    "this" => "this".to_string(),
+                    "identifier" => {
+                        let head = self.text(obj);
+                        let namespace = self
+                            .facts
+                            .imports
+                            .iter()
+                            .any(|i| i.kind == "import" && i.alias == head);
+                        if !namespace {
+                            return;
+                        }
+                        head.to_string()
+                    }
+                    _ => return,
+                };
+                self.push_value_ref(prop, recv);
+            }
+            "parenthesized_expression"
+            | "as_expression"
+            | "satisfies_expression"
+            | "non_null_expression" => {
+                if let Some(inner) = v.named_child(0) {
+                    self.value_ref_in(inner, depth + 1);
+                }
+            }
+            "ternary_expression" => {
+                for field in ["consequence", "alternative"] {
+                    if let Some(b) = v.child_by_field_name(field) {
+                        self.value_ref_in(b, depth + 1);
+                    }
+                }
+            }
+            "binary_expression" => {
+                let logical = v
+                    .child_by_field_name("operator")
+                    .is_some_and(|o| matches!(self.text(o), "||" | "&&" | "??"));
+                if !logical {
+                    return;
+                }
+                for field in ["left", "right"] {
+                    if let Some(b) = v.child_by_field_name(field) {
+                        self.value_ref_in(b, depth + 1);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Record `name_node` as a value reference through `recv`, on the
+    /// name's own token, where no call starts.
+    fn push_value_ref(&mut self, name_node: Node, recv: String) {
+        let name = self.text(name_node).to_string();
+        if name.is_empty() {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: recv,
+            site_line: (name_node.start_position().row as u32) + 1,
+            site_byte: name_node.start_byte() as u32,
+            value_ref: true,
+            ..Default::default()
+        });
     }
 
     fn walk_children(&mut self, node: Node) {
@@ -1853,5 +2050,103 @@ class Service {
 
         let f = extract_test_file(src, false);
         assert!(handlers(&f).is_empty());
+    }
+
+    fn extract_with_refs(src: &str, refs: bool) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_javascript::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        JavaScriptPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(refs),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.js"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    fn value_refs(f: &FileFacts) -> Vec<(String, String)> {
+        f.references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
+            .collect()
+    }
+
+    /// WS26 (gap 25): a function named as a value — passed, stored,
+    /// returned or exported — is a reference site, recorded only when the
+    /// run asks for reference sites.
+    #[test]
+    fn function_values_are_reference_sites() {
+        let src = "import * as util from './u.js';\n\
+                   class W { start(e) { xs.forEach(this.onTick); } }\n\
+                   function make() { return made; }\n\
+                   const arrow = () => arrowed;\n\
+                   function main(o) {\n\
+                     xs.map(mapper);\n\
+                     setTimeout(tick, 10);\n\
+                     xs.map(util.fmt);\n\
+                     const t = { a: inTable, shorthand };\n\
+                     o.cb = stored;\n\
+                     const pick = o.f || fallback;\n\
+                     const list = [inArray];\n\
+                     return c ? yes : no;\n\
+                   }\n\
+                   module.exports = { exported };\n\
+                   export default byDefault;\n";
+        let got = value_refs(&extract_with_refs(src, true));
+        let want = [
+            ("this", "onTick"),
+            ("", "made"),
+            ("", "arrowed"),
+            ("", "mapper"),
+            ("", "tick"),
+            ("util", "fmt"),
+            ("", "inTable"),
+            ("", "shorthand"),
+            ("", "stored"),
+            ("", "fallback"),
+            ("", "inArray"),
+            ("", "yes"),
+            ("", "no"),
+            ("", "exported"),
+            ("", "byDefault"),
+        ];
+        for (recv, name) in want {
+            assert!(
+                got.contains(&(recv.to_string(), name.to_string())),
+                "missing {recv}.{name} in {got:?}"
+            );
+        }
+        // An ordinary run records none of them.
+        assert!(value_refs(&extract_with_refs(src, false)).is_empty());
+    }
+
+    /// The near misses: a string naming a function, an object key spelled
+    /// like one, a member read through a plain variable, and the
+    /// condition of a ternary are data, not references.
+    #[test]
+    fn strings_keys_and_plain_member_reads_are_not_reference_sites() {
+        let src = "function main(o) {\n\
+                     log('inString');\n\
+                     const t = { asKey: 1 };\n\
+                     use(o.prop);\n\
+                     const v = cond ? 1 : 2;\n\
+                   }\n";
+        let got = value_refs(&extract_with_refs(src, true));
+        let names: Vec<&str> = got.iter().map(|(_, n)| n.as_str()).collect();
+        for n in ["inString", "asKey", "prop", "cond"] {
+            assert!(!names.contains(&n), "{n} recorded: {got:?}");
+        }
+    }
+
+    /// A minified file gets no parameter/local scope evidence, so its
+    /// value positions are not recorded either.
+    #[test]
+    fn minified_files_record_no_reference_sites() {
+        let pad = "x".repeat(crate::MINIFIED_LINE_BYTES);
+        let src = format!("function main(e) {{ xs.map(mapper); }} var s = '{pad}';\n");
+        assert!(value_refs(&extract_with_refs(&src, true)).is_empty());
     }
 }
