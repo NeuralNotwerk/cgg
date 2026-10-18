@@ -3923,3 +3923,56 @@ fn java_same_named_owner_cap_narrows_to_the_nearest_copy() {
         .collect();
     assert_eq!(to.len(), 1, "{e:?}");
 }
+
+/// A CMake project function named like a built-in command (`message`)
+/// overrides it only where it is in scope: its own file still binds, but
+/// another file's `message(...)` is the built-in, never matched to it by
+/// name. A project command with an ordinary name still binds across files
+/// through `include()`.
+#[test]
+fn cmake_builtin_command_override_is_not_matched_by_name() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "a/CMakeLists.txt",
+        b"function(message)\nendfunction()\nfunction(helper)\n  message(STATUS \"x\")\nendfunction()\n",
+    );
+    write(
+        tmp.path(),
+        "b/util.cmake",
+        b"function(shared)\nendfunction()\n",
+    );
+    write(
+        tmp.path(),
+        "b/CMakeLists.txt",
+        b"include(util.cmake)\nfunction(other)\n  message(STATUS \"y\")\n  shared()\nendfunction()\n",
+    );
+    let out = cgg().args(["-t", "json"]).arg(tmp.path()).output().unwrap();
+    assert!(out.status.success());
+    let g: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let cs = g["callables"].as_object().unwrap();
+    let name = |id: &serde_json::Value| {
+        cs[id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let edges: Vec<(String, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| (name(&e["src"]), name(&e["dst"])))
+        .collect();
+    assert!(
+        edges.contains(&("helper".into(), "message".into())),
+        "{edges:?}"
+    );
+    assert!(
+        !edges.contains(&("other".into(), "message".into())),
+        "{edges:?}"
+    );
+    assert!(
+        edges.contains(&("other".into(), "shared".into())),
+        "{edges:?}"
+    );
+}

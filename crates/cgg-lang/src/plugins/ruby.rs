@@ -16,8 +16,11 @@ impl LanguagePlugin for RubyPlugin {
     fn extensions(&self) -> &'static [&'static str] {
         &[".rb", ".rake", ".gemspec"]
     }
+    fn filenames(&self) -> &'static [&'static str] {
+        &["Gemfile", "Rakefile", "config.ru"]
+    }
     fn shebangs(&self) -> &'static [&'static str] {
-        &["ruby", "irb"]
+        &["ruby", "irb", "jruby"]
     }
     fn signals(&self) -> crate::PluginSignals {
         crate::PluginSignals {

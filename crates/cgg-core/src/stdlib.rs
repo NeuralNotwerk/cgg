@@ -66,6 +66,134 @@ pub fn is_constructing_method(lang: &str, name: &str) -> bool {
         .any(|(l, names)| *l == lang && names.contains(&name))
 }
 
+/// Standard-library modules and namespaces written as a call's qualifier
+/// (`POSIX::floor`, `stats::median`, `clojure.string/join`) whose names
+/// are not in the language's manifest. Read only by the external-call
+/// classifier (`external::module_is_stdlib`), which tests the qualifier
+/// and each of its `::`/`.`/`/`-separated prefixes against this table:
+/// it never feeds name-based resolution, so a workspace function named
+/// like a module (`base`, `stats`) is unaffected.
+pub const STDLIB_MODULES: &[(&str, &[&str])] = &[
+    (
+        "perl",
+        &[
+            "Benchmark",
+            "Carp",
+            "Config",
+            "Cwd",
+            "Data::Dumper",
+            "Digest::MD5",
+            "Digest::SHA",
+            "Encode",
+            "Errno",
+            "Exporter",
+            "Fcntl",
+            "File::Basename",
+            "File::Compare",
+            "File::Copy",
+            "File::Find",
+            "File::Glob",
+            "File::Path",
+            "File::Spec",
+            "File::Spec::Functions",
+            "File::Temp",
+            "File::stat",
+            "FindBin",
+            "Getopt::Long",
+            "Getopt::Std",
+            "Hash::Util",
+            "HTTP::Tiny",
+            "I18N::Langinfo",
+            "IO::File",
+            "IO::Handle",
+            "IO::Select",
+            "IO::Socket",
+            "IO::Socket::INET",
+            "IPC::Cmd",
+            "IPC::Open2",
+            "IPC::Open3",
+            "JSON::PP",
+            "List::Util",
+            "MIME::Base64",
+            "Math::BigFloat",
+            "Math::BigInt",
+            "POSIX",
+            "Pod::Usage",
+            "Scalar::Util",
+            "Socket",
+            "Storable",
+            "Sys::Hostname",
+            "Term::ANSIColor",
+            "Text::Abbrev",
+            "Text::ParseWords",
+            "Text::Wrap",
+            "Tie::Hash",
+            "Time::HiRes",
+            "Time::Local",
+            "Time::Piece",
+            "UNIVERSAL",
+            "Unicode::Normalize",
+        ],
+    ),
+    (
+        "r",
+        &[
+            "base",
+            "compiler",
+            "datasets",
+            "grDevices",
+            "graphics",
+            "grid",
+            "methods",
+            "parallel",
+            "splines",
+            "stats",
+            "stats4",
+            "tcltk",
+            "tools",
+            "utils",
+        ],
+    ),
+    (
+        "clojure",
+        &[
+            "clojure.core",
+            "clojure.core.protocols",
+            "clojure.core.reducers",
+            "clojure.core.server",
+            "clojure.data",
+            "clojure.datafy",
+            "clojure.edn",
+            "clojure.instant",
+            "clojure.java.browse",
+            "clojure.java.io",
+            "clojure.java.javadoc",
+            "clojure.java.shell",
+            "clojure.main",
+            "clojure.math",
+            "clojure.pprint",
+            "clojure.reflect",
+            "clojure.repl",
+            "clojure.set",
+            "clojure.stacktrace",
+            "clojure.string",
+            "clojure.template",
+            "clojure.test",
+            "clojure.walk",
+            "clojure.xml",
+            "clojure.zip",
+        ],
+    ),
+];
+
+/// `lang`'s [`STDLIB_MODULES`], empty when it has none.
+pub fn stdlib_modules(lang: &str) -> &'static [&'static str] {
+    STDLIB_MODULES
+        .iter()
+        .find(|(l, _)| *l == lang)
+        .map_or(&[], |(_, m)| m)
+}
+
 /// Scala: packages every file sees without an import, through the
 /// implicit `import scala._` / `import java.lang._` — `math.ceil(x)` is
 /// `scala.math.ceil`. A receiver headed by one of these that nothing in
@@ -230,6 +358,10 @@ pub fn is_null_type_member(lang: &str, member: &str) -> bool {
 }
 
 static RUST: &str = include_str!("stdlib/rust.txt");
+/// CMake's built-in commands (`cmake --help-command-list`, 3.28). A
+/// project `function(message)` overriding one stays reachable in its
+/// own file but is never matched by name from another.
+static CMAKE: &str = include_str!("stdlib/cmake.txt");
 static PYTHON: &str = include_str!("stdlib/python.txt");
 static GO: &str = include_str!("stdlib/go.txt");
 static JAVASCRIPT: &str = include_str!("stdlib/javascript.txt");
@@ -300,6 +432,7 @@ pub fn stdlib_names(lang: &str) -> Option<&'static HashSet<&'static str>> {
             ("clojure", parse(CLOJURE)),
             ("haskell", parse(HASKELL)),
             ("ocaml", parse(OCAML)),
+            ("cmake", parse(CMAKE)),
         ]
     });
     all.iter().find(|(id, _)| *id == lang).map(|(_, set)| set)

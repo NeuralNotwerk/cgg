@@ -3,22 +3,32 @@
 //! Rules, applied top-to-bottom; the first rule to name a language
 //! wins:
 //!
-//! 1. **Shebang** — if the file starts with `#!` and the first line
-//!    contains a substring matching any plugin's registered shebang
-//!    keyword, that language is chosen. `detected_via = "shebang:<word>"`.
-//! 2. **Structured API descriptors** — for `.yaml`/`.yml`/`.json`, sniff
+//! 1. **Shebang** — if the file starts with `#!`, the interpreter is
+//!    read from the first line: the basename of the program, or of the
+//!    first operand after `env` (its options and `NAME=value` settings
+//!    skipped). It must equal a plugin's registered shebang keyword, or
+//!    be that keyword followed by a version (`python3.11`, `lua5.4`).
+//!    A keyword is never matched as a substring of the line, so
+//!    `pwsh` is not `sh` and `zsh-wrapper` is nothing.
+//!    `detected_via = "shebang:<word>"`.
+//! 2. **File name** — an exact, case-sensitive match against each
+//!    plugin's file-name list (`CMakeLists.txt`, `BUILD`, `Gemfile`):
+//!    formats whose files carry no extension.
+//!    `detected_via = "filename:<name>"`. Detection runs on what the
+//!    walker emits, so the deny list and `.gitignore` still apply.
+//! 3. **Structured API descriptors** — for `.yaml`/`.yml`/`.json`, sniff
 //!    the head for a root `openapi:`/`swagger:`/`asyncapi:` key and route
 //!    to the OpenAPI or AsyncAPI plugin. No match → `Unknown` (these
 //!    extensions never fall through to the extension rule, so ordinary
 //!    config/data YAML/JSON is left alone). `detected_via = "content:<id>"`.
-//! 3. **Extension** — case-insensitive match against each plugin's
+//! 4. **Extension** — case-insensitive match against each plugin's
 //!    extension list. `detected_via = "extension:<ext>"`.
-//! 3. **`.h` ambiguity** — if the extension is `.h`, look for a
+//! 5. **`.h` ambiguity** — if the extension is `.h`, look for a
 //!    sibling file with the same stem and a C++ extension
 //!    (`.cpp`, `.cc`, `.cxx`, `.hpp`, `.hh`, `.hxx`) inside the same
 //!    directory. If present, pick C++; else C.
 //!    `detected_via = "header-heuristic:cpp"` or `"header-heuristic:c"`.
-//! 4. **Unknown** — returns [`DetectVerdict::Unknown`], which callers
+//! 6. **Unknown** — returns [`DetectVerdict::Unknown`], which callers
 //!    translate to `SkipReason::UnknownExtension` in the audit log.
 
 use std::fs;
@@ -61,15 +71,32 @@ impl<'r> LanguageDetector<'r> {
     /// full file.
     pub fn detect(&self, path: &Path) -> DetectResult {
         // --- Rule 1: shebang --------------------------------------------------
-        if let Some(word) = read_shebang(path) {
+        if let Some(line) = read_shebang(path)
+            && let Some(interp) = shebang_interpreter(&line)
+        {
             for plugin in self.registry.all() {
                 for &needle in plugin.shebangs() {
-                    if word.contains(needle) {
+                    if interpreter_matches(interp, needle) {
                         return DetectResult {
                             verdict: DetectVerdict::Language(plugin.id()),
                             detected_via: format!("shebang:{needle}"),
                         };
                     }
+                }
+            }
+        }
+
+        // --- Rule 1a: file name ----------------------------------------------
+        // Build and task files that have no extension (`CMakeLists.txt`,
+        // `BUILD`, `Gemfile`). Exact and case-sensitive:
+        // `BUILD.md` and `build` are not Starlark.
+        if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+            for plugin in self.registry.all() {
+                if plugin.filenames().contains(&name) {
+                    return DetectResult {
+                        verdict: DetectVerdict::Language(plugin.id()),
+                        detected_via: format!("filename:{name}"),
+                    };
                 }
             }
         }
@@ -219,6 +246,72 @@ fn read_shebang(path: &Path) -> Option<String> {
     std::str::from_utf8(&head[..end])
         .ok()
         .map(|s| s.to_string())
+}
+
+/// The interpreter a shebang line names: the basename of the program
+/// (`/usr/bin/perl -w` → `perl`), or, when that program is `env`, of
+/// its first operand. `env`'s options (`-S`, `-i`, `-u NAME`,
+/// `-C DIR`, `--split-string=…`) and `NAME=value` settings are skipped,
+/// so `#!/usr/bin/env -S deno run` names `deno`. A Windows `.exe`
+/// suffix is dropped.
+fn shebang_interpreter(line: &str) -> Option<&str> {
+    let rest = line.strip_prefix("#!")?;
+    let mut toks = rest.split_whitespace();
+    let prog = basename(toks.next()?);
+    if prog != "env" {
+        return Some(prog).filter(|p| !p.is_empty());
+    }
+    while let Some(t) = toks.next() {
+        if let Some(v) = t.strip_prefix("--split-string=") {
+            return Some(basename(v)).filter(|p| !p.is_empty());
+        }
+        if t.starts_with("--") {
+            // `--unset NAME` / `--chdir DIR` take the next word unless
+            // it is attached with `=`.
+            if matches!(t, "--unset" | "--chdir") {
+                toks.next();
+            }
+            continue;
+        }
+        if let Some(flags) = t.strip_prefix('-') {
+            // `-Sdeno`: `-S` with its string attached.
+            if let Some(attached) = flags.strip_prefix('S')
+                && !attached.is_empty()
+            {
+                return Some(basename(attached));
+            }
+            // `-u NAME`, `-C DIR` and `-P PATH` take an argument; the
+            // rest (`-i`, `-S`, `-v`, a bare `-`) do not.
+            if matches!(flags, "u" | "C" | "P") {
+                toks.next();
+            }
+            continue;
+        }
+        if t.contains('=') {
+            continue;
+        }
+        return Some(basename(t)).filter(|p| !p.is_empty());
+    }
+    None
+}
+
+fn basename(p: &str) -> &str {
+    let b = p.rsplit(['/', '\\']).next().unwrap_or(p);
+    b.strip_suffix(".exe").unwrap_or(b)
+}
+
+/// `interp` is `needle`, or `needle` followed by a version made only of
+/// digits and dots (`python3.11`, `lua5.4`, `perl5.36.0`). Anything
+/// else after the keyword (`zsh-wrapper`, `nodemon`) is another program.
+fn interpreter_matches(interp: &str, needle: &str) -> bool {
+    match interp.strip_prefix(needle) {
+        Some("") => true,
+        Some(rest) => {
+            rest.starts_with(|c: char| c.is_ascii_digit() || c == '.')
+                && rest.chars().all(|c| c.is_ascii_digit() || c == '.')
+        }
+        None => false,
+    }
 }
 
 /// Disambiguate `.h`: prefer C++ when the file content contains
@@ -729,6 +822,146 @@ mod tests {
         let r = det.detect(&tmp.path().join("script"));
         assert_eq!(r.verdict, DetectVerdict::Language("javascript"));
         assert_eq!(r.detected_via, "shebang:node");
+    }
+
+    fn detect_one(name: &str, body: &[u8]) -> DetectResult {
+        let reg = reg();
+        let det = LanguageDetector::new(&reg);
+        let tmp = TempDir::new().unwrap();
+        write(tmp.path(), name, body);
+        det.detect(&tmp.path().join(name))
+    }
+
+    #[test]
+    fn shebang_matches_the_interpreter_not_a_substring() {
+        let cases: &[(&[u8], Option<&str>, &str)] = &[
+            // `pwsh` and `powershell` contain `sh`; they are PowerShell.
+            (b"#!/usr/bin/env pwsh\n", Some("powershell"), "shebang:pwsh"),
+            (
+                b"#!/usr/bin/powershell\n",
+                Some("powershell"),
+                "shebang:powershell",
+            ),
+            // `ts-node` contains `node`; it is TypeScript.
+            (
+                b"#!/usr/bin/env ts-node\n",
+                Some("typescript"),
+                "shebang:ts-node",
+            ),
+            (b"#!/usr/bin/env tsx\n", Some("typescript"), "shebang:tsx"),
+            (
+                b"#!/usr/bin/env -S deno run --allow-net\n",
+                Some("typescript"),
+                "shebang:deno",
+            ),
+            (
+                b"#!/usr/bin/env --split-string=deno run\n",
+                Some("typescript"),
+                "shebang:deno",
+            ),
+            (b"#!/bin/zsh\n", Some("bash"), "shebang:zsh"),
+            (b"#!/bin/sh -e\n", Some("bash"), "shebang:sh"),
+            (b"#! /bin/bash\r\n", Some("bash"), "shebang:bash"),
+            (b"#!/usr/bin/perl -w\n", Some("perl"), "shebang:perl"),
+            (
+                b"#!/usr/bin/env -i PATH=/bin lua\n",
+                Some("lua"),
+                "shebang:lua",
+            ),
+            (
+                b"#!/usr/bin/env -u HOME python3\n",
+                Some("python"),
+                "shebang:python3",
+            ),
+            (
+                b"#!/usr/local/bin/python3.11\n",
+                Some("python"),
+                "shebang:python3",
+            ),
+            (b"#!/usr/bin/lua5.4\n", Some("lua"), "shebang:lua"),
+            (
+                b"#!/usr/bin/env -S scala-cli shebang\n",
+                Some("scala"),
+                "shebang:scala-cli",
+            ),
+            (
+                b"#!/usr/bin/env vpython3\n",
+                Some("python"),
+                "shebang:vpython3",
+            ),
+        ];
+        for (body, lang, via) in cases {
+            let r = detect_one("script", body);
+            let shown = String::from_utf8_lossy(body);
+            match lang {
+                Some(l) => {
+                    assert_eq!(r.verdict, DetectVerdict::Language(l), "{shown}");
+                    assert_eq!(r.detected_via, *via, "{shown}");
+                }
+                None => assert_eq!(r.verdict, DetectVerdict::Unknown, "{shown}"),
+            }
+        }
+    }
+
+    #[test]
+    fn shebang_near_misses_detect_nothing() {
+        // A keyword followed by anything but a version is another program,
+        // and a keyword that only appears in the line's arguments or path
+        // names no interpreter.
+        for body in [
+            &b"#!/usr/bin/env zsh-wrapper\n"[..],
+            b"#!/usr/bin/env fish\n",
+            b"#!/usr/bin/env nix-shell\n",
+            b"#!/usr/bin/env nodemon\n",
+            b"#!/opt/shells/bin/fish -l\n",
+            b"#!/usr/bin/env -S\n",
+            b"#!\n",
+        ] {
+            let r = detect_one("script", body);
+            assert_eq!(
+                r.verdict,
+                DetectVerdict::Unknown,
+                "{}",
+                String::from_utf8_lossy(body)
+            );
+        }
+        // An unmatched shebang falls through to the extension.
+        let r = detect_one("tool.py", b"#!/usr/bin/env zsh-wrapper\nprint(1)\n");
+        assert_eq!(r.verdict, DetectVerdict::Language("python"));
+        assert_eq!(r.detected_via, "extension:.py");
+    }
+
+    #[test]
+    fn build_files_detect_by_exact_name() {
+        let cases: &[(&str, &str)] = &[
+            ("CMakeLists.txt", "cmake"),
+            ("BUILD", "starlark"),
+            ("BUILD.bazel", "starlark"),
+            ("WORKSPACE", "starlark"),
+            ("BUCK", "starlark"),
+            ("Gemfile", "ruby"),
+            ("Rakefile", "ruby"),
+            ("config.ru", "ruby"),
+        ];
+        for (name, lang) in cases {
+            let r = detect_one(&format!("sub/{name}"), b"x\n");
+            assert_eq!(r.verdict, DetectVerdict::Language(lang), "{name}");
+            assert_eq!(r.detected_via, format!("filename:{name}"), "{name}");
+        }
+        // Near misses: another extension, another case, a suffix.
+        for name in [
+            "BUILD.md",
+            "build",
+            "cmakelists.txt",
+            "Gemfile.lock",
+            "Jenkinsfile",
+        ] {
+            let r = detect_one(name, b"x\n");
+            assert_eq!(r.verdict, DetectVerdict::Unknown, "{name}");
+        }
+        // A shebang still wins over the name.
+        let r = detect_one("Rakefile", b"#!/usr/bin/env python3\n");
+        assert_eq!(r.verdict, DetectVerdict::Language("python"));
     }
 
     #[test]

@@ -40,11 +40,40 @@ const REFLECTIVE: &[(&str, &[&str])] = &[
     ),
     (
         "java",
-        &["forName", "getMethod", "getDeclaredMethod", "getField"],
+        &[
+            "forName",
+            "getMethod",
+            "getDeclaredMethod",
+            "getField",
+            "getDeclaredField",
+            "loadClass",
+            // `MethodHandles.lookup().findVirtual(Cls.class, "m", type)`:
+            // the name is the second argument; every argument is scanned.
+            "findVirtual",
+            "findStatic",
+            "findSpecial",
+            "findGetter",
+            "findSetter",
+            "findStaticGetter",
+            "findStaticSetter",
+            "findVarHandle",
+            "findStaticVarHandle",
+        ],
     ),
     (
         "csharp",
-        &["GetMethod", "GetType", "CreateInstance", "GetProperty"],
+        &[
+            "GetMethod",
+            "GetType",
+            "CreateInstance",
+            "GetProperty",
+            "GetField",
+            "GetMember",
+            "GetEvent",
+            "InvokeMember",
+            // `Delegate.CreateDelegate(typeof(D), target, "Method")`.
+            "CreateDelegate",
+        ],
     ),
     ("javascript", &["require", "importScripts"]),
     ("typescript", &["require"]),
@@ -251,6 +280,47 @@ mod tests {
         assert_eq!(
             a.iter().map(|d| d.name.as_str()).collect::<Vec<_>>(),
             vec!["a", "b"]
+        );
+    }
+
+    #[test]
+    fn java_field_and_method_handle_lookups_name_members() {
+        let src = "class A { void f() throws Throwable {\n  A.class.getDeclaredField(\"byField\");\n  MethodHandles.lookup().findVirtual(A.class, \"byFindVirtual\", mt);\n  MethodHandles.lookup().findStatic(A.class, \"byFindStatic\", mt);\n  getClass().getClassLoader().loadClass(\"p.Loaded\");\n  A.class.getDeclaredConstructor();\n  helper(A.class, \"notReflective\");\n} }";
+        let t = parse("java", src);
+        let mut got: Vec<(String, String)> = extract(&t, src.as_bytes(), "java")
+            .into_iter()
+            .map(|d| (d.name, d.via))
+            .collect();
+        got.sort();
+        assert_eq!(
+            got,
+            vec![
+                ("Loaded".into(), "loadClass".into()),
+                ("byField".into(), "getDeclaredField".into()),
+                ("byFindStatic".into(), "findStatic".into()),
+                ("byFindVirtual".into(), "findVirtual".into()),
+            ]
+        );
+    }
+
+    #[test]
+    fn csharp_invoke_member_field_and_delegate_name_members() {
+        let src = "class A { void F() {\n  typeof(A).InvokeMember(\"ByInvokeMember\", BindingFlags.InvokeMethod, null, this, null);\n  typeof(A).GetField(\"ByGetField\");\n  typeof(A).GetMember(\"ByGetMember\");\n  typeof(A).GetEvent(\"ByGetEvent\");\n  Delegate.CreateDelegate(typeof(Action), this, \"ByCreateDelegate\");\n  Log(\"NotReflective\");\n} }";
+        let t = parse("csharp", src);
+        let mut got: Vec<String> = extract(&t, src.as_bytes(), "csharp")
+            .into_iter()
+            .map(|d| d.name)
+            .collect();
+        got.sort();
+        assert_eq!(
+            got,
+            vec![
+                "ByCreateDelegate",
+                "ByGetEvent",
+                "ByGetField",
+                "ByGetMember",
+                "ByInvokeMember"
+            ]
         );
     }
 }

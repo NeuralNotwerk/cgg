@@ -30,7 +30,7 @@ impl LanguagePlugin for JavaScriptPlugin {
         &[".js", ".mjs", ".cjs", ".jsx"]
     }
     fn shebangs(&self) -> &'static [&'static str] {
-        &["node"]
+        &["node", "nodejs"]
     }
     fn signals(&self) -> crate::PluginSignals {
         crate::PluginSignals {

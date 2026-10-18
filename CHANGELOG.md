@@ -276,6 +276,44 @@ otherwise change the default graph.
     reach is `only-used-by-tests` rather than dead, and nested helpers bind
     their own `describe` block's copy.
 
+- **Detection, the stdlib screen and the reflection screen missed common
+  forms (WS25).** Four gaps:
+  - *A shebang matched any substring of its line*, so `sh` claimed
+    `pwsh`, `powershell`, `fish`, `tclsh` and `nix-shell` scripts for
+    Bash, `node` claimed `ts-node` for JavaScript, and the `zsh` keyword
+    could never win. The interpreter is now the program's basename, or the
+    first operand after `env` (its options and `NAME=value` settings
+    skipped, so `env -S deno run` names `deno`), and it must equal a
+    plugin's keyword or be that keyword followed by a version
+    (`python3.11`, `lua5.4`); `zsh-wrapper` names nothing. Bash also takes
+    `dash`, `ksh`, `mksh` and `ash`, Python `vpython3`/`vpython`,
+    JavaScript `nodejs`, Ruby `jruby` and Scala `scala-cli`, which the
+    substring match used to catch.
+  - *Build files without an extension were never analysed.* A plugin can
+    now claim exact file names: `CMakeLists.txt` (CMake), `BUILD`,
+    `BUILD.bazel`, `WORKSPACE` and `BUCK` (Starlark), and `Gemfile`,
+    `Rakefile` and `config.ru` (Ruby). Detection runs after the walk, so
+    the deny list, `.gitignore` and `.cggignore` still apply. `Jenkinsfile`
+    is not claimed: the Groovy grammar parses too few of them.
+  - *`::`, `/` and `\` qualified calls were never screened as stdlib.*
+    `std::fs::read_to_string`, `std::this_thread::sleep_for`,
+    `POSIX::floor`, `stats::median`, `clojure.string/join` and PHP
+    `\strlen` were filed as external. A call's own qualifier is now split
+    on every separator (only for a plain path: `std::forward<T>(j).at()`
+    is a call on what `forward` returns; an import's module path keeps the
+    old `.`-only reading), and a new `STDLIB_MODULES` table
+    names the Perl core modules, R base packages and Clojure namespaces
+    that are not in the manifests. A `/` or `\` split counts only as
+    stdlib evidence; otherwise the call is classified as before. CMake
+    gains a manifest of its built-in commands, so a project
+    `function(message)` override is bound in its own file but no longer
+    matched by name from every other file.
+  - *Java and C# reflective lookups were partly unscreened*, so their
+    targets stayed `high` dead. Java `getDeclaredField`, `loadClass` and
+    the `MethodHandles.Lookup` `find…` methods and C# `GetField`,
+    `GetMember`, `GetEvent`, `InvokeMember` and `Delegate.CreateDelegate`
+    now cap a same-named finding at `medium`.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -421,6 +459,33 @@ excluded):
   `name-matches-unresolved-site`. 51 are their callees. The Java two are
   an AspectJ `@Before` advice that a test harness had rooted, and a member
   of Gradle's own annotation package.
+
+WS25 (detection, stdlib and reflection screens; full corpus, 283
+repositories, none excluded):
+
+- 2,575 files are newly analysed: 2,182 `CMakeLists.txt` (2,181 parse
+  without errors), 337 Starlark `BUILD`/`WORKSPACE`/`BUCK` (all parse)
+  and 56 Ruby `Gemfile`/`Rakefile`/`config.ru` (all parse). 12 files
+  that only a substring match made Bash (Tcl, fish, Thrift and
+  `nix-shell` scripts) are no longer analysed, 3 `pwsh` scripts are
+  PowerShell and 2 `nix-shell` `.py` scripts Python.
+- The default graph gains 154 edges (124 `high`), all from those files:
+  CMake 106, Ruby 42, Python 6. 7 `medium` CMake edges are removed: calls
+  of the built-in `add_test` bound by name to a test's `macro(add_test)`.
+- About 31,000 call sites move from the audit's external bucket to the
+  stdlib bucket (PHP 19,685, Clojure 6,838, Rust 3,300, C++ 711, Perl
+  310, R 165, Kotlin 3), and under `--include-external`/`--include-stdlib`
+  their exit edges move from `<external>` to `<stdlib>` with them; nothing
+  moves the other way. With the new manifest, 35,141 CMake built-in
+  command sites are stdlib (most in the newly analysed files). An
+  import's module path (`test/utils/x`, `testing/fixtures.zig`) is never
+  split on the new separators, and a class literal (`String::class`) is
+  not read as a module path.
+- Under `--dead-code`, one Java finding named through
+  `MethodHandles.Lookup.findVirtual` moves `high` → `medium`; 56 findings
+  are new (39 CMake `low`, 16 Ruby `medium` Rakefile helpers, one Bash
+  `low`) and 15 leave the report (`low`), all in files whose detection
+  changed.
 
 ## [0.11.0] - 2026-10-16
 

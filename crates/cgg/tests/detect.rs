@@ -202,3 +202,81 @@ fn lang_filter_excludes_and_reports() {
     assert!(py_analyzed, "python not analyzed");
     assert!(rs_skipped, "rust not lang-filtered");
 }
+
+/// Files detected by name (`CMakeLists.txt`, `BUILD`, `Gemfile`) are
+/// classified after the walk, so the built-in deny list, `.gitignore`
+/// and `.cggignore` still keep them out; a near-miss name stays unknown.
+#[test]
+fn filename_detection_respects_deny_list_and_ignores() {
+    let tmp = TempDir::new().unwrap();
+    fs::create_dir_all(tmp.path().join(".git")).unwrap();
+    write(tmp.path(), ".gitignore", b"ignored/\n");
+    write(tmp.path(), ".cggignore", b"skipme/\n");
+    let cm = b"function(helper)\nendfunction()\nhelper()\n";
+    write(tmp.path(), "CMakeLists.txt", cm);
+    write(tmp.path(), "ignored/CMakeLists.txt", cm);
+    write(tmp.path(), "skipme/CMakeLists.txt", cm);
+    write(tmp.path(), "vendor/lib/CMakeLists.txt", cm);
+    write(
+        tmp.path(),
+        "node_modules/x/BUILD",
+        b"cc_library(name = \"x\")\n",
+    );
+    write(tmp.path(), "pkg/BUILD", b"cc_library(name = \"x\")\n");
+    write(tmp.path(), "pkg/BUILD.md", b"# notes\n");
+
+    let out = tmp.path().join("run.jsonl");
+    cgg()
+        .args(["--audit-format", "jsonl", "--metrics"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let events = parse_jsonl(&fs::read_to_string(&out).unwrap());
+    let rel = |e: &serde_json::Value| {
+        let p = e["path"].as_str().unwrap();
+        Path::new(p)
+            .strip_prefix(tmp.path())
+            .unwrap_or(Path::new(p))
+            .to_string_lossy()
+            .replace('\\', "/")
+    };
+    let analyzed: std::collections::BTreeMap<String, (String, String)> = events
+        .iter()
+        .filter(|e| e["event"] == "file_analyzed")
+        .map(|e| {
+            (
+                rel(e),
+                (
+                    e["language"].as_str().unwrap().to_string(),
+                    e["detected_via"].as_str().unwrap().to_string(),
+                ),
+            )
+        })
+        .collect();
+    assert_eq!(
+        analyzed.get("CMakeLists.txt"),
+        Some(&("cmake".to_string(), "filename:CMakeLists.txt".to_string()))
+    );
+    assert_eq!(
+        analyzed.get("pkg/BUILD"),
+        Some(&("starlark".to_string(), "filename:BUILD".to_string()))
+    );
+    for p in [
+        "ignored/CMakeLists.txt",
+        "skipme/CMakeLists.txt",
+        "vendor/lib/CMakeLists.txt",
+        "node_modules/x/BUILD",
+        "pkg/BUILD.md",
+    ] {
+        assert!(!analyzed.contains_key(p), "{p} must not be analysed");
+    }
+    // The denied ones are reported as skipped, never silently dropped.
+    let skipped: Vec<String> = events
+        .iter()
+        .filter(|e| e["event"] == "file_skipped")
+        .map(rel)
+        .collect();
+    assert!(skipped.iter().any(|p| p == "vendor/lib/CMakeLists.txt"));
+    assert!(skipped.iter().any(|p| p == "pkg/BUILD.md"));
+}

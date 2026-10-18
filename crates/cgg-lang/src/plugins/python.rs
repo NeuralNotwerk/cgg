@@ -39,7 +39,7 @@ impl LanguagePlugin for PythonPlugin {
         &[".py", ".pyi", ".ipynb"]
     }
     fn shebangs(&self) -> &'static [&'static str] {
-        &["python3", "python", "python2"]
+        &["python3", "python", "python2", "vpython3", "vpython"]
     }
     fn signals(&self) -> crate::PluginSignals {
         crate::PluginSignals {

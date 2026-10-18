@@ -21,6 +21,9 @@ impl LanguagePlugin for CmakePlugin {
     fn extensions(&self) -> &'static [&'static str] {
         &[".cmake"]
     }
+    fn filenames(&self) -> &'static [&'static str] {
+        &["CMakeLists.txt"]
+    }
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_cmake::LANGUAGE.into()
     }

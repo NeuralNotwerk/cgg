@@ -456,7 +456,17 @@ pub struct PluginSignals {
 pub trait LanguagePlugin: Send + Sync + fmt::Debug {
     fn id(&self) -> &'static str;
     fn extensions(&self) -> &'static [&'static str];
+    /// Interpreter names a `#!` line may name (`python3`, `node`). Matched
+    /// against the program's basename, or `env`'s first operand, as a
+    /// whole word optionally followed by a version — never as a
+    /// substring of the line (see `detect`).
     fn shebangs(&self) -> &'static [&'static str] {
+        &[]
+    }
+    /// Exact file names this language owns whatever their extension:
+    /// build and task files that have none (`CMakeLists.txt`, `BUILD`,
+    /// `Gemfile`). File-format names, matched case-sensitively.
+    fn filenames(&self) -> &'static [&'static str] {
         &[]
     }
 

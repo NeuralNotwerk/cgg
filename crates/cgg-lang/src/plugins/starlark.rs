@@ -18,6 +18,9 @@ impl LanguagePlugin for StarlarkPlugin {
     fn extensions(&self) -> &'static [&'static str] {
         &[".bzl", ".star", ".bazel"]
     }
+    fn filenames(&self) -> &'static [&'static str] {
+        &["BUILD", "BUILD.bazel", "WORKSPACE", "BUCK"]
+    }
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_starlark::LANGUAGE.into()
     }

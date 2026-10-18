@@ -16,7 +16,7 @@ impl LanguagePlugin for ScalaPlugin {
         &[".scala", ".sc"]
     }
     fn shebangs(&self) -> &'static [&'static str] {
-        &["scala"]
+        &["scala", "scala-cli"]
     }
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_scala::LANGUAGE.into()

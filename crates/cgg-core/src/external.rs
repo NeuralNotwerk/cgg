@@ -149,10 +149,11 @@ pub fn classify_external(
     aliases: Option<&HashMap<FileId, FileAliases>>,
 ) -> ClassifyResult {
     let stdlib = stdlib::stdlib_names(language);
+    let modules = stdlib::stdlib_modules(language);
     let mut result = ClassifyResult::default();
     for mut call in unresolved {
         let file_aliases = aliases.and_then(|m| m.get(&call.file));
-        match classify_one(&call, known_names, stdlib, file_aliases) {
+        match classify_one(&call, known_names, stdlib, modules, file_aliases) {
             Verdict::Unresolved => result.unresolved.push(call),
             Verdict::Stdlib => {
                 // Record which name-screen fired (Issue 9 evidence).
@@ -168,47 +169,168 @@ pub fn classify_external(
     result
 }
 
-/// Test whether a module path (possibly dotted) belongs to stdlib.
-/// Checks the full path first, then its first dotted segment. The
-/// first-segment fallback handles cases like `os.path` where the bare
-/// stdlib manifest only contains `os`.
-fn module_is_stdlib(path: &str, std: &HashSet<&str>) -> bool {
-    if std.contains(path) {
+/// Separators between a qualifier's segments: `std::fs`, `os.path`,
+/// `clojure.string/join`, PHP `App\Models`.
+const QUALIFIER_SEPARATORS: [&str; 4] = ["::", ".", "/", "\\"];
+
+/// Test whether a module path (possibly qualified) belongs to stdlib.
+///
+/// Checks the full path against the manifest and against the language's
+/// [`stdlib::stdlib_modules`] (`POSIX`, `File::Spec`, `clojure.string`;
+/// exact names only, since `IO::Socket` being core says nothing of
+/// `IO::Socket::SSL`), then its head segment — split on `::`, `.`, `/`
+/// or `\` — against the manifest (`std::fs` → `std`, `os.path` → `os`).
+/// A `::`, `/` or `\` head is only read off a plain path: a receiver
+/// that is a value expression (`std::forward<T>(j)`,
+/// `Command::new("git")`) names whatever that expression returns, not a
+/// module. (The first `.` segment is read off any receiver, as before.)
+/// A leading `\` or `::` (the global namespace) and a trailing `:` (left
+/// by a split at `::`) are not part of the name.
+///
+/// `qualifier` is true for a call's own receiver or qualifier (rule (a)).
+/// For an import's resolved module path it is false: only the exact path
+/// and its first `.` segment count, never a `::`/`/`/`\` head.
+fn module_is_stdlib(
+    path: &str,
+    std: &HashSet<&str>,
+    modules: &[&str],
+    qualifier: bool,
+) -> bool {
+    let path = path.trim_start_matches('\\');
+    let path = path.strip_prefix("::").unwrap_or(path);
+    let path = path.trim_end_matches(':');
+    if path.is_empty() {
+        return false;
+    }
+    if std.contains(path) || modules.contains(&path) {
         return true;
     }
-    let head = path.split('.').next().unwrap_or(path);
-    if head != path && std.contains(head) {
+    // The first dotted segment, read off any receiver (`os.path`), as
+    // it always was.
+    let dotted_head = path.split('.').next().unwrap_or(path);
+    if dotted_head != path && std.contains(dotted_head) {
         return true;
     }
-    false
+    // An import's module path (`test/utils/x`, `testing/fixtures.zig`)
+    // names a file, whose first directory says nothing about stdlib; and a
+    // class literal (`String::class`) is a value, not a module path.
+    if !qualifier
+        || path.ends_with("::class")
+        || !path
+            .chars()
+            .all(|c| c.is_alphanumeric() || matches!(c, '_' | ':' | '.' | '/' | '\\'))
+    {
+        return false;
+    }
+    let head_end = QUALIFIER_SEPARATORS
+        .iter()
+        .filter_map(|sep| path.find(sep))
+        .min();
+    head_end.is_some_and(|i| i > 0 && std.contains(&path[..i]))
+}
+
+/// Split a receiver-less qualified name into (qualifier, name) at its
+/// last separator: Lua `table.insert`, Perl `POSIX::floor` (qualifier
+/// `POSIX:`, as it always was), Clojure `clojure.string/join`, PHP
+/// `App\helper`. A `/` or `\` splits only between identifier
+/// characters, so an operator such as Haskell's `</>` stays whole. A
+/// leading `\` (PHP's global namespace) is dropped first. The third
+/// value is the separator split at; a `.` in R and Julia is part of an
+/// ordinary name (`grid.draw`) rather than a module qualifier.
+fn split_qualified_name(name: &str) -> (&str, &str, Option<char>) {
+    let n = name.trim_start_matches('\\');
+    let ident = |c: char| c.is_alphanumeric() || c == '_';
+    let slash = n.rfind(['/', '\\']).filter(|&i| {
+        i > 0
+            && i < n.len() - 1
+            && n[..i].chars().next_back().is_some_and(ident)
+            && n[i + 1..].chars().next().is_some_and(ident)
+    });
+    let dot = n.rfind(['.', ':']).filter(|&i| i > 0 && i < n.len() - 1);
+    match slash.max(dot) {
+        Some(i) => (&n[..i], &n[i + 1..], n[i..].chars().next()),
+        None => ("", n, None),
+    }
 }
 
 fn classify_one(
     call: &AuditUnresolvedCall,
     known_names: &HashSet<&str>,
     stdlib: Option<&HashSet<&str>>,
+    modules: &[&str],
     aliases: Option<&FileAliases>,
 ) -> Verdict {
-    // Some language plugins emit dotted callable names like Lua
-    // `table.insert` or `string.format` as the bare `name` field with
-    // an empty receiver. Split on the last separator so the rest of
-    // this function can apply receiver-based rules uniformly.
-    let (rh_owned, name_owned);
-    if call.receiver_hint.is_empty() {
-        let n = call.name.as_str();
-        if let Some(idx) = n.rfind(['.', ':']).filter(|&i| i > 0 && i < n.len() - 1) {
-            rh_owned = n[..idx].to_string();
-            name_owned = n[idx + 1..].to_string();
-        } else {
-            rh_owned = String::new();
-            name_owned = call.name.clone();
-        }
-    } else {
-        rh_owned = call.receiver_hint.clone();
-        name_owned = call.name.clone();
+    if !call.receiver_hint.is_empty() {
+        return classify_parts(
+            &call.receiver_hint,
+            &call.name,
+            false,
+            known_names,
+            stdlib,
+            modules,
+            aliases,
+        );
     }
-    let name = name_owned.as_str();
-    let rh = rh_owned.as_str();
+    // Some language plugins emit qualified callable names like Lua
+    // `table.insert`, Perl `POSIX::floor` or Clojure `clojure.string/join`
+    // as the bare `name` field with an empty receiver. Split on the last
+    // separator so the rules below apply to (qualifier, name) uniformly.
+    //
+    // The split at `.`/`:` is the one this function always made. The
+    // split at `/` or `\` (and the PHP global-namespace `\strlen`) is
+    // read only as stdlib evidence: when it does not show a stdlib call,
+    // the call is classified exactly as before, so the new separators
+    // move sites from `external` to `stdlib` and nowhere else.
+    let n = call.name.as_str();
+    let (qual, name, sep) = split_qualified_name(n);
+    let whole = n.trim_start_matches('\\');
+    let slash = matches!(sep, Some('/' | '\\'));
+    // A manifest entry written qualified (Clojure `io/copy`, `str/join`)
+    // is read whole, as it always was.
+    let manifest_entry = slash && stdlib.is_some_and(|s| s.contains(whole));
+    if (slash || n.starts_with('\\')) && !manifest_entry {
+        let global_function = n.starts_with('\\') && qual.is_empty();
+        let v = classify_parts(
+            qual,
+            name,
+            global_function,
+            known_names,
+            stdlib,
+            modules,
+            aliases,
+        );
+        if v == Verdict::Stdlib {
+            return v;
+        }
+    }
+    let (rh, name) = match n.rfind(['.', ':']).filter(|&i| i > 0 && i < n.len() - 1) {
+        Some(i) => (&n[..i], &n[i + 1..]),
+        None => ("", n),
+    };
+    // In R and Julia a `.` is part of an ordinary name (`grid.draw`), so
+    // a dotted qualifier is never looked up as a module.
+    let modules = if n[rh.len()..].starts_with('.') {
+        &[][..]
+    } else {
+        modules
+    };
+    classify_parts(rh, name, false, known_names, stdlib, modules, aliases)
+}
+
+/// [`classify_one`] for a call already split into receiver `rh` and
+/// `name`. `global_function`: the name was written qualified with the
+/// global namespace alone (PHP `\strlen()`), which only a global function
+/// can be — so a workspace method of the same name is no reason to doubt
+/// a stdlib reading.
+fn classify_parts(
+    rh: &str,
+    name: &str,
+    global_function: bool,
+    known_names: &HashSet<&str>,
+    stdlib: Option<&HashSet<&str>>,
+    modules: &[&str],
+    aliases: Option<&FileAliases>,
+) -> Verdict {
     let is_self_receiver = rh == "self" || rh == "Self" || rh == "cls" || rh == "this";
 
     // Owner-aware screen (Issue 6): when the project defines BOTH a
@@ -232,14 +354,14 @@ fn classify_one(
             // (a) Receiver hint matches stdlib directly, or its first
             //     dotted segment does (`os.path` → check `os`). Skipped
             //     when the project owns the (receiver type, method) pair.
-            if !project_owns_pair && module_is_stdlib(rh, std) {
+            if !project_owns_pair && module_is_stdlib(rh, std, modules, true) {
                 return Verdict::Stdlib;
             }
             // (b) Receiver hint is a local alias for a stdlib module
             //     (`import typing as t` → check `typing`).
             if let Some(a) = aliases
                 && let Some(resolved) = a.import_aliases.get(rh)
-                && module_is_stdlib(resolved, std)
+                && module_is_stdlib(resolved, std, modules, false)
             {
                 return Verdict::Stdlib;
             }
@@ -254,7 +376,7 @@ fn classify_one(
             //     the safety net for bad manifest entries — a stray
             //     keyword like `break` in the manifest can no longer
             //     swallow every project method of the same name.
-            if std.contains(name) && !known_names.contains(name) {
+            if std.contains(name) && (!known_names.contains(name) || global_function) {
                 return Verdict::Stdlib;
             }
             // (d) Bare call to a name brought in by `from <module> import
@@ -263,7 +385,7 @@ fn classify_one(
             //     rule applies even when the project also defines `name`.
             if let Some(a) = aliases
                 && let Some(source) = a.from_imports.get(name)
-                && module_is_stdlib(source, std)
+                && module_is_stdlib(source, std, modules, false)
             {
                 return Verdict::Stdlib;
             }
@@ -284,7 +406,7 @@ fn classify_one(
             //     infer.
             let receiver_aliases_stdlib = aliases
                 .and_then(|a| a.import_aliases.get(rh))
-                .map(|resolved| module_is_stdlib(resolved, std))
+                .map(|resolved| module_is_stdlib(resolved, std, modules, false))
                 .unwrap_or(false);
             if receiver_aliases_stdlib || known_names.is_empty() {
                 return Verdict::Stdlib;
@@ -370,7 +492,7 @@ mod tests {
         let std = names(&["len"]);
         let known: HashSet<&str> = HashSet::new();
         assert_eq!(
-            classify_one(&mk_call("len", ""), &known, Some(&std), None),
+            classify_one(&mk_call("len", ""), &known, Some(&std), &[], None),
             Verdict::Stdlib
         );
     }
@@ -380,7 +502,7 @@ mod tests {
         let std = names(&["clone"]);
         let known = names(&["clone"]);
         assert_eq!(
-            classify_one(&mk_call("clone", ""), &known, Some(&std), None),
+            classify_one(&mk_call("clone", ""), &known, Some(&std), &[], None),
             Verdict::Unresolved
         );
     }
@@ -390,7 +512,7 @@ mod tests {
         let std = names(&["os"]);
         let known: HashSet<&str> = HashSet::new();
         assert_eq!(
-            classify_one(&mk_call("getcwd", "os.path"), &known, Some(&std), None),
+            classify_one(&mk_call("getcwd", "os.path"), &known, Some(&std), &[], None),
             Verdict::Stdlib
         );
     }
@@ -403,14 +525,14 @@ mod tests {
         let std = names(&["io", "os", "read"]);
         let known = names(&["io", "read"]);
         assert_eq!(
-            classify_one(&mk_call("read", "io"), &known, Some(&std), None),
+            classify_one(&mk_call("read", "io"), &known, Some(&std), &[], None),
             Verdict::Unresolved
         );
         // But when the project does NOT own the type, the stdlib module
         // reading still applies.
         let known_empty: HashSet<&str> = HashSet::new();
         assert_eq!(
-            classify_one(&mk_call("read", "io"), &known_empty, Some(&std), None),
+            classify_one(&mk_call("read", "io"), &known_empty, Some(&std), &[], None),
             Verdict::Stdlib
         );
     }
@@ -426,7 +548,13 @@ mod tests {
             from_imports: Default::default(),
         };
         assert_eq!(
-            classify_one(&mk_call("TypeVar", "t"), &known, Some(&std), Some(&aliases)),
+            classify_one(
+                &mk_call("TypeVar", "t"),
+                &known,
+                Some(&std),
+                &[],
+                Some(&aliases)
+            ),
             Verdict::Stdlib
         );
     }
@@ -442,7 +570,13 @@ mod tests {
                 .collect(),
         };
         assert_eq!(
-            classify_one(&mk_call("TypeVar", ""), &known, Some(&std), Some(&aliases)),
+            classify_one(
+                &mk_call("TypeVar", ""),
+                &known,
+                Some(&std),
+                &[],
+                Some(&aliases)
+            ),
             Verdict::Stdlib
         );
     }
@@ -461,6 +595,7 @@ mod tests {
                 &mk_call("push", "myvec"),
                 &known_with_project,
                 Some(&std),
+                &[],
                 None
             ),
             Verdict::External
@@ -469,7 +604,7 @@ mod tests {
         // permissive fallback so single-file / stack-graph paths still
         // attribute reasonably.
         assert_eq!(
-            classify_one(&mk_call("push", "myvec"), &known, Some(&std), None),
+            classify_one(&mk_call("push", "myvec"), &known, Some(&std), &[], None),
             Verdict::Stdlib
         );
     }
@@ -480,7 +615,7 @@ mod tests {
         let std = names(&["Vec", "push"]);
         let known = names(&["push"]);
         assert_eq!(
-            classify_one(&mk_call("push", "Vec"), &known, Some(&std), None),
+            classify_one(&mk_call("push", "Vec"), &known, Some(&std), &[], None),
             Verdict::Stdlib
         );
     }
@@ -494,7 +629,7 @@ mod tests {
         let known = names(&["clone", "MyType"]);
         for rh in ["self", "Self", "this", "cls"] {
             assert_eq!(
-                classify_one(&mk_call("clone", rh), &known, Some(&std), None),
+                classify_one(&mk_call("clone", rh), &known, Some(&std), &[], None),
                 Verdict::Unresolved,
                 "receiver={rh}"
             );
@@ -506,8 +641,170 @@ mod tests {
         // `module_is_stdlib` should match the head segment when the
         // full dotted path isn't in the manifest.
         let std = names(&["os"]);
-        assert!(module_is_stdlib("os.path", &std));
-        assert!(module_is_stdlib("os", &std));
-        assert!(!module_is_stdlib("requests.get", &std));
+        assert!(module_is_stdlib("os.path", &std, &[], true));
+        assert!(module_is_stdlib("os", &std, &[], true));
+        assert!(!module_is_stdlib("requests.get", &std, &[], true));
+    }
+
+    #[test]
+    fn qualified_heads_split_on_every_separator() {
+        // Rust/C++ `std::fs`, Perl `File::Spec`, R `stats`, Clojure
+        // `clojure.string`: the head (or a prefix the module table names)
+        // decides.
+        let rust = names(&["std"]);
+        assert!(module_is_stdlib("std::fs", &rust, &[], true));
+        assert!(module_is_stdlib("std::this_thread", &rust, &[], true));
+        assert!(module_is_stdlib("::std::chrono", &rust, &[], true));
+        assert!(!module_is_stdlib("tokio::fs", &rust, &[], true));
+        assert!(!module_is_stdlib("stdx::fs", &rust, &[], true));
+        // A value expression is not a module path.
+        assert!(!module_is_stdlib("std::forward<T>(j)", &rust, &[], true));
+        assert!(module_is_stdlib(
+            "POSIX:",
+            &names(&[]),
+            stdlib::stdlib_modules("perl"),
+            true
+        ));
+        let none = names(&[]);
+        let perl = stdlib::stdlib_modules("perl");
+        assert!(module_is_stdlib("POSIX", &none, perl, true));
+        assert!(module_is_stdlib("File::Spec", &none, perl, true));
+        assert!(!module_is_stdlib("IO::Socket::SSL", &none, perl, true));
+        assert!(!module_is_stdlib("File", &none, perl, true));
+        assert!(!module_is_stdlib("Mojo::File", &none, perl, true));
+        let clj = stdlib::stdlib_modules("clojure");
+        assert!(module_is_stdlib("clojure.string", &none, clj, true));
+        assert!(!module_is_stdlib("clojure.tools.logging", &none, clj, true));
+    }
+
+    #[test]
+    fn receiverless_qualified_names_split_for_classification() {
+        let known: HashSet<&str> = HashSet::new();
+        let none = names(&[]);
+        let perl = stdlib::stdlib_modules("perl");
+        assert_eq!(
+            classify_one(
+                &mk_call("POSIX::floor", ""),
+                &known,
+                Some(&none),
+                perl,
+                None
+            ),
+            Verdict::Stdlib
+        );
+        let clj = stdlib::stdlib_modules("clojure");
+        assert_eq!(
+            classify_one(
+                &mk_call("clojure.string/join", ""),
+                &known,
+                Some(&none),
+                clj,
+                None
+            ),
+            Verdict::Stdlib
+        );
+        assert_eq!(
+            classify_one(
+                &mk_call("acme.util/join", ""),
+                &known,
+                Some(&none),
+                clj,
+                None
+            ),
+            Verdict::External
+        );
+        // An operator containing `/` is not a qualified name.
+        assert_eq!(split_qualified_name("</>"), ("", "</>", None));
+        assert_eq!(split_qualified_name("a.b/c"), ("a.b", "c", Some('/')));
+        assert_eq!(split_qualified_name("A::B::c"), ("A::B:", "c", Some(':')));
+        assert_eq!(
+            split_qualified_name("grid.draw"),
+            ("grid", "draw", Some('.'))
+        );
+        assert_eq!(
+            split_qualified_name("\\App\\helper"),
+            ("App", "helper", Some('\\'))
+        );
+        assert_eq!(split_qualified_name("\\strlen"), ("", "strlen", None));
+        // R: a dotted name is a name, never a module qualifier.
+        let r = stdlib::stdlib_modules("r");
+        assert_eq!(
+            classify_one(&mk_call("stats.helper", ""), &known, Some(&none), r, None),
+            Verdict::External
+        );
+        assert_eq!(
+            classify_one(&mk_call("median", "stats"), &known, Some(&none), r, None),
+            Verdict::Stdlib
+        );
+        // A manifest entry written qualified is read whole.
+        let clj_std = names(&["io/copy"]);
+        assert_eq!(
+            classify_one(&mk_call("io/copy", ""), &known, Some(&clj_std), clj, None),
+            Verdict::Stdlib
+        );
+    }
+
+    #[test]
+    fn php_global_function_is_stdlib_even_with_a_workspace_method() {
+        // `\strlen($s)` names the global function; a workspace class's
+        // `strlen` method cannot be called that way.
+        let std = names(&["strlen"]);
+        let known = names(&["strlen", "Text"]);
+        assert_eq!(
+            classify_one(&mk_call("\\strlen", ""), &known, Some(&std), &[], None),
+            Verdict::Stdlib
+        );
+        // Near miss: the unqualified call and the method call keep the
+        // project reading.
+        assert_eq!(
+            classify_one(&mk_call("strlen", ""), &known, Some(&std), &[], None),
+            Verdict::Unresolved
+        );
+        assert_eq!(
+            classify_one(&mk_call("strlen", "$t"), &known, Some(&std), &[], None),
+            Verdict::External
+        );
+        assert_eq!(
+            classify_one(&mk_call("strlen", "Text"), &known, Some(&std), &[], None),
+            Verdict::Unresolved
+        );
+    }
+
+    #[test]
+    fn import_paths_and_class_literals_are_not_split() {
+        // `import { f } from "test/utils/f"` / `@import("testing/x.zig")`:
+        // a module path's first directory is not a stdlib module.
+        let std = names(&["test", "testing", "String", "os"]);
+        assert!(!module_is_stdlib(
+            "test/utils/randomString",
+            &std,
+            &[],
+            false
+        ));
+        assert!(!module_is_stdlib("testing/fixtures.zig", &std, &[], false));
+        assert!(module_is_stdlib("os.path", &std, &[], false));
+        let known = names(&["randomString"]);
+        let aliases = FileAliases {
+            from_imports: [(
+                "randomString".to_string(),
+                "test/utils/randomString".to_string(),
+            )]
+            .into_iter()
+            .collect(),
+            ..Default::default()
+        };
+        assert_eq!(
+            classify_one(
+                &mk_call("randomString", ""),
+                &known,
+                Some(&std),
+                &[],
+                Some(&aliases)
+            ),
+            Verdict::Unresolved
+        );
+        // Kotlin `String::class.asClassName()`: a class literal is a value.
+        assert!(!module_is_stdlib("String::class", &std, &[], true));
+        assert!(module_is_stdlib("String", &std, &[], true));
     }
 }

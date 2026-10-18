@@ -16,7 +16,7 @@ impl LanguagePlugin for BashPlugin {
         &[".sh", ".bash"]
     }
     fn shebangs(&self) -> &'static [&'static str] {
-        &["bash", "sh", "zsh"]
+        &["bash", "sh", "zsh", "dash", "ksh", "mksh", "ash"]
     }
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_bash::LANGUAGE.into()
