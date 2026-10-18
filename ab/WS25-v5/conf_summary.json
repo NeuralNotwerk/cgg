@@ -1,0 +1,33 @@
+{
+ "cmake": {
+  "drop": {
+   "medium": 7
+  },
+  "add": {
+   "high": 96,
+   "medium": 10
+  },
+  "chg": {},
+  "fate": {
+   "now unresolved: candidates-in-other-files": 7
+  }
+ },
+ "python": {
+  "drop": {},
+  "add": {
+   "high": 5,
+   "medium": 1
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "ruby": {
+  "drop": {},
+  "add": {
+   "high": 23,
+   "medium": 19
+  },
+  "chg": {},
+  "fate": {}
+ }
+}

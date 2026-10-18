@@ -1,0 +1,2 @@
+#!/usr/bin/env scala-cli
+object A { def a() = b(); def b() = 1 }

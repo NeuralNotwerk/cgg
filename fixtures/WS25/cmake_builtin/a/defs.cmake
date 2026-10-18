@@ -1,0 +1,5 @@
+function(message)
+endfunction()
+function(helper)
+  message(STATUS "x")
+endfunction()

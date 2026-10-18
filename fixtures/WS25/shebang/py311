@@ -1,0 +1,5 @@
+#!/usr/bin/python3.11
+def a():
+    b()
+def b():
+    pass

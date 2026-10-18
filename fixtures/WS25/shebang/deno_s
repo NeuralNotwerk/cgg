@@ -1,0 +1,3 @@
+#!/usr/bin/env -S deno run --allow-net
+function a(): void { b(); }
+function b(): void {}

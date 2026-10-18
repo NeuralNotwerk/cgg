@@ -1,0 +1,5 @@
+include(util.cmake)
+function(other)
+  message(STATUS "y")
+  shared()
+endfunction()

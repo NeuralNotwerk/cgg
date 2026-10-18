@@ -1,0 +1,54 @@
+old=target/remediation/bins/WS25-before
+new=target/release/cgg
+repos=283 elapsed=358s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 48
+  app-barong-grape: edges 896->896 (-0 +0 ~0) callables 823->823 unresolved 4008->4011 files 317->320 deadhigh 0->0 
+  app-carvera-firmware-cpp: edges 20091->20095 (-0 +4 ~0) callables 5739->5745 unresolved 2127->2153 files 588->589 deadhigh 0->0 
+  app-codeedit-combine: edges 2877->2877 (-0 +0 ~0) callables 1989->1989 unresolved 1891->1891 files 682->683 deadhigh 0->0 
+  app-cuda-samples: edges 13349->13349 (-0 +0 ~0) callables 6813->6813 unresolved 4662->6249 files 575->800 deadhigh 0->0 
+  app-darkness-flame: edges 203->203 (-0 +0 ~0) callables 155->157 unresolved 126->127 files 49->52 deadhigh 0->0 
+  app-diaspora-sidekiq: edges 7592->7592 (-0 +0 ~0) callables 4721->4721 unresolved 19610->19611 files 1136->1139 deadhigh 0->0 
+  app-ghostty-zig: edges 21932->21932 (-0 +0 ~0) callables 9953->9954 unresolved 39513->39561 files 1114->1118 deadhigh 0->0 
+  app-grape-swagger: edges 500->500 (-0 +0 ~0) callables 795->796 unresolved 1445->1466 files 151->154 deadhigh 0->0 
+  app-html2rss-roda: edges 1309->1310 (-0 +1 ~0) callables 998->1004 unresolved 1254->1397 files 194->197 deadhigh 0->0 
+  app-immich-nestjs: edges 32707->32707 (-0 +0 ~0) callables 15674->15674 unresolved 20590->20594 files 1981->1984 deadhigh 1->1 
+  app-itunesweb-padrino: edges 163->163 (-0 +0 ~0) callables 356->356 unresolved 866->867 files 91->94 deadhigh 0->0 
+  app-jabref-javafx: edges 78693->78693 (-0 +0 ~0) callables 21975->21975 unresolved 31587->31587 files 3037->3038 deadhigh 8->8 
+  app-kythe-bazel: edges 22135->22135 (-0 +0 ~0) callables 13543->13543 unresolved 7619->8627 files 1715->2006 deadhigh 4->4 
+  app-lobsters-puma: edges 1332->1332 (-0 +0 ~0) callables 1392->1392 unresolved 3959->3959 files 496->499 deadhigh 0->0 
+  app-nextcloud-android: edges 20406->20406 (-0 +0 ~0) callables 10671->10671 unresolved 9757->9757 files 1245->1247 deadhigh 4->4 
+  app-oldata-dagster: edges 7310->7310 (-0 +0 ~0) callables 3452->3452 unresolved 6010->6010 files 429->433 deadhigh 1->1 
+  app-orleans-samples: edges 15687->15687 (-0 +0 ~0) callables 20780->20780 unresolved 21176->21183 files 3171->3175 deadhigh 56->56 
+  app-pfr-lean: edges 401->401 (-0 +0 ~0) callables 305->305 unresolved 484->484 files 78->79 deadhigh 0->0 
+  app-powertools-lambda: edges 21336->21336 (-0 +0 ~0) callables 13389->13389 unresolved 28984->28984 files 1372->1374 deadhigh 17->17 
+  app-rails-mastodon: edges 18906->18906 (-0 +0 ~0) callables 13114->13114 unresolved 50201->50203 files 4158->4161 deadhigh 0->0 
+  app-resque-sinatra: edges 1054->1054 (-0 +0 ~0) callables 794->795 unresolved 1760->1766 files 73->76 deadhigh 0->0 
+  app-rn-expensify: edges 183833->183833 (-0 +0 ~0) callables 68752->68752 unresolved 172413->172423 files 8706->8710 deadhigh 0->0 
+  app-serverless-examples: edges 638->638 (-0 +0 ~0) callables 778->778 unresolved 956->957 files 347->355 deadhigh 0->0 
+  app-smoothieware-cpp: edges 10687->10691 (-0 +4 ~0) callables 3955->3961 unresolved 1962->1989 files 552->553 deadhigh 0->0 
+  app-storm-starter: edges 62318->62318 (-0 +0 ~0) callables 31271->31271 unresolved 34682->34677 files 2163->2162 deadhigh 11->11 
+  app-terminus-hanami: edges 967->967 (-0 +0 ~0) callables 971->971 unresolved 3739->3744 files 905->908 deadhigh 0->0 
+  app-tigerbeetle-zig: edges 24435->24435 (-0 +0 ~0) callables 6323->6324 unresolved 10825->10826 files 411->412 deadhigh 14->14 
+  app-torch-ultralytics: edges 5907->5907 (-0 +0 ~0) callables 3278->3278 unresolved 4770->4785 files 299->305 deadhigh 7->7 
+  app-wordpress-android: edges 110141->110141 (-0 +0 ~0) callables 40581->40581 unresolved 32183->32184 files 4259->4260 deadhigh 32->32 
+  c-redis: edges 62365->62365 (-0 +0 ~0) callables 13921->13922 unresolved 9933->9941 files 950->948 deadhigh 0->0 
+  cmake-kitware: edges 131795->131887 (-7 +99 ~0) callables 37259->37480 unresolved 115049->125382 files 16047->17741 deadhigh 0->0 
+  cpp-nlohmann-json: edges 14368->14368 (-0 +0 ~0) callables 5315->5317 unresolved 28117->28133 files 509->545 deadhigh 0->0 
+  cpp-spdlog: edges 5003->5006 (-0 +3 ~0) callables 2320->2321 unresolved 3014->3059 files 157->161 deadhigh 0->0 
+  dart-flutter: edges 577880->577880 (-0 +0 ~0) callables 120060->120107 unresolved 325178->326490 files 10771->10871 deadhigh 19->19 
+  fortran-stdlib: edges 1112->1112 (-0 +0 ~0) callables 1471->1477 unresolved 100->597 files 430->518 deadhigh 0->0 
+  go-fzf: edges 10922->10922 (-0 +0 ~0) callables 1617->1617 unresolved 790->790 files 100->101 deadhigh 0->0 
+  groovy-gradle: edges 176664->176664 (-0 +0 ~0) callables 109194->109194 unresolved 260568->260568 files 24272->24272 deadhigh 44->43 
+  haskell-hspec: edges 2977->2977 (-0 +0 ~0) callables 1898->1898 unresolved 218->218 files 187->188 deadhigh 0->0 
+  lua-neovim: edges 77462->77466 (-0 +4 ~0) callables 14818->14824 unresolved 83092->83427 files 1399->1410 deadhigh 0->0 
+  nix-home-manager: edges 1031->1037 (-0 +6 ~0) callables 1341->1347 unresolved 1867->1867 files 3447->3445 deadhigh 0->0 
+  objc-afnetworking: edges 1244->1244 (-0 +0 ~0) callables 790->790 unresolved 437->437 files 84->85 deadhigh 0->0 
+  proto-grpc: edges 314->314 (-0 +0 ~0) callables 269->269 unresolved 0->0 files 28->29 deadhigh 0->0 
+  ruby-jekyll: edges 1995->2028 (-0 +33 ~0) callables 1174->1190 unresolved 4129->4149 files 208->211 deadhigh 0->0 
+  rust-bat: edges 2925->2925 (-0 +0 ~0) callables 1981->1981 unresolved 2077->2078 files 178->176 deadhigh 3->3 
+  scala-spark: edges 303165->303165 (-0 +0 ~0) callables 112369->112369 unresolved 742810->742811 files 9201->9202 deadhigh 68->68 
+  starlark-skylib: edges 205->205 (-0 +0 ~0) callables 439->439 unresolved 165->309 files 118->155 deadhigh 0->0 
+  swift-alamofire: edges 8705->8705 (-0 +0 ~0) callables 2615->2615 unresolved 4180->4180 files 108->109 deadhigh 0->0 
+  zig-zig: edges 274897->274897 (-0 +0 ~0) callables 362991->362991 unresolved 202041->202169 files 17350->17351 deadhigh 1->1 
+by language: see by_language.tsv

@@ -1,0 +1,3 @@
+#!/usr/bin/env lua
+local function b() end
+function a() b() end

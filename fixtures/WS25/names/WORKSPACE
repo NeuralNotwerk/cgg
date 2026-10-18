@@ -1,0 +1,3 @@
+workspace(name = "w")
+load("//:defs.bzl", "dep")
+dep()

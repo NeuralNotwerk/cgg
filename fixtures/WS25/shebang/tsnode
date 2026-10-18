@@ -1,0 +1,3 @@
+#!/usr/bin/env ts-node
+function a(): void { b(); }
+function b(): void {}

@@ -1,0 +1,3 @@
+#!/usr/bin/env zsh-wrapper
+a() { b; }
+b() { :; }

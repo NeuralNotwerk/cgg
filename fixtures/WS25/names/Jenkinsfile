@@ -1,0 +1,2 @@
+def helper() { echo "x" }
+pipeline { agent any; stages { stage("a") { steps { script { helper() } } } } }

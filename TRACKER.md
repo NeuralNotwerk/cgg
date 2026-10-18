@@ -126,7 +126,7 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 | WS22 | abstract tagging, JS/TS class-field arrows, ObjC C calls | 7,8,24 | DONE (71a3611) | | |
 | WS23 | Go receivers, JVM/.NET/C declared returns, JS/TS locals typing, Swift/Groovy overload sets | 10,26,28,16 | DONE (50c0bb9) | | 10 reproduced (no edge at all); after WS19 |
 | WS24 | Kotlin↔Java rules, C#/Swift registrars, JS/TS harness | 14,22,30 | DONE (877b3fa) | | |
-| WS25 | stdlib head split, reflection screen, shebang token match, filename detection | 17,18,19,20 | PLANNED | | |
+| WS25 | stdlib head split, reflection screen, shebang token match, filename detection | 17,18,19,20 | DONE (7eca3a0) | | |
 | WS26 | Function values as references, per plugin | 25 | PLANNED | | one language per commit |
 | WS27 | Locals specs Go/C#/C/C++… | 27 | PLANNED | | watch perf |
 | WS28 | Arity narrowing C#/Kotlin/Swift/Groovy/TS | 29 | PLANNED | | |
@@ -143,3 +143,8 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 - (WS24) Cypress `*.cy.*` specs are labelled with the tree's globals harness (e.g. jest); needs per-file-pattern harness attribution.
 - (WS24) AspectJ advice (`@Before`/`@Around`) has no rule.
 - (WS24) 404 production callables reached only by unresolved by-name calls from JS/TS test callbacks are now medium dead findings (`name-matches-unresolved-site`); kept as honest.
+- (WS25) `Jenkinsfile` not detected: Groovy parses 2/3 (corpus Groovy 27.5% clean), under the 95% bar.
+- (WS25) The cross-language known-name list moves 48 C/C++/TS sites external→unresolved when CMake/Ruby files define the same name.
+- (WS25) CMake commands are case-insensitive but are matched case-sensitively (`apply_standard_settings` vs `APPLY_STANDARD_SETTINGS`).
+- (WS25) `nix-shell -i <interp>` on a script's second `#!` line is not read.
+- (WS25) Rake tasks have no entry rule; Rakefile helpers show as medium dead.
