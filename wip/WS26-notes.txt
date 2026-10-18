@@ -36,3 +36,12 @@ bound-name set (no Go locals spec yet; WS27 should replace it). Untyped Go metho
 never fan out by name (cross_file step 5 gate). type_hints called_before ignores
 value_ref records. tag_reference_edges: at a byte shared with a call, only edges to the
 value's name are retagged. Final binary bins/WS26-go-v3.
+
+C/C++ (2026-10-19): plugins/c_values.rs (shared pass, only with reference_sites):
+arguments (not registrar, not ALL-CAPS macro-style callees), initializer lists (pair
+values), init_declarator values, assignment RHS, returns, through &, casts, ?:, parens.
+Qualified names only behind & (enumerators otherwise). Shadow filter: names any
+param/declaration/init_declarator/assignment LHS in the enclosing function declares, plus
+file/namespace-scope variables. FileFacts::data_members (field_declaration names) — prune
+drops bare C/C++ value refs naming a data member. ffi.rs: value_ref never a C->asm call.
+Open: --dead-code +10-15% wall on big C repos (erlang-otp +1.9 s), not in extraction.

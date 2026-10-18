@@ -16,7 +16,9 @@ pointers — line numbers drift, re-locate by symbol).
 2. Do not chase individual function names in the corpus diff — classify
    changes by PATTERN (node shape, receiver kind, import kind), never
    "fix" one name.
-3. Do not chase latency deviations under 1 second.
+3. Perf runway (user, 2026-10-18): a per-repo slowdown is fine when it is
+   at most max(10% of that repo's time, 1 s) for default runs, and
+   max(20%, 5 s) for `--dead-code` runs. Do not chase anything inside it.
 4. Do not edit /storage/cgg/CLAUDE.md, scripts/release.sh or
    scripts/upgrade-local.sh. If CLAUDE.md prose becomes wrong because of
    your change, write the needed edit into your final report under
@@ -66,9 +68,9 @@ pointers — line numbers drift, re-locate by symbol).
    nothing else running (after the A/B finishes), in the background:
    `python3 scripts/compare-release.py target/remediation/bins/<WS>-before target/release/cgg --jobs 1 --out target/remediation/perf/<WS>.json > target/remediation/perf/<WS>.log 2>&1`
    (~10 min). Report total, median per-repo delta, and every repo moving
-   ≥1 s. A deviation ≥1 s is investigated (re-run that repo alone; if it
-   persists, find the cause and fix it or justify it). Under 1 s: report,
-   do not chase.
+   ≥1 s. A slowdown above max(10%, 1 s) is investigated (re-run that repo
+   alone; if it persists, find the cause and fix it or justify it). Inside
+   the runway: report, do not chase.
 7. Add a CHANGELOG.md entry under `## [Unreleased]` (create the section
    above the latest released version if absent): what was wrong, what changed, which
    languages, and a *Compatibility* note if default-graph edges drop.
