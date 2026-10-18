@@ -175,6 +175,11 @@ impl<'a> CppWalker<'a> {
                 }
                 return;
             }
+            "field_initializer" => {
+                self.record_field_initializer(node);
+                self.walk_children(node);
+                return;
+            }
             "function_definition" => {
                 self.record_function(node);
                 self.walk_children(node);
@@ -718,6 +723,65 @@ impl<'a> CppWalker<'a> {
 
     /// `new Kernel()` is the call that enters `Kernel::Kernel`. The
     /// grammar does not treat it as a `call_expression`.
+    /// A constructor's member-initializer list entry: `D() : D(1)` calls
+    /// another of the class's own constructors (named after the class,
+    /// as a construction is); `D() : Base(1)` calls a base's, recorded as
+    /// the `super` call it is so only the base chain resolves it. A data
+    /// member's initializer (`n_(0)`) reads the same way; the chain finds
+    /// no base member of that name, and the resolver keeps no record of it.
+    fn record_field_initializer(&mut self, node: Node) {
+        let Some(target) = node.named_child(0) else {
+            return;
+        };
+        if !matches!(
+            target.kind(),
+            "field_identifier"
+                | "identifier"
+                | "type_identifier"
+                | "qualified_identifier"
+                | "template_method"
+                | "template_type"
+        ) {
+            return;
+        }
+        let raw = self.text(target);
+        let bare = raw.split('<').next().unwrap_or(raw).trim();
+        let name = last_scope_segment(bare).trim().to_string();
+        if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            return;
+        }
+        let Some(ctor) = std::iter::successors(node.parent(), |n| n.parent())
+            .find(|n| n.kind() == "function_definition")
+        else {
+            return;
+        };
+        let Some(own) = ctor
+            .child_by_field_name("declarator")
+            .and_then(unwrap_function_declarator)
+            .map(|d| self.fn_info_from_declarator(d).simple)
+        else {
+            return;
+        };
+        let arity = node
+            .named_children(&mut node.walk())
+            .find(|c| c.kind() == "argument_list")
+            .map(super::arg_count);
+        let (receiver_hint, not_def) = if name == own {
+            (String::new(), Some(ctor.start_byte() as u32))
+        } else {
+            ("super".to_string(), None)
+        };
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint,
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+            arity,
+            not_def,
+            ..Default::default()
+        });
+    }
+
     fn record_new(&mut self, node: Node) {
         let Some(ty) = node.child_by_field_name("type") else {
             return;
@@ -2727,6 +2791,38 @@ void call_event(Module* m, int i) { (m->*table[i])(0); }
         assert!(got.contains(&("f", Some(3))), "{got:?}");
         assert!(got.contains(&("m", Some(0))), "{got:?}");
         assert!(got.contains(&("K", Some(1))), "{got:?}");
+    }
+
+    #[test]
+    fn member_initializers_record_base_and_delegating_constructor_calls() {
+        let f = extract(
+            "class D : public Base { public: D() : Base(1), n_(0) {} D(int y) : D() {} int n_; };\n\
+             D::D(long z) : ns::Other<int>(z) {}",
+        );
+        let refs: Vec<(&str, &str, Option<u32>, bool)> = f
+            .references
+            .iter()
+            .map(|r| {
+                (
+                    r.name.as_str(),
+                    r.receiver_hint.as_str(),
+                    r.arity,
+                    r.not_def.is_some(),
+                )
+            })
+            .collect();
+        assert!(
+            refs.contains(&("Base", "super", Some(1), false)),
+            "{refs:?}"
+        );
+        // A data member reads the same way; the resolver drops it.
+        assert!(refs.contains(&("n_", "super", Some(1), false)), "{refs:?}");
+        // Delegation to the class's own constructor, never itself.
+        assert!(refs.contains(&("D", "", Some(0), true)), "{refs:?}");
+        assert!(
+            refs.contains(&("Other", "super", Some(1), false)),
+            "{refs:?}"
+        );
     }
 }
 

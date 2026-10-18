@@ -112,16 +112,31 @@ impl<'a> ObjcWalker<'a> {
                     .child_by_field_name("method")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
-                let recv = node
-                    .child_by_field_name("receiver")
+                let recv_node = node.child_by_field_name("receiver");
+                let recv = recv_node
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
+                // `[[Foo alloc] initWithX:1]`: the receiver is a new
+                // `Foo`, so the initializer is looked up on `Foo`.
+                let constructed = recv_node
+                    .filter(|r| r.kind() == "message_expression")
+                    .filter(|r| {
+                        r.child_by_field_name("method").is_some_and(|m| {
+                            cgg_core::stdlib::is_constructing_method("objc", self.text(m))
+                        })
+                    })
+                    .and_then(|r| r.child_by_field_name("receiver"))
+                    .filter(|c| c.kind() == "identifier")
+                    .map(|c| self.text(c).to_string());
+                let typed_receiver = constructed.is_some();
+                let recv = constructed.unwrap_or(recv);
                 if !method.is_empty() {
                     self.facts.references.push(RefRecord {
                         name: method,
                         receiver_hint: recv,
                         site_line: (node.start_position().row as u32) + 1,
                         site_byte: node.start_byte() as u32,
+                        typed_receiver,
                         ..Default::default()
                     });
                 }
@@ -286,5 +301,19 @@ mod tests {
             "framework rules match this path: {}",
             sys.path
         );
+    }
+
+    #[test]
+    fn alloc_init_is_typed_by_the_allocated_class() {
+        let f = extract(
+            "void f(void) { Box *b = [[Box alloc] initWithX:1]; [[b copy] init]; }",
+        );
+        let refs: Vec<(&str, &str, bool)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str(), r.typed_receiver))
+            .collect();
+        assert!(refs.contains(&("initWithX", "Box", true)), "{refs:?}");
+        assert!(refs.contains(&("init", "[b copy]", false)), "{refs:?}");
     }
 }

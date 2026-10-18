@@ -1234,6 +1234,9 @@ impl<'a> JsWalker<'a> {
                     .unwrap_or_default();
                 (prop, obj)
             }
+            // `super(…)` in a derived class's constructor: the base's
+            // constructor, reached through the base chain.
+            "super" => ("constructor".to_string(), "super".to_string()),
             _ => return,
         };
         if name.is_empty() {
@@ -1620,5 +1623,17 @@ class Service {
             "{paths:?}"
         );
         assert!(paths.contains(&"sails"), "{paths:?}");
+    }
+
+    #[test]
+    fn super_call_is_the_base_constructor() {
+        let f = extract("class K extends P { constructor() { super(1); super.m(); } }");
+        let refs: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert!(refs.contains(&("constructor", "super")), "{refs:?}");
+        assert!(refs.contains(&("m", "super")), "{refs:?}");
     }
 }

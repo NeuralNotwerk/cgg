@@ -582,8 +582,16 @@ pub fn link_file_with_cap(
             } else {
                 // Segments split at `::`, `.` and a lone `:` (Lua's
                 // `Repo:zlist` method is the `zlist` field of `Repo`).
+                // A receiver that is a type is never the candidate's own
+                // name: `new Foo()` in a class with a method named `Foo`
+                // does not call that method.
                 candidates.retain(|(_, d)| {
-                    d.qualified_name.split([':', '.']).any(|seg| seg == rh)
+                    let mut segs: Vec<&str> =
+                        d.qualified_name.split([':', '.']).collect();
+                    if rref.typed_receiver {
+                        segs.pop();
+                    }
+                    segs.contains(&rh)
                 });
             }
         }

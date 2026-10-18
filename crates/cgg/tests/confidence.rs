@@ -656,3 +656,186 @@ fn a_lua_member_alias_of_a_required_module_resolves_through_its_return_table() {
     );
     assert!(conf(&edges, "run", "log").is_empty(), "{edges:#?}");
 }
+
+/// WS21 (gap 12): a construction is a call of the constructed type's
+/// constructor. A type the tree declares once binds at high; Swift's
+/// `Engine()` is matched by name onto `init` and stays medium.
+#[test]
+fn a_construction_reaches_the_constructor_of_its_type() {
+    let edges = graph(&[
+        (
+            "a.cs",
+            "namespace App { class P { public P() {} } class Q { void Make() { var p = new P(); P q = new(); } } }\n",
+        ),
+        (
+            "a.rb",
+            "class Coll\n  def initialize(x)\n  end\nend\ndef make_rb\n  Coll.new(1)\nend\n",
+        ),
+        (
+            "a.php",
+            "<?php\nclass Box { function __construct($x) {} }\nfunction make_php() { return new Box(1); }\n",
+        ),
+        (
+            "a.sol",
+            "contract Child { constructor(uint x) {} }\ncontract F { function make() public { Child c = new Child(1); } }\n",
+        ),
+        (
+            "a.ps1",
+            "class Crate {\n  Crate([int]$x) { }\n}\nfunction MakePs {\n  $b = [Crate]::new(1)\n}\n",
+        ),
+        (
+            "a.m",
+            "@implementation Cell\n- (instancetype)initWithX:(int)x { return self; }\n@end\nvoid make_objc(void) { Cell *c = [[Cell alloc] initWithX:1]; }\n",
+        ),
+        (
+            "a.swift",
+            "class Engine {\n  init() { }\n}\nfunc makeSwift() {\n  let e = Engine()\n}\n",
+        ),
+    ]);
+    assert_eq!(
+        conf(&edges, "App.Q.Make", "App.P.P"),
+        vec!["high".to_string(), "high".to_string()],
+        "{edges:#?}"
+    );
+    for (src, dst) in [
+        ("make_rb", "Coll::initialize"),
+        ("make_php", "Box::__construct"),
+        ("F.make", "Child.constructor"),
+        ("MakePs", "Crate.Crate"),
+        ("make_objc", "Cell::initWithX"),
+    ] {
+        assert_eq!(conf(&edges, src, dst), high(), "{src}: {edges:#?}");
+    }
+    assert_eq!(
+        conf(&edges, "makeSwift", "Engine.init"),
+        medium(),
+        "{edges:#?}"
+    );
+}
+
+/// WS21 (gap 13): constructor delegation and `super` calls reach the
+/// delegated-to constructor or the base's member, never the caller.
+#[test]
+fn constructor_delegation_reaches_the_base_or_sibling_constructor() {
+    let edges = graph(&[
+        (
+            "Box.java",
+            "class Base { Base(int x) { } }\nclass Box extends Base {\n  Box() { this(1); }\n  Box(int y) { super(y); }\n}\n",
+        ),
+        (
+            "a.js",
+            "class P { constructor(x) { this.x = x; } }\nclass K extends P { constructor() { super(1); } }\n",
+        ),
+        (
+            "a.cs",
+            "namespace N { class B { public B(int x) { } }\nclass D : B { public D() : this(1) { } public D(int y) : base(y) { } } }\n",
+        ),
+        (
+            "a.cpp",
+            "class Root { public: Root(int x) {} };\nclass Leaf : public Root { public: Leaf() : Root(1) {} Leaf(int y) : Leaf() {} };\n",
+        ),
+        (
+            "a.rb",
+            "class Animal\n  def speak\n  end\nend\nclass Dog < Animal\n  def speak\n    super\n  end\nend\n",
+        ),
+        (
+            "a.sol",
+            "contract Owned { constructor(uint x) {} }\ncontract Token is Owned { constructor(uint y) Owned(y) {} }\n",
+        ),
+    ]);
+    for (src, dst) in [
+        ("Base.Base", ""),
+        ("K.constructor", "P.constructor"),
+        ("N.D.D", "N.B.B"),
+        ("Leaf::Leaf", "Root::Root"),
+        ("Dog::speak", "Animal::speak"),
+        ("Token.constructor", "Owned.constructor"),
+        ("Box.Box", "Base.Base"),
+    ] {
+        if dst.is_empty() {
+            continue;
+        }
+        assert!(
+            conf(&edges, src, dst) == high(),
+            "{src} -> {dst}: {edges:#?}"
+        );
+    }
+    // `this(1)` / `: this(1)` / `: Leaf()` reach the sibling constructor
+    // only, never the constructor they are written in.
+    for own in ["Box.Box", "N.D.D", "Leaf::Leaf"] {
+        let to_self: Vec<&Edge> = edges
+            .iter()
+            .filter(|e| e.src == own && e.dst == own)
+            .collect();
+        assert_eq!(to_self.len(), 1, "{own}: {edges:#?}");
+    }
+}
+
+/// WS21 near misses: a construction or `super` call whose type or base
+/// is outside the tree never binds a same-named member of the tree.
+#[test]
+fn an_outside_base_or_type_binds_no_same_named_member() {
+    let edges = graph(&[
+        (
+            "w.js",
+            "import { Component } from 'react';\nclass W extends Component { constructor(p) { super(p); } }\nclass Other { constructor() {} }\n",
+        ),
+        (
+            "post.rb",
+            "class Post < ActiveRecord::Base\n  def save\n    super\n  end\nend\nclass Draft\n  def save\n  end\nend\n",
+        ),
+        (
+            "q.cpp",
+            "#include <vector>\nclass Q : public std::vector<int> { public: Q() : std::vector<int>(3), n_(0) {} int n_; };\nclass R { public: void n_() {} };\n",
+        ),
+        (
+            "u.cs",
+            "using System.Collections.Generic;\nnamespace App { class U { void M() { var l = new List<int>(); } } }\n",
+        ),
+        (
+            "mine.cs",
+            "namespace Mine.Collections { class List { public List() {} } }\n",
+        ),
+        (
+            "go.php",
+            "<?php\nnamespace App;\nfunction go() { throw new \\Exception(\"x\"); }\n",
+        ),
+        (
+            "gen.rb",
+            "module Likes\n  class Generator < Federated::Generator\n  end\nend\nmodule Polls\n  class Generator < Federated::Generator\n    def initialize(a)\n    end\n  end\nend\ndef like_it\n  Likes::Generator.new(1)\nend\n",
+        ),
+        (
+            "h.cpp",
+            "class Base { public: int value() { return 0; } };\nclass H : public Base { void* value; public: H() : value(nullptr) {} };\n",
+        ),
+        (
+            "t.cs",
+            "namespace T { class Tests { void Thing() { var t = new Thing(); } }\nclass Thing { public Thing() {} } }\n",
+        ),
+        (
+            "lib.php",
+            "<?php\nnamespace Lib\\Errors;\nclass Exception { function __construct($m) {} }\n",
+        ),
+    ]);
+    for src in [
+        "W.constructor",
+        "Post::save",
+        "Q::Q",
+        "App.U.M",
+        "App\\go",
+        "go",
+        "H::H",
+        "like_it",
+    ] {
+        let out: Vec<&Edge> = edges.iter().filter(|e| e.src == src).collect();
+        assert!(out.is_empty(), "{src}: {edges:#?}");
+    }
+    // `new Thing()` in a test method named `Thing` is the class's
+    // constructor, never the method itself.
+    let out: Vec<&str> = edges
+        .iter()
+        .filter(|e| e.src == "T.Tests.Thing")
+        .map(|e| e.dst.as_str())
+        .collect();
+    assert_eq!(out, vec!["T.Thing.Thing"], "{edges:#?}");
+}

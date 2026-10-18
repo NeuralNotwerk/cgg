@@ -139,6 +139,26 @@ pub fn peel<'t>(lang: &str, node: Node<'t>, src: &'t [u8]) -> Peeled<'t> {
     }
 }
 
+/// The type a construction node builds (`new Foo(…)`, `new pkg.Foo<T>()`,
+/// Scala `new Foo(…)`, Ruby `Foo.new(…)`), read exactly as a construction
+/// receiver is; `None` for any node that is not a construction.
+pub fn constructed_type(lang: &str, n: Node<'_>, src: &[u8]) -> Option<String> {
+    match n.kind() {
+        "object_creation_expression" | "new_expression" | "instance_expression" => {
+            shape_type(lang, n, src)
+        }
+        "call" if lang == "ruby" => shape_type(lang, n, src),
+        _ => None,
+    }
+}
+
+/// The simple name of a type path as a constructor is named after it:
+/// `pkg.Foo` / `ns::Foo` / `\App\Foo` → `Foo`.
+pub fn type_simple_name(path: &str) -> &str {
+    let bare = path.split(['<', '[']).next().unwrap_or(path).trim();
+    bare.rsplit(['.', ':', '\\']).next().unwrap_or(bare)
+}
+
 /// Whether a peeled receiver is a value a call can be typed or named
 /// through: a name, a member chain, `this`, a call. Anything else that
 /// sat in parentheses — `(a + b).m()`, `(x || y).m()`, `(c ? a : b).m()`

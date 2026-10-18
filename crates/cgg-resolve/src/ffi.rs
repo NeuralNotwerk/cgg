@@ -130,8 +130,11 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> FfiOut
             for r in &f.references {
                 // A function handed to `atexit(_fini)` is a value, not a
                 // call made here; an FFI *call* edge would claim one.
+                // A C++ member initializer (`: name(x)`, receiver `super`)
+                // initializes a base or a data member, never calls a label.
                 if r.receiver_hint == cgg_core::VALUE_REF_HINT
                     || r.receiver_hint == cgg_core::STRING_REF_HINT
+                    || r.receiver_hint == "super"
                 {
                     continue;
                 }

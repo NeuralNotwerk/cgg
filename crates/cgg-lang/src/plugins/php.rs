@@ -204,6 +204,30 @@ impl<'a> PhpWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            // `new Foo(…)` calls `Foo::__construct`, looked up on the class
+            // as a construction receiver is; `new self` / `new static` /
+            // `new parent` as `self::__construct()` and the like are.
+            "object_creation_expression" => {
+                // The class as written (`\App\Foo`, `Foo`, `self`), as the
+                // scope of a static call is: its namespace decides which
+                // class it is.
+                let class = node
+                    .named_children(&mut node.walk())
+                    .find(|c| matches!(c.kind(), "name" | "qualified_name" | "relative_scope"))
+                    .map(|c| self.text(c).trim().to_string())
+                    .filter(|c| !c.is_empty());
+                if let Some(class) = class {
+                    self.facts.references.push(RefRecord {
+                        name: "__construct".to_string(),
+                        receiver_hint: class,
+                        site_line: (node.start_position().row as u32) + 1,
+                        site_byte: node.start_byte() as u32,
+                        ..Default::default()
+                    });
+                }
+                self.walk_children(node);
+                return;
+            }
             _ => {}
         }
         self.walk_children(node);
@@ -524,6 +548,27 @@ mod tests {
             cond,
             vec![("a", false), ("b", true), ("c", true)],
             "{cond:?}"
+        );
+    }
+
+    #[test]
+    fn new_calls_the_constructor_of_the_class_as_written() {
+        let f = extract(
+            "<?php function f() { $a = new Foo(1); $b = new \\App\\Bar(); $c = new self(); $d = new $cls(); }",
+        );
+        let refs: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .filter(|r| r.name == "__construct")
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert_eq!(
+            refs,
+            vec![
+                ("__construct", "Foo"),
+                ("__construct", "\\App\\Bar"),
+                ("__construct", "self"),
+            ]
         );
     }
 }

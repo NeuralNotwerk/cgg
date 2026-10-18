@@ -622,6 +622,10 @@ pub fn propagate_types_with_fields(
             || rh == "cls"
             || rh == "this"
             || rh == cgg_core::VALUE_REF_HINT
+            // A C++ member initializer (`: Base(1)`, receiver `super`)
+            // names the caller's bases, never a variable; a `super::f()`
+            // is a path, which a `using super = Base;` may type.
+            || (facts.language == "cpp" && rh == "super" && !rref.path_receiver)
         {
             continue;
         }
@@ -1772,7 +1776,9 @@ fn param_list(sig: &str) -> Option<&str> {
 
 /// Languages that overload by parameter count and whose plugins record a
 /// call's argument count ([`cgg_core::RefRecord::arity`]).
-pub(crate) const OVERLOAD_ARITY_LANGS: &[&str] = &["java", "scala", "cpp"];
+/// C# records the count for constructions and constructor initializers
+/// only.
+pub(crate) const OVERLOAD_ARITY_LANGS: &[&str] = &["java", "scala", "cpp", "csharp"];
 
 /// Whether a callable declared with signature `sig` can take `arity`
 /// positional arguments: `Some(false)` only when its parameter list is
@@ -1797,7 +1803,11 @@ pub(crate) fn accepts_arity(sig: &str, arity: u32) -> Option<bool> {
     let mut required = 0u32;
     let mut variadic = false;
     for p in &params {
-        if p.contains("...") || (p.contains(':') && p.trim_end().ends_with('*')) {
+        // `T...`, Scala `x: T*`, C# `params T[] x`.
+        if p.contains("...")
+            || (p.contains(':') && p.trim_end().ends_with('*'))
+            || p.starts_with("params ")
+        {
             variadic = true;
             continue;
         }
@@ -4218,6 +4228,10 @@ mod tests {
             f("public ISE(String formatText, Object... arguments)", 1),
             Some(true)
         );
+        // C# `params` takes any count; a default makes a parameter optional.
+        assert_eq!(f("public JArray(params object[] content)", 3), Some(true));
+        assert_eq!(f("public P(int a, string b = \"x\")", 1), Some(true));
+        assert_eq!(f("public P(int a, string b = \"x\")", 3), Some(false));
         assert_eq!(
             f(
                 "public ISE(Throwable t, String formatText, Object... arguments)",

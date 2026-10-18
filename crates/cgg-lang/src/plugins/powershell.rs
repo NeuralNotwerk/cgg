@@ -358,6 +358,7 @@ impl<'a> PowerShellWalker<'a> {
         }
 
         let mut receiver = String::new();
+        let mut type_receiver = false;
         let mut c = node.walk();
         if c.goto_first_child() {
             loop {
@@ -368,6 +369,7 @@ impl<'a> PowerShellWalker<'a> {
                         break;
                     }
                     "type_literal" => {
+                        type_receiver = true;
                         // e.g. [Service] — capture the inner type name
                         if let Some(spec) = self.child_kind(n, "type_spec") {
                             receiver = self.text(spec).to_string();
@@ -388,6 +390,25 @@ impl<'a> PowerShellWalker<'a> {
             }
         }
 
+        // `[Box]::new(…)` constructs a `Box`: its constructor is named
+        // after the class, and looked up on it. A PowerShell class has no
+        // namespace, so a dotted type (`[System.Text.StringBuilder]`) is
+        // a .NET one, never a class of the tree.
+        if type_receiver && member.eq_ignore_ascii_case("new") && !receiver.contains('.')
+        {
+            let ctor = crate::receiver::type_simple_name(&receiver).to_string();
+            if !ctor.is_empty() {
+                self.facts.references.push(RefRecord {
+                    name: ctor,
+                    receiver_hint: receiver,
+                    site_line: (node.start_position().row as u32) + 1,
+                    site_byte: node.start_byte() as u32,
+                    typed_receiver: true,
+                    ..Default::default()
+                });
+                return;
+            }
+        }
         self.facts.references.push(RefRecord {
             name: member,
             receiver_hint: receiver,
@@ -543,6 +564,24 @@ class Service {
                 .any(|i| i.kind == "import-module" && i.path == "DscResource.Common"),
             "{:?}",
             f.imports
+        );
+    }
+
+    #[test]
+    fn type_new_calls_the_class_constructor() {
+        let f = extract(
+            "function M { $a = [Box]::new(1); $b = [System.Text.StringBuilder]::new() }",
+        );
+        let refs: Vec<(&str, &str, bool)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str(), r.typed_receiver))
+            .collect();
+        assert!(refs.contains(&("Box", "Box", true)), "{refs:?}");
+        // Near miss: a .NET type keeps the reading it had.
+        assert!(
+            refs.contains(&("new", "System.Text.StringBuilder", false)),
+            "{refs:?}"
         );
     }
 }

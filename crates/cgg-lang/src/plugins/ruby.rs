@@ -258,6 +258,12 @@ impl<'a> RubyWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            // A bare `super`: the enclosing method's own name, up the
+            // class's ancestry.
+            "super" => {
+                self.record_super(node);
+                return;
+            }
             _ => {}
         }
         self.walk_children(node);
@@ -344,7 +350,33 @@ impl<'a> RubyWalker<'a> {
         out
     }
 
+    /// `super` / `super(…)`: a call of the enclosing method's name on
+    /// the class's ancestors, never on the class itself.
+    fn record_super(&mut self, node: Node) {
+        let Some(name) = std::iter::successors(node.parent(), |n| n.parent())
+            .find(|n| matches!(n.kind(), "method" | "singleton_method"))
+            .and_then(|m| m.child_by_field_name("name"))
+            .map(|n| self.text(n).to_string())
+            .filter(|n| !n.is_empty())
+        else {
+            return;
+        };
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: "super".to_string(),
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+            ..Default::default()
+        });
+    }
+
     fn record_call(&mut self, node: Node) {
+        if let Some(m) = node.child_by_field_name("method")
+            && m.kind() == "super"
+        {
+            self.record_super(node);
+            return;
+        }
         let method = node
             .child_by_field_name("method")
             .map(|n| self.text(n).to_string())
@@ -396,6 +428,19 @@ impl<'a> RubyWalker<'a> {
             }
             None => (recv, false),
         };
+        // `Foo.new(…)` builds a `Foo`: besides `new` itself (a class may
+        // define `self.new`), it calls `Foo#initialize`, looked up on the
+        // class and its ancestors.
+        if let Some(ty) = crate::receiver::constructed_type("ruby", node, self.source) {
+            self.facts.references.push(RefRecord {
+                name: "initialize".to_string(),
+                receiver_hint: ty,
+                site_line: (node.start_position().row as u32) + 1,
+                site_byte: node.start_byte() as u32,
+                typed_receiver: true,
+                ..Default::default()
+            });
+        }
         self.facts.references.push(RefRecord {
             name: method,
             receiver_hint: recv,
@@ -609,5 +654,24 @@ mod tests {
                 .iter()
                 .any(|r| r.name == "run" && r.receiver_hint == "obj")
         );
+    }
+
+    #[test]
+    fn new_reaches_initialize_and_super_names_the_enclosing_method() {
+        let f = extract(
+            "class C < B\n  def initialize(a)\n    super\n  end\n  def run\n    super(1)\n    x = Mod::K.new(2)\n    y = k.new\n  end\nend\n",
+        );
+        let refs: Vec<(&str, &str, bool)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str(), r.typed_receiver))
+            .collect();
+        assert!(refs.contains(&("initialize", "super", false)), "{refs:?}");
+        assert!(refs.contains(&("run", "super", false)), "{refs:?}");
+        assert!(refs.contains(&("initialize", "Mod::K", true)), "{refs:?}");
+        assert!(refs.contains(&("new", "Mod::K", false)), "{refs:?}");
+        // Near miss: `new` on a value is an ordinary call.
+        assert!(refs.contains(&("new", "k", false)), "{refs:?}");
+        assert!(!refs.iter().any(|r| r.0 == "super"), "{refs:?}");
     }
 }

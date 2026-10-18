@@ -111,7 +111,10 @@ impl<'a> SwiftWalker<'a> {
                     end_byte: node.end_byte() as u32,
                     signature_hint: super::extract_signature(self.text(node)),
                     visibility: String::new(),
-                    attributes: Vec::new(),
+                    attributes: super::attrs::with_override_marker(node, Vec::new()),
+                    // Its class's bases, as a method's: `super.init(…)`
+                    // is looked up on them.
+                    base_types: self.bases.last().cloned().unwrap_or_default(),
                     ..Default::default()
                 });
                 self.walk_children(node);
@@ -480,5 +483,21 @@ mod tests {
             .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
             .collect();
         assert_eq!(calls, vec![("e", "d")]);
+    }
+
+    #[test]
+    fn an_initializer_carries_its_class_bases() {
+        let f = extract("class Car: Engine { override init() { super.init(power: 1) } }");
+        let init = f
+            .definitions
+            .iter()
+            .find(|d| d.qualified_name == "Car.init")
+            .unwrap();
+        assert_eq!(init.base_types, vec!["Engine"]);
+        assert!(
+            init.attributes.iter().any(|a| a == "override"),
+            "{:?}",
+            init.attributes
+        );
     }
 }

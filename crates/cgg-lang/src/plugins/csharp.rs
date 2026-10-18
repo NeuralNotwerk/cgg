@@ -213,6 +213,42 @@ impl<'a> Walker<'a> {
             }
             "constructor_declaration" => {
                 self.record_method(node, DefVariant::Constructor);
+                self.record_constructor_initializer(node);
+                self.walk_children(node);
+                return;
+            }
+            // `new Foo(…)`: a call of `Foo`'s constructor, looked up on
+            // the type as a construction receiver is.
+            "object_creation_expression" => {
+                if let Some(ty) =
+                    crate::receiver::constructed_type("csharp", node, self.source)
+                {
+                    self.push_construction(node, &ty);
+                }
+                self.walk_children(node);
+                return;
+            }
+            // `Foo f = new(…)`: the type is the declaration's.
+            "implicit_object_creation_expression" => {
+                let declared = node
+                    .parent()
+                    .filter(|p| p.kind() == "variable_declarator")
+                    .and_then(|p| p.parent())
+                    .filter(|p| p.kind() == "variable_declaration")
+                    .and_then(|d| d.child_by_field_name("type"))
+                    .filter(|t| {
+                        matches!(
+                            t.kind(),
+                            "identifier" | "qualified_name" | "generic_name"
+                        )
+                    })
+                    .map(|t| {
+                        let t = self.text(t);
+                        t.split('<').next().unwrap_or(t).trim().to_string()
+                    });
+                if let Some(ty) = declared {
+                    self.push_construction(node, &ty);
+                }
                 self.walk_children(node);
                 return;
             }
@@ -561,6 +597,72 @@ impl<'a> Walker<'a> {
         });
     }
 
+    /// A call of type `ty`'s constructor at `node`: the constructor is
+    /// named after the type, and looked up on it as a typed receiver.
+    fn push_construction(&mut self, node: Node, ty: &str) {
+        let name = crate::receiver::type_simple_name(ty);
+        if name.is_empty() {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name: name.to_string(),
+            receiver_hint: ty.to_string(),
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+            typed_receiver: true,
+            arity: argument_count(node),
+            ..Default::default()
+        });
+    }
+
+    /// `: this(…)` calls one of the class's own constructors; `: base(…)`
+    /// one of its base class's, recorded as the `super` call it is so
+    /// the base chain resolves it. The base class is the first type in
+    /// the base list; a list naming only interfaces makes no call.
+    fn record_constructor_initializer(&mut self, ctor: Node) {
+        let Some(init) = ctor
+            .named_children(&mut ctor.walk())
+            .find(|c| c.kind() == "constructor_initializer")
+        else {
+            return;
+        };
+        let Some(kw) = init
+            .children(&mut init.walk())
+            .find(|c| matches!(c.kind(), "this" | "base"))
+        else {
+            return;
+        };
+        let (name, receiver_hint, typed_receiver) = if kw.kind() == "this" {
+            let Some(own) = self.scope.iter().rev().find_map(|s| match s {
+                Scope::Type(t) => Some(t.clone()),
+                Scope::Namespace(_) => None,
+            }) else {
+                return;
+            };
+            (own.clone(), own, true)
+        } else {
+            let Some(base) = self.bases.last().and_then(|b| b.first()) else {
+                return;
+            };
+            let name = crate::receiver::type_simple_name(base).to_string();
+            (name, "super".to_string(), false)
+        };
+        if name.is_empty() {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint,
+            site_line: (init.start_position().row as u32) + 1,
+            site_byte: init.start_byte() as u32,
+            typed_receiver,
+            arity: argument_count(init),
+            // A constructor never delegates to itself.
+            not_def: Some(ctor.start_byte() as u32),
+            ..Default::default()
+        });
+    }
+
     fn ref_from_invoke(&mut self, node: Node) -> Option<RefRecord> {
         let func = node.child_by_field_name("function")?;
         let (name, recv) = match func.kind() {
@@ -657,6 +759,17 @@ impl Walker<'_> {
         }
         self.text(expr).to_string()
     }
+}
+
+/// The argument count of a construction or constructor initializer,
+/// which picks among the constructor's overloads.
+fn argument_count(n: Node) -> Option<u32> {
+    n.child_by_field_name("arguments")
+        .or_else(|| {
+            n.named_children(&mut n.walk())
+                .find(|c| c.kind() == "argument_list")
+        })
+        .map(super::arg_count)
 }
 
 fn line_range(n: Node) -> (u32, u32) {
@@ -1257,5 +1370,41 @@ namespace A.B.C {
         }
         assert_eq!(calls.iter().filter(|c| **c == ("M", "b")).count(), 2);
         assert!(!calls.iter().any(|(n, _)| n.contains('<')), "{calls:?}");
+    }
+
+    #[test]
+    fn constructions_and_constructor_initializers_are_calls() {
+        let f = extract(
+            "namespace N { class B { public B(int x) {} } \
+             class P : B, IThing { public P() : this(1) {} public P(int y) : base(y) {} \
+             void M() { var a = new P(); var b = new N.P(2); P c = new(); var o = new { A = 1 }; } } }",
+        );
+        let refs: Vec<(&str, &str, bool, bool)> = f
+            .references
+            .iter()
+            .map(|r| {
+                (
+                    r.name.as_str(),
+                    r.receiver_hint.as_str(),
+                    r.typed_receiver,
+                    r.not_def.is_some(),
+                )
+            })
+            .collect();
+        // `: this(1)`: the class's own constructor, never itself.
+        assert!(refs.contains(&("P", "P", true, true)), "{refs:?}");
+        // `: base(y)`: the first base, through the base chain.
+        assert!(refs.contains(&("B", "super", false, true)), "{refs:?}");
+        // `new P()`, `new N.P(2)` (qualifier kept), `P c = new()`.
+        assert_eq!(
+            refs.iter()
+                .filter(|r| **r == ("P", "P", true, false))
+                .count(),
+            2,
+            "{refs:?}"
+        );
+        assert!(refs.contains(&("P", "N.P", true, false)), "{refs:?}");
+        // An anonymous object is no construction of a named type.
+        assert_eq!(f.references.len(), 5, "{refs:?}");
     }
 }

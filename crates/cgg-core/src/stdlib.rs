@@ -53,9 +53,11 @@ pub fn is_cast_intrinsic(lang: &str, name: &str) -> bool {
 }
 
 /// Methods the language itself defines to construct an instance of the
-/// class they are called on: Ruby's `Foo.new(…)` builds a `Foo`. A
-/// receiver written as one is an instance of that class.
-pub const CONSTRUCTING_METHODS: &[(&str, &[&str])] = &[("ruby", &["new"])];
+/// class they are called on: Ruby's `Foo.new(…)` builds a `Foo`, an
+/// Objective-C `[Foo alloc]` an uninitialised `Foo`. A receiver written
+/// as one is an instance of that class.
+pub const CONSTRUCTING_METHODS: &[(&str, &[&str])] =
+    &[("ruby", &["new"]), ("objc", &["alloc"])];
 
 /// Whether `name` is one of `lang`'s [`CONSTRUCTING_METHODS`].
 pub fn is_constructing_method(lang: &str, name: &str) -> bool {

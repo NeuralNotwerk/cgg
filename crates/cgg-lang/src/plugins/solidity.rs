@@ -110,6 +110,7 @@ impl<'a> SolidityWalker<'a> {
             }
             "constructor_definition" => {
                 self.record_function(node, true);
+                self.record_base_constructor_calls(node);
                 self.walk_children(node);
                 return;
             }
@@ -238,6 +239,54 @@ impl<'a> SolidityWalker<'a> {
         });
     }
 
+    /// A call at `site` of contract `ty`'s constructor.
+    fn push_constructor_call(&mut self, site: Node, ty: String) {
+        self.facts.references.push(RefRecord {
+            name: "constructor".to_string(),
+            receiver_hint: ty,
+            site_line: (site.start_position().row as u32) + 1,
+            site_byte: site.start_byte() as u32,
+            typed_receiver: true,
+            ..Default::default()
+        });
+    }
+
+    /// `constructor(…) Base(x) {}`: an invocation in a constructor's
+    /// header that names one of the contract's bases calls that base's
+    /// constructor. Any other name there is a modifier.
+    fn record_base_constructor_calls(&mut self, ctor: Node) {
+        let Some(contract) = std::iter::successors(ctor.parent(), |n| n.parent())
+            .find(|n| n.kind() == "contract_declaration")
+        else {
+            return;
+        };
+        let bases: Vec<String> = contract
+            .named_children(&mut contract.walk())
+            .filter(|c| c.kind() == "inheritance_specifier")
+            .filter_map(|c| {
+                c.named_children(&mut c.walk())
+                    .find(|t| t.kind() == "user_defined_type")
+                    .map(|t| self.text(t).trim().to_string())
+            })
+            .collect();
+        let invocations: Vec<Node> = ctor
+            .named_children(&mut ctor.walk())
+            .filter(|c| c.kind() == "modifier_invocation")
+            .collect();
+        for inv in invocations {
+            let Some(name) = inv
+                .named_children(&mut inv.walk())
+                .find(|c| c.kind() == "identifier")
+                .map(|c| self.text(c).to_string())
+            else {
+                continue;
+            };
+            if bases.iter().any(|b| b == &name) {
+                self.push_constructor_call(inv, name);
+            }
+        }
+    }
+
     fn record_call(&mut self, node: Node) {
         // call_expression -> expression -> (identifier | member_expression)
         let Some(callee) = node.child(0) else { return };
@@ -246,6 +295,20 @@ impl<'a> SolidityWalker<'a> {
         } else {
             callee
         };
+        // `new C(…)`: contract `C`'s constructor, looked up on `C`.
+        if inner.kind() == "new_expression" {
+            if let Some(ty) = inner
+                .named_children(&mut inner.walk())
+                .find(|c| c.kind() == "type_name")
+                .and_then(|t| t.named_child(0))
+                .filter(|t| t.kind() == "user_defined_type")
+                .map(|t| self.text(t).trim().to_string())
+                .filter(|t| !t.is_empty())
+            {
+                self.push_constructor_call(node, ty);
+            }
+            return;
+        }
         let (name, receiver) = match inner.kind() {
             "identifier" => (self.text(inner).to_string(), String::new()),
             "member_expression" => {
@@ -395,5 +458,22 @@ mod tests {
             })
             .collect();
         assert_eq!(marked, vec![("L.a", true), ("C.b", false)]);
+    }
+
+    #[test]
+    fn new_and_base_constructor_invocations_call_constructors() {
+        let f = extract(
+            "contract B { constructor(uint x) {} }\n\
+             contract C is B { constructor(uint y) B(y) onlyOwner {} function m() public { C c = new C(1); uint[] memory a = new uint[](3); } }",
+        );
+        let refs: Vec<(&str, &str, bool)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str(), r.typed_receiver))
+            .collect();
+        assert!(refs.contains(&("constructor", "B", true)), "{refs:?}");
+        assert!(refs.contains(&("constructor", "C", true)), "{refs:?}");
+        // Near miss: a modifier is not a base, and `new uint[]` no contract.
+        assert_eq!(refs.len(), 2, "{refs:?}");
     }
 }

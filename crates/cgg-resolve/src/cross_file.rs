@@ -386,6 +386,7 @@ fn constructor_names(lang: &str) -> &'static [&'static str] {
         "javascript" | "typescript" => &["constructor"],
         "php" => &["__construct"],
         "ruby" => &["initialize"],
+        "swift" => &["init"],
         _ => &[],
     }
 }
@@ -2807,7 +2808,51 @@ pub fn resolve(
                     }
                     _ => Confidence::Medium,
                 };
-                if let Some(cids) = resolved {
+                // Ruby records bases and receiver types by their last
+                // segment (`Lib::Base` is a `Base`, `A::Maker` a
+                // `Maker`), so a `Foo.new` or `super` that is not
+                // structurally certain lands on a same-named class of
+                // another namespace about as often as on the right one.
+                // Refused, with the candidates counted, rather than guessed.
+                // A construction written through a namespace path
+                // (`A::Maker.new`) is that class's: a same-named
+                // class of another namespace (`B::Maker`) is not,
+                // however certain its lookup looked by the last segment.
+                let ruby_ctor = lang == "ruby" && r.typed_receiver && r.name == "initialize";
+                let foreign_path = ruby_ctor
+                    && r.receiver_hint.contains("::")
+                    && resolved.as_ref().is_some_and(|cids| {
+                        cids.iter().any(|c| {
+                            graph.callables.get(c).is_some_and(|n| {
+                                let owner = crate::names::split_last_segment(&n.qualified_name)
+                                    .map_or("", |(o, _)| o);
+                                owner != r.receiver_hint
+                                    && !owner.ends_with(&format!("::{}", r.receiver_hint))
+                            })
+                        })
+                    });
+                let ruby_guess = lang == "ruby"
+                    && (foreign_path
+                        || matches!(confidence, Confidence::Medium) && (super_recv || ruby_ctor));
+                let ruby_guessed = if ruby_guess {
+                    resolved.as_ref().map_or(0, |v| v.len() as u32)
+                } else {
+                    0
+                };
+                let resolved = if ruby_guessed > 0 { None } else { resolved };
+                if ruby_guessed > 0 {
+                    out.unresolved.push(AuditUnresolvedCall::new(
+                        enclosing,
+                        facts.file,
+                        r.site_line,
+                        r.site_byte,
+                        r.name.clone(),
+                        r.receiver_hint.clone(),
+                        UnresolvedReason::CandidatesInOtherFiles {
+                            candidates: ruby_guessed,
+                        },
+                    ));
+                } else if let Some(cids) = resolved {
                     for cid in cids {
                         // Skip self-edges that coincide with intra-file's
                         // ones (they'd be duplicates with the same resolver).
@@ -2893,6 +2938,13 @@ pub fn resolve(
                         r.receiver_hint.clone(),
                         UnresolvedReason::FanoutCapExceeded { candidates: capped },
                     ));
+                } else if super_recv
+                    && lang == "cpp"
+                    && !known_owners.contains(&(lang.clone(), r.name.clone()))
+                {
+                    // A C++ member initializer naming no type the tree
+                    // declares: a data member's (`n_(0)`) or an outside
+                    // base's — no call into the tree, and nothing to say.
                 } else if super_recv {
                     // `super()` with every candidate excluded means the
                     // base is not in the analyzed tree. Saying so beats
@@ -4944,7 +4996,7 @@ pub(crate) fn narrow_by_arity(
     if fits.is_empty() { cids } else { fits }
 }
 
-/// JVM languages: a typed receiver's owner is looked up by its bare name,
+/// JVM languages and Ruby: a typed receiver's owner is looked up by its bare name,
 /// so `Response.Builder` reaches every class named `Builder`. Several
 /// distinct owners narrow, one-sidedly, to the one the receiver names: the
 /// owners whose path ends with the qualifier as written (`Response.Builder`
@@ -4959,7 +5011,8 @@ fn narrow_owner_paths(
     rh: &str,
     caller_qn: Option<&str>,
 ) -> Vec<CallableId> {
-    if cids.len() < 2 || !matches!(lang, "java" | "kotlin" | "scala" | "groovy") {
+    if cids.len() < 2 || !matches!(lang, "java" | "kotlin" | "scala" | "groovy" | "ruby")
+    {
         return cids.to_vec();
     }
     let segs = |p: &str| -> Vec<String> {
@@ -5396,6 +5449,55 @@ fn try_resolve_ref(
                     by_owner_method,
                     bases_by_owner,
                 );
+                // A C++ member initializer calls a base's constructor or
+                // initializes a data member: a base's same-named method
+                // (`value(nullptr)` beside a base's `value()`) is neither.
+                let found = if lang == "cpp" {
+                    found
+                        .map(|cids| {
+                            cids.into_iter()
+                                .filter(|c| {
+                                    graph.callables.get(c).is_some_and(|n| {
+                                        n.kind == CallableKind::Constructor
+                                    })
+                                })
+                                .collect::<Vec<_>>()
+                        })
+                        .filter(|cids| !cids.is_empty())
+                } else {
+                    found
+                };
+                // A base constructor (`super(…)`, `: base(…)`) is the base
+                // class's own: bases are recorded by bare name, so the chain
+                // reaches every class of that name. The copy the calling
+                // file declares (a nested `Inner` base in each of
+                // many generated files), else the one nearest the caller,
+                // is the base.
+                let found = found.map(|cids| {
+                    let all_ctors = cids.iter().all(|c| {
+                        graph
+                            .callables
+                            .get(c)
+                            .is_some_and(|n| n.kind == CallableKind::Constructor)
+                    });
+                    if !all_ctors || cids.len() < 2 {
+                        return cids;
+                    }
+                    let own_file: Vec<CallableId> = cids
+                        .iter()
+                        .copied()
+                        .filter(|c| {
+                            graph
+                                .callables
+                                .get(c)
+                                .is_some_and(|n| n.file == caller_file)
+                        })
+                        .collect();
+                    if !own_file.is_empty() {
+                        return own_file;
+                    }
+                    nearest_class_copies(graph, &cids, caller_file).unwrap_or(cids)
+                });
                 if found.is_some() || class_record_langs.contains(lang) {
                     // The caller's class and the base the chain found are
                     // each the only type of their name.
@@ -5420,6 +5522,16 @@ fn try_resolve_ref(
             Some(_) if class_record_langs.contains(lang) => return None,
             _ => {}
         }
+    }
+    // A base constructor (`super(…)`), Ruby's bare `super` and a C++
+    // base initializer name exactly a base's member: when the chain does
+    // not reach one, it is outside the tree, never a same-named member
+    // elsewhere.
+    if is_super_receiver(&r.receiver_hint)
+        && (constructor_names(lang).contains(&r.name.as_str())
+            || matches!(lang, "ruby" | "cpp"))
+    {
+        return None;
     }
 
     // Step 0b: a Kotlin extension function in scope. `expr.ext()` calls an

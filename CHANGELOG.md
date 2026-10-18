@@ -109,6 +109,42 @@ otherwise change the default graph.
     (`FuzzyMatch` is not a fuzz test), and a PowerShell `Test-*` function
     is never a test.
 
+- **Constructions and constructor delegation reached no constructor
+  (WS21).** Two kinds of call made no edge:
+  - *A construction was no call* in C# (`new T(…)`, `T x = new(…)`),
+    Swift (`T(…)`), Ruby (`T.new`), PHP (`new T`), Solidity (`new C(…)`),
+    PowerShell (`[T]::new(…)`) and Objective-C (`[[T alloc] initWith…]`).
+    Each is now a call of the type's constructor (`T.T`, `init`,
+    `initialize`, `__construct`, `constructor`, the `init…` method), looked
+    up on the type; a type declared or imported unambiguously binds at
+    `high`, Swift's by-name `T(…)` at `medium`. A type outside the tree
+    binds nothing in it: C# `new List<int>()` under `using
+    System.Collections.Generic`, PHP `new \Exception`, a dotted PowerShell
+    .NET type. C# constructions now carry their argument count, which
+    narrows constructor overloads as in Java (a `params` parameter takes
+    any count).
+  - *Constructor delegation recorded no site*: Java `this(…)`/`super(…)`,
+    JS/TS `super(…)`, C# `: this(…)`/`: base(…)`, C++ base and delegating
+    member initializers (`D() : Base(1)`, `D(int) : D()`), Solidity base
+    constructor invocations (`constructor() Base(x)`) and Ruby's bare
+    `super`/`super(…)`. Each resolves through the class's base chain (or to
+    a sibling constructor, never the one it is written in). A base outside
+    the tree is `super-base-out-of-graph`, never a same-named member
+    elsewhere; a C++ data-member initializer (`n_(0)`) makes no call and
+    no record; a base constructor reached through several same-named class
+    copies narrows to the calling file's copy, else the nearest one.
+  - Swift initializers now carry their class's bases and `override`
+    marker, a typed receiver's own name no longer qualifies a same-file
+    method of that name (`new Thing()` inside a method `Thing`), and Ruby
+    typed receivers narrow by the namespace path written, as JVM ones do.
+    A Ruby `T.new` or `super` that is not structurally certain is refused
+    (`candidates-in-other-files`): Ruby bases and receiver types are
+    matched by their last segment, so such a guess landed on a same-named
+    class of another namespace about half the time.
+  - Not changed: Scala, Groovy and F# primary constructors and Groovy and
+    F# constructors are not extracted as callables, so their
+    constructions still have nothing to reach.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -155,6 +191,24 @@ WS20 (dead-code fixes; full corpus, 283 repositories, none excluded):
   after a `return`.
 - In a `--dead-code` run, an edge from an unreachable call site is
   `medium`.
+
+WS21 (constructions and delegation; full corpus, 283 repositories, none
+excluded):
+
+- The default graph gains 108,034 edges (70,619 `high`), every one to a
+  constructor or, for Ruby `super`, a base's member: PHP 64,609, C#
+  21,591, Java 13,315, Swift 3,361, C++ 1,641, TypeScript 1,333, Ruby 803,
+  Objective-C 862, JavaScript 451, Solidity 67, PowerShell 1.
+- 244 `medium` edges are removed: 243 Python `super().__init__()` calls
+  bound to every same-named base class in the tree, now only the calling
+  file's (or the nearest) copy, and one Ruby construction bound to a
+  same-named class of another namespace.
+- Under `--dead-code`, no `high` finding changes. At
+  `--dead-code-confidence low`, 10,545 findings leave the report (8,026
+  constructors: PHP 4,015, Java 1,810, C# 1,320, Swift 376, C++ 274,
+  Objective-C 122, TypeScript 54, JavaScript 48, Solidity 6, PowerShell 1;
+  2,519 callables reached only through them); 279 move `medium` → `low`,
+  2 `low` → `medium`, and none are newly reported.
 
 ## [0.11.0] - 2026-10-16
 

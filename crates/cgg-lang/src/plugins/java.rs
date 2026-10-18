@@ -152,6 +152,12 @@ impl<'a> JavaWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            // `this(…)` / `super(…)` as a constructor's first statement.
+            "explicit_constructor_invocation" => {
+                self.record_constructor_delegation(node);
+                self.walk_children(node);
+                return;
+            }
             "method_invocation" => {
                 self.record_call(node);
                 self.walk_children(node);
@@ -223,6 +229,60 @@ impl<'a> JavaWalker<'a> {
                 }
             }
         }
+    }
+
+    /// `this(…)` calls one of the class's own constructors, named after
+    /// the class as `new Box(…)` is; `super(…)` one of the superclass's,
+    /// recorded as the `super` call it is so the base chain resolves it.
+    /// Neither is ever the constructor it is written in.
+    fn record_constructor_delegation(&mut self, node: Node) {
+        let Some(kw) = node.child_by_field_name("constructor") else {
+            return;
+        };
+        let Some(ctor) = std::iter::successors(node.parent(), |n| n.parent())
+            .find(|n| n.kind() == "constructor_declaration")
+        else {
+            return;
+        };
+        let Some(class) = ctor.parent().and_then(|b| b.parent()).filter(|c| {
+            matches!(
+                c.kind(),
+                "class_declaration" | "enum_declaration" | "record_declaration"
+            )
+        }) else {
+            return;
+        };
+        let (name, receiver_hint) = match kw.kind() {
+            "this" => {
+                let Some(n) = class.child_by_field_name("name") else {
+                    return;
+                };
+                (self.text(n).to_string(), String::new())
+            }
+            "super" => {
+                let Some(sup) = class
+                    .child_by_field_name("superclass")
+                    .and_then(|s| s.named_child(0))
+                else {
+                    return;
+                };
+                let name = crate::receiver::type_simple_name(self.text(sup)).to_string();
+                (name, "super".to_string())
+            }
+            _ => return,
+        };
+        if name.is_empty() {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint,
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+            arity: node.child_by_field_name("arguments").map(super::arg_count),
+            not_def: Some(ctor.start_byte() as u32),
+            ..Default::default()
+        });
     }
 
     fn record_method(&mut self, node: Node) {
@@ -943,5 +1003,30 @@ mod tests {
         assert!(got.contains(&("g", Some(2))), "{got:?}");
         assert!(got.contains(&("B", Some(3))), "{got:?}");
         assert!(got.contains(&("h", Some(1))), "{got:?}");
+    }
+
+    #[test]
+    fn constructor_delegation_is_a_call() {
+        let f = extract(
+            "class B { B(int x) {} } class C extends B implements I { \
+             C() { this(1); } C(int y) { super(y); } } \
+             class D implements I { D() { super(); } }",
+        );
+        let refs: Vec<(&str, &str, Option<u32>, bool)> = f
+            .references
+            .iter()
+            .map(|r| {
+                (
+                    r.name.as_str(),
+                    r.receiver_hint.as_str(),
+                    r.arity,
+                    r.not_def.is_some(),
+                )
+            })
+            .collect();
+        assert!(refs.contains(&("C", "", Some(1), true)), "{refs:?}");
+        assert!(refs.contains(&("B", "super", Some(1), true)), "{refs:?}");
+        // Near miss: no superclass, so `super()` is `Object`'s.
+        assert_eq!(refs.len(), 2, "{refs:?}");
     }
 }
