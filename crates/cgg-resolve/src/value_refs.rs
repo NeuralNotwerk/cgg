@@ -183,18 +183,60 @@ pub fn tag_reference_edges(graph: &mut Graph, all_facts: &[FileFacts]) {
     if sites.is_empty() {
         return;
     }
-    let file_of: HashMap<_, FileId> =
-        graph.callables.values().map(|c| (c.id, c.file)).collect();
-    for e in graph.edges.iter_mut() {
+    // A value reference can share its byte with a call that starts on
+    // the same token: `f` in `f.bind(x)` is where the `bind` call
+    // starts. At such a byte only the edges to what the value names are
+    // reference edges; the call's own edges stay direct.
+    let mut shared: HashMap<(FileId, u32), HashSet<&str>> = HashMap::new();
+    for f in all_facts {
+        let calls: HashSet<u32> = f
+            .references
+            .iter()
+            .filter(|r| {
+                !r.value_ref
+                    && r.receiver_hint != cgg_core::VALUE_REF_HINT
+                    && r.receiver_hint != cgg_core::STRING_REF_HINT
+                    && sites.contains(&(f.file, r.site_byte))
+            })
+            .map(|r| r.site_byte)
+            .collect();
+        for r in f.references.iter().filter(|r| r.value_ref) {
+            if calls.contains(&r.site_byte) {
+                shared
+                    .entry((f.file, r.site_byte))
+                    .or_default()
+                    .insert(leaf(r));
+            }
+        }
+    }
+    let node_of: HashMap<_, (FileId, &str)> = graph
+        .callables
+        .values()
+        .map(|c| (c.id, (c.file, c.simple_name.as_str())))
+        .collect();
+    let mut retag: Vec<usize> = Vec::new();
+    for (i, e) in graph.edges.iter().enumerate() {
         if e.via != Via::Direct {
             continue;
         }
-        if file_of
-            .get(&e.src)
-            .is_some_and(|file| sites.contains(&(*file, e.site_byte)))
-        {
-            e.via = Via::Reference;
+        let Some((file, _)) = node_of.get(&e.src) else {
+            continue;
+        };
+        let key = (*file, e.site_byte);
+        if !sites.contains(&key) {
+            continue;
         }
+        let named = shared.get(&key).is_none_or(|names| {
+            node_of
+                .get(&e.dst)
+                .is_some_and(|(_, dst)| names.contains(dst))
+        });
+        if named {
+            retag.push(i);
+        }
+    }
+    for i in retag {
+        graph.edges[i].via = Via::Reference;
     }
 }
 
@@ -385,6 +427,37 @@ mod tests {
         let mut r = vref("m", "this");
         r.site_byte = 40;
         let f = facts("java", 0, &["run", "m"], vec![r]);
+        tag_reference_edges(&mut g, &[f]);
+        let vias: Vec<Via> = g.edges.iter().map(|e| e.via.clone()).collect();
+        assert_eq!(vias, vec![Via::Reference, Via::Direct]);
+    }
+
+    /// `f.bind(x)`: the value reference to `f` and the `bind` call start
+    /// at the same byte. Only the edge to `f` is a reference edge; the
+    /// call's edge to a `bind` method stays direct.
+    #[test]
+    fn a_call_sharing_the_value_refs_byte_keeps_its_direct_edges() {
+        use crate::deadcode::testutil::{edge, graph_with, node};
+        let mut g = graph_with(vec![
+            node(0, "main", "main", "javascript"),
+            node(1, "f", "f", "javascript"),
+            node(2, "Ctx.bind", "bind", "javascript"),
+        ]);
+        let mut to_f = edge(0, 1);
+        to_f.site_byte = 40;
+        let mut to_bind = edge(0, 2);
+        to_bind.site_byte = 40;
+        g.edges.push(to_f);
+        g.edges.push(to_bind);
+        let mut v = vref("f", "");
+        v.site_byte = 40;
+        let call = RefRecord {
+            name: "bind".into(),
+            receiver_hint: "f".into(),
+            site_byte: 40,
+            ..Default::default()
+        };
+        let f = facts("javascript", 0, &["main", "f"], vec![v, call]);
         tag_reference_edges(&mut g, &[f]);
         let vias: Vec<Via> = g.edges.iter().map(|e| e.via.clone()).collect();
         assert_eq!(vias, vec![Via::Reference, Via::Direct]);

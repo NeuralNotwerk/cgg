@@ -2291,6 +2291,107 @@ main({});\n";
     assert_eq!(g.matches("ref|").count(), 4, "{g}");
 }
 
+/// WS26 (gap 25): a Go function or method value — an argument, a
+/// composite literal's value, an assignment, a return — is a reference:
+/// live in the dead-code report and a `ref` edge under
+/// `--reference-edges`, with the default graph untouched. A parameter or
+/// local of the same name, a string and a struct field key are not.
+#[test]
+fn go_function_values_are_references() {
+    let tmp = TempDir::new().unwrap();
+    let src = "package main\n\
+import \"sort\"\n\
+type S struct{ Name string }\n\
+type T struct{ Field int }\n\
+func (s *S) handle() {}\n\
+func (s *S) Name2() string { return s.Name }\n\
+func less(i, j int) bool { return i < j }\n\
+func inTable() {}\n\
+func returned() {}\n\
+func shadowed() {}\n\
+func inString() {}\n\
+func Field() {}\n\
+func local() {}\n\
+func orphan() {}\n\
+func pass(f ...func()) {}\n\
+func make() func() { return returned }\n\
+func useParam(shadowed func()) { pass(shadowed) }\n\
+func (s *S) routes() { pass(s.handle); println(s.Name) }\n\
+func main() {\n\
+\txs := []int{2, 1}\n\
+\tsort.Slice(xs, less)\n\
+\t_ = []func(){inTable}\n\
+\tprintln(\"inString\")\n\
+\t_ = T{Field: 1}\n\
+\tlocal := func() {}\n\
+\tpass(local)\n\
+\t_ = make()\n\
+\tuseParam(nil)\n\
+\t(&S{}).routes()\n\
+}\n";
+    write(tmp.path(), "main.go", src.as_bytes());
+
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in [
+        "main.less",
+        "main.inTable",
+        "main.returned",
+        "main.S.handle",
+    ] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} is referenced as a value, findings: {dead:?}"
+        );
+    }
+    for gone in [
+        "main.shadowed",
+        "main.inString",
+        "main.Field",
+        "main.local",
+        "main.orphan",
+        "main.S.Name2",
+    ] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone} has no reference, findings: {dead:?}"
+        );
+    }
+
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .arg("-o")
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain).unwrap().matches("ref|").count(),
+        0
+    );
+    let refs = tmp.path().join("r.mmd");
+    cgg()
+        .args(["--reference-edges", "-o"])
+        .arg(&refs)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&refs).unwrap();
+    assert_eq!(g.matches("ref|").count(), 4, "{g}");
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------

@@ -7251,6 +7251,10 @@ fn try_resolve_ref(
         // only where the receiver is typed, never by name fan-out.
         if !rh.is_empty()
             && !r.paren_less
+            // A Go method value (`s.handle` passed or stored) through an
+            // untyped variable is a field read far more often than a
+            // method: it binds only through a typed receiver (WS26).
+            && (!r.value_ref || lang != "go")
             // A typed receiver is never fanned out by name: its type's
             // own lookup (step 4) was the answer, hit or miss.
             && !r.typed_receiver

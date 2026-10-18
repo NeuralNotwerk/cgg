@@ -334,6 +334,27 @@ otherwise change the default graph.
   `f.bind(x)` in any of those positions name `m`/`f` (the adapters are
   listed in `cgg_core::stdlib::JS_FUNCTION_VALUE_ADAPTERS`).
 
+- **Go functions and method values passed or stored as values were not
+  references (WS26, gap 25).** `sort.Slice(xs, less)`, `run(onTick)`,
+  `wg.Go(s.run)`, `return ctrl.handle`, `schema.Resource{Delete: del}`,
+  `map[string]func(){"k": f}`, `[]func(){f}`, `f = g`, `var f = g` and
+  `pkg.F` passed as an argument left the function with no incoming
+  reference, so it was reported dead. Under `--dead-code` and
+  `--reference-edges` each is now a value reference, named the way the
+  call would be: bare, through the package, or through the variable (a
+  method value). A method value through a variable binds only through
+  the variable's declared type, never by name fan-out: through an
+  untyped variable it is a field read far more often than a method. A
+  name a parameter or local of an enclosing function binds (Go has no
+  scope table yet, so any binding anywhere in the function counts), a
+  string, a struct literal's field key and a registrar verb's arguments
+  (already captured) are not recorded. Two fixes ride along, both only
+  in `--dead-code`/`--reference-edges` runs: the return-type heuristic no
+  longer treats a value reference as a call (a `mapT(mapEntry)` typed
+  every `entry` receiver of the file, dropping real calls through a
+  package of that name), and the value reference to `f` in `f.bind(x)`
+  no longer relabels the `bind` call's own edges as reference edges.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -540,6 +561,21 @@ WS26 follow-up (`.bind`; full corpus, 283 repositories; the baseline's
   initializer, a handler bound as a callback, a story `Template.bind({})`.
   None are newly reported, and 12 JavaScript findings move `medium` →
   `low`.
+
+WS26 Go (full corpus, 283 repositories, none excluded):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 25,042 Go reference edges are added (24,835
+  `high`); 2 `medium` registrar-captured ones bind the same callee at
+  `high`. The 15 TypeScript `bind` call edges relabelled by the
+  `.bind` follow-up are `direct` again.
+- Under `--dead-code`, 15,885 Go findings leave the report (none `high`;
+  14,131 in the Terraform AWS provider, whose resource CRUD functions are
+  named in `schema.Resource{…}` literals, and the helpers they reach).
+  233 previously withheld Go findings are now reported, all withheld for
+  low root coverage, which the new references lift over the threshold;
+  81 move `medium` → `low` (an unresolved value reference of the same
+  name is now doubt). No JavaScript or TypeScript finding changes.
 
 ## [0.11.0] - 2026-10-16
 

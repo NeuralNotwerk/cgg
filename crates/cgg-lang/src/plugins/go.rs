@@ -92,6 +92,7 @@ impl LanguagePlugin for GoPlugin {
             facts: &mut facts,
             pkg,
             param_frames: Vec::new(),
+            bound_frames: Vec::new(),
         };
         w.walk(root);
         let mut out = facts;
@@ -143,6 +144,12 @@ struct Walker<'a> {
     /// function literal around the node being walked, innermost last,
     /// with its body's start byte (see [`Self::shadow_params`]).
     param_frames: Vec<(Vec<String>, u32)>,
+    /// When the run records reference sites: every name each enclosing
+    /// function binds anywhere in it (receiver, parameters, results,
+    /// `:=`, `var`, `const`, `range`, type-switch and `case` bindings),
+    /// innermost last. A bare value-position name one of them binds is
+    /// a variable, not a function (see [`Self::capture_value_positions`]).
+    bound_frames: Vec<std::collections::HashSet<String>>,
 }
 
 impl<'a> Walker<'a> {
@@ -151,6 +158,9 @@ impl<'a> Walker<'a> {
     }
 
     fn walk(&mut self, node: Node) {
+        if self.ctx.reference_sites {
+            self.capture_value_positions(node);
+        }
         match node.kind() {
             "function_declaration" => {
                 self.record_function(node);
@@ -343,8 +353,184 @@ impl<'a> Walker<'a> {
         }
         let start = body.map_or(node.start_byte(), |b| b.start_byte()) as u32;
         self.param_frames.push((names, start));
+        let frame = self.ctx.reference_sites;
+        if frame {
+            let bound = self.bound_in(node);
+            self.bound_frames.push(bound);
+        }
         self.walk_children(node);
+        if frame {
+            self.bound_frames.pop();
+        }
         self.param_frames.pop();
+    }
+
+    /// Every name `func` binds anywhere inside it: receiver, parameters
+    /// and named results, `:=`, `var`, `const`, `range`, type-switch and
+    /// `case v := <-ch` bindings — a `name := func(…) {…}` too: without
+    /// scope evidence its name cannot be told from a package function of
+    /// the same name. Over-approximates scope (a binding counts over the
+    /// whole function), which can only drop a reference, never invent
+    /// one.
+    fn bound_in(&self, func: Node) -> std::collections::HashSet<String> {
+        let mut out = std::collections::HashSet::new();
+        let mut stack = vec![func];
+        while let Some(n) = stack.pop() {
+            match n.kind() {
+                "parameter_declaration" | "variadic_parameter_declaration" => {
+                    let mut c = n.walk();
+                    for name in n.children_by_field_name("name", &mut c) {
+                        out.insert(self.text(name).to_string());
+                    }
+                }
+                "var_spec" | "const_spec" => {
+                    let mut c = n.walk();
+                    for name in n.children_by_field_name("name", &mut c) {
+                        out.insert(self.text(name).to_string());
+                    }
+                }
+                "short_var_declaration" | "range_clause" | "receive_statement" => {
+                    if let Some(left) = n.child_by_field_name("left") {
+                        out.extend(self.bound_names(left));
+                    }
+                }
+                "type_switch_statement" => {
+                    if let Some(alias) = n.child_by_field_name("alias") {
+                        out.extend(self.bound_names(alias));
+                    }
+                }
+                _ => {}
+            }
+            let mut c = n.walk();
+            stack.extend(n.named_children(&mut c));
+        }
+        out
+    }
+
+    /// Value positions, when the run records reference sites: a function
+    /// or method named without being called — a call's argument
+    /// (`sort.Slice(xs, less)`, `wg.Go(s.run)`), a composite literal's
+    /// element or value (`Handler{Fn: h}`, `map[string]func(){"a": f}`,
+    /// `[]func(){f, g}`), the right side of `=`, `:=` and `var`, and a
+    /// returned value. A struct literal's key is a field name, never a
+    /// reference.
+    ///
+    /// Each is recorded the way the call it would be is: `f` bare,
+    /// `pkg.F` through the package, `s.m` (a method value) through `s`,
+    /// marked `value_ref`. A bare name a local or parameter of an
+    /// enclosing function binds is a variable and is not recorded; names
+    /// no Go callable carries are dropped before resolution
+    /// (`value_refs::prune`). A registrar verb's arguments were captured
+    /// by `registrar::capture` on the call's own turn.
+    fn capture_value_positions(&mut self, node: Node) {
+        let values: Vec<Node> = match node.kind() {
+            "argument_list" => {
+                let Some(call) = node.parent().filter(|p| p.kind() == "call_expression")
+                else {
+                    return;
+                };
+                let callee = call
+                    .child_by_field_name("function")
+                    .map(|f| self.text(f).to_string())
+                    .unwrap_or_default();
+                if super::registrar::admits(&self.ctx, &callee) {
+                    return;
+                }
+                let mut c = node.walk();
+                node.named_children(&mut c).collect()
+            }
+            "literal_value" => {
+                let mut c = node.walk();
+                node.named_children(&mut c)
+                    .filter_map(|e| match e.kind() {
+                        "literal_element" => Some(e),
+                        "keyed_element" => e.child_by_field_name("value"),
+                        _ => None,
+                    })
+                    .filter_map(|e| e.named_child(0))
+                    .collect()
+            }
+            "assignment_statement" | "short_var_declaration" => {
+                let Some(right) = node.child_by_field_name("right") else {
+                    return;
+                };
+                let mut c = right.walk();
+                right.named_children(&mut c).collect()
+            }
+            "var_spec" => {
+                let Some(v) = node.child_by_field_name("value") else {
+                    return;
+                };
+                let mut c = v.walk();
+                v.named_children(&mut c).collect()
+            }
+            "return_statement" => {
+                let Some(list) = node.named_child(0) else {
+                    return;
+                };
+                if list.kind() == "expression_list" {
+                    let mut c = list.walk();
+                    list.named_children(&mut c).collect()
+                } else {
+                    vec![list]
+                }
+            }
+            _ => return,
+        };
+        for v in values {
+            self.value_ref_in(v, 0);
+        }
+    }
+
+    fn value_ref_in(&mut self, v: Node, depth: u8) {
+        if depth > 4 {
+            return;
+        }
+        match v.kind() {
+            "identifier" => {
+                let name = self.text(v);
+                if self.bound_frames.iter().any(|f| f.contains(name)) {
+                    return;
+                }
+                self.push_value_ref(v, String::new());
+            }
+            "selector_expression" => {
+                let (Some(operand), Some(field)) = (
+                    v.child_by_field_name("operand"),
+                    v.child_by_field_name("field"),
+                ) else {
+                    return;
+                };
+                if operand.kind() != "identifier" {
+                    return;
+                }
+                let recv = self.text(operand).to_string();
+                self.push_value_ref(field, recv);
+            }
+            "parenthesized_expression" => {
+                if let Some(inner) = v.named_child(0) {
+                    self.value_ref_in(inner, depth + 1);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Record `name_node` as a value reference through `recv`, on the
+    /// name's own token.
+    fn push_value_ref(&mut self, name_node: Node, recv: String) {
+        let name = self.text(name_node).to_string();
+        if name.is_empty() || name == "_" {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: recv,
+            site_line: (name_node.start_position().row as u32) + 1,
+            site_byte: name_node.start_byte() as u32,
+            value_ref: true,
+            ..Default::default()
+        });
     }
 
     /// Names a declaration's left side binds: one identifier, or each
@@ -1494,5 +1680,92 @@ func Helper() {}
         );
         assert_eq!(abstract_tags(&f, "a.S.Area"), vec![true]);
         assert_eq!(abstract_tags(&f, "a.Q.Area"), vec![false]);
+    }
+
+    fn extract_with_refs(src: &str, refs: bool) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_go::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        GoPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(refs),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.go"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    fn value_refs(f: &FileFacts) -> Vec<(String, String)> {
+        f.references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
+            .collect()
+    }
+
+    /// WS26 (gap 25): a function or method named as a value — an
+    /// argument, a composite literal's element or value, an assignment,
+    /// a `var`, a return — is a reference site, recorded only when the
+    /// run asks for reference sites.
+    #[test]
+    fn function_values_are_reference_sites() {
+        let src = "package p\n\
+                   import \"example.com/m/util\"\n\
+                   var table = map[string]func(){\"a\": inMap}\n\
+                   func make() func() { return made }\n\
+                   func (s *S) routes() { pass(s.handle) }\n\
+                   func main() {\n\
+                     sort.Slice(xs, less)\n\
+                     _ = []func(){inSlice}\n\
+                     _ = H{Fn: inStruct}\n\
+                     var f func() = declared\n\
+                     f = assigned\n\
+                     g := aliased\n\
+                     pass(util.Format, (paren))\n\
+                   }\n";
+        let got = value_refs(&extract_with_refs(src, true));
+        let want = [
+            ("", "inMap"),
+            ("", "made"),
+            ("s", "handle"),
+            ("", "less"),
+            ("", "inSlice"),
+            ("", "inStruct"),
+            ("", "declared"),
+            ("", "assigned"),
+            ("", "aliased"),
+            ("util", "Format"),
+            ("", "paren"),
+        ];
+        for (recv, name) in want {
+            assert!(
+                got.contains(&(recv.to_string(), name.to_string())),
+                "missing {recv}.{name} in {got:?}"
+            );
+        }
+        assert!(value_refs(&extract_with_refs(src, false)).is_empty());
+    }
+
+    /// The near misses: a parameter, a local (a `:=` of a function
+    /// literal too), a string, a struct literal's field key and a
+    /// composite literal's type are not references.
+    #[test]
+    fn locals_strings_and_field_keys_are_not_reference_sites() {
+        let src = "package p\n\
+                   func use(param func()) {\n\
+                     pass(param)\n\
+                     loc := 1\n\
+                     pass(loc)\n\
+                     lit := func() {}\n\
+                     pass(lit)\n\
+                     for _, it := range xs { pass(it) }\n\
+                     pass(\"inString\")\n\
+                     _ = T{Key: 1}\n\
+                   }\n";
+        let got = value_refs(&extract_with_refs(src, true));
+        let names: Vec<&str> = got.iter().map(|(_, n)| n.as_str()).collect();
+        for n in ["param", "loc", "lit", "it", "inString", "Key", "T"] {
+            assert!(!names.contains(&n), "{n} recorded: {got:?}");
+        }
     }
 }

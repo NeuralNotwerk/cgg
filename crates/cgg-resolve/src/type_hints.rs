@@ -576,14 +576,19 @@ pub fn propagate_types_with_fields(
         lookups.set(n.saturating_add(1));
         if n < SCAN_BUDGET && called_map.get().is_none() {
             return facts.references.iter().any(|r| {
-                r.name == fn_name && r.receiver_hint.is_empty() && r.site_byte < before
+                r.name == fn_name
+                    && r.receiver_hint.is_empty()
+                    && !r.value_ref
+                    && r.site_byte < before
             });
         }
         called_map
             .get_or_init(|| {
                 let mut m: HashMap<&str, u32> = HashMap::new();
+                // A value reference names the function without calling
+                // it: nothing it returns is in scope.
                 for r in &facts.references {
-                    if r.receiver_hint.is_empty() {
+                    if r.receiver_hint.is_empty() && !r.value_ref {
                         m.entry(r.name.as_str())
                             .and_modify(|b| *b = (*b).min(r.site_byte))
                             .or_insert(r.site_byte);
@@ -4048,6 +4053,38 @@ mod tests {
             facts.language = lang.into();
             propagate_types_with_returns(&mut facts, &index);
             assert_eq!(facts.references[1].receiver_hint, want, "{lang}");
+        }
+    }
+
+    /// WS26: the return-type heuristic types a receiver by a function
+    /// called earlier in the file. A value reference to that function
+    /// (`mapT(mapEntry)`) calls nothing, so it types nothing; the call
+    /// itself still does.
+    #[test]
+    fn a_value_reference_is_not_a_call_for_the_return_type_heuristic() {
+        let mut ret: HashMap<(&str, &str), &str> = HashMap::new();
+        ret.insert(("python", "make_entry"), "Entry");
+        let index = ReturnTypeIndex::build(&ret);
+        for (value_ref, want) in [(true, "entry"), (false, "Entry")] {
+            let defs = vec![mk_def("run", "def run()", 0, 100)];
+            let refs = vec![
+                RefRecord {
+                    name: "make_entry".into(),
+                    site_byte: 10,
+                    value_ref,
+                    ..Default::default()
+                },
+                RefRecord {
+                    name: "save".into(),
+                    receiver_hint: "entry".into(),
+                    site_byte: 20,
+                    ..Default::default()
+                },
+            ];
+            let mut facts = mk_facts(defs, refs);
+            facts.language = "python".into();
+            propagate_types_with_returns(&mut facts, &index);
+            assert_eq!(facts.references[1].receiver_hint, want, "{value_ref}");
         }
     }
 
