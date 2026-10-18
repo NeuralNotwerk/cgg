@@ -221,6 +221,11 @@ pub const SCALA_IMPLICIT_PACKAGES: &[&str] = &[
 /// bare calls, and a crate's own `err!` macro is a bare call.
 pub const RUST_UNTYPED_ADAPTER_METHODS: &[&str] = &["ok", "err", "as_deref"];
 
+/// JavaScript/TypeScript `Function.prototype` methods that return the
+/// function they are called on, bound: `this.m.bind(this)` passed or
+/// stored as a value is a reference to `m`.
+pub const JS_FUNCTION_VALUE_ADAPTERS: &[&str] = &["bind"];
+
 /// The [`SCALA_IMPLICIT_PACKAGES`] that are roots in their own right;
 /// every other entry is a child of `scala` (`math` is `scala.math`).
 pub const SCALA_ROOT_PACKAGES: &[&str] = &["scala", "java", "javax"];

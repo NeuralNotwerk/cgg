@@ -330,6 +330,9 @@ otherwise change the default graph.
   and a name a parameter or local binds at the site are not references.
   Nothing is recorded in a minified file (a line over 2,000 bytes), which
   has no parameter/local scope evidence. The default graph is unchanged.
+  A bound function is the function it binds: `this.m.bind(this)` and
+  `f.bind(x)` in any of those positions name `m`/`f` (the adapters are
+  listed in `cgg_core::stdlib::JS_FUNCTION_VALUE_ADAPTERS`).
 
 ### Compatibility
 
@@ -522,6 +525,21 @@ repositories, none excluded):
   changed), and 274 move `medium` → `low` (an unresolved value reference
   of the same name is now doubt). Net: 13,890 fewer findings. No `high`
   finding changes.
+
+WS26 follow-up (`.bind`; full corpus, 283 repositories; the baseline's
+`zig-zig` dead-code run hit the 60 s cap, and Zig has no JS/TS):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 575 reference edges are added (538 `high`).
+  15 `medium` direct edges from `verify.bind(this)` calls to unrelated
+  workspace methods named `bind` are now labelled reference edges,
+  because the value reference to `verify` starts at the same byte as the
+  call.
+- Under `--dead-code`, 478 findings leave the report (TypeScript 397,
+  JavaScript 81; none `high`): a method bound in a constructor or field
+  initializer, a handler bound as a callback, a story `Template.bind({})`.
+  None are newly reported, and 12 JavaScript findings move `medium` →
+  `low`.
 
 ## [0.11.0] - 2026-10-16
 

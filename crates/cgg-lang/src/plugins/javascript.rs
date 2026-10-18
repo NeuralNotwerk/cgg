@@ -460,8 +460,9 @@ impl<'a> JsWalker<'a> {
     }
 
     /// The names one value expression stands for: itself, or the
-    /// branches of `a ? f : g` / `f || g`, through parentheses and
-    /// TypeScript's type-only wrappers (`f as H`, `f!`).
+    /// branches of `a ? f : g` / `f || g`, through parentheses,
+    /// TypeScript's type-only wrappers (`f as H`, `f!`) and a bound
+    /// function (`f.bind(x)`, `cgg_core::stdlib::JS_FUNCTION_VALUE_ADAPTERS`).
     fn value_ref_in(&mut self, v: Node, depth: u8) {
         if depth > 4 {
             return;
@@ -492,6 +493,24 @@ impl<'a> JsWalker<'a> {
                     _ => return,
                 };
                 self.push_value_ref(prop, recv);
+            }
+            // `f.bind(x)` / `this.m.bind(this)`: the bound function is
+            // the one the adapter is called on.
+            "call_expression" => {
+                let Some(target) = v
+                    .child_by_field_name("function")
+                    .filter(|f| f.kind() == "member_expression")
+                    .filter(|f| {
+                        f.child_by_field_name("property").is_some_and(|p| {
+                            cgg_core::stdlib::JS_FUNCTION_VALUE_ADAPTERS
+                                .contains(&self.text(p))
+                        })
+                    })
+                    .and_then(|f| f.child_by_field_name("object"))
+                else {
+                    return;
+                };
+                self.value_ref_in(target, depth + 1);
             }
             "parenthesized_expression"
             | "as_expression"
@@ -2094,6 +2113,8 @@ class Service {
                      return c ? yes : no;\n\
                    }\n\
                    module.exports = { exported };\n\
+                   class B { constructor() { this.onB = this.onB.bind(this); } onB() {} }\n\
+                   setTimeout(boundFree.bind(null, 1));\n\
                    export default byDefault;\n";
         let got = value_refs(&extract_with_refs(src, true));
         let want = [
@@ -2112,6 +2133,8 @@ class Service {
             ("", "no"),
             ("", "exported"),
             ("", "byDefault"),
+            ("this", "onB"),
+            ("", "boundFree"),
         ];
         for (recv, name) in want {
             assert!(
@@ -2133,10 +2156,11 @@ class Service {
                      const t = { asKey: 1 };\n\
                      use(o.prop);\n\
                      const v = cond ? 1 : 2;\n\
+                     use(this.notBound.call(this));\n\
                    }\n";
         let got = value_refs(&extract_with_refs(src, true));
         let names: Vec<&str> = got.iter().map(|(_, n)| n.as_str()).collect();
-        for n in ["inString", "asKey", "prop", "cond"] {
+        for n in ["inString", "asKey", "prop", "cond", "notBound"] {
             assert!(!names.contains(&n), "{n} recorded: {got:?}");
         }
     }
