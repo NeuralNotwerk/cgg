@@ -51,6 +51,13 @@ python3 scripts/docs-check.py
 cd crates/cgg-node && npx --yes --package=@napi-rs/cli@3.8.5 -- napi build --platform --release
 cd crates/cgg-node && node --test tests/*.test.js
 
+# Full-corpus graph + dead-code A/B between two binaries (diffs edges,
+# confidence and dead findings). Results are cached in target/ab-cache by
+# binary sha256 + repo git state, so a binary is never rerun on an
+# unchanged repo; GRAPH_AB_NO_CACHE=1 bypasses it. Timing is never cached:
+# compare-release.py always runs both binaries, paired.
+python3 scripts/graph-ab.py OLD_BIN NEW_BIN OUTDIR [--repos a,b]
+
 # Reproduce the README benchmark table (clones repos into $CGG_BENCH_DIR, default /storage/cgg-test_repos)
 ./scripts/benchmark.sh
 
