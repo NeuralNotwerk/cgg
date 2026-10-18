@@ -1,0 +1,180 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "Cze27hj5psq": {
+      "id": "Cze27hj5psq",
+      "qualified_name": "quotesbot.pipelines.QuotesbotPipeline.process_item",
+      "simple_name": "process_item",
+      "kind": "method",
+      "language": "python",
+      "file": "Fuifctn3sva",
+      "start_line": 10,
+      "end_line": 11,
+      "start_byte": 231,
+      "end_byte": 288,
+      "signature_hint": "def process_item(self, item, spider)",
+      "vis": "public"
+    },
+    "C4j93i4ys8q": {
+      "id": "C4j93i4ys8q",
+      "qualified_name": "quotesbot.spiders.toscrape-css.ToScrapeCSSSpider.parse",
+      "simple_name": "parse",
+      "kind": "method",
+      "language": "python",
+      "file": "Fs44ygn157v",
+      "start_line": 11,
+      "end_line": 21,
+      "start_byte": 175,
+      "end_byte": 683,
+      "signature_hint": "def parse(self, response)",
+      "vis": "public"
+    },
+    "C1674cgjf5g6": {
+      "id": "C1674cgjf5g6",
+      "qualified_name": "quotesbot.spiders.toscrape-xpath.ToScrapeSpiderXPath.parse",
+      "simple_name": "parse",
+      "kind": "method",
+      "language": "python",
+      "file": "F15dwwmvvchx",
+      "start_line": 11,
+      "end_line": 21,
+      "start_byte": 179,
+      "end_byte": 762,
+      "signature_hint": "def parse(self, response)",
+      "vis": "public"
+    }
+  },
+  "files": {
+    "Fryx52xbhi1": {
+      "id": "Fryx52xbhi1",
+      "path": "/storage/cgg-test_repos/app-quotesbot-scrapy/quotesbot/__init__.py",
+      "language": "python",
+      "detected_via": "extension:.py",
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "size_bytes": 0,
+      "lines": 0,
+      "parse_ms": 0.06365,
+      "parse_status": "ok"
+    },
+    "F5dyn1yzfik": {
+      "id": "F5dyn1yzfik",
+      "path": "/storage/cgg-test_repos/app-quotesbot-scrapy/quotesbot/items.py",
+      "language": "python",
+      "detected_via": "extension:.py",
+      "blake3": "d0a6082301973dcacf915184b9fdd19dd332c85c8eb3d08a998e898af0523fca",
+      "size_bytes": 288,
+      "lines": 14,
+      "parse_ms": 0.06752999999999999,
+      "parse_status": "ok"
+    },
+    "Fuifctn3sva": {
+      "id": "Fuifctn3sva",
+      "path": "/storage/cgg-test_repos/app-quotesbot-scrapy/quotesbot/pipelines.py",
+      "language": "python",
+      "detected_via": "extension:.py",
+      "blake3": "45c42ca005b6467389dc8d288ce7f8a27b103797d8c04030fce0c27df31bff66",
+      "size_bytes": 289,
+      "lines": 11,
+      "parse_ms": 0.15546000000000001,
+      "parse_status": "ok"
+    },
+    "Fg0pdm45zt4": {
+      "id": "Fg0pdm45zt4",
+      "path": "/storage/cgg-test_repos/app-quotesbot-scrapy/quotesbot/settings.py",
+      "language": "python",
+      "detected_via": "extension:.py",
+      "blake3": "b0a9da4a1b1084d9c422b71bab07c6caae44addf445bde45c6ef71262e035afd",
+      "size_bytes": 3152,
+      "lines": 90,
+      "parse_ms": 1.196012,
+      "parse_status": "ok"
+    },
+    "F165z2owytav": {
+      "id": "F165z2owytav",
+      "path": "/storage/cgg-test_repos/app-quotesbot-scrapy/quotesbot/spiders/__init__.py",
+      "language": "python",
+      "detected_via": "extension:.py",
+      "blake3": "6b1de343436221f4b75a9ec3edba6b363768cc8c99828c8201a802a3a0726524",
+      "size_bytes": 161,
+      "lines": 4,
+      "parse_ms": 0.010329999999999999,
+      "parse_status": "ok"
+    },
+    "Fs44ygn157v": {
+      "id": "Fs44ygn157v",
+      "path": "/storage/cgg-test_repos/app-quotesbot-scrapy/quotesbot/spiders/toscrape-css.py",
+      "language": "python",
+      "detected_via": "extension:.py",
+      "blake3": "79d885ca8d2716f438ca8dcb2c9e987be361409b0b79efdb67e9c0beed0049d3",
+      "size_bytes": 685,
+      "lines": 22,
+      "parse_ms": 0.429761,
+      "parse_status": "ok"
+    },
+    "F15dwwmvvchx": {
+      "id": "F15dwwmvvchx",
+      "path": "/storage/cgg-test_repos/app-quotesbot-scrapy/quotesbot/spiders/toscrape-xpath.py",
+      "language": "python",
+      "detected_via": "extension:.py",
+      "blake3": "dde884b1cf0ec0006e5f91a6e62c62ee668a04237d08c0aa104be66d4fddd906",
+      "size_bytes": 764,
+      "lines": 22,
+      "parse_ms": 0.384571,
+      "parse_status": "ok"
+    }
+  },
+  "edges": [],
+  "unresolved": [],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 7.021853,
+    "phases": {
+      "walk_ms": 2.132723,
+      "parse_ms": 2.307314,
+      "extract_ms": 2.411524000000001,
+      "resolve_ms": 0.0,
+      "link_ms": 1.619933,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 41,
+    "files_analyzed": 7,
+    "files_skipped": 34,
+    "files_errored": 0,
+    "bytes_processed": 5339,
+    "callables": 3,
+    "edges": 0,
+    "unresolved_calls": 0,
+    "stdlib_calls": 0,
+    "external_calls": 22,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "python": {
+        "files": 7,
+        "callables": 3,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 22
+      },
+      "skip:builtin": {
+        "files": 30,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    }
+  }
+}

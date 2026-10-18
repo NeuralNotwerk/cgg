@@ -1,0 +1,5550 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 11,
+      "callables": 26,
+      "roots": 7,
+      "reachable": 26,
+      "reachable_pct": 100,
+      "findings": 0,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    },
+    {
+      "language": "python",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "full",
+      "test_tagging": "full",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "builtin:lifecycle",
+        "framework:entry-node",
+        "framework:test-harness",
+        "toplevel:invocation"
+      ],
+      "files": 64,
+      "callables": 189,
+      "roots": 39,
+      "reachable": 81,
+      "reachable_pct": 42,
+      "findings": 108,
+      "blind_spots": [
+        "getattr/setattr and other string-dispatched calls"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 215,
+    "edges": 296,
+    "unresolved_call_sites": 526,
+    "roots": 46,
+    "candidates": 108,
+    "reported": 108,
+    "regions": 58
+  },
+  "roots": [
+    {
+      "id": "C150bpdgud5j",
+      "qualified_name": "latest_chapter.latest_chapter_task",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/examples/latest_chapter.py:32"
+    },
+    {
+      "id": "Cgj6qp5ardm",
+      "qualified_name": "latest_chapter.update_all",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/examples/novels/novels_schedule.py:20"
+    },
+    {
+      "id": "Ckv4rwpsthz",
+      "qualified_name": "baidu_novels.baidu_search",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/examples/novels/baidu_novels.py:172"
+    },
+    {
+      "id": "C182jj94ryy6",
+      "qualified_name": "bing_novels.novel_task",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/examples/novels/so_novels.py:117"
+    },
+    {
+      "id": "Cw7dh9hf4gz",
+      "qualified_name": "duck_go_novels.novel_task",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/examples/novels/so_novels.py:117"
+    },
+    {
+      "id": "Ccbzqpk6fdz",
+      "qualified_name": "novels_schedule.update_all",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/examples/novels/novels_schedule.py:20"
+    },
+    {
+      "id": "C6ooozrwxhm",
+      "qualified_name": "parse.novel_task",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/examples/novels/so_novels.py:117"
+    },
+    {
+      "id": "C747twta7qj",
+      "qualified_name": "so_novels.novel_task",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/examples/novels/so_novels.py:117"
+    },
+    {
+      "id": "C13j8m1i6rnw",
+      "qualified_name": "user_recommend.get_user_tag_test",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/examples/user_recommend.py:72"
+    },
+    {
+      "id": "Couf36f3o6e",
+      "qualified_name": "user_tag.Novels.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Ckjmbtib5z2",
+      "qualified_name": "user_tag.tag_test",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/examples/user_tag.py:90"
+    },
+    {
+      "id": "C2ax910yksc",
+      "qualified_name": "owllook.config.__init__.load_config",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/config/__init__.py:41"
+    },
+    {
+      "id": "C24qv0wu7fr",
+      "qualified_name": "owllook.database.mongodb.motorbase.MotorBase.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C226573qzec",
+      "qualified_name": "owllook.database.mongodb.motorbase.MotorBase.get_db",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/database/mongodb/motorbase.py:132"
+    },
+    {
+      "id": "Cqpesm0eadd",
+      "qualified_name": "owllook.database.mongodb.motorbase.MotorBaseOld.db",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/novels_tools.py:26"
+    },
+    {
+      "id": "Cnvkq2nc03t",
+      "qualified_name": "owllook.database.mongodb.motorbase.PyMongoDb.db",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/novels_tools.py:26"
+    },
+    {
+      "id": "Chp5phfj6t1",
+      "qualified_name": "owllook.database.mongodb.motorbase.async_callback",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/database/mongodb/motorbase.py:140"
+    },
+    {
+      "id": "C6ljnv3weaw",
+      "qualified_name": "owllook.database.mongodb.motorbase.insert",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/database/mongodb/motorbase.py:140"
+    },
+    {
+      "id": "Cn6odup4d3z",
+      "qualified_name": "owllook.fetcher.novels_factory.baidu_novels.BaiduNovels.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cwgqmn7wc7c",
+      "qualified_name": "owllook.fetcher.novels_factory.baidu_novels.start",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/novels_factory/so_novels.py:104"
+    },
+    {
+      "id": "Cziho97ue7",
+      "qualified_name": "owllook.fetcher.novels_factory.base_novels.BaseNovels.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cl1i4bhlml",
+      "qualified_name": "owllook.fetcher.novels_factory.base_novels.BaseNovels.start",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/novels_factory/so_novels.py:104"
+    },
+    {
+      "id": "Cxrfnja60bo",
+      "qualified_name": "owllook.fetcher.novels_factory.bing_novels.BingNovels.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cn1sad2kf83",
+      "qualified_name": "owllook.fetcher.novels_factory.bing_novels.start",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/novels_factory/so_novels.py:104"
+    },
+    {
+      "id": "Cr8tv69sael",
+      "qualified_name": "owllook.fetcher.novels_factory.duck_go_novels.DuckGoNovels.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C1l2xvrz91h",
+      "qualified_name": "owllook.fetcher.novels_factory.duck_go_novels.start",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/novels_factory/so_novels.py:104"
+    },
+    {
+      "id": "C105at58bi6k",
+      "qualified_name": "owllook.fetcher.novels_factory.so_novels.SoNovels.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cmel9x41q2s",
+      "qualified_name": "owllook.fetcher.novels_factory.so_novels.start",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/novels_factory/so_novels.py:104"
+    },
+    {
+      "id": "C5m6ggf4ghh",
+      "qualified_name": "owllook.fetcher.novels_schedule.update_all_books_schedule",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/novels_schedule.py:29"
+    },
+    {
+      "id": "Cmbxwvl25m6",
+      "qualified_name": "owllook.fetcher.novels_tools.get_novels_info",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/novels_tools.py:31"
+    },
+    {
+      "id": "Cflq342x8mf",
+      "qualified_name": "owllook.recommend.cosinesimilarity.CosineSimilarity.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cslu0yiu61h",
+      "qualified_name": "owllook.scheduled_task.start_spider",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/spider_console.py:19"
+    },
+    {
+      "id": "Csxmiaeyq5g",
+      "qualified_name": "owllook.scheduled_task.update_all_books_schedule",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/novels_schedule.py:29"
+    },
+    {
+      "id": "Cu1szglos4m",
+      "qualified_name": "owllook.scheduled_task.refresh_task",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/scheduled_task.py:47"
+    },
+    {
+      "id": "Cf49q4329wo",
+      "qualified_name": "owllook.spiders.spider_console.start_spider",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/spider_console.py:19"
+    },
+    {
+      "id": "Ckux1jf9h60",
+      "qualified_name": "owllook.spiders.spider_tools.get_proxy_ip",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/spider_tools.py:35"
+    },
+    {
+      "id": "C9gy69nqlxc",
+      "qualified_name": "ajax_content_init",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/static/novels/js/content.js:255"
+    },
+    {
+      "id": "C174ztisevxo",
+      "qualified_name": "theme",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/static/novels/js/theme.js:35"
+    },
+    {
+      "id": "C4jri347fhu",
+      "qualified_name": "set_font",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/static/novels/js/theme.js:152"
+    },
+    {
+      "id": "C8be9no2xpq",
+      "qualified_name": "set_font_family",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/static/novels/js/theme.js:162"
+    },
+    {
+      "id": "C5qbi30b0qg",
+      "qualified_name": "refresh_font_size",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/static/novels/js/theme.js:152"
+    },
+    {
+      "id": "Cgiui96pevr",
+      "qualified_name": "refresh_font_family",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/static/novels/js/theme.js:142"
+    },
+    {
+      "id": "C13qv134omke",
+      "qualified_name": "change_Theme",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/static/novels/js/theme.js:145"
+    },
+    {
+      "id": "Cofnypew330",
+      "qualified_name": "owllook.utils.tools.async_callback",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-owllook-sanic/owllook/database/mongodb/motorbase.py:140"
+    },
+    {
+      "id": "C1njb664mc1",
+      "qualified_name": "test_heiyan_novel_info.test_heiyan_novel_info",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ctfumw6mzmj",
+      "qualified_name": "<framework-entry>::test::pytest",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::pytest`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 5,
+      "members": [
+        "C1wwviv5vbl"
+      ],
+      "anchors": [
+        "C1wwviv5vbl"
+      ],
+      "files": [
+        "Fhkca8m0k0s"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 32,
+      "members": [
+        "C4gsxiivut2"
+      ],
+      "anchors": [
+        "C4gsxiivut2"
+      ],
+      "files": [
+        "Fu20dvw7m3r"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 39,
+      "members": [
+        "Ct11bfxl5ro",
+        "Cdoz66g3jqn"
+      ],
+      "anchors": [
+        "Cdoz66g3jqn"
+      ],
+      "files": [
+        "Fxp4uin62xg",
+        "F13ne1n1mg3m"
+      ],
+      "total_lines": 29,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 40,
+      "members": [
+        "C5ndxz0kl9r",
+        "C14db19ion6m",
+        "C4isi5g5djp",
+        "Cmzfe9b74u3",
+        "C180tyhsgiyu",
+        "C34kojmo1v8",
+        "Cc8mggj1ow3",
+        "Ca96glckjhf",
+        "Ctbhux15r88",
+        "Cntq9ulu9bo",
+        "C16lq12s14lx",
+        "C9rnwfd4vph",
+        "Ck7sd5cgktz",
+        "Ct8dmg32r27",
+        "Cb9strg6e4l",
+        "Cvfzht8uv7l",
+        "Chkg7ydm1w1",
+        "C15qkbbp6uy4",
+        "Cv22ahihio9",
+        "Cjjkepkl0gg",
+        "Czqadua9mik",
+        "Ceejtn9m33l",
+        "Cxw21clt7fb",
+        "Cfmp8uvnasf",
+        "C13v35if82s7",
+        "C8ntczh6nfp",
+        "Csmdsnjsa73",
+        "C17lp2tj6s3y",
+        "Clt3w03xtgj",
+        "Cliucds6mzi",
+        "Ci0ql3bojjn",
+        "Cr4hvl9pxd",
+        "Cs27s1opkke",
+        "C4xjguia12z",
+        "Cay4a8itoq4",
+        "Cxa80q3xh1o",
+        "Cw12cpd3m61",
+        "Ctut32pm6fb"
+      ],
+      "anchors": [
+        "C180tyhsgiyu",
+        "Ca96glckjhf",
+        "Chkg7ydm1w1",
+        "C15qkbbp6uy4",
+        "Cv22ahihio9",
+        "Czqadua9mik",
+        "Ceejtn9m33l",
+        "Cxw21clt7fb",
+        "Cfmp8uvnasf",
+        "C13v35if82s7",
+        "C8ntczh6nfp",
+        "Csmdsnjsa73",
+        "C17lp2tj6s3y",
+        "Cliucds6mzi",
+        "Cr4hvl9pxd",
+        "Cs27s1opkke",
+        "C4xjguia12z",
+        "Cay4a8itoq4",
+        "Cxa80q3xh1o",
+        "Cw12cpd3m61",
+        "Ctut32pm6fb"
+      ],
+      "files": [
+        "Ftvue9mlriu",
+        "Fnssywhiq8b",
+        "Fxybze249q5",
+        "Foua7x53v7n",
+        "F1yyu856m9r",
+        "F2plrniz7hw",
+        "Fhxrhow101g",
+        "Fjpnjlezt2f"
+      ],
+      "total_lines": 981,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 52,
+      "members": [
+        "C14dhno5f162",
+        "Cvienkeomy",
+        "C1862x8jufip"
+      ],
+      "anchors": [
+        "C14dhno5f162"
+      ],
+      "files": [
+        "Fnssywhiq8b"
+      ],
+      "total_lines": 100,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 71,
+      "members": [
+        "C11fmg24yzre"
+      ],
+      "anchors": [
+        "C11fmg24yzre"
+      ],
+      "files": [
+        "F14ouqbxcr2h"
+      ],
+      "total_lines": 22,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 73,
+      "members": [
+        "Cmb0hqaqxd3"
+      ],
+      "anchors": [
+        "Cmb0hqaqxd3"
+      ],
+      "files": [
+        "F14ouqbxcr2h"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 96,
+      "members": [
+        "Cn3ra0m6jpu"
+      ],
+      "anchors": [
+        "Cn3ra0m6jpu"
+      ],
+      "files": [
+        "F13ne1n1mg3m"
+      ],
+      "total_lines": 19,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 97,
+      "members": [
+        "Cumro3aw8mj"
+      ],
+      "anchors": [
+        "Cumro3aw8mj"
+      ],
+      "files": [
+        "F13ne1n1mg3m"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 98,
+      "members": [
+        "C6uafrfrdn6"
+      ],
+      "anchors": [
+        "C6uafrfrdn6"
+      ],
+      "files": [
+        "Fn28jbwfg50"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 99,
+      "members": [
+        "Ctng4v1sipw"
+      ],
+      "anchors": [
+        "Ctng4v1sipw"
+      ],
+      "files": [
+        "Fn28jbwfg50"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 100,
+      "members": [
+        "Criwynlc8aj"
+      ],
+      "anchors": [
+        "Criwynlc8aj"
+      ],
+      "files": [
+        "Fn28jbwfg50"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 101,
+      "members": [
+        "Cguqazfii8c"
+      ],
+      "anchors": [
+        "Cguqazfii8c"
+      ],
+      "files": [
+        "Fn28jbwfg50"
+      ],
+      "total_lines": 21,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 103,
+      "members": [
+        "C9f96otptpg",
+        "Cfevc73cvkf",
+        "C51e68o8vsd"
+      ],
+      "anchors": [
+        "C9f96otptpg"
+      ],
+      "files": [
+        "Ftx24c7xlgt"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 106,
+      "members": [
+        "C17sr0s3qjh6"
+      ],
+      "anchors": [
+        "C17sr0s3qjh6"
+      ],
+      "files": [
+        "F63y5ivi8lx"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 107,
+      "members": [
+        "Ckq70xeuti3"
+      ],
+      "anchors": [
+        "Ckq70xeuti3"
+      ],
+      "files": [
+        "F63y5ivi8lx"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 108,
+      "members": [
+        "Cdavj78zidp"
+      ],
+      "anchors": [
+        "Cdavj78zidp"
+      ],
+      "files": [
+        "F63y5ivi8lx"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 109,
+      "members": [
+        "Cg5ns467z79"
+      ],
+      "anchors": [
+        "Cg5ns467z79"
+      ],
+      "files": [
+        "F63y5ivi8lx"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 110,
+      "members": [
+        "C2hkfxv6ecq"
+      ],
+      "anchors": [
+        "C2hkfxv6ecq"
+      ],
+      "files": [
+        "F63y5ivi8lx"
+      ],
+      "total_lines": 24,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 112,
+      "members": [
+        "Cc0d0egifue"
+      ],
+      "anchors": [
+        "Cc0d0egifue"
+      ],
+      "files": [
+        "Faa9q9o8drd"
+      ],
+      "total_lines": 31,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 113,
+      "members": [
+        "Co8npsjyzmc"
+      ],
+      "anchors": [
+        "Co8npsjyzmc"
+      ],
+      "files": [
+        "Fv29u1ti1c3"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 114,
+      "members": [
+        "C8xd2oqkkb"
+      ],
+      "anchors": [
+        "C8xd2oqkkb"
+      ],
+      "files": [
+        "Fv29u1ti1c3"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 115,
+      "members": [
+        "Cedqy4t5cvv"
+      ],
+      "anchors": [
+        "Cedqy4t5cvv"
+      ],
+      "files": [
+        "Fv29u1ti1c3"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 116,
+      "members": [
+        "Cl10yo4y2o4"
+      ],
+      "anchors": [
+        "Cl10yo4y2o4"
+      ],
+      "files": [
+        "Fv29u1ti1c3"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 117,
+      "members": [
+        "Cxk5fgv1dlc"
+      ],
+      "anchors": [
+        "Cxk5fgv1dlc"
+      ],
+      "files": [
+        "Fv29u1ti1c3"
+      ],
+      "total_lines": 21,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 118,
+      "members": [
+        "Ca64imy3adw"
+      ],
+      "anchors": [
+        "Ca64imy3adw"
+      ],
+      "files": [
+        "Fluwd59bj1z"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 119,
+      "members": [
+        "C13515frpmy0"
+      ],
+      "anchors": [
+        "C13515frpmy0"
+      ],
+      "files": [
+        "Fluwd59bj1z"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 120,
+      "members": [
+        "Cdx455s64vm"
+      ],
+      "anchors": [
+        "Cdx455s64vm"
+      ],
+      "files": [
+        "Fluwd59bj1z"
+      ],
+      "total_lines": 25,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 124,
+      "members": [
+        "Cr73vea2q4x"
+      ],
+      "anchors": [
+        "Cr73vea2q4x"
+      ],
+      "files": [
+        "Ftbiy88koed"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 126,
+      "members": [
+        "Cqvgu4ylapf"
+      ],
+      "anchors": [
+        "Cqvgu4ylapf"
+      ],
+      "files": [
+        "Fqkkyhjls7j"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 127,
+      "members": [
+        "C14hz5vksg0x"
+      ],
+      "anchors": [
+        "C14hz5vksg0x"
+      ],
+      "files": [
+        "Fqkkyhjls7j"
+      ],
+      "total_lines": 30,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 129,
+      "members": [
+        "Cofhawrehq5"
+      ],
+      "anchors": [
+        "Cofhawrehq5"
+      ],
+      "files": [
+        "Fvt498whuu7"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 130,
+      "members": [
+        "C9pq1myw0og"
+      ],
+      "anchors": [
+        "C9pq1myw0og"
+      ],
+      "files": [
+        "Fvt498whuu7"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 131,
+      "members": [
+        "C170f82l0ajn"
+      ],
+      "anchors": [
+        "C170f82l0ajn"
+      ],
+      "files": [
+        "Fvt498whuu7"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 132,
+      "members": [
+        "Cmln1we7kqd"
+      ],
+      "anchors": [
+        "Cmln1we7kqd"
+      ],
+      "files": [
+        "Fvt498whuu7"
+      ],
+      "total_lines": 22,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 163,
+      "members": [
+        "Cl73f9fbrvv",
+        "Cvycjc1aj9h"
+      ],
+      "anchors": [
+        "Cl73f9fbrvv"
+      ],
+      "files": [
+        "F5m7rqherfr"
+      ],
+      "total_lines": 19,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 167,
+      "members": [
+        "C6xrxbrpfbq",
+        "C10d60q18icr"
+      ],
+      "anchors": [
+        "C10d60q18icr"
+      ],
+      "files": [
+        "F1yyu856m9r",
+        "F1d65igtsaa"
+      ],
+      "total_lines": 67,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 168,
+      "members": [
+        "C16rqpldodcd"
+      ],
+      "anchors": [
+        "C16rqpldodcd"
+      ],
+      "files": [
+        "F4fsuif3oix"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 169,
+      "members": [
+        "Cditkhj0b6x"
+      ],
+      "anchors": [
+        "Cditkhj0b6x"
+      ],
+      "files": [
+        "F4fsuif3oix"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 170,
+      "members": [
+        "Cojjuobmwxz",
+        "C158k0zqk8b7",
+        "Cbfx1xq5u9u",
+        "C49t1tvpbys",
+        "Chpsowghzd",
+        "C3j2po4xgpc"
+      ],
+      "anchors": [
+        "C158k0zqk8b7",
+        "Cbfx1xq5u9u",
+        "C49t1tvpbys",
+        "Chpsowghzd"
+      ],
+      "files": [
+        "F4fsuif3oix"
+      ],
+      "total_lines": 169,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 179,
+      "members": [
+        "Chd60m7zgde",
+        "C10bo0qiq5q"
+      ],
+      "anchors": [
+        "C10bo0qiq5q"
+      ],
+      "files": [
+        "F1416jflm521"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 181,
+      "members": [
+        "Cu6h1v6h0r8"
+      ],
+      "anchors": [
+        "Cu6h1v6h0r8"
+      ],
+      "files": [
+        "F1416jflm521"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 182,
+      "members": [
+        "Cgp3kk2f81m"
+      ],
+      "anchors": [
+        "Cgp3kk2f81m"
+      ],
+      "files": [
+        "Fhxrhow101g"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 183,
+      "members": [
+        "C16fkwss5zno"
+      ],
+      "anchors": [
+        "C16fkwss5zno"
+      ],
+      "files": [
+        "Fhxrhow101g"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 195,
+      "members": [
+        "C12zggxksoeu"
+      ],
+      "anchors": [
+        "C12zggxksoeu"
+      ],
+      "files": [
+        "Fjpnjlezt2f"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 196,
+      "members": [
+        "Ccpa2mnnpx4"
+      ],
+      "anchors": [
+        "Ccpa2mnnpx4"
+      ],
+      "files": [
+        "Fjpnjlezt2f"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 205,
+      "members": [
+        "Cdcorjogtfo"
+      ],
+      "anchors": [
+        "Cdcorjogtfo"
+      ],
+      "files": [
+        "F1d65igtsaa"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 206,
+      "members": [
+        "Chzvm7vskmd"
+      ],
+      "anchors": [
+        "Chzvm7vskmd"
+      ],
+      "files": [
+        "F1d65igtsaa"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 207,
+      "members": [
+        "Cj208hn0n78"
+      ],
+      "anchors": [
+        "Cj208hn0n78"
+      ],
+      "files": [
+        "F1d65igtsaa"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 208,
+      "members": [
+        "Cxcmw1itc5p"
+      ],
+      "anchors": [
+        "Cxcmw1itc5p"
+      ],
+      "files": [
+        "F1d65igtsaa"
+      ],
+      "total_lines": 58,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 209,
+      "members": [
+        "C13ozosww3w2"
+      ],
+      "anchors": [
+        "C13ozosww3w2"
+      ],
+      "files": [
+        "F1d65igtsaa"
+      ],
+      "total_lines": 24,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 210,
+      "members": [
+        "C8c1g667ic4"
+      ],
+      "anchors": [
+        "C8c1g667ic4"
+      ],
+      "files": [
+        "F1d65igtsaa"
+      ],
+      "total_lines": 35,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 211,
+      "members": [
+        "Cbefw9qbobu"
+      ],
+      "anchors": [
+        "Cbefw9qbobu"
+      ],
+      "files": [
+        "F1d65igtsaa"
+      ],
+      "total_lines": 34,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 212,
+      "members": [
+        "Cg8aqxusfm"
+      ],
+      "anchors": [
+        "Cg8aqxusfm"
+      ],
+      "files": [
+        "F1d65igtsaa"
+      ],
+      "total_lines": 30,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 213,
+      "members": [
+        "C7oofqh5ex6"
+      ],
+      "anchors": [
+        "C7oofqh5ex6"
+      ],
+      "files": [
+        "F1d65igtsaa"
+      ],
+      "total_lines": 30,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 214,
+      "members": [
+        "Cfzd3t5ej0k"
+      ],
+      "anchors": [
+        "Cfzd3t5ej0k"
+      ],
+      "files": [
+        "F1d65igtsaa"
+      ],
+      "total_lines": 25,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 215,
+      "members": [
+        "C6yjxiar99g"
+      ],
+      "anchors": [
+        "C6yjxiar99g"
+      ],
+      "files": [
+        "F1d65igtsaa"
+      ],
+      "total_lines": 38,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 216,
+      "members": [
+        "C12kwxm7xtmj"
+      ],
+      "anchors": [
+        "C12kwxm7xtmj"
+      ],
+      "files": [
+        "F1d65igtsaa"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cxa80q3xh1o",
+      "qualified_name": "owllook.views.novels_blueprint.owllook_content",
+      "simple_name": "owllook_content",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fjpnjlezt2f",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/novels_blueprint.py",
+      "start_line": 92,
+      "end_line": 226,
+      "size_lines": 135,
+      "signature_hint": "async def owllook_content(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 235,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "Ctut32pm6fb",
+      "qualified_name": "owllook.views.novels_blueprint.owllook_search",
+      "simple_name": "owllook_search",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fjpnjlezt2f",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/novels_blueprint.py",
+      "start_line": 256,
+      "end_line": 362,
+      "size_lines": 107,
+      "signature_hint": "async def owllook_search(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 207,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 12
+    },
+    {
+      "id": "Cxcmw1itc5p",
+      "qualified_name": "owllook.views.operate_blueprint.author_notification",
+      "simple_name": "author_notification",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F1d65igtsaa",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/operate_blueprint.py",
+      "start_line": 48,
+      "end_line": 105,
+      "size_lines": 58,
+      "signature_hint": "async def author_notification(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 158,
+      "region": 208,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 8
+    },
+    {
+      "id": "C10d60q18icr",
+      "qualified_name": "owllook.views.operate_blueprint.owllook_register",
+      "simple_name": "owllook_register",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F1d65igtsaa",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/operate_blueprint.py",
+      "start_line": 365,
+      "end_line": 416,
+      "size_lines": 52,
+      "signature_hint": "async def owllook_register(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 152,
+      "region": 167,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 8
+    },
+    {
+      "id": "C13v35if82s7",
+      "qualified_name": "owllook.views.md_blueprint.books",
+      "simple_name": "books",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fhxrhow101g",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/md_blueprint.py",
+      "start_line": 146,
+      "end_line": 193,
+      "size_lines": 48,
+      "signature_hint": "async def books(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 148,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C17lp2tj6s3y",
+      "qualified_name": "owllook.views.md_blueprint.qidian",
+      "simple_name": "qidian",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fhxrhow101g",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/md_blueprint.py",
+      "start_line": 240,
+      "end_line": 287,
+      "size_lines": 48,
+      "signature_hint": "async def qidian(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 148,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Chpsowghzd",
+      "qualified_name": "owllook.views.admin_blueprint.search_user",
+      "simple_name": "search_user",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F4fsuif3oix",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/admin_blueprint.py",
+      "start_line": 138,
+      "end_line": 184,
+      "size_lines": 47,
+      "signature_hint": "async def search_user(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 147,
+      "region": 170,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Cbfx1xq5u9u",
+      "qualified_name": "owllook.views.admin_blueprint.books",
+      "simple_name": "books",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F4fsuif3oix",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/admin_blueprint.py",
+      "start_line": 79,
+      "end_line": 123,
+      "size_lines": 45,
+      "signature_hint": "async def books(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 145,
+      "region": 170,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C5ndxz0kl9r",
+      "qualified_name": "owllook.fetcher.cache.cache_owllook_novels_content",
+      "simple_name": "cache_owllook_novels_content",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Ftvue9mlriu",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/cache.py",
+      "start_line": 23,
+      "end_line": 64,
+      "size_lines": 42,
+      "signature_hint": "async def cache_owllook_novels_content(url, chapter_url,netloc)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 142,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cxa80q3xh1o"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Cfmp8uvnasf",
+      "qualified_name": "owllook.views.md_blueprint.bookmarks",
+      "simple_name": "bookmarks",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fhxrhow101g",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/md_blueprint.py",
+      "start_line": 105,
+      "end_line": 142,
+      "size_lines": 38,
+      "signature_hint": "async def bookmarks(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 138,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C6yjxiar99g",
+      "qualified_name": "owllook.views.operate_blueprint.owllook_login",
+      "simple_name": "owllook_login",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F1d65igtsaa",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/operate_blueprint.py",
+      "start_line": 305,
+      "end_line": 342,
+      "size_lines": 38,
+      "signature_hint": "async def owllook_login(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 138,
+      "region": 215,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C158k0zqk8b7",
+      "qualified_name": "owllook.views.admin_blueprint.bookmarks",
+      "simple_name": "bookmarks",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F4fsuif3oix",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/admin_blueprint.py",
+      "start_line": 39,
+      "end_line": 75,
+      "size_lines": 37,
+      "signature_hint": "async def bookmarks(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 137,
+      "region": 170,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C8c1g667ic4",
+      "qualified_name": "owllook.views.operate_blueprint.change_pass",
+      "simple_name": "change_pass",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F1d65igtsaa",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/operate_blueprint.py",
+      "start_line": 136,
+      "end_line": 170,
+      "size_lines": 35,
+      "signature_hint": "async def change_pass(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 135,
+      "region": 210,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ck7sd5cgktz",
+      "qualified_name": "owllook.fetcher.extract_novels.extract_pre_next_chapter",
+      "simple_name": "extract_pre_next_chapter",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fxybze249q5",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/extract_novels.py",
+      "start_line": 42,
+      "end_line": 75,
+      "size_lines": 34,
+      "signature_hint": "def extract_pre_next_chapter(url, chapter_url, html)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 134,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C5ndxz0kl9r"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cbefw9qbobu",
+      "qualified_name": "owllook.views.operate_blueprint.owllook_add_book",
+      "simple_name": "owllook_add_book",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F1d65igtsaa",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/operate_blueprint.py",
+      "start_line": 174,
+      "end_line": 207,
+      "size_lines": 34,
+      "signature_hint": "async def owllook_add_book(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 134,
+      "region": 211,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cliucds6mzi",
+      "qualified_name": "owllook.views.md_blueprint.zongheng",
+      "simple_name": "zongheng",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fhxrhow101g",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/md_blueprint.py",
+      "start_line": 323,
+      "end_line": 355,
+      "size_lines": 33,
+      "signature_hint": "async def zongheng(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 133,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Ctbhux15r88",
+      "qualified_name": "owllook.fetcher.decorators.auth_params.wrapper",
+      "simple_name": "wrapper",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnssywhiq8b",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/decorators.py",
+      "start_line": 53,
+      "end_line": 84,
+      "size_lines": 32,
+      "signature_hint": "def wrapper(func)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 132,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ca96glckjhf"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cg8aqxusfm",
+      "qualified_name": "owllook.views.operate_blueprint.owllook_add_bookmark",
+      "simple_name": "owllook_add_bookmark",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F1d65igtsaa",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/operate_blueprint.py",
+      "start_line": 211,
+      "end_line": 240,
+      "size_lines": 30,
+      "signature_hint": "async def owllook_add_bookmark(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 130,
+      "region": 212,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C7oofqh5ex6",
+      "qualified_name": "owllook.views.operate_blueprint.owllook_delete_book",
+      "simple_name": "owllook_delete_book",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F1d65igtsaa",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/operate_blueprint.py",
+      "start_line": 244,
+      "end_line": 273,
+      "size_lines": 30,
+      "signature_hint": "async def owllook_delete_book(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 130,
+      "region": 213,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cntq9ulu9bo",
+      "qualified_name": "owllook.fetcher.decorators.auth_params.wrapper.auth_param",
+      "simple_name": "auth_param",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fnssywhiq8b",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/decorators.py",
+      "start_line": 55,
+      "end_line": 82,
+      "size_lines": 28,
+      "signature_hint": "async def auth_param(request, *args, **kwargs)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 128,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ctbhux15r88"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C1wwviv5vbl",
+      "qualified_name": "baidu_novels.data_extraction_for_web",
+      "simple_name": "data_extraction_for_web",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fhkca8m0k0s",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/examples/novels/baidu_novels.py",
+      "start_line": 78,
+      "end_line": 104,
+      "size_lines": 27,
+      "signature_hint": "async def data_extraction_for_web(html)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 127,
+      "region": 5,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvienkeomy",
+      "qualified_name": "owllook.fetcher.decorators.cached.cached_decorator",
+      "simple_name": "cached_decorator",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnssywhiq8b",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/decorators.py",
+      "start_line": 113,
+      "end_line": 138,
+      "size_lines": 26,
+      "signature_hint": "def cached_decorator(func)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 126,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C14dhno5f162"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C15qkbbp6uy4",
+      "qualified_name": "owllook.views.api_blueprint.owl_novels_chapters",
+      "simple_name": "owl_novels_chapters",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F2plrniz7hw",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/api_blueprint.py",
+      "start_line": 43,
+      "end_line": 68,
+      "size_lines": 26,
+      "signature_hint": "async def owl_novels_chapters(request, **kwargs)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 126,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "Ceejtn9m33l",
+      "qualified_name": "owllook.views.md_blueprint.bd_novels",
+      "simple_name": "bd_novels",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fhxrhow101g",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/md_blueprint.py",
+      "start_line": 61,
+      "end_line": 86,
+      "size_lines": 26,
+      "signature_hint": "async def bd_novels(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 126,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Csmdsnjsa73",
+      "qualified_name": "owllook.views.md_blueprint.noti_book",
+      "simple_name": "noti_book",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fhxrhow101g",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/md_blueprint.py",
+      "start_line": 212,
+      "end_line": 236,
+      "size_lines": 25,
+      "signature_hint": "async def noti_book(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 125,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cfzd3t5ej0k",
+      "qualified_name": "owllook.views.operate_blueprint.owllook_delete_bookmark",
+      "simple_name": "owllook_delete_bookmark",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F1d65igtsaa",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/operate_blueprint.py",
+      "start_line": 277,
+      "end_line": 301,
+      "size_lines": 25,
+      "signature_hint": "async def owllook_delete_bookmark(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 125,
+      "region": 214,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C9rnwfd4vph",
+      "qualified_name": "owllook.fetcher.extract_novels.extract_chapters",
+      "simple_name": "extract_chapters",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fxybze249q5",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/extract_novels.py",
+      "start_line": 16,
+      "end_line": 39,
+      "size_lines": 24,
+      "signature_hint": "def extract_chapters(chapters_url, html)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 124,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C15qkbbp6uy4"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cr4hvl9pxd",
+      "qualified_name": "owllook.views.novels_blueprint.chapter",
+      "simple_name": "chapter",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fjpnjlezt2f",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/novels_blueprint.py",
+      "start_line": 44,
+      "end_line": 67,
+      "size_lines": 24,
+      "signature_hint": "async def chapter(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 124,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C13ozosww3w2",
+      "qualified_name": "owllook.views.operate_blueprint.change_email",
+      "simple_name": "change_email",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F1d65igtsaa",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/operate_blueprint.py",
+      "start_line": 109,
+      "end_line": 132,
+      "size_lines": 24,
+      "signature_hint": "async def change_email(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 124,
+      "region": 209,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C1862x8jufip",
+      "qualified_name": "owllook.fetcher.decorators.cached.cached_decorator.wrapper",
+      "simple_name": "wrapper",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fnssywhiq8b",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/decorators.py",
+      "start_line": 114,
+      "end_line": 136,
+      "size_lines": 23,
+      "signature_hint": "async def wrapper(*args, **kwargs)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 123,
+      "region": 52,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cvienkeomy"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cw12cpd3m61",
+      "qualified_name": "owllook.views.novels_blueprint.owllook_register",
+      "simple_name": "owllook_register",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fjpnjlezt2f",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/novels_blueprint.py",
+      "start_line": 230,
+      "end_line": 252,
+      "size_lines": 23,
+      "signature_hint": "async def owllook_register(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 123,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C14db19ion6m",
+      "qualified_name": "owllook.fetcher.cache.cache_owllook_novels_chapter",
+      "simple_name": "cache_owllook_novels_chapter",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Ftvue9mlriu",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/cache.py",
+      "start_line": 68,
+      "end_line": 86,
+      "size_lines": 19,
+      "signature_hint": "async def cache_owllook_novels_chapter(url, netloc)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 119,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C15qkbbp6uy4"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cdoz66g3jqn",
+      "qualified_name": "owllook.server.init_cache",
+      "simple_name": "init_cache",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13ne1n1mg3m",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/server.py",
+      "start_line": 26,
+      "end_line": 44,
+      "size_lines": 19,
+      "signature_hint": "def init_cache(app, loop)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 119,
+      "region": 39,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cn3ra0m6jpu",
+      "qualified_name": "owllook.server.add_session_to_request",
+      "simple_name": "add_session_to_request",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F13ne1n1mg3m",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/server.py",
+      "start_line": 48,
+      "end_line": 66,
+      "size_lines": 19,
+      "signature_hint": "async def add_session_to_request(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 119,
+      "region": 96,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvfzht8uv7l",
+      "qualified_name": "owllook.utils.verification.verification.ver_question",
+      "simple_name": "ver_question",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1yyu856m9r",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/utils/verification/verification.py",
+      "start_line": 12,
+      "end_line": 30,
+      "size_lines": 19,
+      "signature_hint": "def ver_question() -> tuple",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 119,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cw12cpd3m61"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chkg7ydm1w1",
+      "qualified_name": "owllook.views.api_blueprint.owl_bd_novels",
+      "simple_name": "owl_bd_novels",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F2plrniz7hw",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/api_blueprint.py",
+      "start_line": 19,
+      "end_line": 37,
+      "size_lines": 19,
+      "signature_hint": "async def owl_bd_novels(request, name)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 119,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Cv22ahihio9",
+      "qualified_name": "owllook.views.api_blueprint.owl_so_novels",
+      "simple_name": "owl_so_novels",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F2plrniz7hw",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/api_blueprint.py",
+      "start_line": 73,
+      "end_line": 91,
+      "size_lines": 19,
+      "signature_hint": "async def owl_so_novels(request, name)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 119,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Czqadua9mik",
+      "qualified_name": "owllook.views.md_blueprint.admin_setting",
+      "simple_name": "admin_setting",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fhxrhow101g",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/md_blueprint.py",
+      "start_line": 39,
+      "end_line": 57,
+      "size_lines": 19,
+      "signature_hint": "async def admin_setting(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 119,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C12kwxm7xtmj",
+      "qualified_name": "owllook.views.operate_blueprint.owllook_logout",
+      "simple_name": "owllook_logout",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F1d65igtsaa",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/operate_blueprint.py",
+      "start_line": 346,
+      "end_line": 361,
+      "size_lines": 16,
+      "signature_hint": "async def owllook_logout(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 116,
+      "region": 216,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6xrxbrpfbq",
+      "qualified_name": "owllook.utils.verification.verification.get_real_answer",
+      "simple_name": "get_real_answer",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1yyu856m9r",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/utils/verification/verification.py",
+      "start_line": 33,
+      "end_line": 47,
+      "size_lines": 15,
+      "signature_hint": "def get_real_answer(index) -> str",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 115,
+      "region": 167,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C10d60q18icr"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cumro3aw8mj",
+      "qualified_name": "owllook.server.save_session",
+      "simple_name": "save_session",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F13ne1n1mg3m",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/server.py",
+      "start_line": 70,
+      "end_line": 83,
+      "size_lines": 14,
+      "signature_hint": "async def save_session(request, response)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 114,
+      "region": 97,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "C4gsxiivut2",
+      "qualified_name": "owllook.database.mongodb.motorbase.MotorBase.get_collection",
+      "simple_name": "get_collection",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fu20dvw7m3r",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/database/mongodb/motorbase.py",
+      "start_line": 47,
+      "end_line": 58,
+      "size_lines": 12,
+      "signature_hint": "def get_collection(self, db_name, collection)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 112,
+      "region": 32,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C4isi5g5djp",
+      "qualified_name": "owllook.fetcher.cache.cache_owllook_search_ranking",
+      "simple_name": "cache_owllook_search_ranking",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Ftvue9mlriu",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/cache.py",
+      "start_line": 90,
+      "end_line": 101,
+      "size_lines": 12,
+      "signature_hint": "async def cache_owllook_search_ranking()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 112,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C8ntczh6nfp"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cxw21clt7fb",
+      "qualified_name": "owllook.views.md_blueprint.book_list",
+      "simple_name": "book_list",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fhxrhow101g",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/md_blueprint.py",
+      "start_line": 90,
+      "end_line": 101,
+      "size_lines": 12,
+      "signature_hint": "async def book_list(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 112,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C34kojmo1v8",
+      "qualified_name": "owllook.fetcher.decorators.authenticator.wrapper",
+      "simple_name": "wrapper",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnssywhiq8b",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/decorators.py",
+      "start_line": 31,
+      "end_line": 41,
+      "size_lines": 11,
+      "signature_hint": "def wrapper(func)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 111,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C180tyhsgiyu"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C16lq12s14lx",
+      "qualified_name": "owllook.fetcher.decorators.response_handle",
+      "simple_name": "response_handle",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnssywhiq8b",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/decorators.py",
+      "start_line": 143,
+      "end_line": 153,
+      "size_lines": 11,
+      "signature_hint": "def response_handle(request, dict_value, status=200)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 111,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 11,
+          "example": "Cc8mggj1ow3"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ct11bfxl5ro",
+      "qualified_name": "owllook.database.redis.redisbase.RedisSession.get_redis_pool",
+      "simple_name": "get_redis_pool",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fxp4uin62xg",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/database/redis/redisbase.py",
+      "start_line": 15,
+      "end_line": 24,
+      "size_lines": 10,
+      "signature_hint": "async def get_redis_pool(self)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 110,
+      "region": 39,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cdoz66g3jqn"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ct8dmg32r27",
+      "qualified_name": "owllook.fetcher.extract_novels.novels_list",
+      "simple_name": "novels_list",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fxybze249q5",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/extract_novels.py",
+      "start_line": 78,
+      "end_line": 85,
+      "size_lines": 8,
+      "signature_hint": "def novels_list(text)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 108,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ck7sd5cgktz"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cb9strg6e4l",
+      "qualified_name": "owllook.fetcher.function.get_netloc",
+      "simple_name": "get_netloc",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Foua7x53v7n",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/function.py",
+      "start_line": 55,
+      "end_line": 62,
+      "size_lines": 8,
+      "signature_hint": "def get_netloc(url)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 108,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 3,
+          "example": "C15qkbbp6uy4"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C49t1tvpbys",
+      "qualified_name": "owllook.views.admin_blueprint.lcxs",
+      "simple_name": "lcxs",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F4fsuif3oix",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/admin_blueprint.py",
+      "start_line": 127,
+      "end_line": 134,
+      "size_lines": 8,
+      "signature_hint": "async def lcxs(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 108,
+      "region": 170,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cc8mggj1ow3",
+      "qualified_name": "owllook.fetcher.decorators.authenticator.wrapper.authenticate",
+      "simple_name": "authenticate",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fnssywhiq8b",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/decorators.py",
+      "start_line": 33,
+      "end_line": 39,
+      "size_lines": 7,
+      "signature_hint": "async def authenticate(request, *args, **kwargs)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C34kojmo1v8"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cfevc73cvkf",
+      "qualified_name": "owllook.spiders.middlewares.update_proxy",
+      "simple_name": "update_proxy",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Ftx24c7xlgt",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/middlewares.py",
+      "start_line": 19,
+      "end_line": 25,
+      "size_lines": 7,
+      "signature_hint": "async def update_proxy()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 103,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C9f96otptpg"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cu6h1v6h0r8",
+      "qualified_name": "owllook.views.except_blueprint.server_error",
+      "simple_name": "server_error",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F1416jflm521",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/except_blueprint.py",
+      "start_line": 31,
+      "end_line": 37,
+      "size_lines": 7,
+      "signature_hint": "async def server_error(request, exception)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 181,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmzfe9b74u3",
+      "qualified_name": "owllook.fetcher.cache.cache_others_search_ranking",
+      "simple_name": "cache_others_search_ranking",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Ftvue9mlriu",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/cache.py",
+      "start_line": 105,
+      "end_line": 108,
+      "size_lines": 4,
+      "signature_hint": "async def cache_others_search_ranking(spider='qidian', novel_type='全部类别')",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 104,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 3,
+          "example": "Ceejtn9m33l"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cvycjc1aj9h",
+      "qualified_name": "owllook.utils.tools.singleton.instance",
+      "simple_name": "instance",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F5m7rqherfr",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/utils/tools.py",
+      "start_line": 17,
+      "end_line": 20,
+      "size_lines": 4,
+      "signature_hint": "def instance(*args, **kw)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 104,
+      "region": 163,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cl73f9fbrvv"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C10bo0qiq5q",
+      "qualified_name": "owllook.views.except_blueprint.ignore_404",
+      "simple_name": "ignore_404",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1416jflm521",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/except_blueprint.py",
+      "start_line": 24,
+      "end_line": 27,
+      "size_lines": 4,
+      "signature_hint": "def ignore_404(request, exception)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 104,
+      "region": 179,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C9f96otptpg",
+      "qualified_name": "owllook.spiders.middlewares.add_random_proxy",
+      "simple_name": "add_random_proxy",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Ftx24c7xlgt",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/middlewares.py",
+      "start_line": 14,
+      "end_line": 16,
+      "size_lines": 3,
+      "signature_hint": "async def add_random_proxy(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 103,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C16rqpldodcd",
+      "qualified_name": "owllook.views.admin_blueprint.setup_db",
+      "simple_name": "setup_db",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4fsuif3oix",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/admin_blueprint.py",
+      "start_line": 17,
+      "end_line": 19,
+      "size_lines": 3,
+      "signature_hint": "def setup_db(admin_bp, loop)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 168,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cojjuobmwxz",
+      "qualified_name": "owllook.views.admin_blueprint.template",
+      "simple_name": "template",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4fsuif3oix",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/admin_blueprint.py",
+      "start_line": 33,
+      "end_line": 35,
+      "size_lines": 3,
+      "signature_hint": "def template(tpl, **kwargs)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 170,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 9,
+          "example": "C158k0zqk8b7"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chd60m7zgde",
+      "qualified_name": "owllook.views.except_blueprint.template",
+      "simple_name": "template",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1416jflm521",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/except_blueprint.py",
+      "start_line": 18,
+      "end_line": 20,
+      "size_lines": 3,
+      "signature_hint": "def template(tpl, **kwargs)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 179,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C10bo0qiq5q"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cgp3kk2f81m",
+      "qualified_name": "owllook.views.md_blueprint.setup_db",
+      "simple_name": "setup_db",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fhxrhow101g",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/md_blueprint.py",
+      "start_line": 17,
+      "end_line": 19,
+      "size_lines": 3,
+      "signature_hint": "def setup_db(rank_bp, loop)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 182,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cjjkepkl0gg",
+      "qualified_name": "owllook.views.md_blueprint.template",
+      "simple_name": "template",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fhxrhow101g",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/md_blueprint.py",
+      "start_line": 33,
+      "end_line": 35,
+      "size_lines": 3,
+      "signature_hint": "def template(tpl, **kwargs)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 18,
+          "example": "Czqadua9mik"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C12zggxksoeu",
+      "qualified_name": "owllook.views.novels_blueprint.setup_db",
+      "simple_name": "setup_db",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjpnjlezt2f",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/novels_blueprint.py",
+      "start_line": 22,
+      "end_line": 24,
+      "size_lines": 3,
+      "signature_hint": "def setup_db(novels_bp, loop)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 195,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ci0ql3bojjn",
+      "qualified_name": "owllook.views.novels_blueprint.template",
+      "simple_name": "template",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjpnjlezt2f",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/novels_blueprint.py",
+      "start_line": 38,
+      "end_line": 40,
+      "size_lines": 3,
+      "signature_hint": "def template(tpl, **kwargs)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 12,
+          "example": "Cr4hvl9pxd"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdcorjogtfo",
+      "qualified_name": "owllook.views.operate_blueprint.setup_db",
+      "simple_name": "setup_db",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1d65igtsaa",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/operate_blueprint.py",
+      "start_line": 26,
+      "end_line": 28,
+      "size_lines": 3,
+      "signature_hint": "def setup_db(operate_bp, loop)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 205,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cj208hn0n78",
+      "qualified_name": "owllook.views.operate_blueprint.template",
+      "simple_name": "template",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1d65igtsaa",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/operate_blueprint.py",
+      "start_line": 42,
+      "end_line": 44,
+      "size_lines": 3,
+      "signature_hint": "def template(tpl, **kwargs)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 207,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cditkhj0b6x",
+      "qualified_name": "owllook.views.admin_blueprint.close_connection",
+      "simple_name": "close_connection",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4fsuif3oix",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/admin_blueprint.py",
+      "start_line": 23,
+      "end_line": 24,
+      "size_lines": 2,
+      "signature_hint": "def close_connection(admin_bp, loop)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 102,
+      "region": 169,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16fkwss5zno",
+      "qualified_name": "owllook.views.md_blueprint.close_connection",
+      "simple_name": "close_connection",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fhxrhow101g",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/md_blueprint.py",
+      "start_line": 23,
+      "end_line": 24,
+      "size_lines": 2,
+      "signature_hint": "def close_connection(rank_bp, loop)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 102,
+      "region": 183,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccpa2mnnpx4",
+      "qualified_name": "owllook.views.novels_blueprint.close_connection",
+      "simple_name": "close_connection",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjpnjlezt2f",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/novels_blueprint.py",
+      "start_line": 28,
+      "end_line": 29,
+      "size_lines": 2,
+      "signature_hint": "def close_connection(novels_bp, loop)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 102,
+      "region": 196,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cs27s1opkke",
+      "qualified_name": "owllook.views.novels_blueprint.donate",
+      "simple_name": "donate",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fjpnjlezt2f",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/novels_blueprint.py",
+      "start_line": 71,
+      "end_line": 72,
+      "size_lines": 2,
+      "signature_hint": "async def donate(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 102,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C4xjguia12z",
+      "qualified_name": "owllook.views.novels_blueprint.feedback",
+      "simple_name": "feedback",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fjpnjlezt2f",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/novels_blueprint.py",
+      "start_line": 76,
+      "end_line": 77,
+      "size_lines": 2,
+      "signature_hint": "async def feedback(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 102,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Chzvm7vskmd",
+      "qualified_name": "owllook.views.operate_blueprint.close_connection",
+      "simple_name": "close_connection",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1d65igtsaa",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/operate_blueprint.py",
+      "start_line": 32,
+      "end_line": 33,
+      "size_lines": 2,
+      "signature_hint": "def close_connection(operate_bp, loop)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 102,
+      "region": 206,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cc0d0egifue",
+      "qualified_name": "owllook.spiders.qidian_honor_spider.QidianHonorSpider.parse",
+      "simple_name": "parse",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Faa9q9o8drd",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/qidian_honor_spider.py",
+      "start_line": 30,
+      "end_line": 60,
+      "size_lines": 31,
+      "signature_hint": "async def parse(self, res)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -169,
+      "region": 112,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Spider"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14hz5vksg0x",
+      "qualified_name": "owllook.spiders.zongheng_all_novels.ZHNovelsSpider.parse",
+      "simple_name": "parse",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fqkkyhjls7j",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/zongheng_all_novels.py",
+      "start_line": 67,
+      "end_line": 96,
+      "size_lines": 30,
+      "signature_hint": "async def parse(self, res)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -170,
+      "region": 127,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Spider"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C3j2po4xgpc",
+      "qualified_name": "owllook.views.admin_blueprint.similar_user",
+      "simple_name": "similar_user",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F4fsuif3oix",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/admin_blueprint.py",
+      "start_line": 188,
+      "end_line": 216,
+      "size_lines": 29,
+      "signature_hint": "async def similar_user(request)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -171,
+      "region": 170,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 2
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C3j2po4xgpc"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "Clt3w03xtgj",
+      "qualified_name": "owllook.views.md_blueprint.similar_user",
+      "simple_name": "similar_user",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fhxrhow101g",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/md_blueprint.py",
+      "start_line": 291,
+      "end_line": 319,
+      "size_lines": 29,
+      "signature_hint": "async def similar_user(request)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -171,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 2
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Clt3w03xtgj"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "Cr73vea2q4x",
+      "qualified_name": "owllook.spiders.zh_ranking.ZHRankingSpider.parse",
+      "simple_name": "parse",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Ftbiy88koed",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/zh_ranking.py",
+      "start_line": 30,
+      "end_line": 56,
+      "size_lines": 27,
+      "signature_hint": "async def parse(self, res)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -173,
+      "region": 124,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Spider"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cdx455s64vm",
+      "qualified_name": "owllook.spiders.qidian_ranking.QidianRankingSpider.parse",
+      "simple_name": "parse",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fluwd59bj1z",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/qidian_ranking.py",
+      "start_line": 54,
+      "end_line": 78,
+      "size_lines": 25,
+      "signature_hint": "async def parse(self, res)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -175,
+      "region": 120,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Spider"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C2hkfxv6ecq",
+      "qualified_name": "owllook.spiders.qidian_all_novels.QidianNovelsSpider.parse",
+      "simple_name": "parse",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F63y5ivi8lx",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/qidian_all_novels.py",
+      "start_line": 70,
+      "end_line": 93,
+      "size_lines": 24,
+      "signature_hint": "async def parse(self, res)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -176,
+      "region": 110,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Spider"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cmln1we7kqd",
+      "qualified_name": "owllook.spiders.zongheng_novel_info.ZHNovelInfoSpider.parse",
+      "simple_name": "parse",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fvt498whuu7",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/zongheng_novel_info.py",
+      "start_line": 75,
+      "end_line": 96,
+      "size_lines": 22,
+      "signature_hint": "async def parse(self, res)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -178,
+      "region": 132,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Spider"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cguqazfii8c",
+      "qualified_name": "owllook.spiders.heiyan_novel_info.HYNovelInfoSpider.parse",
+      "simple_name": "parse",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fn28jbwfg50",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/heiyan_novel_info.py",
+      "start_line": 64,
+      "end_line": 84,
+      "size_lines": 21,
+      "signature_hint": "async def parse(self, res)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -179,
+      "region": 101,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Spider"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cxk5fgv1dlc",
+      "qualified_name": "owllook.spiders.qidian_novel_info.QidianNovelInfoSpider.parse",
+      "simple_name": "parse",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fv29u1ti1c3",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/qidian_novel_info.py",
+      "start_line": 53,
+      "end_line": 73,
+      "size_lines": 21,
+      "signature_hint": "async def parse(self, res)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -179,
+      "region": 117,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Spider"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cqvgu4ylapf",
+      "qualified_name": "owllook.spiders.zongheng_all_novels.ZHNovelsItem.clean_novel_author",
+      "simple_name": "clean_novel_author",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fqkkyhjls7j",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/zongheng_all_novels.py",
+      "start_line": 42,
+      "end_line": 53,
+      "size_lines": 12,
+      "signature_hint": "async def clean_novel_author(self, novel_author)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -188,
+      "region": 126,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Item"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C9pq1myw0og",
+      "qualified_name": "owllook.spiders.zongheng_novel_info.ZHNovelInfoItem.clean_status",
+      "simple_name": "clean_status",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fvt498whuu7",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/zongheng_novel_info.py",
+      "start_line": 45,
+      "end_line": 54,
+      "size_lines": 10,
+      "signature_hint": "async def clean_status(self, status)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -190,
+      "region": 130,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Item"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C170f82l0ajn",
+      "qualified_name": "owllook.spiders.zongheng_novel_info.ZHNovelInfoItem.clean_novels_type",
+      "simple_name": "clean_novels_type",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fvt498whuu7",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/zongheng_novel_info.py",
+      "start_line": 56,
+      "end_line": 63,
+      "size_lines": 8,
+      "signature_hint": "async def clean_novels_type(self, novels_type)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -192,
+      "region": 131,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Item"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8xd2oqkkb",
+      "qualified_name": "owllook.spiders.qidian_novel_info.QidianNovelInfoItem.clean_status",
+      "simple_name": "clean_status",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fv29u1ti1c3",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/qidian_novel_info.py",
+      "start_line": 31,
+      "end_line": 37,
+      "size_lines": 7,
+      "signature_hint": "async def clean_status(self, status)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -193,
+      "region": 114,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Item"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmb0hqaqxd3",
+      "qualified_name": "owllook.fetcher.novels_factory.base_novels.BaseNovels.data_extraction",
+      "simple_name": "data_extraction",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F14ouqbxcr2h",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/novels_factory/base_novels.py",
+      "start_line": 50,
+      "end_line": 55,
+      "size_lines": 6,
+      "signature_hint": "async def data_extraction(self, html)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -194,
+      "region": 73,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BaseNovels",
+          "impls": 4,
+          "unresolved_sites": 0,
+          "called_impls": 4
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Ctng4v1sipw",
+      "qualified_name": "owllook.spiders.heiyan_novel_info.HYNovelInfoItem.clean_novels_type",
+      "simple_name": "clean_novels_type",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fn28jbwfg50",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/heiyan_novel_info.py",
+      "start_line": 45,
+      "end_line": 50,
+      "size_lines": 6,
+      "signature_hint": "async def clean_novels_type(self, novels_type)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -194,
+      "region": 99,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Item"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6uafrfrdn6",
+      "qualified_name": "owllook.spiders.heiyan_novel_info.HYNovelInfoItem.clean_cover",
+      "simple_name": "clean_cover",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fn28jbwfg50",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/heiyan_novel_info.py",
+      "start_line": 39,
+      "end_line": 43,
+      "size_lines": 5,
+      "signature_hint": "async def clean_cover(self, cover)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 98,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Item"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ca64imy3adw",
+      "qualified_name": "owllook.spiders.qidian_ranking.RankingItem.clean_ranking_title",
+      "simple_name": "clean_ranking_title",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fluwd59bj1z",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/qidian_ranking.py",
+      "start_line": 17,
+      "end_line": 21,
+      "size_lines": 5,
+      "signature_hint": "async def clean_ranking_title(self, ranking_title)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 118,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Item"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cofhawrehq5",
+      "qualified_name": "owllook.spiders.zongheng_novel_info.ZHNovelInfoItem.clean_author",
+      "simple_name": "clean_author",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fvt498whuu7",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/zongheng_novel_info.py",
+      "start_line": 39,
+      "end_line": 43,
+      "size_lines": 5,
+      "signature_hint": "async def clean_author(self, author)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 129,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Item"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C51e68o8vsd",
+      "qualified_name": "owllook.spiders.middlewares.retry_func",
+      "simple_name": "retry_func",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Ftx24c7xlgt",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/middlewares.py",
+      "start_line": 28,
+      "end_line": 31,
+      "size_lines": 4,
+      "signature_hint": "async def retry_func(request)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 103,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C9f96otptpg"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ckq70xeuti3",
+      "qualified_name": "owllook.spiders.qidian_all_novels.QidianNovelsItem.clean_novel_author",
+      "simple_name": "clean_novel_author",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F63y5ivi8lx",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/qidian_all_novels.py",
+      "start_line": 45,
+      "end_line": 48,
+      "size_lines": 4,
+      "signature_hint": "async def clean_novel_author(self, novel_author)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 107,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Item"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdavj78zidp",
+      "qualified_name": "owllook.spiders.qidian_all_novels.QidianNovelsItem.clean_novel_author_home_url",
+      "simple_name": "clean_novel_author_home_url",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F63y5ivi8lx",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/qidian_all_novels.py",
+      "start_line": 50,
+      "end_line": 53,
+      "size_lines": 4,
+      "signature_hint": "async def clean_novel_author_home_url(self, novel_author_home_url)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 108,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Item"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Criwynlc8aj",
+      "qualified_name": "owllook.spiders.heiyan_novel_info.HYNovelInfoItem.clean_latest_chapter_time",
+      "simple_name": "clean_latest_chapter_time",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fn28jbwfg50",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/heiyan_novel_info.py",
+      "start_line": 52,
+      "end_line": 54,
+      "size_lines": 3,
+      "signature_hint": "async def clean_latest_chapter_time(self, latest_chapter_time)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -197,
+      "region": 100,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Item"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cl10yo4y2o4",
+      "qualified_name": "owllook.spiders.qidian_novel_info.QidianNovelInfoItem.clean_latest_chapter_time",
+      "simple_name": "clean_latest_chapter_time",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fv29u1ti1c3",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/qidian_novel_info.py",
+      "start_line": 42,
+      "end_line": 44,
+      "size_lines": 3,
+      "signature_hint": "async def clean_latest_chapter_time(self, latest_chapter_time)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -197,
+      "region": 116,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Item"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17sr0s3qjh6",
+      "qualified_name": "owllook.spiders.qidian_all_novels.QidianNovelsItem.clean_novel_url",
+      "simple_name": "clean_novel_url",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F63y5ivi8lx",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/qidian_all_novels.py",
+      "start_line": 42,
+      "end_line": 43,
+      "size_lines": 2,
+      "signature_hint": "async def clean_novel_url(self, novel_url)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -198,
+      "region": 106,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Item"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cg5ns467z79",
+      "qualified_name": "owllook.spiders.qidian_all_novels.QidianNovelsItem.clean_novel_cover",
+      "simple_name": "clean_novel_cover",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F63y5ivi8lx",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/qidian_all_novels.py",
+      "start_line": 55,
+      "end_line": 56,
+      "size_lines": 2,
+      "signature_hint": "async def clean_novel_cover(self, novel_cover)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -198,
+      "region": 109,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Item"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Co8npsjyzmc",
+      "qualified_name": "owllook.spiders.qidian_novel_info.QidianNovelInfoItem.clean_cover",
+      "simple_name": "clean_cover",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fv29u1ti1c3",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/qidian_novel_info.py",
+      "start_line": 28,
+      "end_line": 29,
+      "size_lines": 2,
+      "signature_hint": "async def clean_cover(self, cover)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -198,
+      "region": 113,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Item"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cedqy4t5cvv",
+      "qualified_name": "owllook.spiders.qidian_novel_info.QidianNovelInfoItem.clean_novels_type",
+      "simple_name": "clean_novels_type",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fv29u1ti1c3",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/qidian_novel_info.py",
+      "start_line": 39,
+      "end_line": 40,
+      "size_lines": 2,
+      "signature_hint": "async def clean_novels_type(self, novels_type)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -198,
+      "region": 115,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Item"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C13515frpmy0",
+      "qualified_name": "owllook.spiders.qidian_ranking.RankingItem.clean_more",
+      "simple_name": "clean_more",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fluwd59bj1z",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/spiders/qidian_ranking.py",
+      "start_line": 23,
+      "end_line": 24,
+      "size_lines": 2,
+      "signature_hint": "async def clean_more(self, more)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -198,
+      "region": 119,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Item"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14dhno5f162",
+      "qualified_name": "owllook.fetcher.decorators.cached",
+      "simple_name": "cached",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnssywhiq8b",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/decorators.py",
+      "start_line": 90,
+      "end_line": 140,
+      "size_lines": 51,
+      "signature_hint": "def cached( ttl=0, key=None, key_from_attr=None, cache=None, serializer=None, plugins=None, **kwargs)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -349,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "cached",
+          "sites": 8,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ftvue9mlriu",
+            "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/cache.py",
+            "line": 22,
+            "name": "cached"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ca96glckjhf",
+      "qualified_name": "owllook.fetcher.decorators.auth_params",
+      "simple_name": "auth_params",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnssywhiq8b",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/decorators.py",
+      "start_line": 46,
+      "end_line": 86,
+      "size_lines": 41,
+      "signature_hint": "def auth_params(*keys)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -359,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "auth_params",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F2plrniz7hw",
+            "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/api_blueprint.py",
+            "line": 41,
+            "name": "auth_params"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C11fmg24yzre",
+      "qualified_name": "owllook.fetcher.novels_factory.base_novels.BaseNovels.fetch_url",
+      "simple_name": "fetch_url",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F14ouqbxcr2h",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/novels_factory/base_novels.py",
+      "start_line": 23,
+      "end_line": 44,
+      "size_lines": 22,
+      "signature_hint": "async def fetch_url(self, url, params, headers)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -378,
+      "region": 71,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "fetch_url",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fyvfhzp33s3",
+            "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/novels_factory/baidu_novels.py",
+            "line": 82,
+            "name": "fetch_url",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C180tyhsgiyu",
+      "qualified_name": "owllook.fetcher.decorators.authenticator",
+      "simple_name": "authenticator",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnssywhiq8b",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/decorators.py",
+      "start_line": 24,
+      "end_line": 43,
+      "size_lines": 20,
+      "signature_hint": "def authenticator(key)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -380,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "authenticator",
+          "sites": 3,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F2plrniz7hw",
+            "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/api_blueprint.py",
+            "line": 18,
+            "name": "authenticator"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cl73f9fbrvv",
+      "qualified_name": "owllook.utils.tools.singleton",
+      "simple_name": "singleton",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F5m7rqherfr",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/utils/tools.py",
+      "start_line": 8,
+      "end_line": 22,
+      "size_lines": 15,
+      "signature_hint": "def singleton(cls)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -385,
+      "region": 163,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "singleton",
+          "sites": 2,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fu20dvw7m3r",
+            "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/database/mongodb/motorbase.py",
+            "line": 11,
+            "name": "singleton"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C8ntczh6nfp",
+      "qualified_name": "owllook.views.md_blueprint.index",
+      "simple_name": "index",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fhxrhow101g",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/md_blueprint.py",
+      "start_line": 197,
+      "end_line": 208,
+      "size_lines": 12,
+      "signature_hint": "async def index(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -388,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "index",
+          "sites": 3,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ftvue9mlriu",
+            "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/cache.py",
+            "line": 99,
+            "name": "index"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cay4a8itoq4",
+      "qualified_name": "owllook.views.novels_blueprint.index",
+      "simple_name": "index",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fjpnjlezt2f",
+      "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/views/novels_blueprint.py",
+      "start_line": 81,
+      "end_line": 88,
+      "size_lines": 8,
+      "signature_hint": "async def index(request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -392,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "index",
+          "sites": 3,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ftvue9mlriu",
+            "path": "/storage/cgg-test_repos/app-owllook-sanic/owllook/fetcher/cache.py",
+            "line": 99,
+            "name": "index"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 3
+    }
+  ]
+}

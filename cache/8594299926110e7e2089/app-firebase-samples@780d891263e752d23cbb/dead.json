@@ -1,0 +1,3748 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "framework:entry-node",
+        "framework:test-harness",
+        "toplevel:invocation"
+      ],
+      "files": 188,
+      "callables": 179,
+      "roots": 119,
+      "reachable": 160,
+      "reachable_pct": 89,
+      "findings": 19,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    },
+    {
+      "language": "python",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "full",
+      "test_tagging": "full",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "framework:entry-node",
+        "toplevel:invocation"
+      ],
+      "files": 19,
+      "callables": 62,
+      "roots": 20,
+      "reachable": 27,
+      "reachable_pct": 43,
+      "findings": 35,
+      "blind_spots": [
+        "getattr/setattr and other string-dispatched calls"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 241,
+    "edges": 307,
+    "unresolved_call_sites": 246,
+    "roots": 142,
+    "candidates": 54,
+    "reported": 54,
+    "regions": 40
+  },
+  "roots": [
+    {
+      "id": "C16ucqfukody",
+      "qualified_name": "postMessageToDiscord",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node/alerts-to-discord/functions/index.js:185"
+    },
+    {
+      "id": "C13e0drz4ccy",
+      "qualified_name": "handleInAppFeedback",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node/app-distribution-feedback-to-jira/functions/index.js:69"
+    },
+    {
+      "id": "C31imzt9c1l",
+      "qualified_name": "deleteInactiveUser",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/delete-unused-accounts-cron/functions/index.js:34"
+    },
+    {
+      "id": "C129lu499jbl",
+      "qualified_name": "getInactiveUsers",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/delete-unused-accounts-cron/functions/index.js:31"
+    },
+    {
+      "id": "Cc0o4d8uz2",
+      "qualified_name": "Demo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Python/fcm-notifications/public/main.js:214"
+    },
+    {
+      "id": "Cqk1g0vosfv",
+      "qualified_name": "handler_at_26",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C3xyywavgip",
+      "qualified_name": "handler_at_27",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C5tqir4xd8s",
+      "qualified_name": "handler_at_28",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C34l8yboepx",
+      "qualified_name": "handler_at_28",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cudktmshcj9",
+      "qualified_name": "handler_at_30",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cohxlf37qos",
+      "qualified_name": "handler_at_31",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Chzanmzksof",
+      "qualified_name": "handler_at_32",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cdkoc91k51m",
+      "qualified_name": "postToSlack",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/testlab-to-slack/functions/index.js:96"
+    },
+    {
+      "id": "C3uz5ndqbk1",
+      "qualified_name": "getSlackmoji",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/testlab-to-slack/functions/index.js:93"
+    },
+    {
+      "id": "Cmszvqil5nn",
+      "qualified_name": "authenticate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/authenticated-json-api/functions/index.js:57"
+    },
+    {
+      "id": "C36w7898fnz",
+      "qualified_name": "Demo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Python/fcm-notifications/public/main.js:214"
+    },
+    {
+      "id": "Cs2p4501rgg",
+      "qualified_name": "validateFirebaseIdToken",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/template-handlebars/functions/index.js:29"
+    },
+    {
+      "id": "Ca1korimo7z",
+      "qualified_name": "Demo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Python/fcm-notifications/public/main.js:214"
+    },
+    {
+      "id": "Csrth7gov7y",
+      "qualified_name": "sendCouponViaFCM",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/coupon-on-purchase/functions/index.js:40"
+    },
+    {
+      "id": "Cuirgjiudkg",
+      "qualified_name": "sendHighValueCouponViaFCM",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/coupon-on-purchase/functions/index.js:38"
+    },
+    {
+      "id": "Ceic8zu7665",
+      "qualified_name": "deleteInactiveUser",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/delete-unused-accounts-cron/functions/index.js:34"
+    },
+    {
+      "id": "Cw4snepjk3s",
+      "qualified_name": "getInactiveUsers",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/delete-unused-accounts-cron/functions/index.js:31"
+    },
+    {
+      "id": "C10ghx3dnlpb",
+      "qualified_name": "Demo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Python/fcm-notifications/public/main.js:214"
+    },
+    {
+      "id": "C8lnvizomj4",
+      "qualified_name": "imageMagickOutputToObject",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/exif-images/functions/index.js:55"
+    },
+    {
+      "id": "C8yuqdumf7y",
+      "qualified_name": "makeKeyFirebaseCompatible",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/exif-images/functions/index.js:56"
+    },
+    {
+      "id": "Cd93dqzxevn",
+      "qualified_name": "Demo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Python/fcm-notifications/public/main.js:214"
+    },
+    {
+      "id": "C70lin2q521",
+      "qualified_name": "makeKeyFirebaseCompatible",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/exif-images/functions/index.js:56"
+    },
+    {
+      "id": "Cnun5xfvfh6",
+      "qualified_name": "Demo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Python/fcm-notifications/public/main.js:214"
+    },
+    {
+      "id": "Coxc5dvqoql",
+      "qualified_name": "promisifyCommand",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/ffmpeg-convert-audio/functions/index.js:77"
+    },
+    {
+      "id": "Cb60dxxuxbb",
+      "qualified_name": "getFirebaseUser",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/fulltext-search-firestore/functions/index.js:100"
+    },
+    {
+      "id": "Cj6rhhh9zxn",
+      "qualified_name": "postToSlack",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/testlab-to-slack/functions/index.js:96"
+    },
+    {
+      "id": "Cs6vnebs2x8",
+      "qualified_name": "appendPromise",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/google-sheet-sync/functions/index.js:88"
+    },
+    {
+      "id": "C7abrqwsn3c",
+      "qualified_name": "clock",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/image-maker/functions/clock.js:133"
+    },
+    {
+      "id": "C11wipxl79ms",
+      "qualified_name": "render",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/image-maker/functions/ray.js:83"
+    },
+    {
+      "id": "Cj7we9kkayt",
+      "qualified_name": "spark",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/image-maker/functions/sparkline.js:39"
+    },
+    {
+      "id": "C3v4dbkm606",
+      "qualified_name": "Demo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Python/fcm-notifications/public/main.js:214"
+    },
+    {
+      "id": "C1fhflhs4t3",
+      "qualified_name": "Demo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Python/fcm-notifications/public/main.js:214"
+    },
+    {
+      "id": "C5eyvaxhdoz",
+      "qualified_name": "blurImage",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/moderate-images/functions/index.js:67"
+    },
+    {
+      "id": "C18557751mew",
+      "qualified_name": "oktaAuth",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/okta-auth/functions/index.js:84"
+    },
+    {
+      "id": "C45xa8m1n16",
+      "qualified_name": "ask",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/okta-auth/setup.js:185"
+    },
+    {
+      "id": "C8veit8fjpl",
+      "qualified_name": "rtdb_and_local_fs_presence",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/presence-firestore/public/index.js:152"
+    },
+    {
+      "id": "Ccgu15zj66j",
+      "qualified_name": "fs_listen_online",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/presence-firestore/public/index.js:153"
+    },
+    {
+      "id": "Ch5ujj5ikm6",
+      "qualified_name": "sendWelcomeEmail",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/quickstarts/email-users/functions/index.js:58"
+    },
+    {
+      "id": "Coje9b0rxzv",
+      "qualified_name": "sendGoodbyeEmail",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/quickstarts/email-users/functions/index.js:72"
+    },
+    {
+      "id": "Cm9ui7vwnw2",
+      "qualified_name": "Demo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Python/fcm-notifications/public/main.js:214"
+    },
+    {
+      "id": "C14utihiakoj",
+      "qualified_name": "handler_at_10",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C15epcx9xga7",
+      "qualified_name": "handler_at_13",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Czv7b25d2wk",
+      "qualified_name": "handler_at_22",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cdxeuyzi56i",
+      "qualified_name": "handler_at_29",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Ctt3e7dt0gw",
+      "qualified_name": "handler_at_32",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Clfzy4nyii9",
+      "qualified_name": "handler_at_64",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Clq7t6l2phn",
+      "qualified_name": "handler_at_66",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C12nhpqqzl93",
+      "qualified_name": "handler_at_71",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cg8w7kbgj10",
+      "qualified_name": "handler_at_76",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cg0t3ykxl3x",
+      "qualified_name": "handler_at_35",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C15yvyp7ldvs",
+      "qualified_name": "handler_at_38",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cstr7zpuk2n",
+      "qualified_name": "handler_at_45",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Czq8t1r1wfz",
+      "qualified_name": "handler_at_50",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Ccj440jqflw",
+      "qualified_name": "handler_at_53",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C1usnxh1clu",
+      "qualified_name": "handler_at_72",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "C13agpk4mwrr",
+      "qualified_name": "handler_at_73",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cduj4y5l4gv",
+      "qualified_name": "getTemplate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/remote-config-diff/functions/index.js:33"
+    },
+    {
+      "id": "Cwwb9787peg",
+      "qualified_name": "Demo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Python/fcm-notifications/public/main.js:214"
+    },
+    {
+      "id": "Ciu0d6x4cod",
+      "qualified_name": "reportError",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/stripe/functions/index.js:123"
+    },
+    {
+      "id": "Cd02p87xvyu",
+      "qualified_name": "userFacingMessage",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/stripe/functions/index.js:122"
+    },
+    {
+      "id": "Cb40m6glw8m",
+      "qualified_name": "startDataListeners",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/stripe/public/javascript/app.js:58"
+    },
+    {
+      "id": "Cnu5j4zl9cw",
+      "qualified_name": "sendSurveyEmail",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/survey-app-update/functions/index.js:55"
+    },
+    {
+      "id": "Ceummrgvpp2",
+      "qualified_name": "validateFirebaseIdToken",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/template-handlebars/functions/index.js:29"
+    },
+    {
+      "id": "C7ssc09g1ky",
+      "qualified_name": "postToSlack",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/testlab-to-slack/functions/index.js:96"
+    },
+    {
+      "id": "C166za5p61z8",
+      "qualified_name": "getSlackmoji",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/testlab-to-slack/functions/index.js:93"
+    },
+    {
+      "id": "C17tfj2ndl1z",
+      "qualified_name": "moderateMessage",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/text-moderation/functions/index.js:31"
+    },
+    {
+      "id": "Cqz9ijfqlab",
+      "qualified_name": "shortenBitly",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/url-shortener/functions/index.js:42"
+    },
+    {
+      "id": "Ch6wyo5vgxr",
+      "qualified_name": "authenticate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/authenticated-json-api/functions/index.js:57"
+    },
+    {
+      "id": "Czo9a4ixaoa",
+      "qualified_name": "Demo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Python/fcm-notifications/public/main.js:214"
+    },
+    {
+      "id": "C7bbfyoymhb",
+      "qualified_name": "ownKeys",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/vision-annotate-images/functions/lib/src/index.js:45"
+    },
+    {
+      "id": "C4oppilkvzv",
+      "qualified_name": "Demo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Python/fcm-notifications/public/main.js:214"
+    },
+    {
+      "id": "Cpzxkkrqn81",
+      "qualified_name": "pyfmt.reformat_in_place",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Python/pyfmt.py:118"
+    },
+    {
+      "id": "Cjim4ll6naj",
+      "qualified_name": "pyfmt.check_and_diff",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-firebase-samples/Python/pyfmt.py:112"
+    },
+    {
+      "id": "C127smbbly0r",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_78",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_78`"
+    },
+    {
+      "id": "C64ygvpacsa",
+      "qualified_name": "<framework-entry>::network::firebase-functions::onschedule(\"every day 00:00\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::onschedule(\"every day 00:00\")`"
+    },
+    {
+      "id": "C737pe7yqo2",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_84",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_84`"
+    },
+    {
+      "id": "C8qphslrk1g",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_30",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_30`"
+    },
+    {
+      "id": "Cg4i699q4x0",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_63",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_63`"
+    },
+    {
+      "id": "C182lx8rs7e0",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_49",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_49`"
+    },
+    {
+      "id": "C11h404aqauf",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_40",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_40`"
+    },
+    {
+      "id": "C1365xynwrln",
+      "qualified_name": "<framework-entry>::network::firebase-functions::onmessagepublished(\"topic-name\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::onmessagepublished(\"topic-name\")`"
+    },
+    {
+      "id": "C16bcz56ajb4",
+      "qualified_name": "<framework-entry>::network::firebase-functions::onmessagepublished(\"another-topic-name\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::onmessagepublished(\"another-topic-name\")`"
+    },
+    {
+      "id": "C16iculgvb0b",
+      "qualified_name": "<framework-entry>::network::firebase-functions::onmessagepublished(\"yet-another-topic-name\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::onmessagepublished(\"yet-another-topic-name\")`"
+    },
+    {
+      "id": "Cvi8nx9cnl2",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_42",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_42`"
+    },
+    {
+      "id": "Cpus5il6z09",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_36",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_36`"
+    },
+    {
+      "id": "Cuu7shhn7pn",
+      "qualified_name": "<framework-entry>::network::firebase-functions::ondocumentcreated(\"/messages/{documentId}\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::ondocumentcreated(\"/messages/{documentId}\")`"
+    },
+    {
+      "id": "C89t6n2djaw",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_34",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_34`"
+    },
+    {
+      "id": "Cminc7kad9v",
+      "qualified_name": "<framework-entry>::network::firebase-functions::onvaluecreated(\"/messages/{pushId}/original\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::onvaluecreated(\"/messages/{pushId}/original\")`"
+    },
+    {
+      "id": "Cjsk4j3mo3y",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_133",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_133`"
+    },
+    {
+      "id": "Cnbxz045bik",
+      "qualified_name": "<framework-entry>::network::firebase-functions::onobjectfinalized(\"my-bucket\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::onobjectfinalized(\"my-bucket\")`"
+    },
+    {
+      "id": "C12p6p4jr7er",
+      "qualified_name": "<framework-entry>::test::jest",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::jest`"
+    },
+    {
+      "id": "Cv4anr1ve0p",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_25",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_25`"
+    },
+    {
+      "id": "C65ivf4ohyq",
+      "qualified_name": "<framework-entry>::network::express::post(\"/api/messages\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::post(\"/api/messages\")`"
+    },
+    {
+      "id": "Cr048oorr85",
+      "qualified_name": "<framework-entry>::network::express::get(\"/api/messages\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/api/messages\")`"
+    },
+    {
+      "id": "C1128oz3ipyf",
+      "qualified_name": "<framework-entry>::network::express::get(\"/api/message/:messageId\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/api/message/:messageId\")`"
+    },
+    {
+      "id": "Cklasf2h6k0",
+      "qualified_name": "<framework-entry>::network::express::get(\"/hello\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/hello\")`"
+    },
+    {
+      "id": "Cczmi4tilcx",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_62",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_62`"
+    },
+    {
+      "id": "Coshfeof7vn",
+      "qualified_name": "<framework-entry>::network::express::get(\"/\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/\")`"
+    },
+    {
+      "id": "Cn0vh9l6rzg",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_66",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_66`"
+    },
+    {
+      "id": "Cpe4ilpzcib",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_53",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_53`"
+    },
+    {
+      "id": "Claz0t5micr",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_67",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_67`"
+    },
+    {
+      "id": "Cce0sojd365",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_130",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_130`"
+    },
+    {
+      "id": "Ck5ty29tfde",
+      "qualified_name": "<framework-entry>::network::express::get(\"/api/ray\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/api/ray\")`"
+    },
+    {
+      "id": "Cgif20tgos0",
+      "qualified_name": "<framework-entry>::network::express::get(\"/api/clock\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/api/clock\")`"
+    },
+    {
+      "id": "Cw1qvnxmzmj",
+      "qualified_name": "<framework-entry>::network::express::get(\"/api/spark\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/api/spark\")`"
+    },
+    {
+      "id": "Cq42rdwiy66",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_60",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_60`"
+    },
+    {
+      "id": "C11r7hwhmovy",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_85",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_85`"
+    },
+    {
+      "id": "C15okfrdni4o",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_48",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_48`"
+    },
+    {
+      "id": "Csnpnwta5z7",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_105",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_105`"
+    },
+    {
+      "id": "Cby0822j2kg",
+      "qualified_name": "<framework-entry>::network::express::get(\"/firebaseCustomToken\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/firebaseCustomToken\")`"
+    },
+    {
+      "id": "Ctqvomvwglo",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_96",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_96`"
+    },
+    {
+      "id": "Cyrezdx901f",
+      "qualified_name": "<framework-entry>::network::express::get(\"/api\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/api\")`"
+    },
+    {
+      "id": "C30dfpabdxu",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_19",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_19`"
+    },
+    {
+      "id": "C3gmvq0srma",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_97",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_97`"
+    },
+    {
+      "id": "Cvw3eb3bc90",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_32",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_32`"
+    },
+    {
+      "id": "Cpwi10v3s5c",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_56",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_56`"
+    },
+    {
+      "id": "Cbv7ty9atbz",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_72",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_72`"
+    },
+    {
+      "id": "Cyw2vlvdlud",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_31",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_31`"
+    },
+    {
+      "id": "Ch6fxsco18n",
+      "qualified_name": "<framework-entry>::network::firebase-functions::handler_at_35",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::handler_at_35`"
+    },
+    {
+      "id": "Cnrbeit2k2z",
+      "qualified_name": "<framework-entry>::network::firebase-functions::on_schedule(\"every day 00:00\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::on_schedule(\"every day 00:00\")`"
+    },
+    {
+      "id": "Cjibvxog7ci",
+      "qualified_name": "<framework-entry>::network::flask::get(\"/widgets\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::flask::get(\"/widgets\")`"
+    },
+    {
+      "id": "Cr3uruslk8i",
+      "qualified_name": "<framework-entry>::network::flask::get(\"/widgets/<id>\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::flask::get(\"/widgets/<id>\")`"
+    },
+    {
+      "id": "Cv57123ejhl",
+      "qualified_name": "<framework-entry>::network::flask::post(\"/widgets\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::flask::post(\"/widgets\")`"
+    },
+    {
+      "id": "C2uf1yc86at",
+      "qualified_name": "<framework-entry>::network::firebase-functions::main.httpsflaskexample",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::main.httpsflaskexample`"
+    },
+    {
+      "id": "C13xdpg2h3jl",
+      "qualified_name": "<framework-entry>::network::firebase-functions::main.addnumbers",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::main.addnumbers`"
+    },
+    {
+      "id": "Ccoj0iu9590",
+      "qualified_name": "<framework-entry>::network::firebase-functions::main.addmessage",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::main.addmessage`"
+    },
+    {
+      "id": "Cghxw5f6at0",
+      "qualified_name": "<framework-entry>::network::firebase-functions::on_request(\"*\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::on_request(\"*\")`"
+    },
+    {
+      "id": "Czwxacwpjbs",
+      "qualified_name": "<framework-entry>::network::firebase-functions::main.hello_world",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::main.hello_world`"
+    },
+    {
+      "id": "Cxxdyzjl7t3",
+      "qualified_name": "<framework-entry>::network::firebase-functions::main.get_inspirational_quote",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::main.get_inspirational_quote`"
+    },
+    {
+      "id": "Cy3bevw7ts3",
+      "qualified_name": "<framework-entry>::network::firebase-functions::on_message_published(\"topic-name\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::on_message_published(\"topic-name\")`"
+    },
+    {
+      "id": "C101k0hnlzom",
+      "qualified_name": "<framework-entry>::network::firebase-functions::on_message_published(\"another-topic-name\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::on_message_published(\"another-topic-name\")`"
+    },
+    {
+      "id": "Cuvcylei5is",
+      "qualified_name": "<framework-entry>::network::firebase-functions::on_message_published(\"yet-another-topic-name\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::on_message_published(\"yet-another-topic-name\")`"
+    },
+    {
+      "id": "C63ioucxurp",
+      "qualified_name": "<framework-entry>::network::firebase-functions::on_document_created(\"messages/{pushId}\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::on_document_created(\"messages/{pushId}\")`"
+    },
+    {
+      "id": "C342kc4n6g4",
+      "qualified_name": "<framework-entry>::network::firebase-functions::on_document_written(\"messages/{pushId}\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::on_document_written(\"messages/{pushId}\")`"
+    },
+    {
+      "id": "Csrs3d7jbqu",
+      "qualified_name": "<framework-entry>::network::firebase-functions::on_value_created(\"/messages/{pushId}/original\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::on_value_created(\"/messages/{pushId}/original\")`"
+    },
+    {
+      "id": "Cy2micewnen",
+      "qualified_name": "<framework-entry>::network::firebase-functions::main.enqueuebackuptasks",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::main.enqueuebackuptasks`"
+    },
+    {
+      "id": "Cb2ae3dhhl2",
+      "qualified_name": "<framework-entry>::network::firebase-functions::main.generatethumbnail",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::firebase-functions::main.generatethumbnail`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 28,
+      "members": [
+        "Coi3fzhrx8j"
+      ],
+      "anchors": [
+        "Coi3fzhrx8j"
+      ],
+      "files": [
+        "F17n8erkysx0"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 125,
+      "members": [
+        "Ckafd0lamit",
+        "Cmcjkolpxyq",
+        "C7js6i6v97q"
+      ],
+      "anchors": [],
+      "files": [
+        "F4xvidbop6n"
+      ],
+      "total_lines": 69,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 128,
+      "members": [
+        "Ctlqdhr2jmg"
+      ],
+      "anchors": [
+        "Ctlqdhr2jmg"
+      ],
+      "files": [
+        "F4xvidbop6n"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 129,
+      "members": [
+        "Cscm8h1ey3v"
+      ],
+      "anchors": [
+        "Cscm8h1ey3v"
+      ],
+      "files": [
+        "F4xvidbop6n"
+      ],
+      "total_lines": 24,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 130,
+      "members": [
+        "Cf41d56arvy"
+      ],
+      "anchors": [
+        "Cf41d56arvy"
+      ],
+      "files": [
+        "F4xvidbop6n"
+      ],
+      "total_lines": 29,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 178,
+      "members": [
+        "Caiylvhh0p3"
+      ],
+      "anchors": [
+        "Caiylvhh0p3"
+      ],
+      "files": [
+        "Fcrdk4fhd4l"
+      ],
+      "total_lines": 48,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 182,
+      "members": [
+        "C24owdg2j8"
+      ],
+      "anchors": [
+        "C24owdg2j8"
+      ],
+      "files": [
+        "Fcrdk4fhd4l"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 187,
+      "members": [
+        "C3vgz43zjun"
+      ],
+      "anchors": [
+        "C3vgz43zjun"
+      ],
+      "files": [
+        "Fzchvhhv9cf"
+      ],
+      "total_lines": 25,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 188,
+      "members": [
+        "Cr214tpyon0"
+      ],
+      "anchors": [
+        "Cr214tpyon0"
+      ],
+      "files": [
+        "Fzchvhhv9cf"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 237,
+      "members": [
+        "Cbst0d35gsm"
+      ],
+      "anchors": [],
+      "files": [
+        "Fej6uw3m3a3"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 252,
+      "members": [
+        "Cmecipqbad8",
+        "Cwvmtv21nsx",
+        "Ct5zmxng8ln",
+        "Ceyzjjc1x7s"
+      ],
+      "anchors": [],
+      "files": [
+        "F123rqr7cxwb"
+      ],
+      "total_lines": 76,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 254,
+      "members": [
+        "Ctob8w59yid"
+      ],
+      "anchors": [
+        "Ctob8w59yid"
+      ],
+      "files": [
+        "F123rqr7cxwb"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 267,
+      "members": [
+        "Cr8fjw8kzpq"
+      ],
+      "anchors": [
+        "Cr8fjw8kzpq"
+      ],
+      "files": [
+        "Fqwlc5laub"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 268,
+      "members": [
+        "C1rfr3wl71r"
+      ],
+      "anchors": [
+        "C1rfr3wl71r"
+      ],
+      "files": [
+        "Fqwlc5laub"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 275,
+      "members": [
+        "C27i4sb6rt3",
+        "C5p7gjdfqgu",
+        "Crkcpej110w",
+        "Crxfirnxdby"
+      ],
+      "anchors": [
+        "C5p7gjdfqgu",
+        "Crkcpej110w",
+        "Crxfirnxdby"
+      ],
+      "files": [
+        "Fuwavn0wigi"
+      ],
+      "total_lines": 117,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 281,
+      "members": [
+        "C12go4420sk3"
+      ],
+      "anchors": [
+        "C12go4420sk3"
+      ],
+      "files": [
+        "Fhkcxuy0kkg"
+      ],
+      "total_lines": 51,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 297,
+      "members": [
+        "C12wjygfkwu4",
+        "Couevcryxsw"
+      ],
+      "anchors": [
+        "C12wjygfkwu4"
+      ],
+      "files": [
+        "Fdoqog9xf50"
+      ],
+      "total_lines": 55,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 298,
+      "members": [
+        "Crs9ut3488s"
+      ],
+      "anchors": [
+        "Crs9ut3488s"
+      ],
+      "files": [
+        "Fdoqog9xf50"
+      ],
+      "total_lines": 53,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 305,
+      "members": [
+        "Czx7isc8617"
+      ],
+      "anchors": [
+        "Czx7isc8617"
+      ],
+      "files": [
+        "Fickuwiuedi"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 306,
+      "members": [
+        "C10d7ja30uxl"
+      ],
+      "anchors": [
+        "C10d7ja30uxl"
+      ],
+      "files": [
+        "Fickuwiuedi"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 307,
+      "members": [
+        "C176fc78oxmr"
+      ],
+      "anchors": [
+        "C176fc78oxmr"
+      ],
+      "files": [
+        "Fickuwiuedi"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 308,
+      "members": [
+        "C13z4lj82ykw"
+      ],
+      "anchors": [
+        "C13z4lj82ykw"
+      ],
+      "files": [
+        "Fickuwiuedi"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 309,
+      "members": [
+        "C82nluopppl"
+      ],
+      "anchors": [
+        "C82nluopppl"
+      ],
+      "files": [
+        "Fickuwiuedi"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 310,
+      "members": [
+        "C14xft2yjb0a",
+        "Ck10cx82iik"
+      ],
+      "anchors": [
+        "Ck10cx82iik"
+      ],
+      "files": [
+        "Fickuwiuedi"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 312,
+      "members": [
+        "Ct674p6pmoq"
+      ],
+      "anchors": [
+        "Ct674p6pmoq"
+      ],
+      "files": [
+        "Fickuwiuedi"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 313,
+      "members": [
+        "Cljf37sjt0y"
+      ],
+      "anchors": [
+        "Cljf37sjt0y"
+      ],
+      "files": [
+        "Fickuwiuedi"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 314,
+      "members": [
+        "Cfjb742p4tm",
+        "C16lczgdvwry"
+      ],
+      "anchors": [
+        "C16lczgdvwry"
+      ],
+      "files": [
+        "Fickuwiuedi"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 316,
+      "members": [
+        "Cjolr23g5hl"
+      ],
+      "anchors": [
+        "Cjolr23g5hl"
+      ],
+      "files": [
+        "Fickuwiuedi"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 317,
+      "members": [
+        "Chqwjuavupx"
+      ],
+      "anchors": [
+        "Chqwjuavupx"
+      ],
+      "files": [
+        "Fickuwiuedi"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 318,
+      "members": [
+        "Cthi25865j1"
+      ],
+      "anchors": [
+        "Cthi25865j1"
+      ],
+      "files": [
+        "Fickuwiuedi"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 319,
+      "members": [
+        "Cne6uahj67a",
+        "Ceggp10nz8e"
+      ],
+      "anchors": [
+        "Ceggp10nz8e"
+      ],
+      "files": [
+        "Fickuwiuedi"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 321,
+      "members": [
+        "Cyk3wosktig"
+      ],
+      "anchors": [
+        "Cyk3wosktig"
+      ],
+      "files": [
+        "Fickuwiuedi"
+      ],
+      "total_lines": 24,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 325,
+      "members": [
+        "Cvf66kkvexu"
+      ],
+      "anchors": [
+        "Cvf66kkvexu"
+      ],
+      "files": [
+        "F17xzjzg1heo"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 326,
+      "members": [
+        "Cpsvk5zh7aa"
+      ],
+      "anchors": [
+        "Cpsvk5zh7aa"
+      ],
+      "files": [
+        "F17xzjzg1heo"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 327,
+      "members": [
+        "Cay2rtnbx5p"
+      ],
+      "anchors": [
+        "Cay2rtnbx5p"
+      ],
+      "files": [
+        "F160evmz6pnr"
+      ],
+      "total_lines": 20,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 331,
+      "members": [
+        "Chtwylnn9eq"
+      ],
+      "anchors": [
+        "Chtwylnn9eq"
+      ],
+      "files": [
+        "F15hz3hpscoq"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 340,
+      "members": [
+        "Cjx0oevxp86"
+      ],
+      "anchors": [
+        "Cjx0oevxp86"
+      ],
+      "files": [
+        "F4npg6vtsue"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 341,
+      "members": [
+        "Cdovw8vf5op"
+      ],
+      "anchors": [
+        "Cdovw8vf5op"
+      ],
+      "files": [
+        "Frrepwxbu1i"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 342,
+      "members": [
+        "Coac33s48jz"
+      ],
+      "anchors": [
+        "Coac33s48jz"
+      ],
+      "files": [
+        "Fq6l5gboo7z"
+      ],
+      "total_lines": 52,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 345,
+      "members": [
+        "C16xngjz3ujl",
+        "C8uepztg74",
+        "Csko9lv55mg"
+      ],
+      "anchors": [
+        "Csko9lv55mg"
+      ],
+      "files": [
+        "Fgkjm3zvl8u"
+      ],
+      "total_lines": 50,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Crs9ut3488s",
+      "qualified_name": "main.scheduleonboarding",
+      "simple_name": "scheduleonboarding",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fdoqog9xf50",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/post-signup-event/functions/main.py",
+      "start_line": 71,
+      "end_line": 123,
+      "size_lines": 53,
+      "signature_hint": "def scheduleonboarding(request: tasks_fn.CallableRequest) -> https_fn.Response",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 153,
+      "region": 298,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Coac33s48jz",
+      "qualified_name": "main.backupapod",
+      "simple_name": "backupapod",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq6l5gboo7z",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/taskqueues-backup-images/functions/main.py",
+      "start_line": 48,
+      "end_line": 99,
+      "size_lines": 52,
+      "signature_hint": "def backupapod(req: tasks_fn.CallableRequest) -> str",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 152,
+      "region": 342,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C12go4420sk3",
+      "qualified_name": "main.send_follower_notification",
+      "simple_name": "send_follower_notification",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fhkcxuy0kkg",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/fcm-notifications/functions/main.py",
+      "start_line": 9,
+      "end_line": 59,
+      "size_lines": 51,
+      "signature_hint": "def send_follower_notification(event: db_fn.Event[db_fn.Change]) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 151,
+      "region": 281,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Crxfirnxdby",
+      "qualified_name": "main.post_performance_alert_to_discord",
+      "simple_name": "post_performance_alert_to_discord",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fuwavn0wigi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/alerts-to-discord/functions/main.py",
+      "start_line": 122,
+      "end_line": 156,
+      "size_lines": 35,
+      "signature_hint": "def post_performance_alert_to_discord(event: performance_fn.PerformanceThresholdAlertEvent) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 135,
+      "region": 275,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C12wjygfkwu4",
+      "qualified_name": "main.savegoogletoken",
+      "simple_name": "savegoogletoken",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fdoqog9xf50",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/post-signup-event/functions/main.py",
+      "start_line": 33,
+      "end_line": 65,
+      "size_lines": 33,
+      "signature_hint": "def savegoogletoken( event: identity_fn.AuthBlockingEvent, ) -> identity_fn.BeforeCreateResponse | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 133,
+      "region": 297,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C5p7gjdfqgu",
+      "qualified_name": "main.post_fatal_issue_to_discord",
+      "simple_name": "post_fatal_issue_to_discord",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fuwavn0wigi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/alerts-to-discord/functions/main.py",
+      "start_line": 57,
+      "end_line": 85,
+      "size_lines": 29,
+      "signature_hint": "def post_fatal_issue_to_discord(event: crashlytics_fn.CrashlyticsNewFatalIssueEvent) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 129,
+      "region": 275,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Crkcpej110w",
+      "qualified_name": "main.post_new_udid_to_discord",
+      "simple_name": "post_new_udid_to_discord",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fuwavn0wigi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/alerts-to-discord/functions/main.py",
+      "start_line": 90,
+      "end_line": 117,
+      "size_lines": 28,
+      "signature_hint": "def post_new_udid_to_discord(event: app_distribution_fn.NewTesterDeviceEvent) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 128,
+      "region": 275,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cjx0oevxp86",
+      "qualified_name": "main.makeuppercase2",
+      "simple_name": "makeuppercase2",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4npg6vtsue",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/uppercase-rtdb/functions/main.py",
+      "start_line": 84,
+      "end_line": 110,
+      "size_lines": 27,
+      "signature_hint": "def makeuppercase2(event: db_fn.Event[db_fn.Change]) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 127,
+      "region": 340,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdovw8vf5op",
+      "qualified_name": "main.showconfigdiff",
+      "simple_name": "showconfigdiff",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Frrepwxbu1i",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/remote-config-diff/functions/main.py",
+      "start_line": 32,
+      "end_line": 58,
+      "size_lines": 27,
+      "signature_hint": "def showconfigdiff(event: remote_config_fn.CloudEvent[remote_config_fn.ConfigUpdateData]) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 127,
+      "region": 341,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C27i4sb6rt3",
+      "qualified_name": "main.post_message_to_discord",
+      "simple_name": "post_message_to_discord",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fuwavn0wigi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/alerts-to-discord/functions/main.py",
+      "start_line": 27,
+      "end_line": 51,
+      "size_lines": 25,
+      "signature_hint": "def post_message_to_discord( bot_name: str, message_body: str, webhook_url: str ) -> requests.Response",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 125,
+      "region": 275,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 3,
+          "example": "C5p7gjdfqgu"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cyk3wosktig",
+      "qualified_name": "main.checkforban",
+      "simple_name": "checkforban",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fickuwiuedi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/auth-blocking-functions/functions/main.py",
+      "start_line": 212,
+      "end_line": 235,
+      "size_lines": 24,
+      "signature_hint": "def checkforban( event: identity_fn.AuthBlockingEvent, ) -> identity_fn.BeforeSignInResponse | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 124,
+      "region": 321,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Csko9lv55mg",
+      "qualified_name": "main.posttestresultstoslack",
+      "simple_name": "posttestresultstoslack",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fgkjm3zvl8u",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/testlab-to-slack/functions/main.py",
+      "start_line": 63,
+      "end_line": 86,
+      "size_lines": 24,
+      "signature_hint": "def posttestresultstoslack( event: test_lab_fn.CloudEvent[test_lab_fn.TestMatrixCompletedData], ) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 124,
+      "region": 345,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "Couevcryxsw",
+      "qualified_name": "main.get_function_url",
+      "simple_name": "get_function_url",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fdoqog9xf50",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/post-signup-event/functions/main.py",
+      "start_line": 127,
+      "end_line": 148,
+      "size_lines": 22,
+      "signature_hint": "def get_function_url(name: str, location: str = options.SupportedRegion.US_CENTRAL1) -> str",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 122,
+      "region": 297,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C12wjygfkwu4"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cay2rtnbx5p",
+      "qualified_name": "main.verify_comment",
+      "simple_name": "verify_comment",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F160evmz6pnr",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/firestore-sync-auth/functions/main.py",
+      "start_line": 21,
+      "end_line": 40,
+      "size_lines": 20,
+      "signature_hint": "def verify_comment(event: Event[Change[DocumentSnapshot]]) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 120,
+      "region": 327,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C176fc78oxmr",
+      "qualified_name": "main.validatenewuser",
+      "simple_name": "validatenewuser",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fickuwiuedi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/auth-blocking-functions/functions/main.py",
+      "start_line": 45,
+      "end_line": 62,
+      "size_lines": 18,
+      "signature_hint": "def validatenewuser( event: identity_fn.AuthBlockingEvent, ) -> identity_fn.BeforeCreateResponse | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 118,
+      "region": 307,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chqwjuavupx",
+      "qualified_name": "main.copyclaimstosession",
+      "simple_name": "copyclaimstosession",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fickuwiuedi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/auth-blocking-functions/functions/main.py",
+      "start_line": 162,
+      "end_line": 175,
+      "size_lines": 14,
+      "signature_hint": "def copyclaimstosession( event: identity_fn.AuthBlockingEvent, ) -> identity_fn.BeforeSignInResponse | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 114,
+      "region": 317,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8uepztg74",
+      "qualified_name": "main.slackmoji",
+      "simple_name": "slackmoji",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fgkjm3zvl8u",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/testlab-to-slack/functions/main.py",
+      "start_line": 44,
+      "end_line": 57,
+      "size_lines": 14,
+      "signature_hint": "def slackmoji(status: test_lab_fn.TestState | test_lab_fn.OutcomeSummary) -> str",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 114,
+      "region": 345,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 4,
+          "example": "Csko9lv55mg"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cpsvk5zh7aa",
+      "qualified_name": "main.onimageresizedwest",
+      "simple_name": "onimageresizedwest",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F17xzjzg1heo",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/custom-events/functions/main.py",
+      "start_line": 49,
+      "end_line": 61,
+      "size_lines": 13,
+      "signature_hint": "def onimageresizedwest(event: eventarc_fn.CloudEvent) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 113,
+      "region": 326,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvf66kkvexu",
+      "qualified_name": "main.onimageresized",
+      "simple_name": "onimageresized",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F17xzjzg1heo",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/custom-events/functions/main.py",
+      "start_line": 28,
+      "end_line": 39,
+      "size_lines": 12,
+      "signature_hint": "def onimageresized(event: eventarc_fn.CloudEvent) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 112,
+      "region": 325,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16xngjz3ujl",
+      "qualified_name": "main.post_to_slack",
+      "simple_name": "post_to_slack",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fgkjm3zvl8u",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/testlab-to-slack/functions/main.py",
+      "start_line": 28,
+      "end_line": 39,
+      "size_lines": 12,
+      "signature_hint": "def post_to_slack(title: str, details: str) -> requests.Response",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 112,
+      "region": 345,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Csko9lv55mg"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjolr23g5hl",
+      "qualified_name": "main.setemployeeid",
+      "simple_name": "setemployeeid",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fickuwiuedi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/auth-blocking-functions/functions/main.py",
+      "start_line": 148,
+      "end_line": 158,
+      "size_lines": 11,
+      "signature_hint": "def setemployeeid( event: identity_fn.AuthBlockingEvent, ) -> identity_fn.BeforeCreateResponse | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 111,
+      "region": 316,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C82nluopppl",
+      "qualified_name": "main.requireverified",
+      "simple_name": "requireverified",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fickuwiuedi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/auth-blocking-functions/functions/main.py",
+      "start_line": 80,
+      "end_line": 87,
+      "size_lines": 8,
+      "signature_hint": "def requireverified( event: identity_fn.AuthBlockingEvent, ) -> identity_fn.BeforeCreateResponse | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 108,
+      "region": 309,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ct674p6pmoq",
+      "qualified_name": "main.requireverifiedsignin",
+      "simple_name": "requireverifiedsignin",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fickuwiuedi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/auth-blocking-functions/functions/main.py",
+      "start_line": 109,
+      "end_line": 116,
+      "size_lines": 8,
+      "signature_hint": "def requireverifiedsignin( event: identity_fn.AuthBlockingEvent, ) -> identity_fn.BeforeSignInResponse | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 108,
+      "region": 312,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chtwylnn9eq",
+      "qualified_name": "main.app_has_regression",
+      "simple_name": "app_has_regression",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F15hz3hpscoq",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/monitor-cloud-logging/functions/main.py",
+      "start_line": 76,
+      "end_line": 83,
+      "size_lines": 8,
+      "signature_hint": "def app_has_regression(alert: crashlytics_fn.CrashlyticsRegressionAlertEvent) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 108,
+      "region": 331,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C13z4lj82ykw",
+      "qualified_name": "main.setdefaultname",
+      "simple_name": "setdefaultname",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fickuwiuedi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/auth-blocking-functions/functions/main.py",
+      "start_line": 68,
+      "end_line": 74,
+      "size_lines": 7,
+      "signature_hint": "def setdefaultname( event: identity_fn.AuthBlockingEvent, ) -> identity_fn.BeforeCreateResponse | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 308,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16lczgdvwry",
+      "qualified_name": "main.ipban",
+      "simple_name": "ipban",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fickuwiuedi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/auth-blocking-functions/functions/main.py",
+      "start_line": 136,
+      "end_line": 142,
+      "size_lines": 7,
+      "signature_hint": "def ipban( event: identity_fn.AuthBlockingEvent, ) -> identity_fn.BeforeSignInResponse | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 314,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ceggp10nz8e",
+      "qualified_name": "main.sanitizeprofilephoto",
+      "simple_name": "sanitizeprofilephoto",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fickuwiuedi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/auth-blocking-functions/functions/main.py",
+      "start_line": 198,
+      "end_line": 204,
+      "size_lines": 7,
+      "signature_hint": "def sanitizeprofilephoto( event: identity_fn.AuthBlockingEvent, ) -> identity_fn.BeforeCreateResponse | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 319,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ck10cx82iik",
+      "qualified_name": "main.sendverification",
+      "simple_name": "sendverification",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fickuwiuedi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/auth-blocking-functions/functions/main.py",
+      "start_line": 98,
+      "end_line": 103,
+      "size_lines": 6,
+      "signature_hint": "def sendverification( event: identity_fn.AuthBlockingEvent, ) -> identity_fn.BeforeCreateResponse | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 106,
+      "region": 310,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cljf37sjt0y",
+      "qualified_name": "main.markverified",
+      "simple_name": "markverified",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fickuwiuedi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/auth-blocking-functions/functions/main.py",
+      "start_line": 122,
+      "end_line": 126,
+      "size_lines": 5,
+      "signature_hint": "def markverified( event: identity_fn.AuthBlockingEvent, ) -> identity_fn.BeforeCreateResponse | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 105,
+      "region": 313,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czx7isc8617",
+      "qualified_name": "main.created_noop",
+      "simple_name": "created_noop",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fickuwiuedi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/auth-blocking-functions/functions/main.py",
+      "start_line": 25,
+      "end_line": 28,
+      "size_lines": 4,
+      "signature_hint": "def created_noop( event: identity_fn.AuthBlockingEvent, ) -> identity_fn.BeforeCreateResponse | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 104,
+      "region": 305,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C10d7ja30uxl",
+      "qualified_name": "main.signedin_noop",
+      "simple_name": "signedin_noop",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fickuwiuedi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/auth-blocking-functions/functions/main.py",
+      "start_line": 34,
+      "end_line": 37,
+      "size_lines": 4,
+      "signature_hint": "def signedin_noop( event: identity_fn.AuthBlockingEvent, ) -> identity_fn.BeforeSignInResponse | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 104,
+      "region": 306,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cthi25865j1",
+      "qualified_name": "main.logip",
+      "simple_name": "logip",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fickuwiuedi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/auth-blocking-functions/functions/main.py",
+      "start_line": 181,
+      "end_line": 184,
+      "size_lines": 4,
+      "signature_hint": "def logip( event: identity_fn.AuthBlockingEvent, ) -> identity_fn.BeforeSignInResponse | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 104,
+      "region": 318,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14xft2yjb0a",
+      "qualified_name": "main.send_verification_email_using_your_smtp_server",
+      "simple_name": "send_verification_email_using_your_smtp_server",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fickuwiuedi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/auth-blocking-functions/functions/main.py",
+      "start_line": 91,
+      "end_line": 92,
+      "size_lines": 2,
+      "signature_hint": "def send_verification_email_using_your_smtp_server(email, link)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 102,
+      "region": 310,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ck10cx82iik"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cfjb742p4tm",
+      "qualified_name": "main.is_suspicious",
+      "simple_name": "is_suspicious",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fickuwiuedi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/auth-blocking-functions/functions/main.py",
+      "start_line": 130,
+      "end_line": 131,
+      "size_lines": 2,
+      "signature_hint": "def is_suspicious(ip_address)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 102,
+      "region": 314,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C16lczgdvwry"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cne6uahj67a",
+      "qualified_name": "main.analyze_photo_with_ml",
+      "simple_name": "analyze_photo_with_ml",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fickuwiuedi",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Python/quickstarts/auth-blocking-functions/functions/main.py",
+      "start_line": 188,
+      "end_line": 189,
+      "size_lines": 2,
+      "signature_hint": "def analyze_photo_with_ml(url)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 102,
+      "region": 319,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ceggp10nz8e"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Caiylvhh0p3",
+      "qualified_name": "rtdb_presence",
+      "simple_name": "rtdb_presence",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcrdk4fhd4l",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/presence-firestore/public/index.js",
+      "start_line": 17,
+      "end_line": 64,
+      "size_lines": 48,
+      "signature_hint": "function rtdb_presence()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -52,
+      "region": 178,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmecipqbad8",
+      "qualified_name": "Guestbook",
+      "simple_name": "Guestbook",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F123rqr7cxwb",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/text-moderation/public/main.js",
+      "start_line": 19,
+      "end_line": 50,
+      "size_lines": 32,
+      "signature_hint": "function Guestbook()",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -68,
+      "region": 252,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cmcjkolpxyq",
+      "qualified_name": "searchAlgoliaAuthenticated",
+      "simple_name": "searchAlgoliaAuthenticated",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4xvidbop6n",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/fulltext-search-firestore/public/index.js",
+      "start_line": 47,
+      "end_line": 76,
+      "size_lines": 30,
+      "signature_hint": "function searchAlgoliaAuthenticated(query)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -70,
+      "region": 125,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C7js6i6v97q"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cf41d56arvy",
+      "qualified_name": "searchTypesenseAuthenticated",
+      "simple_name": "searchTypesenseAuthenticated",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4xvidbop6n",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/fulltext-search-firestore/public/index.js",
+      "start_line": 135,
+      "end_line": 163,
+      "size_lines": 29,
+      "signature_hint": "async function searchTypesenseAuthenticated(query)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -71,
+      "region": 130,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3vgz43zjun",
+      "qualified_name": "refresh",
+      "simple_name": "refresh",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fzchvhhv9cf",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/quickstarts/big-ben/public/script.js",
+      "start_line": 17,
+      "end_line": 41,
+      "size_lines": 25,
+      "signature_hint": "function refresh(_this)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -75,
+      "region": 187,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cscm8h1ey3v",
+      "qualified_name": "searchTypesenseUnauthenticated",
+      "simple_name": "searchTypesenseUnauthenticated",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4xvidbop6n",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/fulltext-search-firestore/public/index.js",
+      "start_line": 110,
+      "end_line": 133,
+      "size_lines": 24,
+      "signature_hint": "async function searchTypesenseUnauthenticated(query)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -76,
+      "region": 129,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7js6i6v97q",
+      "qualified_name": "search",
+      "simple_name": "search",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4xvidbop6n",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/fulltext-search-firestore/public/index.js",
+      "start_line": 78,
+      "end_line": 97,
+      "size_lines": 20,
+      "signature_hint": "function search(query)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -80,
+      "region": 125,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Ckafd0lamit",
+      "qualified_name": "searchAlgoliaUnauthenticated",
+      "simple_name": "searchAlgoliaUnauthenticated",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4xvidbop6n",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/fulltext-search-firestore/public/index.js",
+      "start_line": 27,
+      "end_line": 45,
+      "size_lines": 19,
+      "signature_hint": "function searchAlgoliaUnauthenticated(query)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -81,
+      "region": 125,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C7js6i6v97q"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ct5zmxng8ln",
+      "qualified_name": "displayMessage",
+      "simple_name": "displayMessage",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F123rqr7cxwb",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/text-moderation/public/main.js",
+      "start_line": 92,
+      "end_line": 110,
+      "size_lines": 19,
+      "signature_hint": "Guestbook.prototype.displayMessage = function(key, name, message, moderated)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -81,
+      "region": 252,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cmecipqbad8"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cr8fjw8kzpq",
+      "qualified_name": "onload",
+      "simple_name": "onload",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqwlc5laub",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/username-password-auth/public/main.js",
+      "start_line": 66,
+      "end_line": 82,
+      "size_lines": 17,
+      "signature_hint": "req.onload = function()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -83,
+      "region": 267,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cr214tpyon0",
+      "qualified_name": "onreadystatechange",
+      "simple_name": "onreadystatechange",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fzchvhhv9cf",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/quickstarts/big-ben/public/script.js",
+      "start_line": 24,
+      "end_line": 36,
+      "size_lines": 13,
+      "signature_hint": "request.onreadystatechange = function()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -87,
+      "region": 188,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ctlqdhr2jmg",
+      "qualified_name": "searchElastic",
+      "simple_name": "searchElastic",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4xvidbop6n",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/fulltext-search-firestore/public/index.js",
+      "start_line": 99,
+      "end_line": 108,
+      "size_lines": 10,
+      "signature_hint": "function searchElastic(query)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -90,
+      "region": 128,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C24owdg2j8",
+      "qualified_name": "fs_listen",
+      "simple_name": "fs_listen",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcrdk4fhd4l",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/presence-firestore/public/index.js",
+      "start_line": 116,
+      "end_line": 123,
+      "size_lines": 8,
+      "signature_hint": "function fs_listen()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -92,
+      "region": 182,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ceyzjjc1x7s",
+      "qualified_name": "toggleButton",
+      "simple_name": "toggleButton",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F123rqr7cxwb",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/text-moderation/public/main.js",
+      "start_line": 114,
+      "end_line": 120,
+      "size_lines": 7,
+      "signature_hint": "Guestbook.prototype.toggleButton = function()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -93,
+      "region": 252,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cmecipqbad8"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cbst0d35gsm",
+      "qualified_name": "formatAmountForStripe",
+      "simple_name": "formatAmountForStripe",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fej6uw3m3a3",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/stripe/public/javascript/app.js",
+      "start_line": 283,
+      "end_line": 287,
+      "size_lines": 5,
+      "signature_hint": "function formatAmountForStripe(amount, currency)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 237,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ctob8w59yid",
+      "qualified_name": "resetMaterialTextfield",
+      "simple_name": "resetMaterialTextfield",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F123rqr7cxwb",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/text-moderation/public/main.js",
+      "start_line": 76,
+      "end_line": 80,
+      "size_lines": 5,
+      "signature_hint": "Guestbook.resetMaterialTextfield = function(element)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 254,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1rfr3wl71r",
+      "qualified_name": "onerror",
+      "simple_name": "onerror",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqwlc5laub",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/username-password-auth/public/main.js",
+      "start_line": 83,
+      "end_line": 85,
+      "size_lines": 3,
+      "signature_hint": "req.onerror = function()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 268,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwvmtv21nsx",
+      "qualified_name": "saveMessage",
+      "simple_name": "saveMessage",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F123rqr7cxwb",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node-1st-gen/text-moderation/public/main.js",
+      "start_line": 56,
+      "end_line": 73,
+      "size_lines": 18,
+      "signature_hint": "Guestbook.prototype.saveMessage = function(e)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -382,
+      "region": 252,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 1
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cmecipqbad8"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Coi3fzhrx8j",
+      "qualified_name": "constructor",
+      "simple_name": "constructor",
+      "language": "javascript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F17n8erkysx0",
+      "path": "/storage/cgg-test_repos/app-firebase-samples/Node/instrument-with-opentelemetry/functions/timer.js",
+      "start_line": 21,
+      "end_line": 23,
+      "size_lines": 3,
+      "signature_hint": "constructor()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 28,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

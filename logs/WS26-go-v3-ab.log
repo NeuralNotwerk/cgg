@@ -1,0 +1,9 @@
+old: cgg 0.11.0  sha256=2042eae3c003d3e1c906d96a7d3f9787b67935ea166bd3d80a8e201ea44c99d0
+new: cgg 0.11.0 (dev g212bf71+d87cc0c1)  sha256=8594299926110e7e208991362a82bce8e21a6efb0241768ee68c3229ed6fa694
+old=target/remediation/bins/WS26-go-before
+new=target/remediation/bins/WS26-go-v3
+repos=283 elapsed=242s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 0
+by language: see by_language.tsv
+

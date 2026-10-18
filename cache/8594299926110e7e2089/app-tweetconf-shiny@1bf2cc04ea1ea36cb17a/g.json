@@ -1,0 +1,1591 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "Cfzu6h4ndho": {
+      "id": "Cfzu6h4ndho",
+      "qualified_name": "today_tz",
+      "simple_name": "today_tz",
+      "kind": "function",
+      "language": "r",
+      "file": "F26i44pinga",
+      "start_line": 71,
+      "end_line": 71,
+      "start_byte": 3200,
+      "end_byte": 3241,
+      "signature_hint": "today_tz <- function() today(tz_global())"
+    },
+    "C95j29euyjk": {
+      "id": "C95j29euyjk",
+      "qualified_name": "TWEET_WALL_DATE_RANGE",
+      "simple_name": "TWEET_WALL_DATE_RANGE",
+      "kind": "function",
+      "language": "r",
+      "file": "F26i44pinga",
+      "start_line": 104,
+      "end_line": 116,
+      "start_byte": 4434,
+      "end_byte": 5015,
+      "signature_hint": "TWEET_WALL_DATE_RANGE <- function(inputId) { switch( inputId, \"today\" = c(start = today_tz(), end = today_tz()), \"yesterday\" = c(start = today_tz() - 1, end = today_tz() - 1), \"past_week\" = c(start = today_tz() - 7, end = today_tz()), \"in_2019\" = c(start = ymd(\"2019-01-01\"), end = today_tz()), \"since_workshop\" = c(start = .workshop_start, end = today_tz()), \"conf_prop\" = c(start = .conference_start, end = today_tz()), \"conf_and_after\" = c(start = .workshop_start, end = today_tz()), NA ) }"
+    },
+    "Cy1te2gnch9": {
+      "id": "Cy1te2gnch9",
+      "qualified_name": "`%||%`",
+      "simple_name": "`%||%`",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 1,
+      "end_line": 1,
+      "start_byte": 0,
+      "end_byte": 48,
+      "signature_hint": "`%||%` <- function(x,y) if (is.null(x)) y else x"
+    },
+    "Clrlqfnyrcn": {
+      "id": "Clrlqfnyrcn",
+      "qualified_name": "import_tweets",
+      "simple_name": "import_tweets",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 3,
+      "end_line": 22,
+      "start_byte": 50,
+      "end_byte": 627,
+      "signature_hint": "import_tweets <- function( file, tz_global = tz_global(), topic_terms = NULL, start_date = NULL, blocklist = NULL ) { tweets <- readRDS(file) %>% mutate(created_at = lubridate::with_tz(created_at, tz_global())) %>% tweets_since(TWEETS_START_DATE) %>% tweets_not_hashdump() %>% tweets_block(blocklist$status_id, blocklist$screen_name) %>% arrange(desc(created_at)) %>% is_topic_tweet(topic_terms) if (!\"is_quote\" %in% names(tweets)) tweets$is_quote <- FALSE if (!\"is_retweet\" %in% names(tweets)) tweets$is_retweet <- FALSE tweets }"
+    },
+    "Cwe5bqcw2pb": {
+      "id": "Cwe5bqcw2pb",
+      "qualified_name": "is_topic_tweet",
+      "simple_name": "is_topic_tweet",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 24,
+      "end_line": 28,
+      "start_byte": 629,
+      "end_byte": 850,
+      "signature_hint": "is_topic_tweet <- function(tweets, topics = NULL, var_name = \"is_topic\") { if (is.null(topics)) return(tweets) tweets %>% mutate(!!var_name := str_detect(tolower(text), paste0(\"(\", topics, \")\", collapse = \"|\"))) }"
+    },
+    "C12t5461mibc": {
+      "id": "C12t5461mibc",
+      "qualified_name": "tweets_just",
+      "simple_name": "tweets_just",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 30,
+      "end_line": 38,
+      "start_byte": 852,
+      "end_byte": 1069,
+      "signature_hint": "tweets_just <- function(tweets, ...) { vars <- rlang::enquos(...) if (!length(vars)) { tweets %>% select(user_id, status_id, created_at, screen_name, text) } else { tweets %>% select(!!!vars) } }"
+    },
+    "C16o7i4lg5qr": {
+      "id": "C16o7i4lg5qr",
+      "qualified_name": "tweets_by_time",
+      "simple_name": "tweets_by_time",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 40,
+      "end_line": 44,
+      "start_byte": 1071,
+      "end_byte": 1235,
+      "signature_hint": "tweets_by_time <- function(tweets, by = \"1 hour\") { tweets %>% mutate(by_time = lubridate::floor_date(created_at, by)) %>% group_by(by_time, add = TRUE) }"
+    },
+    "C7rxz16q2z3": {
+      "id": "C7rxz16q2z3",
+      "qualified_name": "tweets_volume",
+      "simple_name": "tweets_volume",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 46,
+      "end_line": 58,
+      "start_byte": 1237,
+      "end_byte": 1597,
+      "signature_hint": "tweets_volume <- function(tweets, by = \"1 hour\") { tweets %>% tweets_by_time(by) %>% count() %>% # drop by_time group"
+    },
+    "Com9uyj79gj": {
+      "id": "Com9uyj79gj",
+      "qualified_name": "tweets_in_last",
+      "simple_name": "tweets_in_last",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 60,
+      "end_line": 64,
+      "start_byte": 1599,
+      "end_byte": 1814,
+      "signature_hint": "tweets_in_last <- function(tweets, d = 0, h = 0, m = 15, s = 0) { tweets %>% filter(created_at >= lubridate::now() - lubridate::hours(h + d * 24) - lubridate::minutes(m) - lubridate::seconds(s)) }"
+    },
+    "Cqqnqx9zw9": {
+      "id": "Cqqnqx9zw9",
+      "qualified_name": "tweets_since",
+      "simple_name": "tweets_since",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 66,
+      "end_line": 71,
+      "start_byte": 1816,
+      "end_byte": 2064,
+      "signature_hint": "tweets_since <- function(tweets, since = \"2019-01-01\", tz = NULL) { if (is.null(since)) return(tweets) if (is.character(since)) since <- lubridate::ymd_hms(since, truncated = 3, tz = tz_global(tz)) tweets %>% filter(created_at >= since) }"
+    },
+    "Cv4xth6igj6": {
+      "id": "Cv4xth6igj6",
+      "qualified_name": "tweets_today",
+      "simple_name": "tweets_today",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 73,
+      "end_line": 75,
+      "start_byte": 2066,
+      "end_byte": 2169,
+      "signature_hint": "tweets_today <- function(tweets, tz = NULL) { tweets_since(tweets, lubridate::today(tz_global(tz))) }"
+    },
+    "Cosvlgoebkk": {
+      "id": "Cosvlgoebkk",
+      "qualified_name": "tweets_not_hashdump",
+      "simple_name": "tweets_not_hashdump",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 77,
+      "end_line": 82,
+      "start_byte": 2171,
+      "end_byte": 2326,
+      "signature_hint": "tweets_not_hashdump <- function(tweets) { tweets %>% mutate(n_hash = map_int(hashtags, length)) %>% filter(n_hash <= 7) %>% select(-n_hash) }"
+    },
+    "C2hzk06p6sc": {
+      "id": "C2hzk06p6sc",
+      "qualified_name": "tweets_block",
+      "simple_name": "tweets_block",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 84,
+      "end_line": 92,
+      "start_byte": 2328,
+      "end_byte": 2605,
+      "signature_hint": "tweets_block <- function(tweets, status_id = NULL, screen_name = NULL) { if (!is.null(status_id)) { tweets <- tweets %>% filter(!status_id %in% !!status_id) } if (!is.null(screen_name)) { tweets <- tweets %>% filter(!screen_name %in% !!screen_name) } tweets }"
+    },
+    "Cpj3icuqbrj": {
+      "id": "Cpj3icuqbrj",
+      "qualified_name": "top_tweets",
+      "simple_name": "top_tweets",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 94,
+      "end_line": 103,
+      "start_byte": 2607,
+      "end_byte": 2847,
+      "signature_hint": "top_tweets <- function(tweets, top_n = 10, ..., descending = TRUE) { top_by <- rlang::enquos(...) x <- tweets %>% arrange(!!!top_by) if (descending) { x %>% tail(top_n) %>% slice(top_n:1) } else"
+    },
+    "Clfexwz5fcf": {
+      "id": "Clfexwz5fcf",
+      "qualified_name": "tweets_by_engaged_users",
+      "simple_name": "tweets_by_engaged_users",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 105,
+      "end_line": 110,
+      "start_byte": 2849,
+      "end_byte": 3101,
+      "signature_hint": "tweets_by_engaged_users <- function(tweets, ...) { # Currently just a dummy function. If you want to apply filters to discard # tweets by spam or unrelated users when using a noisy search term, this # is the place to add those filters. tweets }"
+    },
+    "Chj4e1gdljs": {
+      "id": "Chj4e1gdljs",
+      "qualified_name": "simplify_tweets",
+      "simple_name": "simplify_tweets",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 112,
+      "end_line": 133,
+      "start_byte": 3103,
+      "end_byte": 3640,
+      "signature_hint": "simplify_tweets <- function(tweets, collapse_list = NULL) { library(dplyr) tweets <- tweets %>% select( 1:5, starts_with(\"reply_\"), starts_with(\"is_\"), favorite_count, retweet_count, hashtags, ends_with(\"expanded_url\"), quoted_status_id, retweet_status_id, mentions_user_id, mentions_screen_name, starts_with(\"place\") ) if (is.null(collapse_list)) return(tweets) tweets %>% mutate_if(is.list, ~ sapply(., paste0, collapse = collapse_list)) }"
+    },
+    "C12euhh7ijk1": {
+      "id": "C12euhh7ijk1",
+      "qualified_name": "tz_global",
+      "simple_name": "tz_global",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 135,
+      "end_line": 139,
+      "start_byte": 3642,
+      "end_byte": 3764,
+      "signature_hint": "tz_global <- function(tz = NULL) { if (!is.null(tz)) return(tz) tz <- Sys.getenv(\"TZ\") if (tz == \"\") \"UTC\" else tz }"
+    },
+    "Ci5x9dn3voi": {
+      "id": "Ci5x9dn3voi",
+      "qualified_name": "get_tweet_blockquote",
+      "simple_name": "get_tweet_blockquote",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 141,
+      "end_line": 152,
+      "start_byte": 3766,
+      "end_byte": 4411,
+      "signature_hint": "get_tweet_blockquote <- function(screen_name, status_id, ..., null_on_error = TRUE, theme = \"light\") { oembed <- list(...)$oembed if (!is.null(oembed) && !is.na(oembed)) return(unlist(oembed)) oembed_url <- glue::glue(\"https://publish.twitter.com/oembed?url=https://twitter.com/{screen_name}/status/{status_id}&omit_script=1&dnt=1&theme={theme}\") bq <- possibly(httr::GET, list(status_code = 999))(URLencode(oembed_url)) if (bq$status_code >= 400) { if (null_on_error) return(NULL) '<blockquote style=\"font-size: 90%\">Sorry, unable to get tweet ¯\\\\_(ツ)_/¯</blockquote>' } else { httr::content(bq, \"parsed\")$html } }"
+    },
+    "Cqw773m3743": {
+      "id": "Cqw773m3743",
+      "qualified_name": "cache_profile_image",
+      "simple_name": "cache_profile_image",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 154,
+      "end_line": 166,
+      "start_byte": 4413,
+      "end_byte": 5008,
+      "signature_hint": "cache_profile_image <- function(profile_image_url, location = \"www\", default = \"twitter-default-profile.jpg\") { file_serve <- str_replace(profile_image_url, \".+/profile\", \"profile\") file_local <- fs::path(location, file_serve) if (fs::file_exists(file_local)) { x <- list(result = file_serve) } else { fs::dir_create(fs::path_dir(file_local)) x <- safely(download.file)(profile_image_url, file_local) # On fist download, the image won't be ready for the UI, so show default if (is.null(x$error)) x$result <- default } if (is.null(x$error)) x$result else default }"
+    },
+    "C1010tuccfgz": {
+      "id": "C1010tuccfgz",
+      "qualified_name": "masonify_tweets",
+      "simple_name": "masonify_tweets",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 168,
+      "end_line": 183,
+      "start_byte": 5010,
+      "end_byte": 5361,
+      "signature_hint": "masonify_tweets <- function(tweets, id = NULL, class = NULL) { stopifnot(\"status_id\" %in% names(tweets)) t_embed <- tweets %>% pmap(get_tweet_blockquote) %>% map(HTML) %>% map(tags$div, class = \"tweet-item\") tagList( tags$div(id = id, class = paste(\"masonry text-left\", class), t_embed ) ) }"
+    },
+    "Cco3en21cot": {
+      "id": "Cco3en21cot",
+      "qualified_name": "twemoji",
+      "simple_name": "twemoji",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 185,
+      "end_line": 192,
+      "start_byte": 5363,
+      "end_byte": 5730,
+      "signature_hint": "twemoji <- function(runes, width = \"20px\") { runes <- tolower(runes) runes <- gsub(\" \", \"-\", runes) runes <- sub(\"-fe0f$\", \"\", runes) # seems to cause problems with twemoji :shrug: emojis <- glue::glue(\"https://cdnjs.cloudflare.com/ajax/libs/twemoji/11.2.0/2/svg/{runes}.svg\") emojis <- glue::glue('<img src=\"{emojis}\" width = \"{width}\">') paste(emojis) }"
+    },
+    "Csnicabb516": {
+      "id": "Csnicabb516",
+      "qualified_name": "tweet_cache_oembed",
+      "simple_name": "tweet_cache_oembed",
+      "kind": "function",
+      "language": "r",
+      "file": "F168vykyxemq",
+      "start_line": 194,
+      "end_line": 221,
+      "start_byte": 5732,
+      "end_byte": 6842,
+      "signature_hint": "tweet_cache_oembed <- function(tweets, cache = \"data/tweets_oembed.rds\") { if (fs::file_exists(cache)) { oembed <- readRDS(cache) tweets <- left_join(tweets, oembed, by = \"status_id\") } else { oembed <- tibble(status_id = character(), oembed = character()) } if (!\"oembed\" %in% names(tweets)) tweets$oembed <- map(seq_len(nrow(tweets)), ~ NULL) is_needed <- map_lgl(tweets$oembed, is.null) if (any(is_needed)) { tweets$oembed[is_needed] <- if (requireNamespace(\"furrr\", quietly = TRUE)) { furrr::future_pmap(tweets[is_needed, ], get_tweet_blockquote, null_on_error = FALSE, .progress = TRUE) } else { pmap(tweets[is_needed, ], get_tweet_blockquote, null_on_error = FALSE) } oembed_new <- tweets %>% select(status_id, oembed) # oembed may be a superset of the oembed we got from these tweets # so the following keeps the old oembed not contained in oembed_new oembed <- bind_rows( semi_join(oembed_new, oembed, by = \"status_id\"), anti_join(oembed_new, oembed, by = \"status_id\") ) saveRDS(oembed, cache) } return(tweets) }"
+    },
+    "C1adk0o33kt": {
+      "id": "C1adk0o33kt",
+      "qualified_name": "tweetExplorerUI",
+      "simple_name": "tweetExplorerUI",
+      "kind": "function",
+      "language": "r",
+      "file": "Fc6b5y6yd0u",
+      "start_line": 1,
+      "end_line": 41,
+      "start_byte": 0,
+      "end_byte": 992,
+      "signature_hint": "tweetExplorerUI <- function(id, tweet_div_id = \"tweetExplorer-tweet\", collapsed = FALSE, status = \"info\") { ns <- NS(id) fluidRow( column( 12, column( 12, class = \"col-md-push-9 col-md-3\", box( width = \"6 col-md-12\", status = status, solidHeader = TRUE, title = \"Options\", collapsible = TRUE, collapsed = collapsed, selectInput( ns('view'), 'Tweet Group', c('Popular', 'Tips', \"Talks\", \"Pictures\", \"All\") ), uiOutput(ns('help_text')), uiOutput(ns('filters')) ), column( width = 6, class = \"col-md-12\", id = tweet_div_id, uiOutput(ns(\"tweet\")) ) ), box( width = \"12 col-md-pull-3 col-md-9\", status = \"primary\", DT::dataTableOutput(ns('tweets'))) ) ) }"
+    },
+    "Cwlv1u1l7lp": {
+      "id": "Cwlv1u1l7lp",
+      "qualified_name": "tweetExplorer",
+      "simple_name": "tweetExplorer",
+      "kind": "function",
+      "language": "r",
+      "file": "Fc6b5y6yd0u",
+      "start_line": 43,
+      "end_line": 172,
+      "start_byte": 994,
+      "end_byte": 5819,
+      "signature_hint": "tweetExplorer <- function(input, output, session, all_tweets, tzone = \"America/New_York\") { ns <- session$ns top_hashtags <- reactive({ all_tweets() %>% select(hashtags) %>% unnest() %>% count(hashtags, sort = TRUE) %>% slice(1:25) %>% pull(hashtags) }) tweets <- reactive({ tip_words <- \"(TIL|DYK|[Tt]ip|[Ll]earned|[Uu]seful|[Kk]now|[Tt]rick)\" session_words <- \"([Aa]vailable|[Oo]nline|[Ll]ink|[Ss]lide|[Ss]ession)\" all_tweets <- all_tweets() %>% mutate( relates_tip = str_detect(text, tip_words), relates_session = str_detect(text, session_words), relates_github = str_detect(text, \"[Gg]it[Hh]ub\") | str_detect(urls_expanded_url, 'github.com'), hashtags = map(hashtags, tolower) ) x <- switch( input$view, 'Popular' = all_tweets %>% arrange(desc(retweet_count + favorite_count), -map_int(mentions_screen_name, length)), 'Tips' = all_tweets %>% filter(relates_tip, !is_retweet), 'Talks' = all_tweets %>% filter(relates_session, !is_retweet), 'Pictures' = all_tweets %>% filter(!is_retweet, !is.na(media_url)), all_tweets ) if (input$view %in% c('All', 'Popular')) { if (length(input$filter_binary)) { for (filter_binary in input$filter_binary) { x <- switch( filter_binary, # 'Not Retweet' = filter(x, !is_retweet), 'Not Quote' = filter(x, !is_quote), 'Has Media' = filter(x, !is.na(media_url)), 'Has Link' = filter(x, !is.na(urls_url)), 'Has Github Link' = filter(x, str_detect(urls_url, \"github\")), \"Retweeted\" = filter(x, retweet_count > 0), \"Favorited\" = filter(x, favorite_count > 0), x ) } } if (length(input$filter_hashtag))"
+    },
+    "Cfiddpg1jj7": {
+      "id": "Cfiddpg1jj7",
+      "qualified_name": "progressBar",
+      "simple_name": "progressBar",
+      "kind": "function",
+      "language": "r",
+      "file": "F98apg2w8sj",
+      "start_line": 4,
+      "end_line": 42,
+      "start_byte": 81,
+      "end_byte": 1318,
+      "signature_hint": "progressBar <- function( value = 0, label = FALSE, color = \"aqua\", size = NULL, striped = FALSE, active = FALSE, vertical = FALSE ) { stopifnot(is.numeric(value)) if (value < 0 || value > 100) stop(\"'value' should be in the range from 0 to 100.\", call. = FALSE) # if (!(color %in% shinydashboard:::validColors || color %in% shinydashboard:::validStatuses)) # stop(\"'color' should be a valid status or color.\", call. = FALSE) if (!is.null(size)) size <- match.arg(size, c(\"sm\", \"xs\", \"xxs\")) text_value <- paste0(value, \"%\") if (vertical) style <- htmltools::css(height = text_value, `min-height` = \"2em\") else style <- htmltools::css(width = text_value, `min-width` = \"2em\") tags$div( class = \"progress\", class = if (!is.null(size)) paste0(\"progress-\", size), class = if (vertical) \"vertical\", class = if (active) \"active\", tags$div( class = \"progress-bar\", class = paste0(\"progress-bar-\", color), class = if (striped) \"progress-bar-striped\", style = style, role = \"progressbar\", `aria-valuenow` = value, `aria-valuemin` = 0, `aria-valuemax` = 100, tags$span(class = if (!label) \"sr-only\", text_value) ) ) }"
+    },
+    "Cc531v3mamc": {
+      "id": "Cc531v3mamc",
+      "qualified_name": "progressGroup",
+      "simple_name": "progressGroup",
+      "kind": "function",
+      "language": "r",
+      "file": "F98apg2w8sj",
+      "start_line": 45,
+      "end_line": 56,
+      "start_byte": 1338,
+      "end_byte": 1843,
+      "signature_hint": "progressGroup <- function(text, value, min = 0, max = value, color = \"aqua\") { stopifnot(is.character(text)) stopifnot(is.numeric(value)) if (value < min || value > max) stop(sprintf(\"'value' should be in the range from %d to %d.\", min, max), call. = FALSE) tags$div( class = \"progress-group\", tags$span(class = \"progress-text\", text), tags$span(class = \"progress-number\", sprintf(\"%d / %d\", value, max)), progressBar(round(value / max * 100), color = color, size = \"sm\") ) }"
+    },
+    "C14l5brr019u": {
+      "id": "C14l5brr019u",
+      "qualified_name": "progressBar_v",
+      "simple_name": "progressBar_v",
+      "kind": "function",
+      "language": "r",
+      "file": "F98apg2w8sj",
+      "start_line": 58,
+      "end_line": 64,
+      "start_byte": 1845,
+      "end_byte": 2081,
+      "signature_hint": "progressBar_v <- function(x, colors) { if (length(colors) > length(x))"
+    },
+    "Czt9m5cttj5": {
+      "id": "Czt9m5cttj5",
+      "qualified_name": "adminlte_pal",
+      "simple_name": "adminlte_pal",
+      "kind": "function",
+      "language": "r",
+      "file": "F9xsof3omox",
+      "start_line": 25,
+      "end_line": 36,
+      "start_byte": 531,
+      "end_byte": 986,
+      "signature_hint": "adminlte_pal <- function(direction = 1, color_other = \"grey-lte\") { colors <- unlist(unname(ADMINLTE_COLORS)) function(n) { if (n > length(colors)) warning(\"Only \", length(colors), \" colors available\") x <- if (n == 2) { color_other <- if (!color_other %in% names(ADMINLTE_COLORS)) color_other else ADMINLTE_COLORS[[color_other]] c(colors[[1]], color_other) } else colors[1:n] if (direction < 0) rev(x) else x } }"
+    },
+    "C3rxum7ud4y": {
+      "id": "C3rxum7ud4y",
+      "qualified_name": "scale_color_adminlte",
+      "simple_name": "scale_color_adminlte",
+      "kind": "function",
+      "language": "r",
+      "file": "F9xsof3omox",
+      "start_line": 38,
+      "end_line": 40,
+      "start_byte": 988,
+      "end_byte": 1152,
+      "signature_hint": "scale_color_adminlte <- function(direction = 1, color_other = \"grey\", ...) { ggplot2::discrete_scale(\"colour\", \"adminlte\", adminlte_pal(direction, color_other)) }"
+    },
+    "Cdjs8gvi3dm": {
+      "id": "Cdjs8gvi3dm",
+      "qualified_name": "scale_fill_adminlte",
+      "simple_name": "scale_fill_adminlte",
+      "kind": "function",
+      "language": "r",
+      "file": "F9xsof3omox",
+      "start_line": 42,
+      "end_line": 44,
+      "start_byte": 1199,
+      "end_byte": 1360,
+      "signature_hint": "scale_fill_adminlte <- function(direction = 1, color_other = \"grey\", ...) { ggplot2::discrete_scale(\"fill\", \"adminlte\", adminlte_pal(direction, color_other)) }"
+    },
+    "Cdcm80nw1sg": {
+      "id": "Cdcm80nw1sg",
+      "qualified_name": "ready",
+      "simple_name": "ready",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F5e34gall17",
+      "start_line": 11,
+      "end_line": 13,
+      "start_byte": 300,
+      "end_byte": 345,
+      "signature_hint": "t.ready = function(f)"
+    },
+    "C2ccjk2qnvu": {
+      "id": "C2ccjk2qnvu",
+      "qualified_name": "handler_at_20",
+      "simple_name": "handler_at_20",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "F5e34gall17",
+      "start_line": 20,
+      "end_line": 24,
+      "start_byte": 566,
+      "end_byte": 693,
+      "signature_hint": "function(event)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C3ynalysg13": {
+      "id": "C3ynalysg13",
+      "qualified_name": "handler_at_26",
+      "simple_name": "handler_at_26",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "F5e34gall17",
+      "start_line": 26,
+      "end_line": 30,
+      "start_byte": 737,
+      "end_byte": 862,
+      "signature_hint": "function(event)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Croczxkgmuo": {
+      "id": "Croczxkgmuo",
+      "qualified_name": "handler_at_32",
+      "simple_name": "handler_at_32",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "F5e34gall17",
+      "start_line": 32,
+      "end_line": 36,
+      "start_byte": 907,
+      "end_byte": 1033,
+      "signature_hint": "function(event)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C1826oyllokl": {
+      "id": "C1826oyllokl",
+      "qualified_name": "handler_at_38",
+      "simple_name": "handler_at_38",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "F5e34gall17",
+      "start_line": 38,
+      "end_line": 42,
+      "start_byte": 1074,
+      "end_byte": 1196,
+      "signature_hint": "function(event)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C5dsqotrfrh": {
+      "id": "C5dsqotrfrh",
+      "qualified_name": "handler_at_44",
+      "simple_name": "handler_at_44",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "F5e34gall17",
+      "start_line": 44,
+      "end_line": 48,
+      "start_byte": 1240,
+      "end_byte": 1365,
+      "signature_hint": "function(event)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C4paou9gw04": {
+      "id": "C4paou9gw04",
+      "qualified_name": "handler_at_50",
+      "simple_name": "handler_at_50",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "F5e34gall17",
+      "start_line": 50,
+      "end_line": 54,
+      "start_byte": 1413,
+      "end_byte": 1542,
+      "signature_hint": "function(event)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    }
+  },
+  "files": {
+    "F26i44pinga": {
+      "id": "F26i44pinga",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/00_settings.R",
+      "language": "r",
+      "detected_via": "extension:.R",
+      "blake3": "e2925fda67227ccc5b30f44c00c40c4a87118f7469d546bd50502b880409f3e4",
+      "size_bytes": 7795,
+      "lines": 196,
+      "parse_ms": 1.586533,
+      "parse_status": "ok"
+    },
+    "F168vykyxemq": {
+      "id": "F168vykyxemq",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/functions.R",
+      "language": "r",
+      "detected_via": "extension:.R",
+      "blake3": "6c5fd2c5b19ee39f782c275247e6f51353c4051c771517d71b855c21e1e87866",
+      "size_bytes": 6843,
+      "lines": 221,
+      "parse_ms": 2.311493,
+      "parse_status": "ok"
+    },
+    "Fdxjjknyevr": {
+      "id": "Fdxjjknyevr",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/load_schedule.R",
+      "language": "r",
+      "detected_via": "extension:.R",
+      "blake3": "5a55a27e52d3391b931f82b25095006bf244bd14f8d37e42fcb6897e07114fc0",
+      "size_bytes": 997,
+      "lines": 33,
+      "parse_ms": 0.260601,
+      "parse_status": "ok"
+    },
+    "Fc6b5y6yd0u": {
+      "id": "Fc6b5y6yd0u",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/module/tweetExplorer.R",
+      "language": "r",
+      "detected_via": "extension:.R",
+      "blake3": "92cc9f9159b01380ab7ab712f7ec6b5b7c219a8865d9c37b1acdc829a97e3603",
+      "size_bytes": 5820,
+      "lines": 172,
+      "parse_ms": 1.4320920000000001,
+      "parse_status": "ok"
+    },
+    "F98apg2w8sj": {
+      "id": "F98apg2w8sj",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/progress_bar.R",
+      "language": "r",
+      "detected_via": "extension:.R",
+      "blake3": "2f4765170bebee6d2ccac21679b95c5b0032bb8348c199b67edff8fe406f4db2",
+      "size_bytes": 2082,
+      "lines": 64,
+      "parse_ms": 0.424561,
+      "parse_status": "ok"
+    },
+    "F9xsof3omox": {
+      "id": "F9xsof3omox",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/global.R",
+      "language": "r",
+      "detected_via": "extension:.R",
+      "blake3": "4d0e04539c890ca1d0afe17370e3461ce4652821653045b3f152fd208188a212",
+      "size_bytes": 2097,
+      "lines": 68,
+      "parse_ms": 0.637221,
+      "parse_status": "ok"
+    },
+    "F9g8m6dmbwz": {
+      "id": "F9g8m6dmbwz",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/server.R",
+      "language": "r",
+      "detected_via": "extension:.R",
+      "blake3": "f8fe9940445199dd4c72bd352be99bc32b5b713c033dd070eaa175b6947f18a0",
+      "size_bytes": 14702,
+      "lines": 472,
+      "parse_ms": 6.09037,
+      "parse_status": "ok"
+    },
+    "Fkdgtq7nnzc": {
+      "id": "Fkdgtq7nnzc",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/ui.R",
+      "language": "r",
+      "detected_via": "extension:.R",
+      "blake3": "f071461328349447553b33295646a559ea68b4e02af3bd90bc15ebe64eda5c51",
+      "size_bytes": 17415,
+      "lines": 409,
+      "parse_ms": 2.481694,
+      "parse_status": "ok"
+    },
+    "F5e34gall17": {
+      "id": "F5e34gall17",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/www/twitter.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "2b23f5619c836ae93a7adebc99a6072f3db2dbf9c7b13a06f95bdf87455705b7",
+      "size_bytes": 1545,
+      "lines": 54,
+      "parse_ms": 0.597691,
+      "parse_status": "ok"
+    }
+  },
+  "edges": [
+    {
+      "src": "C95j29euyjk",
+      "dst": "Cfzu6h4ndho",
+      "site_line": 107,
+      "site_byte": 4535,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C95j29euyjk",
+      "dst": "Cfzu6h4ndho",
+      "site_line": 107,
+      "site_byte": 4560,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C95j29euyjk",
+      "dst": "Cfzu6h4ndho",
+      "site_line": 108,
+      "site_byte": 4606,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C95j29euyjk",
+      "dst": "Cfzu6h4ndho",
+      "site_line": 108,
+      "site_byte": 4631,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C95j29euyjk",
+      "dst": "Cfzu6h4ndho",
+      "site_line": 109,
+      "site_byte": 4681,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C95j29euyjk",
+      "dst": "Cfzu6h4ndho",
+      "site_line": 109,
+      "site_byte": 4706,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C95j29euyjk",
+      "dst": "Cfzu6h4ndho",
+      "site_line": 110,
+      "site_byte": 4777,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C95j29euyjk",
+      "dst": "Cfzu6h4ndho",
+      "site_line": 111,
+      "site_byte": 4848,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C95j29euyjk",
+      "dst": "Cfzu6h4ndho",
+      "site_line": 112,
+      "site_byte": 4919,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C95j29euyjk",
+      "dst": "Cfzu6h4ndho",
+      "site_line": 113,
+      "site_byte": 4990,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Clrlqfnyrcn",
+      "dst": "C12euhh7ijk1",
+      "site_line": 5,
+      "site_byte": 99,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Clrlqfnyrcn",
+      "dst": "C12euhh7ijk1",
+      "site_line": 12,
+      "site_byte": 267,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Clrlqfnyrcn",
+      "dst": "Cqqnqx9zw9",
+      "site_line": 13,
+      "site_byte": 289,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Clrlqfnyrcn",
+      "dst": "Cosvlgoebkk",
+      "site_line": 14,
+      "site_byte": 329,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Clrlqfnyrcn",
+      "dst": "C2hzk06p6sc",
+      "site_line": 15,
+      "site_byte": 359,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Clrlqfnyrcn",
+      "dst": "Cwe5bqcw2pb",
+      "site_line": 17,
+      "site_byte": 458,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C7rxz16q2z3",
+      "dst": "C16o7i4lg5qr",
+      "site_line": 48,
+      "site_byte": 1305,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cqqnqx9zw9",
+      "dst": "C12euhh7ijk1",
+      "site_line": 68,
+      "site_byte": 2003,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cv4xth6igj6",
+      "dst": "Cqqnqx9zw9",
+      "site_line": 74,
+      "site_byte": 2114,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cv4xth6igj6",
+      "dst": "C12euhh7ijk1",
+      "site_line": 74,
+      "site_byte": 2152,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cc531v3mamc",
+      "dst": "Cfiddpg1jj7",
+      "site_line": 54,
+      "site_byte": 1772,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14l5brr019u",
+      "dst": "Cfiddpg1jj7",
+      "site_line": 62,
+      "site_byte": 2031,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C3rxum7ud4y",
+      "dst": "Czt9m5cttj5",
+      "site_line": 39,
+      "site_byte": 1113,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cdjs8gvi3dm",
+      "dst": "Czt9m5cttj5",
+      "site_line": 43,
+      "site_byte": 1321,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": null,
+      "file": "F26i44pinga",
+      "site_line": 89,
+      "site_byte": 3847,
+      "name": "today_tz",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F26i44pinga",
+      "site_line": 95,
+      "site_byte": 4053,
+      "name": "today_tz",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F26i44pinga",
+      "site_line": 190,
+      "site_byte": 7559,
+      "name": "today_tz",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F9xsof3omox",
+      "site_line": 57,
+      "site_byte": 1864,
+      "name": "import_tweets",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F9xsof3omox",
+      "site_line": 59,
+      "site_byte": 1914,
+      "name": "tz_global",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F9xsof3omox",
+      "site_line": 65,
+      "site_byte": 2060,
+      "name": "tweet_cache_oembed",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkdgtq7nnzc",
+      "site_line": 152,
+      "site_byte": 6796,
+      "name": "twemoji",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkdgtq7nnzc",
+      "site_line": 160,
+      "site_byte": 7121,
+      "name": "twemoji",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkdgtq7nnzc",
+      "site_line": 168,
+      "site_byte": 7441,
+      "name": "twemoji",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkdgtq7nnzc",
+      "site_line": 249,
+      "site_byte": 10584,
+      "name": "tz_global",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkdgtq7nnzc",
+      "site_line": 249,
+      "site_byte": 10610,
+      "name": "tz_global",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkdgtq7nnzc",
+      "site_line": 250,
+      "site_byte": 10689,
+      "name": "tz_global",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkdgtq7nnzc",
+      "site_line": 270,
+      "site_byte": 11558,
+      "name": "twemoji",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkdgtq7nnzc",
+      "site_line": 280,
+      "site_byte": 11945,
+      "name": "tweetExplorerUI",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkdgtq7nnzc",
+      "site_line": 328,
+      "site_byte": 13693,
+      "name": "twemoji",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "Cfzu6h4ndho",
+      "file": "F26i44pinga",
+      "site_line": 71,
+      "site_byte": 3229,
+      "name": "tz_global",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F26i44pinga",
+      "site_line": 85,
+      "site_byte": 3705,
+      "name": "tz_global",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F26i44pinga",
+      "site_line": 86,
+      "site_byte": 3762,
+      "name": "tz_global",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F26i44pinga",
+      "site_line": 185,
+      "site_byte": 7456,
+      "name": "tz_global",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 14,
+      "site_byte": 552,
+      "name": "tz_global",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 24,
+      "site_byte": 1060,
+      "name": "tz_global",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 50,
+      "site_byte": 2058,
+      "name": "import_tweets",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 52,
+      "site_byte": 2105,
+      "name": "tz_global",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 57,
+      "site_byte": 2236,
+      "name": "tweets_by_engaged_users",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 62,
+      "site_byte": 2492,
+      "name": "tz_global",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 72,
+      "site_byte": 2684,
+      "name": "tweet_cache_oembed",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 78,
+      "site_byte": 2794,
+      "name": "tweets_just",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 79,
+      "site_byte": 2849,
+      "name": "tweets_by_time",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 87,
+      "site_byte": 2996,
+      "name": "tweets_just",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 93,
+      "site_byte": 3166,
+      "name": "tweets_today",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 100,
+      "site_byte": 3319,
+      "name": "tweets_in_last",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 109,
+      "site_byte": 3481,
+      "name": "tweets_volume",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 129,
+      "site_byte": 3880,
+      "name": "tweets_since",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 129,
+      "site_byte": 3910,
+      "name": "tz_global",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 153,
+      "site_byte": 4390,
+      "name": "tweets_just",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 177,
+      "site_byte": 4963,
+      "name": "tweets_just",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 179,
+      "site_byte": 5036,
+      "name": "tweets_volume",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 195,
+      "site_byte": 5628,
+      "name": "tz_global",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 195,
+      "site_byte": 5656,
+      "name": "tz_global",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 224,
+      "site_byte": 6618,
+      "name": "tweets_just",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 225,
+      "site_byte": 6662,
+      "name": "tweets_by_time",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 247,
+      "site_byte": 7444,
+      "name": "tweets_in_last",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 306,
+      "site_byte": 9091,
+      "name": "twemoji",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 313,
+      "site_byte": 9221,
+      "name": "progressGroup",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 332,
+      "site_byte": 9742,
+      "name": "progressGroup",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 351,
+      "site_byte": 10755,
+      "name": "progressBar_v",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 385,
+      "site_byte": 11730,
+      "name": "progressGroup",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 415,
+      "site_byte": 12656,
+      "name": "masonify_tweets",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 423,
+      "site_byte": 12920,
+      "name": "TWEET_WALL_DATE_RANGE",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 425,
+      "site_byte": 13069,
+      "name": "tz_global",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 426,
+      "site_byte": 13225,
+      "name": "tz_global",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 450,
+      "site_byte": 13957,
+      "name": "masonify_tweets",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9g8m6dmbwz",
+      "site_line": 470,
+      "site_byte": 14686,
+      "name": "tz_global",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 19.788302,
+    "phases": {
+      "walk_ms": 4.581878000000001,
+      "parse_ms": 15.822256000000001,
+      "extract_ms": 0.0,
+      "resolve_ms": 0.0,
+      "link_ms": 1.824103,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 91,
+    "files_analyzed": 9,
+    "files_skipped": 82,
+    "files_errored": 0,
+    "bytes_processed": 59296,
+    "callables": 37,
+    "edges": 24,
+    "unresolved_calls": 94,
+    "stdlib_calls": 101,
+    "external_calls": 664,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "r": {
+        "files": 8,
+        "callables": 30,
+        "edges": 24,
+        "unresolved": 94,
+        "stdlib": 89,
+        "external": 641
+      },
+      "javascript": {
+        "files": 1,
+        "callables": 7,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 12,
+        "external": 23
+      },
+      "skip:builtin": {
+        "files": 30,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      },
+      "skip:binary": {
+        "files": 38,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 24,
+      "medium": 0,
+      "low": 0
+    }
+  }
+}

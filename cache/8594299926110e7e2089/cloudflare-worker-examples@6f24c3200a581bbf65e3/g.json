@@ -1,0 +1,114 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "Cu0c4ovdjjj": {
+      "id": "Cu0c4ovdjjj",
+      "qualified_name": "handler_at_1",
+      "simple_name": "handler_at_1",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "Fnmfx16txzh",
+      "start_line": 1,
+      "end_line": 3,
+      "start_byte": 26,
+      "end_byte": 88,
+      "signature_hint": "event =>",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Cocs40l0c05": {
+      "id": "Cocs40l0c05",
+      "qualified_name": "handleRequest",
+      "simple_name": "handleRequest",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fnmfx16txzh",
+      "start_line": 8,
+      "end_line": 12,
+      "start_byte": 160,
+      "end_byte": 294,
+      "signature_hint": "async function handleRequest(request)"
+    }
+  },
+  "files": {
+    "Fnmfx16txzh": {
+      "id": "Fnmfx16txzh",
+      "path": "/storage/cgg-test_repos/cloudflare-worker-examples/index.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "0f9ce3b329099af3c9ea6d64feff19238e170d8c0647e98fec7e1d530fd940c0",
+      "size_bytes": 295,
+      "lines": 12,
+      "parse_ms": 0.15912,
+      "parse_status": "ok"
+    }
+  },
+  "edges": [
+    {
+      "src": "Cu0c4ovdjjj",
+      "dst": "Cocs40l0c05",
+      "site_line": 2,
+      "site_byte": 57,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    }
+  ],
+  "unresolved": [],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 5.070297,
+    "phases": {
+      "walk_ms": 1.5932220000000001,
+      "parse_ms": 0.15912,
+      "extract_ms": 3.148165,
+      "resolve_ms": 0.0,
+      "link_ms": 1.569522,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 40,
+    "files_analyzed": 1,
+    "files_skipped": 39,
+    "files_errored": 0,
+    "bytes_processed": 295,
+    "callables": 2,
+    "edges": 1,
+    "unresolved_calls": 0,
+    "stdlib_calls": 2,
+    "external_calls": 1,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "javascript": {
+        "files": 1,
+        "callables": 2,
+        "edges": 1,
+        "unresolved": 0,
+        "stdlib": 2,
+        "external": 1
+      },
+      "skip:builtin": {
+        "files": 30,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 1,
+      "medium": 0,
+      "low": 0
+    }
+  }
+}

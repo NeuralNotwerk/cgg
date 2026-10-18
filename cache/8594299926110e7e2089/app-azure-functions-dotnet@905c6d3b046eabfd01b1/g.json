@@ -1,0 +1,747 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "C11ejkn2056f": {
+      "id": "C11ejkn2056f",
+      "qualified_name": "normalizeRepo",
+      "simple_name": "normalizeRepo",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fffc81qf29q",
+      "start_line": 14,
+      "end_line": 17,
+      "start_byte": 347,
+      "end_byte": 551,
+      "signature_hint": "function normalizeRepo(repo)"
+    },
+    "Cxvj3uj3igj": {
+      "id": "Cxvj3uj3igj",
+      "qualified_name": "builtin_targets",
+      "simple_name": "builtin_targets",
+      "kind": "function",
+      "language": "bash",
+      "file": "F37otrve3tg",
+      "start_line": 32,
+      "end_line": 48,
+      "start_byte": 1286,
+      "end_byte": 2015,
+      "signature_hint": "builtin_targets()"
+    },
+    "Cyb775f18bd": {
+      "id": "Cyb775f18bd",
+      "qualified_name": "ts",
+      "simple_name": "ts",
+      "kind": "function",
+      "language": "bash",
+      "file": "F37otrve3tg",
+      "start_line": 60,
+      "end_line": 60,
+      "start_byte": 2384,
+      "end_byte": 2423,
+      "signature_hint": "ts()"
+    },
+    "Ctif3k2ik9i": {
+      "id": "Ctif3k2ik9i",
+      "qualified_name": "update_track",
+      "simple_name": "update_track",
+      "kind": "function",
+      "language": "bash",
+      "file": "F37otrve3tg",
+      "start_line": 62,
+      "end_line": 77,
+      "start_byte": 2425,
+      "end_byte": 2971,
+      "signature_hint": "update_track()"
+    },
+    "Cpfg2hdvvqg": {
+      "id": "Cpfg2hdvvqg",
+      "qualified_name": "find_infra_file",
+      "simple_name": "find_infra_file",
+      "kind": "function",
+      "language": "bash",
+      "file": "F37otrve3tg",
+      "start_line": 79,
+      "end_line": 84,
+      "start_byte": 2973,
+      "end_byte": 3210,
+      "signature_hint": "find_infra_file()"
+    },
+    "Cupn5sw7nfi": {
+      "id": "Cupn5sw7nfi",
+      "qualified_name": "safe_push",
+      "simple_name": "safe_push",
+      "kind": "function",
+      "language": "bash",
+      "file": "F37otrve3tg",
+      "start_line": 89,
+      "end_line": 91,
+      "start_byte": 3377,
+      "end_byte": 3522,
+      "signature_hint": "safe_push()"
+    },
+    "C4zocja50ff": {
+      "id": "C4zocja50ff",
+      "qualified_name": "generateReport",
+      "simple_name": "generateReport",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F3g1y6oh63o",
+      "start_line": 27,
+      "end_line": 108,
+      "start_byte": 751,
+      "end_byte": 4058,
+      "signature_hint": "function generateReport(data)"
+    },
+    "C3ozsfn9hf9": {
+      "id": "C3ozsfn9hf9",
+      "qualified_name": "calculateStats",
+      "simple_name": "calculateStats",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F3g1y6oh63o",
+      "start_line": 110,
+      "end_line": 129,
+      "start_byte": 4060,
+      "end_byte": 4850,
+      "signature_hint": "function calculateStats(repositories)"
+    },
+    "C127b9othhz4": {
+      "id": "C127b9othhz4",
+      "qualified_name": "groupRepositoriesByType",
+      "simple_name": "groupRepositoriesByType",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F3g1y6oh63o",
+      "start_line": 131,
+      "end_line": 160,
+      "start_byte": 4852,
+      "end_byte": 5905,
+      "signature_hint": "function groupRepositoriesByType(repositories)"
+    },
+    "Cd5mc0pkdnl": {
+      "id": "Cd5mc0pkdnl",
+      "qualified_name": "generateGroupSections",
+      "simple_name": "generateGroupSections",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F3g1y6oh63o",
+      "start_line": 162,
+      "end_line": 184,
+      "start_byte": 5907,
+      "end_byte": 6743,
+      "signature_hint": "function generateGroupSections(groupedRepos)"
+    },
+    "Cbw4vhg4wsi": {
+      "id": "Cbw4vhg4wsi",
+      "qualified_name": "generateRepoRow",
+      "simple_name": "generateRepoRow",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F3g1y6oh63o",
+      "start_line": 186,
+      "end_line": 209,
+      "start_byte": 6745,
+      "end_byte": 7664,
+      "signature_hint": "function generateRepoRow(repo)"
+    },
+    "Cm33dkapqg2": {
+      "id": "Cm33dkapqg2",
+      "qualified_name": "getStatusBadge",
+      "simple_name": "getStatusBadge",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F3g1y6oh63o",
+      "start_line": 211,
+      "end_line": 223,
+      "start_byte": 7666,
+      "end_byte": 8328,
+      "signature_hint": "function getStatusBadge(status)"
+    },
+    "Cst4tpva5ku": {
+      "id": "Cst4tpva5ku",
+      "qualified_name": "getGroupIcon",
+      "simple_name": "getGroupIcon",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F3g1y6oh63o",
+      "start_line": 225,
+      "end_line": 236,
+      "start_byte": 8330,
+      "end_byte": 8669,
+      "signature_hint": "function getGroupIcon(groupName)"
+    },
+    "C76vl74oyiu": {
+      "id": "C76vl74oyiu",
+      "qualified_name": "getCSS",
+      "simple_name": "getCSS",
+      "kind": "function",
+      "language": "javascript",
+      "file": "F3g1y6oh63o",
+      "start_line": 238,
+      "end_line": 560,
+      "start_byte": 8671,
+      "end_byte": 16088,
+      "signature_hint": "function getCSS()"
+    },
+    "C15752f11lvm": {
+      "id": "C15752f11lvm",
+      "qualified_name": "updatePRStatuses",
+      "simple_name": "updatePRStatuses",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fj5rm9g5r9w",
+      "start_line": 5,
+      "end_line": 56,
+      "start_byte": 148,
+      "end_byte": 2099,
+      "signature_hint": "async function updatePRStatuses()"
+    },
+    "Cl0tsa08wbw": {
+      "id": "Cl0tsa08wbw",
+      "qualified_name": "Company.Function.httpGetFunction.httpGetFunction",
+      "simple_name": "httpGetFunction",
+      "kind": "constructor",
+      "language": "csharp",
+      "file": "Fybp2luwtc9",
+      "start_line": 12,
+      "end_line": 15,
+      "start_byte": 261,
+      "end_byte": 402,
+      "signature_hint": "public httpGetFunction(ILoggerFactory loggerFactory)",
+      "vis": "public"
+    },
+    "C962b1xpng9": {
+      "id": "C962b1xpng9",
+      "qualified_name": "Company.Function.httpGetFunction.Run",
+      "simple_name": "Run",
+      "kind": "method",
+      "language": "csharp",
+      "file": "Fybp2luwtc9",
+      "start_line": 17,
+      "end_line": 29,
+      "start_byte": 412,
+      "end_byte": 874,
+      "signature_hint": "[Function(\"httpget\")] public IActionResult Run([HttpTrigger(AuthorizationLevel.Function, \"get\")] HttpRequest req, string name)",
+      "attributes": [
+        "Function(\"httpget\")"
+      ],
+      "vis": "public"
+    },
+    "Cd499g4fjl7": {
+      "id": "Cd499g4fjl7",
+      "qualified_name": "Company.Function.HttpPostBody.HttpPostBody",
+      "simple_name": "HttpPostBody",
+      "kind": "constructor",
+      "language": "csharp",
+      "file": "F10uzs2mjcgd",
+      "start_line": 14,
+      "end_line": 17,
+      "start_byte": 379,
+      "end_byte": 514,
+      "signature_hint": "public HttpPostBody(ILoggerFactory loggerFactory)",
+      "vis": "public"
+    },
+    "C10l175paru6": {
+      "id": "C10l175paru6",
+      "qualified_name": "Company.Function.HttpPostBody.Run",
+      "simple_name": "Run",
+      "kind": "method",
+      "language": "csharp",
+      "file": "F10uzs2mjcgd",
+      "start_line": 19,
+      "end_line": 35,
+      "start_byte": 524,
+      "end_byte": 1479,
+      "signature_hint": "[Function(\"httppost\")] public IActionResult Run([HttpTrigger(AuthorizationLevel.Function, \"post\")] HttpRequest req, [FromBody] Person person)",
+      "attributes": [
+        "Function(\"httppost\")"
+      ],
+      "vis": "public"
+    },
+    "C1swswkz6dj": {
+      "id": "C1swswkz6dj",
+      "qualified_name": "<framework-entry>::network::azure-functions::Function(\"httpget\")",
+      "simple_name": "Function(\"httpget\")",
+      "kind": "function",
+      "language": "csharp",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "Function(\"httpget\")"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cio64esmm6i": {
+      "id": "Cio64esmm6i",
+      "qualified_name": "<framework-entry>::network::azure-functions::Function(\"httppost\")",
+      "simple_name": "Function(\"httppost\")",
+      "kind": "function",
+      "language": "csharp",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "Function(\"httppost\")"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    }
+  },
+  "files": {
+    "Fozq2w1gqjg": {
+      "id": "Fozq2w1gqjg",
+      "path": "/storage/cgg-test_repos/app-azure-functions-dotnet/.github/prompts/.propagation/check-existing-prs.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "4fa8941e9cc538501504a95da23dab22991bf074f6f725e7c0dc0588ae9f0147",
+      "size_bytes": 2009,
+      "lines": 56,
+      "parse_ms": 0.567252,
+      "parse_status": "ok"
+    },
+    "Fffc81qf29q": {
+      "id": "Fffc81qf29q",
+      "path": "/storage/cgg-test_repos/app-azure-functions-dotnet/.github/prompts/.propagation/cleanup-duplicates.js",
+      "language": "javascript",
+      "detected_via": "shebang:node",
+      "blake3": "7566f7abef8d9fc9a563866be0daa64eb81b4c9010882578e4868f7d98d6bfc9",
+      "size_bytes": 3431,
+      "lines": 98,
+      "parse_ms": 0.802312,
+      "parse_status": "ok"
+    },
+    "F37otrve3tg": {
+      "id": "F37otrve3tg",
+      "path": "/storage/cgg-test_repos/app-azure-functions-dotnet/.github/prompts/.propagation/fix_infra_and_audit.sh",
+      "language": "bash",
+      "detected_via": "shebang:zsh",
+      "blake3": "a1e9e84a68d9182f33f2cef83c2730b88b71bbeb7d694c6ced96efca2af7d42f",
+      "size_bytes": 8015,
+      "lines": 191,
+      "parse_ms": 1.573564,
+      "parse_status": "ok"
+    },
+    "F3g1y6oh63o": {
+      "id": "F3g1y6oh63o",
+      "path": "/storage/cgg-test_repos/app-azure-functions-dotnet/.github/prompts/.propagation/generate-report.js",
+      "language": "javascript",
+      "detected_via": "shebang:node",
+      "blake3": "5aa4542ad0c4e38f1a2966a4f8b1b254b33e26ec4f50d71bda53c042192c760e",
+      "size_bytes": 16089,
+      "lines": 560,
+      "parse_ms": 0.924462,
+      "parse_status": "ok"
+    },
+    "F11mxc5izffa": {
+      "id": "F11mxc5izffa",
+      "path": "/storage/cgg-test_repos/app-azure-functions-dotnet/.github/prompts/.propagation/integrate-discovery.js",
+      "language": "javascript",
+      "detected_via": "shebang:node",
+      "blake3": "47b8418011899755d014999837d283a6257dbe95648ee5970f1ecdd9a7fb2fc7",
+      "size_bytes": 4086,
+      "lines": 117,
+      "parse_ms": 0.939802,
+      "parse_status": "ok"
+    },
+    "Fj5rm9g5r9w": {
+      "id": "Fj5rm9g5r9w",
+      "path": "/storage/cgg-test_repos/app-azure-functions-dotnet/.github/prompts/.propagation/update-pr-statuses.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "7ab55438875ade9df3665934aa4a5cae197a89d195f9899ca9b50ca4e36900f5",
+      "size_bytes": 2121,
+      "lines": 58,
+      "parse_ms": 0.39627100000000004,
+      "parse_status": "ok"
+    },
+    "Fwqb0y9ai39": {
+      "id": "Fwqb0y9ai39",
+      "path": "/storage/cgg-test_repos/app-azure-functions-dotnet/.github/prompts/.propagation/update-single-repo.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "936f0bdfceda9c780c7244cee16863815e15e0c726fe3c5f88fae4c82fe73603",
+      "size_bytes": 671,
+      "lines": 15,
+      "parse_ms": 0.09676,
+      "parse_status": "ok"
+    },
+    "Fl2jxfghk6n": {
+      "id": "Fl2jxfghk6n",
+      "path": "/storage/cgg-test_repos/app-azure-functions-dotnet/.github/prompts/.propagation/update-targets.js",
+      "language": "javascript",
+      "detected_via": "shebang:node",
+      "blake3": "64a86405d0f17848b028be7175b21b68eba61a1a3d06763af3967c04021b13de",
+      "size_bytes": 5287,
+      "lines": 132,
+      "parse_ms": 0.710612,
+      "parse_status": "ok"
+    },
+    "F205gddqctu": {
+      "id": "F205gddqctu",
+      "path": "/storage/cgg-test_repos/app-azure-functions-dotnet/http/Program.cs",
+      "language": "csharp",
+      "detected_via": "extension:.cs",
+      "blake3": "2f3cc6078c119e2d592145e5d69d4b9f099181db14c4d1deff16154269f83d45",
+      "size_bytes": 392,
+      "lines": 14,
+      "parse_ms": 0.192391,
+      "parse_status": "ok"
+    },
+    "Fybp2luwtc9": {
+      "id": "Fybp2luwtc9",
+      "path": "/storage/cgg-test_repos/app-azure-functions-dotnet/http/httpGetFunction.cs",
+      "language": "csharp",
+      "detected_via": "extension:.cs",
+      "blake3": "bb529f4347bdf3383053889bd1f744656707896caff1e1a43119d8b568ef576e",
+      "size_bytes": 883,
+      "lines": 32,
+      "parse_ms": 0.470411,
+      "parse_status": "ok"
+    },
+    "F10uzs2mjcgd": {
+      "id": "F10uzs2mjcgd",
+      "path": "/storage/cgg-test_repos/app-azure-functions-dotnet/http/httpPostBodyFunction.cs",
+      "language": "csharp",
+      "detected_via": "extension:.cs",
+      "blake3": "9d81e9b00d2033c3856595f3c587acec5649ebbe8e9a32e53faceb5c86a23e80",
+      "size_bytes": 1608,
+      "lines": 38,
+      "parse_ms": 0.395441,
+      "parse_status": "ok"
+    },
+    "Fn7kcdjzuh1": {
+      "id": "Fn7kcdjzuh1",
+      "path": "<framework-entry>",
+      "language": "framework-entry",
+      "detected_via": "synthesized",
+      "blake3": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 0,
+      "lines": 0,
+      "parse_ms": 0.0,
+      "parse_status": "synthetic"
+    }
+  },
+  "edges": [
+    {
+      "src": "C4zocja50ff",
+      "dst": "C3ozsfn9hf9",
+      "site_line": 28,
+      "site_byte": 801,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4zocja50ff",
+      "dst": "C127b9othhz4",
+      "site_line": 29,
+      "site_byte": 856,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4zocja50ff",
+      "dst": "C76vl74oyiu",
+      "site_line": 38,
+      "site_byte": 1153,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4zocja50ff",
+      "dst": "Cd5mc0pkdnl",
+      "site_line": 79,
+      "site_byte": 2827,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cd5mc0pkdnl",
+      "dst": "Cst4tpva5ku",
+      "site_line": 167,
+      "site_byte": 6138,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cd5mc0pkdnl",
+      "dst": "Cbw4vhg4wsi",
+      "site_line": 179,
+      "site_byte": 6605,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cbw4vhg4wsi",
+      "dst": "Cm33dkapqg2",
+      "site_line": 187,
+      "site_byte": 6802,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1swswkz6dj",
+      "dst": "C962b1xpng9",
+      "site_line": 17,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "azure-functions"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cio64esmm6i",
+      "dst": "C10l175paru6",
+      "site_line": 19,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "azure-functions"
+      },
+      "resolver": "framework-entry"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": null,
+      "file": "Fffc81qf29q",
+      "site_line": 25,
+      "site_byte": 749,
+      "name": "normalizeRepo",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F37otrve3tg",
+      "site_line": 56,
+      "site_byte": 2336,
+      "name": "builtin_targets",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F37otrve3tg",
+      "site_line": 125,
+      "site_byte": 4948,
+      "name": "find_infra_file",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F37otrve3tg",
+      "site_line": 130,
+      "site_byte": 5140,
+      "name": "update_track",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F37otrve3tg",
+      "site_line": 148,
+      "site_byte": 5857,
+      "name": "safe_push",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F37otrve3tg",
+      "site_line": 157,
+      "site_byte": 6289,
+      "name": "update_track",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F37otrve3tg",
+      "site_line": 159,
+      "site_byte": 6375,
+      "name": "update_track",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F37otrve3tg",
+      "site_line": 163,
+      "site_byte": 6547,
+      "name": "update_track",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F3g1y6oh63o",
+      "site_line": 15,
+      "site_byte": 396,
+      "name": "generateReport",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fj5rm9g5r9w",
+      "site_line": 58,
+      "site_byte": 2101,
+      "name": "updatePRStatuses",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F11mxc5izffa",
+      "site_line": 70,
+      "site_byte": 2294,
+      "name": "repoName",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fl2jxfghk6n",
+      "site_line": 95,
+      "site_byte": 4005,
+      "name": "repoName",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "F205gddqctu",
+      "site_line": 14,
+      "site_byte": 380,
+      "name": "Run",
+      "receiver_hint": "host",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 24.945925,
+    "phases": {
+      "walk_ms": 13.874411,
+      "parse_ms": 7.069278000000001,
+      "extract_ms": 3.9860059999999997,
+      "resolve_ms": 0.0,
+      "link_ms": 2.751116,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 94,
+    "files_analyzed": 11,
+    "files_skipped": 83,
+    "files_errored": 0,
+    "bytes_processed": 44592,
+    "callables": 21,
+    "edges": 9,
+    "unresolved_calls": 20,
+    "stdlib_calls": 146,
+    "external_calls": 126,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "javascript": {
+        "files": 7,
+        "callables": 10,
+        "edges": 7,
+        "unresolved": 5,
+        "stdlib": 123,
+        "external": 71
+      },
+      "bash": {
+        "files": 1,
+        "callables": 5,
+        "edges": 0,
+        "unresolved": 14,
+        "stdlib": 23,
+        "external": 35
+      },
+      "csharp": {
+        "files": 3,
+        "callables": 4,
+        "edges": 0,
+        "unresolved": 1,
+        "stdlib": 0,
+        "external": 20
+      },
+      "skip:builtin": {
+        "files": 31,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      },
+      "skip:binary": {
+        "files": 1,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 7,
+      "medium": 0,
+      "low": 0
+    }
+  }
+}

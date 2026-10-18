@@ -1,0 +1,6722 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "Cgu9yb7mhs7": {
+      "id": "Cgu9yb7mhs7",
+      "qualified_name": "com.example.darkness_dungeon.MainActivity",
+      "simple_name": "MainActivity",
+      "kind": "constructor",
+      "language": "kotlin",
+      "file": "Fovys9aenza",
+      "start_line": 5,
+      "end_line": 6,
+      "start_byte": 91,
+      "end_byte": 132,
+      "signature_hint": "class MainActivity: FlutterActivity()"
+    },
+    "Cibfejxzdae": {
+      "id": "Cibfejxzdae",
+      "qualified_name": "AppDelegate.application",
+      "simple_name": "application",
+      "kind": "method",
+      "language": "swift",
+      "file": "F3dph38b50h",
+      "start_line": 6,
+      "end_line": 12,
+      "start_byte": 96,
+      "end_byte": 401,
+      "signature_hint": "override func application( _ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? ) -> Bool",
+      "attributes": [
+        "override"
+      ]
+    },
+    "Cbuxz12o1dt": {
+      "id": "Cbuxz12o1dt",
+      "qualified_name": "Barrel::onLoad",
+      "simple_name": "onLoad",
+      "kind": "method",
+      "language": "dart",
+      "file": "F5f93q094iu",
+      "start_line": 12,
+      "end_line": 21,
+      "start_byte": 316,
+      "end_byte": 531,
+      "signature_hint": "@override Future<void> onLoad()",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Ccjetd14pwl": {
+      "id": "Ccjetd14pwl",
+      "qualified_name": "Door::onLoad",
+      "simple_name": "onLoad",
+      "kind": "method",
+      "language": "dart",
+      "file": "F9pp3fwm1r7",
+      "start_line": 19,
+      "end_line": 26,
+      "start_byte": 610,
+      "end_byte": 792,
+      "signature_hint": "@override Future<void> onLoad()",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cjr9wzfb7we": {
+      "id": "Cjr9wzfb7we",
+      "qualified_name": "Door::onCollisionStart",
+      "simple_name": "onCollisionStart",
+      "kind": "method",
+      "language": "dart",
+      "file": "F9pp3fwm1r7",
+      "start_line": 28,
+      "end_line": 54,
+      "start_byte": 796,
+      "end_byte": 1466,
+      "signature_hint": "@override void onCollisionStart( Set<Vector2> intersectionPoints, PositionComponent other)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cijnnfrv7mk": {
+      "id": "Cijnnfrv7mk",
+      "qualified_name": "Door::_showIntroduction",
+      "simple_name": "_showIntroduction",
+      "kind": "method",
+      "language": "dart",
+      "file": "F9pp3fwm1r7",
+      "start_line": 56,
+      "end_line": 70,
+      "start_byte": 1470,
+      "end_byte": 1828,
+      "signature_hint": "void _showIntroduction()"
+    },
+    "C8mvvxf5etr": {
+      "id": "C8mvvxf5etr",
+      "qualified_name": "DoorKey::onContact",
+      "simple_name": "onContact",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fac48v4z5on",
+      "start_line": 13,
+      "end_line": 19,
+      "start_byte": 388,
+      "end_byte": 543,
+      "signature_hint": "@override void onContact(GameComponent collision)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cc1bqn78nz2": {
+      "id": "Cc1bqn78nz2",
+      "qualified_name": "PotionLife::onContact",
+      "simple_name": "onContact",
+      "kind": "method",
+      "language": "dart",
+      "file": "F13m4s6r4999",
+      "start_line": 18,
+      "end_line": 25,
+      "start_byte": 498,
+      "end_byte": 650,
+      "signature_hint": "@override void onContact(Knight player)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Czvtm5k9x1a": {
+      "id": "Czvtm5k9x1a",
+      "qualified_name": "PotionLife::_giveLife",
+      "simple_name": "_giveLife",
+      "kind": "method",
+      "language": "dart",
+      "file": "F13m4s6r4999",
+      "start_line": 27,
+      "end_line": 41,
+      "start_byte": 654,
+      "end_byte": 1050,
+      "signature_hint": "void _giveLife(Player player)"
+    },
+    "Cj4dbhp9y1i": {
+      "id": "Cj4dbhp9y1i",
+      "qualified_name": "Spikes::onContact",
+      "simple_name": "onContact",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fuk9afpawzz",
+      "start_line": 17,
+      "end_line": 20,
+      "start_byte": 514,
+      "end_byte": 588,
+      "signature_hint": "@override void onContact(Knight collision)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "C12hcgo5slad": {
+      "id": "C12hcgo5slad",
+      "qualified_name": "Spikes::update",
+      "simple_name": "update",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fuk9afpawzz",
+      "start_line": 22,
+      "end_line": 28,
+      "start_byte": 592,
+      "end_byte": 755,
+      "signature_hint": "@override void update(double dt)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "C9isbxyo6mg": {
+      "id": "C9isbxyo6mg",
+      "qualified_name": "Spikes::priority",
+      "simple_name": "priority",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fuk9afpawzz",
+      "start_line": 30,
+      "end_line": 31,
+      "start_byte": 759,
+      "end_byte": 829,
+      "signature_hint": "@override int get priority => LayerPriority.getComponentPriority(1);",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "C12mdckdd86e": {
+      "id": "C12mdckdd86e",
+      "qualified_name": "Spikes::onContactExit",
+      "simple_name": "onContactExit",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fuk9afpawzz",
+      "start_line": 33,
+      "end_line": 36,
+      "start_byte": 833,
+      "end_byte": 906,
+      "signature_hint": "@override void onContactExit(Knight component)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Czrhiyxsxqp": {
+      "id": "Czrhiyxsxqp",
+      "qualified_name": "Torch::Torch",
+      "simple_name": "Torch",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fz9g0i9steq",
+      "start_line": 8,
+      "end_line": 22,
+      "start_byte": 249,
+      "end_byte": 653,
+      "signature_hint": "Torch(Vector2 position, {this.empty = false})"
+    },
+    "C11bwiuaznhv": {
+      "id": "C11bwiuaznhv",
+      "qualified_name": "Torch::render",
+      "simple_name": "render",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fz9g0i9steq",
+      "start_line": 24,
+      "end_line": 29,
+      "start_byte": 657,
+      "end_byte": 753,
+      "signature_hint": "@override void render(Canvas canvas)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "C15dsih64q2b": {
+      "id": "C15dsih64q2b",
+      "qualified_name": "Boss::onLoad",
+      "simple_name": "onLoad",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11cs1exb85n",
+      "start_line": 35,
+      "end_line": 44,
+      "start_byte": 1282,
+      "end_byte": 1529,
+      "signature_hint": "@override Future<void> onLoad()",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cpd60tmtk3r": {
+      "id": "Cpd60tmtk3r",
+      "qualified_name": "Boss::render",
+      "simple_name": "render",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11cs1exb85n",
+      "start_line": 46,
+      "end_line": 50,
+      "start_byte": 1533,
+      "end_byte": 1635,
+      "signature_hint": "@override void render(Canvas canvas)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cdo1t3ok326": {
+      "id": "Cdo1t3ok326",
+      "qualified_name": "Boss::update",
+      "simple_name": "update",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11cs1exb85n",
+      "start_line": 52,
+      "end_line": 88,
+      "start_byte": 1639,
+      "end_byte": 2400,
+      "signature_hint": "@override void update(double dt)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "C18ifusfnqk": {
+      "id": "C18ifusfnqk",
+      "qualified_name": "Boss::onDie",
+      "simple_name": "onDie",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11cs1exb85n",
+      "start_line": 90,
+      "end_line": 105,
+      "start_byte": 2404,
+      "end_byte": 2741,
+      "signature_hint": "@override void onDie()",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Ch76tazbs6q": {
+      "id": "Ch76tazbs6q",
+      "qualified_name": "Boss::addChildInMap",
+      "simple_name": "addChildInMap",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11cs1exb85n",
+      "start_line": 107,
+      "end_line": 158,
+      "start_byte": 2745,
+      "end_byte": 4178,
+      "signature_hint": "void addChildInMap(double dt)"
+    },
+    "Czcqmx46jf7": {
+      "id": "Czcqmx46jf7",
+      "qualified_name": "Boss::execAttack",
+      "simple_name": "execAttack",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11cs1exb85n",
+      "start_line": 160,
+      "end_line": 170,
+      "start_byte": 4182,
+      "end_byte": 4455,
+      "signature_hint": "void execAttack()"
+    },
+    "C12172e1xkmt": {
+      "id": "C12172e1xkmt",
+      "qualified_name": "Boss::onReceiveDamage",
+      "simple_name": "onReceiveDamage",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11cs1exb85n",
+      "start_line": 172,
+      "end_line": 183,
+      "start_byte": 4459,
+      "end_byte": 4773,
+      "signature_hint": "@override void onReceiveDamage(AttackOriginEnum attacker, double damage, dynamic id)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Ckp80tlnmcg": {
+      "id": "Ckp80tlnmcg",
+      "qualified_name": "Boss::drawBarSummonEnemy",
+      "simple_name": "drawBarSummonEnemy",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11cs1exb85n",
+      "start_line": 185,
+      "end_line": 216,
+      "start_byte": 4777,
+      "end_byte": 5745,
+      "signature_hint": "void drawBarSummonEnemy(Canvas canvas)"
+    },
+    "Cjxhfhn2o8z": {
+      "id": "Cjxhfhn2o8z",
+      "qualified_name": "Boss::_showConversation",
+      "simple_name": "_showConversation",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11cs1exb85n",
+      "start_line": 218,
+      "end_line": 267,
+      "start_byte": 5749,
+      "end_byte": 7293,
+      "signature_hint": "void _showConversation()"
+    },
+    "Ctvy0yn9l1s": {
+      "id": "Ctvy0yn9l1s",
+      "qualified_name": "Boss::addInitChild",
+      "simple_name": "addInitChild",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11cs1exb85n",
+      "start_line": 269,
+      "end_line": 272,
+      "start_byte": 7297,
+      "end_byte": 7380,
+      "signature_hint": "void addInitChild()"
+    },
+    "C98vekfgd4z": {
+      "id": "C98vekfgd4z",
+      "qualified_name": "Boss::addImp",
+      "simple_name": "addImp",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11cs1exb85n",
+      "start_line": 274,
+      "end_line": 285,
+      "start_byte": 7384,
+      "end_byte": 7678,
+      "signature_hint": "void addImp(double x, double y)"
+    },
+    "C3xu0mavcxj": {
+      "id": "C3xu0mavcxj",
+      "qualified_name": "Goblin::onLoad",
+      "simple_name": "onLoad",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fbob7fuwoj0",
+      "start_line": 22,
+      "end_line": 32,
+      "start_byte": 735,
+      "end_byte": 985,
+      "signature_hint": "@override Future<void> onLoad()",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "C8sizb7fic4": {
+      "id": "C8sizb7fic4",
+      "qualified_name": "Goblin::update",
+      "simple_name": "update",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fbob7fuwoj0",
+      "start_line": 34,
+      "end_line": 44,
+      "start_byte": 989,
+      "end_byte": 1178,
+      "signature_hint": "@override void update(double dt)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "C1mi1z59lwk": {
+      "id": "C1mi1z59lwk",
+      "qualified_name": "Goblin::onDie",
+      "simple_name": "onDie",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fbob7fuwoj0",
+      "start_line": 46,
+      "end_line": 58,
+      "start_byte": 1182,
+      "end_byte": 1447,
+      "signature_hint": "@override void onDie()",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cqebi6rjvqr": {
+      "id": "Cqebi6rjvqr",
+      "qualified_name": "Goblin::execAttack",
+      "simple_name": "execAttack",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fbob7fuwoj0",
+      "start_line": 60,
+      "end_line": 70,
+      "start_byte": 1451,
+      "end_byte": 1718,
+      "signature_hint": "void execAttack()"
+    },
+    "Cwrw22kb0at": {
+      "id": "Cwrw22kb0at",
+      "qualified_name": "Goblin::onReceiveDamage",
+      "simple_name": "onReceiveDamage",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fbob7fuwoj0",
+      "start_line": 72,
+      "end_line": 83,
+      "start_byte": 1722,
+      "end_byte": 2031,
+      "signature_hint": "@override void onReceiveDamage(AttackOriginEnum attacker, double damage, dynamic id)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cvf0vjp78d0": {
+      "id": "Cvf0vjp78d0",
+      "qualified_name": "Imp::onLoad",
+      "simple_name": "onLoad",
+      "kind": "method",
+      "language": "dart",
+      "file": "F10ajp14cond",
+      "start_line": 22,
+      "end_line": 37,
+      "start_byte": 723,
+      "end_byte": 1029,
+      "signature_hint": "@override Future<void> onLoad()",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "C5jknon07q7": {
+      "id": "C5jknon07q7",
+      "qualified_name": "Imp::update",
+      "simple_name": "update",
+      "kind": "method",
+      "language": "dart",
+      "file": "F10ajp14cond",
+      "start_line": 39,
+      "end_line": 48,
+      "start_byte": 1033,
+      "end_byte": 1221,
+      "signature_hint": "@override void update(double dt)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cvkd1hn6ipy": {
+      "id": "Cvkd1hn6ipy",
+      "qualified_name": "Imp::execAttack",
+      "simple_name": "execAttack",
+      "kind": "method",
+      "language": "dart",
+      "file": "F10ajp14cond",
+      "start_line": 50,
+      "end_line": 60,
+      "start_byte": 1225,
+      "end_byte": 1492,
+      "signature_hint": "void execAttack()"
+    },
+    "Cniaux3vmxv": {
+      "id": "Cniaux3vmxv",
+      "qualified_name": "Imp::onDie",
+      "simple_name": "onDie",
+      "kind": "method",
+      "language": "dart",
+      "file": "F10ajp14cond",
+      "start_line": 62,
+      "end_line": 74,
+      "start_byte": 1496,
+      "end_byte": 1761,
+      "signature_hint": "@override void onDie()",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Ciwxf3v9tlf": {
+      "id": "Ciwxf3v9tlf",
+      "qualified_name": "Imp::onReceiveDamage",
+      "simple_name": "onReceiveDamage",
+      "kind": "method",
+      "language": "dart",
+      "file": "F10ajp14cond",
+      "start_line": 76,
+      "end_line": 87,
+      "start_byte": 1765,
+      "end_byte": 2074,
+      "signature_hint": "@override void onReceiveDamage(AttackOriginEnum attacker, double damage, dynamic id)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Ctl25iqtxzv": {
+      "id": "Ctl25iqtxzv",
+      "qualified_name": "MiniBoss::onLoad",
+      "simple_name": "onLoad",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fs2dbfz2am6",
+      "start_line": 23,
+      "end_line": 32,
+      "start_byte": 787,
+      "end_byte": 1033,
+      "signature_hint": "@override Future<void> onLoad()",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Ca675d2rdv1": {
+      "id": "Ca675d2rdv1",
+      "qualified_name": "MiniBoss::update",
+      "simple_name": "update",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fs2dbfz2am6",
+      "start_line": 34,
+      "end_line": 58,
+      "start_byte": 1037,
+      "end_byte": 1593,
+      "signature_hint": "@override void update(double dt)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cs20h3dsyu0": {
+      "id": "Cs20h3dsyu0",
+      "qualified_name": "MiniBoss::onDie",
+      "simple_name": "onDie",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fs2dbfz2am6",
+      "start_line": 60,
+      "end_line": 72,
+      "start_byte": 1597,
+      "end_byte": 1867,
+      "signature_hint": "@override void onDie()",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Crqtz04kbm6": {
+      "id": "Crqtz04kbm6",
+      "qualified_name": "MiniBoss::execAttackRange",
+      "simple_name": "execAttackRange",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fs2dbfz2am6",
+      "start_line": 74,
+      "end_line": 97,
+      "start_byte": 1871,
+      "end_byte": 2557,
+      "signature_hint": "void execAttackRange()"
+    },
+    "Cvqs08bzh9g": {
+      "id": "Cvqs08bzh9g",
+      "qualified_name": "MiniBoss::execAttack",
+      "simple_name": "execAttack",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fs2dbfz2am6",
+      "start_line": 99,
+      "end_line": 109,
+      "start_byte": 2561,
+      "end_byte": 2837,
+      "signature_hint": "void execAttack()"
+    },
+    "C11ikqslnfoj": {
+      "id": "C11ikqslnfoj",
+      "qualified_name": "MiniBoss::onReceiveDamage",
+      "simple_name": "onReceiveDamage",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fs2dbfz2am6",
+      "start_line": 111,
+      "end_line": 122,
+      "start_byte": 2841,
+      "end_byte": 3155,
+      "signature_hint": "@override void onReceiveDamage(AttackOriginEnum attacker, double damage, dynamic id)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cqmkdq1j2wf": {
+      "id": "Cqmkdq1j2wf",
+      "qualified_name": "Game::createState",
+      "simple_name": "createState",
+      "kind": "method",
+      "language": "dart",
+      "file": "Flj60jotcrt",
+      "start_line": 25,
+      "end_line": 26,
+      "start_byte": 1129,
+      "end_byte": 1180,
+      "signature_hint": "@override GameState createState() => GameState();",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Ck7hcff41ve": {
+      "id": "Ck7hcff41ve",
+      "qualified_name": "GameState::initState",
+      "simple_name": "initState",
+      "kind": "method",
+      "language": "dart",
+      "file": "Flj60jotcrt",
+      "start_line": 30,
+      "end_line": 34,
+      "start_byte": 1224,
+      "end_byte": 1315,
+      "signature_hint": "@override void initState()",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Ccvsczr35ho": {
+      "id": "Ccvsczr35ho",
+      "qualified_name": "GameState::dispose",
+      "simple_name": "dispose",
+      "kind": "method",
+      "language": "dart",
+      "file": "Flj60jotcrt",
+      "start_line": 36,
+      "end_line": 40,
+      "start_byte": 1319,
+      "end_byte": 1406,
+      "signature_hint": "@override void dispose()",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Co9trhe5cpr": {
+      "id": "Co9trhe5cpr",
+      "qualified_name": "GameState::build",
+      "simple_name": "build",
+      "kind": "method",
+      "language": "dart",
+      "file": "Flj60jotcrt",
+      "start_line": 42,
+      "end_line": 131,
+      "start_byte": 1410,
+      "end_byte": 4312,
+      "signature_hint": "@override Widget build(BuildContext context)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cnf4rgkg699": {
+      "id": "Cnf4rgkg699",
+      "qualified_name": "registerPlugins",
+      "simple_name": "registerPlugins",
+      "kind": "function",
+      "language": "dart",
+      "file": "Fo560rf0emm",
+      "start_line": 15,
+      "end_line": 19,
+      "start_byte": 390,
+      "end_byte": 564,
+      "signature_hint": "void registerPlugins(Registrar registrar)"
+    },
+    "Cn55moknmjs": {
+      "id": "Cn55moknmjs",
+      "qualified_name": "MyBarLifeComponent::update",
+      "simple_name": "update",
+      "kind": "method",
+      "language": "dart",
+      "file": "F17cgnmx6sxw",
+      "start_line": 23,
+      "end_line": 33,
+      "start_byte": 552,
+      "end_byte": 853,
+      "signature_hint": "@override void update(double t)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cwi4415f3fx": {
+      "id": "Cwi4415f3fx",
+      "qualified_name": "MyBarLifeComponent::render",
+      "simple_name": "render",
+      "kind": "method",
+      "language": "dart",
+      "file": "F17cgnmx6sxw",
+      "start_line": 35,
+      "end_line": 42,
+      "start_byte": 857,
+      "end_byte": 989,
+      "signature_hint": "@override void render(Canvas c)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Ces7b4jswtl": {
+      "id": "Ces7b4jswtl",
+      "qualified_name": "MyBarLifeComponent::_drawLife",
+      "simple_name": "_drawLife",
+      "kind": "method",
+      "language": "dart",
+      "file": "F17cgnmx6sxw",
+      "start_line": 44,
+      "end_line": 64,
+      "start_byte": 993,
+      "end_byte": 1595,
+      "signature_hint": "void _drawLife(Canvas canvas)"
+    },
+    "Cxybyah8zbm": {
+      "id": "Cxybyah8zbm",
+      "qualified_name": "MyBarLifeComponent::_drawStamina",
+      "simple_name": "_drawStamina",
+      "kind": "method",
+      "language": "dart",
+      "file": "F17cgnmx6sxw",
+      "start_line": 66,
+      "end_line": 79,
+      "start_byte": 1599,
+      "end_byte": 1975,
+      "signature_hint": "void _drawStamina(Canvas canvas)"
+    },
+    "C10detab3bbk": {
+      "id": "C10detab3bbk",
+      "qualified_name": "MyBarLifeComponent::_getColorLife",
+      "simple_name": "_getColorLife",
+      "kind": "method",
+      "language": "dart",
+      "file": "F17cgnmx6sxw",
+      "start_line": 81,
+      "end_line": 90,
+      "start_byte": 1979,
+      "end_byte": 2229,
+      "signature_hint": "Color _getColorLife(double currentBarLife)"
+    },
+    "C1qjg9s95dz": {
+      "id": "C1qjg9s95dz",
+      "qualified_name": "KnightInterface::onLoad",
+      "simple_name": "onLoad",
+      "kind": "method",
+      "language": "dart",
+      "file": "F9w9njnsx3q",
+      "start_line": 8,
+      "end_line": 13,
+      "start_byte": 237,
+      "end_byte": 399,
+      "signature_hint": "@override Future<void> onLoad() async",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "C15gwhsdxe6y": {
+      "id": "C15gwhsdxe6y",
+      "qualified_name": "KnightInterface::render",
+      "simple_name": "render",
+      "kind": "method",
+      "language": "dart",
+      "file": "F9w9njnsx3q",
+      "start_line": 15,
+      "end_line": 21,
+      "start_byte": 403,
+      "end_byte": 526,
+      "signature_hint": "@override void render(Canvas canvas)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cv02iy7ni9e": {
+      "id": "Cv02iy7ni9e",
+      "qualified_name": "KnightInterface::_drawKey",
+      "simple_name": "_drawKey",
+      "kind": "method",
+      "language": "dart",
+      "file": "F9w9njnsx3q",
+      "start_line": 23,
+      "end_line": 27,
+      "start_byte": 530,
+      "end_byte": 703,
+      "signature_hint": "void _drawKey(Canvas c)"
+    },
+    "C6cykqejmsl": {
+      "id": "C6cykqejmsl",
+      "qualified_name": "main",
+      "simple_name": "main",
+      "kind": "function",
+      "language": "dart",
+      "file": "Fqg7s896zm1",
+      "start_line": 12,
+      "end_line": 37,
+      "start_byte": 405,
+      "end_byte": 1155,
+      "signature_hint": "void main() async"
+    },
+    "Czfa25oq5wp": {
+      "id": "Czfa25oq5wp",
+      "qualified_name": "Menu::createState",
+      "simple_name": "createState",
+      "kind": "method",
+      "language": "dart",
+      "file": "F15ofo856x0o",
+      "start_line": 16,
+      "end_line": 17,
+      "start_byte": 699,
+      "end_byte": 752,
+      "signature_hint": "@override _MenuState createState() => _MenuState();",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "C66d7oa2185": {
+      "id": "C66d7oa2185",
+      "qualified_name": "_MenuState::dispose",
+      "simple_name": "dispose",
+      "kind": "method",
+      "language": "dart",
+      "file": "F15ofo856x0o",
+      "start_line": 32,
+      "end_line": 37,
+      "start_byte": 1119,
+      "end_byte": 1227,
+      "signature_hint": "@override void dispose()",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Crkqk25rcd1": {
+      "id": "Crkqk25rcd1",
+      "qualified_name": "_MenuState::build",
+      "simple_name": "build",
+      "kind": "method",
+      "language": "dart",
+      "file": "F15ofo856x0o",
+      "start_line": 39,
+      "end_line": 45,
+      "start_byte": 1231,
+      "end_byte": 1419,
+      "signature_hint": "@override Widget build(BuildContext context)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "C11ez2ughjbh": {
+      "id": "C11ez2ughjbh",
+      "qualified_name": "_MenuState::buildMenu",
+      "simple_name": "buildMenu",
+      "kind": "method",
+      "language": "dart",
+      "file": "F15ofo856x0o",
+      "start_line": 47,
+      "end_line": 208,
+      "start_byte": 1423,
+      "end_byte": 6673,
+      "signature_hint": "Widget buildMenu()"
+    },
+    "Cmmb8ftafji": {
+      "id": "Cmmb8ftafji",
+      "qualified_name": "_MenuState::buildSplash",
+      "simple_name": "buildSplash",
+      "kind": "method",
+      "language": "dart",
+      "file": "F15ofo856x0o",
+      "start_line": 210,
+      "end_line": 220,
+      "start_byte": 6677,
+      "end_byte": 6912,
+      "signature_hint": "Widget buildSplash()"
+    },
+    "Cnyjyxllso9": {
+      "id": "Cnyjyxllso9",
+      "qualified_name": "_MenuState::startTimer",
+      "simple_name": "startTimer",
+      "kind": "method",
+      "language": "dart",
+      "file": "F15ofo856x0o",
+      "start_line": 222,
+      "end_line": 231,
+      "start_byte": 6916,
+      "end_byte": 7163,
+      "signature_hint": "void startTimer()"
+    },
+    "Cyylde65f2n": {
+      "id": "Cyylde65f2n",
+      "qualified_name": "_MenuState::_launchURL",
+      "simple_name": "_launchURL",
+      "kind": "method",
+      "language": "dart",
+      "file": "F15ofo856x0o",
+      "start_line": 233,
+      "end_line": 240,
+      "start_byte": 7167,
+      "end_byte": 7357,
+      "signature_hint": "void _launchURL(String url) async"
+    },
+    "Ce2fuvxvs7a": {
+      "id": "Ce2fuvxvs7a",
+      "qualified_name": "Kid::update",
+      "simple_name": "update",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fgbmz3ojuay",
+      "start_line": 24,
+      "end_line": 40,
+      "start_byte": 901,
+      "end_byte": 1333,
+      "signature_hint": "@override void update(double dt)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "C6vbpx32c6x": {
+      "id": "C6vbpx32c6x",
+      "qualified_name": "Kid::_startConversation",
+      "simple_name": "_startConversation",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fgbmz3ojuay",
+      "start_line": 42,
+      "end_line": 75,
+      "start_byte": 1337,
+      "end_byte": 2305,
+      "signature_hint": "void _startConversation()"
+    },
+    "Crugjvf8sfi": {
+      "id": "Crugjvf8sfi",
+      "qualified_name": "WizardNPC::update",
+      "simple_name": "update",
+      "kind": "method",
+      "language": "dart",
+      "file": "F1h8f6gp5tw",
+      "start_line": 27,
+      "end_line": 44,
+      "start_byte": 916,
+      "end_byte": 1373,
+      "signature_hint": "@override void update(double dt)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "C6sqw37arp6": {
+      "id": "C6sqw37arp6",
+      "qualified_name": "WizardNPC::_showEmote",
+      "simple_name": "_showEmote",
+      "kind": "method",
+      "language": "dart",
+      "file": "F1h8f6gp5tw",
+      "start_line": 46,
+      "end_line": 63,
+      "start_byte": 1377,
+      "end_byte": 1844,
+      "signature_hint": "void _showEmote({String emote = 'emote/emote_exclamacao.png'})"
+    },
+    "C17lb096ui1d": {
+      "id": "C17lb096ui1d",
+      "qualified_name": "WizardNPC::_showIntroduction",
+      "simple_name": "_showIntroduction",
+      "kind": "method",
+      "language": "dart",
+      "file": "F1h8f6gp5tw",
+      "start_line": 65,
+      "end_line": 118,
+      "start_byte": 1848,
+      "end_byte": 3488,
+      "signature_hint": "void _showIntroduction()"
+    },
+    "Cowc6cwonp7": {
+      "id": "Cowc6cwonp7",
+      "qualified_name": "Knight::Knight",
+      "simple_name": "Knight",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11ri9l4y3f",
+      "start_line": 19,
+      "end_line": 35,
+      "start_byte": 644,
+      "end_byte": 1104,
+      "signature_hint": "Knight(Vector2 position)"
+    },
+    "C5d032m1x70": {
+      "id": "C5d032m1x70",
+      "qualified_name": "Knight::onLoad",
+      "simple_name": "onLoad",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11ri9l4y3f",
+      "start_line": 37,
+      "end_line": 49,
+      "start_byte": 1108,
+      "end_byte": 1383,
+      "signature_hint": "@override Future<void> onLoad()",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cefm8vxvrtz": {
+      "id": "Cefm8vxvrtz",
+      "qualified_name": "Knight::onJoystickAction",
+      "simple_name": "onJoystickAction",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11ri9l4y3f",
+      "start_line": 51,
+      "end_line": 71,
+      "start_byte": 1387,
+      "end_byte": 1914,
+      "signature_hint": "@override void onJoystickAction(JoystickActionEvent event)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cfn01bsv8bz": {
+      "id": "Cfn01bsv8bz",
+      "qualified_name": "Knight::onDie",
+      "simple_name": "onDie",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11ri9l4y3f",
+      "start_line": 73,
+      "end_line": 87,
+      "start_byte": 1918,
+      "end_byte": 2219,
+      "signature_hint": "@override void onDie()",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cad58kqibis": {
+      "id": "Cad58kqibis",
+      "qualified_name": "Knight::actionAttack",
+      "simple_name": "actionAttack",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11ri9l4y3f",
+      "start_line": 89,
+      "end_line": 101,
+      "start_byte": 2223,
+      "end_byte": 2499,
+      "signature_hint": "void actionAttack()"
+    },
+    "Csiaim95hdu": {
+      "id": "Csiaim95hdu",
+      "qualified_name": "Knight::actionAttackRange",
+      "simple_name": "actionAttackRange",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11ri9l4y3f",
+      "start_line": 103,
+      "end_line": 130,
+      "start_byte": 2503,
+      "end_byte": 3239,
+      "signature_hint": "void actionAttackRange()"
+    },
+    "Cm4uk5m5hn4": {
+      "id": "Cm4uk5m5hn4",
+      "qualified_name": "Knight::update",
+      "simple_name": "update",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11ri9l4y3f",
+      "start_line": 132,
+      "end_line": 148,
+      "start_byte": 3243,
+      "end_byte": 3603,
+      "signature_hint": "@override void update(double dt)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cufkr3xzwd": {
+      "id": "Cufkr3xzwd",
+      "qualified_name": "Knight::_verifyStamina",
+      "simple_name": "_verifyStamina",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11ri9l4y3f",
+      "start_line": 150,
+      "end_line": 166,
+      "start_byte": 3607,
+      "end_byte": 3908,
+      "signature_hint": "void _verifyStamina()"
+    },
+    "Cvtfp0fybpw": {
+      "id": "Cvtfp0fybpw",
+      "qualified_name": "Knight::decrementStamina",
+      "simple_name": "decrementStamina",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11ri9l4y3f",
+      "start_line": 168,
+      "end_line": 173,
+      "start_byte": 3912,
+      "end_byte": 4012,
+      "signature_hint": "void decrementStamina(int i)"
+    },
+    "Coivcpmn494": {
+      "id": "Coivcpmn494",
+      "qualified_name": "Knight::onReceiveDamage",
+      "simple_name": "onReceiveDamage",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11ri9l4y3f",
+      "start_line": 175,
+      "end_line": 187,
+      "start_byte": 4016,
+      "end_byte": 4350,
+      "signature_hint": "@override void onReceiveDamage(AttackOriginEnum attacker, double damage, dynamic id)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Ciw1zf7g321": {
+      "id": "Ciw1zf7g321",
+      "qualified_name": "Knight::_showEmote",
+      "simple_name": "_showEmote",
+      "kind": "method",
+      "language": "dart",
+      "file": "F11ri9l4y3f",
+      "start_line": 189,
+      "end_line": 206,
+      "start_byte": 4354,
+      "end_byte": 4821,
+      "signature_hint": "void _showEmote({String emote = 'emote/emote_exclamacao.png'})"
+    },
+    "C185ohgkaqtg": {
+      "id": "C185ohgkaqtg",
+      "qualified_name": "CustomSpriteAnimationWidget::build",
+      "simple_name": "build",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fvim0i9vr2o",
+      "start_line": 9,
+      "end_line": 16,
+      "start_byte": 284,
+      "end_byte": 436,
+      "signature_hint": "@override Widget build(BuildContext context)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cfkihmiju1q": {
+      "id": "Cfkihmiju1q",
+      "qualified_name": "Dialogs::showGameOver",
+      "simple_name": "showGameOver",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fxuhlymaqxi",
+      "start_line": 6,
+      "end_line": 41,
+      "start_byte": 179,
+      "end_byte": 1218,
+      "signature_hint": "static void showGameOver(BuildContext context, VoidCallback playAgain)"
+    },
+    "Cjc183l6ggu": {
+      "id": "Cjc183l6ggu",
+      "qualified_name": "Dialogs::showCongratulations",
+      "simple_name": "showCongratulations",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fxuhlymaqxi",
+      "start_line": 43,
+      "end_line": 105,
+      "start_byte": 1222,
+      "end_byte": 3385,
+      "signature_hint": "static void showCongratulations(BuildContext context)"
+    },
+    "C7gbgbkfv20": {
+      "id": "C7gbgbkfv20",
+      "qualified_name": "EnemySpriteSheet::enemyAttackEffectBottom",
+      "simple_name": "enemyAttackEffectBottom",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fuj9iv9fmu1",
+      "start_line": 4,
+      "end_line": 12,
+      "start_byte": 67,
+      "end_byte": 340,
+      "signature_hint": "static Future<SpriteAnimation> enemyAttackEffectBottom() => SpriteAnimation.load( 'enemy/atack_effect_bottom.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );"
+    },
+    "C11r79czhc27": {
+      "id": "C11r79czhc27",
+      "qualified_name": "EnemySpriteSheet::enemyAttackEffectLeft",
+      "simple_name": "enemyAttackEffectLeft",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fuj9iv9fmu1",
+      "start_line": 14,
+      "end_line": 22,
+      "start_byte": 344,
+      "end_byte": 613,
+      "signature_hint": "static Future<SpriteAnimation> enemyAttackEffectLeft() => SpriteAnimation.load( 'enemy/atack_effect_left.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );"
+    },
+    "Cdy8k2mn2ap": {
+      "id": "Cdy8k2mn2ap",
+      "qualified_name": "EnemySpriteSheet::enemyAttackEffectRight",
+      "simple_name": "enemyAttackEffectRight",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fuj9iv9fmu1",
+      "start_line": 23,
+      "end_line": 31,
+      "start_byte": 616,
+      "end_byte": 887,
+      "signature_hint": "static Future<SpriteAnimation> enemyAttackEffectRight() => SpriteAnimation.load( 'enemy/atack_effect_right.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );"
+    },
+    "Cmamlamt8xz": {
+      "id": "Cmamlamt8xz",
+      "qualified_name": "EnemySpriteSheet::enemyAttackEffectTop",
+      "simple_name": "enemyAttackEffectTop",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fuj9iv9fmu1",
+      "start_line": 32,
+      "end_line": 39,
+      "start_byte": 890,
+      "end_byte": 1151,
+      "signature_hint": "static Future<SpriteAnimation> enemyAttackEffectTop() => SpriteAnimation.load( 'enemy/atack_effect_top.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );"
+    },
+    "Cr92mh08onx": {
+      "id": "Cr92mh08onx",
+      "qualified_name": "EnemySpriteSheet::bossIdleRight",
+      "simple_name": "bossIdleRight",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fuj9iv9fmu1",
+      "start_line": 41,
+      "end_line": 48,
+      "start_byte": 1155,
+      "end_byte": 1407,
+      "signature_hint": "static Future<SpriteAnimation> bossIdleRight() => SpriteAnimation.load( 'enemy/boss/boss_idle.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(32, 36), ), );"
+    },
+    "Cbakir2df7x": {
+      "id": "Cbakir2df7x",
+      "qualified_name": "EnemySpriteSheet::bossAnimations",
+      "simple_name": "bossAnimations",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fuj9iv9fmu1",
+      "start_line": 50,
+      "end_line": 76,
+      "start_byte": 1411,
+      "end_byte": 2251,
+      "signature_hint": "static SimpleDirectionAnimation bossAnimations() => SimpleDirectionAnimation( idleLeft: SpriteAnimation.load( 'enemy/boss/boss_idle_left.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(32, 36), ), ), idleRight: bossIdleRight(), runLeft: SpriteAnimation.load( 'enemy/boss/boss_run_left.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(32, 36), ), ), runRight: SpriteAnimation.load( 'enemy/boss/boss_run_right.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(32, 36), ), ), );"
+    },
+    "C2bl9guvhyl": {
+      "id": "C2bl9guvhyl",
+      "qualified_name": "EnemySpriteSheet::goblinIdleRight",
+      "simple_name": "goblinIdleRight",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fuj9iv9fmu1",
+      "start_line": 78,
+      "end_line": 85,
+      "start_byte": 2255,
+      "end_byte": 2513,
+      "signature_hint": "static Future<SpriteAnimation> goblinIdleRight() => SpriteAnimation.load( 'enemy/goblin/goblin_idle.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );"
+    },
+    "Cj8qd7yd2z3": {
+      "id": "Cj8qd7yd2z3",
+      "qualified_name": "EnemySpriteSheet::goblinAnimations",
+      "simple_name": "goblinAnimations",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fuj9iv9fmu1",
+      "start_line": 87,
+      "end_line": 121,
+      "start_byte": 2517,
+      "end_byte": 3581,
+      "signature_hint": "static SimpleDirectionAnimation goblinAnimations() => SimpleDirectionAnimation( idleLeft: SpriteAnimation.load( 'enemy/goblin/goblin_idle_left.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), idleRight: SpriteAnimation.load( 'enemy/goblin/goblin_idle.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), runLeft: SpriteAnimation.load( 'enemy/goblin/goblin_run_left.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), runRight: SpriteAnimation.load( 'enemy/goblin/goblin_run_right.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), );"
+    },
+    "Cvcgrifkj00": {
+      "id": "Cvcgrifkj00",
+      "qualified_name": "EnemySpriteSheet::impIdleRight",
+      "simple_name": "impIdleRight",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fuj9iv9fmu1",
+      "start_line": 123,
+      "end_line": 130,
+      "start_byte": 3585,
+      "end_byte": 3834,
+      "signature_hint": "static Future<SpriteAnimation> impIdleRight() => SpriteAnimation.load( 'enemy/imp/imp_idle.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 16), ), );"
+    },
+    "Ctci2tzgwoi": {
+      "id": "Ctci2tzgwoi",
+      "qualified_name": "EnemySpriteSheet::impAnimations",
+      "simple_name": "impAnimations",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fuj9iv9fmu1",
+      "start_line": 132,
+      "end_line": 165,
+      "start_byte": 3838,
+      "end_byte": 4869,
+      "signature_hint": "static SimpleDirectionAnimation impAnimations() => SimpleDirectionAnimation( idleLeft: SpriteAnimation.load( 'enemy/imp/imp_idle_left.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), idleRight: SpriteAnimation.load( 'enemy/imp/imp_idle.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), runLeft: SpriteAnimation.load( 'enemy/imp/imp_run_left.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), runRight: SpriteAnimation.load( 'enemy/imp/imp_run_right.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), );"
+    },
+    "C5n694p6vpu": {
+      "id": "C5n694p6vpu",
+      "qualified_name": "EnemySpriteSheet::miniBossIdleRight",
+      "simple_name": "miniBossIdleRight",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fuj9iv9fmu1",
+      "start_line": 167,
+      "end_line": 174,
+      "start_byte": 4873,
+      "end_byte": 5139,
+      "signature_hint": "static Future<SpriteAnimation> miniBossIdleRight() => SpriteAnimation.load( 'enemy/mini_boss/mini_boss_idle.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 24), ), );"
+    },
+    "Cjy0948j1qt": {
+      "id": "Cjy0948j1qt",
+      "qualified_name": "EnemySpriteSheet::miniBossAnimations",
+      "simple_name": "miniBossAnimations",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fuj9iv9fmu1",
+      "start_line": 176,
+      "end_line": 210,
+      "start_byte": 5143,
+      "end_byte": 6233,
+      "signature_hint": "static SimpleDirectionAnimation miniBossAnimations() => SimpleDirectionAnimation( idleLeft: SpriteAnimation.load( 'enemy/mini_boss/mini_boss_idle_left.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 24), ), ), idleRight: SpriteAnimation.load( 'enemy/mini_boss/mini_boss_idle.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 24), ), ), runLeft: SpriteAnimation.load( 'enemy/mini_boss/mini_boss_run_left.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 24), ), ), runRight: SpriteAnimation.load( 'enemy/mini_boss/mini_boss_run_right.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 24), ), ), );"
+    },
+    "C8z6v3c4kcm": {
+      "id": "C8z6v3c4kcm",
+      "qualified_name": "valueByTileSize",
+      "simple_name": "valueByTileSize",
+      "kind": "function",
+      "language": "dart",
+      "file": "Fm72nopwi02",
+      "start_line": 5,
+      "end_line": 7,
+      "start_byte": 60,
+      "end_byte": 154,
+      "signature_hint": "double valueByTileSize(double value)"
+    },
+    "Cale7xwe4wk": {
+      "id": "Cale7xwe4wk",
+      "qualified_name": "GameSpriteSheet::openTheDoor",
+      "simple_name": "openTheDoor",
+      "kind": "method",
+      "language": "dart",
+      "file": "F148ao452rw4",
+      "start_line": 4,
+      "end_line": 11,
+      "start_byte": 66,
+      "end_byte": 312,
+      "signature_hint": "static Future<SpriteAnimation> openTheDoor() => SpriteAnimation.load( 'items/door_open.png', SpriteAnimationData.sequenced( amount: 14, stepTime: 0.1, textureSize: Vector2(32, 32), ), );"
+    },
+    "C9bdcvwv6j9": {
+      "id": "C9bdcvwv6j9",
+      "qualified_name": "GameSpriteSheet::spikes",
+      "simple_name": "spikes",
+      "kind": "method",
+      "language": "dart",
+      "file": "F148ao452rw4",
+      "start_line": 12,
+      "end_line": 19,
+      "start_byte": 315,
+      "end_byte": 553,
+      "signature_hint": "static Future<SpriteAnimation> spikes() => SpriteAnimation.load( 'items/spikes.png', SpriteAnimationData.sequenced( amount: 10, stepTime: 0.1, textureSize: Vector2(16, 16), ), );"
+    },
+    "Cpcuxkeojoy": {
+      "id": "Cpcuxkeojoy",
+      "qualified_name": "GameSpriteSheet::torch",
+      "simple_name": "torch",
+      "kind": "method",
+      "language": "dart",
+      "file": "F148ao452rw4",
+      "start_line": 20,
+      "end_line": 27,
+      "start_byte": 556,
+      "end_byte": 803,
+      "signature_hint": "static Future<SpriteAnimation> torch() => SpriteAnimation.load( 'items/torch_spritesheet.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );"
+    },
+    "Cg1c9rll2gu": {
+      "id": "Cg1c9rll2gu",
+      "qualified_name": "GameSpriteSheet::explosion",
+      "simple_name": "explosion",
+      "kind": "method",
+      "language": "dart",
+      "file": "F148ao452rw4",
+      "start_line": 29,
+      "end_line": 36,
+      "start_byte": 807,
+      "end_byte": 1044,
+      "signature_hint": "static Future<SpriteAnimation> explosion() => SpriteAnimation.load( 'explosion.png', SpriteAnimationData.sequenced( amount: 7, stepTime: 0.1, textureSize: Vector2(32, 32), ), );"
+    },
+    "Cza1e59p6ux": {
+      "id": "Cza1e59p6ux",
+      "qualified_name": "GameSpriteSheet::smokeExplosion",
+      "simple_name": "smokeExplosion",
+      "kind": "method",
+      "language": "dart",
+      "file": "F148ao452rw4",
+      "start_line": 38,
+      "end_line": 45,
+      "start_byte": 1048,
+      "end_byte": 1295,
+      "signature_hint": "static Future<SpriteAnimation> smokeExplosion() => SpriteAnimation.load( 'smoke_explosin.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );"
+    },
+    "Chlxqpnd4ej": {
+      "id": "Chlxqpnd4ej",
+      "qualified_name": "GameSpriteSheet::fireBallAttackRight",
+      "simple_name": "fireBallAttackRight",
+      "kind": "method",
+      "language": "dart",
+      "file": "F148ao452rw4",
+      "start_line": 47,
+      "end_line": 54,
+      "start_byte": 1299,
+      "end_byte": 1558,
+      "signature_hint": "static Future<SpriteAnimation> fireBallAttackRight() => SpriteAnimation.load( 'player/fireball_right.png', SpriteAnimationData.sequenced( amount: 3, stepTime: 0.1, textureSize: Vector2(23, 23), ), );"
+    },
+    "C11iij9n55b4": {
+      "id": "C11iij9n55b4",
+      "qualified_name": "GameSpriteSheet::fireBallAttackLeft",
+      "simple_name": "fireBallAttackLeft",
+      "kind": "method",
+      "language": "dart",
+      "file": "F148ao452rw4",
+      "start_line": 56,
+      "end_line": 63,
+      "start_byte": 1562,
+      "end_byte": 1819,
+      "signature_hint": "static Future<SpriteAnimation> fireBallAttackLeft() => SpriteAnimation.load( 'player/fireball_left.png', SpriteAnimationData.sequenced( amount: 3, stepTime: 0.1, textureSize: Vector2(23, 23), ), );"
+    },
+    "Ctd3lw5t2ee": {
+      "id": "Ctd3lw5t2ee",
+      "qualified_name": "GameSpriteSheet::fireBallAttackTop",
+      "simple_name": "fireBallAttackTop",
+      "kind": "method",
+      "language": "dart",
+      "file": "F148ao452rw4",
+      "start_line": 65,
+      "end_line": 72,
+      "start_byte": 1823,
+      "end_byte": 2078,
+      "signature_hint": "static Future<SpriteAnimation> fireBallAttackTop() => SpriteAnimation.load( 'player/fireball_top.png', SpriteAnimationData.sequenced( amount: 3, stepTime: 0.1, textureSize: Vector2(23, 23), ), );"
+    },
+    "Cxycp9iimrt": {
+      "id": "Cxycp9iimrt",
+      "qualified_name": "GameSpriteSheet::fireBallAttackBottom",
+      "simple_name": "fireBallAttackBottom",
+      "kind": "method",
+      "language": "dart",
+      "file": "F148ao452rw4",
+      "start_line": 74,
+      "end_line": 81,
+      "start_byte": 2082,
+      "end_byte": 2343,
+      "signature_hint": "static Future<SpriteAnimation> fireBallAttackBottom() => SpriteAnimation.load( 'player/fireball_bottom.png', SpriteAnimationData.sequenced( amount: 3, stepTime: 0.1, textureSize: Vector2(23, 23), ), );"
+    },
+    "C135mxj6j3y1": {
+      "id": "C135mxj6j3y1",
+      "qualified_name": "GameSpriteSheet::fireBallExplosion",
+      "simple_name": "fireBallExplosion",
+      "kind": "method",
+      "language": "dart",
+      "file": "F148ao452rw4",
+      "start_line": 83,
+      "end_line": 90,
+      "start_byte": 2347,
+      "end_byte": 2604,
+      "signature_hint": "static Future<SpriteAnimation> fireBallExplosion() => SpriteAnimation.load( 'player/explosion_fire.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(32, 32), ), );"
+    },
+    "C7z5vhc3yan": {
+      "id": "C7z5vhc3yan",
+      "qualified_name": "MyLocalizations::MyLocalizations",
+      "simple_name": "MyLocalizations",
+      "kind": "method",
+      "language": "dart",
+      "file": "F2k4wtrcave",
+      "start_line": 9,
+      "end_line": 11,
+      "start_byte": 227,
+      "end_byte": 298,
+      "signature_hint": "MyLocalizations(this.locale)"
+    },
+    "Cc9xqjhlsvb": {
+      "id": "Cc9xqjhlsvb",
+      "qualified_name": "MyLocalizations::of",
+      "simple_name": "of",
+      "kind": "method",
+      "language": "dart",
+      "file": "F2k4wtrcave",
+      "start_line": 15,
+      "end_line": 17,
+      "start_byte": 326,
+      "end_byte": 452,
+      "signature_hint": "static MyLocalizations? of(BuildContext context)"
+    },
+    "Ckqf6vtxvf4": {
+      "id": "Ckqf6vtxvf4",
+      "qualified_name": "MyLocalizations::load",
+      "simple_name": "load",
+      "kind": "method",
+      "language": "dart",
+      "file": "F2k4wtrcave",
+      "start_line": 21,
+      "end_line": 32,
+      "start_byte": 496,
+      "end_byte": 845,
+      "signature_hint": "Future<bool> load() async"
+    },
+    "Cpv3wct94oc": {
+      "id": "Cpv3wct94oc",
+      "qualified_name": "MyLocalizations::trans",
+      "simple_name": "trans",
+      "kind": "method",
+      "language": "dart",
+      "file": "F2k4wtrcave",
+      "start_line": 34,
+      "end_line": 36,
+      "start_byte": 849,
+      "end_byte": 918,
+      "signature_hint": "String trans(String key)"
+    },
+    "Cv25f6y1vtn": {
+      "id": "Cv25f6y1vtn",
+      "qualified_name": "MyLocalizationsDelegate::isSupported",
+      "simple_name": "isSupported",
+      "kind": "method",
+      "language": "dart",
+      "file": "F10lndzqh3zl",
+      "start_line": 9,
+      "end_line": 10,
+      "start_byte": 255,
+      "end_byte": 345,
+      "signature_hint": "@override bool isSupported(Locale locale) => ['en', 'pt'].contains(locale.languageCode);",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "C1exbth50oz": {
+      "id": "C1exbth50oz",
+      "qualified_name": "MyLocalizationsDelegate::load",
+      "simple_name": "load",
+      "kind": "method",
+      "language": "dart",
+      "file": "F10lndzqh3zl",
+      "start_line": 12,
+      "end_line": 18,
+      "start_byte": 349,
+      "end_byte": 581,
+      "signature_hint": "@override Future<MyLocalizations> load(Locale locale) async",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cm9w9or1wjj": {
+      "id": "Cm9w9or1wjj",
+      "qualified_name": "MyLocalizationsDelegate::shouldReload",
+      "simple_name": "shouldReload",
+      "kind": "method",
+      "language": "dart",
+      "file": "F10lndzqh3zl",
+      "start_line": 20,
+      "end_line": 21,
+      "start_byte": 585,
+      "end_byte": 653,
+      "signature_hint": "@override bool shouldReload(MyLocalizationsDelegate old) => false;",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "C10bf9c8g96b": {
+      "id": "C10bf9c8g96b",
+      "qualified_name": "MyLocalizationsDelegate::resolution",
+      "simple_name": "resolution",
+      "kind": "method",
+      "language": "dart",
+      "file": "F10lndzqh3zl",
+      "start_line": 23,
+      "end_line": 33,
+      "start_byte": 657,
+      "end_byte": 1039,
+      "signature_hint": "Locale resolution(Locale? locale, Iterable<Locale> supportedLocales)"
+    },
+    "Crc4hnv2oyj": {
+      "id": "Crc4hnv2oyj",
+      "qualified_name": "MyLocalizationsDelegate::supportedLocales",
+      "simple_name": "supportedLocales",
+      "kind": "method",
+      "language": "dart",
+      "file": "F10lndzqh3zl",
+      "start_line": 35,
+      "end_line": 37,
+      "start_byte": 1043,
+      "end_byte": 1152,
+      "signature_hint": "static List<Locale> supportedLocales()"
+    },
+    "Cp8t7cuwnmj": {
+      "id": "Cp8t7cuwnmj",
+      "qualified_name": "StringsLocation::configure",
+      "simple_name": "configure",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fdze4p5xzcl",
+      "start_line": 8,
+      "end_line": 10,
+      "start_byte": 229,
+      "end_byte": 315,
+      "signature_hint": "static void configure(MyLocalizations location)"
+    },
+    "Cfa94uwoxp0": {
+      "id": "Cfa94uwoxp0",
+      "qualified_name": "StringsLocation::StringsLocation",
+      "simple_name": "StringsLocation",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fdze4p5xzcl",
+      "start_line": 12,
+      "end_line": 14,
+      "start_byte": 319,
+      "end_byte": 373,
+      "signature_hint": "factory StringsLocation()"
+    },
+    "C13okpr6iywn": {
+      "id": "C13okpr6iywn",
+      "qualified_name": "StringsLocation::getString",
+      "simple_name": "getString",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fdze4p5xzcl",
+      "start_line": 18,
+      "end_line": 20,
+      "start_byte": 409,
+      "end_byte": 483,
+      "signature_hint": "String getString(String key)"
+    },
+    "C1320g3o0rak": {
+      "id": "C1320g3o0rak",
+      "qualified_name": "getString",
+      "simple_name": "getString",
+      "kind": "function",
+      "language": "dart",
+      "file": "Fdze4p5xzcl",
+      "start_line": 23,
+      "end_line": 25,
+      "start_byte": 487,
+      "end_byte": 562,
+      "signature_hint": "String getString(String key)"
+    },
+    "Cvwrajdl66q": {
+      "id": "Cvwrajdl66q",
+      "qualified_name": "NpcSpriteSheet::kidIdleLeft",
+      "simple_name": "kidIdleLeft",
+      "kind": "method",
+      "language": "dart",
+      "file": "F8na33c24f2",
+      "start_line": 4,
+      "end_line": 11,
+      "start_byte": 65,
+      "end_byte": 312,
+      "signature_hint": "static Future<SpriteAnimation> kidIdleLeft() => SpriteAnimation.load( 'npc/kid_idle_left.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 22), ), );"
+    },
+    "C3t6he9hwm2": {
+      "id": "C3t6he9hwm2",
+      "qualified_name": "NpcSpriteSheet::wizardIdleLeft",
+      "simple_name": "wizardIdleLeft",
+      "kind": "method",
+      "language": "dart",
+      "file": "F8na33c24f2",
+      "start_line": 13,
+      "end_line": 20,
+      "start_byte": 316,
+      "end_byte": 569,
+      "signature_hint": "static Future<SpriteAnimation> wizardIdleLeft() => SpriteAnimation.load( 'npc/wizard_idle_left.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 22), ), );"
+    },
+    "Ccce93gs7cc": {
+      "id": "Ccce93gs7cc",
+      "qualified_name": "PlayerSpriteSheet::idleRight",
+      "simple_name": "idleRight",
+      "kind": "method",
+      "language": "dart",
+      "file": "F6lkxkg3bbt",
+      "start_line": 4,
+      "end_line": 11,
+      "start_byte": 68,
+      "end_byte": 314,
+      "signature_hint": "static Future<SpriteAnimation> idleRight() => SpriteAnimation.load( 'player/knight_idle.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 16), ), );"
+    },
+    "C164kx5ok2f3": {
+      "id": "C164kx5ok2f3",
+      "qualified_name": "PlayerSpriteSheet::attackEffectBottom",
+      "simple_name": "attackEffectBottom",
+      "kind": "method",
+      "language": "dart",
+      "file": "F6lkxkg3bbt",
+      "start_line": 13,
+      "end_line": 20,
+      "start_byte": 318,
+      "end_byte": 581,
+      "signature_hint": "static Future<SpriteAnimation> attackEffectBottom() => SpriteAnimation.load( 'player/atack_effect_bottom.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );"
+    },
+    "C10k6ds7d6gz": {
+      "id": "C10k6ds7d6gz",
+      "qualified_name": "PlayerSpriteSheet::attackEffectLeft",
+      "simple_name": "attackEffectLeft",
+      "kind": "method",
+      "language": "dart",
+      "file": "F6lkxkg3bbt",
+      "start_line": 22,
+      "end_line": 29,
+      "start_byte": 585,
+      "end_byte": 844,
+      "signature_hint": "static Future<SpriteAnimation> attackEffectLeft() => SpriteAnimation.load( 'player/atack_effect_left.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );"
+    },
+    "Cjyfajyu5u9": {
+      "id": "Cjyfajyu5u9",
+      "qualified_name": "PlayerSpriteSheet::attackEffectRight",
+      "simple_name": "attackEffectRight",
+      "kind": "method",
+      "language": "dart",
+      "file": "F6lkxkg3bbt",
+      "start_line": 30,
+      "end_line": 37,
+      "start_byte": 847,
+      "end_byte": 1108,
+      "signature_hint": "static Future<SpriteAnimation> attackEffectRight() => SpriteAnimation.load( 'player/atack_effect_right.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );"
+    },
+    "Ch6hty20uqa": {
+      "id": "Ch6hty20uqa",
+      "qualified_name": "PlayerSpriteSheet::attackEffectTop",
+      "simple_name": "attackEffectTop",
+      "kind": "method",
+      "language": "dart",
+      "file": "F6lkxkg3bbt",
+      "start_line": 38,
+      "end_line": 45,
+      "start_byte": 1111,
+      "end_byte": 1368,
+      "signature_hint": "static Future<SpriteAnimation> attackEffectTop() => SpriteAnimation.load( 'player/atack_effect_top.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );"
+    },
+    "Crk41vjb0d4": {
+      "id": "Crk41vjb0d4",
+      "qualified_name": "PlayerSpriteSheet::playerAnimations",
+      "simple_name": "playerAnimations",
+      "kind": "method",
+      "language": "dart",
+      "file": "F6lkxkg3bbt",
+      "start_line": 47,
+      "end_line": 74,
+      "start_byte": 1372,
+      "end_byte": 2204,
+      "signature_hint": "static SimpleDirectionAnimation playerAnimations() => SimpleDirectionAnimation( idleLeft: SpriteAnimation.load( 'player/knight_idle_left.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), idleRight: idleRight(), runLeft: SpriteAnimation.load( 'player/knight_run_left.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), runRight: SpriteAnimation.load( 'player/knight_run.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), );"
+    },
+    "Cqcvf7umab3": {
+      "id": "Cqcvf7umab3",
+      "qualified_name": "Sounds::initialize",
+      "simple_name": "initialize",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fbo2wwzfb17",
+      "start_line": 4,
+      "end_line": 13,
+      "start_byte": 65,
+      "end_byte": 323,
+      "signature_hint": "static Future initialize() async"
+    },
+    "Cy1jbxf8p66": {
+      "id": "Cy1jbxf8p66",
+      "qualified_name": "Sounds::attackPlayerMelee",
+      "simple_name": "attackPlayerMelee",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fbo2wwzfb17",
+      "start_line": 15,
+      "end_line": 17,
+      "start_byte": 327,
+      "end_byte": 419,
+      "signature_hint": "static void attackPlayerMelee()"
+    },
+    "Cwu3pzd26vl": {
+      "id": "Cwu3pzd26vl",
+      "qualified_name": "Sounds::attackRange",
+      "simple_name": "attackRange",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fbo2wwzfb17",
+      "start_line": 19,
+      "end_line": 21,
+      "start_byte": 423,
+      "end_byte": 512,
+      "signature_hint": "static void attackRange()"
+    },
+    "Cxitwccpn7y": {
+      "id": "Cxitwccpn7y",
+      "qualified_name": "Sounds::attackEnemyMelee",
+      "simple_name": "attackEnemyMelee",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fbo2wwzfb17",
+      "start_line": 23,
+      "end_line": 25,
+      "start_byte": 516,
+      "end_byte": 606,
+      "signature_hint": "static void attackEnemyMelee()"
+    },
+    "Cin0motw295": {
+      "id": "Cin0motw295",
+      "qualified_name": "Sounds::explosion",
+      "simple_name": "explosion",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fbo2wwzfb17",
+      "start_line": 27,
+      "end_line": 29,
+      "start_byte": 610,
+      "end_byte": 677,
+      "signature_hint": "static void explosion()"
+    },
+    "Cqi1rln668p": {
+      "id": "Cqi1rln668p",
+      "qualified_name": "Sounds::interaction",
+      "simple_name": "interaction",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fbo2wwzfb17",
+      "start_line": 31,
+      "end_line": 33,
+      "start_byte": 681,
+      "end_byte": 771,
+      "signature_hint": "static void interaction()"
+    },
+    "Cpsd7b3xei2": {
+      "id": "Cpsd7b3xei2",
+      "qualified_name": "Sounds::stopBackgroundSound",
+      "simple_name": "stopBackgroundSound",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fbo2wwzfb17",
+      "start_line": 35,
+      "end_line": 37,
+      "start_byte": 775,
+      "end_byte": 843,
+      "signature_hint": "static stopBackgroundSound()"
+    },
+    "Cyzsjl0o0ev": {
+      "id": "Cyzsjl0o0ev",
+      "qualified_name": "Sounds::playBackgroundSound",
+      "simple_name": "playBackgroundSound",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fbo2wwzfb17",
+      "start_line": 39,
+      "end_line": 42,
+      "start_byte": 847,
+      "end_byte": 966,
+      "signature_hint": "static void playBackgroundSound() async"
+    },
+    "Cz6kp775zl": {
+      "id": "Cz6kp775zl",
+      "qualified_name": "Sounds::playBackgroundBoosSound",
+      "simple_name": "playBackgroundBoosSound",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fbo2wwzfb17",
+      "start_line": 44,
+      "end_line": 46,
+      "start_byte": 970,
+      "end_byte": 1057,
+      "signature_hint": "static void playBackgroundBoosSound()"
+    },
+    "Cy3awmev1uu": {
+      "id": "Cy3awmev1uu",
+      "qualified_name": "Sounds::pauseBackgroundSound",
+      "simple_name": "pauseBackgroundSound",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fbo2wwzfb17",
+      "start_line": 48,
+      "end_line": 50,
+      "start_byte": 1061,
+      "end_byte": 1129,
+      "signature_hint": "static void pauseBackgroundSound()"
+    },
+    "C5nlmcqffg2": {
+      "id": "C5nlmcqffg2",
+      "qualified_name": "Sounds::resumeBackgroundSound",
+      "simple_name": "resumeBackgroundSound",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fbo2wwzfb17",
+      "start_line": 52,
+      "end_line": 54,
+      "start_byte": 1133,
+      "end_byte": 1203,
+      "signature_hint": "static void resumeBackgroundSound()"
+    },
+    "Cniwu287o1q": {
+      "id": "Cniwu287o1q",
+      "qualified_name": "Sounds::dispose",
+      "simple_name": "dispose",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fbo2wwzfb17",
+      "start_line": 56,
+      "end_line": 58,
+      "start_byte": 1207,
+      "end_byte": 1264,
+      "signature_hint": "static void dispose()"
+    },
+    "Cmuft7xq23l": {
+      "id": "Cmuft7xq23l",
+      "qualified_name": "DefectorRadio::build",
+      "simple_name": "build",
+      "kind": "method",
+      "language": "dart",
+      "file": "Fhobgjcca3m",
+      "start_line": 13,
+      "end_line": 45,
+      "start_byte": 313,
+      "end_byte": 1131,
+      "signature_hint": "@override Widget build(BuildContext context)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "C15d5ro2jmio": {
+      "id": "C15d5ro2jmio",
+      "qualified_name": "GameController::update",
+      "simple_name": "update",
+      "kind": "method",
+      "language": "dart",
+      "file": "F2i4prv78q1",
+      "start_line": 8,
+      "end_line": 19,
+      "start_byte": 254,
+      "end_byte": 549,
+      "signature_hint": "@override void update(double dt)",
+      "attributes": [
+        "@override"
+      ]
+    },
+    "Cd6cjx8y8u4": {
+      "id": "Cd6cjx8y8u4",
+      "qualified_name": "GameController::_showDialogGameOver",
+      "simple_name": "_showDialogGameOver",
+      "kind": "method",
+      "language": "dart",
+      "file": "F2i4prv78q1",
+      "start_line": 21,
+      "end_line": 32,
+      "start_byte": 553,
+      "end_byte": 841,
+      "signature_hint": "void _showDialogGameOver()"
+    },
+    "C3yomz6l6lz": {
+      "id": "C3yomz6l6lz",
+      "qualified_name": "APPLY_STANDARD_SETTINGS",
+      "simple_name": "APPLY_STANDARD_SETTINGS",
+      "kind": "function",
+      "language": "cmake",
+      "file": "F88s1030tuu",
+      "start_line": 42,
+      "end_line": 47,
+      "start_byte": 1568,
+      "end_byte": 1894,
+      "signature_hint": "function(APPLY_STANDARD_SETTINGS TARGET) target_compile_features(${TARGET} PUBLIC cxx_std_14) target_compile_options(${TARGET} PRIVATE -Wall -Werror) target_compile_options(${TARGET} PRIVATE \"$<$<NOT:$<CONFIG:Debug>>:-O3>\") target_compile_definitions(${TARGET} PRIVATE \"$<$<NOT:$<CONFIG:Debug>>:NDEBUG>\") endfunction()"
+    },
+    "Ci74oiv08uz": {
+      "id": "Ci74oiv08uz",
+      "qualified_name": "list_prepend",
+      "simple_name": "list_prepend",
+      "kind": "function",
+      "language": "cmake",
+      "file": "Fs96c1s2890",
+      "start_line": 14,
+      "end_line": 20,
+      "start_byte": 470,
+      "end_byte": 706,
+      "signature_hint": "function(list_prepend LIST_NAME PREFIX) set(NEW_LIST \"\") foreach(element ${${LIST_NAME}}) list(APPEND NEW_LIST \"${PREFIX}${element}\") endforeach(element) set(${LIST_NAME} \"${NEW_LIST}\" PARENT_SCOPE) endfunction()"
+    },
+    "C7jgiq7r4eq": {
+      "id": "C7jgiq7r4eq",
+      "qualified_name": "fl_register_plugins",
+      "simple_name": "fl_register_plugins",
+      "kind": "function",
+      "language": "cpp",
+      "file": "Fn74hkxnm4n",
+      "start_line": 12,
+      "end_line": 19,
+      "start_byte": 214,
+      "end_byte": 724,
+      "signature_hint": "void fl_register_plugins(FlPluginRegistry* registry)"
+    },
+    "Cxhhfy1gg4j": {
+      "id": "Cxhhfy1gg4j",
+      "qualified_name": "main",
+      "simple_name": "main",
+      "kind": "function",
+      "language": "cpp",
+      "file": "Fg5mn2ick78",
+      "start_line": 3,
+      "end_line": 6,
+      "start_byte": 29,
+      "end_byte": 179,
+      "signature_hint": "int main(int argc, char** argv)"
+    },
+    "Cr9tu9g283j": {
+      "id": "Cr9tu9g283j",
+      "qualified_name": "my_application_activate",
+      "simple_name": "my_application_activate",
+      "kind": "function",
+      "language": "cpp",
+      "file": "Fq7x7eo3gru",
+      "start_line": 18,
+      "end_line": 63,
+      "start_byte": 379,
+      "end_byte": 2205,
+      "signature_hint": "static void my_application_activate(GApplication* application)"
+    },
+    "Cjxqe3lpyy0": {
+      "id": "Cjxqe3lpyy0",
+      "qualified_name": "my_application_local_command_line",
+      "simple_name": "my_application_local_command_line",
+      "kind": "function",
+      "language": "cpp",
+      "file": "Fq7x7eo3gru",
+      "start_line": 66,
+      "end_line": 82,
+      "start_byte": 2255,
+      "end_byte": 2829,
+      "signature_hint": "static gboolean my_application_local_command_line(GApplication* application, gchar*** arguments, int* exit_status)"
+    },
+    "Cdcu5mkr1ej": {
+      "id": "Cdcu5mkr1ej",
+      "qualified_name": "my_application_startup",
+      "simple_name": "my_application_startup",
+      "kind": "function",
+      "language": "cpp",
+      "file": "Fq7x7eo3gru",
+      "start_line": 85,
+      "end_line": 91,
+      "start_byte": 2868,
+      "end_byte": 3117,
+      "signature_hint": "static void my_application_startup(GApplication* application)"
+    },
+    "Ca07mmtl8y2": {
+      "id": "Ca07mmtl8y2",
+      "qualified_name": "my_application_shutdown",
+      "simple_name": "my_application_shutdown",
+      "kind": "function",
+      "language": "cpp",
+      "file": "Fq7x7eo3gru",
+      "start_line": 94,
+      "end_line": 100,
+      "start_byte": 3157,
+      "end_byte": 3409,
+      "signature_hint": "static void my_application_shutdown(GApplication* application)"
+    },
+    "Cgi3r4g04gj": {
+      "id": "Cgi3r4g04gj",
+      "qualified_name": "my_application_dispose",
+      "simple_name": "my_application_dispose",
+      "kind": "function",
+      "language": "cpp",
+      "file": "Fq7x7eo3gru",
+      "start_line": 103,
+      "end_line": 107,
+      "start_byte": 3443,
+      "end_byte": 3675,
+      "signature_hint": "static void my_application_dispose(GObject* object)"
+    },
+    "C99fvlix998": {
+      "id": "C99fvlix998",
+      "qualified_name": "my_application_class_init",
+      "simple_name": "my_application_class_init",
+      "kind": "function",
+      "language": "cpp",
+      "file": "Fq7x7eo3gru",
+      "start_line": 109,
+      "end_line": 115,
+      "start_byte": 3677,
+      "end_byte": 4086,
+      "signature_hint": "static void my_application_class_init(MyApplicationClass* klass)"
+    },
+    "Cch4denoxya": {
+      "id": "Cch4denoxya",
+      "qualified_name": "my_application_init",
+      "simple_name": "my_application_init",
+      "kind": "function",
+      "language": "cpp",
+      "file": "Fq7x7eo3gru",
+      "start_line": 117,
+      "end_line": 117,
+      "start_byte": 4088,
+      "end_byte": 4143,
+      "signature_hint": "static void my_application_init(MyApplication* self)"
+    },
+    "Csq25huw602": {
+      "id": "Csq25huw602",
+      "qualified_name": "my_application_new",
+      "simple_name": "my_application_new",
+      "kind": "function",
+      "language": "cpp",
+      "file": "Fq7x7eo3gru",
+      "start_line": 119,
+      "end_line": 130,
+      "start_byte": 4145,
+      "end_byte": 4765,
+      "signature_hint": "MyApplication* my_application_new()"
+    },
+    "Cska3ybhn2u": {
+      "id": "Cska3ybhn2u",
+      "qualified_name": "RegisterGeneratedPlugins",
+      "simple_name": "RegisterGeneratedPlugins",
+      "kind": "function",
+      "language": "swift",
+      "file": "F64wfvn8pa8",
+      "start_line": 12,
+      "end_line": 16,
+      "start_byte": 165,
+      "end_byte": 508,
+      "signature_hint": "func RegisterGeneratedPlugins(registry: FlutterPluginRegistry)"
+    },
+    "C16lcr765wbi": {
+      "id": "C16lcr765wbi",
+      "qualified_name": "AppDelegate.applicationShouldTerminateAfterLastWindowClosed",
+      "simple_name": "applicationShouldTerminateAfterLastWindowClosed",
+      "kind": "method",
+      "language": "swift",
+      "file": "F184k1g6rzx5",
+      "start_line": 6,
+      "end_line": 8,
+      "start_byte": 95,
+      "end_byte": 211,
+      "signature_hint": "override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool",
+      "attributes": [
+        "override"
+      ]
+    },
+    "Ct47vjeftc7": {
+      "id": "Ct47vjeftc7",
+      "qualified_name": "MainFlutterWindow.awakeFromNib",
+      "simple_name": "awakeFromNib",
+      "kind": "method",
+      "language": "swift",
+      "file": "F88dqvqbngi",
+      "start_line": 5,
+      "end_line": 14,
+      "start_byte": 72,
+      "end_byte": 390,
+      "signature_hint": "override func awakeFromNib()",
+      "attributes": [
+        "override"
+      ]
+    },
+    "C5fjiw4vh6q": {
+      "id": "C5fjiw4vh6q",
+      "qualified_name": "main",
+      "simple_name": "main",
+      "kind": "function",
+      "language": "dart",
+      "file": "Fbuo9crgjds",
+      "start_line": 8,
+      "end_line": 25,
+      "start_byte": 357,
+      "end_byte": 950,
+      "signature_hint": "void main()",
+      "test_role": "support"
+    }
+  },
+  "files": {
+    "Ficsk51t6kt": {
+      "id": "Ficsk51t6kt",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/android/app/build.gradle",
+      "language": "groovy",
+      "detected_via": "extension:.gradle",
+      "blake3": "64d249339a6968afa0e0ce8a88f0e7872f698fdbecbffc5b271de8afa0b77dc9",
+      "size_bytes": 1951,
+      "lines": 67,
+      "parse_ms": 1.044742,
+      "parse_status": "error"
+    },
+    "Fovys9aenza": {
+      "id": "Fovys9aenza",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/android/app/src/main/kotlin/com/example/darkness_dungeon/MainActivity.kt",
+      "language": "kotlin",
+      "detected_via": "extension:.kt",
+      "blake3": "e852427f58091a0e137906f545182e53035382b1cd416f160477d4d9c6f01574",
+      "size_bytes": 133,
+      "lines": 6,
+      "parse_ms": 1.239522,
+      "parse_status": "ok"
+    },
+    "F16kzxqb57r8": {
+      "id": "F16kzxqb57r8",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/android/build.gradle",
+      "language": "groovy",
+      "detected_via": "extension:.gradle",
+      "blake3": "4b7957aea09a2093a687c3fdcf7c06833f5f80d49f213a4492a81ee993c1169f",
+      "size_bytes": 599,
+      "lines": 31,
+      "parse_ms": 0.196021,
+      "parse_status": "error"
+    },
+    "F5e5cf6evep": {
+      "id": "F5e5cf6evep",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/android/settings.gradle",
+      "language": "groovy",
+      "detected_via": "extension:.gradle",
+      "blake3": "2a6860ba02d30da57df3be61b69637cb46abc5f9458eebe0bd4941b9abeaafb8",
+      "size_bytes": 462,
+      "lines": 11,
+      "parse_ms": 0.45497099999999996,
+      "parse_status": "error"
+    },
+    "Fw6ryp5zgov": {
+      "id": "Fw6ryp5zgov",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/android/settings_aar.gradle",
+      "language": "groovy",
+      "detected_via": "extension:.gradle",
+      "blake3": "823f947f06d849c4b159b912805b7f04bbccdb49eb042f105539e714e69e162f",
+      "size_bytes": 15,
+      "lines": 1,
+      "parse_ms": 0.00981,
+      "parse_status": "ok"
+    },
+    "F3dph38b50h": {
+      "id": "F3dph38b50h",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/ios/Runner/AppDelegate.swift",
+      "language": "swift",
+      "detected_via": "extension:.swift",
+      "blake3": "db8916d2c85da2b7e18afb48fc7b78760b0acd9a108812bd8289d23b49ec254f",
+      "size_bytes": 404,
+      "lines": 13,
+      "parse_ms": 0.311931,
+      "parse_status": "ok"
+    },
+    "Fnuxpcjxpp0": {
+      "id": "Fnuxpcjxpp0",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/ios/Runner/Runner-Bridging-Header.h",
+      "language": "c",
+      "detected_via": "header-heuristic:c",
+      "blake3": "cd4278f926d2531cea9c08b10892414af261e4cc7ac0c2ff00e69a4b56f82c0b",
+      "size_bytes": 38,
+      "lines": 1,
+      "parse_ms": 0.072491,
+      "parse_status": "ok"
+    },
+    "F5f93q094iu": {
+      "id": "F5f93q094iu",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/barrel.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "9932bacac7dc3c91f962833f6327b6e4fc2d6d53dd09c510ee0cae3b3a5142e8",
+      "size_bytes": 534,
+      "lines": 22,
+      "parse_ms": 0.532041,
+      "parse_status": "ok"
+    },
+    "F9pp3fwm1r7": {
+      "id": "F9pp3fwm1r7",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/door.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "e8c66ebd1b6c1a034945534e9bb3c650b5d8e6d0986a504a853cad66991fad91",
+      "size_bytes": 1831,
+      "lines": 71,
+      "parse_ms": 0.951123,
+      "parse_status": "ok"
+    },
+    "Fac48v4z5on": {
+      "id": "Fac48v4z5on",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/key.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "331cdbffdc0c60910f2ca7eb6ea24f629504910eed0aff671b1025ca76c12478",
+      "size_bytes": 546,
+      "lines": 20,
+      "parse_ms": 0.19607000000000002,
+      "parse_status": "ok"
+    },
+    "F13m4s6r4999": {
+      "id": "F13m4s6r4999",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/potion_life.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "2d171bcd525cd8ce85afa0426b1e284f41e971245c395cc25407e785dd20c8c4",
+      "size_bytes": 1053,
+      "lines": 42,
+      "parse_ms": 0.483671,
+      "parse_status": "ok"
+    },
+    "Fuk9afpawzz": {
+      "id": "Fuk9afpawzz",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/spikes.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "82ac85fa91b971835d286b9d5d332e136fa6226c825ab30263a7a716ad7d92ec",
+      "size_bytes": 909,
+      "lines": 37,
+      "parse_ms": 0.29989,
+      "parse_status": "ok"
+    },
+    "Fz9g0i9steq": {
+      "id": "Fz9g0i9steq",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/torch.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "10020b1d39a42877a72f4a32206609e2c02d36423ecbc1985a1c93ba124e851b",
+      "size_bytes": 756,
+      "lines": 30,
+      "parse_ms": 0.618492,
+      "parse_status": "ok"
+    },
+    "F11cs1exb85n": {
+      "id": "F11cs1exb85n",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/enemies/boss.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "25ee179855fa949ffb76f24bd64a9cfb0985802f2a23b2b2c17a4a65a4144cff",
+      "size_bytes": 7681,
+      "lines": 286,
+      "parse_ms": 6.976045,
+      "parse_status": "ok"
+    },
+    "Fbob7fuwoj0": {
+      "id": "Fbob7fuwoj0",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/enemies/goblin.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "633ce7dec62939b4e5e0da90ca19905682644f157e12c736eda82fe73d671a4e",
+      "size_bytes": 2034,
+      "lines": 84,
+      "parse_ms": 1.426703,
+      "parse_status": "ok"
+    },
+    "F10ajp14cond": {
+      "id": "F10ajp14cond",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/enemies/imp.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "c320ae1cfffbcb9c52386db12825a97e739ce74c4110dfc0c9959721ab7fc040",
+      "size_bytes": 2077,
+      "lines": 88,
+      "parse_ms": 1.4155229999999999,
+      "parse_status": "ok"
+    },
+    "Fs2dbfz2am6": {
+      "id": "Fs2dbfz2am6",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/enemies/mini_boss.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "692a651b663471bf0b17013ab9a340a58f5d15c276a321bdc432b8ce01190a00",
+      "size_bytes": 3158,
+      "lines": 123,
+      "parse_ms": 0.855762,
+      "parse_status": "ok"
+    },
+    "Flj60jotcrt": {
+      "id": "Flj60jotcrt",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/game.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "93fbb33e6fc7365ecd9893a15ff834dffccddb6916fc5b21e6115810c44110e7",
+      "size_bytes": 4315,
+      "lines": 132,
+      "parse_ms": 3.332467,
+      "parse_status": "ok"
+    },
+    "Fo560rf0emm": {
+      "id": "Fo560rf0emm",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/generated_plugin_registrant.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "c54d94522d21b00e1cdfa3ba1af8d805c2cccafc7e76952688fea54c0e0c4594",
+      "size_bytes": 565,
+      "lines": 19,
+      "parse_ms": 0.088351,
+      "parse_status": "ok"
+    },
+    "F17cgnmx6sxw": {
+      "id": "F17cgnmx6sxw",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/interface/bar_life_component.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "a1e363b024a4e120f7c41c99fabca86554e9a72ac8812638f6b2afa32536e10a",
+      "size_bytes": 2232,
+      "lines": 91,
+      "parse_ms": 0.678881,
+      "parse_status": "ok"
+    },
+    "F9w9njnsx3q": {
+      "id": "F9w9njnsx3q",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/interface/knight_interface.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "d977c00afab2f2fc202ecbee56c655c47e2c0c7ef637c259111cfd6e083ec397",
+      "size_bytes": 706,
+      "lines": 28,
+      "parse_ms": 3.109377,
+      "parse_status": "ok"
+    },
+    "Fqg7s896zm1": {
+      "id": "Fqg7s896zm1",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/main.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "c126d158154d880bf663432390a8367678df104a058b4b6e66493fdda6ea0fed",
+      "size_bytes": 1156,
+      "lines": 37,
+      "parse_ms": 0.865012,
+      "parse_status": "ok"
+    },
+    "F15ofo856x0o": {
+      "id": "F15ofo856x0o",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/menu.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "5fb440149c8484a9ce1d83fa155cebfa083cbc1b29d24a2438902caba3dd3a00",
+      "size_bytes": 7360,
+      "lines": 241,
+      "parse_ms": 6.2363740000000005,
+      "parse_status": "ok"
+    },
+    "Fgbmz3ojuay": {
+      "id": "Fgbmz3ojuay",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/npc/kid.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "7cf68734d78080539817ea48cf20c339a1eb478d6b26cb6c6ae12d7d9c91a0e3",
+      "size_bytes": 2308,
+      "lines": 76,
+      "parse_ms": 1.4187130000000001,
+      "parse_status": "ok"
+    },
+    "F1h8f6gp5tw": {
+      "id": "F1h8f6gp5tw",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/npc/wizard_npc.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "51a63a2d11494fdcf4404869f122dddf67b62ddc8564834a3d49c270c2ae4ecd",
+      "size_bytes": 3491,
+      "lines": 119,
+      "parse_ms": 2.454215,
+      "parse_status": "ok"
+    },
+    "F11ri9l4y3f": {
+      "id": "F11ri9l4y3f",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/player/knight.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "0be82d37dc69a0ceb0f15b94824d82b71705ffcaa007919871a31077ca871624",
+      "size_bytes": 4824,
+      "lines": 207,
+      "parse_ms": 3.302887,
+      "parse_status": "ok"
+    },
+    "Fvim0i9vr2o": {
+      "id": "Fvim0i9vr2o",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/custom_sprite_animation_widget.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "1315d02aaafb8437ec1eba0aa4867fbf07e79f2e840a0471c8ae5c507021b23e",
+      "size_bytes": 439,
+      "lines": 17,
+      "parse_ms": 0.27010100000000004,
+      "parse_status": "ok"
+    },
+    "Fxuhlymaqxi": {
+      "id": "Fxuhlymaqxi",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/dialogs.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "e6f49d9de1b0b6d27f176e4ee258343142a2b4fed4a69d661ded6e1d116559ee",
+      "size_bytes": 3388,
+      "lines": 106,
+      "parse_ms": 2.015904,
+      "parse_status": "ok"
+    },
+    "Fuj9iv9fmu1": {
+      "id": "Fuj9iv9fmu1",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/enemy_sprite_sheet.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "21b99e6a32140eb503f5858c7b22182f3c3588aa4ae704aa41987e487d96f0dc",
+      "size_bytes": 6236,
+      "lines": 211,
+      "parse_ms": 3.298527,
+      "parse_status": "ok"
+    },
+    "Fm72nopwi02": {
+      "id": "Fm72nopwi02",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/functions.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "6dbc0ab7a4e74859348f758f96e23ad49219ff5fc25d87ccb0adf253948b7e5c",
+      "size_bytes": 155,
+      "lines": 7,
+      "parse_ms": 0.09468,
+      "parse_status": "ok"
+    },
+    "F148ao452rw4": {
+      "id": "F148ao452rw4",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/game_sprite_sheet.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "97a4c0b5b26d418d6c8e8456837fab77b098d897a39f5f3a28714ab8fd8daf43",
+      "size_bytes": 2607,
+      "lines": 91,
+      "parse_ms": 1.353543,
+      "parse_status": "ok"
+    },
+    "F2k4wtrcave": {
+      "id": "F2k4wtrcave",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/localization/my_localizations.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "24485d552d44c429dec2d186b9c2b2a8ecb73ca3226e7fe605cdc3bdba0bdcd4",
+      "size_bytes": 921,
+      "lines": 37,
+      "parse_ms": 0.520821,
+      "parse_status": "ok"
+    },
+    "F10lndzqh3zl": {
+      "id": "F10lndzqh3zl",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/localization/my_localizations_delegate.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "0040d1080ad4034bcf6c9bc4ee7131ebe7a955775e4b8a1f3b2ee00ddedb09b8",
+      "size_bytes": 1155,
+      "lines": 38,
+      "parse_ms": 0.378421,
+      "parse_status": "ok"
+    },
+    "Fdze4p5xzcl": {
+      "id": "Fdze4p5xzcl",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/localization/strings_location.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "4d61e2b855faad7a1a1039ef68f20899e21042495b0d9a819ca49cf0e867befd",
+      "size_bytes": 563,
+      "lines": 25,
+      "parse_ms": 0.14726,
+      "parse_status": "ok"
+    },
+    "F8na33c24f2": {
+      "id": "F8na33c24f2",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/npc_sprite_sheet.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "b818b8fee50ef5c7b7d2957334915d9e57d4d9f71dc5333d54e3faddb9b3ce16",
+      "size_bytes": 572,
+      "lines": 21,
+      "parse_ms": 0.371541,
+      "parse_status": "ok"
+    },
+    "F6lkxkg3bbt": {
+      "id": "F6lkxkg3bbt",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/player_sprite_sheet.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "dcfb26ed6f9a24d9c7cc57f24b8531c62e47fbd0f44b6b643741184c9be562cb",
+      "size_bytes": 2207,
+      "lines": 75,
+      "parse_ms": 1.282343,
+      "parse_status": "ok"
+    },
+    "Fbo2wwzfb17": {
+      "id": "Fbo2wwzfb17",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/sounds.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "81c8e1e518b8c0c6efbf8a637c2ddd46a4a29a22f27cffe583ba0c7c518d607f",
+      "size_bytes": 1267,
+      "lines": 59,
+      "parse_ms": 0.568231,
+      "parse_status": "ok"
+    },
+    "Fhobgjcca3m": {
+      "id": "Fhobgjcca3m",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/widgets/custom_radio.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "c5e98561bb552cb5766e8b84d1756f73c6f832614b338a1d2ca52da83655c443",
+      "size_bytes": 1133,
+      "lines": 46,
+      "parse_ms": 0.619242,
+      "parse_status": "ok"
+    },
+    "F2i4prv78q1": {
+      "id": "F2i4prv78q1",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/widgets/game_controller.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "a2219abd1944b00d5d0c0c0734f1661025e377c617c3ff5452f64f8f2a167412",
+      "size_bytes": 844,
+      "lines": 33,
+      "parse_ms": 0.387281,
+      "parse_status": "ok"
+    },
+    "F88s1030tuu": {
+      "id": "F88s1030tuu",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/linux/CMakeLists.txt",
+      "language": "cmake",
+      "detected_via": "filename:CMakeLists.txt",
+      "blake3": "6ce73239161fc2effac31786d338f943aca78eb3b89fe8d8abf03c8575536649",
+      "size_bytes": 4780,
+      "lines": 128,
+      "parse_ms": 2.548115,
+      "parse_status": "ok"
+    },
+    "Fs96c1s2890": {
+      "id": "Fs96c1s2890",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/linux/flutter/CMakeLists.txt",
+      "language": "cmake",
+      "detected_via": "filename:CMakeLists.txt",
+      "blake3": "372bdb7d5d3253cd905463f17f94f94fe5c81c30b688448f4d54e3858e3019f6",
+      "size_bytes": 2815,
+      "lines": 88,
+      "parse_ms": 1.436973,
+      "parse_status": "ok"
+    },
+    "Fn74hkxnm4n": {
+      "id": "Fn74hkxnm4n",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/linux/flutter/generated_plugin_registrant.cc",
+      "language": "cpp",
+      "detected_via": "extension:.cc",
+      "blake3": "b7146503b69ccab8b4457811653cc996ebb4c3116982f5a7aa806ac0bddcfc32",
+      "size_bytes": 725,
+      "lines": 19,
+      "parse_ms": 0.635812,
+      "parse_status": "error"
+    },
+    "Fiss2kpadja": {
+      "id": "Fiss2kpadja",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/linux/flutter/generated_plugin_registrant.h",
+      "language": "cpp",
+      "detected_via": "header-heuristic:cpp",
+      "blake3": "590d7769725dbc03e03924de1390ffdf348260a9cb97eeaa41dc3cab04bbe0b6",
+      "size_bytes": 303,
+      "lines": 15,
+      "parse_ms": 0.06414,
+      "parse_status": "ok"
+    },
+    "Fi56087iuqh": {
+      "id": "Fi56087iuqh",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/linux/flutter/generated_plugins.cmake",
+      "language": "cmake",
+      "detected_via": "extension:.cmake",
+      "blake3": "bb84fb4410a11868dde9ef70101f5f7cb6e00b7ebd1975ad256c6ed0ede9b75b",
+      "size_bytes": 781,
+      "lines": 25,
+      "parse_ms": 0.519621,
+      "parse_status": "ok"
+    },
+    "Fy5iuafqoxn": {
+      "id": "Fy5iuafqoxn",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/linux/runner/CMakeLists.txt",
+      "language": "cmake",
+      "detected_via": "filename:CMakeLists.txt",
+      "blake3": "51f41c1ec7f2deeac30236bad369bacbcaaafae56f6e45eb229bf3d13c6f2925",
+      "size_bytes": 974,
+      "lines": 26,
+      "parse_ms": 0.26551,
+      "parse_status": "ok"
+    },
+    "Fg5mn2ick78": {
+      "id": "Fg5mn2ick78",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/linux/runner/main.cc",
+      "language": "cpp",
+      "detected_via": "extension:.cc",
+      "blake3": "6ccea804964b2aac1695ff4833325059c40cf622a26ac276edf6991a32ea6667",
+      "size_bytes": 180,
+      "lines": 6,
+      "parse_ms": 0.17791099999999999,
+      "parse_status": "error"
+    },
+    "Fq7x7eo3gru": {
+      "id": "Fq7x7eo3gru",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/linux/runner/my_application.cc",
+      "language": "cpp",
+      "detected_via": "extension:.cc",
+      "blake3": "1acc324bf38072a3ff6a3c5b6440db5dc9911bc61fc6d421f8677f102128dc38",
+      "size_bytes": 4766,
+      "lines": 130,
+      "parse_ms": 1.388883,
+      "parse_status": "error"
+    },
+    "Fuwpcjk83s6": {
+      "id": "Fuwpcjk83s6",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/linux/runner/my_application.h",
+      "language": "cpp",
+      "detected_via": "header-heuristic:cpp",
+      "blake3": "8b8ecc9d4c62610ebfd1acd4534b887a873c2593e6fe5a1a4f8a9df72dd660f7",
+      "size_bytes": 388,
+      "lines": 18,
+      "parse_ms": 0.11128,
+      "parse_status": "error"
+    },
+    "F64wfvn8pa8": {
+      "id": "F64wfvn8pa8",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/macos/Flutter/GeneratedPluginRegistrant.swift",
+      "language": "swift",
+      "detected_via": "extension:.swift",
+      "blake3": "0dd537fcca604b19465b8ad919911988eeeb18f46723e8a6b2084e31da135269",
+      "size_bytes": 509,
+      "lines": 16,
+      "parse_ms": 0.509511,
+      "parse_status": "ok"
+    },
+    "F184k1g6rzx5": {
+      "id": "F184k1g6rzx5",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/macos/Runner/AppDelegate.swift",
+      "language": "swift",
+      "detected_via": "extension:.swift",
+      "blake3": "bbe5faba5298d02bd777bc479cee57857538ea3e789b49c35eab66c5718efea1",
+      "size_bytes": 214,
+      "lines": 9,
+      "parse_ms": 0.10601,
+      "parse_status": "ok"
+    },
+    "F88dqvqbngi": {
+      "id": "F88dqvqbngi",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/macos/Runner/MainFlutterWindow.swift",
+      "language": "swift",
+      "detected_via": "extension:.swift",
+      "blake3": "41591ec9c42db02e55e20c10032809e2717b77aa3023faa4c63be338a06c0ec8",
+      "size_bytes": 393,
+      "lines": 15,
+      "parse_ms": 0.484401,
+      "parse_status": "ok"
+    },
+    "Fbuo9crgjds": {
+      "id": "Fbuo9crgjds",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/test/widget_test.dart",
+      "language": "dart",
+      "detected_via": "extension:.dart",
+      "blake3": "b1190e781c5f68aa788cc9d588ae9579fc508f6d91b1568b305fafa330d41e7a",
+      "size_bytes": 951,
+      "lines": 25,
+      "parse_ms": 0.330121,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    }
+  },
+  "edges": [
+    {
+      "src": "Cjr9wzfb7we",
+      "dst": "Cijnnfrv7mk",
+      "site_line": 48,
+      "site_byte": 1351,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cc1bqn78nz2",
+      "dst": "Czvtm5k9x1a",
+      "site_line": 22,
+      "site_byte": 596,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cpd60tmtk3r",
+      "dst": "Ckp80tlnmcg",
+      "site_line": 48,
+      "site_byte": 1578,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cdo1t3ok326",
+      "dst": "Ch76tazbs6q",
+      "site_line": 69,
+      "site_byte": 2052,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cdo1t3ok326",
+      "dst": "Ch76tazbs6q",
+      "site_line": 73,
+      "site_byte": 2135,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cdo1t3ok326",
+      "dst": "Ch76tazbs6q",
+      "site_line": 77,
+      "site_byte": 2217,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cdo1t3ok326",
+      "dst": "Czcqmx46jf7",
+      "site_line": 82,
+      "site_byte": 2310,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjxhfhn2o8z",
+      "dst": "Ctvy0yn9l1s",
+      "site_line": 254,
+      "site_byte": 6942,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ctvy0yn9l1s",
+      "dst": "C98vekfgd4z",
+      "site_line": 270,
+      "site_byte": 7323,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ctvy0yn9l1s",
+      "dst": "C98vekfgd4z",
+      "site_line": 271,
+      "site_byte": 7350,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C8sizb7fic4",
+      "dst": "Cqebi6rjvqr",
+      "site_line": 40,
+      "site_byte": 1111,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C5jknon07q7",
+      "dst": "Cvkd1hn6ipy",
+      "site_line": 45,
+      "site_byte": 1188,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ca675d2rdv1",
+      "dst": "Cvqs08bzh9g",
+      "site_line": 43,
+      "site_byte": 1283,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ca675d2rdv1",
+      "dst": "Crqtz04kbm6",
+      "site_line": 53,
+      "site_byte": 1509,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cwi4415f3fx",
+      "dst": "Ces7b4jswtl",
+      "site_line": 38,
+      "site_byte": 909,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cwi4415f3fx",
+      "dst": "Cxybyah8zbm",
+      "site_line": 39,
+      "site_byte": 929,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ces7b4jswtl",
+      "dst": "C10detab3bbk",
+      "site_line": 61,
+      "site_byte": 1483,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C15gwhsdxe6y",
+      "dst": "Cv02iy7ni9e",
+      "site_line": 18,
+      "site_byte": 460,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Crkqk25rcd1",
+      "dst": "Cmmb8ftafji",
+      "site_line": 43,
+      "site_byte": 1380,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Crkqk25rcd1",
+      "dst": "C11ez2ughjbh",
+      "site_line": 43,
+      "site_byte": 1396,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11ez2ughjbh",
+      "dst": "Cyylde65f2n",
+      "site_line": 159,
+      "site_byte": 5030,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C11ez2ughjbh",
+      "dst": "Cyylde65f2n",
+      "site_line": 187,
+      "site_byte": 6059,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cmmb8ftafji",
+      "dst": "Cnyjyxllso9",
+      "site_line": 217,
+      "site_byte": 6879,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ce2fuvxvs7a",
+      "dst": "C6vbpx32c6x",
+      "site_line": 35,
+      "site_byte": 1270,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Crugjvf8sfi",
+      "dst": "C6sqw37arp6",
+      "site_line": 37,
+      "site_byte": 1210,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Crugjvf8sfi",
+      "dst": "C17lb096ui1d",
+      "site_line": 38,
+      "site_byte": 1273,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cefm8vxvrtz",
+      "dst": "Cad58kqibis",
+      "site_line": 54,
+      "site_byte": 1516,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cefm8vxvrtz",
+      "dst": "Cad58kqibis",
+      "site_line": 59,
+      "site_byte": 1636,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cefm8vxvrtz",
+      "dst": "Csiaim95hdu",
+      "site_line": 64,
+      "site_byte": 1755,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cefm8vxvrtz",
+      "dst": "Csiaim95hdu",
+      "site_line": 68,
+      "site_byte": 1849,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cad58kqibis",
+      "dst": "Cvtfp0fybpw",
+      "site_line": 95,
+      "site_byte": 2326,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Csiaim95hdu",
+      "dst": "Cvtfp0fybpw",
+      "site_line": 110,
+      "site_byte": 2606,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cm4uk5m5hn4",
+      "dst": "Cufkr3xzwd",
+      "site_line": 135,
+      "site_byte": 3308,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cm4uk5m5hn4",
+      "dst": "Ciw1zf7g321",
+      "site_line": 144,
+      "site_byte": 3548,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cbakir2df7x",
+      "dst": "Cr92mh08onx",
+      "site_line": 59,
+      "site_byte": 1748,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1320g3o0rak",
+      "dst": "C13okpr6iywn",
+      "site_line": 24,
+      "site_byte": 527,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1320g3o0rak",
+      "dst": "Cfa94uwoxp0",
+      "site_line": 24,
+      "site_byte": 527,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Crk41vjb0d4",
+      "dst": "Ccce93gs7cc",
+      "site_line": 57,
+      "site_byte": 1715,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C15d5ro2jmio",
+      "dst": "Cd6cjx8y8u4",
+      "site_line": 14,
+      "site_byte": 477,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjr9wzfb7we",
+      "dst": "Cale7xwe4wk",
+      "site_line": 39,
+      "site_byte": 1108,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cijnnfrv7mk",
+      "dst": "C1320g3o0rak",
+      "site_line": 61,
+      "site_byte": 1594,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cijnnfrv7mk",
+      "dst": "Ccce93gs7cc",
+      "site_line": 62,
+      "site_byte": 1645,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czrhiyxsxqp",
+      "dst": "Cpcuxkeojoy",
+      "site_line": 10,
+      "site_byte": 345,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C11bwiuaznhv",
+      "dst": "Cpd60tmtk3r",
+      "site_line": 27,
+      "site_byte": 722,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C11bwiuaznhv",
+      "dst": "Cwi4415f3fx",
+      "site_line": 27,
+      "site_byte": 722,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C11bwiuaznhv",
+      "dst": "C15gwhsdxe6y",
+      "site_line": 27,
+      "site_byte": 722,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C15dsih64q2b",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 39,
+      "site_byte": 1372,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C15dsih64q2b",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 39,
+      "site_byte": 1393,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C15dsih64q2b",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 40,
+      "site_byte": 1441,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C15dsih64q2b",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 40,
+      "site_byte": 1461,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cpd60tmtk3r",
+      "dst": "C11bwiuaznhv",
+      "site_line": 49,
+      "site_byte": 1610,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cpd60tmtk3r",
+      "dst": "Cwi4415f3fx",
+      "site_line": 49,
+      "site_byte": 1610,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cpd60tmtk3r",
+      "dst": "C15gwhsdxe6y",
+      "site_line": 49,
+      "site_byte": 1610,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C18ifusfnqk",
+      "dst": "Cg1c9rll2gu",
+      "site_line": 94,
+      "site_byte": 2493,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C18ifusfnqk",
+      "dst": "C1mi1z59lwk",
+      "site_line": 101,
+      "site_byte": 2676,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C18ifusfnqk",
+      "dst": "Cniaux3vmxv",
+      "site_line": 101,
+      "site_byte": 2676,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C18ifusfnqk",
+      "dst": "Cs20h3dsyu0",
+      "site_line": 101,
+      "site_byte": 2676,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C18ifusfnqk",
+      "dst": "Cfn01bsv8bz",
+      "site_line": 101,
+      "site_byte": 2676,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C18ifusfnqk",
+      "dst": "C1mi1z59lwk",
+      "site_line": 104,
+      "site_byte": 2723,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C18ifusfnqk",
+      "dst": "Cniaux3vmxv",
+      "site_line": 104,
+      "site_byte": 2723,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C18ifusfnqk",
+      "dst": "Cs20h3dsyu0",
+      "site_line": 104,
+      "site_byte": 2723,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C18ifusfnqk",
+      "dst": "Cfn01bsv8bz",
+      "site_line": 104,
+      "site_byte": 2723,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ch76tazbs6q",
+      "dst": "Cza1e59p6ux",
+      "site_line": 148,
+      "site_byte": 3969,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czcqmx46jf7",
+      "dst": "Cdy8k2mn2ap",
+      "site_line": 165,
+      "site_byte": 4338,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czcqmx46jf7",
+      "dst": "Cxitwccpn7y",
+      "site_line": 167,
+      "site_byte": 4409,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C12172e1xkmt",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 177,
+      "site_byte": 4626,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C12172e1xkmt",
+      "dst": "Cwrw22kb0at",
+      "site_line": 182,
+      "site_byte": 4725,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C12172e1xkmt",
+      "dst": "Ciwxf3v9tlf",
+      "site_line": 182,
+      "site_byte": 4725,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C12172e1xkmt",
+      "dst": "C11ikqslnfoj",
+      "site_line": 182,
+      "site_byte": 4725,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C12172e1xkmt",
+      "dst": "Coivcpmn494",
+      "site_line": 182,
+      "site_byte": 4725,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjxhfhn2o8z",
+      "dst": "Cqi1rln668p",
+      "site_line": 219,
+      "site_byte": 5780,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjxhfhn2o8z",
+      "dst": "C1320g3o0rak",
+      "site_line": 224,
+      "site_byte": 5899,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjxhfhn2o8z",
+      "dst": "Cvwrajdl66q",
+      "site_line": 226,
+      "site_byte": 5996,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjxhfhn2o8z",
+      "dst": "C1320g3o0rak",
+      "site_line": 231,
+      "site_byte": 6151,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjxhfhn2o8z",
+      "dst": "Cr92mh08onx",
+      "site_line": 233,
+      "site_byte": 6249,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjxhfhn2o8z",
+      "dst": "C1320g3o0rak",
+      "site_line": 238,
+      "site_byte": 6407,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjxhfhn2o8z",
+      "dst": "Ccce93gs7cc",
+      "site_line": 240,
+      "site_byte": 6507,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjxhfhn2o8z",
+      "dst": "C1320g3o0rak",
+      "site_line": 245,
+      "site_byte": 6662,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjxhfhn2o8z",
+      "dst": "Cr92mh08onx",
+      "site_line": 247,
+      "site_byte": 6760,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjxhfhn2o8z",
+      "dst": "Cqi1rln668p",
+      "site_line": 253,
+      "site_byte": 6912,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjxhfhn2o8z",
+      "dst": "Cz6kp775zl",
+      "site_line": 257,
+      "site_byte": 7081,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjxhfhn2o8z",
+      "dst": "Cqi1rln668p",
+      "site_line": 261,
+      "site_byte": 7174,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C98vekfgd4z",
+      "dst": "Cza1e59p6ux",
+      "site_line": 278,
+      "site_byte": 7521,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C3xu0mavcxj",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 26,
+      "site_byte": 825,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C3xu0mavcxj",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 27,
+      "site_byte": 853,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C3xu0mavcxj",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 29,
+      "site_byte": 906,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C3xu0mavcxj",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 29,
+      "site_byte": 926,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C1mi1z59lwk",
+      "dst": "Cza1e59p6ux",
+      "site_line": 50,
+      "site_byte": 1271,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C1mi1z59lwk",
+      "dst": "C18ifusfnqk",
+      "site_line": 57,
+      "site_byte": 1429,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C1mi1z59lwk",
+      "dst": "Cniaux3vmxv",
+      "site_line": 57,
+      "site_byte": 1429,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C1mi1z59lwk",
+      "dst": "Cs20h3dsyu0",
+      "site_line": 57,
+      "site_byte": 1429,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C1mi1z59lwk",
+      "dst": "Cfn01bsv8bz",
+      "site_line": 57,
+      "site_byte": 1429,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cqebi6rjvqr",
+      "dst": "Cdy8k2mn2ap",
+      "site_line": 65,
+      "site_byte": 1601,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cqebi6rjvqr",
+      "dst": "Cxitwccpn7y",
+      "site_line": 67,
+      "site_byte": 1672,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwrw22kb0at",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 77,
+      "site_byte": 1884,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwrw22kb0at",
+      "dst": "C12172e1xkmt",
+      "site_line": 82,
+      "site_byte": 1983,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwrw22kb0at",
+      "dst": "Ciwxf3v9tlf",
+      "site_line": 82,
+      "site_byte": 1983,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwrw22kb0at",
+      "dst": "C11ikqslnfoj",
+      "site_line": 82,
+      "site_byte": 1983,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwrw22kb0at",
+      "dst": "Coivcpmn494",
+      "site_line": 82,
+      "site_byte": 1983,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cvf0vjp78d0",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 27,
+      "site_byte": 824,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cvf0vjp78d0",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 28,
+      "site_byte": 854,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cvf0vjp78d0",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 31,
+      "site_byte": 922,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cvf0vjp78d0",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 32,
+      "site_byte": 952,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cvkd1hn6ipy",
+      "dst": "Cdy8k2mn2ap",
+      "site_line": 55,
+      "site_byte": 1375,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cvkd1hn6ipy",
+      "dst": "Cxitwccpn7y",
+      "site_line": 57,
+      "site_byte": 1446,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cniaux3vmxv",
+      "dst": "Cza1e59p6ux",
+      "site_line": 66,
+      "site_byte": 1585,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cniaux3vmxv",
+      "dst": "C18ifusfnqk",
+      "site_line": 73,
+      "site_byte": 1743,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cniaux3vmxv",
+      "dst": "C1mi1z59lwk",
+      "site_line": 73,
+      "site_byte": 1743,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cniaux3vmxv",
+      "dst": "Cs20h3dsyu0",
+      "site_line": 73,
+      "site_byte": 1743,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cniaux3vmxv",
+      "dst": "Cfn01bsv8bz",
+      "site_line": 73,
+      "site_byte": 1743,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ciwxf3v9tlf",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 81,
+      "site_byte": 1927,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ciwxf3v9tlf",
+      "dst": "C12172e1xkmt",
+      "site_line": 86,
+      "site_byte": 2026,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ciwxf3v9tlf",
+      "dst": "Cwrw22kb0at",
+      "site_line": 86,
+      "site_byte": 2026,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ciwxf3v9tlf",
+      "dst": "C11ikqslnfoj",
+      "site_line": 86,
+      "site_byte": 2026,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ciwxf3v9tlf",
+      "dst": "Coivcpmn494",
+      "site_line": 86,
+      "site_byte": 2026,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ctl25iqtxzv",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 27,
+      "site_byte": 877,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ctl25iqtxzv",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 27,
+      "site_byte": 897,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ctl25iqtxzv",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 28,
+      "site_byte": 944,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ctl25iqtxzv",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 28,
+      "site_byte": 966,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cs20h3dsyu0",
+      "dst": "Cza1e59p6ux",
+      "site_line": 64,
+      "site_byte": 1686,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cs20h3dsyu0",
+      "dst": "C18ifusfnqk",
+      "site_line": 71,
+      "site_byte": 1849,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cs20h3dsyu0",
+      "dst": "C1mi1z59lwk",
+      "site_line": 71,
+      "site_byte": 1849,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cs20h3dsyu0",
+      "dst": "Cniaux3vmxv",
+      "site_line": 71,
+      "site_byte": 1849,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cs20h3dsyu0",
+      "dst": "Cfn01bsv8bz",
+      "site_line": 71,
+      "site_byte": 1849,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Crqtz04kbm6",
+      "dst": "Chlxqpnd4ej",
+      "site_line": 76,
+      "site_byte": 1941,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Crqtz04kbm6",
+      "dst": "C135mxj6j3y1",
+      "site_line": 77,
+      "site_byte": 2004,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Crqtz04kbm6",
+      "dst": "Cwu3pzd26vl",
+      "site_line": 82,
+      "site_byte": 2159,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Crqtz04kbm6",
+      "dst": "Cin0motw295",
+      "site_line": 85,
+      "site_byte": 2220,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cvqs08bzh9g",
+      "dst": "Cdy8k2mn2ap",
+      "site_line": 104,
+      "site_byte": 2720,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cvqs08bzh9g",
+      "dst": "Cxitwccpn7y",
+      "site_line": 106,
+      "site_byte": 2791,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C11ikqslnfoj",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 116,
+      "site_byte": 3008,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C11ikqslnfoj",
+      "dst": "C12172e1xkmt",
+      "site_line": 121,
+      "site_byte": 3107,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C11ikqslnfoj",
+      "dst": "Cwrw22kb0at",
+      "site_line": 121,
+      "site_byte": 3107,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C11ikqslnfoj",
+      "dst": "Ciwxf3v9tlf",
+      "site_line": 121,
+      "site_byte": 3107,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C11ikqslnfoj",
+      "dst": "Coivcpmn494",
+      "site_line": 121,
+      "site_byte": 3107,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ck7hcff41ve",
+      "dst": "Cyzsjl0o0ev",
+      "site_line": 32,
+      "site_byte": 1259,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ccvsczr35ho",
+      "dst": "Cpsd7b3xei2",
+      "site_line": 38,
+      "site_byte": 1352,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ccvsczr35ho",
+      "dst": "C66d7oa2185",
+      "site_line": 39,
+      "site_byte": 1386,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ccvsczr35ho",
+      "dst": "Cniwu287o1q",
+      "site_line": 39,
+      "site_byte": 1386,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwi4415f3fx",
+      "dst": "C11bwiuaznhv",
+      "site_line": 41,
+      "site_byte": 969,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwi4415f3fx",
+      "dst": "Cpd60tmtk3r",
+      "site_line": 41,
+      "site_byte": 969,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwi4415f3fx",
+      "dst": "C15gwhsdxe6y",
+      "site_line": 41,
+      "site_byte": 969,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C15gwhsdxe6y",
+      "dst": "C11bwiuaznhv",
+      "site_line": 20,
+      "site_byte": 501,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C15gwhsdxe6y",
+      "dst": "Cpd60tmtk3r",
+      "site_line": 20,
+      "site_byte": 501,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C15gwhsdxe6y",
+      "dst": "Cwi4415f3fx",
+      "site_line": 20,
+      "site_byte": 501,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C6cykqejmsl",
+      "dst": "Cqcvf7umab3",
+      "site_line": 18,
+      "site_byte": 575,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C6cykqejmsl",
+      "dst": "Crc4hnv2oyj",
+      "site_line": 27,
+      "site_byte": 843,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C66d7oa2185",
+      "dst": "Cpsd7b3xei2",
+      "site_line": 34,
+      "site_byte": 1152,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C66d7oa2185",
+      "dst": "Ccvsczr35ho",
+      "site_line": 36,
+      "site_byte": 1207,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C66d7oa2185",
+      "dst": "Cniwu287o1q",
+      "site_line": 36,
+      "site_byte": 1207,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C11ez2ughjbh",
+      "dst": "C1320g3o0rak",
+      "site_line": 85,
+      "site_byte": 2714,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C11ez2ughjbh",
+      "dst": "C1320g3o0rak",
+      "site_line": 151,
+      "site_byte": 4717,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C11ez2ughjbh",
+      "dst": "C1320g3o0rak",
+      "site_line": 179,
+      "site_byte": 5746,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C6vbpx32c6x",
+      "dst": "Cqi1rln668p",
+      "site_line": 43,
+      "site_byte": 1369,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C6vbpx32c6x",
+      "dst": "C1320g3o0rak",
+      "site_line": 48,
+      "site_byte": 1488,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C6vbpx32c6x",
+      "dst": "Cvwrajdl66q",
+      "site_line": 50,
+      "site_byte": 1585,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C6vbpx32c6x",
+      "dst": "C1320g3o0rak",
+      "site_line": 55,
+      "site_byte": 1740,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C6vbpx32c6x",
+      "dst": "Ccce93gs7cc",
+      "site_line": 57,
+      "site_byte": 1840,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C6vbpx32c6x",
+      "dst": "Cqi1rln668p",
+      "site_line": 63,
+      "site_byte": 1988,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C6vbpx32c6x",
+      "dst": "Cjc183l6ggu",
+      "site_line": 65,
+      "site_byte": 2081,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C6vbpx32c6x",
+      "dst": "Cqi1rln668p",
+      "site_line": 69,
+      "site_byte": 2186,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C17lb096ui1d",
+      "dst": "Cqi1rln668p",
+      "site_line": 66,
+      "site_byte": 1879,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C17lb096ui1d",
+      "dst": "C1320g3o0rak",
+      "site_line": 72,
+      "site_byte": 2011,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C17lb096ui1d",
+      "dst": "C3t6he9hwm2",
+      "site_line": 75,
+      "site_byte": 2123,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C17lb096ui1d",
+      "dst": "C1320g3o0rak",
+      "site_line": 80,
+      "site_byte": 2281,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C17lb096ui1d",
+      "dst": "Ccce93gs7cc",
+      "site_line": 82,
+      "site_byte": 2381,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C17lb096ui1d",
+      "dst": "C1320g3o0rak",
+      "site_line": 87,
+      "site_byte": 2536,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C17lb096ui1d",
+      "dst": "C3t6he9hwm2",
+      "site_line": 89,
+      "site_byte": 2636,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C17lb096ui1d",
+      "dst": "C1320g3o0rak",
+      "site_line": 94,
+      "site_byte": 2794,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C17lb096ui1d",
+      "dst": "Ccce93gs7cc",
+      "site_line": 96,
+      "site_byte": 2894,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C17lb096ui1d",
+      "dst": "C1320g3o0rak",
+      "site_line": 101,
+      "site_byte": 3049,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C17lb096ui1d",
+      "dst": "C3t6he9hwm2",
+      "site_line": 103,
+      "site_byte": 3149,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C17lb096ui1d",
+      "dst": "Cqi1rln668p",
+      "site_line": 109,
+      "site_byte": 3309,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C17lb096ui1d",
+      "dst": "Cqi1rln668p",
+      "site_line": 112,
+      "site_byte": 3369,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cowc6cwonp7",
+      "dst": "Crk41vjb0d4",
+      "site_line": 21,
+      "site_byte": 705,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C5d032m1x70",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 41,
+      "site_byte": 1198,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C5d032m1x70",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 41,
+      "site_byte": 1218,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C5d032m1x70",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 43,
+      "site_byte": 1276,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C5d032m1x70",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 44,
+      "site_byte": 1306,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cfn01bsv8bz",
+      "dst": "C18ifusfnqk",
+      "site_line": 86,
+      "site_byte": 2201,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cfn01bsv8bz",
+      "dst": "C1mi1z59lwk",
+      "site_line": 86,
+      "site_byte": 2201,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cfn01bsv8bz",
+      "dst": "Cniaux3vmxv",
+      "site_line": 86,
+      "site_byte": 2201,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cfn01bsv8bz",
+      "dst": "Cs20h3dsyu0",
+      "site_line": 86,
+      "site_byte": 2201,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cad58kqibis",
+      "dst": "Cy1jbxf8p66",
+      "site_line": 94,
+      "site_byte": 2294,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cad58kqibis",
+      "dst": "Cjyfajyu5u9",
+      "site_line": 98,
+      "site_byte": 2415,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Csiaim95hdu",
+      "dst": "Cwu3pzd26vl",
+      "site_line": 108,
+      "site_byte": 2579,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Csiaim95hdu",
+      "dst": "Chlxqpnd4ej",
+      "site_line": 112,
+      "site_byte": 2673,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Csiaim95hdu",
+      "dst": "C135mxj6j3y1",
+      "site_line": 113,
+      "site_byte": 2736,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Csiaim95hdu",
+      "dst": "Cin0motw295",
+      "site_line": 118,
+      "site_byte": 2902,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Coivcpmn494",
+      "dst": "C8z6v3c4kcm",
+      "site_line": 181,
+      "site_byte": 4202,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Coivcpmn494",
+      "dst": "C12172e1xkmt",
+      "site_line": 186,
+      "site_byte": 4302,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Coivcpmn494",
+      "dst": "Cwrw22kb0at",
+      "site_line": 186,
+      "site_byte": 4302,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Coivcpmn494",
+      "dst": "Ciwxf3v9tlf",
+      "site_line": 186,
+      "site_byte": 4302,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Coivcpmn494",
+      "dst": "C11ikqslnfoj",
+      "site_line": 186,
+      "site_byte": 4302,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cfkihmiju1q",
+      "dst": "C1320g3o0rak",
+      "site_line": 29,
+      "site_byte": 934,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjc183l6ggu",
+      "dst": "C1320g3o0rak",
+      "site_line": 55,
+      "site_byte": 1612,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjc183l6ggu",
+      "dst": "C1320g3o0rak",
+      "site_line": 67,
+      "site_byte": 2048,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C7z5vhc3yan",
+      "dst": "Cp8t7cuwnmj",
+      "site_line": 10,
+      "site_byte": 262,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C1exbth50oz",
+      "dst": "Ckqf6vtxvf4",
+      "site_line": 15,
+      "site_byte": 488,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cd6cjx8y8u4",
+      "dst": "Cfkihmiju1q",
+      "site_line": 23,
+      "site_byte": 611,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cxhhfy1gg4j",
+      "dst": "Csq25huw602",
+      "site_line": 4,
+      "site_byte": 96,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cr9tu9g283j",
+      "dst": "C7jgiq7r4eq",
+      "site_line": 60,
+      "site_byte": 2113,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ct47vjeftc7",
+      "dst": "Cska3ybhn2u",
+      "site_line": 11,
+      "site_byte": 303,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": null,
+      "file": "Fuk9afpawzz",
+      "site_line": 12,
+      "site_byte": 399,
+      "name": "spikes",
+      "receiver_hint": "GameSpriteSheet",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F11cs1exb85n",
+      "site_line": 28,
+      "site_byte": 1088,
+      "name": "bossAnimations",
+      "receiver_hint": "EnemySpriteSheet",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "Ch76tazbs6q",
+      "file": "F11cs1exb85n",
+      "site_line": 133,
+      "site_byte": 3616,
+      "name": "MiniBoss",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "Ch76tazbs6q",
+      "file": "F11cs1exb85n",
+      "site_line": 139,
+      "site_byte": 3766,
+      "name": "Imp",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "Cjxhfhn2o8z",
+      "file": "F11cs1exb85n",
+      "site_line": 225,
+      "site_byte": 5944,
+      "name": "CustomSpriteAnimationWidget",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "Cjxhfhn2o8z",
+      "file": "F11cs1exb85n",
+      "site_line": 232,
+      "site_byte": 6197,
+      "name": "CustomSpriteAnimationWidget",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "Cjxhfhn2o8z",
+      "file": "F11cs1exb85n",
+      "site_line": 239,
+      "site_byte": 6455,
+      "name": "CustomSpriteAnimationWidget",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "Cjxhfhn2o8z",
+      "file": "F11cs1exb85n",
+      "site_line": 246,
+      "site_byte": 6708,
+      "name": "CustomSpriteAnimationWidget",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "C98vekfgd4z",
+      "file": "F11cs1exb85n",
+      "site_line": 284,
+      "site_byte": 7666,
+      "name": "Imp",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fbob7fuwoj0",
+      "site_line": 15,
+      "site_byte": 551,
+      "name": "goblinAnimations",
+      "receiver_hint": "EnemySpriteSheet",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F10ajp14cond",
+      "site_line": 15,
+      "site_byte": 545,
+      "name": "impAnimations",
+      "receiver_hint": "EnemySpriteSheet",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fs2dbfz2am6",
+      "site_line": 16,
+      "site_byte": 587,
+      "name": "miniBossAnimations",
+      "receiver_hint": "EnemySpriteSheet",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "Cqmkdq1j2wf",
+      "file": "Flj60jotcrt",
+      "site_line": 26,
+      "site_byte": 1168,
+      "name": "GameState",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "Co9trhe5cpr",
+      "file": "Flj60jotcrt",
+      "site_line": 108,
+      "site_byte": 3629,
+      "name": "GameController",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "Co9trhe5cpr",
+      "file": "Flj60jotcrt",
+      "site_line": 109,
+      "site_byte": 3667,
+      "name": "KnightInterface",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "C1qjg9s95dz",
+      "file": "F9w9njnsx3q",
+      "site_line": 11,
+      "site_byte": 346,
+      "name": "MyBarLifeComponent",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "C6cykqejmsl",
+      "file": "Fqg7s896zm1",
+      "site_line": 26,
+      "site_byte": 811,
+      "name": "Menu",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15ofo856x0o",
+      "site_line": 25,
+      "site_byte": 923,
+      "name": "idleRight",
+      "receiver_hint": "PlayerSpriteSheet",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15ofo856x0o",
+      "site_line": 26,
+      "site_byte": 958,
+      "name": "goblinIdleRight",
+      "receiver_hint": "EnemySpriteSheet",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15ofo856x0o",
+      "site_line": 27,
+      "site_byte": 998,
+      "name": "impIdleRight",
+      "receiver_hint": "EnemySpriteSheet",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15ofo856x0o",
+      "site_line": 28,
+      "site_byte": 1035,
+      "name": "miniBossIdleRight",
+      "receiver_hint": "EnemySpriteSheet",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F15ofo856x0o",
+      "site_line": 29,
+      "site_byte": 1077,
+      "name": "bossIdleRight",
+      "receiver_hint": "EnemySpriteSheet",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "C11ez2ughjbh",
+      "file": "F15ofo856x0o",
+      "site_line": 67,
+      "site_byte": 2069,
+      "name": "CustomSpriteAnimationWidget",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "C11ez2ughjbh",
+      "file": "F15ofo856x0o",
+      "site_line": 103,
+      "site_byte": 3279,
+      "name": "DefectorRadio",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "C11ez2ughjbh",
+      "file": "F15ofo856x0o",
+      "site_line": 116,
+      "site_byte": 3661,
+      "name": "DefectorRadio",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgbmz3ojuay",
+      "site_line": 19,
+      "site_byte": 761,
+      "name": "kidIdleLeft",
+      "receiver_hint": "NpcSpriteSheet",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgbmz3ojuay",
+      "site_line": 21,
+      "site_byte": 845,
+      "name": "valueByTileSize",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fgbmz3ojuay",
+      "site_line": 21,
+      "site_byte": 865,
+      "name": "valueByTileSize",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "C6vbpx32c6x",
+      "file": "Fgbmz3ojuay",
+      "site_line": 49,
+      "site_byte": 1533,
+      "name": "CustomSpriteAnimationWidget",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "C6vbpx32c6x",
+      "file": "Fgbmz3ojuay",
+      "site_line": 56,
+      "site_byte": 1788,
+      "name": "CustomSpriteAnimationWidget",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F1h8f6gp5tw",
+      "site_line": 17,
+      "site_byte": 683,
+      "name": "wizardIdleLeft",
+      "receiver_hint": "NpcSpriteSheet",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F1h8f6gp5tw",
+      "site_line": 18,
+      "site_byte": 738,
+      "name": "wizardIdleLeft",
+      "receiver_hint": "NpcSpriteSheet",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "C17lb096ui1d",
+      "file": "F1h8f6gp5tw",
+      "site_line": 74,
+      "site_byte": 2071,
+      "name": "CustomSpriteAnimationWidget",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "C17lb096ui1d",
+      "file": "F1h8f6gp5tw",
+      "site_line": 81,
+      "site_byte": 2329,
+      "name": "CustomSpriteAnimationWidget",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "C17lb096ui1d",
+      "file": "F1h8f6gp5tw",
+      "site_line": 88,
+      "site_byte": 2584,
+      "name": "CustomSpriteAnimationWidget",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "C17lb096ui1d",
+      "file": "F1h8f6gp5tw",
+      "site_line": 95,
+      "site_byte": 2842,
+      "name": "CustomSpriteAnimationWidget",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "C17lb096ui1d",
+      "file": "F1h8f6gp5tw",
+      "site_line": 102,
+      "site_byte": 3097,
+      "name": "CustomSpriteAnimationWidget",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fs96c1s2890",
+      "site_line": 59,
+      "site_byte": 1840,
+      "name": "list_prepend",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": "Cibfejxzdae",
+      "file": "F3dph38b50h",
+      "site_line": 11,
+      "site_byte": 321,
+      "name": "application",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": null,
+      "file": "F5f93q094iu",
+      "site_line": 7,
+      "site_byte": 194,
+      "name": "load",
+      "receiver_hint": "Sprite",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cbuxz12o1dt",
+      "file": "F5f93q094iu",
+      "site_line": 20,
+      "site_byte": 512,
+      "name": "onLoad",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "fanout-cap-exceeded",
+        "detail": {
+          "candidates": 8
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F9pp3fwm1r7",
+      "site_line": 14,
+      "site_byte": 506,
+      "name": "load",
+      "receiver_hint": "Sprite",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Ccjetd14pwl",
+      "file": "F9pp3fwm1r7",
+      "site_line": 25,
+      "site_byte": 773,
+      "name": "onLoad",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "fanout-cap-exceeded",
+        "detail": {
+          "candidates": 8
+        }
+      }
+    },
+    {
+      "src": "Cjr9wzfb7we",
+      "file": "F9pp3fwm1r7",
+      "site_line": 53,
+      "site_byte": 1412,
+      "name": "onCollisionStart",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fac48v4z5on",
+      "site_line": 8,
+      "site_byte": 262,
+      "name": "load",
+      "receiver_hint": "Sprite",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F13m4s6r4999",
+      "site_line": 13,
+      "site_byte": 368,
+      "name": "load",
+      "receiver_hint": "Sprite",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C12hcgo5slad",
+      "file": "Fuk9afpawzz",
+      "site_line": 27,
+      "site_byte": 734,
+      "name": "update",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "C15dsih64q2b",
+      "file": "F11cs1exb85n",
+      "site_line": 43,
+      "site_byte": 1510,
+      "name": "onLoad",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "fanout-cap-exceeded",
+        "detail": {
+          "candidates": 8
+        }
+      }
+    },
+    {
+      "src": "Cdo1t3ok326",
+      "file": "F11cs1exb85n",
+      "site_line": 87,
+      "site_byte": 2379,
+      "name": "update",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "C3xu0mavcxj",
+      "file": "Fbob7fuwoj0",
+      "site_line": 31,
+      "site_byte": 966,
+      "name": "onLoad",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "fanout-cap-exceeded",
+        "detail": {
+          "candidates": 8
+        }
+      }
+    },
+    {
+      "src": "C8sizb7fic4",
+      "file": "Fbob7fuwoj0",
+      "site_line": 36,
+      "site_byte": 1030,
+      "name": "update",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "Cvf0vjp78d0",
+      "file": "F10ajp14cond",
+      "site_line": 36,
+      "site_byte": 1010,
+      "name": "onLoad",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "fanout-cap-exceeded",
+        "detail": {
+          "candidates": 8
+        }
+      }
+    },
+    {
+      "src": "C5jknon07q7",
+      "file": "F10ajp14cond",
+      "site_line": 41,
+      "site_byte": 1074,
+      "name": "update",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "Ctl25iqtxzv",
+      "file": "Fs2dbfz2am6",
+      "site_line": 31,
+      "site_byte": 1014,
+      "name": "onLoad",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "fanout-cap-exceeded",
+        "detail": {
+          "candidates": 8
+        }
+      }
+    },
+    {
+      "src": "Ca675d2rdv1",
+      "file": "Fs2dbfz2am6",
+      "site_line": 36,
+      "site_byte": 1078,
+      "name": "update",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "Ck7hcff41ve",
+      "file": "Flj60jotcrt",
+      "site_line": 33,
+      "site_byte": 1293,
+      "name": "initState",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "Co9trhe5cpr",
+      "file": "Flj60jotcrt",
+      "site_line": 46,
+      "site_byte": 1578,
+      "name": "load",
+      "receiver_hint": "Sprite",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Co9trhe5cpr",
+      "file": "Flj60jotcrt",
+      "site_line": 47,
+      "site_byte": 1649,
+      "name": "load",
+      "receiver_hint": "Sprite",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Co9trhe5cpr",
+      "file": "Flj60jotcrt",
+      "site_line": 54,
+      "site_byte": 1817,
+      "name": "load",
+      "receiver_hint": "Sprite",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Co9trhe5cpr",
+      "file": "Flj60jotcrt",
+      "site_line": 55,
+      "site_byte": 1877,
+      "name": "load",
+      "receiver_hint": "Sprite",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Co9trhe5cpr",
+      "file": "Flj60jotcrt",
+      "site_line": 61,
+      "site_byte": 2075,
+      "name": "load",
+      "receiver_hint": "Sprite",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Co9trhe5cpr",
+      "file": "Flj60jotcrt",
+      "site_line": 62,
+      "site_byte": 2141,
+      "name": "load",
+      "receiver_hint": "Sprite",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Co9trhe5cpr",
+      "file": "Flj60jotcrt",
+      "site_line": 87,
+      "site_byte": 2747,
+      "name": "Knight",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "F17cgnmx6sxw",
+      "site_line": 19,
+      "site_byte": 474,
+      "name": "load",
+      "receiver_hint": "Sprite",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cn55moknmjs",
+      "file": "F17cgnmx6sxw",
+      "site_line": 32,
+      "site_byte": 833,
+      "name": "update",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "C1qjg9s95dz",
+      "file": "F9w9njnsx3q",
+      "site_line": 10,
+      "site_byte": 301,
+      "name": "load",
+      "receiver_hint": "Sprite",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C1qjg9s95dz",
+      "file": "F9w9njnsx3q",
+      "site_line": 12,
+      "site_byte": 380,
+      "name": "onLoad",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "fanout-cap-exceeded",
+        "detail": {
+          "candidates": 8
+        }
+      }
+    },
+    {
+      "src": "C11ez2ughjbh",
+      "file": "F15ofo856x0o",
+      "site_line": 133,
+      "site_byte": 4176,
+      "name": "load",
+      "receiver_hint": "Sprite",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Ce2fuvxvs7a",
+      "file": "Fgbmz3ojuay",
+      "site_line": 26,
+      "site_byte": 942,
+      "name": "update",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "Crugjvf8sfi",
+      "file": "F1h8f6gp5tw",
+      "site_line": 29,
+      "site_byte": 957,
+      "name": "update",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "C6sqw37arp6",
+      "file": "F1h8f6gp5tw",
+      "site_line": 49,
+      "site_byte": 1512,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C5d032m1x70",
+      "file": "F11ri9l4y3f",
+      "site_line": 48,
+      "site_byte": 1364,
+      "name": "onLoad",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "fanout-cap-exceeded",
+        "detail": {
+          "candidates": 8
+        }
+      }
+    },
+    {
+      "src": "Cefm8vxvrtz",
+      "file": "F11ri9l4y3f",
+      "site_line": 70,
+      "site_byte": 1880,
+      "name": "onJoystickAction",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "Cfn01bsv8bz",
+      "file": "F11ri9l4y3f",
+      "site_line": 78,
+      "site_byte": 2035,
+      "name": "load",
+      "receiver_hint": "Sprite",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cm4uk5m5hn4",
+      "file": "F11ri9l4y3f",
+      "site_line": 147,
+      "site_byte": 3582,
+      "name": "update",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "Ciw1zf7g321",
+      "file": "F11ri9l4y3f",
+      "site_line": 192,
+      "site_byte": 4489,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cjc183l6ggu",
+      "file": "Fxuhlymaqxi",
+      "site_line": 93,
+      "site_byte": 3080,
+      "name": "of",
+      "receiver_hint": "Navigator",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C7gbgbkfv20",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 5,
+      "site_byte": 133,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C11r79czhc27",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 15,
+      "site_byte": 408,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cdy8k2mn2ap",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 24,
+      "site_byte": 681,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cmamlamt8xz",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 32,
+      "site_byte": 947,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cr92mh08onx",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 41,
+      "site_byte": 1205,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cbakir2df7x",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 51,
+      "site_byte": 1507,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cbakir2df7x",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 60,
+      "site_byte": 1782,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cbakir2df7x",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 68,
+      "site_byte": 2021,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C2bl9guvhyl",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 78,
+      "site_byte": 2307,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cj8qd7yd2z3",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 89,
+      "site_byte": 2621,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cj8qd7yd2z3",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 97,
+      "site_byte": 2866,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cj8qd7yd2z3",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 105,
+      "site_byte": 3104,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cj8qd7yd2z3",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 113,
+      "site_byte": 3347,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cvcgrifkj00",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 123,
+      "site_byte": 3634,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Ctci2tzgwoi",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 133,
+      "site_byte": 3933,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Ctci2tzgwoi",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 141,
+      "site_byte": 4172,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Ctci2tzgwoi",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 149,
+      "site_byte": 4404,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Ctci2tzgwoi",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 157,
+      "site_byte": 4641,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C5n694p6vpu",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 167,
+      "site_byte": 4927,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cjy0948j1qt",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 178,
+      "site_byte": 5249,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cjy0948j1qt",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 186,
+      "site_byte": 5500,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cjy0948j1qt",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 194,
+      "site_byte": 5744,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cjy0948j1qt",
+      "file": "Fuj9iv9fmu1",
+      "site_line": 202,
+      "site_byte": 5993,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cale7xwe4wk",
+      "file": "F148ao452rw4",
+      "site_line": 4,
+      "site_byte": 114,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C9bdcvwv6j9",
+      "file": "F148ao452rw4",
+      "site_line": 12,
+      "site_byte": 358,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cpcuxkeojoy",
+      "file": "F148ao452rw4",
+      "site_line": 20,
+      "site_byte": 598,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cg1c9rll2gu",
+      "file": "F148ao452rw4",
+      "site_line": 29,
+      "site_byte": 853,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cza1e59p6ux",
+      "file": "F148ao452rw4",
+      "site_line": 38,
+      "site_byte": 1099,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Chlxqpnd4ej",
+      "file": "F148ao452rw4",
+      "site_line": 47,
+      "site_byte": 1355,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C11iij9n55b4",
+      "file": "F148ao452rw4",
+      "site_line": 56,
+      "site_byte": 1617,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Ctd3lw5t2ee",
+      "file": "F148ao452rw4",
+      "site_line": 65,
+      "site_byte": 1877,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cxycp9iimrt",
+      "file": "F148ao452rw4",
+      "site_line": 74,
+      "site_byte": 2139,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C135mxj6j3y1",
+      "file": "F148ao452rw4",
+      "site_line": 83,
+      "site_byte": 2401,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cc9xqjhlsvb",
+      "file": "F2k4wtrcave",
+      "site_line": 16,
+      "site_byte": 388,
+      "name": "of",
+      "receiver_hint": "Localizations",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C13okpr6iywn",
+      "file": "Fdze4p5xzcl",
+      "site_line": 19,
+      "site_byte": 451,
+      "name": "trans",
+      "receiver_hint": "_myLocalizations",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cvwrajdl66q",
+      "file": "F8na33c24f2",
+      "site_line": 4,
+      "site_byte": 113,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C3t6he9hwm2",
+      "file": "F8na33c24f2",
+      "site_line": 13,
+      "site_byte": 367,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Ccce93gs7cc",
+      "file": "F6lkxkg3bbt",
+      "site_line": 4,
+      "site_byte": 114,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C164kx5ok2f3",
+      "file": "F6lkxkg3bbt",
+      "site_line": 13,
+      "site_byte": 373,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C10k6ds7d6gz",
+      "file": "F6lkxkg3bbt",
+      "site_line": 22,
+      "site_byte": 638,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cjyfajyu5u9",
+      "file": "F6lkxkg3bbt",
+      "site_line": 30,
+      "site_byte": 901,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Ch6hty20uqa",
+      "file": "F6lkxkg3bbt",
+      "site_line": 38,
+      "site_byte": 1163,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Crk41vjb0d4",
+      "file": "F6lkxkg3bbt",
+      "site_line": 49,
+      "site_byte": 1476,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Crk41vjb0d4",
+      "file": "F6lkxkg3bbt",
+      "site_line": 58,
+      "site_byte": 1745,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Crk41vjb0d4",
+      "file": "F6lkxkg3bbt",
+      "site_line": 66,
+      "site_byte": 1982,
+      "name": "load",
+      "receiver_hint": "SpriteAnimation",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cqcvf7umab3",
+      "file": "Fbo2wwzfb17",
+      "site_line": 5,
+      "site_byte": 104,
+      "name": "initialize",
+      "receiver_hint": "FlameAudio.bgm",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cniwu287o1q",
+      "file": "Fbo2wwzfb17",
+      "site_line": 57,
+      "site_byte": 1235,
+      "name": "dispose",
+      "receiver_hint": "FlameAudio.bgm",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "C15d5ro2jmio",
+      "file": "F2i4prv78q1",
+      "site_line": 18,
+      "site_byte": 528,
+      "name": "update",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "Cd6cjx8y8u4",
+      "file": "F2i4prv78q1",
+      "site_line": 26,
+      "site_byte": 667,
+      "name": "of",
+      "receiver_hint": "Navigator",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Ct47vjeftc7",
+      "file": "F88dqvqbngi",
+      "site_line": 13,
+      "site_byte": 366,
+      "name": "awakeFromNib",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 47.14526,
+    "phases": {
+      "walk_ms": 13.631969000000002,
+      "parse_ms": 58.457268,
+      "extract_ms": 0.0,
+      "resolve_ms": 0.0,
+      "link_ms": 2.2213950000000002,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 269,
+    "files_analyzed": 52,
+    "files_skipped": 217,
+    "files_errored": 0,
+    "bytes_processed": 90404,
+    "callables": 157,
+    "edges": 203,
+    "unresolved_calls": 128,
+    "stdlib_calls": 87,
+    "external_calls": 648,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "groovy": {
+        "files": 4,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 3,
+        "external": 35
+      },
+      "kotlin": {
+        "files": 1,
+        "callables": 1,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      },
+      "swift": {
+        "files": 4,
+        "callables": 4,
+        "edges": 0,
+        "unresolved": 2,
+        "stdlib": 0,
+        "external": 11
+      },
+      "c": {
+        "files": 1,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      },
+      "dart": {
+        "files": 33,
+        "callables": 140,
+        "edges": 39,
+        "unresolved": 125,
+        "stdlib": 16,
+        "external": 531
+      },
+      "cmake": {
+        "files": 4,
+        "callables": 2,
+        "edges": 0,
+        "unresolved": 1,
+        "stdlib": 68,
+        "external": 5
+      },
+      "cpp": {
+        "files": 5,
+        "callables": 10,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 66
+      },
+      "skip:builtin": {
+        "files": 30,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      },
+      "skip:binary": {
+        "files": 123,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 141,
+      "medium": 62,
+      "low": 0
+    }
+  }
+}

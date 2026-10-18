@@ -1,0 +1,2018 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "framework:entry-node",
+        "framework:rule",
+        "toplevel:invocation"
+      ],
+      "files": 62,
+      "callables": 102,
+      "roots": 89,
+      "reachable": 62,
+      "reachable_pct": 60,
+      "findings": 21,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 102,
+    "edges": 505,
+    "unresolved_call_sites": 216,
+    "roots": 89,
+    "candidates": 40,
+    "reported": 21,
+    "regions": 31
+  },
+  "roots": [
+    {
+      "id": "Ckbczrt32th",
+      "qualified_name": "one",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/bench/polka.js:14"
+    },
+    {
+      "id": "C188zblg43jk",
+      "qualified_name": "two",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/bench/polka.js:14"
+    },
+    {
+      "id": "Cjmziu68ejw",
+      "qualified_name": "one",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/bench/polka.js:14"
+    },
+    {
+      "id": "Ccxzb6jeb1m",
+      "qualified_name": "two",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/bench/polka.js:14"
+    },
+    {
+      "id": "C12hsqwx6qxc",
+      "qualified_name": "one",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/bench/polka.js:14"
+    },
+    {
+      "id": "Chekdvnrvyl",
+      "qualified_name": "two",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/bench/polka.js:14"
+    },
+    {
+      "id": "C108xn4p439y",
+      "qualified_name": "reply",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/examples/sub-app/index.js:12"
+    },
+    {
+      "id": "Cgyuk873szw",
+      "qualified_name": "About.render",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/examples/with-nuxtjs/index.js:11"
+    },
+    {
+      "id": "Cfwxktuidne",
+      "qualified_name": "Home.render",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/examples/with-nuxtjs/index.js:11"
+    },
+    {
+      "id": "C5l6k7xemiy",
+      "qualified_name": "isUser",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/examples/with-firebase-admin/api/items.js:8"
+    },
+    {
+      "id": "Ct77texuhpq",
+      "qualified_name": "App.componentWillMount",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `react:base-type`"
+    },
+    {
+      "id": "C1652i8ha32q",
+      "qualified_name": "App.render",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/examples/with-nuxtjs/index.js:11"
+    },
+    {
+      "id": "Cserj6avxrv",
+      "qualified_name": "componentDidUpdate",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `react:base-type`"
+    },
+    {
+      "id": "C10rzicy71v2",
+      "qualified_name": "Login.render",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/examples/with-nuxtjs/index.js:11"
+    },
+    {
+      "id": "Ct7yqwk2uaw",
+      "qualified_name": "Todos.componentDidMount",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `react:base-type`"
+    },
+    {
+      "id": "C3iqyuvd7dc",
+      "qualified_name": "Todos.componentWillReceiveProps",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `react:base-type`"
+    },
+    {
+      "id": "C5xxlxelv3e",
+      "qualified_name": "Todos.render",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/examples/with-nuxtjs/index.js:11"
+    },
+    {
+      "id": "C1kna31ukmd",
+      "qualified_name": "handle",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/examples/with-nextjs/index.js:12"
+    },
+    {
+      "id": "Ca5kxf73amn",
+      "qualified_name": "send",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/examples/with-firebase-admin/client/utils/api.js:29"
+    },
+    {
+      "id": "Cp4mm0yacmb",
+      "qualified_name": "isUser",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/examples/with-firebase-admin/api/items.js:8"
+    },
+    {
+      "id": "Cascxjjv1b2",
+      "qualified_name": "send",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/examples/with-firebase-admin/client/utils/api.js:29"
+    },
+    {
+      "id": "Cvathm0jq1q",
+      "qualified_name": "listen",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/examples/with-nuxtjs/index.js:22"
+    },
+    {
+      "id": "Cson6rp3923",
+      "qualified_name": "setUsername",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/examples/with-socketio/public/main.js:205"
+    },
+    {
+      "id": "Ce2sctq8ovt",
+      "qualified_name": "sendMessage",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/examples/with-socketio/public/main.js:201"
+    },
+    {
+      "id": "C59u0dz92d",
+      "qualified_name": "Polka.listen",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/examples/with-nuxtjs/index.js:22"
+    },
+    {
+      "id": "Crg5sv707pt",
+      "qualified_name": "Polka.handler",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/examples/with-afterjs/src/index.js:16"
+    },
+    {
+      "id": "Ci5y1i30jy",
+      "qualified_name": "listen",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-polka/examples/with-nuxtjs/index.js:22"
+    },
+    {
+      "id": "C3caxt95cvf",
+      "qualified_name": "<framework-entry>::network::express::use(\"/favicon.ico\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::use(\"/favicon.ico\")`"
+    },
+    {
+      "id": "C9nznnlz7gu",
+      "qualified_name": "<framework-entry>::network::polka::use(\"/favicon.ico\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::use(\"/favicon.ico\")`"
+    },
+    {
+      "id": "Ck71egkcjxh",
+      "qualified_name": "<framework-entry>::network::express::get(\"/user/:id\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/user/:id\")`"
+    },
+    {
+      "id": "C1nnijlqjn4",
+      "qualified_name": "<framework-entry>::network::polka::get(\"/user/:id\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::get(\"/user/:id\")`"
+    },
+    {
+      "id": "Coshfeof7vn",
+      "qualified_name": "<framework-entry>::network::express::get(\"/\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/\")`"
+    },
+    {
+      "id": "C1887in3om1y",
+      "qualified_name": "<framework-entry>::network::polka::get(\"/\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::get(\"/\")`"
+    },
+    {
+      "id": "C13rmtwxfqlr",
+      "qualified_name": "<framework-entry>::network::express::get(\"/favicon.ico\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/favicon.ico\")`"
+    },
+    {
+      "id": "Culnqjddv26",
+      "qualified_name": "<framework-entry>::network::polka::get(\"/favicon.ico\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::get(\"/favicon.ico\")`"
+    },
+    {
+      "id": "C65x0gwvumx",
+      "qualified_name": "<framework-entry>::network::express::get(\"/:type?\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/:type?\")`"
+    },
+    {
+      "id": "Cafegx2q5w7",
+      "qualified_name": "<framework-entry>::network::polka::get(\"/:type?\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::get(\"/:type?\")`"
+    },
+    {
+      "id": "C7fns1lhvxx",
+      "qualified_name": "<framework-entry>::network::express::get(\"/about\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/about\")`"
+    },
+    {
+      "id": "C1299eziph5o",
+      "qualified_name": "<framework-entry>::network::polka::get(\"/about\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::get(\"/about\")`"
+    },
+    {
+      "id": "Cc80b8v79t2",
+      "qualified_name": "<framework-entry>::network::express::put(\"/:id\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::put(\"/:id\")`"
+    },
+    {
+      "id": "Ctfe7qm8fm4",
+      "qualified_name": "<framework-entry>::network::polka::put(\"/:id\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::put(\"/:id\")`"
+    },
+    {
+      "id": "Cu1vh9j9cfe",
+      "qualified_name": "<framework-entry>::network::express::get(\"/:id?\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/:id?\")`"
+    },
+    {
+      "id": "Ccw0mua2mzd",
+      "qualified_name": "<framework-entry>::network::polka::get(\"/:id?\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::get(\"/:id?\")`"
+    },
+    {
+      "id": "Cp5rrqq5ii",
+      "qualified_name": "<framework-entry>::network::express::get(\"/*\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/*\")`"
+    },
+    {
+      "id": "C11i15swmcy",
+      "qualified_name": "<framework-entry>::network::polka::get(\"/*\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::get(\"/*\")`"
+    },
+    {
+      "id": "Cv148f6e2ph",
+      "qualified_name": "<framework-entry>::network::express::post(\"/\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::post(\"/\")`"
+    },
+    {
+      "id": "Cjhx070ljbu",
+      "qualified_name": "<framework-entry>::network::polka::post(\"/\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::post(\"/\")`"
+    },
+    {
+      "id": "Cgryzbkunwv",
+      "qualified_name": "<framework-entry>::network::express::delete(\"/:id\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::delete(\"/:id\")`"
+    },
+    {
+      "id": "C3imk8vhl02",
+      "qualified_name": "<framework-entry>::network::polka::delete(\"/:id\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::delete(\"/:id\")`"
+    },
+    {
+      "id": "Czorlal2utj",
+      "qualified_name": "<framework-entry>::network::express::get(\"/:id\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/:id\")`"
+    },
+    {
+      "id": "Cfvs1e7t9ve",
+      "qualified_name": "<framework-entry>::network::polka::get(\"/:id\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::get(\"/:id\")`"
+    },
+    {
+      "id": "Cme8x1tx55o",
+      "qualified_name": "<framework-entry>::network::express::get(\"*\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"*\")`"
+    },
+    {
+      "id": "Cct9ffq607h",
+      "qualified_name": "<framework-entry>::network::polka::get(\"*\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::get(\"*\")`"
+    },
+    {
+      "id": "Cbtr6cvwkf2",
+      "qualified_name": "<framework-entry>::network::express::get(\"/health\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/health\")`"
+    },
+    {
+      "id": "Cxqc8rx5s5w",
+      "qualified_name": "<framework-entry>::network::polka::get(\"/health\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::get(\"/health\")`"
+    },
+    {
+      "id": "Ctppfu4r8v0",
+      "qualified_name": "<framework-entry>::network::express::get(\"/subscribe\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/subscribe\")`"
+    },
+    {
+      "id": "C8kr3546iwz",
+      "qualified_name": "<framework-entry>::network::polka::get(\"/subscribe\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::get(\"/subscribe\")`"
+    },
+    {
+      "id": "Cwrgv36i0sp",
+      "qualified_name": "<framework-entry>::network::express::get(\"/err\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/err\")`"
+    },
+    {
+      "id": "Cm6xcqsi6yd",
+      "qualified_name": "<framework-entry>::network::express::get(\"/one\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/one\")`"
+    },
+    {
+      "id": "C13zc1rb5mzw",
+      "qualified_name": "<framework-entry>::network::express::get(\"/two\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/two\")`"
+    },
+    {
+      "id": "C1174kdxpayc",
+      "qualified_name": "<framework-entry>::network::express::use(\"/one\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::use(\"/one\")`"
+    },
+    {
+      "id": "C14i6xerlcd5",
+      "qualified_name": "<framework-entry>::network::express::use(\"bar\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::use(\"bar\")`"
+    },
+    {
+      "id": "Cycyek3bgrs",
+      "qualified_name": "<framework-entry>::network::express::use(\"sub\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::use(\"sub\")`"
+    },
+    {
+      "id": "Ceshra8lc5n",
+      "qualified_name": "<framework-entry>::network::polka::get(\"/err\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::get(\"/err\")`"
+    },
+    {
+      "id": "C6qo6chep5f",
+      "qualified_name": "<framework-entry>::network::polka::get(\"/one\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::get(\"/one\")`"
+    },
+    {
+      "id": "Cnsp34ythjd",
+      "qualified_name": "<framework-entry>::network::polka::get(\"/two\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::get(\"/two\")`"
+    },
+    {
+      "id": "Cwhrxcvn2od",
+      "qualified_name": "<framework-entry>::network::polka::use(\"/one\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::use(\"/one\")`"
+    },
+    {
+      "id": "Cziy4lme5e9",
+      "qualified_name": "<framework-entry>::network::polka::use(\"bar\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::use(\"bar\")`"
+    },
+    {
+      "id": "C14seeujz4ac",
+      "qualified_name": "<framework-entry>::network::polka::use(\"sub\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::use(\"sub\")`"
+    },
+    {
+      "id": "Coj5y5l8eil",
+      "qualified_name": "<framework-entry>::network::express::use(\"/\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::use(\"/\")`"
+    },
+    {
+      "id": "C15sk29sj84r",
+      "qualified_name": "<framework-entry>::network::polka::use(\"/\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::use(\"/\")`"
+    },
+    {
+      "id": "C119nwal4ped",
+      "qualified_name": "<framework-entry>::network::express::get(\"/subgroup/foo\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/subgroup/foo\")`"
+    },
+    {
+      "id": "Cbg4hb8n30e",
+      "qualified_name": "<framework-entry>::network::polka::get(\"/subgroup/foo\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::get(\"/subgroup/foo\")`"
+    },
+    {
+      "id": "Cu5cqxowho2",
+      "qualified_name": "<framework-entry>::network::express::post(\"/subgroup\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::post(\"/subgroup\")`"
+    },
+    {
+      "id": "Cj5f1x8hr9q",
+      "qualified_name": "<framework-entry>::network::polka::post(\"/subgroup\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::post(\"/subgroup\")`"
+    },
+    {
+      "id": "Cck24s5yqgw",
+      "qualified_name": "<framework-entry>::network::express::use(\"/subgroup\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::use(\"/subgroup\")`"
+    },
+    {
+      "id": "Cd5ngnmpa2d",
+      "qualified_name": "<framework-entry>::network::polka::use(\"/subgroup\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::use(\"/subgroup\")`"
+    },
+    {
+      "id": "Chmt56eyg6q",
+      "qualified_name": "<framework-entry>::network::express::use(\"/about\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::use(\"/about\")`"
+    },
+    {
+      "id": "Cstom6xvwdj",
+      "qualified_name": "<framework-entry>::network::polka::use(\"/about\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::use(\"/about\")`"
+    },
+    {
+      "id": "C10bm5hlo73n",
+      "qualified_name": "<framework-entry>::network::express::use(\"foo\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::use(\"foo\")`"
+    },
+    {
+      "id": "Csvh1u54afd",
+      "qualified_name": "<framework-entry>::network::polka::use(\"foo\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::use(\"foo\")`"
+    },
+    {
+      "id": "C3tvsnshmhd",
+      "qualified_name": "<framework-entry>::network::express::get(\"/:bar\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/:bar\")`"
+    },
+    {
+      "id": "C5k1ao0v5at",
+      "qualified_name": "<framework-entry>::network::polka::get(\"/:bar\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::get(\"/:bar\")`"
+    },
+    {
+      "id": "C1518vbwn1f",
+      "qualified_name": "<framework-entry>::network::express::use(\"/api\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::use(\"/api\")`"
+    },
+    {
+      "id": "Cw80waboqoy",
+      "qualified_name": "<framework-entry>::network::polka::use(\"/api\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::use(\"/api\")`"
+    },
+    {
+      "id": "Czlwtkxivi2",
+      "qualified_name": "<framework-entry>::network::express::use(\"/users\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::use(\"/users\")`"
+    },
+    {
+      "id": "C10ijurvxmkg",
+      "qualified_name": "<framework-entry>::network::polka::use(\"/users\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::use(\"/users\")`"
+    },
+    {
+      "id": "C180ltxdjpel",
+      "qualified_name": "<framework-entry>::network::express::get(\"/users/:id\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/users/:id\")`"
+    },
+    {
+      "id": "Cmkdgb3ta1p",
+      "qualified_name": "<framework-entry>::network::polka::get(\"/users/:id\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::polka::get(\"/users/:id\")`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 21,
+      "members": [
+        "C7dhyrf62t8"
+      ],
+      "anchors": [
+        "C7dhyrf62t8"
+      ],
+      "files": [
+        "Fn054zuw8he"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 36,
+      "members": [
+        "C13mr8fzc1s6"
+      ],
+      "anchors": [
+        "C13mr8fzc1s6"
+      ],
+      "files": [
+        "F8w3xboab7k"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 38,
+      "members": [
+        "Cd7zqndtk9l"
+      ],
+      "anchors": [
+        "Cd7zqndtk9l"
+      ],
+      "files": [
+        "Ftmzetsr851"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 39,
+      "members": [
+        "C8um16ep3kn"
+      ],
+      "anchors": [
+        "C8um16ep3kn"
+      ],
+      "files": [
+        "Ftmzetsr851"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 63,
+      "members": [
+        "C9r88y4olrm"
+      ],
+      "anchors": [
+        "C9r88y4olrm"
+      ],
+      "files": [
+        "Fu2wc0u0jl7"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 64,
+      "members": [
+        "C7czz2w2idm"
+      ],
+      "anchors": [
+        "C7czz2w2idm"
+      ],
+      "files": [
+        "Fk0v0qhx17t"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 65,
+      "members": [
+        "Ct8lkf8z2ta"
+      ],
+      "anchors": [],
+      "files": [
+        "Fm2lqmv6x39"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 70,
+      "members": [
+        "Cqezvpedsr7"
+      ],
+      "anchors": [
+        "Cqezvpedsr7"
+      ],
+      "files": [
+        "F8pcdk38dqm"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 74,
+      "members": [
+        "C4hywet2l61"
+      ],
+      "anchors": [
+        "C4hywet2l61"
+      ],
+      "files": [
+        "F9ws07v2nm3"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 81,
+      "members": [
+        "C12uys4c9uu2",
+        "Ci6iw1ndaan"
+      ],
+      "anchors": [],
+      "files": [
+        "F138xa78c8gw"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 86,
+      "members": [
+        "Cqhk2ot7lsy"
+      ],
+      "anchors": [],
+      "files": [
+        "F138xa78c8gw"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 87,
+      "members": [
+        "Cfevqk6vj19"
+      ],
+      "anchors": [],
+      "files": [
+        "F138xa78c8gw"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 90,
+      "members": [
+        "Cer3ajt7jxl"
+      ],
+      "anchors": [],
+      "files": [
+        "F138xa78c8gw"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 104,
+      "members": [
+        "Ckzqioen3xi",
+        "Cmcneipm3sf",
+        "Cibc5m93mwp"
+      ],
+      "anchors": [
+        "Cmcneipm3sf"
+      ],
+      "files": [
+        "Fz2ss7o4je7"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 108,
+      "members": [
+        "Cld0yqwza80",
+        "Chi8oz40702"
+      ],
+      "anchors": [],
+      "files": [
+        "Fz2ss7o4je7"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 116,
+      "members": [
+        "Cy0i0fmgv0l"
+      ],
+      "anchors": [],
+      "files": [
+        "Fcoowfz07ia"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 118,
+      "members": [
+        "Ck7quaj90na",
+        "Cwm6fo78x2i",
+        "Clbh81mwn2f",
+        "Cw2f1h30ykr"
+      ],
+      "anchors": [],
+      "files": [
+        "F42r923uccy",
+        "Fr7p1zazccd",
+        "Fhyb2aney97"
+      ],
+      "total_lines": 45,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 125,
+      "members": [
+        "Cjs7k55ew5y"
+      ],
+      "anchors": [],
+      "files": [
+        "Fu4rpp010us"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 146,
+      "members": [
+        "C11j7ivt9e6b"
+      ],
+      "anchors": [
+        "C11j7ivt9e6b"
+      ],
+      "files": [
+        "Fu4rpp010us"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 152,
+      "members": [
+        "Ck0i7vrvejf"
+      ],
+      "anchors": [
+        "Ck0i7vrvejf"
+      ],
+      "files": [
+        "Fu4rpp010us"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 163,
+      "members": [
+        "C7i2u24xkhm"
+      ],
+      "anchors": [
+        "C7i2u24xkhm"
+      ],
+      "files": [
+        "Fu4rpp010us"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 164,
+      "members": [
+        "C141iwzt95ix"
+      ],
+      "anchors": [
+        "C141iwzt95ix"
+      ],
+      "files": [
+        "Fu4rpp010us"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 177,
+      "members": [
+        "Cjigkmgho6a",
+        "C6b21cgycmn",
+        "C13hryp8w7am"
+      ],
+      "anchors": [],
+      "files": [
+        "Fu4rpp010us",
+        "Fhyb2aney97"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 218,
+      "members": [
+        "Cmzu8fvjpxo"
+      ],
+      "anchors": [],
+      "files": [
+        "Fhyb2aney97"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 219,
+      "members": [
+        "C1rvgjpaew2"
+      ],
+      "anchors": [
+        "C1rvgjpaew2"
+      ],
+      "files": [
+        "Fhyb2aney97"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 222,
+      "members": [
+        "Cm9euz2gzzn"
+      ],
+      "anchors": [],
+      "files": [
+        "Fhyb2aney97"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 223,
+      "members": [
+        "Cztbuw0nfut"
+      ],
+      "anchors": [],
+      "files": [
+        "Fhyb2aney97"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 225,
+      "members": [
+        "Cyw97u2pnco"
+      ],
+      "anchors": [],
+      "files": [
+        "Fkbeq23dv3c"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 228,
+      "members": [
+        "Cxwty45682p"
+      ],
+      "anchors": [
+        "Cxwty45682p"
+      ],
+      "files": [
+        "Fkbeq23dv3c"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 229,
+      "members": [
+        "C10ydq5m0l7u"
+      ],
+      "anchors": [],
+      "files": [
+        "Fkbeq23dv3c"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 232,
+      "members": [
+        "C17im4ukd0xm"
+      ],
+      "anchors": [
+        "C17im4ukd0xm"
+      ],
+      "files": [
+        "Fkbeq23dv3c"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Ck7quaj90na",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F42r923uccy",
+      "path": "/storage/cgg-test_repos/js-polka/packages/url/index.js",
+      "start_line": 1,
+      "end_line": 22,
+      "size_lines": 22,
+      "signature_hint": "module.exports = function (req)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -78,
+      "region": 118,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Clbh81mwn2f"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cer3ajt7jxl",
+      "qualified_name": "updateTyping",
+      "simple_name": "updateTyping",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F138xa78c8gw",
+      "path": "/storage/cgg-test_repos/js-polka/examples/with-socketio/public/main.js",
+      "start_line": 153,
+      "end_line": 170,
+      "size_lines": 18,
+      "signature_hint": "function updateTyping ()",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -82,
+      "region": 90,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C12uys4c9uu2",
+      "qualified_name": "addParticipantsMessage",
+      "simple_name": "addParticipantsMessage",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F138xa78c8gw",
+      "path": "/storage/cgg-test_repos/js-polka/examples/with-socketio/public/main.js",
+      "start_line": 28,
+      "end_line": 36,
+      "size_lines": 9,
+      "signature_hint": "function addParticipantsMessage (data)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 81,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cqhk2ot7lsy",
+      "qualified_name": "addChatTyping",
+      "simple_name": "addChatTyping",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F138xa78c8gw",
+      "path": "/storage/cgg-test_repos/js-polka/examples/with-socketio/public/main.js",
+      "start_line": 103,
+      "end_line": 107,
+      "size_lines": 5,
+      "signature_hint": "function addChatTyping (data)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 86,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cfevqk6vj19",
+      "qualified_name": "removeChatTyping",
+      "simple_name": "removeChatTyping",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F138xa78c8gw",
+      "path": "/storage/cgg-test_repos/js-polka/examples/with-socketio/public/main.js",
+      "start_line": 110,
+      "end_line": 114,
+      "size_lines": 5,
+      "signature_hint": "function removeChatTyping (data)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 87,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ci6iw1ndaan",
+      "qualified_name": "log",
+      "simple_name": "log",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F138xa78c8gw",
+      "path": "/storage/cgg-test_repos/js-polka/examples/with-socketio/public/main.js",
+      "start_line": 72,
+      "end_line": 75,
+      "size_lines": 4,
+      "signature_hint": "function log (message, options)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -96,
+      "region": 81,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C12uys4c9uu2"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cy0i0fmgv0l",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcoowfz07ia",
+      "path": "/storage/cgg-test_repos/js-polka/packages/send/index.js",
+      "start_line": 3,
+      "end_line": 6,
+      "size_lines": 4,
+      "signature_hint": "module.exports = function (res, code=200, data='', headers={})",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -96,
+      "region": 116,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cqezvpedsr7",
+      "qualified_name": "onComplete",
+      "simple_name": "onComplete",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F8pcdk38dqm",
+      "path": "/storage/cgg-test_repos/js-polka/examples/with-serve-static/public/app.js",
+      "start_line": 16,
+      "end_line": 18,
+      "size_lines": 3,
+      "signature_hint": "onComplete()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 70,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4hywet2l61",
+      "qualified_name": "onComplete",
+      "simple_name": "onComplete",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F9ws07v2nm3",
+      "path": "/storage/cgg-test_repos/js-polka/examples/with-sirv/public/app.js",
+      "start_line": 16,
+      "end_line": 18,
+      "size_lines": 3,
+      "signature_hint": "onComplete()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 74,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckzqioen3xi",
+      "qualified_name": "lead",
+      "simple_name": "lead",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fz2ss7o4je7",
+      "path": "/storage/cgg-test_repos/js-polka/packages/polka/index.js",
+      "start_line": 6,
+      "end_line": 8,
+      "size_lines": 3,
+      "signature_hint": "function lead(x)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 104,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 3,
+          "example": "Cmcneipm3sf"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cd7zqndtk9l",
+      "qualified_name": "toAuth",
+      "simple_name": "toAuth",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftmzetsr851",
+      "path": "/storage/cgg-test_repos/js-polka/examples/with-firebase-admin/client/tags/TodoMVC.js",
+      "start_line": 7,
+      "end_line": 7,
+      "size_lines": 1,
+      "signature_hint": "toAuth = str => (str && { Authorization:`Bearer: ${str}` })",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -99,
+      "region": 38,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chi8oz40702",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fz2ss7o4je7",
+      "path": "/storage/cgg-test_repos/js-polka/packages/polka/index.js",
+      "start_line": 102,
+      "end_line": 102,
+      "size_lines": 1,
+      "signature_hint": "module.exports = opts => new Polka(opts)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -99,
+      "region": 108,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C7dhyrf62t8",
+      "qualified_name": "Home.getInitialProps",
+      "simple_name": "getInitialProps",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "static_method",
+      "file": "Fn054zuw8he",
+      "path": "/storage/cgg-test_repos/js-polka/examples/with-afterjs/src/Home.js",
+      "start_line": 7,
+      "end_line": 9,
+      "size_lines": 3,
+      "signature_hint": "static async getInitialProps({ req, res, match, history, location, ...ctx })",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 21,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C9r88y4olrm",
+      "qualified_name": "get",
+      "simple_name": "get",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fu2wc0u0jl7",
+      "path": "/storage/cgg-test_repos/js-polka/examples/with-sapper/routes/api/blog/[slug].js",
+      "start_line": 8,
+      "end_line": 19,
+      "size_lines": 12,
+      "signature_hint": "function get(req, res, next)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -588,
+      "region": 63,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "get",
+          "sites": 1,
+          "reason": "not-in-imported-module",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ftmzetsr851",
+            "path": "/storage/cgg-test_repos/js-polka/examples/with-firebase-admin/client/tags/TodoMVC.js",
+            "line": 69,
+            "name": "get"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C7czz2w2idm",
+      "qualified_name": "get",
+      "simple_name": "get",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fk0v0qhx17t",
+      "path": "/storage/cgg-test_repos/js-polka/examples/with-sapper/routes/api/blog/index.js",
+      "start_line": 10,
+      "end_line": 13,
+      "size_lines": 4,
+      "signature_hint": "function get(req, res)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -596,
+      "region": 64,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "get",
+          "sites": 1,
+          "reason": "not-in-imported-module",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ftmzetsr851",
+            "path": "/storage/cgg-test_repos/js-polka/examples/with-firebase-admin/client/tags/TodoMVC.js",
+            "line": 69,
+            "name": "get"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Ct8lkf8z2ta",
+      "qualified_name": "fetch",
+      "simple_name": "fetch",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fm2lqmv6x39",
+      "path": "/storage/cgg-test_repos/js-polka/examples/with-sapper/server.js",
+      "start_line": 10,
+      "end_line": 13,
+      "size_lines": 4,
+      "signature_hint": "global.fetch = (url, opts) =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -596,
+      "region": 65,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "fetch",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F130nudbozqu",
+            "path": "/storage/cgg-test_repos/js-polka/examples/with-firebase-admin/client/utils/api.js",
+            "line": 23,
+            "name": "fetch"
+          }
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ct8lkf8z2ta"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cibc5m93mwp",
+      "qualified_name": "Polka.use",
+      "simple_name": "use",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fz2ss7o4je7",
+      "path": "/storage/cgg-test_repos/js-polka/packages/polka/index.js",
+      "start_line": 45,
+      "end_line": 63,
+      "size_lines": 19,
+      "signature_hint": "use(base, ...fns)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -681,
+      "region": 104,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 21
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cld0yqwza80",
+      "qualified_name": "Polka.constructor",
+      "simple_name": "constructor",
+      "language": "javascript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fz2ss7o4je7",
+      "path": "/storage/cgg-test_repos/js-polka/packages/polka/index.js",
+      "start_line": 27,
+      "end_line": 37,
+      "size_lines": 11,
+      "signature_hint": "constructor(opts={})",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -689,
+      "region": 108,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Chi8oz40702"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cmcneipm3sf",
+      "qualified_name": "Polka.add",
+      "simple_name": "add",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fz2ss7o4je7",
+      "path": "/storage/cgg-test_repos/js-polka/packages/polka/index.js",
+      "start_line": 39,
+      "end_line": 43,
+      "size_lines": 5,
+      "signature_hint": "add(method, pattern, ...fns)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -895,
+      "region": 104,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "add",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fu4rpp010us",
+            "path": "/storage/cgg-test_repos/js-polka/tests/polka.js",
+            "line": 64,
+            "name": "add",
+            "receiver_hint": "app"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C8um16ep3kn",
+      "qualified_name": "Todos.onAddItem",
+      "simple_name": "onAddItem",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ftmzetsr851",
+      "path": "/storage/cgg-test_repos/js-polka/examples/with-firebase-admin/client/tags/TodoMVC.js",
+      "start_line": 18,
+      "end_line": 27,
+      "size_lines": 10,
+      "signature_hint": "onAddItem = e =>",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -890,
+      "region": 39,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "onAddItem",
+          "sites": 1,
+          "reason": "not-in-scope-for-bare-call",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ftmzetsr851",
+            "path": "/storage/cgg-test_repos/js-polka/examples/with-firebase-admin/client/tags/TodoMVC.js",
+            "line": 90,
+            "name": "onAddItem"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C13mr8fzc1s6",
+      "qualified_name": "Login.onInput",
+      "simple_name": "onInput",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F8w3xboab7k",
+      "path": "/storage/cgg-test_repos/js-polka/examples/with-firebase-admin/client/tags/Login.js",
+      "start_line": 17,
+      "end_line": 19,
+      "size_lines": 3,
+      "signature_hint": "onInput = key => ev =>",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -897,
+      "region": 36,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "onInput",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F8w3xboab7k",
+            "path": "/storage/cgg-test_repos/js-polka/examples/with-firebase-admin/client/tags/Login.js",
+            "line": 25,
+            "name": "onInput",
+            "receiver_hint": "{ this"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

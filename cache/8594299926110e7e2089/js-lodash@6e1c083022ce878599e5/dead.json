@@ -1,0 +1,5771 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "framework:entry-node",
+        "framework:test-harness",
+        "toplevel:invocation"
+      ],
+      "files": 27,
+      "callables": 802,
+      "roots": 570,
+      "reachable": 766,
+      "reachable_pct": 95,
+      "findings": 13,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 802,
+    "edges": 1116,
+    "unresolved_call_sites": 5868,
+    "roots": 570,
+    "candidates": 36,
+    "reported": 13,
+    "regions": 34
+  },
+  "roots": [
+    {
+      "id": "C159dtqkpji5",
+      "qualified_name": "baseConvert",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/fp/_baseConvert.js:569"
+    },
+    {
+      "id": "Cpa30b6xas0",
+      "qualified_name": "overArg",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:1538"
+    },
+    {
+      "id": "Cjbgi6ezt4r",
+      "qualified_name": "wrap",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16813"
+    },
+    {
+      "id": "C16n3ll2xd5h",
+      "qualified_name": "browserConvert",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/fp/_convertBrowser.js:18"
+    },
+    {
+      "id": "Cclpz2ju8ac",
+      "qualified_name": "copy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lib/common/file.js:67"
+    },
+    {
+      "id": "Cxqa5ofcut",
+      "qualified_name": "globTemplate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lib/common/file.js:68"
+    },
+    {
+      "id": "Cr27tsxo4u1",
+      "qualified_name": "min",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16926"
+    },
+    {
+      "id": "C68kyw00uto",
+      "qualified_name": "write",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lib/common/file.js:70"
+    },
+    {
+      "id": "C13yit2qsgj8",
+      "qualified_name": "minify",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lib/common/minify.js:39"
+    },
+    {
+      "id": "C11cq8k9aswt",
+      "qualified_name": "Hash",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lib/common/util.js:38"
+    },
+    {
+      "id": "Cgvunsa06w0",
+      "qualified_name": "pitch",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lib/common/util.js:39"
+    },
+    {
+      "id": "Cxcjonvta94",
+      "qualified_name": "build",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lib/main/build-site.js:239"
+    },
+    {
+      "id": "Cetdie9jydo",
+      "qualified_name": "toArgOrder",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lib/fp/build-doc.js:18"
+    },
+    {
+      "id": "Capmlkrnhwo",
+      "qualified_name": "toFuncList",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lib/fp/build-doc.js:19"
+    },
+    {
+      "id": "Cqcgwtzstrr",
+      "qualified_name": "build",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lib/main/build-site.js:239"
+    },
+    {
+      "id": "C8031f1x53o",
+      "qualified_name": "build",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lib/main/build-site.js:239"
+    },
+    {
+      "id": "Crflcs2s2x4",
+      "qualified_name": "build",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lib/main/build-site.js:239"
+    },
+    {
+      "id": "C1651ovt2thz",
+      "qualified_name": "npmLink",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lib/main/build-doc.js:33"
+    },
+    {
+      "id": "Cq7tzfisbon",
+      "qualified_name": "build",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lib/main/build-site.js:239"
+    },
+    {
+      "id": "C171lv2il8ic",
+      "qualified_name": "build",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lib/main/build-site.js:239"
+    },
+    {
+      "id": "C15k0x2dkndk",
+      "qualified_name": "build",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lib/main/build-site.js:239"
+    },
+    {
+      "id": "Cgd3o0uphds",
+      "qualified_name": "apply",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:15376"
+    },
+    {
+      "id": "Clwd28qrt4s",
+      "qualified_name": "arrayEach",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17172"
+    },
+    {
+      "id": "Clszuy7xl19",
+      "qualified_name": "arrayEvery",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:15975"
+    },
+    {
+      "id": "C10qzuq0pd0n",
+      "qualified_name": "arrayFilter",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:8713"
+    },
+    {
+      "id": "Cja0pzatkup",
+      "qualified_name": "arrayMap",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:15945"
+    },
+    {
+      "id": "Ce04vn10vki",
+      "qualified_name": "arrayPush",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:6126"
+    },
+    {
+      "id": "Cbk32enrgir",
+      "qualified_name": "arraySome",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16008"
+    },
+    {
+      "id": "Chm711p86ve",
+      "qualified_name": "baseProperty",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:755"
+    },
+    {
+      "id": "Cwhi87jgerr",
+      "qualified_name": "basePropertyOf",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:1379"
+    },
+    {
+      "id": "Cdcam9u6qff",
+      "qualified_name": "baseUnary",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:12278"
+    },
+    {
+      "id": "Cprafer2h4n",
+      "qualified_name": "overArg",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:1538"
+    },
+    {
+      "id": "Cy39m4tiqqp",
+      "qualified_name": "replaceHolders",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:10839"
+    },
+    {
+      "id": "C11hwor5ry5p",
+      "qualified_name": "setToArray",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:5532"
+    },
+    {
+      "id": "Cbysosrpfyt",
+      "qualified_name": "lodash",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17226"
+    },
+    {
+      "id": "Cynaw4rknws",
+      "qualified_name": "object",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:1721"
+    },
+    {
+      "id": "Crxihn35a09",
+      "qualified_name": "LodashWrapper",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17161"
+    },
+    {
+      "id": "C8u7w3qq531",
+      "qualified_name": "LazyWrapper",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17158"
+    },
+    {
+      "id": "Cqh147rdwri",
+      "qualified_name": "lazyClone",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17207"
+    },
+    {
+      "id": "Cmz7c538pvq",
+      "qualified_name": "lazyReverse",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17208"
+    },
+    {
+      "id": "Cu9v0cibf2i",
+      "qualified_name": "lazyValue",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17209"
+    },
+    {
+      "id": "Cc2e1fit0r9",
+      "qualified_name": "Hash",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lib/common/util.js:38"
+    },
+    {
+      "id": "Cxrr7rduppm",
+      "qualified_name": "hashClear",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2040"
+    },
+    {
+      "id": "Cybpz10f523",
+      "qualified_name": "hashDelete",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2041"
+    },
+    {
+      "id": "Ch7cmw2huf6",
+      "qualified_name": "hashGet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2042"
+    },
+    {
+      "id": "Cilqlt9iwns",
+      "qualified_name": "hashHas",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2043"
+    },
+    {
+      "id": "Cfstfd0zbw2",
+      "qualified_name": "hashSet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2044"
+    },
+    {
+      "id": "C763nmmnope",
+      "qualified_name": "listCacheClear",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2157"
+    },
+    {
+      "id": "Czojwg21364",
+      "qualified_name": "listCacheDelete",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2158"
+    },
+    {
+      "id": "C43st2wdzpn",
+      "qualified_name": "listCacheGet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2159"
+    },
+    {
+      "id": "Chwrcbtxers",
+      "qualified_name": "listCacheHas",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2160"
+    },
+    {
+      "id": "Cpahjve37hf",
+      "qualified_name": "listCacheSet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2161"
+    },
+    {
+      "id": "Cu3wdtfthb6",
+      "qualified_name": "MapCache",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:10660"
+    },
+    {
+      "id": "C1097v6qz4kr",
+      "qualified_name": "mapCacheClear",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2260"
+    },
+    {
+      "id": "Crjrxnnp86h",
+      "qualified_name": "mapCacheDelete",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2261"
+    },
+    {
+      "id": "Cmeoq3cqcad",
+      "qualified_name": "mapCacheGet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2262"
+    },
+    {
+      "id": "Cakn0a4r3jr",
+      "qualified_name": "mapCacheHas",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2263"
+    },
+    {
+      "id": "Cfkn82spilb",
+      "qualified_name": "mapCacheSet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2264"
+    },
+    {
+      "id": "Cnh6tqwiyh",
+      "qualified_name": "setCacheAdd",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2315"
+    },
+    {
+      "id": "C15q9htkm24s",
+      "qualified_name": "setCacheHas",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2316"
+    },
+    {
+      "id": "Cxobo0xpzz7",
+      "qualified_name": "stackClear",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2414"
+    },
+    {
+      "id": "Cfi8005w5jp",
+      "qualified_name": "stackDelete",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2415"
+    },
+    {
+      "id": "C1081o8pagrk",
+      "qualified_name": "stackGet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2416"
+    },
+    {
+      "id": "Cezayjhs5gu",
+      "qualified_name": "stackHas",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2417"
+    },
+    {
+      "id": "C15lw9gjgryl",
+      "qualified_name": "stackSet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2418"
+    },
+    {
+      "id": "Cepejvxepls",
+      "qualified_name": "assignValue",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:12701"
+    },
+    {
+      "id": "C13mvt3c4y38",
+      "qualified_name": "baseAssignValue",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:15411"
+    },
+    {
+      "id": "Cu4m9z5qfnp",
+      "qualified_name": "baseAt",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:12823"
+    },
+    {
+      "id": "Cx87qe59l4b",
+      "qualified_name": "baseClone",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:13608"
+    },
+    {
+      "id": "Cl0vll4np5b",
+      "qualified_name": "baseDelay",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:10570"
+    },
+    {
+      "id": "Ck7pasrgzdb",
+      "qualified_name": "baseDifference",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:8632"
+    },
+    {
+      "id": "Clai8fkcu0t",
+      "qualified_name": "baseFlatten",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:10754"
+    },
+    {
+      "id": "C6ysf6dxnns",
+      "qualified_name": "baseForOwn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17190"
+    },
+    {
+      "id": "C12e20o4a184",
+      "qualified_name": "baseForOwnRight",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2874"
+    },
+    {
+      "id": "Ci5jokq3ssm",
+      "qualified_name": "baseGetTag",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:6148"
+    },
+    {
+      "id": "Cog29n5nzx4",
+      "qualified_name": "baseGt",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:11310"
+    },
+    {
+      "id": "Cznimrbqnfk",
+      "qualified_name": "baseIntersection",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:7667"
+    },
+    {
+      "id": "C7mudjlv08d",
+      "qualified_name": "baseInvoke",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17091"
+    },
+    {
+      "id": "Cpz26qjeqdy",
+      "qualified_name": "baseIsArguments",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:11357"
+    },
+    {
+      "id": "Cv4ggbhquuh",
+      "qualified_name": "baseIsArrayBuffer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:11404"
+    },
+    {
+      "id": "C14pdcelombi",
+      "qualified_name": "baseIsDate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:11522"
+    },
+    {
+      "id": "C43gnjprfbw",
+      "qualified_name": "baseIsMap",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:11892"
+    },
+    {
+      "id": "C10iw60d17gs",
+      "qualified_name": "baseIsRegExp",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:12165"
+    },
+    {
+      "id": "Cstglrrhbjg",
+      "qualified_name": "baseIsSet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:12215"
+    },
+    {
+      "id": "Cw4vfsv8ehg",
+      "qualified_name": "baseIsTypedArray",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:12278"
+    },
+    {
+      "id": "Cjpdh769w1j",
+      "qualified_name": "baseLt",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:12366"
+    },
+    {
+      "id": "Cfl1f22kwbe",
+      "qualified_name": "baseMerge",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:13572"
+    },
+    {
+      "id": "C8h9trrqaq6",
+      "qualified_name": "baseOrderBy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:10038"
+    },
+    {
+      "id": "C3kpdok5m3z",
+      "qualified_name": "basePick",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:13659"
+    },
+    {
+      "id": "C5zl4vpjn52",
+      "qualified_name": "basePullAt",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:7907"
+    },
+    {
+      "id": "Cn6qjsyhvc6",
+      "qualified_name": "baseRest",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17086"
+    },
+    {
+      "id": "C1swvd4yi9h",
+      "qualified_name": "baseUniq",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:8464"
+    },
+    {
+      "id": "Cp1kgcv9oxy",
+      "qualified_name": "baseUnset",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:13612"
+    },
+    {
+      "id": "Crjm7zlprbr",
+      "qualified_name": "baseXor",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:8713"
+    },
+    {
+      "id": "Coy0m142lmj",
+      "qualified_name": "castArrayLikeObject",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:7660"
+    },
+    {
+      "id": "Cky8u6gcw9c",
+      "qualified_name": "castPath",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:13602"
+    },
+    {
+      "id": "Ceccx9ehlmi",
+      "qualified_name": "compareAscending",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:7909"
+    },
+    {
+      "id": "Cselrij5z8r",
+      "qualified_name": "copyObject",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:13606"
+    },
+    {
+      "id": "C11v9pjvwarp",
+      "qualified_name": "createAggregator",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:9735"
+    },
+    {
+      "id": "Ctgbkmffh4z",
+      "qualified_name": "createAssigner",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:13571"
+    },
+    {
+      "id": "C2mvbw7cz8e",
+      "qualified_name": "createBaseEach",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:2874"
+    },
+    {
+      "id": "C3mzkzqju0s",
+      "qualified_name": "createBaseFor",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:3026"
+    },
+    {
+      "id": "Cwymw9z7jmp",
+      "qualified_name": "createCaseFirst",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:15319"
+    },
+    {
+      "id": "C11kw9lrx0us",
+      "qualified_name": "createCompounder",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:15298"
+    },
+    {
+      "id": "C53agndgcjl",
+      "qualified_name": "createFind",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:9332"
+    },
+    {
+      "id": "C9wvnhy3sos",
+      "qualified_name": "createFlow",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:15589"
+    },
+    {
+      "id": "Cqfjwqm913h",
+      "qualified_name": "createHybrid",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17201"
+    },
+    {
+      "id": "Cwp9rypjoq1",
+      "qualified_name": "createInverter",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:13344"
+    },
+    {
+      "id": "Ckt3g0of33q",
+      "qualified_name": "createMathOperation",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16616"
+    },
+    {
+      "id": "C5t4zmqdsun",
+      "qualified_name": "createOver",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16008"
+    },
+    {
+      "id": "Csqscbwz7wg",
+      "qualified_name": "createRange",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16142"
+    },
+    {
+      "id": "Cwajjywqgmu",
+      "qualified_name": "createRelationalOperation",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:12391"
+    },
+    {
+      "id": "Cjrs8283z3k",
+      "qualified_name": "createRound",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16599"
+    },
+    {
+      "id": "Cg5qqz7xanu",
+      "qualified_name": "createToPairs",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:13855"
+    },
+    {
+      "id": "Cw4wud2kqjl",
+      "qualified_name": "createWrap",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:10866"
+    },
+    {
+      "id": "C51txjxvogr",
+      "qualified_name": "customDefaultsMerge",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:12936"
+    },
+    {
+      "id": "Cpdfqx94qcn",
+      "qualified_name": "customOmitClone",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:13608"
+    },
+    {
+      "id": "C8afp3wf21n",
+      "qualified_name": "flatRest",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:15408"
+    },
+    {
+      "id": "C1147d9294cj",
+      "qualified_name": "getAllKeysIn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:13606"
+    },
+    {
+      "id": "C9fx39kmf3o",
+      "qualified_name": "getHolder",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:10839"
+    },
+    {
+      "id": "Cimskfaujgn",
+      "qualified_name": "getIteratee",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17048"
+    },
+    {
+      "id": "Cyerzo3ja10",
+      "qualified_name": "getNative",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:1552"
+    },
+    {
+      "id": "Czqikr1f7nc",
+      "qualified_name": "isIndex",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:8916"
+    },
+    {
+      "id": "Cvv5rzy7n45",
+      "qualified_name": "isIterateeCall",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:12892"
+    },
+    {
+      "id": "Cqjkl3rfd23",
+      "qualified_name": "isPrototype",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:12695"
+    },
+    {
+      "id": "Cti5syrdj7v",
+      "qualified_name": "memoizeCapped",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:6830"
+    },
+    {
+      "id": "Cnc28hx1z1b",
+      "qualified_name": "shortOut",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:6752"
+    },
+    {
+      "id": "Cc15zlagbi5",
+      "qualified_name": "toKey",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:15410"
+    },
+    {
+      "id": "Cd4wrrm4n57",
+      "qualified_name": "toSource",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:6150"
+    },
+    {
+      "id": "Csvsxauc17k",
+      "qualified_name": "chunk",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16685"
+    },
+    {
+      "id": "Ckjx8o0ac5g",
+      "qualified_name": "concat",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16687"
+    },
+    {
+      "id": "Ca3tfddze1j",
+      "qualified_name": "drop",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16703"
+    },
+    {
+      "id": "Cepg0r9511d",
+      "qualified_name": "dropRight",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16704"
+    },
+    {
+      "id": "Cw6aitui0ql",
+      "qualified_name": "dropRightWhile",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16705"
+    },
+    {
+      "id": "Cfp0b9d8nve",
+      "qualified_name": "dropWhile",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16706"
+    },
+    {
+      "id": "Cei6bxkd6w6",
+      "qualified_name": "fill",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16707"
+    },
+    {
+      "id": "Cjvi75y3zaf",
+      "qualified_name": "findIndex",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16854"
+    },
+    {
+      "id": "Cqmjqyadq4d",
+      "qualified_name": "findLastIndex",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16857"
+    },
+    {
+      "id": "Cidqvobl4be",
+      "qualified_name": "flatten",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16712"
+    },
+    {
+      "id": "Caiw17j81kd",
+      "qualified_name": "flattenDeep",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16713"
+    },
+    {
+      "id": "Csjwgxdhwy4",
+      "qualified_name": "flattenDepth",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16714"
+    },
+    {
+      "id": "Cjjgyag30s",
+      "qualified_name": "fromPairs",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16718"
+    },
+    {
+      "id": "C7hinqiphly",
+      "qualified_name": "head",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16987"
+    },
+    {
+      "id": "Cul2akihawa",
+      "qualified_name": "indexOf",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16874"
+    },
+    {
+      "id": "Cfurnvldvr1",
+      "qualified_name": "initial",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16722"
+    },
+    {
+      "id": "Cqg1xjz2hl",
+      "qualified_name": "join",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16914"
+    },
+    {
+      "id": "Culpo2xzmzk",
+      "qualified_name": "last",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16916"
+    },
+    {
+      "id": "Czjv01dav7g",
+      "qualified_name": "lastIndexOf",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16917"
+    },
+    {
+      "id": "Cgzfv70s523",
+      "qualified_name": "nth",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16934"
+    },
+    {
+      "id": "C7bqym6khs3",
+      "qualified_name": "pullAll",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16762"
+    },
+    {
+      "id": "Cm2i6b132wh",
+      "qualified_name": "pullAllBy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16763"
+    },
+    {
+      "id": "Cmt3xif3yqz",
+      "qualified_name": "pullAllWith",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16764"
+    },
+    {
+      "id": "C15equ13hzqj",
+      "qualified_name": "remove",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16770"
+    },
+    {
+      "id": "C2ozwm1ygqq",
+      "qualified_name": "reverse",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17036"
+    },
+    {
+      "id": "C1613esza5v",
+      "qualified_name": "sortedIndex",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16954"
+    },
+    {
+      "id": "Cbrgpl11xw1",
+      "qualified_name": "sortedIndexBy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16955"
+    },
+    {
+      "id": "Cz081m9o9u",
+      "qualified_name": "sortedIndexOf",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16956"
+    },
+    {
+      "id": "Cli9l309np0",
+      "qualified_name": "sortedLastIndex",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16957"
+    },
+    {
+      "id": "C4fqufp4a5z",
+      "qualified_name": "sortedLastIndexBy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16958"
+    },
+    {
+      "id": "Cyk6188m40j",
+      "qualified_name": "sortedLastIndexOf",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16959"
+    },
+    {
+      "id": "Cet8neeh9ip",
+      "qualified_name": "sortedUniq",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16779"
+    },
+    {
+      "id": "Civ2gakt58q",
+      "qualified_name": "sortedUniqBy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16780"
+    },
+    {
+      "id": "Cq79lics7tq",
+      "qualified_name": "tail",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16783"
+    },
+    {
+      "id": "C1lepy8h4d4",
+      "qualified_name": "take",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16784"
+    },
+    {
+      "id": "C10tz37bgbqx",
+      "qualified_name": "takeRight",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16785"
+    },
+    {
+      "id": "Cari8lbjplw",
+      "qualified_name": "takeWhile",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16787"
+    },
+    {
+      "id": "Cmlfuy4uwhg",
+      "qualified_name": "uniq",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16801"
+    },
+    {
+      "id": "Cms4264nem",
+      "qualified_name": "uniqBy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16802"
+    },
+    {
+      "id": "Cd342aqgony",
+      "qualified_name": "uniqWith",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16803"
+    },
+    {
+      "id": "Cu0p1qljfba",
+      "qualified_name": "unzip",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16805"
+    },
+    {
+      "id": "Ctz4wahyk46",
+      "qualified_name": "unzipWith",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16806"
+    },
+    {
+      "id": "Cjeq9vzttrb",
+      "qualified_name": "zipObject",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16818"
+    },
+    {
+      "id": "C86tl4jnuht",
+      "qualified_name": "zipObjectDeep",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16819"
+    },
+    {
+      "id": "C3tp2zkeqf4",
+      "qualified_name": "chain",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26300"
+    },
+    {
+      "id": "Cq377ztmmcg",
+      "qualified_name": "tap",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16788"
+    },
+    {
+      "id": "Czo20nbar2l",
+      "qualified_name": "thru",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17166"
+    },
+    {
+      "id": "C4wz1vuk28v",
+      "qualified_name": "interceptor",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17166"
+    },
+    {
+      "id": "Ceu1b3sxnh1",
+      "qualified_name": "wrapperChain",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17213"
+    },
+    {
+      "id": "C9k76vwnrf0",
+      "qualified_name": "wrapperCommit",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17214"
+    },
+    {
+      "id": "C14bsxnpo2hi",
+      "qualified_name": "wrapperNext",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17215"
+    },
+    {
+      "id": "C1r2rh7f2ga",
+      "qualified_name": "wrapperToIterator",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17224"
+    },
+    {
+      "id": "Cdumfwmoiv5",
+      "qualified_name": "wrapperPlant",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17216"
+    },
+    {
+      "id": "Cb2toayo26i",
+      "qualified_name": "wrapperReverse",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17217"
+    },
+    {
+      "id": "C12k38dx3auc",
+      "qualified_name": "wrapperValue",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17218"
+    },
+    {
+      "id": "Ciijphxp9ps",
+      "qualified_name": "every",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16852"
+    },
+    {
+      "id": "Crzgtdv6fmy",
+      "qualified_name": "filter",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16708"
+    },
+    {
+      "id": "Cz3zcpq0sen",
+      "qualified_name": "flatMap",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16709"
+    },
+    {
+      "id": "Cxia12t3bis",
+      "qualified_name": "flatMapDeep",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16710"
+    },
+    {
+      "id": "Ckg2z5owgkp",
+      "qualified_name": "flatMapDepth",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16711"
+    },
+    {
+      "id": "C12q0yv10f99",
+      "qualified_name": "forEach",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16985"
+    },
+    {
+      "id": "C17iw9ji1r8f",
+      "qualified_name": "forEachRight",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16986"
+    },
+    {
+      "id": "C5rjzbhitwo",
+      "qualified_name": "includes",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16873"
+    },
+    {
+      "id": "Cif7e8ir0lr",
+      "qualified_name": "map",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17090"
+    },
+    {
+      "id": "Cv4z1kfkk0l",
+      "qualified_name": "orderBy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16749"
+    },
+    {
+      "id": "Coel6m41t3p",
+      "qualified_name": "reduce",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16943"
+    },
+    {
+      "id": "Cge3rggp0nl",
+      "qualified_name": "reduceRight",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16944"
+    },
+    {
+      "id": "C1502fglje9q",
+      "qualified_name": "sample",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16950"
+    },
+    {
+      "id": "Clf0lh4m6bo",
+      "qualified_name": "sampleSize",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16773"
+    },
+    {
+      "id": "Csgmti7i5je",
+      "qualified_name": "shuffle",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16776"
+    },
+    {
+      "id": "Cza3etv6tzo",
+      "qualified_name": "size",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16951"
+    },
+    {
+      "id": "C2o2txhw6l",
+      "qualified_name": "some",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16953"
+    },
+    {
+      "id": "C15vha05d15v",
+      "qualified_name": "after",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:1212"
+    },
+    {
+      "id": "Cfmnuxbj2sn",
+      "qualified_name": "ary",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16673"
+    },
+    {
+      "id": "C758kxxywx4",
+      "qualified_name": "before",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:1763"
+    },
+    {
+      "id": "Ch09tai7k5b",
+      "qualified_name": "curry",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16693"
+    },
+    {
+      "id": "C128yx2nnd77",
+      "qualified_name": "curryRight",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16694"
+    },
+    {
+      "id": "Cjjn8kuuo5d",
+      "qualified_name": "debounce",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16695"
+    },
+    {
+      "id": "C14nh330z452",
+      "qualified_name": "flip",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16715"
+    },
+    {
+      "id": "Cblhdgfy0o5",
+      "qualified_name": "memoize",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16738"
+    },
+    {
+      "id": "C10ltnimu59u",
+      "qualified_name": "negate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16744"
+    },
+    {
+      "id": "Cd8epph517x",
+      "qualified_name": "once",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16748"
+    },
+    {
+      "id": "C4o00airwbz",
+      "qualified_name": "rest",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16771"
+    },
+    {
+      "id": "C16l5tvc4xsw",
+      "qualified_name": "spread",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16782"
+    },
+    {
+      "id": "Cjs4v2iwmav",
+      "qualified_name": "throttle",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16789"
+    },
+    {
+      "id": "C45gcp2iwcr",
+      "qualified_name": "unary",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16797"
+    },
+    {
+      "id": "C4dfgj4ktbc",
+      "qualified_name": "wrap",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16813"
+    },
+    {
+      "id": "Cth98t6f0wi",
+      "qualified_name": "castArray",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16683"
+    },
+    {
+      "id": "Ccfu4r1qnt4",
+      "qualified_name": "clone",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17046"
+    },
+    {
+      "id": "Cdu63kfuyrh",
+      "qualified_name": "cloneWith",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16843"
+    },
+    {
+      "id": "C181b3lvy2ad",
+      "qualified_name": "cloneDeep",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16841"
+    },
+    {
+      "id": "C141rocevkos",
+      "qualified_name": "cloneDeepWith",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16842"
+    },
+    {
+      "id": "Cknctya78zc",
+      "qualified_name": "conformsTo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16844"
+    },
+    {
+      "id": "C4njjvs1c0j",
+      "qualified_name": "eq",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16849"
+    },
+    {
+      "id": "C13qgubp6qec",
+      "qualified_name": "isArrayLike",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16880"
+    },
+    {
+      "id": "Cpz4o6ymlo6",
+      "qualified_name": "isArrayLikeObject",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16881"
+    },
+    {
+      "id": "C114j7yo0j35",
+      "qualified_name": "isBoolean",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16882"
+    },
+    {
+      "id": "Cr8aok13rlo",
+      "qualified_name": "isElement",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16885"
+    },
+    {
+      "id": "Cujsgp7jaiv",
+      "qualified_name": "isEmpty",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16886"
+    },
+    {
+      "id": "Czqk6pd5d0a",
+      "qualified_name": "isEqual",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16887"
+    },
+    {
+      "id": "Cwij2yv83sp",
+      "qualified_name": "isEqualWith",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16888"
+    },
+    {
+      "id": "Coetasc83jt",
+      "qualified_name": "isError",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16889"
+    },
+    {
+      "id": "Czssirjb58l",
+      "qualified_name": "isFinite",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16890"
+    },
+    {
+      "id": "Caonjsj4yul",
+      "qualified_name": "isFunction",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16891"
+    },
+    {
+      "id": "C16088bw7brw",
+      "qualified_name": "isInteger",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16892"
+    },
+    {
+      "id": "Co9e3jr9e2d",
+      "qualified_name": "isLength",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16893"
+    },
+    {
+      "id": "Cjemchryz57",
+      "qualified_name": "isObject",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16902"
+    },
+    {
+      "id": "Cmdvgwc283s",
+      "qualified_name": "isObjectLike",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16903"
+    },
+    {
+      "id": "Cqdqc9k58kb",
+      "qualified_name": "isMatch",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16895"
+    },
+    {
+      "id": "Cy0zcmd0wzg",
+      "qualified_name": "isMatchWith",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16896"
+    },
+    {
+      "id": "Cihyxlnt1ca",
+      "qualified_name": "isNaN",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16897"
+    },
+    {
+      "id": "Ccphv3m71zp",
+      "qualified_name": "isNative",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16898"
+    },
+    {
+      "id": "C17gak22qvhl",
+      "qualified_name": "isNull",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16900"
+    },
+    {
+      "id": "Cy6rnuxuxg1",
+      "qualified_name": "isNil",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16899"
+    },
+    {
+      "id": "Coev9f7kb4p",
+      "qualified_name": "isNumber",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16901"
+    },
+    {
+      "id": "C6lszbisc9i",
+      "qualified_name": "isPlainObject",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16904"
+    },
+    {
+      "id": "Cskf3sphbd3",
+      "qualified_name": "isSafeInteger",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16906"
+    },
+    {
+      "id": "C19q12uyyxg",
+      "qualified_name": "isString",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16908"
+    },
+    {
+      "id": "C13ye8dfqg17",
+      "qualified_name": "isSymbol",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16909"
+    },
+    {
+      "id": "C133y3aostdu",
+      "qualified_name": "isUndefined",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16911"
+    },
+    {
+      "id": "C7qenxfkmbi",
+      "qualified_name": "isWeakMap",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16912"
+    },
+    {
+      "id": "Cxlz92cmlpz",
+      "qualified_name": "isWeakSet",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16913"
+    },
+    {
+      "id": "Cb9gdhtx3uj",
+      "qualified_name": "toFinite",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16967"
+    },
+    {
+      "id": "Cs2wpnuil76",
+      "qualified_name": "toInteger",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17018"
+    },
+    {
+      "id": "C11sec81spty",
+      "qualified_name": "toLength",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16969"
+    },
+    {
+      "id": "Csx49byl05d",
+      "qualified_name": "toNumber",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16971"
+    },
+    {
+      "id": "C102rga7n893",
+      "qualified_name": "toPlainObject",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16795"
+    },
+    {
+      "id": "C4k3a8u1wvo",
+      "qualified_name": "toSafeInteger",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16972"
+    },
+    {
+      "id": "C2fs3yvox47",
+      "qualified_name": "toString",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:521"
+    },
+    {
+      "id": "Cx4zs94loqs",
+      "qualified_name": "create",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16692"
+    },
+    {
+      "id": "Chxotc8fcay",
+      "qualified_name": "findKey",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16855"
+    },
+    {
+      "id": "Cag0m3x8dpl",
+      "qualified_name": "findLastKey",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16858"
+    },
+    {
+      "id": "C45kl04wo1m",
+      "qualified_name": "forIn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16862"
+    },
+    {
+      "id": "C16k4rric082",
+      "qualified_name": "forInRight",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16863"
+    },
+    {
+      "id": "C165znuks43a",
+      "qualified_name": "forOwn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16864"
+    },
+    {
+      "id": "Cuug1in1yrh",
+      "qualified_name": "forOwnRight",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16865"
+    },
+    {
+      "id": "Cj1cgtzeyjf",
+      "qualified_name": "functions",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16719"
+    },
+    {
+      "id": "C6e63hygear",
+      "qualified_name": "functionsIn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16720"
+    },
+    {
+      "id": "Cbj0245iu7h",
+      "qualified_name": "get",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16866"
+    },
+    {
+      "id": "Cqqafukkgjp",
+      "qualified_name": "has",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16869"
+    },
+    {
+      "id": "Codpa6solt9",
+      "qualified_name": "hasIn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16870"
+    },
+    {
+      "id": "Cdqm3q1pgkt",
+      "qualified_name": "keys",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16731"
+    },
+    {
+      "id": "Cmiwta6m85r",
+      "qualified_name": "keysIn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16732"
+    },
+    {
+      "id": "Cpifwkca7u0",
+      "qualified_name": "mapKeys",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16734"
+    },
+    {
+      "id": "C8isz41spc5",
+      "qualified_name": "mapValues",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16735"
+    },
+    {
+      "id": "Cdc9yru7315",
+      "qualified_name": "omitBy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16747"
+    },
+    {
+      "id": "C17ikhusll3k",
+      "qualified_name": "pickBy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16758"
+    },
+    {
+      "id": "Cp1eb5hj0r",
+      "qualified_name": "result",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17167"
+    },
+    {
+      "id": "Ckttytj40kp",
+      "qualified_name": "set",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16774"
+    },
+    {
+      "id": "Cg8s350cosu",
+      "qualified_name": "setWith",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16775"
+    },
+    {
+      "id": "Cgkr84ot2r0",
+      "qualified_name": "transform",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:16196"
+    },
+    {
+      "id": "C64dpg9prfm",
+      "qualified_name": "unset",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16804"
+    },
+    {
+      "id": "C10go6el2ef2",
+      "qualified_name": "update",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16807"
+    },
+    {
+      "id": "Cakxi1gdn9s",
+      "qualified_name": "updateWith",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16808"
+    },
+    {
+      "id": "C6r98xc4vl6",
+      "qualified_name": "values",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16809"
+    },
+    {
+      "id": "Cdp6kjpdt3e",
+      "qualified_name": "valuesIn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16810"
+    },
+    {
+      "id": "Ctaudvisfys",
+      "qualified_name": "clamp",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16839"
+    },
+    {
+      "id": "C1zantwbfi",
+      "qualified_name": "inRange",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16875"
+    },
+    {
+      "id": "C6cqpkqwiub",
+      "qualified_name": "random",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16942"
+    },
+    {
+      "id": "Crb2zextgeh",
+      "qualified_name": "capitalize",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16837"
+    },
+    {
+      "id": "Cxu6930ec2a",
+      "qualified_name": "deburr",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16845"
+    },
+    {
+      "id": "Cq5l7vi4jcv",
+      "qualified_name": "endsWith",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16848"
+    },
+    {
+      "id": "C149k9kmsds4",
+      "qualified_name": "escape",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16850"
+    },
+    {
+      "id": "C7vsij3yeft",
+      "qualified_name": "escapeRegExp",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16851"
+    },
+    {
+      "id": "Cijo8u18xqt",
+      "qualified_name": "pad",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:23761"
+    },
+    {
+      "id": "Cdbwzzin90t",
+      "qualified_name": "padEnd",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16939"
+    },
+    {
+      "id": "C4gegmsuu5t",
+      "qualified_name": "padStart",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16940"
+    },
+    {
+      "id": "Cboszsi6eh7",
+      "qualified_name": "parseInt",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16941"
+    },
+    {
+      "id": "C3wi0kt82wf",
+      "qualified_name": "repeat",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16945"
+    },
+    {
+      "id": "Crzyo40lpjd",
+      "qualified_name": "replace",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16946"
+    },
+    {
+      "id": "Cmf3hpd21cj",
+      "qualified_name": "split",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16781"
+    },
+    {
+      "id": "C73swnq29a3",
+      "qualified_name": "startsWith",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16961"
+    },
+    {
+      "id": "Cf8m9dw5n1o",
+      "qualified_name": "template",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16965"
+    },
+    {
+      "id": "Ceino38krz3",
+      "qualified_name": "toLower",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16970"
+    },
+    {
+      "id": "C4ouw40c2qn",
+      "qualified_name": "toUpper",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16974"
+    },
+    {
+      "id": "Cxagxr4xjbe",
+      "qualified_name": "trim",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16975"
+    },
+    {
+      "id": "Cg8gaxfnqvu",
+      "qualified_name": "trimEnd",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16976"
+    },
+    {
+      "id": "Cfqjmydxqz7",
+      "qualified_name": "trimStart",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16977"
+    },
+    {
+      "id": "C6dav9nbike",
+      "qualified_name": "truncate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16978"
+    },
+    {
+      "id": "Ch3accfs9ad",
+      "qualified_name": "unescape",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16979"
+    },
+    {
+      "id": "Ct86x0p5g9b",
+      "qualified_name": "words",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16812"
+    },
+    {
+      "id": "Cd9499q55z",
+      "qualified_name": "cond",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16688"
+    },
+    {
+      "id": "C2s0rsop80w",
+      "qualified_name": "conforms",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:3574"
+    },
+    {
+      "id": "Cu40qp1zro8",
+      "qualified_name": "constant",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16690"
+    },
+    {
+      "id": "Ci9fcwbkz4v",
+      "qualified_name": "defaultTo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16846"
+    },
+    {
+      "id": "Cupt96vpzk8",
+      "qualified_name": "identity",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26953"
+    },
+    {
+      "id": "Cndoqclope8",
+      "qualified_name": "iteratee",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:21682"
+    },
+    {
+      "id": "C11yvk0vc2mb",
+      "qualified_name": "matches",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:14530"
+    },
+    {
+      "id": "C10c2vstv0q2",
+      "qualified_name": "matchesProperty",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16737"
+    },
+    {
+      "id": "Cnwmn8xojoi",
+      "qualified_name": "mixin",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16989"
+    },
+    {
+      "id": "Cb13vxam994",
+      "qualified_name": "noConflict",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16935"
+    },
+    {
+      "id": "Cnvkfqqxyeq",
+      "qualified_name": "noop",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:25788"
+    },
+    {
+      "id": "C9xpkorhzzw",
+      "qualified_name": "nthArg",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16745"
+    },
+    {
+      "id": "Cjhb3f249ba",
+      "qualified_name": "property",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16759"
+    },
+    {
+      "id": "C3v82c3p5u",
+      "qualified_name": "propertyOf",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16760"
+    },
+    {
+      "id": "Creg47y7b6f",
+      "qualified_name": "stubArray",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27126"
+    },
+    {
+      "id": "C63ykstcj09",
+      "qualified_name": "stubFalse",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:24310"
+    },
+    {
+      "id": "Cpgsztcjaf0",
+      "qualified_name": "stubObject",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:24330"
+    },
+    {
+      "id": "C2bot1cchno",
+      "qualified_name": "stubString",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27020"
+    },
+    {
+      "id": "Ctnmww1by5e",
+      "qualified_name": "stubTrue",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27186"
+    },
+    {
+      "id": "Ctqwvap147l",
+      "qualified_name": "times",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16966"
+    },
+    {
+      "id": "Cpxqzox37d5",
+      "qualified_name": "toPath",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16794"
+    },
+    {
+      "id": "C1xln17v3t2",
+      "qualified_name": "uniqueId",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16980"
+    },
+    {
+      "id": "Cbs4inhv05v",
+      "qualified_name": "max",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16922"
+    },
+    {
+      "id": "Cruwh4igxvx",
+      "qualified_name": "maxBy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16923"
+    },
+    {
+      "id": "C8oyjf06h9x",
+      "qualified_name": "mean",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16924"
+    },
+    {
+      "id": "Cqw0c63q8wp",
+      "qualified_name": "meanBy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16925"
+    },
+    {
+      "id": "C12yfnv8dmkj",
+      "qualified_name": "min",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16926"
+    },
+    {
+      "id": "C5nmy4qjdiy",
+      "qualified_name": "minBy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16927"
+    },
+    {
+      "id": "Cgct77ynrcm",
+      "qualified_name": "sum",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16963"
+    },
+    {
+      "id": "C12x23ews9kw",
+      "qualified_name": "sumBy",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16964"
+    },
+    {
+      "id": "C4y9rsnslem",
+      "qualified_name": "interceptor",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:17166"
+    },
+    {
+      "id": "C2tysmvxi9k",
+      "qualified_name": "noop",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:25788"
+    },
+    {
+      "id": "Crltej0x347",
+      "qualified_name": "basename",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/perf/perf.js:76"
+    },
+    {
+      "id": "Cwikm4x618c",
+      "qualified_name": "getGeometricMean",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/perf/perf.js:257"
+    },
+    {
+      "id": "Ca4aimku968",
+      "qualified_name": "getHz",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/perf/perf.js:229"
+    },
+    {
+      "id": "Cgkxpg9yfwl",
+      "qualified_name": "log",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/perf/perf.js:1970"
+    },
+    {
+      "id": "C9z1z57xem",
+      "qualified_name": "run",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:4153"
+    },
+    {
+      "id": "Cwd3gvt2uv7",
+      "qualified_name": "handler_at_5",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::playwright`"
+    },
+    {
+      "id": "Cypqzshovv2",
+      "qualified_name": "handler_at_10",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::playwright`"
+    },
+    {
+      "id": "C2jv071iiw8",
+      "qualified_name": "handler_at_15",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::playwright`"
+    },
+    {
+      "id": "C189jkidc3m9",
+      "qualified_name": "handler_at_20",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::playwright`"
+    },
+    {
+      "id": "Coy1qfrwaat",
+      "qualified_name": "add",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:19063"
+    },
+    {
+      "id": "Cdyqbndpqwg",
+      "qualified_name": "isEven",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26305"
+    },
+    {
+      "id": "C102k7308e87",
+      "qualified_name": "isEvenIndex",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test-fp.js:313"
+    },
+    {
+      "id": "Cgzceabxl76",
+      "qualified_name": "square",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26358"
+    },
+    {
+      "id": "Clxovigkov4",
+      "qualified_name": "skipAssert",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27151"
+    },
+    {
+      "id": "Cvz5uyjx00b",
+      "qualified_name": "iteratee",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:21682"
+    },
+    {
+      "id": "Cinoj9l97tw",
+      "qualified_name": "predicate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26304"
+    },
+    {
+      "id": "C12jadqvdrnz",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cuy4km2k5wk",
+      "qualified_name": "resolve",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:18756"
+    },
+    {
+      "id": "Czyukwd2bdb",
+      "qualified_name": "resolve",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:18756"
+    },
+    {
+      "id": "Cmgfxtdpce5",
+      "qualified_name": "duplicate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:6455"
+    },
+    {
+      "id": "C9j6ccldomy",
+      "qualified_name": "iteratee",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:21682"
+    },
+    {
+      "id": "Cz9tk1g4byx",
+      "qualified_name": "predicate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26304"
+    },
+    {
+      "id": "C7jwgzxbxdn",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cuoyr0nmlt3",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C10hw8j79hav",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Czhxtgypsik",
+      "qualified_name": "identity",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26953"
+    },
+    {
+      "id": "C6dkn5nq7tq",
+      "qualified_name": "noop",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:25788"
+    },
+    {
+      "id": "Cy2ftv31zom",
+      "qualified_name": "add",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:19063"
+    },
+    {
+      "id": "Ctcqa1z2qh8",
+      "qualified_name": "doubled",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:23360"
+    },
+    {
+      "id": "C15otdu54pnv",
+      "qualified_name": "isEven",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26305"
+    },
+    {
+      "id": "C12q46ny77sx",
+      "qualified_name": "square",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26358"
+    },
+    {
+      "id": "C2nvt22wu8d",
+      "qualified_name": "stubA",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:25795"
+    },
+    {
+      "id": "Cmujrydilxj",
+      "qualified_name": "stubB",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:19403"
+    },
+    {
+      "id": "Cvo9yi5dq7p",
+      "qualified_name": "stubC",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:10440"
+    },
+    {
+      "id": "C9zev9ahc21",
+      "qualified_name": "stubTrue",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27186"
+    },
+    {
+      "id": "Ct2434opowc",
+      "qualified_name": "stubFalse",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:24310"
+    },
+    {
+      "id": "Ci7lypn0upw",
+      "qualified_name": "stubNaN",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:14623"
+    },
+    {
+      "id": "Cyryfzomekj",
+      "qualified_name": "stubNull",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:17017"
+    },
+    {
+      "id": "Csb8ozgl54n",
+      "qualified_name": "stubZero",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:21566"
+    },
+    {
+      "id": "Cjfzl88f0dt",
+      "qualified_name": "stubOne",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:18483"
+    },
+    {
+      "id": "C6mjhd6zap3",
+      "qualified_name": "stubTwo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:15592"
+    },
+    {
+      "id": "Csk2xydw8m8",
+      "qualified_name": "stubThree",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:25465"
+    },
+    {
+      "id": "Ccrw03qti5v",
+      "qualified_name": "stubFour",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:25475"
+    },
+    {
+      "id": "Cvtodgtupoe",
+      "qualified_name": "stubArray",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27126"
+    },
+    {
+      "id": "Cl9y6d3z3sw",
+      "qualified_name": "stubObject",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:24330"
+    },
+    {
+      "id": "Ckxk0he78wl",
+      "qualified_name": "stubString",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27020"
+    },
+    {
+      "id": "C39kz6t2ora",
+      "qualified_name": "CustomError",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:10534"
+    },
+    {
+      "id": "C8k6fyr5s5s",
+      "qualified_name": "emptyObject",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:11172"
+    },
+    {
+      "id": "C262whjovd3",
+      "qualified_name": "interopRequire",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:11174"
+    },
+    {
+      "id": "C159ge67rzlr",
+      "qualified_name": "setProperty",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:4890"
+    },
+    {
+      "id": "Cwom6d4mjp",
+      "qualified_name": "skipAssert",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27151"
+    },
+    {
+      "id": "Cvs3fuwyn6e",
+      "qualified_name": "toArgs",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26915"
+    },
+    {
+      "id": "C3027zalrma",
+      "qualified_name": "createToString",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:574"
+    },
+    {
+      "id": "Ck1seh5kl1",
+      "qualified_name": "get",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/lodash.js:16866"
+    },
+    {
+      "id": "Cgultc8ysh4",
+      "qualified_name": "attempt",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:818"
+    },
+    {
+      "id": "Cqhj8xnf9z9",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cx99jgadbi3",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cz2opm9hfx9",
+      "qualified_name": "createCaches",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:1097"
+    },
+    {
+      "id": "C189afyd2v93",
+      "qualified_name": "after",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:1212"
+    },
+    {
+      "id": "Czz6uwdok04",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C8wrpohzj7y",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C11bi1w3nka7",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C166jn4ip0rk",
+      "qualified_name": "iteratee",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:21682"
+    },
+    {
+      "id": "Ce22oowtug5",
+      "qualified_name": "before",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:1763"
+    },
+    {
+      "id": "C187ew3xymno",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Cakkun96tnf",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Ceiqgqkmnsf",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C8kf93wuuni",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Ctose1hx2rb",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cvarnp0sea7",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C16zvjilvcy1",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cvkt3cdv49f",
+      "qualified_name": "c",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:19413"
+    },
+    {
+      "id": "C17jc86mkdnf",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C4gsbeir6kr",
+      "qualified_name": "customizer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:10943"
+    },
+    {
+      "id": "Crb9rwsu3ee",
+      "qualified_name": "conforms",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:3574"
+    },
+    {
+      "id": "C7xinsoyjfc",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C89w38cy0n7",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C164eck0n0nj",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C1jdkj1tvke",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cjnhu0ykmw0",
+      "qualified_name": "Circle",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:3752"
+    },
+    {
+      "id": "Czp2c6taida",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cuwt6cjnskc",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cc3fl0yctzn",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Cn51n6x9nrj",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cjtljyalhml",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Chyiic1d8xn",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Cmixuhru3vk",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cdvjq59luh1",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C6bd9ue2a5t",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C14biaqqzntb",
+      "qualified_name": "run",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:4153"
+    },
+    {
+      "id": "Cprm9mhbs9y",
+      "qualified_name": "predicate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26304"
+    },
+    {
+      "id": "C5j13qekgow",
+      "qualified_name": "predicate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26304"
+    },
+    {
+      "id": "Cd2t3ko8s5",
+      "qualified_name": "predicate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26304"
+    },
+    {
+      "id": "C27bevqi8ng",
+      "qualified_name": "iteratee",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:21682"
+    },
+    {
+      "id": "C44eem5lhwd",
+      "qualified_name": "predicate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26304"
+    },
+    {
+      "id": "Cqhzgebd2l9",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Cx7y3r8fchd",
+      "qualified_name": "duplicate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:6455"
+    },
+    {
+      "id": "Crv5fu7jb81",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Clev9mm06sb",
+      "qualified_name": "fixed",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:6692"
+    },
+    {
+      "id": "Csbbiexz1xe",
+      "qualified_name": "iteratee",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:21682"
+    },
+    {
+      "id": "C142arc5k471",
+      "qualified_name": "predicate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26304"
+    },
+    {
+      "id": "Cyjyoj8hclt",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cc8bkup8lkw",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C12rcdrue6qk",
+      "qualified_name": "isIteratedAsObject",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7197"
+    },
+    {
+      "id": "Ccomzrwy38h",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C15tg8924o6a",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C7wymh56htd",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Cb4f05ijble",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Csyw1gr3gp4",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C14pgza9uqrr",
+      "qualified_name": "callback",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7462"
+    },
+    {
+      "id": "Cnpzyv7l3wz",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C28viigxsvu",
+      "qualified_name": "iteratee",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:21682"
+    },
+    {
+      "id": "Cko2d1euqmx",
+      "qualified_name": "predicate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26304"
+    },
+    {
+      "id": "C2iplzloha5",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C4gzcgv9vxc",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Ckmfyabmxa",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C6blt75y59l",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C9u6b4jrqc1",
+      "qualified_name": "method",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:8941"
+    },
+    {
+      "id": "Ccj57wefi1i",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cs66jy1su5p",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C15ubf00ajuk",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cc4d6qncarv",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cno5y7ir37a",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C7zy7wul83s",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C11vwzwefks5",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C143so7t81cl",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C5dvppix9z",
+      "qualified_name": "customizer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:10943"
+    },
+    {
+      "id": "Cl8y9853tsw",
+      "qualified_name": "customizer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:10943"
+    },
+    {
+      "id": "C12xajd8jbq0",
+      "qualified_name": "customizer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:10943"
+    },
+    {
+      "id": "C4jkicaif51",
+      "qualified_name": "customizer",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:10943"
+    },
+    {
+      "id": "Cv0hukpj2kz",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C94qox6cf3f",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cam7amf25uf",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Ckktwtb0g38",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Cxe2oit5bpx",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Ckgpagxeqgv",
+      "qualified_name": "getSum",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:12655"
+    },
+    {
+      "id": "Cvqb9krozz7",
+      "qualified_name": "iteratee",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:21682"
+    },
+    {
+      "id": "Couw65do36u",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C89ox1o1ij5",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C6rseyrvked",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C14pr9fx5fv3",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cwx1onnz4ba",
+      "qualified_name": "matches",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:14530"
+    },
+    {
+      "id": "Cd7eepnbtg9",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C16eu9hggzsh",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cb8qmpea7hc",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C134s7n582f1",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cdy7hnk1vyh",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Ckmjtkbovj4",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C13w62xo5t2k",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Coyg0tdnccm",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Ciw7qx0qsud",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Ct1jlsflyzq",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C18hy10ibc5",
+      "qualified_name": "CustomCache",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:14820"
+    },
+    {
+      "id": "Camlrz2swoa",
+      "qualified_name": "ImmutableCache",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:14843"
+    },
+    {
+      "id": "C1644kbqi01e",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C7bbp1hyf3h",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C1175ydtbhva",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cebvecdyvr1",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C7unucsdlin",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Ci49hs31963",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Co59kd7q5en",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cx37jdp1j5q",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Col2hnub64i",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Cr2y4pn3ooo",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cdflunlgr8x",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Ce21o7cjgvz",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cx2hkxpd8hr",
+      "qualified_name": "reset",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:16010"
+    },
+    {
+      "id": "Cyspcy3l7cf",
+      "qualified_name": "Wrapper",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:15978"
+    },
+    {
+      "id": "Cp5mcn7tyaa",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C74jck7qb8l",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C4aajecceja",
+      "qualified_name": "transform",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:16196"
+    },
+    {
+      "id": "C12h4wd9s5to",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cbsrhbvwbr8",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C90l8rpnoov",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C15xx9l5b50x",
+      "qualified_name": "countFalse",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:17005"
+    },
+    {
+      "id": "Cwmdnj1e7sx",
+      "qualified_name": "countTrue",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:17005"
+    },
+    {
+      "id": "C17jajpk3ude",
+      "qualified_name": "countFalse",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:17005"
+    },
+    {
+      "id": "Cmnd5cc9uz4",
+      "qualified_name": "countTrue",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:17005"
+    },
+    {
+      "id": "Cb0kjvic4mw",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C13g44def0pj",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C16xsjbifrco",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C14kys33yk5k",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Cuuos3xo24m",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Cxo4x2hzqi5",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cn9ju1ww7ae",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Ca259y9whgz",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Chgill4fndh",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Cs5e6mn93hd",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Cqu71xhcreh",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "C4g5kgon49k",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C9tmxmyysvl",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Cy4yiyhhe8f",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Cf9dco5bl4s",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C13h8h2q4m8j",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Ci3c6yjp1e0",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cggaovq2rd6",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Ckecmy1iz",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C125pqk1i4gp",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cjnkhq64x1b",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C15pbv3u90d6",
+      "qualified_name": "pull",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:18395"
+    },
+    {
+      "id": "C2g9q8cdt7e",
+      "qualified_name": "resolve",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:18756"
+    },
+    {
+      "id": "C9jlhfpqcle",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C15xlpyzub38",
+      "qualified_name": "predicate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26304"
+    },
+    {
+      "id": "C17um1c33urb",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "C8q17l8bsjy",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cg27hwdlwpp",
+      "qualified_name": "toString",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:521"
+    },
+    {
+      "id": "C5s3ezlouix",
+      "qualified_name": "Pair",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:20876"
+    },
+    {
+      "id": "C15ifxhgzsax",
+      "qualified_name": "iteratee",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:21682"
+    },
+    {
+      "id": "Cfgaojxp7jt",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Cdc7tnnrnsy",
+      "qualified_name": "iteratee",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:21682"
+    },
+    {
+      "id": "Cwburvvjsg6",
+      "qualified_name": "predicate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26304"
+    },
+    {
+      "id": "C1v0nfdndoa",
+      "qualified_name": "predicate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26304"
+    },
+    {
+      "id": "Cugzop17p38",
+      "qualified_name": "predicate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26304"
+    },
+    {
+      "id": "Crat14bbcff",
+      "qualified_name": "predicate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26304"
+    },
+    {
+      "id": "C6hc7aiqsu",
+      "qualified_name": "negative",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:23761"
+    },
+    {
+      "id": "C64okduah9b",
+      "qualified_name": "pad",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:23761"
+    },
+    {
+      "id": "Czjwz7xm4cq",
+      "qualified_name": "positive",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:23761"
+    },
+    {
+      "id": "C16m7sub55m1",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cd8kql604ls",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cfif4hzsqhe",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Csu1ulau59d",
+      "qualified_name": "iteratee",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:21682"
+    },
+    {
+      "id": "Cy0gczfiuw",
+      "qualified_name": "mapper",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:24223"
+    },
+    {
+      "id": "Cll2snj7689",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Ccaooth58lt",
+      "qualified_name": "Foo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:7196"
+    },
+    {
+      "id": "Cy721o9rj2o",
+      "qualified_name": "chain",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26300"
+    },
+    {
+      "id": "Cvrhppk3270",
+      "qualified_name": "predicate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:26304"
+    },
+    {
+      "id": "C10k4l5u15l6",
+      "qualified_name": "fn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/js-lodash/test/test.js:27221"
+    },
+    {
+      "id": "Cv4rkjchofp",
+      "qualified_name": "<framework-entry>::test::playwright",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::playwright`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 86,
+      "members": [
+        "C6d0xzdrp99",
+        "C9annff2cfj"
+      ],
+      "anchors": [
+        "C9annff2cfj"
+      ],
+      "files": [
+        "Fmpgupoyecu"
+      ],
+      "total_lines": 24,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 314,
+      "members": [
+        "Cn9zigaiovm"
+      ],
+      "anchors": [
+        "Cn9zigaiovm"
+      ],
+      "files": [
+        "Fmpgupoyecu"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 339,
+      "members": [
+        "Cfi9t1zrlqk"
+      ],
+      "anchors": [
+        "Cfi9t1zrlqk"
+      ],
+      "files": [
+        "Fmpgupoyecu"
+      ],
+      "total_lines": 15,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 351,
+      "members": [
+        "C9flwy5k1wx"
+      ],
+      "anchors": [
+        "C9flwy5k1wx"
+      ],
+      "files": [
+        "Fmpgupoyecu"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 539,
+      "members": [
+        "C166mg1eeoq2"
+      ],
+      "anchors": [
+        "C166mg1eeoq2"
+      ],
+      "files": [
+        "Fmpgupoyecu"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 540,
+      "members": [
+        "C375yo57l29"
+      ],
+      "anchors": [
+        "C375yo57l29"
+      ],
+      "files": [
+        "Fmpgupoyecu"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 541,
+      "members": [
+        "Cj1wkh01sj7"
+      ],
+      "anchors": [
+        "Cj1wkh01sj7"
+      ],
+      "files": [
+        "Fmpgupoyecu"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 543,
+      "members": [
+        "Cwd94ctjvjh"
+      ],
+      "anchors": [
+        "Cwd94ctjvjh"
+      ],
+      "files": [
+        "Fmpgupoyecu"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 544,
+      "members": [
+        "C3akumlekne"
+      ],
+      "anchors": [
+        "C3akumlekne"
+      ],
+      "files": [
+        "Fmpgupoyecu"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 545,
+      "members": [
+        "C8lxd0li9eq"
+      ],
+      "anchors": [
+        "C8lxd0li9eq"
+      ],
+      "files": [
+        "Fmpgupoyecu"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 548,
+      "members": [
+        "C5iwt31x7dt"
+      ],
+      "anchors": [],
+      "files": [
+        "Fczbn6gz8zf"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 553,
+      "members": [
+        "Ckoqp1529ts"
+      ],
+      "anchors": [
+        "Ckoqp1529ts"
+      ],
+      "files": [
+        "Fn4fbqr486e"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 557,
+      "members": [
+        "Covz0srx5n7",
+        "Cqkwos1p6e0"
+      ],
+      "anchors": [],
+      "files": [
+        "Fealvus2xrf"
+      ],
+      "total_lines": 50,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 601,
+      "members": [
+        "C17gpdnsynfm"
+      ],
+      "anchors": [
+        "C17gpdnsynfm"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 602,
+      "members": [
+        "Chm2ctwoavx"
+      ],
+      "anchors": [
+        "Chm2ctwoavx"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 603,
+      "members": [
+        "C15ba4xbtggk"
+      ],
+      "anchors": [
+        "C15ba4xbtggk"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 613,
+      "members": [
+        "Cylh8daclcx"
+      ],
+      "anchors": [],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 617,
+      "members": [
+        "C4j5yoertcj"
+      ],
+      "anchors": [
+        "C4j5yoertcj"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 631,
+      "members": [
+        "Ca6ly7qjcxs"
+      ],
+      "anchors": [
+        "Ca6ly7qjcxs"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 633,
+      "members": [
+        "Cxuft3s225r"
+      ],
+      "anchors": [
+        "Cxuft3s225r"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 643,
+      "members": [
+        "Cdi2ko9hwkh"
+      ],
+      "anchors": [
+        "Cdi2ko9hwkh"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 645,
+      "members": [
+        "C12r8y9fhq2o"
+      ],
+      "anchors": [
+        "C12r8y9fhq2o"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 649,
+      "members": [
+        "Crkvn341ucj"
+      ],
+      "anchors": [
+        "Crkvn341ucj"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 661,
+      "members": [
+        "Cgtzr2dg289"
+      ],
+      "anchors": [
+        "Cgtzr2dg289"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 696,
+      "members": [
+        "Ces246dp4z7"
+      ],
+      "anchors": [
+        "Ces246dp4z7"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 700,
+      "members": [
+        "Cjk2zrumftn"
+      ],
+      "anchors": [
+        "Cjk2zrumftn"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 721,
+      "members": [
+        "Cd65thykd0m"
+      ],
+      "anchors": [
+        "Cd65thykd0m"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 727,
+      "members": [
+        "C632se5uylv"
+      ],
+      "anchors": [
+        "C632se5uylv"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 747,
+      "members": [
+        "Cozqiq0kr2q"
+      ],
+      "anchors": [
+        "Cozqiq0kr2q"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 766,
+      "members": [
+        "C12cq3m38t94"
+      ],
+      "anchors": [
+        "C12cq3m38t94"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 769,
+      "members": [
+        "Cftd4xci5gj"
+      ],
+      "anchors": [],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 810,
+      "members": [
+        "Crrl986p6y7"
+      ],
+      "anchors": [
+        "Crrl986p6y7"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 811,
+      "members": [
+        "C13i89s9w0l8"
+      ],
+      "anchors": [
+        "C13i89s9w0l8"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 812,
+      "members": [
+        "Cdgjdj1crwk"
+      ],
+      "anchors": [
+        "Cdgjdj1crwk"
+      ],
+      "files": [
+        "Fvbgp9qhofg"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "C6d0xzdrp99",
+      "qualified_name": "iteratorToArray",
+      "simple_name": "iteratorToArray",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fmpgupoyecu",
+      "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+      "start_line": 1189,
+      "end_line": 1197,
+      "size_lines": 9,
+      "signature_hint": "function iteratorToArray(iterator)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 86,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C9annff2cfj"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckoqp1529ts",
+      "qualified_name": "isHostType",
+      "simple_name": "isHostType",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fn4fbqr486e",
+      "path": "/storage/cgg-test_repos/js-lodash/perf/perf.js",
+      "start_line": 167,
+      "end_line": 173,
+      "size_lines": 7,
+      "signature_hint": "function isHostType(object, property)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -93,
+      "region": 553,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C375yo57l29",
+      "qualified_name": "find",
+      "simple_name": "find",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fmpgupoyecu",
+      "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+      "start_line": 17078,
+      "end_line": 17080,
+      "size_lines": 3,
+      "signature_hint": "LazyWrapper.prototype.find = function(predicate)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 540,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cj1wkh01sj7",
+      "qualified_name": "findLast",
+      "simple_name": "findLast",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fmpgupoyecu",
+      "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+      "start_line": 17082,
+      "end_line": 17084,
+      "size_lines": 3,
+      "signature_hint": "LazyWrapper.prototype.findLast = function(predicate)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 541,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C5iwt31x7dt",
+      "qualified_name": "eventHandler",
+      "simple_name": "eventHandler",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fczbn6gz8zf",
+      "path": "/storage/cgg-test_repos/js-lodash/perf/asset/perf-ui.js",
+      "start_line": 20,
+      "end_line": 35,
+      "size_lines": 16,
+      "signature_hint": "function eventHandler(event)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -384,
+      "region": 548,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 2
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwd94ctjvjh",
+      "qualified_name": "slice",
+      "simple_name": "slice",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fmpgupoyecu",
+      "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+      "start_line": 17099,
+      "end_line": 17116,
+      "size_lines": 18,
+      "signature_hint": "LazyWrapper.prototype.slice = function(start, end)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -882,
+      "region": 543,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 1,
+          "file_local_candidates": 2,
+          "example": {
+            "file": "Fmpgupoyecu",
+            "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+            "line": 16777,
+            "name": "slice"
+          }
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "slice",
+          "sites": 30,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fmpgupoyecu",
+            "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+            "line": 16777,
+            "name": "slice"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "Cfi9t1zrlqk",
+      "qualified_name": "slice",
+      "simple_name": "slice",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fmpgupoyecu",
+      "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+      "start_line": 8006,
+      "end_line": 8020,
+      "size_lines": 15,
+      "signature_hint": "function slice(array, start, end)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -885,
+      "region": 339,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 1,
+          "file_local_candidates": 2,
+          "example": {
+            "file": "Fmpgupoyecu",
+            "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+            "line": 16777,
+            "name": "slice"
+          }
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "slice",
+          "sites": 30,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fmpgupoyecu",
+            "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+            "line": 16777,
+            "name": "slice"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C9annff2cfj",
+      "qualified_name": "toArray",
+      "simple_name": "toArray",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fmpgupoyecu",
+      "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+      "start_line": 12418,
+      "end_line": 12432,
+      "size_lines": 15,
+      "signature_hint": "function toArray(value)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -885,
+      "region": 86,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 2,
+          "file_local_candidates": 2,
+          "example": {
+            "file": "Fmpgupoyecu",
+            "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+            "line": 9018,
+            "name": "toArray"
+          }
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "toArray",
+          "sites": 2,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fmpgupoyecu",
+            "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+            "line": 9018,
+            "name": "toArray"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 8
+    },
+    {
+      "id": "Cn9zigaiovm",
+      "qualified_name": "compact",
+      "simple_name": "compact",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fmpgupoyecu",
+      "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+      "start_line": 6969,
+      "end_line": 6982,
+      "size_lines": 14,
+      "signature_hint": "function compact(array)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -886,
+      "region": 314,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 1,
+          "file_local_candidates": 2,
+          "example": {
+            "file": "Fmpgupoyecu",
+            "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+            "line": 16686,
+            "name": "compact"
+          }
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "compact",
+          "sites": 1,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fmpgupoyecu",
+            "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+            "line": 16686,
+            "name": "compact"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C9flwy5k1wx",
+      "qualified_name": "takeRightWhile",
+      "simple_name": "takeRightWhile",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fmpgupoyecu",
+      "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+      "start_line": 8342,
+      "end_line": 8346,
+      "size_lines": 5,
+      "signature_hint": "function takeRightWhile(array, predicate)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -895,
+      "region": 351,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 1,
+          "file_local_candidates": 2,
+          "example": {
+            "file": "Fmpgupoyecu",
+            "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+            "line": 16786,
+            "name": "takeRightWhile"
+          }
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "takeRightWhile",
+          "sites": 1,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fmpgupoyecu",
+            "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+            "line": 16786,
+            "name": "takeRightWhile"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C166mg1eeoq2",
+      "qualified_name": "compact",
+      "simple_name": "compact",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fmpgupoyecu",
+      "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+      "start_line": 17074,
+      "end_line": 17076,
+      "size_lines": 3,
+      "signature_hint": "LazyWrapper.prototype.compact = function()",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -897,
+      "region": 539,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 1,
+          "file_local_candidates": 2,
+          "example": {
+            "file": "Fmpgupoyecu",
+            "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+            "line": 16686,
+            "name": "compact"
+          }
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "compact",
+          "sites": 1,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fmpgupoyecu",
+            "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+            "line": 16686,
+            "name": "compact"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C3akumlekne",
+      "qualified_name": "takeRightWhile",
+      "simple_name": "takeRightWhile",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fmpgupoyecu",
+      "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+      "start_line": 17118,
+      "end_line": 17120,
+      "size_lines": 3,
+      "signature_hint": "LazyWrapper.prototype.takeRightWhile = function(predicate)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -897,
+      "region": 544,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 1,
+          "file_local_candidates": 2,
+          "example": {
+            "file": "Fmpgupoyecu",
+            "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+            "line": 16786,
+            "name": "takeRightWhile"
+          }
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "takeRightWhile",
+          "sites": 1,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fmpgupoyecu",
+            "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+            "line": 16786,
+            "name": "takeRightWhile"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C8lxd0li9eq",
+      "qualified_name": "toArray",
+      "simple_name": "toArray",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fmpgupoyecu",
+      "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+      "start_line": 17122,
+      "end_line": 17124,
+      "size_lines": 3,
+      "signature_hint": "LazyWrapper.prototype.toArray = function()",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -897,
+      "region": 545,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 2,
+          "file_local_candidates": 2,
+          "example": {
+            "file": "Fmpgupoyecu",
+            "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+            "line": 9018,
+            "name": "toArray"
+          }
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "toArray",
+          "sites": 2,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fmpgupoyecu",
+            "path": "/storage/cgg-test_repos/js-lodash/lodash.js",
+            "line": 9018,
+            "name": "toArray"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    }
+  ]
+}

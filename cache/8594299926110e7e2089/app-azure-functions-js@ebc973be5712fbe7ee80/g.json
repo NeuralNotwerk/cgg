@@ -1,0 +1,227 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "Cbdn6jz43fk": {
+      "id": "Cbdn6jz43fk",
+      "qualified_name": "handler_at_6",
+      "simple_name": "handler_at_6",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "F18noc4n2ub",
+      "start_line": 6,
+      "end_line": 12,
+      "start_byte": 130,
+      "end_byte": 375,
+      "signature_hint": "async (request, context) =>",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "Ci6bbkyvgvt": {
+      "id": "Ci6bbkyvgvt",
+      "qualified_name": "handler_at_6",
+      "simple_name": "handler_at_6",
+      "kind": "closure",
+      "language": "javascript",
+      "file": "F12os7xzq3h0",
+      "start_line": 6,
+      "end_line": 30,
+      "start_byte": 132,
+      "end_byte": 894,
+      "signature_hint": "async (request, context) =>",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true
+    },
+    "C142z05l353j": {
+      "id": "C142z05l353j",
+      "qualified_name": "<framework-entry>::network::azure-functions::http(\"httpget\")",
+      "simple_name": "http(\"httpget\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `app.http(\"httpget\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cgt9k0wk2cm": {
+      "id": "Cgt9k0wk2cm",
+      "qualified_name": "<framework-entry>::network::azure-functions::http(\"httppost\")",
+      "simple_name": "http(\"httppost\")",
+      "kind": "function",
+      "language": "javascript",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `app.http(\"httppost\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    }
+  },
+  "files": {
+    "F18noc4n2ub": {
+      "id": "F18noc4n2ub",
+      "path": "/storage/cgg-test_repos/app-azure-functions-js/src/functions/httpGetFunction.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "63dc5e859f343bae4f441f1ce9352913311ac355bab8624a0774ead6ad044bf9",
+      "size_bytes": 380,
+      "lines": 13,
+      "parse_ms": 0.204931,
+      "parse_status": "ok"
+    },
+    "F12os7xzq3h0": {
+      "id": "F12os7xzq3h0",
+      "path": "/storage/cgg-test_repos/app-azure-functions-js/src/functions/httpPostBodyFunction.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "3def3b744a2c44691d2a0d1937269623638a6df3b41fcbc05f7bfdd10349fe86",
+      "size_bytes": 898,
+      "lines": 31,
+      "parse_ms": 0.270771,
+      "parse_status": "ok"
+    },
+    "F11f5zxua3k1": {
+      "id": "F11f5zxua3k1",
+      "path": "/storage/cgg-test_repos/app-azure-functions-js/src/index.js",
+      "language": "javascript",
+      "detected_via": "extension:.js",
+      "blake3": "08457d63e2e9469b7808bce0a2bed0487fbec8da68f2c5d20b5a8ac4d64c8f51",
+      "size_bytes": 90,
+      "lines": 5,
+      "parse_ms": 0.04796,
+      "parse_status": "ok"
+    },
+    "Fn7kcdjzuh1": {
+      "id": "Fn7kcdjzuh1",
+      "path": "<framework-entry>",
+      "language": "framework-entry",
+      "detected_via": "synthesized",
+      "blake3": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 0,
+      "lines": 0,
+      "parse_ms": 0.0,
+      "parse_status": "synthetic"
+    }
+  },
+  "edges": [
+    {
+      "src": "C142z05l353j",
+      "dst": "Cbdn6jz43fk",
+      "site_line": 6,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "azure-functions"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cgt9k0wk2cm",
+      "dst": "Ci6bbkyvgvt",
+      "site_line": 6,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "azure-functions"
+      },
+      "resolver": "framework-entry"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": "Cbdn6jz43fk",
+      "file": "F18noc4n2ub",
+      "site_line": 6,
+      "site_byte": 130,
+      "name": "handler_at_6",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Ci6bbkyvgvt",
+      "file": "F12os7xzq3h0",
+      "site_line": 6,
+      "site_byte": 132,
+      "name": "handler_at_6",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 6.129554,
+    "phases": {
+      "walk_ms": 2.2330449999999997,
+      "parse_ms": 0.523662,
+      "extract_ms": 3.134036,
+      "resolve_ms": 0.0,
+      "link_ms": 1.654434,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 58,
+    "files_analyzed": 3,
+    "files_skipped": 55,
+    "files_errored": 0,
+    "bytes_processed": 1368,
+    "callables": 4,
+    "edges": 2,
+    "unresolved_calls": 2,
+    "stdlib_calls": 3,
+    "external_calls": 8,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "javascript": {
+        "files": 3,
+        "callables": 2,
+        "edges": 0,
+        "unresolved": 2,
+        "stdlib": 3,
+        "external": 8
+      },
+      "skip:builtin": {
+        "files": 28,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    }
+  }
+}

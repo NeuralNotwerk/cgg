@@ -1,0 +1,2673 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "Czexse75gka": {
+      "id": "Czexse75gka",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.configure",
+      "simple_name": "configure",
+      "kind": "method",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 122,
+      "end_line": 163,
+      "start_byte": 5330,
+      "end_byte": 7095,
+      "signature_hint": "public void configure(@SuppressWarnings(\"rawtypes\") Map stormConf, JsonNode filterParams)",
+      "vis": "public"
+    },
+    "Ctkkechwern": {
+      "id": "Ctkkechwern",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.run",
+      "simple_name": "run",
+      "kind": "method",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 151,
+      "end_line": 158,
+      "start_byte": 6550,
+      "end_byte": 6951,
+      "signature_hint": "public void run()",
+      "vis": "public"
+    },
+    "Ca8mzgawhoe": {
+      "id": "Ca8mzgawhoe",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.loadJSONResources",
+      "simple_name": "loadJSONResources",
+      "kind": "method",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 170,
+      "end_line": 219,
+      "start_byte": 7221,
+      "end_byte": 9281,
+      "signature_hint": "@Override public void loadJSONResources() throws Exception",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "public"
+    },
+    "C8evfxz9v59": {
+      "id": "C8evfxz9v59",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.loadJSONResources",
+      "simple_name": "loadJSONResources",
+      "kind": "method",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 221,
+      "end_line": 237,
+      "start_byte": 9287,
+      "end_byte": 9862,
+      "signature_hint": "@Override public void loadJSONResources(InputStream inputStream) throws JsonParseException, JsonMappingException, IOException",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "public"
+    },
+    "C279h0wbxpp": {
+      "id": "C279h0wbxpp",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.getResourceFile",
+      "simple_name": "getResourceFile",
+      "kind": "method",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 239,
+      "end_line": 242,
+      "start_byte": 9868,
+      "end_byte": 9950,
+      "signature_hint": "@Override public String getResourceFile()",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "public"
+    },
+    "Cjaqpo4apgm": {
+      "id": "Cjaqpo4apgm",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.filter",
+      "simple_name": "filter",
+      "kind": "method",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 244,
+      "end_line": 299,
+      "start_byte": 9956,
+      "end_byte": 11716,
+      "signature_hint": "@Override public String filter(URL sourceUrl, Metadata sourceMetadata, String urlToFilter)",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "public"
+    },
+    "Ci0f8awj1ne": {
+      "id": "Ci0f8awj1ne",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.reloadRules",
+      "simple_name": "reloadRules",
+      "kind": "method",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 301,
+      "end_line": 377,
+      "start_byte": 11722,
+      "end_byte": 14752,
+      "signature_hint": "private void reloadRules(Reader rules) throws IOException",
+      "vis": "private"
+    },
+    "C15yh9xqvszv": {
+      "id": "C15yh9xqvszv",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.Rule.Rule",
+      "simple_name": "Rule",
+      "kind": "constructor",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 382,
+      "end_line": 382,
+      "start_byte": 14829,
+      "end_byte": 14838,
+      "signature_hint": "Rule()",
+      "vis": "internal"
+    },
+    "Clnr6dby16h": {
+      "id": "Clnr6dby16h",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.Rule.Rule",
+      "simple_name": "Rule",
+      "kind": "constructor",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 384,
+      "end_line": 386,
+      "start_byte": 14848,
+      "end_byte": 14931,
+      "signature_hint": "public Rule(String regex)",
+      "vis": "public"
+    },
+    "Ck8po1zb2ku": {
+      "id": "Ck8po1zb2ku",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.Rule.match",
+      "simple_name": "match",
+      "kind": "method",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 388,
+      "end_line": 390,
+      "start_byte": 14941,
+      "end_byte": 15041,
+      "signature_hint": "public boolean match(URL url)",
+      "vis": "public"
+    },
+    "C9khtvuvv76": {
+      "id": "C9khtvuvv76",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.Rule.toString",
+      "simple_name": "toString",
+      "kind": "method",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 392,
+      "end_line": 394,
+      "start_byte": 15051,
+      "end_byte": 15126,
+      "signature_hint": "public String toString()",
+      "vis": "public"
+    },
+    "Cgbnm3y8p97": {
+      "id": "Cgbnm3y8p97",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.DenyPathRule.DenyPathRule",
+      "simple_name": "DenyPathRule",
+      "kind": "constructor",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 398,
+      "end_line": 400,
+      "start_byte": 15194,
+      "end_byte": 15265,
+      "signature_hint": "public DenyPathRule(String regex)",
+      "vis": "public"
+    },
+    "Cb1mndbdpwh": {
+      "id": "Cb1mndbdpwh",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.DenyPathRule.match",
+      "simple_name": "match",
+      "kind": "method",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 402,
+      "end_line": 405,
+      "start_byte": 15275,
+      "end_byte": 15414,
+      "signature_hint": "public boolean match(URL url)",
+      "vis": "public"
+    },
+    "C9464csd5xd": {
+      "id": "C9464csd5xd",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.DenyAllRule.DenyAllRule",
+      "simple_name": "DenyAllRule",
+      "kind": "constructor",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 413,
+      "end_line": 415,
+      "start_byte": 15617,
+      "end_byte": 15688,
+      "signature_hint": "private DenyAllRule(String regex)",
+      "vis": "private"
+    },
+    "C11p3tk3yn37": {
+      "id": "C11p3tk3yn37",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.DenyAllRule.getInstance",
+      "simple_name": "getInstance",
+      "kind": "method",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 417,
+      "end_line": 419,
+      "start_byte": 15698,
+      "end_byte": 15771,
+      "signature_hint": "public static Rule getInstance()",
+      "vis": "public"
+    },
+    "Cph35mqtz6d": {
+      "id": "Cph35mqtz6d",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.DenyAllRule.match",
+      "simple_name": "match",
+      "kind": "method",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 421,
+      "end_line": 423,
+      "start_byte": 15781,
+      "end_byte": 15847,
+      "signature_hint": "public boolean match(URL url)",
+      "vis": "public"
+    },
+    "Ce9vxbad775": {
+      "id": "Ce9vxbad775",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.DenyPathQueryRule.DenyPathQueryRule",
+      "simple_name": "DenyPathQueryRule",
+      "kind": "constructor",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 427,
+      "end_line": 429,
+      "start_byte": 15920,
+      "end_byte": 15996,
+      "signature_hint": "public DenyPathQueryRule(String regex)",
+      "vis": "public"
+    },
+    "Clok0fac9l5": {
+      "id": "Clok0fac9l5",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.DenyPathQueryRule.match",
+      "simple_name": "match",
+      "kind": "method",
+      "language": "java",
+      "file": "Ft97ki0xbjh",
+      "start_line": 431,
+      "end_line": 434,
+      "start_byte": 16006,
+      "end_byte": 16145,
+      "signature_hint": "public boolean match(URL url)",
+      "vis": "public"
+    },
+    "Cgcd8xku8ci": {
+      "id": "Cgcd8xku8ci",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.ContentDetector.ContentDetector",
+      "simple_name": "ContentDetector",
+      "kind": "constructor",
+      "language": "java",
+      "file": "F13neluskgtr",
+      "start_line": 39,
+      "end_line": 47,
+      "start_byte": 1473,
+      "end_byte": 1872,
+      "signature_hint": "public ContentDetector(String[][] clues, int maxOffset)",
+      "vis": "public"
+    },
+    "Cnudibfh0eq": {
+      "id": "Cnudibfh0eq",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.ContentDetector.getFirstMatch",
+      "simple_name": "getFirstMatch",
+      "kind": "method",
+      "language": "java",
+      "file": "F13neluskgtr",
+      "start_line": 49,
+      "end_line": 64,
+      "start_byte": 1878,
+      "end_byte": 2414,
+      "signature_hint": "public int getFirstMatch(byte[] content)",
+      "vis": "public"
+    },
+    "C116884s39va": {
+      "id": "C116884s39va",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.ContentDetector.matches",
+      "simple_name": "matches",
+      "kind": "method",
+      "language": "java",
+      "file": "F13neluskgtr",
+      "start_line": 66,
+      "end_line": 68,
+      "start_byte": 2420,
+      "end_byte": 2512,
+      "signature_hint": "public boolean matches(byte[] content)",
+      "vis": "public"
+    },
+    "C15dopc87qyo": {
+      "id": "C15dopc87qyo",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.CrawlTopology.main",
+      "simple_name": "main",
+      "kind": "method",
+      "language": "java",
+      "file": "Fbiy9j4xcy2",
+      "start_line": 49,
+      "end_line": 51,
+      "start_byte": 2263,
+      "end_byte": 2389,
+      "signature_hint": "public static void main(String[] args) throws Exception",
+      "vis": "public"
+    },
+    "Cpiamtwkufi": {
+      "id": "Cpiamtwkufi",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.CrawlTopology.run",
+      "simple_name": "run",
+      "kind": "method",
+      "language": "java",
+      "file": "Fbiy9j4xcy2",
+      "start_line": 53,
+      "end_line": 118,
+      "start_byte": 2395,
+      "end_byte": 5248,
+      "signature_hint": "@Override protected int run(String[] args)",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "protected"
+    },
+    "Cz09y6xug4h": {
+      "id": "Cz09y6xug4h",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.CrawlTopology.getWarcBolt",
+      "simple_name": "getWarcBolt",
+      "kind": "method",
+      "language": "java",
+      "file": "Fbiy9j4xcy2",
+      "start_line": 120,
+      "end_line": 165,
+      "start_byte": 5254,
+      "end_byte": 7636,
+      "signature_hint": "protected WARCHdfsBolt getWarcBolt(String filePrefix)",
+      "vis": "protected"
+    },
+    "Cawmd06e95a": {
+      "id": "Cawmd06e95a",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.FeedDetectorBolt.execute",
+      "simple_name": "execute",
+      "kind": "method",
+      "language": "java",
+      "file": "F14roejzd7y2",
+      "start_line": 47,
+      "end_line": 92,
+      "start_byte": 1914,
+      "end_byte": 3561,
+      "signature_hint": "@Override public void execute(Tuple tuple)",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "public"
+    },
+    "Cl0i6f89hay": {
+      "id": "Cl0i6f89hay",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.FeedDetectorBolt.prepare",
+      "simple_name": "prepare",
+      "kind": "method",
+      "language": "java",
+      "file": "F14roejzd7y2",
+      "start_line": 94,
+      "end_line": 99,
+      "start_byte": 3567,
+      "end_byte": 3818,
+      "signature_hint": "@Override @SuppressWarnings({\"rawtypes\"}) public void prepare(Map stormConf, TopologyContext context, OutputCollector collect)",
+      "attributes": [
+        "@Override",
+        "@SuppressWarnings({\"rawtypes\"})"
+      ],
+      "vis": "public"
+    },
+    "Cxm5gzruu42": {
+      "id": "Cxm5gzruu42",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSiteMapParserBolt.execute",
+      "simple_name": "execute",
+      "kind": "method",
+      "language": "java",
+      "file": "F7jnpixw8b7",
+      "start_line": 138,
+      "end_line": 275,
+      "start_byte": 5276,
+      "end_byte": 11208,
+      "signature_hint": "@Override public void execute(Tuple tuple)",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "public"
+    },
+    "Chk4gdxjcua": {
+      "id": "Chk4gdxjcua",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSiteMapParserBolt.detectContent",
+      "simple_name": "detectContent",
+      "kind": "method",
+      "language": "java",
+      "file": "F7jnpixw8b7",
+      "start_line": 277,
+      "end_line": 301,
+      "start_byte": 11214,
+      "end_byte": 12304,
+      "signature_hint": "public SitemapType detectContent(String url, byte[] content)",
+      "vis": "public"
+    },
+    "C12wrvz5q427": {
+      "id": "C12wrvz5q427",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSiteMapParserBolt.recentlyModified",
+      "simple_name": "recentlyModified",
+      "kind": "method",
+      "language": "java",
+      "file": "F7jnpixw8b7",
+      "start_line": 303,
+      "end_line": 313,
+      "start_byte": 12310,
+      "end_byte": 12747,
+      "signature_hint": "private boolean recentlyModified(Date lastModified)",
+      "vis": "private"
+    },
+    "Cg9p7fxq907": {
+      "id": "Cg9p7fxq907",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSiteMapParserBolt.parseSiteMap",
+      "simple_name": "parseSiteMap",
+      "kind": "method",
+      "language": "java",
+      "file": "F7jnpixw8b7",
+      "start_line": 315,
+      "end_line": 503,
+      "start_byte": 12753,
+      "end_byte": 20692,
+      "signature_hint": "protected AbstractSiteMap parseSiteMap( String url, byte[] content, String contentType, Metadata parentMetadata, List<Outlink> links) throws UnknownFormatException, IOException",
+      "vis": "protected"
+    },
+    "C14b36aleeyd": {
+      "id": "C14b36aleeyd",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSiteMapParserBolt.prepare",
+      "simple_name": "prepare",
+      "kind": "method",
+      "language": "java",
+      "file": "F7jnpixw8b7",
+      "start_line": 505,
+      "end_line": 523,
+      "start_byte": 20698,
+      "end_byte": 21815,
+      "signature_hint": "@Override @SuppressWarnings({\"rawtypes\", \"unchecked\"}) public void prepare(Map stormConf, TopologyContext context, OutputCollector collector)",
+      "attributes": [
+        "@Override",
+        "@SuppressWarnings({\"rawtypes\", \"unchecked\"})"
+      ],
+      "vis": "public"
+    },
+    "C6hei8ioue5": {
+      "id": "C6hei8ioue5",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapScheduler.init",
+      "simple_name": "init",
+      "kind": "method",
+      "language": "java",
+      "file": "Fpwoyoi4z4a",
+      "start_line": 59,
+      "end_line": 68,
+      "start_byte": 2584,
+      "end_byte": 2997,
+      "signature_hint": "@Override public void init(Map<String, Object> stormConf)",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "public"
+    },
+    "C4pz42b5n4": {
+      "id": "C4pz42b5n4",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapScheduler.schedule",
+      "simple_name": "schedule",
+      "kind": "method",
+      "language": "java",
+      "file": "Fpwoyoi4z4a",
+      "start_line": 70,
+      "end_line": 77,
+      "start_byte": 3003,
+      "end_byte": 3299,
+      "signature_hint": "@Override public Optional<Date> schedule(Status status, Metadata metadata)",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "public"
+    },
+    "Cmmigb0hcr6": {
+      "id": "Cmmigb0hcr6",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapScheduler.isDeadEphemeralSitemap",
+      "simple_name": "isDeadEphemeralSitemap",
+      "kind": "method",
+      "language": "java",
+      "file": "Fpwoyoi4z4a",
+      "start_line": 80,
+      "end_line": 85,
+      "start_byte": 3403,
+      "end_byte": 3687,
+      "signature_hint": "static boolean isDeadEphemeralSitemap(Status status, Metadata metadata, long staleMillis)",
+      "vis": "internal"
+    },
+    "C82m1pz8ksi": {
+      "id": "C82m1pz8ksi",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapScheduler.isSitemap",
+      "simple_name": "isSitemap",
+      "kind": "method",
+      "language": "java",
+      "file": "Fpwoyoi4z4a",
+      "start_line": 87,
+      "end_line": 93,
+      "start_byte": 3693,
+      "end_byte": 4152,
+      "signature_hint": "private static boolean isSitemap(Metadata m)",
+      "vis": "private"
+    },
+    "C1qa98i2p0s": {
+      "id": "C1qa98i2p0s",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapScheduler.noRecentNews",
+      "simple_name": "noRecentNews",
+      "kind": "method",
+      "language": "java",
+      "file": "Fpwoyoi4z4a",
+      "start_line": 96,
+      "end_line": 98,
+      "start_byte": 4240,
+      "end_byte": 4374,
+      "signature_hint": "private static boolean noRecentNews(Metadata m)",
+      "vis": "private"
+    },
+    "Cqaivt43os7": {
+      "id": "Cqaivt43os7",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapScheduler.notModifiedLongerThan",
+      "simple_name": "notModifiedLongerThan",
+      "kind": "method",
+      "language": "java",
+      "file": "Fpwoyoi4z4a",
+      "start_line": 104,
+      "end_line": 115,
+      "start_byte": 4580,
+      "end_byte": 5147,
+      "signature_hint": "private static boolean notModifiedLongerThan(Metadata m, long millis)",
+      "vis": "private"
+    },
+    "C1585znj62jm": {
+      "id": "C1585znj62jm",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.PreFilterBolt.PreFilterBolt",
+      "simple_name": "PreFilterBolt",
+      "kind": "constructor",
+      "language": "java",
+      "file": "F407tnl4in5",
+      "start_line": 51,
+      "end_line": 53,
+      "start_byte": 1814,
+      "end_byte": 1917,
+      "signature_hint": "public PreFilterBolt(String filterConfigFile)",
+      "vis": "public"
+    },
+    "C187rm9oyod4": {
+      "id": "C187rm9oyod4",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.PreFilterBolt.execute",
+      "simple_name": "execute",
+      "kind": "method",
+      "language": "java",
+      "file": "F407tnl4in5",
+      "start_line": 55,
+      "end_line": 77,
+      "start_byte": 1923,
+      "end_byte": 2760,
+      "signature_hint": "@Override public void execute(Tuple input)",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "public"
+    },
+    "Cxqeji59755": {
+      "id": "Cxqeji59755",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.PreFilterBolt.declareOutputFields",
+      "simple_name": "declareOutputFields",
+      "kind": "method",
+      "language": "java",
+      "file": "F407tnl4in5",
+      "start_line": 79,
+      "end_line": 83,
+      "start_byte": 2766,
+      "end_byte": 2984,
+      "signature_hint": "@Override public void declareOutputFields(OutputFieldsDeclarer declarer)",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "public"
+    },
+    "Cm1zhadku07": {
+      "id": "Cm1zhadku07",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.PreFilterBolt.prepare",
+      "simple_name": "prepare",
+      "kind": "method",
+      "language": "java",
+      "file": "F407tnl4in5",
+      "start_line": 85,
+      "end_line": 97,
+      "start_byte": 2990,
+      "end_byte": 3493,
+      "signature_hint": "@Override public void prepare(Map stormConf, TopologyContext context, OutputCollector collector)",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "public"
+    },
+    "C152a39dbk8d": {
+      "id": "C152a39dbk8d",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.PunycodeURLNormalizer.configure",
+      "simple_name": "configure",
+      "kind": "method",
+      "language": "java",
+      "file": "Fmowisxogxs",
+      "start_line": 26,
+      "end_line": 27,
+      "start_byte": 911,
+      "end_byte": 987,
+      "signature_hint": "@Override public void configure(Map stormConf, JsonNode filterParams)",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "public"
+    },
+    "Cro2ijepff3": {
+      "id": "Cro2ijepff3",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.PunycodeURLNormalizer.isAscii",
+      "simple_name": "isAscii",
+      "kind": "method",
+      "language": "java",
+      "file": "Fmowisxogxs",
+      "start_line": 29,
+      "end_line": 37,
+      "start_byte": 993,
+      "end_byte": 1211,
+      "signature_hint": "private boolean isAscii(String str)",
+      "vis": "private"
+    },
+    "Ca31dav2840": {
+      "id": "Ca31dav2840",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.PunycodeURLNormalizer.filter",
+      "simple_name": "filter",
+      "kind": "method",
+      "language": "java",
+      "file": "Fmowisxogxs",
+      "start_line": 39,
+      "end_line": 57,
+      "start_byte": 1217,
+      "end_byte": 1892,
+      "signature_hint": "@Override public String filter(URL sourceUrl, Metadata sourceMetadata, String urlToFilter)",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "public"
+    },
+    "Cciwmqter30": {
+      "id": "Cciwmqter30",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.bootstrap.BootstrapTopology.main",
+      "simple_name": "main",
+      "kind": "method",
+      "language": "java",
+      "file": "Feze85rlegb",
+      "start_line": 44,
+      "end_line": 46,
+      "start_byte": 2015,
+      "end_byte": 2145,
+      "signature_hint": "public static void main(String[] args) throws Exception",
+      "vis": "public"
+    },
+    "C7dozjf0eup": {
+      "id": "C7dozjf0eup",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.bootstrap.BootstrapTopology.run",
+      "simple_name": "run",
+      "kind": "method",
+      "language": "java",
+      "file": "Feze85rlegb",
+      "start_line": 48,
+      "end_line": 111,
+      "start_byte": 2151,
+      "end_byte": 4982,
+      "signature_hint": "@Override protected int run(String[] args)",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "protected"
+    },
+    "Crd9z0aaa7": {
+      "id": "Crd9z0aaa7",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.bootstrap.FeedLinkParseFilter.filter",
+      "simple_name": "filter",
+      "kind": "method",
+      "language": "java",
+      "file": "Ftlozkzbmzi",
+      "start_line": 45,
+      "end_line": 56,
+      "start_byte": 1722,
+      "end_byte": 2187,
+      "signature_hint": "@Override public void filter(String URL, byte[] content, DocumentFragment doc, ParseResult parse)",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "public"
+    },
+    "Clsy6m43lp7": {
+      "id": "Clsy6m43lp7",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.bootstrap.FeedLinkParseFilter.logLinks",
+      "simple_name": "logLinks",
+      "kind": "method",
+      "language": "java",
+      "file": "Ftlozkzbmzi",
+      "start_line": 58,
+      "end_line": 63,
+      "start_byte": 2193,
+      "end_byte": 2521,
+      "signature_hint": "public static void logLinks(ParseResult parse, String URL, String message)",
+      "vis": "public"
+    },
+    "C17w9e3hagfy": {
+      "id": "C17w9e3hagfy",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.bootstrap.NewsSiteMapDetectorBolt.execute",
+      "simple_name": "execute",
+      "kind": "method",
+      "language": "java",
+      "file": "Frh218uzg8e",
+      "start_line": 49,
+      "end_line": 88,
+      "start_byte": 1987,
+      "end_byte": 3679,
+      "signature_hint": "@Override public void execute(Tuple tuple)",
+      "attributes": [
+        "@Override"
+      ],
+      "vis": "public"
+    },
+    "Cjlyqlqpuku": {
+      "id": "Cjlyqlqpuku",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.bootstrap.NewsSiteMapDetectorBolt.prepare",
+      "simple_name": "prepare",
+      "kind": "method",
+      "language": "java",
+      "file": "Frh218uzg8e",
+      "start_line": 90,
+      "end_line": 95,
+      "start_byte": 3685,
+      "end_byte": 3949,
+      "signature_hint": "@Override @SuppressWarnings({\"rawtypes\", \"unchecked\"}) public void prepare(Map stormConf, TopologyContext context, OutputCollector collect)",
+      "attributes": [
+        "@Override",
+        "@SuppressWarnings({\"rawtypes\", \"unchecked\"})"
+      ],
+      "vis": "public"
+    },
+    "Cg9j3lavxnj": {
+      "id": "Cg9j3lavxnj",
+      "qualified_name": "org.commoncrawl.stormcrawler.FastURLFilterTest.init",
+      "simple_name": "init",
+      "kind": "method",
+      "language": "java",
+      "file": "Femf7q283i",
+      "start_line": 34,
+      "end_line": 37,
+      "start_byte": 1353,
+      "end_byte": 1456,
+      "signature_hint": "@BeforeClass public static void init()",
+      "attributes": [
+        "@BeforeClass"
+      ],
+      "vis": "public",
+      "test_role": "support"
+    },
+    "Cptv772bj0m": {
+      "id": "Cptv772bj0m",
+      "qualified_name": "org.commoncrawl.stormcrawler.FastURLFilterTest.createFilter",
+      "simple_name": "createFilter",
+      "kind": "method",
+      "language": "java",
+      "file": "Femf7q283i",
+      "start_line": 39,
+      "end_line": 47,
+      "start_byte": 1462,
+      "end_byte": 1868,
+      "signature_hint": "public static FastURLFilter createFilter(String fileName)",
+      "vis": "public",
+      "test_role": "support"
+    },
+    "C173pdct3awj": {
+      "id": "C173pdct3awj",
+      "qualified_name": "org.commoncrawl.stormcrawler.FastURLFilterTest.testHostFilter",
+      "simple_name": "testHostFilter",
+      "kind": "method",
+      "language": "java",
+      "file": "Femf7q283i",
+      "start_line": 49,
+      "end_line": 59,
+      "start_byte": 1874,
+      "end_byte": 2361,
+      "signature_hint": "@Test public void testHostFilter() throws MalformedURLException",
+      "attributes": [
+        "@Test"
+      ],
+      "vis": "public",
+      "test_role": "support"
+    },
+    "Cihfwhgota5": {
+      "id": "Cihfwhgota5",
+      "qualified_name": "org.commoncrawl.stormcrawler.FastURLFilterTest.testDomainNotAllowed",
+      "simple_name": "testDomainNotAllowed",
+      "kind": "method",
+      "language": "java",
+      "file": "Femf7q283i",
+      "start_line": 61,
+      "end_line": 84,
+      "start_byte": 2367,
+      "end_byte": 3463,
+      "signature_hint": "@Test public void testDomainNotAllowed() throws MalformedURLException",
+      "attributes": [
+        "@Test"
+      ],
+      "vis": "public",
+      "test_role": "support"
+    },
+    "Cvdczrrfb6v": {
+      "id": "Cvdczrrfb6v",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSiteMapParserTest.setupParserBolt",
+      "simple_name": "setupParserBolt",
+      "kind": "method",
+      "language": "java",
+      "file": "Fmpvkhvdh6w",
+      "start_line": 39,
+      "end_line": 47,
+      "start_byte": 1403,
+      "end_byte": 1789,
+      "signature_hint": "@Before public void setupParserBolt()",
+      "attributes": [
+        "@Before"
+      ],
+      "vis": "public",
+      "test_role": "support"
+    },
+    "Cd8832aqlyt": {
+      "id": "Cd8832aqlyt",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSiteMapParserTest.testSiteMapParser",
+      "simple_name": "testSiteMapParser",
+      "kind": "method",
+      "language": "java",
+      "file": "Fmpvkhvdh6w",
+      "start_line": 49,
+      "end_line": 86,
+      "start_byte": 1795,
+      "end_byte": 3596,
+      "signature_hint": "@Test public void testSiteMapParser() throws IOException, UnknownFormatException",
+      "attributes": [
+        "@Test"
+      ],
+      "vis": "public",
+      "test_role": "support"
+    },
+    "Cj3remicyjf": {
+      "id": "Cj3remicyjf",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSiteMapParserTest.readContent",
+      "simple_name": "readContent",
+      "kind": "method",
+      "language": "java",
+      "file": "Fmpvkhvdh6w",
+      "start_line": 88,
+      "end_line": 92,
+      "start_byte": 3602,
+      "end_byte": 3862,
+      "signature_hint": "protected byte[] readContent(String filename) throws IOException",
+      "vis": "protected",
+      "test_role": "support"
+    },
+    "C140p9qh1ezt": {
+      "id": "C140p9qh1ezt",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSiteMapParserTest.testFeedWithSitemapNamespace",
+      "simple_name": "testFeedWithSitemapNamespace",
+      "kind": "method",
+      "language": "java",
+      "file": "Fmpvkhvdh6w",
+      "start_line": 94,
+      "end_line": 107,
+      "start_byte": 3868,
+      "end_byte": 4521,
+      "signature_hint": "@Test public void testFeedWithSitemapNamespace() throws IOException, UnknownFormatException",
+      "attributes": [
+        "@Test"
+      ],
+      "vis": "public",
+      "test_role": "support"
+    },
+    "Cw206ozv0ey": {
+      "id": "Cw206ozv0ey",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapSchedulerTest.sitemap",
+      "simple_name": "sitemap",
+      "kind": "method",
+      "language": "java",
+      "file": "F1xcvq8b1oo",
+      "start_line": 35,
+      "end_line": 45,
+      "start_byte": 1321,
+      "end_byte": 1771,
+      "signature_hint": "private static Metadata sitemap(String numLinks, String signatureChangeDate)",
+      "vis": "private",
+      "test_role": "support"
+    },
+    "Ci2xz0l5l9t": {
+      "id": "Ci2xz0l5l9t",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapSchedulerTest.daysAgo",
+      "simple_name": "daysAgo",
+      "kind": "method",
+      "language": "java",
+      "file": "F1xcvq8b1oo",
+      "start_line": 47,
+      "end_line": 50,
+      "start_byte": 1777,
+      "end_byte": 1944,
+      "signature_hint": "private static String daysAgo(int days)",
+      "vis": "private",
+      "test_role": "support"
+    },
+    "Ctwbgi4jtej": {
+      "id": "Ctwbgi4jtej",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapSchedulerTest.dead",
+      "simple_name": "dead",
+      "kind": "method",
+      "language": "java",
+      "file": "F1xcvq8b1oo",
+      "start_line": 52,
+      "end_line": 54,
+      "start_byte": 1950,
+      "end_byte": 2094,
+      "signature_hint": "private static boolean dead(Status status, Metadata m)",
+      "vis": "private",
+      "test_role": "support"
+    },
+    "C3q1kgdpkv": {
+      "id": "C3q1kgdpkv",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapSchedulerTest.staleAndNoNews_isTombstoned",
+      "simple_name": "staleAndNoNews_isTombstoned",
+      "kind": "method",
+      "language": "java",
+      "file": "F1xcvq8b1oo",
+      "start_line": 57,
+      "end_line": 60,
+      "start_byte": 2165,
+      "end_byte": 2294,
+      "signature_hint": "@Test public void staleAndNoNews_isTombstoned()",
+      "attributes": [
+        "@Test"
+      ],
+      "vis": "public",
+      "test_role": "support"
+    },
+    "C1b02lu46ox": {
+      "id": "C1b02lu46ox",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapSchedulerTest.hasRecentNews_notTombstoned",
+      "simple_name": "hasRecentNews_notTombstoned",
+      "kind": "method",
+      "language": "java",
+      "file": "F1xcvq8b1oo",
+      "start_line": 63,
+      "end_line": 66,
+      "start_byte": 2377,
+      "end_byte": 2507,
+      "signature_hint": "@Test public void hasRecentNews_notTombstoned()",
+      "attributes": [
+        "@Test"
+      ],
+      "vis": "public",
+      "test_role": "support"
+    },
+    "Co887um8xt2": {
+      "id": "Co887um8xt2",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapSchedulerTest.recentlyModified_notTombstoned",
+      "simple_name": "recentlyModified_notTombstoned",
+      "kind": "method",
+      "language": "java",
+      "file": "F1xcvq8b1oo",
+      "start_line": 69,
+      "end_line": 72,
+      "start_byte": 2564,
+      "end_byte": 2695,
+      "signature_hint": "@Test public void recentlyModified_notTombstoned()",
+      "attributes": [
+        "@Test"
+      ],
+      "vis": "public",
+      "test_role": "support"
+    },
+    "Cg4q02xiywr": {
+      "id": "Cg4q02xiywr",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapSchedulerTest.noChangeHistory_notTombstoned",
+      "simple_name": "noChangeHistory_notTombstoned",
+      "kind": "method",
+      "language": "java",
+      "file": "F1xcvq8b1oo",
+      "start_line": 75,
+      "end_line": 78,
+      "start_byte": 2769,
+      "end_byte": 2893,
+      "signature_hint": "@Test public void noChangeHistory_notTombstoned()",
+      "attributes": [
+        "@Test"
+      ],
+      "vis": "public",
+      "test_role": "support"
+    },
+    "C13dltpyfvax": {
+      "id": "C13dltpyfvax",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapSchedulerTest.nonSitemap_notTombstoned",
+      "simple_name": "nonSitemap_notTombstoned",
+      "kind": "method",
+      "language": "java",
+      "file": "F1xcvq8b1oo",
+      "start_line": 81,
+      "end_line": 87,
+      "start_byte": 2945,
+      "end_byte": 3220,
+      "signature_hint": "@Test public void nonSitemap_notTombstoned()",
+      "attributes": [
+        "@Test"
+      ],
+      "vis": "public",
+      "test_role": "support"
+    },
+    "C16mit7twfeg": {
+      "id": "C16mit7twfeg",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapSchedulerTest.notFetched_notTombstoned",
+      "simple_name": "notFetched_notTombstoned",
+      "kind": "method",
+      "language": "java",
+      "file": "F1xcvq8b1oo",
+      "start_line": 90,
+      "end_line": 93,
+      "start_byte": 3280,
+      "end_byte": 3410,
+      "signature_hint": "@Test public void notFetched_notTombstoned()",
+      "attributes": [
+        "@Test"
+      ],
+      "vis": "public",
+      "test_role": "support"
+    },
+    "Cnk4lyel0tt": {
+      "id": "Cnk4lyel0tt",
+      "qualified_name": "<framework-entry>::queue::storm::org.commoncrawl.stormcrawler.news.PreFilterBolt.execute",
+      "simple_name": "org.commoncrawl.stormcrawler.news.PreFilterBolt.execute",
+      "kind": "function",
+      "language": "java",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "declares `BaseRichBolt`"
+      ],
+      "synthetic": true,
+      "framework_entry": "queue"
+    },
+    "Czsvjcft2oj": {
+      "id": "Czsvjcft2oj",
+      "qualified_name": "<framework-entry>::queue::storm::org.commoncrawl.stormcrawler.news.PreFilterBolt.declareOutputFields",
+      "simple_name": "org.commoncrawl.stormcrawler.news.PreFilterBolt.declareOutputFields",
+      "kind": "function",
+      "language": "java",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "declares `BaseRichBolt`"
+      ],
+      "synthetic": true,
+      "framework_entry": "queue"
+    },
+    "Cwf9i7yuiz6": {
+      "id": "Cwf9i7yuiz6",
+      "qualified_name": "<framework-entry>::queue::storm::org.commoncrawl.stormcrawler.news.PreFilterBolt.prepare",
+      "simple_name": "org.commoncrawl.stormcrawler.news.PreFilterBolt.prepare",
+      "kind": "function",
+      "language": "java",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "declares `BaseRichBolt`"
+      ],
+      "synthetic": true,
+      "framework_entry": "queue"
+    },
+    "C1fuuwhpgef": {
+      "id": "C1fuuwhpgef",
+      "qualified_name": "<framework-entry>::test::junit",
+      "simple_name": "junit",
+      "kind": "function",
+      "language": "java",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "@BeforeClass"
+      ],
+      "synthetic": true,
+      "framework_entry": "test"
+    }
+  },
+  "files": {
+    "F17set1hnmdn": {
+      "id": "F17set1hnmdn",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/aws/packer/bootstrap.sh",
+      "language": "bash",
+      "detected_via": "shebang:bash",
+      "blake3": "2bca8e32dcb7c55889a1e3256558f0c7d5c169eac3ee92efdeea6619e81c3856",
+      "size_bytes": 4217,
+      "lines": 134,
+      "parse_ms": 0.554751,
+      "parse_status": "ok"
+    },
+    "Ft97ki0xbjh": {
+      "id": "Ft97ki0xbjh",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/filter/FastURLFilter.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "cc658866d8563ed4931d4cded3c80fbfbbbc2766bcfbb31ab4534d6971322d62",
+      "size_bytes": 16154,
+      "lines": 436,
+      "parse_ms": 4.337577,
+      "parse_status": "ok"
+    },
+    "F13neluskgtr": {
+      "id": "F13neluskgtr",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/ContentDetector.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "5348bf88f214889e1caaaa3a566ad642f641b13d29b66cc7a2161ed2447e1fb1",
+      "size_bytes": 2515,
+      "lines": 69,
+      "parse_ms": 0.31034,
+      "parse_status": "ok"
+    },
+    "Fbiy9j4xcy2": {
+      "id": "Fbiy9j4xcy2",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/CrawlTopology.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "c7af8f2f33247e9d7faa039adb85f5c9ca7dc9d7aa8e8189dd37e4684de70d61",
+      "size_bytes": 7639,
+      "lines": 166,
+      "parse_ms": 1.042772,
+      "parse_status": "ok"
+    },
+    "F14roejzd7y2": {
+      "id": "F14roejzd7y2",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/FeedDetectorBolt.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "ddbc62757b2724992aae6c222c59e3eacc8a21975288c3958b85d8c915824de4",
+      "size_bytes": 3821,
+      "lines": 100,
+      "parse_ms": 0.6728310000000001,
+      "parse_status": "ok"
+    },
+    "F7jnpixw8b7": {
+      "id": "F7jnpixw8b7",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/NewsSiteMapParserBolt.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "bd803380e13c6f9eb846955016792ffd85d6029528ef21c10929ad30169aa66e",
+      "size_bytes": 21818,
+      "lines": 524,
+      "parse_ms": 2.878716,
+      "parse_status": "ok"
+    },
+    "Fpwoyoi4z4a": {
+      "id": "Fpwoyoi4z4a",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/NewsSitemapScheduler.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "5f553dd684d12d4ac0d15c91ddf1408f2e057171146e04a17857b77a792a0d2b",
+      "size_bytes": 5150,
+      "lines": 116,
+      "parse_ms": 0.463711,
+      "parse_status": "ok"
+    },
+    "F407tnl4in5": {
+      "id": "F407tnl4in5",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/PreFilterBolt.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "72c7c2814c5abfb205332ef46f5e78d1313a1c10a547968be5122e339b6a292a",
+      "size_bytes": 3496,
+      "lines": 98,
+      "parse_ms": 0.414891,
+      "parse_status": "ok"
+    },
+    "Fmowisxogxs": {
+      "id": "Fmowisxogxs",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/PunycodeURLNormalizer.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "e153081a871c020e3c8bc2541b94d22118e4414541489c05ecd5c091e5a58c9d",
+      "size_bytes": 1895,
+      "lines": 58,
+      "parse_ms": 0.208571,
+      "parse_status": "ok"
+    },
+    "Feze85rlegb": {
+      "id": "Feze85rlegb",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/bootstrap/BootstrapTopology.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "efd20ea6af139e4e4ee721d4e0c479c6b4bfc84bbd73e8e2518f6742dbf23665",
+      "size_bytes": 4985,
+      "lines": 112,
+      "parse_ms": 0.605361,
+      "parse_status": "ok"
+    },
+    "Ftlozkzbmzi": {
+      "id": "Ftlozkzbmzi",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/bootstrap/FeedLinkParseFilter.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "03b3b23693c4bc611ff95ca0c8f948ab793eea74705cc9d0d5f541dc7f4428c3",
+      "size_bytes": 2524,
+      "lines": 64,
+      "parse_ms": 0.24792999999999998,
+      "parse_status": "ok"
+    },
+    "Frh218uzg8e": {
+      "id": "Frh218uzg8e",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/bootstrap/NewsSiteMapDetectorBolt.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "7c9b0376664850e4f11ac7330ed7c7f0c4b3f9bf8e8fb8f581b9605f0f83a1fa",
+      "size_bytes": 3952,
+      "lines": 96,
+      "parse_ms": 0.480991,
+      "parse_status": "ok"
+    },
+    "Femf7q283i": {
+      "id": "Femf7q283i",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/test/java/org/commoncrawl/stormcrawler/FastURLFilterTest.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "73f9bf5229856b8ee2ed5b48d06b786d601f1828a62cd8f8c91dfdf679aa5574",
+      "size_bytes": 3466,
+      "lines": 85,
+      "parse_ms": 1.1955419999999999,
+      "parse_status": "ok",
+      "test_role": "language-rule"
+    },
+    "Fmpvkhvdh6w": {
+      "id": "Fmpvkhvdh6w",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/test/java/org/commoncrawl/stormcrawler/news/NewsSiteMapParserTest.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "2b3bdc018d3ff5cc7a947b5c1d052ec29158c2e5e0d18f862b3a0c9c621ef920",
+      "size_bytes": 4524,
+      "lines": 108,
+      "parse_ms": 1.148002,
+      "parse_status": "ok",
+      "test_role": "language-rule"
+    },
+    "F1xcvq8b1oo": {
+      "id": "F1xcvq8b1oo",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/test/java/org/commoncrawl/stormcrawler/news/NewsSitemapSchedulerTest.java",
+      "language": "java",
+      "detected_via": "extension:.java",
+      "blake3": "9737b42a1885fa8b7533b978af20e29dcb26995e64a4ad7c862415389a1fc69a",
+      "size_bytes": 3413,
+      "lines": 94,
+      "parse_ms": 0.862531,
+      "parse_status": "ok",
+      "test_role": "language-rule"
+    },
+    "Fn7kcdjzuh1": {
+      "id": "Fn7kcdjzuh1",
+      "path": "<framework-entry>",
+      "language": "framework-entry",
+      "detected_via": "synthesized",
+      "blake3": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 0,
+      "lines": 0,
+      "parse_ms": 0.0,
+      "parse_status": "synthetic"
+    }
+  },
+  "edges": [
+    {
+      "src": "Czexse75gka",
+      "dst": "Ca8mzgawhoe",
+      "site_line": 141,
+      "site_byte": 6158,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Czexse75gka",
+      "dst": "C279h0wbxpp",
+      "site_line": 147,
+      "site_byte": 6384,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ctkkechwern",
+      "dst": "Ca8mzgawhoe",
+      "site_line": 154,
+      "site_byte": 6721,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ca8mzgawhoe",
+      "dst": "C279h0wbxpp",
+      "site_line": 175,
+      "site_byte": 7390,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ca8mzgawhoe",
+      "dst": "C279h0wbxpp",
+      "site_line": 178,
+      "site_byte": 7622,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ca8mzgawhoe",
+      "dst": "C279h0wbxpp",
+      "site_line": 190,
+      "site_byte": 8267,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ca8mzgawhoe",
+      "dst": "C279h0wbxpp",
+      "site_line": 200,
+      "site_byte": 8671,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ca8mzgawhoe",
+      "dst": "C279h0wbxpp",
+      "site_line": 202,
+      "site_byte": 8791,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ca8mzgawhoe",
+      "dst": "C279h0wbxpp",
+      "site_line": 206,
+      "site_byte": 8887,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ca8mzgawhoe",
+      "dst": "C8evfxz9v59",
+      "site_line": 210,
+      "site_byte": 9015,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C8evfxz9v59",
+      "dst": "Ci0f8awj1ne",
+      "site_line": 227,
+      "site_byte": 9555,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjaqpo4apgm",
+      "dst": "Ck8po1zb2ku",
+      "site_line": 263,
+      "site_byte": 10593,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjaqpo4apgm",
+      "dst": "Ck8po1zb2ku",
+      "site_line": 270,
+      "site_byte": 10809,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjaqpo4apgm",
+      "dst": "Ck8po1zb2ku",
+      "site_line": 283,
+      "site_byte": 11300,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjaqpo4apgm",
+      "dst": "Ck8po1zb2ku",
+      "site_line": 291,
+      "site_byte": 11549,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ci0f8awj1ne",
+      "dst": "C11p3tk3yn37",
+      "site_line": 341,
+      "site_byte": 13142,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ci0f8awj1ne",
+      "dst": "Ce9vxbad775",
+      "site_line": 343,
+      "site_byte": 13283,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ci0f8awj1ne",
+      "dst": "Cgbnm3y8p97",
+      "site_line": 345,
+      "site_byte": 13438,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C116884s39va",
+      "dst": "Cnudibfh0eq",
+      "site_line": 67,
+      "site_byte": 2477,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cpiamtwkufi",
+      "dst": "Cz09y6xug4h",
+      "site_line": 95,
+      "site_byte": 4158,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cxm5gzruu42",
+      "dst": "Chk4gdxjcua",
+      "site_line": 152,
+      "site_byte": 6020,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cxm5gzruu42",
+      "dst": "Cg9p7fxq907",
+      "site_line": 211,
+      "site_byte": 8391,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cg9p7fxq907",
+      "dst": "C12wrvz5q427",
+      "site_line": 361,
+      "site_byte": 14666,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cg9p7fxq907",
+      "dst": "C12wrvz5q427",
+      "site_line": 420,
+      "site_byte": 17011,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cg9p7fxq907",
+      "dst": "C12wrvz5q427",
+      "site_line": 437,
+      "site_byte": 17993,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C4pz42b5n4",
+      "dst": "Cmmigb0hcr6",
+      "site_line": 72,
+      "site_byte": 3096,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cmmigb0hcr6",
+      "dst": "C82m1pz8ksi",
+      "site_line": 81,
+      "site_byte": 3536,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cmmigb0hcr6",
+      "dst": "Cqaivt43os7",
+      "site_line": 84,
+      "site_byte": 3610,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cmmigb0hcr6",
+      "dst": "C1qa98i2p0s",
+      "site_line": 84,
+      "site_byte": 3658,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ca31dav2840",
+      "dst": "Cro2ijepff3",
+      "site_line": 44,
+      "site_byte": 1433,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Crd9z0aaa7",
+      "dst": "Clsy6m43lp7",
+      "site_line": 49,
+      "site_byte": 1866,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Crd9z0aaa7",
+      "dst": "Clsy6m43lp7",
+      "site_line": 55,
+      "site_byte": 2145,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cg9j3lavxnj",
+      "dst": "Cptv772bj0m",
+      "site_line": 36,
+      "site_byte": 1415,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cvdczrrfb6v",
+      "dst": "Cvdczrrfb6v",
+      "site_line": 41,
+      "site_byte": 1455,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cd8832aqlyt",
+      "dst": "Cj3remicyjf",
+      "site_line": 52,
+      "site_byte": 1968,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C140p9qh1ezt",
+      "dst": "Cj3remicyjf",
+      "site_line": 97,
+      "site_byte": 4044,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C3q1kgdpkv",
+      "dst": "Ctwbgi4jtej",
+      "site_line": 59,
+      "site_byte": 2238,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C3q1kgdpkv",
+      "dst": "Cw206ozv0ey",
+      "site_line": 59,
+      "site_byte": 2259,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C3q1kgdpkv",
+      "dst": "Ci2xz0l5l9t",
+      "site_line": 59,
+      "site_byte": 2272,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1b02lu46ox",
+      "dst": "Ctwbgi4jtej",
+      "site_line": 65,
+      "site_byte": 2451,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1b02lu46ox",
+      "dst": "Cw206ozv0ey",
+      "site_line": 65,
+      "site_byte": 2472,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C1b02lu46ox",
+      "dst": "Ci2xz0l5l9t",
+      "site_line": 65,
+      "site_byte": 2485,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Co887um8xt2",
+      "dst": "Ctwbgi4jtej",
+      "site_line": 71,
+      "site_byte": 2641,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Co887um8xt2",
+      "dst": "Cw206ozv0ey",
+      "site_line": 71,
+      "site_byte": 2662,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Co887um8xt2",
+      "dst": "Ci2xz0l5l9t",
+      "site_line": 71,
+      "site_byte": 2675,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cg4q02xiywr",
+      "dst": "Ctwbgi4jtej",
+      "site_line": 77,
+      "site_byte": 2845,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cg4q02xiywr",
+      "dst": "Cw206ozv0ey",
+      "site_line": 77,
+      "site_byte": 2866,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C13dltpyfvax",
+      "dst": "Ci2xz0l5l9t",
+      "site_line": 85,
+      "site_byte": 3154,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C13dltpyfvax",
+      "dst": "Ctwbgi4jtej",
+      "site_line": 86,
+      "site_byte": 3189,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C16mit7twfeg",
+      "dst": "Ctwbgi4jtej",
+      "site_line": 92,
+      "site_byte": 3351,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C16mit7twfeg",
+      "dst": "Cw206ozv0ey",
+      "site_line": 92,
+      "site_byte": 3375,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C16mit7twfeg",
+      "dst": "Ci2xz0l5l9t",
+      "site_line": 92,
+      "site_byte": 3388,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cgbnm3y8p97",
+      "dst": "Clnr6dby16h",
+      "site_line": 399,
+      "site_byte": 15242,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C9464csd5xd",
+      "dst": "Clnr6dby16h",
+      "site_line": 414,
+      "site_byte": 15665,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ce9vxbad775",
+      "dst": "Clnr6dby16h",
+      "site_line": 428,
+      "site_byte": 15973,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cpiamtwkufi",
+      "dst": "C1585znj62jm",
+      "site_line": 75,
+      "site_byte": 3292,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Chk4gdxjcua",
+      "dst": "Cnudibfh0eq",
+      "site_line": 282,
+      "site_byte": 11527,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Chk4gdxjcua",
+      "dst": "Cnudibfh0eq",
+      "site_line": 287,
+      "site_byte": 11694,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C14b36aleeyd",
+      "dst": "Cgcd8xku8ci",
+      "site_line": 514,
+      "site_byte": 21285,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C14b36aleeyd",
+      "dst": "Cgcd8xku8ci",
+      "site_line": 515,
+      "site_byte": 21387,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C7dozjf0eup",
+      "dst": "Cz09y6xug4h",
+      "site_line": 97,
+      "site_byte": 4236,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C17w9e3hagfy",
+      "dst": "Cnudibfh0eq",
+      "site_line": 61,
+      "site_byte": 2523,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cptv772bj0m",
+      "dst": "Czexse75gka",
+      "site_line": 45,
+      "site_byte": 1802,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C173pdct3awj",
+      "dst": "Cjaqpo4apgm",
+      "site_line": 53,
+      "site_byte": 2076,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C173pdct3awj",
+      "dst": "Cjaqpo4apgm",
+      "site_line": 57,
+      "site_byte": 2255,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cihfwhgota5",
+      "dst": "Cjaqpo4apgm",
+      "site_line": 65,
+      "site_byte": 2592,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cihfwhgota5",
+      "dst": "Cjaqpo4apgm",
+      "site_line": 69,
+      "site_byte": 2772,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cihfwhgota5",
+      "dst": "Cjaqpo4apgm",
+      "site_line": 73,
+      "site_byte": 2952,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cihfwhgota5",
+      "dst": "Cjaqpo4apgm",
+      "site_line": 77,
+      "site_byte": 3151,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cihfwhgota5",
+      "dst": "Cjaqpo4apgm",
+      "site_line": 82,
+      "site_byte": 3347,
+      "confidence": "medium",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cd8832aqlyt",
+      "dst": "Chk4gdxjcua",
+      "site_line": 57,
+      "site_byte": 2161,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cd8832aqlyt",
+      "dst": "Cg9p7fxq907",
+      "site_line": 60,
+      "site_byte": 2276,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cd8832aqlyt",
+      "dst": "Cg9p7fxq907",
+      "site_line": 79,
+      "site_byte": 3305,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C140p9qh1ezt",
+      "dst": "Chk4gdxjcua",
+      "site_line": 98,
+      "site_byte": 4119,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ctwbgi4jtej",
+      "dst": "Cmmigb0hcr6",
+      "site_line": 53,
+      "site_byte": 2022,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cnk4lyel0tt",
+      "dst": "C187rm9oyod4",
+      "site_line": 55,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "storm"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Czsvjcft2oj",
+      "dst": "Cxqeji59755",
+      "site_line": 79,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "storm"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cwf9i7yuiz6",
+      "dst": "Cm1zhadku07",
+      "site_line": 85,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "storm"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C1fuuwhpgef",
+      "dst": "Cg9j3lavxnj",
+      "site_line": 34,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "junit"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C1fuuwhpgef",
+      "dst": "C173pdct3awj",
+      "site_line": 49,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "junit"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C1fuuwhpgef",
+      "dst": "Cihfwhgota5",
+      "site_line": 61,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "junit"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C1fuuwhpgef",
+      "dst": "Cvdczrrfb6v",
+      "site_line": 39,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "junit"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C1fuuwhpgef",
+      "dst": "Cd8832aqlyt",
+      "site_line": 49,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "junit"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C1fuuwhpgef",
+      "dst": "C140p9qh1ezt",
+      "site_line": 94,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "junit"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C1fuuwhpgef",
+      "dst": "C3q1kgdpkv",
+      "site_line": 57,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "junit"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C1fuuwhpgef",
+      "dst": "C1b02lu46ox",
+      "site_line": 63,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "junit"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C1fuuwhpgef",
+      "dst": "Co887um8xt2",
+      "site_line": 69,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "junit"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C1fuuwhpgef",
+      "dst": "Cg4q02xiywr",
+      "site_line": 75,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "junit"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C1fuuwhpgef",
+      "dst": "C13dltpyfvax",
+      "site_line": 81,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "junit"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C1fuuwhpgef",
+      "dst": "C16mit7twfeg",
+      "site_line": 90,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "junit"
+      },
+      "resolver": "framework-entry"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": null,
+      "file": "Ft97ki0xbjh",
+      "site_line": 411,
+      "site_byte": 15586,
+      "name": "DenyAllRule",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": "C15dopc87qyo",
+      "file": "Fbiy9j4xcy2",
+      "site_line": 50,
+      "site_byte": 2356,
+      "name": "CrawlTopology",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "Cpiamtwkufi",
+      "file": "Fbiy9j4xcy2",
+      "site_line": 84,
+      "site_byte": 3682,
+      "name": "NewsSiteMapParserBolt",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "F14roejzd7y2",
+      "site_line": 43,
+      "site_byte": 1812,
+      "name": "ContentDetector",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "Cciwmqter30",
+      "file": "Feze85rlegb",
+      "site_line": 45,
+      "site_byte": 2108,
+      "name": "BootstrapTopology",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "C7dozjf0eup",
+      "file": "Feze85rlegb",
+      "site_line": 86,
+      "site_byte": 3730,
+      "name": "NewsSiteMapDetectorBolt",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "C7dozjf0eup",
+      "file": "Feze85rlegb",
+      "site_line": 89,
+      "site_byte": 3856,
+      "name": "FeedDetectorBolt",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Frh218uzg8e",
+      "site_line": 45,
+      "site_byte": 1863,
+      "name": "ContentDetector",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "Cptv772bj0m",
+      "file": "Femf7q283i",
+      "site_line": 42,
+      "site_byte": 1673,
+      "name": "FastURLFilter",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "Cvdczrrfb6v",
+      "file": "Fmpvkhvdh6w",
+      "site_line": 41,
+      "site_byte": 1471,
+      "name": "NewsSiteMapParserBolt",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "Ci0f8awj1ne",
+      "file": "Ft97ki0xbjh",
+      "site_line": 340,
+      "site_byte": 13061,
+      "name": "matches",
+      "receiver_hint": "CATCH_ALL_RULE.matcher(line)",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C9khtvuvv76",
+      "file": "Ft97ki0xbjh",
+      "site_line": 393,
+      "site_byte": 15097,
+      "name": "toString",
+      "receiver_hint": "pattern",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cawmd06e95a",
+      "file": "F14roejzd7y2",
+      "site_line": 71,
+      "site_byte": 2779,
+      "name": "matches",
+      "receiver_hint": "contentDetector",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "Cawmd06e95a",
+      "file": "F14roejzd7y2",
+      "site_line": 83,
+      "site_byte": 3220,
+      "name": "filter",
+      "receiver_hint": "parseFilters",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "Cl0i6f89hay",
+      "file": "F14roejzd7y2",
+      "site_line": 97,
+      "site_byte": 3712,
+      "name": "prepare",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "Cxm5gzruu42",
+      "file": "F7jnpixw8b7",
+      "site_line": 234,
+      "site_byte": 9417,
+      "name": "filter",
+      "receiver_hint": "parseFilters",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "Cg9p7fxq907",
+      "file": "F7jnpixw8b7",
+      "site_line": 388,
+      "site_byte": 15765,
+      "name": "toString",
+      "receiver_hint": "Integer",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    },
+    {
+      "src": "C14b36aleeyd",
+      "file": "F7jnpixw8b7",
+      "site_line": 508,
+      "site_byte": 20858,
+      "name": "prepare",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "C6hei8ioue5",
+      "file": "Fpwoyoi4z4a",
+      "site_line": 61,
+      "site_byte": 2656,
+      "name": "init",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "C4pz42b5n4",
+      "file": "Fpwoyoi4z4a",
+      "site_line": 76,
+      "site_byte": 3260,
+      "name": "schedule",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "C187rm9oyod4",
+      "file": "F407tnl4in5",
+      "site_line": 62,
+      "site_byte": 2181,
+      "name": "filter",
+      "receiver_hint": "urlFilters",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "Crd9z0aaa7",
+      "file": "Ftlozkzbmzi",
+      "site_line": 52,
+      "site_byte": 1967,
+      "name": "filter",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "C17w9e3hagfy",
+      "file": "Frh218uzg8e",
+      "site_line": 79,
+      "site_byte": 3338,
+      "name": "filter",
+      "receiver_hint": "parseFilters",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 3
+        }
+      }
+    },
+    {
+      "src": "Cjlyqlqpuku",
+      "file": "Frh218uzg8e",
+      "site_line": 93,
+      "site_byte": 3843,
+      "name": "prepare",
+      "receiver_hint": "super",
+      "reason": {
+        "stage": "super-base-out-of-graph"
+      }
+    },
+    {
+      "src": "Ci2xz0l5l9t",
+      "file": "F1xcvq8b1oo",
+      "site_line": 48,
+      "site_byte": 1834,
+      "name": "toString",
+      "receiver_hint": "Instant.ofEpochMilli(System.currentTimeMillis() - days * 24L * 3600 * 1000)",
+      "reason": {
+        "stage": "candidates-in-other-files",
+        "detail": {
+          "candidates": 1
+        }
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 17.745033,
+    "phases": {
+      "walk_ms": 4.504438,
+      "parse_ms": 15.424517,
+      "extract_ms": 0.0,
+      "resolve_ms": 0.0,
+      "link_ms": 2.038914,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 113,
+    "files_analyzed": 15,
+    "files_skipped": 98,
+    "files_errored": 0,
+    "bytes_processed": 89569,
+    "callables": 71,
+    "edges": 90,
+    "unresolved_calls": 25,
+    "stdlib_calls": 158,
+    "external_calls": 453,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "bash": {
+        "files": 1,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 44,
+        "external": 3
+      },
+      "java": {
+        "files": 14,
+        "callables": 67,
+        "edges": 52,
+        "unresolved": 25,
+        "stdlib": 114,
+        "external": 450
+      },
+      "skip:builtin": {
+        "files": 62,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 55,
+      "medium": 20,
+      "low": 0
+    }
+  }
+}

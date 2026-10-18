@@ -1,0 +1,4856 @@
+{
+  "schema": "cgg.graph.v2",
+  "cgg_version": "0.11.0",
+  "callables": {
+    "Cvxfkejh1f8": {
+      "id": "Cvxfkejh1f8",
+      "qualified_name": "compojure.coercions/as-int",
+      "simple_name": "as-int",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F1p59sn1nmr",
+      "start_line": 4,
+      "end_line": 9,
+      "start_byte": 92,
+      "end_byte": 259,
+      "signature_hint": "(defn as-int \"Parse a string into an integer, or `nil` if the string cannot be parsed.\" [s] (try (Long/parseLong s) (catch NumberFormatException _ nil)))"
+    },
+    "Cv9k9urwb1c": {
+      "id": "Cv9k9urwb1c",
+      "qualified_name": "compojure.coercions/^:private uuid-pattern",
+      "simple_name": "^:private uuid-pattern",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F1p59sn1nmr",
+      "start_line": 11,
+      "end_line": 12,
+      "start_byte": 261,
+      "end_byte": 370,
+      "signature_hint": "(def ^:private uuid-pattern #\"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\")"
+    },
+    "C51sin9jsfe": {
+      "id": "C51sin9jsfe",
+      "qualified_name": "compojure.coercions/as-uuid",
+      "simple_name": "as-uuid",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F1p59sn1nmr",
+      "start_line": 14,
+      "end_line": 20,
+      "start_byte": 372,
+      "end_byte": 591,
+      "signature_hint": "(defn as-uuid \"Parse a string into a UUID, or `nil` if the string cannot be parsed.\" [s] (if (re-matches uuid-pattern s) (try (java.util.UUID/fromString s) (catch IllegalArgumentException _ nil))))"
+    },
+    "C184v5wq35fm": {
+      "id": "C184v5wq35fm",
+      "qualified_name": "compojure.core/form-method",
+      "simple_name": "form-method",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 16,
+      "end_line": 18,
+      "start_byte": 632,
+      "end_byte": 763,
+      "signature_hint": "(defn- form-method [request] (or (get-in request [:form-params \"_method\"]) (get-in request [:multipart-params \"_method\"])))"
+    },
+    "C16z03cfivyz": {
+      "id": "C16z03cfivyz",
+      "qualified_name": "compojure.core/method-matches?",
+      "simple_name": "method-matches?",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 20,
+      "end_line": 31,
+      "start_byte": 765,
+      "end_byte": 1167,
+      "signature_hint": "(defn- method-matches? [request method] (or (nil? method) (let [request-method (:request-method request)] (case request-method :head (or (= method :head) (= method :get)) :post (if-let [fm (form-method request)] (.equalsIgnoreCase (name method) fm) (= method :post)) ;else (= request-method method)))))"
+    },
+    "Cdfypkznst7": {
+      "id": "Cdfypkznst7",
+      "qualified_name": "compojure.core/head-response",
+      "simple_name": "head-response",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 33,
+      "end_line": 36,
+      "start_byte": 1169,
+      "end_byte": 1334,
+      "signature_hint": "(defn- head-response [response request method] (if (and response (= :get method) (= :head (:request-method request))) (assoc response :body nil) response))"
+    },
+    "Ch7i4xfx6y": {
+      "id": "Ch7i4xfx6y",
+      "qualified_name": "compojure.core/decode-route-params",
+      "simple_name": "decode-route-params",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 38,
+      "end_line": 39,
+      "start_byte": 1336,
+      "end_byte": 1409,
+      "signature_hint": "(defn- decode-route-params [params] (map-vals codec/url-decode params))"
+    },
+    "Ckjw8cv4ivs": {
+      "id": "Ckjw8cv4ivs",
+      "qualified_name": "compojure.core/assoc-route-params",
+      "simple_name": "assoc-route-params",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 41,
+      "end_line": 42,
+      "start_byte": 1411,
+      "end_byte": 1522,
+      "signature_hint": "(defn- assoc-route-params [request params] (merge-with merge request {:route-params params, :params params}))"
+    },
+    "Cgypw4u2aka": {
+      "id": "Cgypw4u2aka",
+      "qualified_name": "compojure.core/route-matches",
+      "simple_name": "route-matches",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 44,
+      "end_line": 46,
+      "start_byte": 1524,
+      "end_byte": 1680,
+      "signature_hint": "(defn- route-matches [route request] (let [path (:compojure/path request)] (clout/route-matches route (cond-> request path (assoc :path-info path)))))"
+    },
+    "Cukwr1uz543": {
+      "id": "Cukwr1uz543",
+      "qualified_name": "compojure.core/route-request",
+      "simple_name": "route-request",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 48,
+      "end_line": 50,
+      "start_byte": 1682,
+      "end_byte": 1831,
+      "signature_hint": "(defn- route-request [request route] (if-let [params (route-matches route request)] (assoc-route-params request (decode-route-params params))))"
+    },
+    "C1mmbjbmenb": {
+      "id": "C1mmbjbmenb",
+      "qualified_name": "compojure.core/literal?",
+      "simple_name": "literal?",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 52,
+      "end_line": 55,
+      "start_byte": 1833,
+      "end_byte": 1931,
+      "signature_hint": "(defn- literal? [x] (if (coll? x) (every? literal? x) (not (or (symbol? x) (list? x)))))"
+    },
+    "Cu6565iw1yn": {
+      "id": "Cu6565iw1yn",
+      "qualified_name": "compojure.core/prepare-route",
+      "simple_name": "prepare-route",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 57,
+      "end_line": 72,
+      "start_byte": 1933,
+      "end_byte": 2358,
+      "signature_hint": "(defn- prepare-route [route] (cond (string? route) (clout/route-compile route) (and (vector? route) (literal? route)) (clout/route-compile (first route) (apply hash-map (rest route))) (vector? route) `(clout/route-compile ~(first route) ~(apply hash-map (rest route))) :else `(if (string? ~route) (clout/route-compile ~route) ~route)))"
+    },
+    "Cb7kuuuc4x": {
+      "id": "Cb7kuuuc4x",
+      "qualified_name": "compojure.core/and-binding",
+      "simple_name": "and-binding",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 74,
+      "end_line": 75,
+      "start_byte": 2360,
+      "end_byte": 2472,
+      "signature_hint": "(defn- and-binding [req binds] `(dissoc (:params ~req) ~@(map keyword (keys binds)) ~@(map str (keys binds))))"
+    },
+    "Cbncrnaoptf": {
+      "id": "Cbncrnaoptf",
+      "qualified_name": "compojure.core/symbol-binding",
+      "simple_name": "symbol-binding",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 77,
+      "end_line": 78,
+      "start_byte": 2474,
+      "end_byte": 2583,
+      "signature_hint": "(defn- symbol-binding [req sym] `(get-in ~req [:params ~(keyword sym)] (get-in ~req [:params ~(str sym)])))"
+    },
+    "Cv9zn3kyvmu": {
+      "id": "Cv9zn3kyvmu",
+      "qualified_name": "compojure.core/application-binding",
+      "simple_name": "application-binding",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 80,
+      "end_line": 81,
+      "start_byte": 2585,
+      "end_byte": 2664,
+      "signature_hint": "(defn- application-binding [req sym func] `(~func ~(symbol-binding req sym)))"
+    },
+    "C17urt0k6x8c": {
+      "id": "C17urt0k6x8c",
+      "qualified_name": "compojure.core/vector-bindings",
+      "simple_name": "vector-bindings",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 83,
+      "end_line": 98,
+      "start_byte": 2666,
+      "end_byte": 3282,
+      "signature_hint": "(defn- vector-bindings [args req] (loop [args args, binds {}] (if (seq args) (let [[x y z] args] (cond (= '& x) (recur (nnext args) (assoc binds y (and-binding req binds))) (= :as x) (recur (nnext args) (assoc binds y req)) (and (symbol? x) (= :<< y) (nnext args)) (recur (drop 3 args) (assoc binds x (application-binding req x z))) (symbol? x) (recur (next args) (assoc binds x (symbol-binding req x))) :else (throw (Exception. (str \"Unexpected binding: \" x))))) (mapcat identity binds))))"
+    },
+    "Crovnseou9p": {
+      "id": "Crovnseou9p",
+      "qualified_name": "compojure.core/warn-on-*-bindings!",
+      "simple_name": "warn-on-*-bindings!",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 100,
+      "end_line": 103,
+      "start_byte": 3284,
+      "end_byte": 3482,
+      "signature_hint": "(defn- warn-on-*-bindings! [bindings] (when (and (vector? bindings) (contains? (set bindings) '*)) (binding [*out* *err*] (println \"WARNING: * should not be used as a route binding.\"))))"
+    },
+    "Cswwn7ibexx": {
+      "id": "Cswwn7ibexx",
+      "qualified_name": "compojure.core/application-symbols",
+      "simple_name": "application-symbols",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 105,
+      "end_line": 112,
+      "start_byte": 3484,
+      "end_byte": 3733,
+      "signature_hint": "(defn- application-symbols [args] (loop [args args, syms '()] (if (seq args) (let [[x y] args] (if (and (symbol? x) (= :<< y)) (recur (drop 3 args) (conj syms x)) (recur (next args) syms))) (seq syms))))"
+    },
+    "Cuzw9myy0r8": {
+      "id": "Cuzw9myy0r8",
+      "qualified_name": "compojure.core/^:no-doc let-request",
+      "simple_name": "^:no-doc let-request",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 114,
+      "end_line": 121,
+      "start_byte": 3735,
+      "end_byte": 4088,
+      "signature_hint": "(defmacro ^:no-doc let-request [[bindings request] & body] (warn-on-*-bindings! bindings) (if (vector? bindings) `(let [~@(vector-bindings bindings request)] ~(if-let [syms (application-symbols bindings)] `(if (and ~@(for [s syms] `(not (nil? ~s)))) (do ~@body)) `(do ~@body))) `(let [~bindings ~request] ~@body)))"
+    },
+    "Csuweh0ibvt": {
+      "id": "Csuweh0ibvt",
+      "qualified_name": "compojure.core/wrap-route-middleware",
+      "simple_name": "wrap-route-middleware",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 123,
+      "end_line": 132,
+      "start_byte": 4090,
+      "end_byte": 4414,
+      "signature_hint": "(defn- wrap-route-middleware [handler] (fn ([request] (if-let [mw (:route-middleware request)] ((mw handler) request) (handler request))) ([request respond raise] (if-let [mw (:route-middleware request)] ((mw handler) request respond raise) (handler request respond raise)))))"
+    },
+    "Cc1e37pmb8k": {
+      "id": "Cc1e37pmb8k",
+      "qualified_name": "compojure.core/wrap-route-info",
+      "simple_name": "wrap-route-info",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 134,
+      "end_line": 139,
+      "start_byte": 4416,
+      "end_byte": 4645,
+      "signature_hint": "(defn- wrap-route-info [handler route-info] (fn ([request] (handler (assoc request :compojure/route route-info))) ([request respond raise] (handler (assoc request :compojure/route route-info) respond raise))))"
+    },
+    "C8n4msmdhat": {
+      "id": "C8n4msmdhat",
+      "qualified_name": "compojure.core/wrap-route-matches",
+      "simple_name": "wrap-route-matches",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 141,
+      "end_line": 153,
+      "start_byte": 4647,
+      "end_byte": 5141,
+      "signature_hint": "(defn- wrap-route-matches [handler method path] (fn ([request] (if (method-matches? request method) (if-let [request (route-request request path)] (-> (handler request) (head-response request method))))) ([request respond raise] (if (method-matches? request method) (if-let [request (route-request request path)] (handler request #(respond (head-response % request method)) raise) (respond nil)) (respond nil)))))"
+    },
+    "C9dgg9ujvbm": {
+      "id": "C9dgg9ujvbm",
+      "qualified_name": "compojure.core/wrap-response",
+      "simple_name": "wrap-response",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 155,
+      "end_line": 160,
+      "start_byte": 5143,
+      "end_byte": 5337,
+      "signature_hint": "(defn- wrap-response [handler] (fn ([request] (response/render (handler request) request)) ([request respond raise] (response/send (handler request) request respond raise))))"
+    },
+    "Cq0dumo215g": {
+      "id": "Cq0dumo215g",
+      "qualified_name": "compojure.core/make-route",
+      "simple_name": "make-route",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 162,
+      "end_line": 170,
+      "start_byte": 5339,
+      "end_byte": 5639,
+      "signature_hint": "(defn make-route \"Returns a function that will only call the handler if the method and path match the request.\" [method path handler] (-> handler (wrap-response) (wrap-route-middleware) (wrap-route-info [(or method :any) (str path)]) (wrap-route-matches method path)))"
+    },
+    "C14lklazwyqf": {
+      "id": "C14lklazwyqf",
+      "qualified_name": "compojure.core/compile-route",
+      "simple_name": "compile-route",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 172,
+      "end_line": 180,
+      "start_byte": 5641,
+      "end_byte": 5932,
+      "signature_hint": "(defn compile-route \"Compile a route in the form `(method path bindings & body)` into a function. Used to create custom route macros.\" [method path bindings body] `(make-route ~method ~(prepare-route path) (fn [request#] (let-request [~bindings request#] ~@body))))"
+    },
+    "C8clon617h6": {
+      "id": "C8clon617h6",
+      "qualified_name": "compojure.core/routing",
+      "simple_name": "routing",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 182,
+      "end_line": 185,
+      "start_byte": 5934,
+      "end_byte": 6052,
+      "signature_hint": "(defn routing \"Apply a list of routes to a Ring request map.\" [request & handlers] (some #(% request) handlers))"
+    },
+    "Cgjzxergazv": {
+      "id": "Cgjzxergazv",
+      "qualified_name": "compojure.core/routes",
+      "simple_name": "routes",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 187,
+      "end_line": 200,
+      "start_byte": 6054,
+      "end_byte": 6530,
+      "signature_hint": "(defn routes \"Create a Ring handler by combining several handlers into one.\" [& handlers] (fn ([request] (apply routing request handlers)) ([request respond raise] (letfn [(f [handlers] (if (seq handlers) (let [handler (first handlers) respond' #(if % (respond %) (f (rest handlers)))] (handler request respond' raise)) (respond nil)))] (f handlers)))))"
+    },
+    "Cu2p0mp6je": {
+      "id": "Cu2p0mp6je",
+      "qualified_name": "compojure.core/defroutes",
+      "simple_name": "defroutes",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 202,
+      "end_line": 207,
+      "start_byte": 6532,
+      "end_byte": 6803,
+      "signature_hint": "(defmacro defroutes \"Define a Ring handler function from a sequence of routes. The name may optionally be followed by a doc-string and metadata map.\" [name & routes] (let [[name routes] (macro/name-with-attributes name routes)] `(def ~name (routes ~@routes))))"
+    },
+    "C178pjjzkb20": {
+      "id": "C178pjjzkb20",
+      "qualified_name": "compojure.core/GET",
+      "simple_name": "GET",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 209,
+      "end_line": 211,
+      "start_byte": 6805,
+      "end_byte": 6904,
+      "signature_hint": "(defmacro GET \"Generate a `GET` route.\" [path args & body] (compile-route :get path args body))"
+    },
+    "C117gz14wstf": {
+      "id": "C117gz14wstf",
+      "qualified_name": "compojure.core/POST",
+      "simple_name": "POST",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 213,
+      "end_line": 215,
+      "start_byte": 6906,
+      "end_byte": 7008,
+      "signature_hint": "(defmacro POST \"Generate a `POST` route.\" [path args & body] (compile-route :post path args body))"
+    },
+    "Ca1es4oq6a1": {
+      "id": "Ca1es4oq6a1",
+      "qualified_name": "compojure.core/PUT",
+      "simple_name": "PUT",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 217,
+      "end_line": 219,
+      "start_byte": 7010,
+      "end_byte": 7109,
+      "signature_hint": "(defmacro PUT \"Generate a `PUT` route.\" [path args & body] (compile-route :put path args body))"
+    },
+    "Cudc5eiomcr": {
+      "id": "Cudc5eiomcr",
+      "qualified_name": "compojure.core/DELETE",
+      "simple_name": "DELETE",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 221,
+      "end_line": 223,
+      "start_byte": 7111,
+      "end_byte": 7219,
+      "signature_hint": "(defmacro DELETE \"Generate a `DELETE` route.\" [path args & body] (compile-route :delete path args body))"
+    },
+    "Cknih1c8893": {
+      "id": "Cknih1c8893",
+      "qualified_name": "compojure.core/HEAD",
+      "simple_name": "HEAD",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 225,
+      "end_line": 227,
+      "start_byte": 7221,
+      "end_byte": 7323,
+      "signature_hint": "(defmacro HEAD \"Generate a `HEAD` route.\" [path args & body] (compile-route :head path args body))"
+    },
+    "C7pj7u4zz39": {
+      "id": "C7pj7u4zz39",
+      "qualified_name": "compojure.core/OPTIONS",
+      "simple_name": "OPTIONS",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 229,
+      "end_line": 231,
+      "start_byte": 7325,
+      "end_byte": 7437,
+      "signature_hint": "(defmacro OPTIONS \"Generate an `OPTIONS` route.\" [path args & body] (compile-route :options path args body))"
+    },
+    "C14fve6io8uz": {
+      "id": "C14fve6io8uz",
+      "qualified_name": "compojure.core/PATCH",
+      "simple_name": "PATCH",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 233,
+      "end_line": 235,
+      "start_byte": 7439,
+      "end_byte": 7544,
+      "signature_hint": "(defmacro PATCH \"Generate a `PATCH` route.\" [path args & body] (compile-route :patch path args body))"
+    },
+    "C747r3ujnc4": {
+      "id": "C747r3ujnc4",
+      "qualified_name": "compojure.core/ANY",
+      "simple_name": "ANY",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 237,
+      "end_line": 239,
+      "start_byte": 7546,
+      "end_byte": 7662,
+      "signature_hint": "(defmacro ANY \"Generate a route that matches any method.\" [path args & body] (compile-route nil path args body))"
+    },
+    "C17wblo5vqz1": {
+      "id": "C17wblo5vqz1",
+      "qualified_name": "compojure.core/^:no-doc make-rfn",
+      "simple_name": "^:no-doc make-rfn",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 241,
+      "end_line": 245,
+      "start_byte": 7664,
+      "end_byte": 7777,
+      "signature_hint": "(defn ^:no-doc make-rfn [handler] (-> handler wrap-response wrap-route-middleware wrap-head))"
+    },
+    "Clq0s9ergmg": {
+      "id": "Clq0s9ergmg",
+      "qualified_name": "compojure.core/rfn",
+      "simple_name": "rfn",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 247,
+      "end_line": 249,
+      "start_byte": 7779,
+      "end_byte": 7930,
+      "signature_hint": "(defmacro rfn \"Generate a route that matches any method and path.\" [args & body] `(make-rfn (fn [request#] (let-request [~args request#] ~@body))))"
+    },
+    "Cs7kbznyvj2": {
+      "id": "Cs7kbznyvj2",
+      "qualified_name": "compojure.core/remove-suffix",
+      "simple_name": "remove-suffix",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 251,
+      "end_line": 252,
+      "start_byte": 7932,
+      "end_byte": 8015,
+      "signature_hint": "(defn- remove-suffix [path suffix] (subs path 0 (- (count path) (count suffix))))"
+    },
+    "Cxwfrpinizw": {
+      "id": "Cxwfrpinizw",
+      "qualified_name": "compojure.core/context-request",
+      "simple_name": "context-request",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 254,
+      "end_line": 265,
+      "start_byte": 8017,
+      "end_byte": 8594,
+      "signature_hint": "(defn- context-request [request route route-context] (if-let [params (clout/route-matches route request)] (let [uri (:uri request) path (:path-info request uri) context (or (:context request) \"\") subpath (:__path-info params) params (dissoc params :__path-info)] (-> request (assoc-route-params (decode-route-params params)) (assoc :path-info (if (= subpath \"\") \"/\" subpath) :context (remove-suffix uri subpath)) (update :compojure/route-context str route-context)))))"
+    },
+    "Cj9apoiwo7q": {
+      "id": "Cj9apoiwo7q",
+      "qualified_name": "compojure.core/context-route",
+      "simple_name": "context-route",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 267,
+      "end_line": 281,
+      "start_byte": 8596,
+      "end_byte": 9185,
+      "signature_hint": "(defn- context-route [route] (let [re-context {:__path-info #\"|/.*\"}] (cond (string? route) (clout/route-compile (str route \":__path-info\") re-context) (and (vector? route) (literal? route)) (clout/route-compile (str (first route) \":__path-info\") (merge (apply hash-map (rest route)) re-context)) (vector? route) `(clout/route-compile (str ~(first route) \":__path-info\") ~(merge (apply hash-map (rest route)) re-context)) :else `(clout/route-compile (str ~route \":__path-info\") ~re-context))))"
+    },
+    "Chofvq2nrxw": {
+      "id": "Chofvq2nrxw",
+      "qualified_name": "compojure.core/^:no-doc make-context",
+      "simple_name": "^:no-doc make-context",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 283,
+      "end_line": 301,
+      "start_byte": 9187,
+      "end_byte": 9945,
+      "signature_hint": "(defn ^:no-doc make-context [route path make-handler] (letfn [(handler ([request] (when-let [context-handler (make-handler request)] (context-handler request))) ([request respond raise] (if-let [context-handler (make-handler request)] (context-handler request respond raise) (respond nil))))] (if (#{\":__path-info\" \"/:__path-info\"} (:source route)) handler (fn ([request] (if-let [request (context-request request route path)] (handler request))) ([request respond raise] (if-let [request (context-request request route path)] (handler request respond raise) (respond nil)))))))"
+    },
+    "Co4uqy8pbcv": {
+      "id": "Co4uqy8pbcv",
+      "qualified_name": "compojure.core/context",
+      "simple_name": "context",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 303,
+      "end_line": 318,
+      "start_byte": 9947,
+      "end_byte": 10433,
+      "signature_hint": "(defmacro context \"Give all routes in the form a common path prefix and set of bindings. The following example demonstrates defining two routes with a common path prefix ('/user/:id') and a common binding ('id'): (context \\\"/user/:id\\\" [id] (GET \\\"/profile\\\" [] ...) (GET \\\"/settings\\\" [] ...))\" [path args & routes] `(make-context ~(context-route path) ~path (fn [request#] (let-request [~args request#] (routes ~@routes)))))"
+    },
+    "Cetn2dytemc": {
+      "id": "Cetn2dytemc",
+      "qualified_name": "compojure.core/let-routes",
+      "simple_name": "let-routes",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 320,
+      "end_line": 327,
+      "start_byte": 10435,
+      "end_byte": 10614,
+      "signature_hint": "(defmacro let-routes \"Takes a vector of bindings and a body of routes. Equivalent to: (let [...] (routes ...))\" [bindings & body] `(let ~bindings (routes ~@body)))"
+    },
+    "C8zxdt6mnzo": {
+      "id": "C8zxdt6mnzo",
+      "qualified_name": "compojure.core/pre-init",
+      "simple_name": "pre-init",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 329,
+      "end_line": 342,
+      "start_byte": 10616,
+      "end_byte": 11135,
+      "signature_hint": "(defn- pre-init [middleware] (let [proxy (middleware (fn ([request] ((:route-handler request) request)) ([request respond raise] ((:route-handler request) request respond raise))))] (fn [handler] (let [prep-request #(assoc % :route-handler handler)] (fn ([request] (proxy (prep-request request))) ([request respond raise] (proxy (prep-request request) respond raise)))))))"
+    },
+    "Cqfc9wg35ab": {
+      "id": "Cqfc9wg35ab",
+      "qualified_name": "compojure.core/wrap-routes",
+      "simple_name": "wrap-routes",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8odz54ah7u",
+      "start_line": 344,
+      "end_line": 357,
+      "start_byte": 11137,
+      "end_byte": 11742,
+      "signature_hint": "(defn wrap-routes \"Apply a middleware function to routes after they have been matched.\" ([handler middleware] (let [middleware (pre-init middleware) prep-request (fn [request] (let [mw (:route-middleware request identity)] (assoc request :route-middleware (comp mw middleware))))] (fn ([request] (handler (prep-request request))) ([request respond raise] (handler (prep-request request) respond raise))))) ([handler middleware & args] (wrap-routes handler #(apply middleware % args))))"
+    },
+    "Cm7rdvbkvu3": {
+      "id": "Cm7rdvbkvu3",
+      "qualified_name": "compojure.handler/with-opts",
+      "simple_name": "with-opts",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fxf0o71yd7x",
+      "start_line": 17,
+      "end_line": 20,
+      "start_byte": 502,
+      "end_byte": 609,
+      "signature_hint": "(defn- with-opts [routes middleware opts] (if opts (middleware routes opts) (middleware routes)))"
+    },
+    "Cvocs1ycs89": {
+      "id": "Cvocs1ycs89",
+      "qualified_name": "compojure.handler/api",
+      "simple_name": "api",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fxf0o71yd7x",
+      "start_line": 22,
+      "end_line": 34,
+      "start_byte": 611,
+      "end_byte": 899,
+      "signature_hint": "(defn api \"Create a handler suitable for a web API. This adds the following middleware to your routes: - wrap-params - wrap-nested-params - wrap-keyword-params\" {:deprecated \"1.2\"} [routes] (-> routes wrap-keyword-params wrap-nested-params wrap-params))"
+    },
+    "Cu824qikbd4": {
+      "id": "Cu824qikbd4",
+      "qualified_name": "compojure.handler/site",
+      "simple_name": "site",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fxf0o71yd7x",
+      "start_line": 36,
+      "end_line": 61,
+      "start_byte": 901,
+      "end_byte": 1568,
+      "signature_hint": "(defn site \"Create a handler suitable for a standard website. This adds the following middleware to your routes: - wrap-session - wrap-flash - wrap-cookies - wrap-multipart-params - wrap-params - wrap-nested-params - wrap-keyword-params A map of options may also be provided. These keys are provided: :session : a map of session middleware options :multipart : a map of multipart-params middleware options\" {:deprecated \"1.2\" :arglists '([routes] [routes options])} [routes & [opts]] (-> (api routes) (with-opts wrap-multipart-params (:multipart opts)) (wrap-flash) (with-opts wrap-session (:session opts))))"
+    },
+    "Ceuwdva00fb": {
+      "id": "Ceuwdva00fb",
+      "qualified_name": "compojure.middleware/remove-trailing-slash",
+      "simple_name": "remove-trailing-slash",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fs9wwchs3xy",
+      "start_line": 6,
+      "end_line": 11,
+      "start_byte": 177,
+      "end_byte": 360,
+      "signature_hint": "(defn remove-trailing-slash \"Remove the trailing '/' from a URI string, if it exists.\" [^String uri] (if (.endsWith uri \"/\") (.substring uri 0 (dec (.length uri))) uri))"
+    },
+    "Ch7x9nl1bxa": {
+      "id": "Ch7x9nl1bxa",
+      "qualified_name": "compojure.middleware/redirect-to-canonical",
+      "simple_name": "redirect-to-canonical",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fs9wwchs3xy",
+      "start_line": 13,
+      "end_line": 17,
+      "start_byte": 362,
+      "end_byte": 527,
+      "signature_hint": "(defn- redirect-to-canonical ([request] (resp/redirect (:compojure/path request) 301)) ([request respond raise] (respond (redirect-to-canonical request))))"
+    },
+    "C14qqzjw3ncg": {
+      "id": "C14qqzjw3ncg",
+      "qualified_name": "compojure.middleware/assoc-path",
+      "simple_name": "assoc-path",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fs9wwchs3xy",
+      "start_line": 19,
+      "end_line": 20,
+      "start_byte": 529,
+      "end_byte": 601,
+      "signature_hint": "(defn- assoc-path [request path] (assoc request :compojure/path path))"
+    },
+    "Czeeiax4pkn": {
+      "id": "Czeeiax4pkn",
+      "qualified_name": "compojure.middleware/wrap-canonical-redirect",
+      "simple_name": "wrap-canonical-redirect",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fs9wwchs3xy",
+      "start_line": 22,
+      "end_line": 41,
+      "start_byte": 603,
+      "end_byte": 1583,
+      "signature_hint": "(defn wrap-canonical-redirect \"Middleware that permanently redirects any non-canonical route to its canonical equivalent, based on a make-canonical function that changes a URI string into its canonical form. If not supplied, the make-canonical function will default to [[remove-trailing-slash]].\" ([handler] (wrap-canonical-redirect handler remove-trailing-slash)) ([handler make-canonical] (let [redirect-handler (wrap-routes handler (constantly redirect-to-canonical))] (fn ([{uri :uri :as request}] (let [canonical-uri (make-canonical uri)] (if (= uri canonical-uri) (handler request) (redirect-handler (assoc-path request canonical-uri))))) ([{uri :uri :as request} respond raise] (let [canonical-uri (make-canonical uri)] (if (= uri canonical-uri) (handler request respond raise) (redirect-handler (assoc-path request canonical-uri) respond raise))))))))"
+    },
+    "Ce4eh2iymhm": {
+      "id": "Ce4eh2iymhm",
+      "qualified_name": "compojure.response/Renderable",
+      "simple_name": "Renderable",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F14j6oam1nnm",
+      "start_line": 7,
+      "end_line": 15,
+      "start_byte": 199,
+      "end_byte": 593,
+      "signature_hint": "(defprotocol Renderable \"A protocol that tells Compojure how to handle the return value of routes defined by [[GET]], [[POST]], etc. This protocol supports rendering strings, maps, functions, refs, files, seqs, input streams and URLs by default, and may be extended to cover many custom types.\" (render [x request] \"Render `x` into a form suitable for the given request map.\"))"
+    },
+    "Cq2gvn5aatt": {
+      "id": "Cq2gvn5aatt",
+      "qualified_name": "compojure.response/Sendable",
+      "simple_name": "Sendable",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F14j6oam1nnm",
+      "start_line": 17,
+      "end_line": 20,
+      "start_byte": 595,
+      "end_byte": 785,
+      "signature_hint": "(defprotocol Sendable \"A protocol that tells Compojure how to handle the return value of asynchronous routes, should they require special attention.\" (send* [x request respond raise]))"
+    },
+    "C4xlexci8ot": {
+      "id": "C4xlexci8ot",
+      "qualified_name": "compojure.response/send",
+      "simple_name": "send",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F14j6oam1nnm",
+      "start_line": 22,
+      "end_line": 28,
+      "start_byte": 787,
+      "end_byte": 1048,
+      "signature_hint": "(defn send \"Send `x` as a Ring response. Checks to see if `x` satisfies [[Sendable]], and if not, falls back to [[Renderable]].\" [x request respond raise] (if (satisfies? Sendable x) (send* x request respond raise) (respond (render x request))))"
+    },
+    "Cdwoazuj5tj": {
+      "id": "Cdwoazuj5tj",
+      "qualified_name": "compojure.response/guess-content-type",
+      "simple_name": "guess-content-type",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F14j6oam1nnm",
+      "start_line": 30,
+      "end_line": 33,
+      "start_byte": 1050,
+      "end_byte": 1207,
+      "signature_hint": "(defn- guess-content-type [response name] (if-let [mime-type (mime/ext-mime-type (str name))] (response/content-type response mime-type) response))"
+    },
+    "Cd31c6vp2m": {
+      "id": "Cd31c6vp2m",
+      "qualified_name": "compojure.route/add-wildcard",
+      "simple_name": "add-wildcard",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F130rw4izck2",
+      "start_line": 9,
+      "end_line": 10,
+      "start_byte": 343,
+      "end_byte": 426,
+      "signature_hint": "(defn- add-wildcard [^String path] (str path (if (.endsWith path \"/\") \"*\" \"/*\")))"
+    },
+    "C3fdvpwz7i3": {
+      "id": "C3fdvpwz7i3",
+      "qualified_name": "compojure.route/add-mime-type",
+      "simple_name": "add-mime-type",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F130rw4izck2",
+      "start_line": 12,
+      "end_line": 15,
+      "start_byte": 428,
+      "end_byte": 598,
+      "signature_hint": "(defn- add-mime-type [response path options] (if-let [mime-type (mime/ext-mime-type path (:mime-types options {}))] (content-type response mime-type) response))"
+    },
+    "Cqz1evi27tg": {
+      "id": "Cqz1evi27tg",
+      "qualified_name": "compojure.route/files",
+      "simple_name": "files",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F130rw4izck2",
+      "start_line": 17,
+      "end_line": 34,
+      "start_byte": 600,
+      "end_byte": 1159,
+      "signature_hint": "(defn files \"Returns a route for serving static files from a directory. Accepts the following options: :root : the root path where the files are stored, defaults to \\\"public\\\" :mime-types : an optional map of file extensions to mime types\" ([path] (files path {})) ([path options] (GET (add-wildcard path) {{file-path :*} :route-params} (let [options (merge {:root \"public\"} options) response (file-response file-path options)] (if response (add-mime-type response (str (:body response)) options))))))"
+    },
+    "Cjir8jxxfll": {
+      "id": "Cjir8jxxfll",
+      "qualified_name": "compojure.route/resources",
+      "simple_name": "resources",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F130rw4izck2",
+      "start_line": 36,
+      "end_line": 52,
+      "start_byte": 1161,
+      "end_byte": 1692,
+      "signature_hint": "(defn resources \"Returns a route for serving resources on the classpath. Accepts the following options: :root : the root prefix path of the resources, defaults to \\\"public\\\" :mime-types : an optional map of file extensions to mime types\" ([path] (resources path {})) ([path options] (GET (add-wildcard path) {{resource-path :*} :route-params} (let [root (:root options \"public\")] (some-> (resource-response (str root \"/\" resource-path)) (add-mime-type resource-path options))))))"
+    },
+    "C9kvhz7hy1k": {
+      "id": "C9kvhz7hy1k",
+      "qualified_name": "compojure.route/not-found",
+      "simple_name": "not-found",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F130rw4izck2",
+      "start_line": 54,
+      "end_line": 65,
+      "start_byte": 1694,
+      "end_byte": 2134,
+      "signature_hint": "(defn not-found \"Returns a route that always returns a 404 \\\"Not Found\\\" response with the supplied response body. The response body may be anything accepted by the [[response/render]] function.\" [body] (fn handler ([request] (-> (response/render body request) (status 404) (cond-> (= (:request-method request) :head) (assoc :body nil)))) ([request respond raise] (respond (handler request)))))"
+    },
+    "Cicwjs7ae9u": {
+      "id": "Cicwjs7ae9u",
+      "qualified_name": "compojure.core-test/handler_at_12",
+      "simple_name": "handler_at_12",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 12,
+      "end_line": 13,
+      "start_byte": 368,
+      "end_byte": 408,
+      "signature_hint": "(is (= x \"bar\"))",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C10ued2jasld": {
+      "id": "C10ued2jasld",
+      "qualified_name": "compojure.core-test/handler_at_20",
+      "simple_name": "handler_at_20",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 20,
+      "end_line": 22,
+      "start_byte": 582,
+      "end_byte": 654,
+      "signature_hint": "(is (= x \"foo\"))",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cnorg7w73g9": {
+      "id": "Cnorg7w73g9",
+      "qualified_name": "compojure.core-test/handler_at_29",
+      "simple_name": "handler_at_29",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 29,
+      "end_line": 31,
+      "start_byte": 825,
+      "end_byte": 898,
+      "signature_hint": "(is (= x \"foo\"))",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cftx0cudd7m": {
+      "id": "Cftx0cudd7m",
+      "qualified_name": "compojure.core-test/handler_at_40",
+      "simple_name": "handler_at_40",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 40,
+      "end_line": 42,
+      "start_byte": 1175,
+      "end_byte": 1302,
+      "signature_hint": "(is (= x \"foo\"))",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cp4o0isrsm9": {
+      "id": "Cp4o0isrsm9",
+      "qualified_name": "compojure.core-test/handler_at_49",
+      "simple_name": "handler_at_49",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 49,
+      "end_line": 50,
+      "start_byte": 1489,
+      "end_byte": 1528,
+      "signature_hint": "(is (= x \"foo\"))",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cu7jyz8ad0m": {
+      "id": "Cu7jyz8ad0m",
+      "qualified_name": "compojure.core-test/handler_at_55",
+      "simple_name": "handler_at_55",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 55,
+      "end_line": 55,
+      "start_byte": 1624,
+      "end_byte": 1631,
+      "signature_hint": "(str x)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C3o6joiom6d": {
+      "id": "C3o6joiom6d",
+      "qualified_name": "compojure.core-test/handler_at_57",
+      "simple_name": "handler_at_57",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 57,
+      "end_line": 57,
+      "start_byte": 1748,
+      "end_byte": 1755,
+      "signature_hint": "(str x)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C14bozkc566c": {
+      "id": "C14bozkc566c",
+      "qualified_name": "compojure.core-test/handler_at_59",
+      "simple_name": "handler_at_59",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 59,
+      "end_line": 59,
+      "start_byte": 1876,
+      "end_byte": 1883,
+      "signature_hint": "(str x)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cg0vxgag01j": {
+      "id": "Cg0vxgag01j",
+      "qualified_name": "compojure.core-test/handler_at_61",
+      "simple_name": "handler_at_61",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 61,
+      "end_line": 61,
+      "start_byte": 1997,
+      "end_byte": 2004,
+      "signature_hint": "(str x)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C82m301qa6i": {
+      "id": "C82m301qa6i",
+      "qualified_name": "compojure.core-test/handler_at_65",
+      "simple_name": "handler_at_65",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 65,
+      "end_line": 65,
+      "start_byte": 2139,
+      "end_byte": 2159,
+      "signature_hint": "(GET \"/\" [] (str x))",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C11y60actk98": {
+      "id": "C11y60actk98",
+      "qualified_name": "compojure.core-test/handler_at_65",
+      "simple_name": "handler_at_65",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 65,
+      "end_line": 65,
+      "start_byte": 2151,
+      "end_byte": 2158,
+      "signature_hint": "(str x)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cygjez52ays": {
+      "id": "Cygjez52ays",
+      "qualified_name": "compojure.core-test/handler_at_67",
+      "simple_name": "handler_at_67",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 67,
+      "end_line": 67,
+      "start_byte": 2280,
+      "end_byte": 2300,
+      "signature_hint": "(GET \"/\" [] (str x))",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cj5f03zf0s0": {
+      "id": "Cj5f03zf0s0",
+      "qualified_name": "compojure.core-test/handler_at_67",
+      "simple_name": "handler_at_67",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 67,
+      "end_line": 67,
+      "start_byte": 2292,
+      "end_byte": 2299,
+      "signature_hint": "(str x)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Czyaxxkkvz5": {
+      "id": "Czyaxxkkvz5",
+      "qualified_name": "compojure.core-test/handler_at_69",
+      "simple_name": "handler_at_69",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 69,
+      "end_line": 69,
+      "start_byte": 2425,
+      "end_byte": 2445,
+      "signature_hint": "(GET \"/\" [] (str x))",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Chhc57zy5mn": {
+      "id": "Chhc57zy5mn",
+      "qualified_name": "compojure.core-test/handler_at_69",
+      "simple_name": "handler_at_69",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 69,
+      "end_line": 69,
+      "start_byte": 2437,
+      "end_byte": 2444,
+      "signature_hint": "(str x)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cf5jalj6fsl": {
+      "id": "Cf5jalj6fsl",
+      "qualified_name": "compojure.core-test/handler_at_71",
+      "simple_name": "handler_at_71",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 71,
+      "end_line": 71,
+      "start_byte": 2563,
+      "end_byte": 2583,
+      "signature_hint": "(GET \"/\" [] (str x))",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Ct50jmp33ht": {
+      "id": "Ct50jmp33ht",
+      "qualified_name": "compojure.core-test/handler_at_71",
+      "simple_name": "handler_at_71",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 71,
+      "end_line": 71,
+      "start_byte": 2575,
+      "end_byte": 2582,
+      "signature_hint": "(str x)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cjeuqk7xaol": {
+      "id": "Cjeuqk7xaol",
+      "qualified_name": "compojure.core-test/handler_at_76",
+      "simple_name": "handler_at_76",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 76,
+      "end_line": 76,
+      "start_byte": 2704,
+      "end_byte": 2736,
+      "signature_hint": "(is (= params {:x \"a\", :y \"b\"}))",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C17ltdeordjn": {
+      "id": "C17ltdeordjn",
+      "qualified_name": "compojure.core-test/handler_at_84",
+      "simple_name": "handler_at_84",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 84,
+      "end_line": 84,
+      "start_byte": 2978,
+      "end_byte": 2985,
+      "signature_hint": "(str *)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Crwu2357jhp": {
+      "id": "Crwu2357jhp",
+      "qualified_name": "compojure.core-test/handler_at_146",
+      "simple_name": "handler_at_146",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 146,
+      "end_line": 146,
+      "start_byte": 5310,
+      "end_byte": 5320,
+      "signature_hint": "(is false)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cic8tbme7f4": {
+      "id": "Cic8tbme7f4",
+      "qualified_name": "compojure.core-test/handler_at_147",
+      "simple_name": "handler_at_147",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 147,
+      "end_line": 147,
+      "start_byte": 5345,
+      "end_byte": 5354,
+      "signature_hint": "(is true)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cbg2yf20xq1": {
+      "id": "Cbg2yf20xq1",
+      "qualified_name": "compojure.core-test/handler_at_151",
+      "simple_name": "handler_at_151",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 151,
+      "end_line": 151,
+      "start_byte": 5414,
+      "end_byte": 5424,
+      "signature_hint": "(is false)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cqrgu5520f5": {
+      "id": "Cqrgu5520f5",
+      "qualified_name": "compojure.core-test/handler_at_152",
+      "simple_name": "handler_at_152",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 152,
+      "end_line": 152,
+      "start_byte": 5449,
+      "end_byte": 5458,
+      "signature_hint": "(is true)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Ck91wv4aa8e": {
+      "id": "Ck91wv4aa8e",
+      "qualified_name": "compojure.core-test/handler_at_209",
+      "simple_name": "handler_at_209",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 209,
+      "end_line": 209,
+      "start_byte": 7667,
+      "end_byte": 7720,
+      "signature_hint": "(context \"/bar/:bar-id\" [_] :compojure/route-context)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cir1ogu9q72": {
+      "id": "Cir1ogu9q72",
+      "qualified_name": "compojure.core-test/handler_at_218",
+      "simple_name": "handler_at_218",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 218,
+      "end_line": 220,
+      "start_byte": 8089,
+      "end_byte": 8186,
+      "signature_hint": "(GET \"/\" [] \"root\")",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C30zc3olucv": {
+      "id": "C30zc3olucv",
+      "qualified_name": "compojure.core-test/handler_at_230",
+      "simple_name": "handler_at_230",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 230,
+      "end_line": 230,
+      "start_byte": 8522,
+      "end_byte": 8537,
+      "signature_hint": "(GET \"/\" [] ip)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C17rapm6atg5": {
+      "id": "C17rapm6atg5",
+      "qualified_name": "compojure.core-test/handler_at_231",
+      "simple_name": "handler_at_231",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 231,
+      "end_line": 231,
+      "start_byte": 8582,
+      "end_byte": 8602,
+      "signature_hint": "(GET \"/:ip\" [ip] ip)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cbxt1jsjvja": {
+      "id": "Cbxt1jsjvja",
+      "qualified_name": "compojure.core-test/handler_at_239",
+      "simple_name": "handler_at_239",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 239,
+      "end_line": 239,
+      "start_byte": 9072,
+      "end_byte": 9090,
+      "signature_hint": "(GET \"/\" [] emote)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C3rw4w4x5s0": {
+      "id": "C3rw4w4x5s0",
+      "qualified_name": "compojure.core-test/handler_at_240",
+      "simple_name": "handler_at_240",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 240,
+      "end_line": 240,
+      "start_byte": 9138,
+      "end_byte": 9167,
+      "signature_hint": "(GET \"/:emote\" [emote] emote)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C15oej5n6dgw": {
+      "id": "C15oej5n6dgw",
+      "qualified_name": "compojure.core-test/handler_at_248",
+      "simple_name": "handler_at_248",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 248,
+      "end_line": 250,
+      "start_byte": 9486,
+      "end_byte": 9589,
+      "signature_hint": "(GET \"/\" [] \"root\")",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cr83eufmp17": {
+      "id": "Cr83eufmp17",
+      "qualified_name": "compojure.core-test/handler_at_295",
+      "simple_name": "handler_at_295",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 295,
+      "end_line": 295,
+      "start_byte": 11263,
+      "end_byte": 11288,
+      "signature_hint": "(str (::a req) (::b req))",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cpecv0j8x4": {
+      "id": "Cpecv0j8x4",
+      "qualified_name": "compojure.core-test/handler_at_325",
+      "simple_name": "handler_at_325",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 325,
+      "end_line": 325,
+      "start_byte": 12572,
+      "end_byte": 12584,
+      "signature_hint": "(:stack req)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cnguhaawtvo": {
+      "id": "Cnguhaawtvo",
+      "qualified_name": "compojure.core-test/handler_at_326",
+      "simple_name": "handler_at_326",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 326,
+      "end_line": 326,
+      "start_byte": 12645,
+      "end_byte": 12657,
+      "signature_hint": "(:stack req)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C13grw1a3nub": {
+      "id": "C13grw1a3nub",
+      "qualified_name": "compojure.core-test/handler_at_347",
+      "simple_name": "handler_at_347",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 347,
+      "end_line": 347,
+      "start_byte": 13435,
+      "end_byte": 13454,
+      "signature_hint": "(str \"hello \" name)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Czamlz5x8sz": {
+      "id": "Czamlz5x8sz",
+      "qualified_name": "compojure.core-test/handler_at_411",
+      "simple_name": "handler_at_411",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 411,
+      "end_line": 412,
+      "start_byte": 15752,
+      "end_byte": 15835,
+      "signature_hint": "(GET \"/bar\" [] (str name \"bar\"))",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Ctfa9ra2pp": {
+      "id": "Ctfa9ra2pp",
+      "qualified_name": "compojure.core-test/handler_at_411",
+      "simple_name": "handler_at_411",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 411,
+      "end_line": 411,
+      "start_byte": 15767,
+      "end_byte": 15783,
+      "signature_hint": "(str name \"bar\")",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Cwmxu90bmll": {
+      "id": "Cwmxu90bmll",
+      "qualified_name": "compojure.core-test/handler_at_412",
+      "simple_name": "handler_at_412",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 412,
+      "end_line": 412,
+      "start_byte": 15818,
+      "end_byte": 15834,
+      "signature_hint": "(str name \"baz\")",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C12u9f79z4lm": {
+      "id": "C12u9f79z4lm",
+      "qualified_name": "compojure.core-test/handler_at_431",
+      "simple_name": "handler_at_431",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 431,
+      "end_line": 431,
+      "start_byte": 16528,
+      "end_byte": 16549,
+      "signature_hint": "(GET \"/\" [] (str id))",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Ckrtwl38keb": {
+      "id": "Ckrtwl38keb",
+      "qualified_name": "compojure.core-test/handler_at_431",
+      "simple_name": "handler_at_431",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 431,
+      "end_line": 431,
+      "start_byte": 16540,
+      "end_byte": 16548,
+      "signature_hint": "(str id)",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "Curfwcizlf4": {
+      "id": "Curfwcizlf4",
+      "qualified_name": "compojure.core-test/handler_at_473",
+      "simple_name": "handler_at_473",
+      "kind": "closure",
+      "language": "clojure",
+      "file": "Fuk9dlj0djm",
+      "start_line": 473,
+      "end_line": 473,
+      "start_byte": 18159,
+      "end_byte": 18196,
+      "signature_hint": "(fn [_ respond _] (respond \"foobar\"))",
+      "attributes": [
+        "synthetic"
+      ],
+      "synthetic": true,
+      "test_role": "support"
+    },
+    "C690ly8zlxp": {
+      "id": "C690ly8zlxp",
+      "qualified_name": "compojure.response-test/expected-response",
+      "simple_name": "expected-response",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8b7lijz69q",
+      "start_line": 6,
+      "end_line": 9,
+      "start_byte": 153,
+      "end_byte": 276,
+      "signature_hint": "(def expected-response {:status 200 :headers {\"Content-Type\" \"text/html; charset=utf-8\"} :body \"<h1>Foo</h1>\"})",
+      "test_role": "support"
+    },
+    "C14frj0oqx5t": {
+      "id": "C14frj0oqx5t",
+      "qualified_name": "compojure.response-test/handler-multi",
+      "simple_name": "handler-multi",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8b7lijz69q",
+      "start_line": 12,
+      "end_line": 12,
+      "start_byte": 279,
+      "end_byte": 309,
+      "signature_hint": "(defmulti handler-multi :body)",
+      "test_role": "support"
+    },
+    "C13w77sfbdkd": {
+      "id": "C13w77sfbdkd",
+      "qualified_name": "compojure.response-test/handler-multi",
+      "simple_name": "handler-multi",
+      "kind": "function",
+      "language": "clojure",
+      "file": "F8b7lijz69q",
+      "start_line": 14,
+      "end_line": 15,
+      "start_byte": 311,
+      "end_byte": 375,
+      "signature_hint": "(defmethod handler-multi :default [request] expected-response)",
+      "test_role": "support"
+    },
+    "Cwfv7b6csoz": {
+      "id": "Cwfv7b6csoz",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/foo\")",
+      "simple_name": "get(\"/foo\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `GET(\"/foo\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "C2282hecrii": {
+      "id": "C2282hecrii",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/:x\")",
+      "simple_name": "get(\"/:x\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `GET(\"/:x\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Ce1kz5q6o1h": {
+      "id": "Ce1kz5q6o1h",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/:x/:y\")",
+      "simple_name": "get(\"/:x/:y\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `GET(\"/:x/:y\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cprqdwg6t2b": {
+      "id": "Cprqdwg6t2b",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/foo/:x\")",
+      "simple_name": "get(\"/foo/:x\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `GET(\"/foo/:x\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cfkaqz4jl4k": {
+      "id": "Cfkaqz4jl4k",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/foo/:x\")",
+      "simple_name": "context(\"/foo/:x\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `context(\"/foo/:x\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "C7wkrergzei": {
+      "id": "C7wkrergzei",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/\")",
+      "simple_name": "get(\"/\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `GET(\"/\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cap7xtvyuzv": {
+      "id": "Cap7xtvyuzv",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/foo/*\")",
+      "simple_name": "get(\"/foo/*\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `GET(\"/foo/*\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "C12dtrydqh8l": {
+      "id": "C12dtrydqh8l",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/bar\")",
+      "simple_name": "get(\"/bar\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `GET(\"/bar\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cc6q0ca3eqj": {
+      "id": "Cc6q0ca3eqj",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/foo/:foo-id\")",
+      "simple_name": "context(\"/foo/:foo-id\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `context(\"/foo/:foo-id\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "C11q5gyjaqt": {
+      "id": "C11q5gyjaqt",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/foo/:id\")",
+      "simple_name": "context(\"/foo/:id\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `context(\"/foo/:id\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cc6ufrwynl2": {
+      "id": "Cc6ufrwynl2",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/ip/:ip\")",
+      "simple_name": "context(\"/ip/:ip\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `context(\"/ip/:ip\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Ccrj4hkiseo": {
+      "id": "Ccrj4hkiseo",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/ip\")",
+      "simple_name": "context(\"/ip\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `context(\"/ip\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cuqjv9g9iya": {
+      "id": "Cuqjv9g9iya",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/emote/:emote\")",
+      "simple_name": "context(\"/emote/:emote\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `context(\"/emote/:emote\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "C7dwnx78oec": {
+      "id": "C7dwnx78oec",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/emote\")",
+      "simple_name": "context(\"/emote\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `context(\"/emote\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cseywiu356": {
+      "id": "Cseywiu356",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/\")",
+      "simple_name": "context(\"/\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `context(\"/\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cf63ltpalir": {
+      "id": "Cf63ltpalir",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/hello/:name\")",
+      "simple_name": "get(\"/hello/:name\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `GET(\"/hello/:name\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Cw96hapqx15": {
+      "id": "Cw96hapqx15",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/:name\")",
+      "simple_name": "context(\"/:name\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `context(\"/:name\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Chbvlwp4vxa": {
+      "id": "Chbvlwp4vxa",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/baz\")",
+      "simple_name": "get(\"/baz\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `GET(\"/baz\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    },
+    "Chnvkasnzlj": {
+      "id": "Chnvkasnzlj",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/:id\")",
+      "simple_name": "context(\"/:id\")",
+      "kind": "function",
+      "language": "clojure",
+      "file": "Fn7kcdjzuh1",
+      "start_line": 0,
+      "end_line": 0,
+      "start_byte": 0,
+      "end_byte": 0,
+      "attributes": [
+        "framework-entry",
+        "registered by `context(\"/:id\")`"
+      ],
+      "synthetic": true,
+      "framework_entry": "network"
+    }
+  },
+  "files": {
+    "Fx5e96610ba": {
+      "id": "Fx5e96610ba",
+      "path": "/storage/cgg-test_repos/clojure-compojure/project.clj",
+      "language": "clojure",
+      "detected_via": "extension:.clj",
+      "blake3": "f635f4c72181ff761334d5f1bfd0c4f737c84024bc5b67a7f844a59391a0ed7f",
+      "size_bytes": 1153,
+      "lines": 26,
+      "parse_ms": 0.20604,
+      "parse_status": "ok"
+    },
+    "F1p59sn1nmr": {
+      "id": "F1p59sn1nmr",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/coercions.clj",
+      "language": "clojure",
+      "detected_via": "extension:.clj",
+      "blake3": "9f4e86b2e30462ef0e0de06cd134204c082af0f202372afe20c3f2c712af8ab1",
+      "size_bytes": 592,
+      "lines": 20,
+      "parse_ms": 0.07684,
+      "parse_status": "ok"
+    },
+    "F8odz54ah7u": {
+      "id": "F8odz54ah7u",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/core.clj",
+      "language": "clojure",
+      "detected_via": "extension:.clj",
+      "blake3": "39c1bf7098766e0cf4475f952dbec96c906762b8fccd6fc39de6810adabceaef",
+      "size_bytes": 11743,
+      "lines": 357,
+      "parse_ms": 2.561514,
+      "parse_status": "ok"
+    },
+    "Fxf0o71yd7x": {
+      "id": "Fxf0o71yd7x",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/handler.clj",
+      "language": "clojure",
+      "detected_via": "extension:.clj",
+      "blake3": "a2ac2d5394a1478f4433cd6a21fc507cdf8283c8879b5d7bcaf7694b58fbee0f",
+      "size_bytes": 1569,
+      "lines": 61,
+      "parse_ms": 0.12763100000000002,
+      "parse_status": "ok"
+    },
+    "Fs9wwchs3xy": {
+      "id": "Fs9wwchs3xy",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/middleware.clj",
+      "language": "clojure",
+      "detected_via": "extension:.clj",
+      "blake3": "721c5384f9fe61967e0ce3a9c9b3ef5c3b4432b4ecaa123904ded74ffcbf9f26",
+      "size_bytes": 1584,
+      "lines": 41,
+      "parse_ms": 0.489561,
+      "parse_status": "ok"
+    },
+    "F14j6oam1nnm": {
+      "id": "F14j6oam1nnm",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/response.clj",
+      "language": "clojure",
+      "detected_via": "extension:.clj",
+      "blake3": "6dd0760e1e5353554b874646f7cfbd7f26496a58dff344f78da33dda10519e3e",
+      "size_bytes": 2440,
+      "lines": 73,
+      "parse_ms": 0.632491,
+      "parse_status": "ok"
+    },
+    "F130rw4izck2": {
+      "id": "F130rw4izck2",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/route.clj",
+      "language": "clojure",
+      "detected_via": "extension:.clj",
+      "blake3": "cf54e7c6669c72d866abc2b98580d4455a0698abf2d1cdce7b93000f8eaf7f95",
+      "size_bytes": 2135,
+      "lines": 65,
+      "parse_ms": 0.471371,
+      "parse_status": "ok"
+    },
+    "Fkkanlxp1js": {
+      "id": "Fkkanlxp1js",
+      "path": "/storage/cgg-test_repos/clojure-compojure/test/compojure/coercions_test.clj",
+      "language": "clojure",
+      "detected_via": "extension:.clj",
+      "blake3": "3a8e893ab0c3aaa058d1e254f9ab8f223008c4dbc0a18b22e822e43daaa2454f",
+      "size_bytes": 737,
+      "lines": 22,
+      "parse_ms": 0.315191,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "Fuk9dlj0djm": {
+      "id": "Fuk9dlj0djm",
+      "path": "/storage/cgg-test_repos/clojure-compojure/test/compojure/core_test.clj",
+      "language": "clojure",
+      "detected_via": "extension:.clj",
+      "blake3": "393d8485ef99e261e39ad6679c4ca512be879257cf82c882690fbe2a78e34c2c",
+      "size_bytes": 18538,
+      "lines": 482,
+      "parse_ms": 4.641787,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "Fs8wj5sr2go": {
+      "id": "Fs8wj5sr2go",
+      "path": "/storage/cgg-test_repos/clojure-compojure/test/compojure/middleware_test.clj",
+      "language": "clojure",
+      "detected_via": "extension:.clj",
+      "blake3": "a08d42fdad4909ecc2720e10f160d732f013f06584deadebb85b15de6a9fb7a7",
+      "size_bytes": 1941,
+      "lines": 52,
+      "parse_ms": 0.881211,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "F8b7lijz69q": {
+      "id": "F8b7lijz69q",
+      "path": "/storage/cgg-test_repos/clojure-compojure/test/compojure/response_test.clj",
+      "language": "clojure",
+      "detected_via": "extension:.clj",
+      "blake3": "8d0ddcef8d79e0ca609223b51e574e088f962341d1bd6a2a99db5cef0c38aa94",
+      "size_bytes": 3603,
+      "lines": 97,
+      "parse_ms": 1.496132,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "F8sp1j90n09": {
+      "id": "F8sp1j90n09",
+      "path": "/storage/cgg-test_repos/clojure-compojure/test/compojure/route_test.clj",
+      "language": "clojure",
+      "detected_via": "extension:.clj",
+      "blake3": "b6c335aef3ac3be98a6d2ff3400cf2bcee8cb51df9941471d500ee45d6ae7f36",
+      "size_bytes": 2932,
+      "lines": 72,
+      "parse_ms": 1.5128730000000001,
+      "parse_status": "ok",
+      "test_role": "file-name"
+    },
+    "Fn7kcdjzuh1": {
+      "id": "Fn7kcdjzuh1",
+      "path": "<framework-entry>",
+      "language": "framework-entry",
+      "detected_via": "synthesized",
+      "blake3": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 0,
+      "lines": 0,
+      "parse_ms": 0.0,
+      "parse_status": "synthetic"
+    }
+  },
+  "edges": [
+    {
+      "src": "C16z03cfivyz",
+      "dst": "C184v5wq35fm",
+      "site_line": 27,
+      "site_byte": 1010,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cukwr1uz543",
+      "dst": "Cgypw4u2aka",
+      "site_line": 49,
+      "site_byte": 1737,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cukwr1uz543",
+      "dst": "Ckjw8cv4ivs",
+      "site_line": 50,
+      "site_byte": 1772,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cukwr1uz543",
+      "dst": "Ch7i4xfx6y",
+      "site_line": 50,
+      "site_byte": 1800,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cu6565iw1yn",
+      "dst": "C1mmbjbmenb",
+      "site_line": 61,
+      "site_byte": 2049,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cv9zn3kyvmu",
+      "dst": "Cbncrnaoptf",
+      "site_line": 81,
+      "site_byte": 2638,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C17urt0k6x8c",
+      "dst": "Cb7kuuuc4x",
+      "site_line": 89,
+      "site_byte": 2853,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C17urt0k6x8c",
+      "dst": "Cv9zn3kyvmu",
+      "site_line": 93,
+      "site_byte": 3047,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C17urt0k6x8c",
+      "dst": "Cbncrnaoptf",
+      "site_line": 95,
+      "site_byte": 3145,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cuzw9myy0r8",
+      "dst": "Crovnseou9p",
+      "site_line": 115,
+      "site_byte": 3796,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cuzw9myy0r8",
+      "dst": "C17urt0k6x8c",
+      "site_line": 117,
+      "site_byte": 3865,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cuzw9myy0r8",
+      "dst": "Cswwn7ibexx",
+      "site_line": 118,
+      "site_byte": 3923,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C8n4msmdhat",
+      "dst": "C16z03cfivyz",
+      "site_line": 144,
+      "site_byte": 4725,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C8n4msmdhat",
+      "dst": "Cukwr1uz543",
+      "site_line": 145,
+      "site_byte": 4782,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C8n4msmdhat",
+      "dst": "Cdfypkznst7",
+      "site_line": 147,
+      "site_byte": 4856,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C8n4msmdhat",
+      "dst": "C16z03cfivyz",
+      "site_line": 149,
+      "site_byte": 4929,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C8n4msmdhat",
+      "dst": "Cukwr1uz543",
+      "site_line": 150,
+      "site_byte": 4986,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C8n4msmdhat",
+      "dst": "Cdfypkznst7",
+      "site_line": 151,
+      "site_byte": 5052,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cq0dumo215g",
+      "dst": "C9dgg9ujvbm",
+      "site_line": 167,
+      "site_byte": 5499,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cq0dumo215g",
+      "dst": "Csuweh0ibvt",
+      "site_line": 168,
+      "site_byte": 5521,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cq0dumo215g",
+      "dst": "Cc1e37pmb8k",
+      "site_line": 169,
+      "site_byte": 5551,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cq0dumo215g",
+      "dst": "C8n4msmdhat",
+      "site_line": 170,
+      "site_byte": 5605,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14lklazwyqf",
+      "dst": "Cq0dumo215g",
+      "site_line": 176,
+      "site_byte": 5813,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14lklazwyqf",
+      "dst": "Cu6565iw1yn",
+      "site_line": 178,
+      "site_byte": 5842,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cu2p0mp6je",
+      "dst": "Cgjzxergazv",
+      "site_line": 207,
+      "site_byte": 6783,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C178pjjzkb20",
+      "dst": "C14lklazwyqf",
+      "site_line": 211,
+      "site_byte": 6868,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C117gz14wstf",
+      "dst": "C14lklazwyqf",
+      "site_line": 215,
+      "site_byte": 6971,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ca1es4oq6a1",
+      "dst": "C14lklazwyqf",
+      "site_line": 219,
+      "site_byte": 7073,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cudc5eiomcr",
+      "dst": "C14lklazwyqf",
+      "site_line": 223,
+      "site_byte": 7180,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cknih1c8893",
+      "dst": "C14lklazwyqf",
+      "site_line": 227,
+      "site_byte": 7286,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C7pj7u4zz39",
+      "dst": "C14lklazwyqf",
+      "site_line": 231,
+      "site_byte": 7397,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C14fve6io8uz",
+      "dst": "C14lklazwyqf",
+      "site_line": 235,
+      "site_byte": 7506,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C747r3ujnc4",
+      "dst": "C14lklazwyqf",
+      "site_line": 239,
+      "site_byte": 7627,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cxwfrpinizw",
+      "dst": "Ckjw8cv4ivs",
+      "site_line": 262,
+      "site_byte": 8362,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cxwfrpinizw",
+      "dst": "Ch7i4xfx6y",
+      "site_line": 262,
+      "site_byte": 8382,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cxwfrpinizw",
+      "dst": "Cs7kbznyvj2",
+      "site_line": 264,
+      "site_byte": 8500,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cj9apoiwo7q",
+      "dst": "C1mmbjbmenb",
+      "site_line": 272,
+      "site_byte": 8795,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Chofvq2nrxw",
+      "dst": "Cxwfrpinizw",
+      "site_line": 296,
+      "site_byte": 9706,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Chofvq2nrxw",
+      "dst": "Cxwfrpinizw",
+      "site_line": 299,
+      "site_byte": 9834,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Co4uqy8pbcv",
+      "dst": "Cj9apoiwo7q",
+      "site_line": 314,
+      "site_byte": 10318,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Co4uqy8pbcv",
+      "dst": "Cgjzxergazv",
+      "site_line": 318,
+      "site_byte": 10412,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cetn2dytemc",
+      "dst": "Cgjzxergazv",
+      "site_line": 327,
+      "site_byte": 10597,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cqfc9wg35ab",
+      "dst": "C8zxdt6mnzo",
+      "site_line": 347,
+      "site_byte": 11273,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cqfc9wg35ab",
+      "dst": "Cqfc9wg35ab",
+      "site_line": 357,
+      "site_byte": 11692,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cu824qikbd4",
+      "dst": "Cvocs1ycs89",
+      "site_line": 58,
+      "site_byte": 1430,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cu824qikbd4",
+      "dst": "Cm7rdvbkvu3",
+      "site_line": 59,
+      "site_byte": 1449,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cu824qikbd4",
+      "dst": "Cm7rdvbkvu3",
+      "site_line": 61,
+      "site_byte": 1526,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Ch7x9nl1bxa",
+      "dst": "Ch7x9nl1bxa",
+      "site_line": 17,
+      "site_byte": 493,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Czeeiax4pkn",
+      "dst": "Czeeiax4pkn",
+      "site_line": 28,
+      "site_byte": 924,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Czeeiax4pkn",
+      "dst": "C14qqzjw3ncg",
+      "site_line": 36,
+      "site_byte": 1281,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Czeeiax4pkn",
+      "dst": "C14qqzjw3ncg",
+      "site_line": 41,
+      "site_byte": 1527,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cqz1evi27tg",
+      "dst": "Cqz1evi27tg",
+      "site_line": 28,
+      "site_byte": 868,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cqz1evi27tg",
+      "dst": "Cd31c6vp2m",
+      "site_line": 30,
+      "site_byte": 911,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cqz1evi27tg",
+      "dst": "C3fdvpwz7i3",
+      "site_line": 34,
+      "site_byte": 1099,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjir8jxxfll",
+      "dst": "Cjir8jxxfll",
+      "site_line": 47,
+      "site_byte": 1427,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjir8jxxfll",
+      "dst": "Cd31c6vp2m",
+      "site_line": 49,
+      "site_byte": 1474,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "Cjir8jxxfll",
+      "dst": "C3fdvpwz7i3",
+      "site_line": 52,
+      "site_byte": 1650,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "intra-file"
+    },
+    {
+      "src": "C9dgg9ujvbm",
+      "dst": "C4xlexci8ot",
+      "site_line": 160,
+      "site_byte": 5279,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czeeiax4pkn",
+      "dst": "Cqfc9wg35ab",
+      "site_line": 30,
+      "site_byte": 1035,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cqz1evi27tg",
+      "dst": "C178pjjzkb20",
+      "site_line": 30,
+      "site_byte": 906,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cjir8jxxfll",
+      "dst": "C178pjjzkb20",
+      "site_line": 49,
+      "site_byte": 1469,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C82m301qa6i",
+      "dst": "C178pjjzkb20",
+      "site_line": 65,
+      "site_byte": 2139,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cygjez52ays",
+      "dst": "C178pjjzkb20",
+      "site_line": 67,
+      "site_byte": 2280,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czyaxxkkvz5",
+      "dst": "C178pjjzkb20",
+      "site_line": 69,
+      "site_byte": 2425,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cf5jalj6fsl",
+      "dst": "C178pjjzkb20",
+      "site_line": 71,
+      "site_byte": 2563,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Ck91wv4aa8e",
+      "dst": "Co4uqy8pbcv",
+      "site_line": 209,
+      "site_byte": 7667,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cir1ogu9q72",
+      "dst": "C178pjjzkb20",
+      "site_line": 218,
+      "site_byte": 8089,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cir1ogu9q72",
+      "dst": "C178pjjzkb20",
+      "site_line": 219,
+      "site_byte": 8129,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cir1ogu9q72",
+      "dst": "C178pjjzkb20",
+      "site_line": 220,
+      "site_byte": 8167,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C30zc3olucv",
+      "dst": "C178pjjzkb20",
+      "site_line": 230,
+      "site_byte": 8522,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C17rapm6atg5",
+      "dst": "C178pjjzkb20",
+      "site_line": 231,
+      "site_byte": 8582,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cbxt1jsjvja",
+      "dst": "C178pjjzkb20",
+      "site_line": 239,
+      "site_byte": 9072,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C3rw4w4x5s0",
+      "dst": "C178pjjzkb20",
+      "site_line": 240,
+      "site_byte": 9138,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C15oej5n6dgw",
+      "dst": "C178pjjzkb20",
+      "site_line": 248,
+      "site_byte": 9486,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C15oej5n6dgw",
+      "dst": "C178pjjzkb20",
+      "site_line": 249,
+      "site_byte": 9526,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C15oej5n6dgw",
+      "dst": "C178pjjzkb20",
+      "site_line": 250,
+      "site_byte": 9568,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czamlz5x8sz",
+      "dst": "C178pjjzkb20",
+      "site_line": 411,
+      "site_byte": 15752,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Czamlz5x8sz",
+      "dst": "C178pjjzkb20",
+      "site_line": 412,
+      "site_byte": 15803,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "C12u9f79z4lm",
+      "dst": "C178pjjzkb20",
+      "site_line": 431,
+      "site_byte": 16528,
+      "confidence": "high",
+      "via": {
+        "kind": "direct"
+      },
+      "resolver": "cross-file:imports"
+    },
+    {
+      "src": "Cwfv7b6csoz",
+      "dst": "Cicwjs7ae9u",
+      "site_line": 12,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C2282hecrii",
+      "dst": "C10ued2jasld",
+      "site_line": 20,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C2282hecrii",
+      "dst": "Cnorg7w73g9",
+      "site_line": 29,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C2282hecrii",
+      "dst": "Cftx0cudd7m",
+      "site_line": 40,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Ce1kz5q6o1h",
+      "dst": "Cp4o0isrsm9",
+      "site_line": 49,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cprqdwg6t2b",
+      "dst": "Cu7jyz8ad0m",
+      "site_line": 55,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cprqdwg6t2b",
+      "dst": "C3o6joiom6d",
+      "site_line": 57,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cprqdwg6t2b",
+      "dst": "C14bozkc566c",
+      "site_line": 59,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cprqdwg6t2b",
+      "dst": "Cg0vxgag01j",
+      "site_line": 61,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cfkaqz4jl4k",
+      "dst": "C82m301qa6i",
+      "site_line": 65,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C7wkrergzei",
+      "dst": "C82m301qa6i",
+      "site_line": 65,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cfkaqz4jl4k",
+      "dst": "Cygjez52ays",
+      "site_line": 67,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C7wkrergzei",
+      "dst": "Cygjez52ays",
+      "site_line": 67,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cfkaqz4jl4k",
+      "dst": "Czyaxxkkvz5",
+      "site_line": 69,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C7wkrergzei",
+      "dst": "Czyaxxkkvz5",
+      "site_line": 69,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cfkaqz4jl4k",
+      "dst": "Cf5jalj6fsl",
+      "site_line": 71,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C7wkrergzei",
+      "dst": "Cf5jalj6fsl",
+      "site_line": 71,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cwfv7b6csoz",
+      "dst": "Cjeuqk7xaol",
+      "site_line": 76,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cap7xtvyuzv",
+      "dst": "C17ltdeordjn",
+      "site_line": 84,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cwfv7b6csoz",
+      "dst": "Crwu2357jhp",
+      "site_line": 146,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C12dtrydqh8l",
+      "dst": "Cic8tbme7f4",
+      "site_line": 147,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cwfv7b6csoz",
+      "dst": "Cbg2yf20xq1",
+      "site_line": 151,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C12dtrydqh8l",
+      "dst": "Cqrgu5520f5",
+      "site_line": 152,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cc6q0ca3eqj",
+      "dst": "Ck91wv4aa8e",
+      "site_line": 209,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C11q5gyjaqt",
+      "dst": "Cir1ogu9q72",
+      "site_line": 218,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cc6ufrwynl2",
+      "dst": "C30zc3olucv",
+      "site_line": 230,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Ccrj4hkiseo",
+      "dst": "C17rapm6atg5",
+      "site_line": 231,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cuqjv9g9iya",
+      "dst": "Cbxt1jsjvja",
+      "site_line": 239,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C7dwnx78oec",
+      "dst": "C3rw4w4x5s0",
+      "site_line": 240,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cseywiu356",
+      "dst": "C15oej5n6dgw",
+      "site_line": 248,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C7wkrergzei",
+      "dst": "Cr83eufmp17",
+      "site_line": 295,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cwfv7b6csoz",
+      "dst": "Cpecv0j8x4",
+      "site_line": 325,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C12dtrydqh8l",
+      "dst": "Cnguhaawtvo",
+      "site_line": 326,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cf63ltpalir",
+      "dst": "C13grw1a3nub",
+      "site_line": 347,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Cw96hapqx15",
+      "dst": "Czamlz5x8sz",
+      "site_line": 411,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C12dtrydqh8l",
+      "dst": "Czamlz5x8sz",
+      "site_line": 411,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Chbvlwp4vxa",
+      "dst": "Cwmxu90bmll",
+      "site_line": 412,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "Chnvkasnzlj",
+      "dst": "C12u9f79z4lm",
+      "site_line": 431,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C7wkrergzei",
+      "dst": "C12u9f79z4lm",
+      "site_line": 431,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    },
+    {
+      "src": "C7wkrergzei",
+      "dst": "Curfwcizlf4",
+      "site_line": 473,
+      "site_byte": 0,
+      "confidence": "low",
+      "via": {
+        "kind": "framework_entry",
+        "family": "compojure"
+      },
+      "resolver": "framework-entry"
+    }
+  ],
+  "unresolved": [
+    {
+      "src": null,
+      "file": "F14j6oam1nnm",
+      "site_line": 55,
+      "site_byte": 1842,
+      "name": "guess-content-type",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "F14j6oam1nnm",
+      "site_line": 65,
+      "site_byte": 2151,
+      "name": "guess-content-type",
+      "reason": {
+        "stage": "no-enclosing-callable"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkkanlxp1js",
+      "site_line": 6,
+      "site_byte": 147,
+      "name": "as-int",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkkanlxp1js",
+      "site_line": 7,
+      "site_byte": 173,
+      "name": "as-int",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkkanlxp1js",
+      "site_line": 8,
+      "site_byte": 201,
+      "name": "as-int",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkkanlxp1js",
+      "site_line": 9,
+      "site_byte": 230,
+      "name": "as-int",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkkanlxp1js",
+      "site_line": 10,
+      "site_byte": 259,
+      "name": "as-int",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkkanlxp1js",
+      "site_line": 11,
+      "site_byte": 290,
+      "name": "as-int",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkkanlxp1js",
+      "site_line": 12,
+      "site_byte": 316,
+      "name": "as-int",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkkanlxp1js",
+      "site_line": 13,
+      "site_byte": 345,
+      "name": "as-int",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkkanlxp1js",
+      "site_line": 14,
+      "site_byte": 372,
+      "name": "as-int",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkkanlxp1js",
+      "site_line": 17,
+      "site_byte": 421,
+      "name": "as-uuid",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkkanlxp1js",
+      "site_line": 19,
+      "site_byte": 538,
+      "name": "as-uuid",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkkanlxp1js",
+      "site_line": 20,
+      "site_byte": 565,
+      "name": "as-uuid",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkkanlxp1js",
+      "site_line": 21,
+      "site_byte": 624,
+      "name": "as-uuid",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fkkanlxp1js",
+      "site_line": 22,
+      "site_byte": 685,
+      "name": "as-uuid",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 11,
+      "site_byte": 343,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 19,
+      "site_byte": 551,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 28,
+      "site_byte": 794,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 39,
+      "site_byte": 1142,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 48,
+      "site_byte": 1434,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 55,
+      "site_byte": 1605,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 57,
+      "site_byte": 1708,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 59,
+      "site_byte": 1832,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 61,
+      "site_byte": 1957,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 65,
+      "site_byte": 2116,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 67,
+      "site_byte": 2236,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 69,
+      "site_byte": 2377,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 71,
+      "site_byte": 2519,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 75,
+      "site_byte": 2668,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 92,
+      "site_byte": 3290,
+      "name": "PUT",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 99,
+      "site_byte": 3572,
+      "name": "DELETE",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 106,
+      "site_byte": 3862,
+      "name": "PUT",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 111,
+      "site_byte": 4031,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 116,
+      "site_byte": 4200,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 122,
+      "site_byte": 4461,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 129,
+      "site_byte": 4722,
+      "name": "rfn",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 133,
+      "site_byte": 4843,
+      "name": "rfn",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 137,
+      "site_byte": 4984,
+      "name": "rfn",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 141,
+      "site_byte": 5131,
+      "name": "rfn",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 145,
+      "site_byte": 5255,
+      "name": "routing",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 146,
+      "site_byte": 5295,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 147,
+      "site_byte": 5330,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 150,
+      "site_byte": 5387,
+      "name": "routes",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 151,
+      "site_byte": 5399,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 152,
+      "site_byte": 5434,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 157,
+      "site_byte": 5568,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 162,
+      "site_byte": 5769,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 168,
+      "site_byte": 6013,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 173,
+      "site_byte": 6207,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 178,
+      "site_byte": 6427,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 184,
+      "site_byte": 6705,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 192,
+      "site_byte": 6985,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 200,
+      "site_byte": 7270,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 208,
+      "site_byte": 7619,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 217,
+      "site_byte": 8044,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 229,
+      "site_byte": 8449,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 230,
+      "site_byte": 8498,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 231,
+      "site_byte": 8564,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 238,
+      "site_byte": 8978,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 239,
+      "site_byte": 9039,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 240,
+      "site_byte": 9117,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 247,
+      "site_byte": 9450,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 258,
+      "site_byte": 9804,
+      "name": "let-routes",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 259,
+      "site_byte": 9853,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 260,
+      "site_byte": 9889,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 267,
+      "site_byte": 10116,
+      "name": "make-route",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 275,
+      "site_byte": 10400,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 277,
+      "site_byte": 10494,
+      "name": "wrap-routes",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 283,
+      "site_byte": 10735,
+      "name": "routes",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 284,
+      "site_byte": 10758,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 285,
+      "site_byte": 10795,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 287,
+      "site_byte": 10890,
+      "name": "wrap-routes",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 295,
+      "site_byte": 11250,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 298,
+      "site_byte": 11438,
+      "name": "wrap-routes",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 298,
+      "site_byte": 11459,
+      "name": "wrap-routes",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 304,
+      "site_byte": 11694,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 305,
+      "site_byte": 11737,
+      "name": "wrap-routes",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 311,
+      "site_byte": 11935,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 314,
+      "site_byte": 12093,
+      "name": "wrap-routes",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 323,
+      "site_byte": 12480,
+      "name": "wrap-routes",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 324,
+      "site_byte": 12513,
+      "name": "routes",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 325,
+      "site_byte": 12543,
+      "name": "wrap-routes",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 325,
+      "site_byte": 12556,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 326,
+      "site_byte": 12616,
+      "name": "wrap-routes",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 326,
+      "site_byte": 12629,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 333,
+      "site_byte": 12901,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 339,
+      "site_byte": 13123,
+      "name": "ANY",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 347,
+      "site_byte": 13408,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 368,
+      "site_byte": 14221,
+      "name": "routes",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 369,
+      "site_byte": 14246,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 370,
+      "site_byte": 14285,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 371,
+      "site_byte": 14324,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 397,
+      "site_byte": 15233,
+      "name": "rfn",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 410,
+      "site_byte": 15709,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 430,
+      "site_byte": 16466,
+      "name": "context",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 448,
+      "site_byte": 17192,
+      "name": "wrap-routes",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 449,
+      "site_byte": 17222,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 473,
+      "site_byte": 18147,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fs8wj5sr2go",
+      "site_line": 10,
+      "site_byte": 361,
+      "name": "wrap-canonical-redirect",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fs8wj5sr2go",
+      "site_line": 11,
+      "site_byte": 403,
+      "name": "routes",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fs8wj5sr2go",
+      "site_line": 12,
+      "site_byte": 429,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fs8wj5sr2go",
+      "site_line": 13,
+      "site_byte": 469,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fs8wj5sr2go",
+      "site_line": 33,
+      "site_byte": 1211,
+      "name": "wrap-canonical-redirect",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fs8wj5sr2go",
+      "site_line": 33,
+      "site_byte": 1236,
+      "name": "GET",
+      "reason": {
+        "stage": "no-candidate-in-file"
+      }
+    },
+    {
+      "src": "C82m301qa6i",
+      "file": "Fuk9dlj0djm",
+      "site_line": 65,
+      "site_byte": 2139,
+      "name": "handler_at_65",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C11y60actk98",
+      "file": "Fuk9dlj0djm",
+      "site_line": 65,
+      "site_byte": 2151,
+      "name": "handler_at_65",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cygjez52ays",
+      "file": "Fuk9dlj0djm",
+      "site_line": 67,
+      "site_byte": 2280,
+      "name": "handler_at_67",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cj5f03zf0s0",
+      "file": "Fuk9dlj0djm",
+      "site_line": 67,
+      "site_byte": 2292,
+      "name": "handler_at_67",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Czyaxxkkvz5",
+      "file": "Fuk9dlj0djm",
+      "site_line": 69,
+      "site_byte": 2425,
+      "name": "handler_at_69",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Chhc57zy5mn",
+      "file": "Fuk9dlj0djm",
+      "site_line": 69,
+      "site_byte": 2437,
+      "name": "handler_at_69",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Cf5jalj6fsl",
+      "file": "Fuk9dlj0djm",
+      "site_line": 71,
+      "site_byte": 2563,
+      "name": "handler_at_71",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Ct50jmp33ht",
+      "file": "Fuk9dlj0djm",
+      "site_line": 71,
+      "site_byte": 2575,
+      "name": "handler_at_71",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 92,
+      "site_byte": 3305,
+      "name": "resp",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 99,
+      "site_byte": 3590,
+      "name": "resp",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 106,
+      "site_byte": 3877,
+      "name": "resp",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 111,
+      "site_byte": 4047,
+      "name": "resp",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 116,
+      "site_byte": 4234,
+      "name": "id",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 122,
+      "site_byte": 4488,
+      "name": "id",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 157,
+      "site_byte": 5593,
+      "name": "identity",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 162,
+      "site_byte": 5807,
+      "name": "identity",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 168,
+      "site_byte": 6022,
+      "name": "path",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 168,
+      "site_byte": 6032,
+      "name": "identity",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 173,
+      "site_byte": 6241,
+      "name": "identity",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 178,
+      "site_byte": 6474,
+      "name": "identity",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 229,
+      "site_byte": 8469,
+      "name": "ip",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 238,
+      "site_byte": 9007,
+      "name": "emote",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 259,
+      "site_byte": 9868,
+      "name": "a",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 260,
+      "site_byte": 9904,
+      "name": "b",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 333,
+      "site_byte": 12921,
+      "name": "req",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": null,
+      "file": "Fuk9dlj0djm",
+      "site_line": 339,
+      "site_byte": 13143,
+      "name": "req",
+      "reason": {
+        "stage": "value-ref-no-enclosing"
+      }
+    },
+    {
+      "src": "Czamlz5x8sz",
+      "file": "Fuk9dlj0djm",
+      "site_line": 411,
+      "site_byte": 15752,
+      "name": "handler_at_411",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Ctfa9ra2pp",
+      "file": "Fuk9dlj0djm",
+      "site_line": 411,
+      "site_byte": 15767,
+      "name": "handler_at_411",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "C12u9f79z4lm",
+      "file": "Fuk9dlj0djm",
+      "site_line": 431,
+      "site_byte": 16528,
+      "name": "handler_at_431",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    },
+    {
+      "src": "Ckrtwl38keb",
+      "file": "Fuk9dlj0djm",
+      "site_line": 431,
+      "site_byte": 16540,
+      "name": "handler_at_431",
+      "reason": {
+        "stage": "value-ref-ambiguous",
+        "detail": {
+          "candidates": 2
+        }
+      }
+    }
+  ],
+  "file_audits": [],
+  "metrics": {
+    "wall_ms": 19.58021,
+    "phases": {
+      "walk_ms": 2.172424,
+      "parse_ms": 13.412642,
+      "extract_ms": 3.9237640000000003,
+      "resolve_ms": 0.0,
+      "link_ms": 2.498974,
+      "query_ms": 0.0,
+      "format_ms": 0.0
+    },
+    "files_discovered": 51,
+    "files_analyzed": 12,
+    "files_skipped": 39,
+    "files_errored": 0,
+    "bytes_processed": 48967,
+    "callables": 124,
+    "edges": 119,
+    "unresolved_calls": 135,
+    "stdlib_calls": 884,
+    "external_calls": 365,
+    "ffi_detected": 0,
+    "ffi_resolved": 0,
+    "peak_rss_bytes": 0,
+    "by_language": {
+      "clojure": {
+        "files": 12,
+        "callables": 105,
+        "edges": 57,
+        "unresolved": 135,
+        "stdlib": 884,
+        "external": 365
+      },
+      "skip:builtin": {
+        "files": 31,
+        "callables": 0,
+        "edges": 0,
+        "unresolved": 0,
+        "stdlib": 0,
+        "external": 0
+      }
+    },
+    "cycles": [],
+    "longest_path_len": 0,
+    "confidence_histogram": {
+      "high": 79,
+      "medium": 0,
+      "low": 0
+    }
+  }
+}

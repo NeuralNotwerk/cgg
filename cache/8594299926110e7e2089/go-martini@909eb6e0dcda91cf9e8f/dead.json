@@ -1,0 +1,3254 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "go",
+      "class": "degraded",
+      "visibility": "full",
+      "attributes": "none",
+      "value_references": "full",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "full",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "builtin:main",
+        "framework:entry-node",
+        "framework:test-harness"
+      ],
+      "files": 16,
+      "callables": 164,
+      "roots": 48,
+      "reachable": 100,
+      "reachable_pct": 60,
+      "findings": 49
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 164,
+    "edges": 465,
+    "unresolved_call_sites": 123,
+    "roots": 48,
+    "candidates": 108,
+    "reported": 49,
+    "regions": 40,
+    "withheld": [
+      {
+        "language": "go",
+        "category": "only-used-by-tests",
+        "reason": "missing-signal",
+        "would_have_reported": 44
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Cqlqh2g4d0m",
+      "qualified_name": "martini.init",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `init`"
+    },
+    {
+      "id": "Crcb3ykyd9g",
+      "qualified_name": "martini.Test_SetENV",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Co2joi44t48",
+      "qualified_name": "martini.Test_Root",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cpr4jvndnyq",
+      "qualified_name": "martini.Test_Logger",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C76a1ylzt9i",
+      "qualified_name": "martini.Test_New",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C13oqohpowp9",
+      "qualified_name": "martini.Test_Martini_RunOnAddr",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C55t6t4akm5",
+      "qualified_name": "martini.Test_Martini_Run",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cvme3af5lmc",
+      "qualified_name": "martini.Test_Martini_ServeHTTP",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C6qvr5nx44k",
+      "qualified_name": "martini.Test_Martini_Handlers",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C1hgws5g4qk",
+      "qualified_name": "martini.Test_Martini_EarlyWrite",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ccvtil8vtoj",
+      "qualified_name": "martini.Test_Martini_Written",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Chpkvfjb0hn",
+      "qualified_name": "martini.Test_Martini_Basic_NoRace",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Chd1l3j74fj",
+      "qualified_name": "martini.Test_Recovery",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ceuhcg2b3an",
+      "qualified_name": "martini.Test_Recovery_ResponseWriter",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Chyat3sqm4f",
+      "qualified_name": "martini.Test_ResponseWriter_WritingString",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cdh12ivr66y",
+      "qualified_name": "martini.Test_ResponseWriter_WritingStrings",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cg0v23py02y",
+      "qualified_name": "martini.Test_ResponseWriter_WritingHeader",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cp1fqlmkenb",
+      "qualified_name": "martini.Test_ResponseWriter_Before",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C12xhf0270e6",
+      "qualified_name": "martini.Test_ResponseWriter_Hijack",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C13j1avvqpo5",
+      "qualified_name": "martini.Test_ResponseWrite_Hijack_NotOK",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C4387w5z5o0",
+      "qualified_name": "martini.Test_ResponseWriter_CloseNotify",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cetlophxmv9",
+      "qualified_name": "martini.Test_ResponseWriter_Flusher",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cveaa8shgy",
+      "qualified_name": "martini.Test_ResponseWriter_FlusherHandler",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cah1c93bx4c",
+      "qualified_name": "martini.Test_Routing",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cq00kke0myw",
+      "qualified_name": "martini.Test_RouterHandlerStatusCode",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C56mfxye1jn",
+      "qualified_name": "martini.Test_RouterHandlerStacking",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cf7jnzokzmw",
+      "qualified_name": "martini.Test_RouteMatching",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cq2g7dffg6e",
+      "qualified_name": "martini.Test_MethodsFor",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ckqe1v6y2ld",
+      "qualified_name": "martini.Test_NotFound",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cr1knkrqloh",
+      "qualified_name": "martini.Test_NotFoundAsHandler",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C58o52dx26h",
+      "qualified_name": "martini.Test_NotFoundStacking",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C11z55otcrir",
+      "qualified_name": "martini.Test_Any",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C8yhqk3hsqv",
+      "qualified_name": "martini.Test_URLFor",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ct0i77ycyx3",
+      "qualified_name": "martini.Test_AllRoutes",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C59ca1swjvk",
+      "qualified_name": "martini.Test_ActiveRoute",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C16isxgqgyys",
+      "qualified_name": "martini.Test_Static",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cs0p7o88ien",
+      "qualified_name": "martini.Test_Static_Local_Path",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Coikb4xj4nx",
+      "qualified_name": "martini.Test_Static_Head",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cv63lovy2nr",
+      "qualified_name": "martini.Test_Static_As_Post",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C4j290fjg53",
+      "qualified_name": "martini.Test_Static_BadDir",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C56oxewzpcr",
+      "qualified_name": "martini.Test_Static_Options_Logging",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cqrnkc1ga5t",
+      "qualified_name": "martini.Test_Static_Options_ServeIndex",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cakxyc6a3yu",
+      "qualified_name": "martini.Test_Static_Options_Prefix",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ct5c8xijwwd",
+      "qualified_name": "martini.Test_Static_Options_Expires",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Co3lwcjdeg6",
+      "qualified_name": "martini.Test_Static_Options_Fallback",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C14tgltmwtsc",
+      "qualified_name": "martini.Test_Static_Redirect",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ck7icwh1kmt",
+      "qualified_name": "<framework-entry>::test::go-testing",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ccht5zi1b6m",
+      "qualified_name": "<framework-entry>::network::net-http::martini.Martini.ServeHTTP",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::net-http::martini.Martini.ServeHTTP`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 4,
+      "members": [
+        "Cj1gxt41hsu"
+      ],
+      "anchors": [
+        "Cj1gxt41hsu"
+      ],
+      "files": [
+        "Fghy9sm0hao"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 11,
+      "members": [
+        "Cxcfq2ly5lm"
+      ],
+      "anchors": [
+        "Cxcfq2ly5lm"
+      ],
+      "files": [
+        "F17ishdretpq"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 14,
+      "members": [
+        "Cveq87hmr0l",
+        "Cpkbutskhfy"
+      ],
+      "anchors": [
+        "Cpkbutskhfy"
+      ],
+      "files": [
+        "F17ishdretpq"
+      ],
+      "total_lines": 19,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 19,
+      "members": [
+        "C10gcvhqahlc",
+        "C15jv7mqtsej",
+        "C41m832u8ld"
+      ],
+      "anchors": [
+        "C15jv7mqtsej",
+        "C41m832u8ld"
+      ],
+      "files": [
+        "F17ishdretpq",
+        "Foslakhrwz8"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 22,
+      "members": [
+        "Cwf3niovnjk"
+      ],
+      "anchors": [
+        "Cwf3niovnjk"
+      ],
+      "files": [
+        "F17ishdretpq"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 34,
+      "members": [
+        "Cizc75ihkjk"
+      ],
+      "anchors": [
+        "Cizc75ihkjk"
+      ],
+      "files": [
+        "F7qjtadjudu"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 55,
+      "members": [
+        "Cpih8gpredd",
+        "Cowje9w7515",
+        "Cjw39u6repx"
+      ],
+      "anchors": [
+        "Cowje9w7515"
+      ],
+      "files": [
+        "Ffgyo7r4c23"
+      ],
+      "total_lines": 19,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 57,
+      "members": [
+        "C557gs7w5qn"
+      ],
+      "anchors": [
+        "C557gs7w5qn"
+      ],
+      "files": [
+        "Ffgyo7r4c23"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 58,
+      "members": [
+        "C8rcr83btsv"
+      ],
+      "anchors": [
+        "C8rcr83btsv"
+      ],
+      "files": [
+        "Ffgyo7r4c23"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 60,
+      "members": [
+        "Clb12ra6n9q"
+      ],
+      "anchors": [
+        "Clb12ra6n9q"
+      ],
+      "files": [
+        "Ffgyo7r4c23"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 63,
+      "members": [
+        "Cpimloow252"
+      ],
+      "anchors": [
+        "Cpimloow252"
+      ],
+      "files": [
+        "Ffgyo7r4c23"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 64,
+      "members": [
+        "C3o6yghu0wg",
+        "Cdn2purjes7"
+      ],
+      "anchors": [
+        "C3o6yghu0wg"
+      ],
+      "files": [
+        "Ffgyo7r4c23",
+        "Fm4vom30rrx"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 66,
+      "members": [
+        "Csf0bmuonws"
+      ],
+      "anchors": [
+        "Csf0bmuonws"
+      ],
+      "files": [
+        "Fm4vom30rrx"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 69,
+      "members": [
+        "Csi0p98e9ij"
+      ],
+      "anchors": [
+        "Csi0p98e9ij"
+      ],
+      "files": [
+        "Fm4vom30rrx"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 70,
+      "members": [
+        "Cica928oska"
+      ],
+      "anchors": [
+        "Cica928oska"
+      ],
+      "files": [
+        "Fm4vom30rrx"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 71,
+      "members": [
+        "Cxxlvj2fwwx"
+      ],
+      "anchors": [
+        "Cxxlvj2fwwx"
+      ],
+      "files": [
+        "Fm4vom30rrx"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 72,
+      "members": [
+        "C41x1g2h3ft"
+      ],
+      "anchors": [
+        "C41x1g2h3ft"
+      ],
+      "files": [
+        "Fm4vom30rrx"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 100,
+      "members": [
+        "Cqyaebbjlrj"
+      ],
+      "anchors": [
+        "Cqyaebbjlrj"
+      ],
+      "files": [
+        "F17pxnaudjhl"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 101,
+      "members": [
+        "Cqymv0s3g34",
+        "Cueobximzav",
+        "C12zr2ywmvwk",
+        "Cnr39hbhhdf",
+        "C752d25jl6",
+        "Cao9xoafour",
+        "Cm4x23l3sib",
+        "Cpbs3x0b7cv",
+        "C5oeqzndrza",
+        "Cji72oerz9f",
+        "Cj2azactrsl"
+      ],
+      "anchors": [
+        "Cqymv0s3g34",
+        "Cueobximzav",
+        "C12zr2ywmvwk",
+        "Cnr39hbhhdf",
+        "C752d25jl6",
+        "Cao9xoafour",
+        "Cm4x23l3sib",
+        "Cpbs3x0b7cv",
+        "C5oeqzndrza"
+      ],
+      "files": [
+        "F17pxnaudjhl"
+      ],
+      "total_lines": 51,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 110,
+      "members": [
+        "C6h0s08nxal",
+        "C6bu7ci8d6s",
+        "Cgfphz0g3e8",
+        "Cbm7lopcsth",
+        "Ccjpobcj6sx",
+        "Cgqf4dqte0v",
+        "C17yqoef8jxv",
+        "Clx3xhn9r0g"
+      ],
+      "anchors": [
+        "C6h0s08nxal",
+        "Ccjpobcj6sx",
+        "Cgqf4dqte0v",
+        "Clx3xhn9r0g"
+      ],
+      "files": [
+        "F17pxnaudjhl"
+      ],
+      "total_lines": 93,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 111,
+      "members": [
+        "C62xu9n0pr7"
+      ],
+      "anchors": [
+        "C62xu9n0pr7"
+      ],
+      "files": [
+        "F17pxnaudjhl"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 117,
+      "members": [
+        "Ceia6wmul2b"
+      ],
+      "anchors": [
+        "Ceia6wmul2b"
+      ],
+      "files": [
+        "F17pxnaudjhl"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 118,
+      "members": [
+        "C11zm86nfqgw"
+      ],
+      "anchors": [],
+      "files": [
+        "F17pxnaudjhl"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 119,
+      "members": [
+        "Casvnkl1jmz"
+      ],
+      "anchors": [],
+      "files": [
+        "F17pxnaudjhl"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 120,
+      "members": [
+        "Ctxp0r69be5"
+      ],
+      "anchors": [
+        "Ctxp0r69be5"
+      ],
+      "files": [
+        "F17pxnaudjhl"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 122,
+      "members": [
+        "C7tlikerr97"
+      ],
+      "anchors": [
+        "C7tlikerr97"
+      ],
+      "files": [
+        "F17pxnaudjhl"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 123,
+      "members": [
+        "Ch8c2gv5ibc",
+        "C13l2cehj9jj"
+      ],
+      "anchors": [
+        "C13l2cehj9jj"
+      ],
+      "files": [
+        "F17pxnaudjhl"
+      ],
+      "total_lines": 31,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 125,
+      "members": [
+        "Cm3zhtzgzo0"
+      ],
+      "anchors": [
+        "Cm3zhtzgzo0"
+      ],
+      "files": [
+        "F17pxnaudjhl"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 126,
+      "members": [
+        "Cnlryzfke2"
+      ],
+      "anchors": [
+        "Cnlryzfke2"
+      ],
+      "files": [
+        "F17pxnaudjhl"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 127,
+      "members": [
+        "C1256zdqjgt3"
+      ],
+      "anchors": [
+        "C1256zdqjgt3"
+      ],
+      "files": [
+        "F17pxnaudjhl"
+      ],
+      "total_lines": 19,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 128,
+      "members": [
+        "C164a2c5opdr"
+      ],
+      "anchors": [
+        "C164a2c5opdr"
+      ],
+      "files": [
+        "F17pxnaudjhl"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 132,
+      "members": [
+        "C1hf05kog0i"
+      ],
+      "anchors": [],
+      "files": [
+        "F17pxnaudjhl"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 133,
+      "members": [
+        "Cas307ywoea"
+      ],
+      "anchors": [],
+      "files": [
+        "F17pxnaudjhl"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 139,
+      "members": [
+        "Cbdo69rujpi"
+      ],
+      "anchors": [
+        "Cbdo69rujpi"
+      ],
+      "files": [
+        "F17pxnaudjhl"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 167,
+      "members": [
+        "Ca5pm3mudab"
+      ],
+      "anchors": [
+        "Ca5pm3mudab"
+      ],
+      "files": [
+        "Foslakhrwz8"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 169,
+      "members": [
+        "Cq2ystf3psp"
+      ],
+      "anchors": [
+        "Cq2ystf3psp"
+      ],
+      "files": [
+        "Foslakhrwz8"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 170,
+      "members": [
+        "Cmqjrqwnq8k"
+      ],
+      "anchors": [
+        "Cmqjrqwnq8k"
+      ],
+      "files": [
+        "Foslakhrwz8"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 185,
+      "members": [
+        "Crudwh5w4w6"
+      ],
+      "anchors": [
+        "Crudwh5w4w6"
+      ],
+      "files": [
+        "Foslakhrwz8"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 187,
+      "members": [
+        "Cpyos9w8te7"
+      ],
+      "anchors": [
+        "Cpyos9w8te7"
+      ],
+      "files": [
+        "Foslakhrwz8"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 188,
+      "members": [
+        "Ccqefgs87bu"
+      ],
+      "anchors": [
+        "Ccqefgs87bu"
+      ],
+      "files": [
+        "Foslakhrwz8"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cji72oerz9f",
+      "qualified_name": "martini.router.addRoute",
+      "simple_name": "addRoute",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 146,
+      "end_line": 164,
+      "size_lines": 19,
+      "signature_hint": "func (r *router) addRoute(method string, pattern string, handlers []Handler) *route",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -181,
+      "region": 101,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 9,
+          "example": "Cqymv0s3g34"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cgfphz0g3e8",
+      "qualified_name": "martini.router.findRoute",
+      "simple_name": "findRoute",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 178,
+      "end_line": 186,
+      "size_lines": 9,
+      "signature_hint": "func (r *router) findRoute(name string) *route",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -191,
+      "region": 110,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ccjpobcj6sx"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C17yqoef8jxv",
+      "qualified_name": "martini.hasMethod",
+      "simple_name": "hasMethod",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 373,
+      "end_line": 380,
+      "size_lines": 8,
+      "signature_hint": "func hasMethod(methods []string, method string) bool",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -192,
+      "region": 110,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Clx3xhn9r0g"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjw39u6repx",
+      "qualified_name": "martini.responseWriter.callBefore",
+      "simple_name": "callBefore",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ffgyo7r4c23",
+      "path": "/storage/cgg-test_repos/go-martini/response_writer.go",
+      "start_line": 87,
+      "end_line": 91,
+      "size_lines": 5,
+      "signature_hint": "func (rw *responseWriter) callBefore()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 55,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cpih8gpredd"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cj2azactrsl",
+      "qualified_name": "martini.router.appendRoute",
+      "simple_name": "appendRoute",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 166,
+      "end_line": 170,
+      "size_lines": 5,
+      "signature_hint": "func (r *router) appendRoute(rt *route)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 101,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cji72oerz9f"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6bu7ci8d6s",
+      "qualified_name": "martini.router.getRoutes",
+      "simple_name": "getRoutes",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 172,
+      "end_line": 176,
+      "size_lines": 5,
+      "signature_hint": "func (r *router) getRoutes() []*route",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 110,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 4,
+          "example": "C6h0s08nxal"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccjpobcj6sx",
+      "qualified_name": "martini.router.URLFor",
+      "simple_name": "URLFor",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 338,
+      "end_line": 360,
+      "size_lines": 23,
+      "signature_hint": "func (r *router) URLFor(name string, params ...interface{}) string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -677,
+      "region": 110,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C13l2cehj9jj",
+      "qualified_name": "martini.route.Match",
+      "simple_name": "Match",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 255,
+      "end_line": 273,
+      "size_lines": 19,
+      "signature_hint": "func (r route) Match(method string, path string) (RouteMatch, map[string]string)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -681,
+      "region": 123,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C1256zdqjgt3",
+      "qualified_name": "martini.route.URLWith",
+      "simple_name": "URLWith",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 291,
+      "end_line": 309,
+      "size_lines": 19,
+      "signature_hint": "func (r *route) URLWith(args []string) string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -681,
+      "region": 127,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ch8c2gv5ibc",
+      "qualified_name": "martini.route.MatchMethod",
+      "simple_name": "MatchMethod",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 242,
+      "end_line": 253,
+      "size_lines": 12,
+      "signature_hint": "func (r route) MatchMethod(method string) RouteMatch",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -688,
+      "region": 123,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C13l2cehj9jj"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cgqf4dqte0v",
+      "qualified_name": "martini.router.All",
+      "simple_name": "All",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 362,
+      "end_line": 371,
+      "size_lines": 10,
+      "signature_hint": "func (r *router) All() []Route",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -690,
+      "region": 110,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Clx3xhn9r0g",
+      "qualified_name": "martini.router.MethodsFor",
+      "simple_name": "MethodsFor",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 383,
+      "end_line": 392,
+      "size_lines": 10,
+      "signature_hint": "func (r *router) MethodsFor(path string) []string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -690,
+      "region": 110,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cqyaebbjlrj",
+      "qualified_name": "martini.router.Group",
+      "simple_name": "Group",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 72,
+      "end_line": 76,
+      "size_lines": 5,
+      "signature_hint": "func (r *router) Group(pattern string, fn func(Router), h ...Handler)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 100,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cm3zhtzgzo0",
+      "qualified_name": "martini.route.Validate",
+      "simple_name": "Validate",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 275,
+      "end_line": 279,
+      "size_lines": 5,
+      "signature_hint": "func (r *route) Validate()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 125,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cxcfq2ly5lm",
+      "qualified_name": "martini.Martini.Logger",
+      "simple_name": "Logger",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17ishdretpq",
+      "path": "/storage/cgg-test_repos/go-martini/martini.go",
+      "start_line": 61,
+      "end_line": 64,
+      "size_lines": 4,
+      "signature_hint": "func (m *Martini) Logger(logger *log.Logger)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 11,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cj1gxt41hsu",
+      "qualified_name": "martini.MartiniDoesNotSupportGo1Point0",
+      "simple_name": "MartiniDoesNotSupportGo1Point0",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fghy9sm0hao",
+      "path": "/storage/cgg-test_repos/go-martini/go_version.go",
+      "start_line": 5,
+      "end_line": 7,
+      "size_lines": 3,
+      "signature_hint": "func MartiniDoesNotSupportGo1Point0()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8rcr83btsv",
+      "qualified_name": "martini.responseWriter.Size",
+      "simple_name": "Size",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ffgyo7r4c23",
+      "path": "/storage/cgg-test_repos/go-martini/response_writer.go",
+      "start_line": 67,
+      "end_line": 69,
+      "size_lines": 3,
+      "signature_hint": "func (rw *responseWriter) Size() int",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 58,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Clb12ra6n9q",
+      "qualified_name": "martini.responseWriter.Before",
+      "simple_name": "Before",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ffgyo7r4c23",
+      "path": "/storage/cgg-test_repos/go-martini/response_writer.go",
+      "start_line": 75,
+      "end_line": 77,
+      "size_lines": 3,
+      "signature_hint": "func (rw *responseWriter) Before(before BeforeFunc)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 60,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3o6yghu0wg",
+      "qualified_name": "martini.closeNotifyResponseWriter.CloseNotify",
+      "simple_name": "CloseNotify",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ffgyo7r4c23",
+      "path": "/storage/cgg-test_repos/go-martini/response_writer.go",
+      "start_line": 105,
+      "end_line": 107,
+      "size_lines": 3,
+      "signature_hint": "func (rw *closeNotifyResponseWriter) CloseNotify() <-chan bool { return rw.closeNotifier.CloseNotify() }",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 64,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cueobximzav",
+      "qualified_name": "martini.router.Patch",
+      "simple_name": "Patch",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 82,
+      "end_line": 84,
+      "size_lines": 3,
+      "signature_hint": "func (r *router) Patch(pattern string, h ...Handler) Route",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 101,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C12zr2ywmvwk",
+      "qualified_name": "martini.router.Post",
+      "simple_name": "Post",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 86,
+      "end_line": 88,
+      "size_lines": 3,
+      "signature_hint": "func (r *router) Post(pattern string, h ...Handler) Route",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 101,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cnr39hbhhdf",
+      "qualified_name": "martini.router.Put",
+      "simple_name": "Put",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 90,
+      "end_line": 92,
+      "size_lines": 3,
+      "signature_hint": "func (r *router) Put(pattern string, h ...Handler) Route",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 101,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C752d25jl6",
+      "qualified_name": "martini.router.Delete",
+      "simple_name": "Delete",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 94,
+      "end_line": 96,
+      "size_lines": 3,
+      "signature_hint": "func (r *router) Delete(pattern string, h ...Handler) Route",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 101,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cao9xoafour",
+      "qualified_name": "martini.router.Options",
+      "simple_name": "Options",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 98,
+      "end_line": 100,
+      "size_lines": 3,
+      "signature_hint": "func (r *router) Options(pattern string, h ...Handler) Route",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 101,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cm4x23l3sib",
+      "qualified_name": "martini.router.Head",
+      "simple_name": "Head",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 102,
+      "end_line": 104,
+      "size_lines": 3,
+      "signature_hint": "func (r *router) Head(pattern string, h ...Handler) Route",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 101,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cpbs3x0b7cv",
+      "qualified_name": "martini.router.Any",
+      "simple_name": "Any",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 106,
+      "end_line": 108,
+      "size_lines": 3,
+      "signature_hint": "func (r *router) Any(pattern string, h ...Handler) Route",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 101,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C5oeqzndrza",
+      "qualified_name": "martini.router.AddRoute",
+      "simple_name": "AddRoute",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 110,
+      "end_line": 112,
+      "size_lines": 3,
+      "signature_hint": "func (r *router) AddRoute(method, pattern string, h ...Handler) Route",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 101,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C62xu9n0pr7",
+      "qualified_name": "martini.router.NotFound",
+      "simple_name": "NotFound",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 142,
+      "end_line": 144,
+      "size_lines": 3,
+      "signature_hint": "func (r *router) NotFound(handler ...Handler)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 111,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cbm7lopcsth",
+      "qualified_name": "martini.Route.URLWith",
+      "simple_name": "URLWith",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 191,
+      "end_line": 191,
+      "size_lines": 1,
+      "signature_hint": "URLWith([]string) string",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 110,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ccjpobcj6sx"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1hf05kog0i",
+      "qualified_name": "martini.Routes.URLFor",
+      "simple_name": "URLFor",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 330,
+      "end_line": 330,
+      "size_lines": 1,
+      "signature_hint": "URLFor(name string, params ...interface{}) string",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 132,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cas307ywoea",
+      "qualified_name": "martini.Routes.MethodsFor",
+      "simple_name": "MethodsFor",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 332,
+      "end_line": 332,
+      "size_lines": 1,
+      "signature_hint": "MethodsFor(path string) []string",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 133,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11zm86nfqgw",
+      "qualified_name": "martini.Route.GetName",
+      "simple_name": "GetName",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 195,
+      "end_line": 195,
+      "size_lines": 1,
+      "signature_hint": "GetName() string",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -999,
+      "region": 118,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "Route",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Casvnkl1jmz",
+      "qualified_name": "martini.Route.Pattern",
+      "simple_name": "Pattern",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 197,
+      "end_line": 197,
+      "size_lines": 1,
+      "signature_hint": "Pattern() string",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -999,
+      "region": 119,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "Route",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cpkbutskhfy",
+      "qualified_name": "martini.Martini.Run",
+      "simple_name": "Run",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17ishdretpq",
+      "path": "/storage/cgg-test_repos/go-martini/martini.go",
+      "start_line": 90,
+      "end_line": 99,
+      "size_lines": 10,
+      "signature_hint": "func (m *Martini) Run()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1190,
+      "region": 14,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Run",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F7qjtadjudu",
+            "path": "/storage/cgg-test_repos/go-martini/martini_test.go",
+            "line": 36,
+            "name": "Run",
+            "receiver_hint": "New()"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cveq87hmr0l",
+      "qualified_name": "martini.Martini.RunOnAddr",
+      "simple_name": "RunOnAddr",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17ishdretpq",
+      "path": "/storage/cgg-test_repos/go-martini/martini.go",
+      "start_line": 79,
+      "end_line": 87,
+      "size_lines": 9,
+      "signature_hint": "func (m *Martini) RunOnAddr(addr string)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -1191,
+      "region": 14,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "RunOnAddr",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F7qjtadjudu",
+            "path": "/storage/cgg-test_repos/go-martini/martini_test.go",
+            "line": 32,
+            "name": "RunOnAddr",
+            "receiver_hint": "New()"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cpkbutskhfy"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cowje9w7515",
+      "qualified_name": "martini.responseWriter.Write",
+      "simple_name": "Write",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ffgyo7r4c23",
+      "path": "/storage/cgg-test_repos/go-martini/response_writer.go",
+      "start_line": 53,
+      "end_line": 61,
+      "size_lines": 9,
+      "signature_hint": "func (rw *responseWriter) Write(b []byte) (int, error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1191,
+      "region": 55,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Write",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ffu6l3ofjz0",
+            "path": "/storage/cgg-test_repos/go-martini/recovery.go",
+            "line": 137,
+            "name": "Write",
+            "receiver_hint": "res"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cpih8gpredd",
+      "qualified_name": "martini.responseWriter.WriteHeader",
+      "simple_name": "WriteHeader",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ffgyo7r4c23",
+      "path": "/storage/cgg-test_repos/go-martini/response_writer.go",
+      "start_line": 47,
+      "end_line": 51,
+      "size_lines": 5,
+      "signature_hint": "func (rw *responseWriter) WriteHeader(s int)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -1195,
+      "region": 55,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "WriteHeader",
+          "sites": 6,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F7qjtadjudu",
+            "path": "/storage/cgg-test_repos/go-martini/martini_test.go",
+            "line": 56,
+            "name": "WriteHeader",
+            "receiver_hint": "res"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cowje9w7515"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cwf3niovnjk",
+      "qualified_name": "martini.context.Next",
+      "simple_name": "Next",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17ishdretpq",
+      "path": "/storage/cgg-test_repos/go-martini/martini.go",
+      "start_line": 168,
+      "end_line": 171,
+      "size_lines": 4,
+      "signature_hint": "func (c *context) Next()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 22,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Next",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fbva14hust8",
+            "path": "/storage/cgg-test_repos/go-martini/logger.go",
+            "line": 25,
+            "name": "Next",
+            "receiver_hint": "c"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cbdo69rujpi",
+      "qualified_name": "martini.routeContext.Next",
+      "simple_name": "Next",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 400,
+      "end_line": 403,
+      "size_lines": 4,
+      "signature_hint": "func (r *routeContext) Next()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 139,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Next",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fbva14hust8",
+            "path": "/storage/cgg-test_repos/go-martini/logger.go",
+            "line": 25,
+            "name": "Next",
+            "receiver_hint": "c"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C557gs7w5qn",
+      "qualified_name": "martini.responseWriter.Status",
+      "simple_name": "Status",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ffgyo7r4c23",
+      "path": "/storage/cgg-test_repos/go-martini/response_writer.go",
+      "start_line": 63,
+      "end_line": 65,
+      "size_lines": 3,
+      "signature_hint": "func (rw *responseWriter) Status() int",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1197,
+      "region": 57,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Status",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fbva14hust8",
+            "path": "/storage/cgg-test_repos/go-martini/logger.go",
+            "line": 27,
+            "name": "Status",
+            "receiver_hint": "rw"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C164a2c5opdr",
+      "qualified_name": "martini.route.Name",
+      "simple_name": "Name",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 311,
+      "end_line": 313,
+      "size_lines": 3,
+      "signature_hint": "func (r *route) Name(name string)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1197,
+      "region": 128,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Name",
+          "sites": 8,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Foslakhrwz8",
+            "path": "/storage/cgg-test_repos/go-martini/router_test.go",
+            "line": 410,
+            "name": "Name",
+            "receiver_hint": "router.Get(\"/foo\", func() {\n\t\t// Nothing\n\t})"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C10gcvhqahlc",
+      "qualified_name": "martini.Context.Next",
+      "simple_name": "Next",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17ishdretpq",
+      "path": "/storage/cgg-test_repos/go-martini/martini.go",
+      "start_line": 145,
+      "end_line": 145,
+      "size_lines": 1,
+      "signature_hint": "Next()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -1499,
+      "region": 19,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "Context",
+          "impls": 1,
+          "unresolved_sites": 2,
+          "called_impls": 0
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Next",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fbva14hust8",
+            "path": "/storage/cgg-test_repos/go-martini/logger.go",
+            "line": 25,
+            "name": "Next",
+            "receiver_hint": "c"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C15jv7mqtsej"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ceia6wmul2b",
+      "qualified_name": "martini.Route.Name",
+      "simple_name": "Name",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 193,
+      "end_line": 193,
+      "size_lines": 1,
+      "signature_hint": "Name(string)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1499,
+      "region": 117,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "Route",
+          "impls": 1,
+          "unresolved_sites": 8,
+          "called_impls": 0
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Name",
+          "sites": 8,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Foslakhrwz8",
+            "path": "/storage/cgg-test_repos/go-martini/router_test.go",
+            "line": 410,
+            "name": "Name",
+            "receiver_hint": "router.Get(\"/foo\", func() {\n\t\t// Nothing\n\t})"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ctxp0r69be5",
+      "qualified_name": "martini.Route.Method",
+      "simple_name": "Method",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 199,
+      "end_line": 199,
+      "size_lines": 1,
+      "signature_hint": "Method() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1499,
+      "region": 120,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "Route",
+          "impls": 1,
+          "unresolved_sites": 1,
+          "called_impls": 1
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Method",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fbva14hust8",
+            "path": "/storage/cgg-test_repos/go-martini/logger.go",
+            "line": 22,
+            "name": "Method",
+            "receiver_hint": "req"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6h0s08nxal",
+      "qualified_name": "martini.router.Handle",
+      "simple_name": "Handle",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 114,
+      "end_line": 140,
+      "size_lines": 27,
+      "signature_hint": "func (r *router) Handle(res http.ResponseWriter, req *http.Request, context Context)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1173,
+      "region": 110,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Handle",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F17pxnaudjhl",
+            "path": "/storage/cgg-test_repos/go-martini/router.go",
+            "line": 132,
+            "name": "Handle",
+            "receiver_hint": "bestRoute"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cpimloow252",
+      "qualified_name": "martini.responseWriter.Flush",
+      "simple_name": "Flush",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ffgyo7r4c23",
+      "path": "/storage/cgg-test_repos/go-martini/response_writer.go",
+      "start_line": 93,
+      "end_line": 98,
+      "size_lines": 6,
+      "signature_hint": "func (rw *responseWriter) Flush()",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1194,
+      "region": 63,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Flush",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ffgyo7r4c23",
+            "path": "/storage/cgg-test_repos/go-martini/response_writer.go",
+            "line": 96,
+            "name": "Flush",
+            "receiver_hint": "flusher"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnlryzfke2",
+      "qualified_name": "martini.route.Handle",
+      "simple_name": "Handle",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 281,
+      "end_line": 286,
+      "size_lines": 6,
+      "signature_hint": "func (r *route) Handle(c Context, res http.ResponseWriter)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1194,
+      "region": 126,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Handle",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F17pxnaudjhl",
+            "path": "/storage/cgg-test_repos/go-martini/router.go",
+            "line": 132,
+            "name": "Handle",
+            "receiver_hint": "bestRoute"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cqymv0s3g34",
+      "qualified_name": "martini.router.Get",
+      "simple_name": "Get",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 78,
+      "end_line": 80,
+      "size_lines": 3,
+      "signature_hint": "func (r *router) Get(pattern string, h ...Handler) Route",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1197,
+      "region": 101,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Get",
+          "sites": 15,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fbva14hust8",
+            "path": "/storage/cgg-test_repos/go-martini/logger.go",
+            "line": 14,
+            "name": "Get",
+            "receiver_hint": "req.Header"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C7tlikerr97",
+      "qualified_name": "martini.RouteMatch.BetterThan",
+      "simple_name": "BetterThan",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17pxnaudjhl",
+      "path": "/storage/cgg-test_repos/go-martini/router.go",
+      "start_line": 238,
+      "end_line": 240,
+      "size_lines": 3,
+      "signature_hint": "func (r RouteMatch) BetterThan(o RouteMatch) bool",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1197,
+      "region": 122,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "BetterThan",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F17pxnaudjhl",
+            "path": "/storage/cgg-test_repos/go-martini/router.go",
+            "line": 120,
+            "name": "BetterThan",
+            "receiver_hint": "Match"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

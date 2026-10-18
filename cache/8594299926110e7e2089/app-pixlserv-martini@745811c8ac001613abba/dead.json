@@ -1,0 +1,690 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "go",
+      "class": "degraded",
+      "visibility": "full",
+      "attributes": "none",
+      "value_references": "full",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "full",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "builtin:main",
+        "framework:entry-node",
+        "framework:test-harness"
+      ],
+      "files": 11,
+      "callables": 82,
+      "roots": 13,
+      "reachable": 73,
+      "reachable_pct": 89,
+      "findings": 9
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 82,
+    "edges": 131,
+    "unresolved_call_sites": 2,
+    "roots": 13,
+    "candidates": 9,
+    "reported": 9,
+    "regions": 8
+  },
+  "roots": [
+    {
+      "id": "Csb0tl2svc6",
+      "qualified_name": "main.init",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `init`"
+    },
+    {
+      "id": "Clofmzpxfvv",
+      "qualified_name": "main.TestParseParameters",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cduhuz4pfy1",
+      "qualified_name": "main.init",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `init`"
+    },
+    {
+      "id": "Cwp3ev5qhjr",
+      "qualified_name": "main.main",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cfqxq309nwy",
+      "qualified_name": "main.storage.init",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `init`"
+    },
+    {
+      "id": "Cui1myg42m2",
+      "qualified_name": "main.localStorage.init",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `init`"
+    },
+    {
+      "id": "Cbioupnzveq",
+      "qualified_name": "main.s3Storage.init",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `init`"
+    },
+    {
+      "id": "Cbwz0agpasi",
+      "qualified_name": "main.gcsStorage.init",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `init`"
+    },
+    {
+      "id": "C9ep703wht2",
+      "qualified_name": "main.TestCalculateTopLeftPointFromGravity",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ck7icwh1kmt",
+      "qualified_name": "<framework-entry>::test::go-testing",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cptqrdpitga",
+      "qualified_name": "<framework-entry>::network::martini::get(\"/\")",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::martini::get(\"/\")`"
+    },
+    {
+      "id": "Clwfmancq5p",
+      "qualified_name": "<framework-entry>::network::martini::get(\"/((?P<apikey>[A-Z0-9]+)/)?image/:parameters/**\")",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::martini::get(\"/((?P<apikey>[A-Z0-9]+)/)?image/:parameters/**\")`"
+    },
+    {
+      "id": "Cepk7w7l90p",
+      "qualified_name": "<framework-entry>::network::martini::post(\"/((?P<apikey>[A-Z0-9]+)/)?upload\")",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::martini::post(\"/((?P<apikey>[A-Z0-9]+)/)?upload\")`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 33,
+      "members": [
+        "C39bhkxlv23"
+      ],
+      "anchors": [
+        "C39bhkxlv23"
+      ],
+      "files": [
+        "Fmhab023zk6"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 34,
+      "members": [
+        "Csorasnsrzd"
+      ],
+      "anchors": [
+        "Csorasnsrzd"
+      ],
+      "files": [
+        "Fmhab023zk6"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 50,
+      "members": [
+        "C110gb1x9udf"
+      ],
+      "anchors": [
+        "C110gb1x9udf"
+      ],
+      "files": [
+        "Fm73xi2iuuo"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 51,
+      "members": [
+        "C9l8wjqyzsa"
+      ],
+      "anchors": [
+        "C9l8wjqyzsa"
+      ],
+      "files": [
+        "Fm73xi2iuuo"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 52,
+      "members": [
+        "Cyn5zeyver8"
+      ],
+      "anchors": [
+        "Cyn5zeyver8"
+      ],
+      "files": [
+        "Fm73xi2iuuo"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 53,
+      "members": [
+        "Cp51004fra6"
+      ],
+      "anchors": [
+        "Cp51004fra6"
+      ],
+      "files": [
+        "Fm73xi2iuuo"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 76,
+      "members": [
+        "Cpz07gn1pg1"
+      ],
+      "anchors": [
+        "Cpz07gn1pg1"
+      ],
+      "files": [
+        "F145i778y5dr"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 77,
+      "members": [
+        "C185nf72wq04",
+        "C16nb3orjiap"
+      ],
+      "anchors": [
+        "C185nf72wq04"
+      ],
+      "files": [
+        "F145i778y5dr"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "C16nb3orjiap",
+      "qualified_name": "main.writeUint",
+      "simple_name": "writeUint",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F145i778y5dr",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/transformations.go",
+      "start_line": 98,
+      "end_line": 102,
+      "size_lines": 5,
+      "signature_hint": "writeUint := func(i uint32)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 77,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 4,
+          "example": "C185nf72wq04"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C39bhkxlv23",
+      "qualified_name": "main.isEasternGravity",
+      "simple_name": "isEasternGravity",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fmhab023zk6",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/parameters.go",
+      "start_line": 148,
+      "end_line": 150,
+      "size_lines": 3,
+      "signature_hint": "func isEasternGravity(str string) bool",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -197,
+      "region": 33,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Csorasnsrzd",
+      "qualified_name": "main.isSouthernGravity",
+      "simple_name": "isSouthernGravity",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fmhab023zk6",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/parameters.go",
+      "start_line": 152,
+      "end_line": 154,
+      "size_lines": 3,
+      "signature_hint": "func isSouthernGravity(str string) bool",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -197,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C110gb1x9udf",
+      "qualified_name": "main.storage.loadImage",
+      "simple_name": "loadImage",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fm73xi2iuuo",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/storage.go",
+      "start_line": 37,
+      "end_line": 37,
+      "size_lines": 1,
+      "signature_hint": "loadImage(imagePath string) (image.Image, string, error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -499,
+      "region": 50,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "storage",
+          "impls": 4,
+          "unresolved_sites": 0,
+          "called_impls": 4
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C9l8wjqyzsa",
+      "qualified_name": "main.storage.saveImage",
+      "simple_name": "saveImage",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fm73xi2iuuo",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/storage.go",
+      "start_line": 39,
+      "end_line": 39,
+      "size_lines": 1,
+      "signature_hint": "saveImage(img image.Image, format string, imagePath string) (int, error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -499,
+      "region": 51,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "storage",
+          "impls": 4,
+          "unresolved_sites": 0,
+          "called_impls": 4
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cyn5zeyver8",
+      "qualified_name": "main.storage.deleteImage",
+      "simple_name": "deleteImage",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fm73xi2iuuo",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/storage.go",
+      "start_line": 41,
+      "end_line": 41,
+      "size_lines": 1,
+      "signature_hint": "deleteImage(imagePath string) error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -499,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "storage",
+          "impls": 4,
+          "unresolved_sites": 0,
+          "called_impls": 4
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cp51004fra6",
+      "qualified_name": "main.storage.imageExists",
+      "simple_name": "imageExists",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fm73xi2iuuo",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/storage.go",
+      "start_line": 43,
+      "end_line": 43,
+      "size_lines": 1,
+      "signature_hint": "imageExists(imagePath string) bool",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -499,
+      "region": 53,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "storage",
+          "impls": 4,
+          "unresolved_sites": 0,
+          "called_impls": 4
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C185nf72wq04",
+      "qualified_name": "main.Text.hash",
+      "simple_name": "hash",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F145i778y5dr",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/transformations.go",
+      "start_line": 96,
+      "end_line": 117,
+      "size_lines": 22,
+      "signature_hint": "func (t *Text) hash() []byte",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -678,
+      "region": 77,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "hash",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F145i778y5dr",
+            "path": "/storage/cgg-test_repos/app-pixlserv-martini/transformations.go",
+            "line": 63,
+            "name": "hash",
+            "receiver_hint": "t.watermark"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Cpz07gn1pg1",
+      "qualified_name": "main.Watermark.hash",
+      "simple_name": "hash",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F145i778y5dr",
+      "path": "/storage/cgg-test_repos/app-pixlserv-martini/transformations.go",
+      "start_line": 85,
+      "end_line": 94,
+      "size_lines": 10,
+      "signature_hint": "func (w *Watermark) hash() []byte",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -690,
+      "region": 76,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "hash",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F145i778y5dr",
+            "path": "/storage/cgg-test_repos/app-pixlserv-martini/transformations.go",
+            "line": 63,
+            "name": "hash",
+            "receiver_hint": "t.watermark"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

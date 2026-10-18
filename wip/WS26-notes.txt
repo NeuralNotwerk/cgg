@@ -29,3 +29,10 @@ falls in round 2) and could ship alone. Known label issue: `f.bind(x)` value ref
 shares the call's start byte, so tag_reference_edges relabels that call's direct edges
 (15 in corpus) as reference.
 Tools: scratchpad classify_raised.py / classify_fallen.py (withheld gate aware).
+
+Go (2026-10-18): value refs in argument_list (non-registrar), literal_value elements/
+keyed values, = / := / var right sides, return. Bare names filtered by a per-function
+bound-name set (no Go locals spec yet; WS27 should replace it). Untyped Go method values
+never fan out by name (cross_file step 5 gate). type_hints called_before ignores
+value_ref records. tag_reference_edges: at a byte shared with a call, only edges to the
+value's name are retagged. Final binary bins/WS26-go-v3.

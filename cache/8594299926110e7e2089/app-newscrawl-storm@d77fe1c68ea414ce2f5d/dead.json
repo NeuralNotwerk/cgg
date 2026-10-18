@@ -1,0 +1,1137 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "java",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "builtin:lifecycle",
+        "builtin:main",
+        "framework:entry-node",
+        "framework:test-harness",
+        "toplevel:invocation"
+      ],
+      "files": 14,
+      "callables": 67,
+      "roots": 23,
+      "reachable": 47,
+      "reachable_pct": 70,
+      "findings": 16
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 67,
+    "edges": 94,
+    "unresolved_call_sites": 25,
+    "roots": 23,
+    "candidates": 35,
+    "reported": 16,
+    "regions": 13,
+    "withheld": [
+      {
+        "language": "java",
+        "category": "only-used-by-tests",
+        "reason": "missing-signal",
+        "would_have_reported": 19
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Ctkkechwern",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.run",
+      "language": "java",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`run` is invoked by the runtime"
+    },
+    {
+      "id": "C9khtvuvv76",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.Rule.toString",
+      "language": "java",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`toString` is invoked by the runtime"
+    },
+    {
+      "id": "C9464csd5xd",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.DenyAllRule.DenyAllRule",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/filter/FastURLFilter.java:411"
+    },
+    {
+      "id": "C15dopc87qyo",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.CrawlTopology.main",
+      "language": "java",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cpiamtwkufi",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.CrawlTopology.run",
+      "language": "java",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`run` is invoked by the runtime"
+    },
+    {
+      "id": "Cciwmqter30",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.bootstrap.BootstrapTopology.main",
+      "language": "java",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "C7dozjf0eup",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.bootstrap.BootstrapTopology.run",
+      "language": "java",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`run` is invoked by the runtime"
+    },
+    {
+      "id": "Cg9j3lavxnj",
+      "qualified_name": "org.commoncrawl.stormcrawler.FastURLFilterTest.init",
+      "language": "java",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::junit`"
+    },
+    {
+      "id": "C173pdct3awj",
+      "qualified_name": "org.commoncrawl.stormcrawler.FastURLFilterTest.testHostFilter",
+      "language": "java",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::junit`"
+    },
+    {
+      "id": "Cihfwhgota5",
+      "qualified_name": "org.commoncrawl.stormcrawler.FastURLFilterTest.testDomainNotAllowed",
+      "language": "java",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::junit`"
+    },
+    {
+      "id": "Cvdczrrfb6v",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSiteMapParserTest.setupParserBolt",
+      "language": "java",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::junit`"
+    },
+    {
+      "id": "Cd8832aqlyt",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSiteMapParserTest.testSiteMapParser",
+      "language": "java",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::junit`"
+    },
+    {
+      "id": "C140p9qh1ezt",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSiteMapParserTest.testFeedWithSitemapNamespace",
+      "language": "java",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::junit`"
+    },
+    {
+      "id": "C3q1kgdpkv",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapSchedulerTest.staleAndNoNews_isTombstoned",
+      "language": "java",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::junit`"
+    },
+    {
+      "id": "C1b02lu46ox",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapSchedulerTest.hasRecentNews_notTombstoned",
+      "language": "java",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::junit`"
+    },
+    {
+      "id": "Co887um8xt2",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapSchedulerTest.recentlyModified_notTombstoned",
+      "language": "java",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::junit`"
+    },
+    {
+      "id": "Cg4q02xiywr",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapSchedulerTest.noChangeHistory_notTombstoned",
+      "language": "java",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::junit`"
+    },
+    {
+      "id": "C13dltpyfvax",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapSchedulerTest.nonSitemap_notTombstoned",
+      "language": "java",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::junit`"
+    },
+    {
+      "id": "C16mit7twfeg",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapSchedulerTest.notFetched_notTombstoned",
+      "language": "java",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::junit`"
+    },
+    {
+      "id": "Cnk4lyel0tt",
+      "qualified_name": "<framework-entry>::queue::storm::org.commoncrawl.stormcrawler.news.PreFilterBolt.execute",
+      "language": "java",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::queue::storm::org.commoncrawl.stormcrawler.news.PreFilterBolt.execute`"
+    },
+    {
+      "id": "Czsvjcft2oj",
+      "qualified_name": "<framework-entry>::queue::storm::org.commoncrawl.stormcrawler.news.PreFilterBolt.declareOutputFields",
+      "language": "java",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::queue::storm::org.commoncrawl.stormcrawler.news.PreFilterBolt.declareOutputFields`"
+    },
+    {
+      "id": "Cwf9i7yuiz6",
+      "qualified_name": "<framework-entry>::queue::storm::org.commoncrawl.stormcrawler.news.PreFilterBolt.prepare",
+      "language": "java",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::queue::storm::org.commoncrawl.stormcrawler.news.PreFilterBolt.prepare`"
+    },
+    {
+      "id": "C1fuuwhpgef",
+      "qualified_name": "<framework-entry>::test::junit",
+      "language": "java",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::junit`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 7,
+      "members": [
+        "C15yh9xqvszv"
+      ],
+      "anchors": [
+        "C15yh9xqvszv"
+      ],
+      "files": [
+        "Ft97ki0xbjh"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 18,
+      "members": [
+        "Cgcd8xku8ci",
+        "C14b36aleeyd"
+      ],
+      "anchors": [
+        "C14b36aleeyd"
+      ],
+      "files": [
+        "F13neluskgtr",
+        "F7jnpixw8b7"
+      ],
+      "total_lines": 28,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 20,
+      "members": [
+        "C116884s39va"
+      ],
+      "anchors": [
+        "C116884s39va"
+      ],
+      "files": [
+        "F13neluskgtr"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 24,
+      "members": [
+        "Cawmd06e95a"
+      ],
+      "anchors": [
+        "Cawmd06e95a"
+      ],
+      "files": [
+        "F14roejzd7y2"
+      ],
+      "total_lines": 46,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 25,
+      "members": [
+        "Cl0i6f89hay"
+      ],
+      "anchors": [
+        "Cl0i6f89hay"
+      ],
+      "files": [
+        "F14roejzd7y2"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 26,
+      "members": [
+        "Cxm5gzruu42"
+      ],
+      "anchors": [
+        "Cxm5gzruu42"
+      ],
+      "files": [
+        "F7jnpixw8b7"
+      ],
+      "total_lines": 138,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 31,
+      "members": [
+        "C6hei8ioue5"
+      ],
+      "anchors": [
+        "C6hei8ioue5"
+      ],
+      "files": [
+        "Fpwoyoi4z4a"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 32,
+      "members": [
+        "C4pz42b5n4"
+      ],
+      "anchors": [
+        "C4pz42b5n4"
+      ],
+      "files": [
+        "Fpwoyoi4z4a"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 41,
+      "members": [
+        "C152a39dbk8d"
+      ],
+      "anchors": [
+        "C152a39dbk8d"
+      ],
+      "files": [
+        "Fmowisxogxs"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 42,
+      "members": [
+        "Cro2ijepff3",
+        "Ca31dav2840"
+      ],
+      "anchors": [
+        "Ca31dav2840"
+      ],
+      "files": [
+        "Fmowisxogxs"
+      ],
+      "total_lines": 28,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 46,
+      "members": [
+        "Crd9z0aaa7",
+        "Clsy6m43lp7"
+      ],
+      "anchors": [
+        "Crd9z0aaa7"
+      ],
+      "files": [
+        "Ftlozkzbmzi"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 48,
+      "members": [
+        "C17w9e3hagfy"
+      ],
+      "anchors": [
+        "C17w9e3hagfy"
+      ],
+      "files": [
+        "Frh218uzg8e"
+      ],
+      "total_lines": 40,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 49,
+      "members": [
+        "Cjlyqlqpuku"
+      ],
+      "anchors": [
+        "Cjlyqlqpuku"
+      ],
+      "files": [
+        "Frh218uzg8e"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cro2ijepff3",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.PunycodeURLNormalizer.isAscii",
+      "simple_name": "isAscii",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fmowisxogxs",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/PunycodeURLNormalizer.java",
+      "start_line": 29,
+      "end_line": 37,
+      "size_lines": 9,
+      "signature_hint": "private boolean isAscii(String str)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 609,
+      "region": 42,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ca31dav2840"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C15yh9xqvszv",
+      "qualified_name": "org.commoncrawl.stormcrawler.filter.FastURLFilter.Rule.Rule",
+      "simple_name": "Rule",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Ft97ki0xbjh",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/filter/FastURLFilter.java",
+      "start_line": 382,
+      "end_line": 382,
+      "size_lines": 1,
+      "signature_hint": "Rule()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 301,
+      "region": 7,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Clsy6m43lp7",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.bootstrap.FeedLinkParseFilter.logLinks",
+      "simple_name": "logLinks",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "static_method",
+      "file": "Ftlozkzbmzi",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/bootstrap/FeedLinkParseFilter.java",
+      "start_line": 58,
+      "end_line": 63,
+      "size_lines": 6,
+      "signature_hint": "public static void logLinks(ParseResult parse, String URL, String message)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 106,
+      "region": 46,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Crd9z0aaa7"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxm5gzruu42",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSiteMapParserBolt.execute",
+      "simple_name": "execute",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F7jnpixw8b7",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/NewsSiteMapParserBolt.java",
+      "start_line": 138,
+      "end_line": 275,
+      "size_lines": 138,
+      "signature_hint": "@Override public void execute(Tuple tuple)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -62,
+      "region": 26,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "SiteMapParserBolt"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cawmd06e95a",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.FeedDetectorBolt.execute",
+      "simple_name": "execute",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F14roejzd7y2",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/FeedDetectorBolt.java",
+      "start_line": 47,
+      "end_line": 92,
+      "size_lines": 46,
+      "signature_hint": "@Override public void execute(Tuple tuple)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -154,
+      "region": 24,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "FeedParserBolt"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17w9e3hagfy",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.bootstrap.NewsSiteMapDetectorBolt.execute",
+      "simple_name": "execute",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Frh218uzg8e",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/bootstrap/NewsSiteMapDetectorBolt.java",
+      "start_line": 49,
+      "end_line": 88,
+      "size_lines": 40,
+      "signature_hint": "@Override public void execute(Tuple tuple)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -160,
+      "region": 48,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "SiteMapParserBolt"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C14b36aleeyd",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSiteMapParserBolt.prepare",
+      "simple_name": "prepare",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F7jnpixw8b7",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/NewsSiteMapParserBolt.java",
+      "start_line": 505,
+      "end_line": 523,
+      "size_lines": 19,
+      "signature_hint": "@Override @SuppressWarnings({\"rawtypes\", \"unchecked\"}) public void prepare(Map stormConf, TopologyContext context, OutputCollector collector)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -181,
+      "region": 18,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "SiteMapParserBolt"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C6hei8ioue5",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapScheduler.init",
+      "simple_name": "init",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fpwoyoi4z4a",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/NewsSitemapScheduler.java",
+      "start_line": 59,
+      "end_line": 68,
+      "size_lines": 10,
+      "signature_hint": "@Override public void init(Map<String, Object> stormConf)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -190,
+      "region": 31,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "AdaptiveScheduler"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4pz42b5n4",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.NewsSitemapScheduler.schedule",
+      "simple_name": "schedule",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fpwoyoi4z4a",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/NewsSitemapScheduler.java",
+      "start_line": 70,
+      "end_line": 77,
+      "size_lines": 8,
+      "signature_hint": "@Override public Optional<Date> schedule(Status status, Metadata metadata)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -192,
+      "region": 32,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "AdaptiveScheduler"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cl0i6f89hay",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.FeedDetectorBolt.prepare",
+      "simple_name": "prepare",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F14roejzd7y2",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/FeedDetectorBolt.java",
+      "start_line": 94,
+      "end_line": 99,
+      "size_lines": 6,
+      "signature_hint": "@Override @SuppressWarnings({\"rawtypes\"}) public void prepare(Map stormConf, TopologyContext context, OutputCollector collect)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -194,
+      "region": 25,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "FeedParserBolt"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjlyqlqpuku",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.bootstrap.NewsSiteMapDetectorBolt.prepare",
+      "simple_name": "prepare",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Frh218uzg8e",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/bootstrap/NewsSiteMapDetectorBolt.java",
+      "start_line": 90,
+      "end_line": 95,
+      "size_lines": 6,
+      "signature_hint": "@Override @SuppressWarnings({\"rawtypes\", \"unchecked\"}) public void prepare(Map stormConf, TopologyContext context, OutputCollector collect)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -194,
+      "region": 49,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "SiteMapParserBolt"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C152a39dbk8d",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.PunycodeURLNormalizer.configure",
+      "simple_name": "configure",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fmowisxogxs",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/PunycodeURLNormalizer.java",
+      "start_line": 26,
+      "end_line": 27,
+      "size_lines": 2,
+      "signature_hint": "@Override public void configure(Map stormConf, JsonNode filterParams)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -198,
+      "region": 41,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "URLFilter"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C116884s39va",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.ContentDetector.matches",
+      "simple_name": "matches",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F13neluskgtr",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/ContentDetector.java",
+      "start_line": 66,
+      "end_line": 68,
+      "size_lines": 3,
+      "signature_hint": "public boolean matches(byte[] content)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 20,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "matches",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ft97ki0xbjh",
+            "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/filter/FastURLFilter.java",
+            "line": 340,
+            "name": "matches",
+            "receiver_hint": "CATCH_ALL_RULE.matcher(line)"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ca31dav2840",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.PunycodeURLNormalizer.filter",
+      "simple_name": "filter",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fmowisxogxs",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/PunycodeURLNormalizer.java",
+      "start_line": 39,
+      "end_line": 57,
+      "size_lines": 19,
+      "signature_hint": "@Override public String filter(URL sourceUrl, Metadata sourceMetadata, String urlToFilter)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -681,
+      "region": 42,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "URLFilter"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "filter",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F14roejzd7y2",
+            "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/FeedDetectorBolt.java",
+            "line": 83,
+            "name": "filter",
+            "receiver_hint": "parseFilters"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Crd9z0aaa7",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.bootstrap.FeedLinkParseFilter.filter",
+      "simple_name": "filter",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ftlozkzbmzi",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/bootstrap/FeedLinkParseFilter.java",
+      "start_line": 45,
+      "end_line": 56,
+      "size_lines": 12,
+      "signature_hint": "@Override public void filter(String URL, byte[] content, DocumentFragment doc, ParseResult parse)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -688,
+      "region": 46,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "LinkParseFilter"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "filter",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F14roejzd7y2",
+            "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/FeedDetectorBolt.java",
+            "line": 83,
+            "name": "filter",
+            "receiver_hint": "parseFilters"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cgcd8xku8ci",
+      "qualified_name": "org.commoncrawl.stormcrawler.news.ContentDetector.ContentDetector",
+      "simple_name": "ContentDetector",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F13neluskgtr",
+      "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/ContentDetector.java",
+      "start_line": 39,
+      "end_line": 47,
+      "size_lines": 9,
+      "signature_hint": "public ContentDetector(String[][] clues, int maxOffset)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 18,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "ContentDetector",
+          "sites": 2,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F14roejzd7y2",
+            "path": "/storage/cgg-test_repos/app-newscrawl-storm/src/main/java/org/commoncrawl/stormcrawler/news/FeedDetectorBolt.java",
+            "line": 43,
+            "name": "ContentDetector"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C14b36aleeyd"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

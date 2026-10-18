@@ -1,0 +1,4528 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "cmake",
+      "class": "script-driven",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 4,
+      "callables": 2,
+      "roots": 1,
+      "reachable": 1,
+      "reachable_pct": 50,
+      "findings": 1
+    },
+    {
+      "language": "cpp",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "none",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "builtin:main"
+      ],
+      "files": 5,
+      "callables": 10,
+      "roots": 1,
+      "reachable": 2,
+      "reachable_pct": 20,
+      "findings": 7
+    },
+    {
+      "language": "dart",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "builtin:lifecycle",
+        "builtin:main"
+      ],
+      "files": 33,
+      "callables": 140,
+      "roots": 3,
+      "reachable": 4,
+      "reachable_pct": 2,
+      "findings": 62
+    },
+    {
+      "language": "kotlin",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "high",
+      "root_rules_active": [],
+      "files": 1,
+      "callables": 1,
+      "roots": 0,
+      "reachable": 0,
+      "reachable_pct": 0,
+      "findings": 1
+    },
+    {
+      "language": "swift",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "framework:rule"
+      ],
+      "files": 4,
+      "callables": 4,
+      "roots": 3,
+      "reachable": 4,
+      "reachable_pct": 100,
+      "findings": 0
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 157,
+    "edges": 203,
+    "unresolved_call_sites": 127,
+    "roots": 8,
+    "candidates": 146,
+    "reported": 71,
+    "regions": 57,
+    "withheld": [
+      {
+        "language": "cpp",
+        "category": "reachable-only-from-dead-code",
+        "reason": "low-root-coverage",
+        "would_have_reported": 1
+      },
+      {
+        "language": "dart",
+        "category": "reachable-only-from-dead-code",
+        "reason": "low-root-coverage",
+        "would_have_reported": 58
+      },
+      {
+        "language": "dart",
+        "category": "dead-cycle",
+        "reason": "low-root-coverage",
+        "would_have_reported": 16
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Cibfejxzdae",
+      "qualified_name": "AppDelegate.application",
+      "language": "swift",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `uikit-appdelegate:base-type`"
+    },
+    {
+      "id": "C6cykqejmsl",
+      "qualified_name": "main",
+      "language": "dart",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cqcvf7umab3",
+      "qualified_name": "Sounds::initialize",
+      "language": "dart",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`initialize` is invoked by the runtime"
+    },
+    {
+      "id": "Ci74oiv08uz",
+      "qualified_name": "list_prepend",
+      "language": "cmake",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-darkness-flame/linux/flutter/CMakeLists.txt:59"
+    },
+    {
+      "id": "Cxhhfy1gg4j",
+      "qualified_name": "main",
+      "language": "cpp",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "C16lcr765wbi",
+      "qualified_name": "AppDelegate.applicationShouldTerminateAfterLastWindowClosed",
+      "language": "swift",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `uikit-appdelegate:base-type`"
+    },
+    {
+      "id": "Ct47vjeftc7",
+      "qualified_name": "MainFlutterWindow.awakeFromNib",
+      "language": "swift",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `uikit-lifecycle:base-type`"
+    },
+    {
+      "id": "C5fjiw4vh6q",
+      "qualified_name": "main",
+      "language": "dart",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "Cgu9yb7mhs7"
+      ],
+      "anchors": [
+        "Cgu9yb7mhs7"
+      ],
+      "files": [
+        "Fovys9aenza"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "kotlin"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 2,
+      "members": [
+        "Cbuxz12o1dt"
+      ],
+      "anchors": [
+        "Cbuxz12o1dt"
+      ],
+      "files": [
+        "F5f93q094iu"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 3,
+      "members": [
+        "Ccjetd14pwl"
+      ],
+      "anchors": [
+        "Ccjetd14pwl"
+      ],
+      "files": [
+        "F9pp3fwm1r7"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 4,
+      "members": [
+        "Cjr9wzfb7we",
+        "Cijnnfrv7mk",
+        "Cdo1t3ok326",
+        "C18ifusfnqk",
+        "Ch76tazbs6q",
+        "Czcqmx46jf7",
+        "Cjxhfhn2o8z",
+        "Ctvy0yn9l1s",
+        "C98vekfgd4z",
+        "C8sizb7fic4",
+        "C1mi1z59lwk",
+        "Cqebi6rjvqr",
+        "C5jknon07q7",
+        "Cvkd1hn6ipy",
+        "Cniaux3vmxv",
+        "Ca675d2rdv1",
+        "Cs20h3dsyu0",
+        "Crqtz04kbm6",
+        "Cvqs08bzh9g",
+        "Crkqk25rcd1",
+        "C11ez2ughjbh",
+        "Cmmb8ftafji",
+        "Cnyjyxllso9",
+        "Cyylde65f2n",
+        "Ce2fuvxvs7a",
+        "C6vbpx32c6x",
+        "Crugjvf8sfi",
+        "C6sqw37arp6",
+        "C17lb096ui1d",
+        "Cowc6cwonp7",
+        "Cefm8vxvrtz",
+        "Cfn01bsv8bz",
+        "Cad58kqibis",
+        "Csiaim95hdu",
+        "Cvtfp0fybpw",
+        "Cfkihmiju1q",
+        "Cjc183l6ggu",
+        "Cdy8k2mn2ap",
+        "Cr92mh08onx",
+        "Cbakir2df7x",
+        "Cale7xwe4wk",
+        "Cg1c9rll2gu",
+        "Cza1e59p6ux",
+        "Chlxqpnd4ej",
+        "C135mxj6j3y1",
+        "Cfa94uwoxp0",
+        "C13okpr6iywn",
+        "C1320g3o0rak",
+        "Cvwrajdl66q",
+        "C3t6he9hwm2",
+        "Ccce93gs7cc",
+        "Cjyfajyu5u9",
+        "Crk41vjb0d4",
+        "Cy1jbxf8p66",
+        "Cwu3pzd26vl",
+        "Cxitwccpn7y",
+        "Cin0motw295",
+        "Cqi1rln668p",
+        "Cz6kp775zl",
+        "C15d5ro2jmio",
+        "Cd6cjx8y8u4"
+      ],
+      "anchors": [
+        "Cjr9wzfb7we",
+        "Cdo1t3ok326",
+        "Cjxhfhn2o8z",
+        "C8sizb7fic4",
+        "C5jknon07q7",
+        "Ca675d2rdv1",
+        "Crkqk25rcd1",
+        "Ce2fuvxvs7a",
+        "Crugjvf8sfi",
+        "Cowc6cwonp7",
+        "Cefm8vxvrtz",
+        "Cbakir2df7x",
+        "C15d5ro2jmio"
+      ],
+      "cycles": [
+        [
+          "C18ifusfnqk",
+          "C1mi1z59lwk",
+          "Cniaux3vmxv",
+          "Cs20h3dsyu0",
+          "Cfn01bsv8bz"
+        ]
+      ],
+      "files": [
+        "F9pp3fwm1r7",
+        "F11cs1exb85n",
+        "Fbob7fuwoj0",
+        "F10ajp14cond",
+        "Fs2dbfz2am6",
+        "F15ofo856x0o",
+        "Fgbmz3ojuay",
+        "F1h8f6gp5tw",
+        "F11ri9l4y3f",
+        "Fxuhlymaqxi",
+        "Fuj9iv9fmu1",
+        "F148ao452rw4",
+        "Fdze4p5xzcl",
+        "F8na33c24f2",
+        "F6lkxkg3bbt",
+        "Fbo2wwzfb17",
+        "F2i4prv78q1"
+      ],
+      "total_lines": 1099,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 6,
+      "members": [
+        "C8mvvxf5etr"
+      ],
+      "anchors": [
+        "C8mvvxf5etr"
+      ],
+      "files": [
+        "Fac48v4z5on"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 7,
+      "members": [
+        "Cc1bqn78nz2",
+        "Czvtm5k9x1a"
+      ],
+      "anchors": [
+        "Cc1bqn78nz2"
+      ],
+      "files": [
+        "F13m4s6r4999"
+      ],
+      "total_lines": 23,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 9,
+      "members": [
+        "Cj4dbhp9y1i"
+      ],
+      "anchors": [
+        "Cj4dbhp9y1i"
+      ],
+      "files": [
+        "Fuk9afpawzz"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 10,
+      "members": [
+        "C12hcgo5slad"
+      ],
+      "anchors": [
+        "C12hcgo5slad"
+      ],
+      "files": [
+        "Fuk9afpawzz"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 11,
+      "members": [
+        "C9isbxyo6mg"
+      ],
+      "anchors": [
+        "C9isbxyo6mg"
+      ],
+      "files": [
+        "Fuk9afpawzz"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 12,
+      "members": [
+        "C12mdckdd86e"
+      ],
+      "anchors": [
+        "C12mdckdd86e"
+      ],
+      "files": [
+        "Fuk9afpawzz"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 13,
+      "members": [
+        "Czrhiyxsxqp",
+        "Cpcuxkeojoy"
+      ],
+      "anchors": [
+        "Czrhiyxsxqp"
+      ],
+      "files": [
+        "Fz9g0i9steq",
+        "F148ao452rw4"
+      ],
+      "total_lines": 23,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 14,
+      "members": [
+        "C11bwiuaznhv",
+        "Cpd60tmtk3r",
+        "Ckp80tlnmcg",
+        "Cwi4415f3fx",
+        "Ces7b4jswtl",
+        "Cxybyah8zbm",
+        "C10detab3bbk",
+        "C15gwhsdxe6y",
+        "Cv02iy7ni9e"
+      ],
+      "anchors": [],
+      "cycles": [
+        [
+          "C11bwiuaznhv",
+          "Cpd60tmtk3r",
+          "Cwi4415f3fx",
+          "C15gwhsdxe6y"
+        ]
+      ],
+      "files": [
+        "Fz9g0i9steq",
+        "F11cs1exb85n",
+        "F17cgnmx6sxw",
+        "F9w9njnsx3q"
+      ],
+      "total_lines": 108,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 15,
+      "members": [
+        "C15dsih64q2b",
+        "C12172e1xkmt",
+        "C3xu0mavcxj",
+        "Cwrw22kb0at",
+        "Cvf0vjp78d0",
+        "Ciwxf3v9tlf",
+        "Ctl25iqtxzv",
+        "C11ikqslnfoj",
+        "C5d032m1x70",
+        "Coivcpmn494",
+        "C8z6v3c4kcm"
+      ],
+      "anchors": [
+        "C15dsih64q2b",
+        "C3xu0mavcxj",
+        "Cvf0vjp78d0",
+        "Ctl25iqtxzv",
+        "C5d032m1x70"
+      ],
+      "cycles": [
+        [
+          "C12172e1xkmt",
+          "Cwrw22kb0at",
+          "Ciwxf3v9tlf",
+          "C11ikqslnfoj",
+          "Coivcpmn494"
+        ]
+      ],
+      "files": [
+        "F11cs1exb85n",
+        "Fbob7fuwoj0",
+        "F10ajp14cond",
+        "Fs2dbfz2am6",
+        "F11ri9l4y3f",
+        "Fm72nopwi02"
+      ],
+      "total_lines": 124,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 42,
+      "members": [
+        "Cqmkdq1j2wf"
+      ],
+      "anchors": [
+        "Cqmkdq1j2wf"
+      ],
+      "files": [
+        "Flj60jotcrt"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 43,
+      "members": [
+        "Ck7hcff41ve",
+        "Cyzsjl0o0ev"
+      ],
+      "anchors": [
+        "Ck7hcff41ve"
+      ],
+      "files": [
+        "Flj60jotcrt",
+        "Fbo2wwzfb17"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 44,
+      "members": [
+        "Ccvsczr35ho",
+        "C66d7oa2185",
+        "Cpsd7b3xei2",
+        "Cniwu287o1q"
+      ],
+      "anchors": [],
+      "cycles": [
+        [
+          "Ccvsczr35ho",
+          "C66d7oa2185"
+        ]
+      ],
+      "files": [
+        "Flj60jotcrt",
+        "F15ofo856x0o",
+        "Fbo2wwzfb17"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 45,
+      "members": [
+        "Co9trhe5cpr"
+      ],
+      "anchors": [
+        "Co9trhe5cpr"
+      ],
+      "files": [
+        "Flj60jotcrt"
+      ],
+      "total_lines": 90,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 46,
+      "members": [
+        "Cnf4rgkg699"
+      ],
+      "anchors": [
+        "Cnf4rgkg699"
+      ],
+      "files": [
+        "Fo560rf0emm"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 47,
+      "members": [
+        "Cn55moknmjs"
+      ],
+      "anchors": [
+        "Cn55moknmjs"
+      ],
+      "files": [
+        "F17cgnmx6sxw"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 52,
+      "members": [
+        "C1qjg9s95dz"
+      ],
+      "anchors": [
+        "C1qjg9s95dz"
+      ],
+      "files": [
+        "F9w9njnsx3q"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 56,
+      "members": [
+        "Czfa25oq5wp"
+      ],
+      "anchors": [
+        "Czfa25oq5wp"
+      ],
+      "files": [
+        "F15ofo856x0o"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 74,
+      "members": [
+        "Cm4uk5m5hn4",
+        "Cufkr3xzwd",
+        "Ciw1zf7g321"
+      ],
+      "anchors": [
+        "Cm4uk5m5hn4"
+      ],
+      "files": [
+        "F11ri9l4y3f"
+      ],
+      "total_lines": 52,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 79,
+      "members": [
+        "C185ohgkaqtg"
+      ],
+      "anchors": [
+        "C185ohgkaqtg"
+      ],
+      "files": [
+        "Fvim0i9vr2o"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 82,
+      "members": [
+        "C7gbgbkfv20"
+      ],
+      "anchors": [
+        "C7gbgbkfv20"
+      ],
+      "files": [
+        "Fuj9iv9fmu1"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 83,
+      "members": [
+        "C11r79czhc27"
+      ],
+      "anchors": [
+        "C11r79czhc27"
+      ],
+      "files": [
+        "Fuj9iv9fmu1"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 85,
+      "members": [
+        "Cmamlamt8xz"
+      ],
+      "anchors": [
+        "Cmamlamt8xz"
+      ],
+      "files": [
+        "Fuj9iv9fmu1"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 88,
+      "members": [
+        "C2bl9guvhyl"
+      ],
+      "anchors": [
+        "C2bl9guvhyl"
+      ],
+      "files": [
+        "Fuj9iv9fmu1"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 89,
+      "members": [
+        "Cj8qd7yd2z3"
+      ],
+      "anchors": [
+        "Cj8qd7yd2z3"
+      ],
+      "files": [
+        "Fuj9iv9fmu1"
+      ],
+      "total_lines": 35,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 90,
+      "members": [
+        "Cvcgrifkj00"
+      ],
+      "anchors": [
+        "Cvcgrifkj00"
+      ],
+      "files": [
+        "Fuj9iv9fmu1"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 91,
+      "members": [
+        "Ctci2tzgwoi"
+      ],
+      "anchors": [
+        "Ctci2tzgwoi"
+      ],
+      "files": [
+        "Fuj9iv9fmu1"
+      ],
+      "total_lines": 34,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 92,
+      "members": [
+        "C5n694p6vpu"
+      ],
+      "anchors": [
+        "C5n694p6vpu"
+      ],
+      "files": [
+        "Fuj9iv9fmu1"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 93,
+      "members": [
+        "Cjy0948j1qt"
+      ],
+      "anchors": [
+        "Cjy0948j1qt"
+      ],
+      "files": [
+        "Fuj9iv9fmu1"
+      ],
+      "total_lines": 35,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 96,
+      "members": [
+        "C9bdcvwv6j9"
+      ],
+      "anchors": [
+        "C9bdcvwv6j9"
+      ],
+      "files": [
+        "F148ao452rw4"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 101,
+      "members": [
+        "C11iij9n55b4"
+      ],
+      "anchors": [
+        "C11iij9n55b4"
+      ],
+      "files": [
+        "F148ao452rw4"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 102,
+      "members": [
+        "Ctd3lw5t2ee"
+      ],
+      "anchors": [
+        "Ctd3lw5t2ee"
+      ],
+      "files": [
+        "F148ao452rw4"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 103,
+      "members": [
+        "Cxycp9iimrt"
+      ],
+      "anchors": [
+        "Cxycp9iimrt"
+      ],
+      "files": [
+        "F148ao452rw4"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 105,
+      "members": [
+        "C7z5vhc3yan",
+        "Cp8t7cuwnmj"
+      ],
+      "anchors": [
+        "C7z5vhc3yan"
+      ],
+      "files": [
+        "F2k4wtrcave",
+        "Fdze4p5xzcl"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 106,
+      "members": [
+        "Cc9xqjhlsvb"
+      ],
+      "anchors": [
+        "Cc9xqjhlsvb"
+      ],
+      "files": [
+        "F2k4wtrcave"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 107,
+      "members": [
+        "Ckqf6vtxvf4",
+        "C1exbth50oz"
+      ],
+      "anchors": [
+        "C1exbth50oz"
+      ],
+      "files": [
+        "F2k4wtrcave",
+        "F10lndzqh3zl"
+      ],
+      "total_lines": 19,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 108,
+      "members": [
+        "Cpv3wct94oc"
+      ],
+      "anchors": [
+        "Cpv3wct94oc"
+      ],
+      "files": [
+        "F2k4wtrcave"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 109,
+      "members": [
+        "Cv25f6y1vtn"
+      ],
+      "anchors": [
+        "Cv25f6y1vtn"
+      ],
+      "files": [
+        "F10lndzqh3zl"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 111,
+      "members": [
+        "Cm9w9or1wjj"
+      ],
+      "anchors": [
+        "Cm9w9or1wjj"
+      ],
+      "files": [
+        "F10lndzqh3zl"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 112,
+      "members": [
+        "C10bf9c8g96b"
+      ],
+      "anchors": [
+        "C10bf9c8g96b"
+      ],
+      "files": [
+        "F10lndzqh3zl"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 121,
+      "members": [
+        "C164kx5ok2f3"
+      ],
+      "anchors": [
+        "C164kx5ok2f3"
+      ],
+      "files": [
+        "F6lkxkg3bbt"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 122,
+      "members": [
+        "C10k6ds7d6gz"
+      ],
+      "anchors": [
+        "C10k6ds7d6gz"
+      ],
+      "files": [
+        "F6lkxkg3bbt"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 124,
+      "members": [
+        "Ch6hty20uqa"
+      ],
+      "anchors": [
+        "Ch6hty20uqa"
+      ],
+      "files": [
+        "F6lkxkg3bbt"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 135,
+      "members": [
+        "Cy3awmev1uu"
+      ],
+      "anchors": [
+        "Cy3awmev1uu"
+      ],
+      "files": [
+        "Fbo2wwzfb17"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 136,
+      "members": [
+        "C5nlmcqffg2"
+      ],
+      "anchors": [
+        "C5nlmcqffg2"
+      ],
+      "files": [
+        "Fbo2wwzfb17"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 138,
+      "members": [
+        "Cmuft7xq23l"
+      ],
+      "anchors": [
+        "Cmuft7xq23l"
+      ],
+      "files": [
+        "Fhobgjcca3m"
+      ],
+      "total_lines": 33,
+      "languages": [
+        "dart"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 141,
+      "members": [
+        "C3yomz6l6lz"
+      ],
+      "anchors": [
+        "C3yomz6l6lz"
+      ],
+      "files": [
+        "F88s1030tuu"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "cmake"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 143,
+      "members": [
+        "C7jgiq7r4eq",
+        "Cr9tu9g283j"
+      ],
+      "anchors": [
+        "Cr9tu9g283j"
+      ],
+      "files": [
+        "Fn74hkxnm4n",
+        "Fq7x7eo3gru"
+      ],
+      "total_lines": 54,
+      "languages": [
+        "cpp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 146,
+      "members": [
+        "Cjxqe3lpyy0"
+      ],
+      "anchors": [
+        "Cjxqe3lpyy0"
+      ],
+      "files": [
+        "Fq7x7eo3gru"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "cpp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 147,
+      "members": [
+        "Cdcu5mkr1ej"
+      ],
+      "anchors": [
+        "Cdcu5mkr1ej"
+      ],
+      "files": [
+        "Fq7x7eo3gru"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "cpp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 148,
+      "members": [
+        "Ca07mmtl8y2"
+      ],
+      "anchors": [
+        "Ca07mmtl8y2"
+      ],
+      "files": [
+        "Fq7x7eo3gru"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "cpp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 149,
+      "members": [
+        "Cgi3r4g04gj"
+      ],
+      "anchors": [
+        "Cgi3r4g04gj"
+      ],
+      "files": [
+        "Fq7x7eo3gru"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "cpp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 150,
+      "members": [
+        "C99fvlix998"
+      ],
+      "anchors": [
+        "C99fvlix998"
+      ],
+      "files": [
+        "Fq7x7eo3gru"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "cpp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 151,
+      "members": [
+        "Cch4denoxya"
+      ],
+      "anchors": [
+        "Cch4denoxya"
+      ],
+      "files": [
+        "Fq7x7eo3gru"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "cpp"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cr9tu9g283j",
+      "qualified_name": "my_application_activate",
+      "simple_name": "my_application_activate",
+      "language": "cpp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq7x7eo3gru",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/linux/runner/my_application.cc",
+      "start_line": 18,
+      "end_line": 63,
+      "size_lines": 46,
+      "signature_hint": "static void my_application_activate(GApplication* application)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -354,
+      "region": 143,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cjxqe3lpyy0",
+      "qualified_name": "my_application_local_command_line",
+      "simple_name": "my_application_local_command_line",
+      "language": "cpp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq7x7eo3gru",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/linux/runner/my_application.cc",
+      "start_line": 66,
+      "end_line": 82,
+      "size_lines": 17,
+      "signature_hint": "static gboolean my_application_local_command_line(GApplication* application, gchar*** arguments, int* exit_status)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -383,
+      "region": 146,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdcu5mkr1ej",
+      "qualified_name": "my_application_startup",
+      "simple_name": "my_application_startup",
+      "language": "cpp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq7x7eo3gru",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/linux/runner/my_application.cc",
+      "start_line": 85,
+      "end_line": 91,
+      "size_lines": 7,
+      "signature_hint": "static void my_application_startup(GApplication* application)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -393,
+      "region": 147,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ca07mmtl8y2",
+      "qualified_name": "my_application_shutdown",
+      "simple_name": "my_application_shutdown",
+      "language": "cpp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq7x7eo3gru",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/linux/runner/my_application.cc",
+      "start_line": 94,
+      "end_line": 100,
+      "size_lines": 7,
+      "signature_hint": "static void my_application_shutdown(GApplication* application)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -393,
+      "region": 148,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C99fvlix998",
+      "qualified_name": "my_application_class_init",
+      "simple_name": "my_application_class_init",
+      "language": "cpp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq7x7eo3gru",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/linux/runner/my_application.cc",
+      "start_line": 109,
+      "end_line": 115,
+      "size_lines": 7,
+      "signature_hint": "static void my_application_class_init(MyApplicationClass* klass)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -393,
+      "region": 150,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cgi3r4g04gj",
+      "qualified_name": "my_application_dispose",
+      "simple_name": "my_application_dispose",
+      "language": "cpp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq7x7eo3gru",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/linux/runner/my_application.cc",
+      "start_line": 103,
+      "end_line": 107,
+      "size_lines": 5,
+      "signature_hint": "static void my_application_dispose(GObject* object)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 149,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cch4denoxya",
+      "qualified_name": "my_application_init",
+      "simple_name": "my_application_init",
+      "language": "cpp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq7x7eo3gru",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/linux/runner/my_application.cc",
+      "start_line": 117,
+      "end_line": 117,
+      "size_lines": 1,
+      "signature_hint": "static void my_application_init(MyApplication* self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 151,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cgu9yb7mhs7",
+      "qualified_name": "com.example.darkness_dungeon.MainActivity",
+      "simple_name": "MainActivity",
+      "language": "kotlin",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fovys9aenza",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/android/app/src/main/kotlin/com/example/darkness_dungeon/MainActivity.kt",
+      "start_line": 5,
+      "end_line": 6,
+      "size_lines": 2,
+      "signature_hint": "class MainActivity: FlutterActivity()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -498,
+      "region": 0,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjxhfhn2o8z",
+      "qualified_name": "Boss::_showConversation",
+      "simple_name": "_showConversation",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11cs1exb85n",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/enemies/boss.dart",
+      "start_line": 218,
+      "end_line": 267,
+      "size_lines": 50,
+      "signature_hint": "void _showConversation()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -950,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 13
+    },
+    {
+      "id": "Czrhiyxsxqp",
+      "qualified_name": "Torch::Torch",
+      "simple_name": "Torch",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fz9g0i9steq",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/torch.dart",
+      "start_line": 8,
+      "end_line": 22,
+      "size_lines": 15,
+      "signature_hint": "Torch(Vector2 position, {this.empty = false})",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -985,
+      "region": 13,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C10bf9c8g96b",
+      "qualified_name": "MyLocalizationsDelegate::resolution",
+      "simple_name": "resolution",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10lndzqh3zl",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/localization/my_localizations_delegate.dart",
+      "start_line": 23,
+      "end_line": 33,
+      "size_lines": 11,
+      "signature_hint": "Locale resolution(Locale? locale, Iterable<Locale> supportedLocales)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -989,
+      "region": 112,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7gbgbkfv20",
+      "qualified_name": "EnemySpriteSheet::enemyAttackEffectBottom",
+      "simple_name": "enemyAttackEffectBottom",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fuj9iv9fmu1",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/enemy_sprite_sheet.dart",
+      "start_line": 4,
+      "end_line": 12,
+      "size_lines": 9,
+      "signature_hint": "static Future<SpriteAnimation> enemyAttackEffectBottom() => SpriteAnimation.load( 'enemy/atack_effect_bottom.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -991,
+      "region": 82,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11r79czhc27",
+      "qualified_name": "EnemySpriteSheet::enemyAttackEffectLeft",
+      "simple_name": "enemyAttackEffectLeft",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fuj9iv9fmu1",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/enemy_sprite_sheet.dart",
+      "start_line": 14,
+      "end_line": 22,
+      "size_lines": 9,
+      "signature_hint": "static Future<SpriteAnimation> enemyAttackEffectLeft() => SpriteAnimation.load( 'enemy/atack_effect_left.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -991,
+      "region": 83,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmamlamt8xz",
+      "qualified_name": "EnemySpriteSheet::enemyAttackEffectTop",
+      "simple_name": "enemyAttackEffectTop",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fuj9iv9fmu1",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/enemy_sprite_sheet.dart",
+      "start_line": 32,
+      "end_line": 39,
+      "size_lines": 8,
+      "signature_hint": "static Future<SpriteAnimation> enemyAttackEffectTop() => SpriteAnimation.load( 'enemy/atack_effect_top.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -992,
+      "region": 85,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11iij9n55b4",
+      "qualified_name": "GameSpriteSheet::fireBallAttackLeft",
+      "simple_name": "fireBallAttackLeft",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F148ao452rw4",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/game_sprite_sheet.dart",
+      "start_line": 56,
+      "end_line": 63,
+      "size_lines": 8,
+      "signature_hint": "static Future<SpriteAnimation> fireBallAttackLeft() => SpriteAnimation.load( 'player/fireball_left.png', SpriteAnimationData.sequenced( amount: 3, stepTime: 0.1, textureSize: Vector2(23, 23), ), );",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -992,
+      "region": 101,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ctd3lw5t2ee",
+      "qualified_name": "GameSpriteSheet::fireBallAttackTop",
+      "simple_name": "fireBallAttackTop",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F148ao452rw4",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/game_sprite_sheet.dart",
+      "start_line": 65,
+      "end_line": 72,
+      "size_lines": 8,
+      "signature_hint": "static Future<SpriteAnimation> fireBallAttackTop() => SpriteAnimation.load( 'player/fireball_top.png', SpriteAnimationData.sequenced( amount: 3, stepTime: 0.1, textureSize: Vector2(23, 23), ), );",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -992,
+      "region": 102,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxycp9iimrt",
+      "qualified_name": "GameSpriteSheet::fireBallAttackBottom",
+      "simple_name": "fireBallAttackBottom",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F148ao452rw4",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/game_sprite_sheet.dart",
+      "start_line": 74,
+      "end_line": 81,
+      "size_lines": 8,
+      "signature_hint": "static Future<SpriteAnimation> fireBallAttackBottom() => SpriteAnimation.load( 'player/fireball_bottom.png', SpriteAnimationData.sequenced( amount: 3, stepTime: 0.1, textureSize: Vector2(23, 23), ), );",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -992,
+      "region": 103,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C164kx5ok2f3",
+      "qualified_name": "PlayerSpriteSheet::attackEffectBottom",
+      "simple_name": "attackEffectBottom",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F6lkxkg3bbt",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/player_sprite_sheet.dart",
+      "start_line": 13,
+      "end_line": 20,
+      "size_lines": 8,
+      "signature_hint": "static Future<SpriteAnimation> attackEffectBottom() => SpriteAnimation.load( 'player/atack_effect_bottom.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -992,
+      "region": 121,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C10k6ds7d6gz",
+      "qualified_name": "PlayerSpriteSheet::attackEffectLeft",
+      "simple_name": "attackEffectLeft",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F6lkxkg3bbt",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/player_sprite_sheet.dart",
+      "start_line": 22,
+      "end_line": 29,
+      "size_lines": 8,
+      "signature_hint": "static Future<SpriteAnimation> attackEffectLeft() => SpriteAnimation.load( 'player/atack_effect_left.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -992,
+      "region": 122,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ch6hty20uqa",
+      "qualified_name": "PlayerSpriteSheet::attackEffectTop",
+      "simple_name": "attackEffectTop",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F6lkxkg3bbt",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/player_sprite_sheet.dart",
+      "start_line": 38,
+      "end_line": 45,
+      "size_lines": 8,
+      "signature_hint": "static Future<SpriteAnimation> attackEffectTop() => SpriteAnimation.load( 'player/atack_effect_top.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -992,
+      "region": 124,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnf4rgkg699",
+      "qualified_name": "registerPlugins",
+      "simple_name": "registerPlugins",
+      "language": "dart",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fo560rf0emm",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/generated_plugin_registrant.dart",
+      "start_line": 15,
+      "end_line": 19,
+      "size_lines": 5,
+      "signature_hint": "void registerPlugins(Registrar registrar)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -995,
+      "region": 46,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7z5vhc3yan",
+      "qualified_name": "MyLocalizations::MyLocalizations",
+      "simple_name": "MyLocalizations",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F2k4wtrcave",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/localization/my_localizations.dart",
+      "start_line": 9,
+      "end_line": 11,
+      "size_lines": 3,
+      "signature_hint": "MyLocalizations(this.locale)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -997,
+      "region": 105,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cy3awmev1uu",
+      "qualified_name": "Sounds::pauseBackgroundSound",
+      "simple_name": "pauseBackgroundSound",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fbo2wwzfb17",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/sounds.dart",
+      "start_line": 48,
+      "end_line": 50,
+      "size_lines": 3,
+      "signature_hint": "static void pauseBackgroundSound()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -997,
+      "region": 135,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5nlmcqffg2",
+      "qualified_name": "Sounds::resumeBackgroundSound",
+      "simple_name": "resumeBackgroundSound",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fbo2wwzfb17",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/sounds.dart",
+      "start_line": 52,
+      "end_line": 54,
+      "size_lines": 3,
+      "signature_hint": "static void resumeBackgroundSound()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -997,
+      "region": 136,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Co9trhe5cpr",
+      "qualified_name": "GameState::build",
+      "simple_name": "build",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Flj60jotcrt",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/game.dart",
+      "start_line": 42,
+      "end_line": 131,
+      "size_lines": 90,
+      "signature_hint": "@override Widget build(BuildContext context)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1210,
+      "region": 45,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "State"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdo1t3ok326",
+      "qualified_name": "Boss::update",
+      "simple_name": "update",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11cs1exb85n",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/enemies/boss.dart",
+      "start_line": 52,
+      "end_line": 88,
+      "size_lines": 37,
+      "signature_hint": "@override void update(double dt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1263,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "BlockMovementCollision"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Cmuft7xq23l",
+      "qualified_name": "DefectorRadio::build",
+      "simple_name": "build",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fhobgjcca3m",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/widgets/custom_radio.dart",
+      "start_line": 13,
+      "end_line": 45,
+      "size_lines": 33,
+      "signature_hint": "@override Widget build(BuildContext context)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1267,
+      "region": 138,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "StatelessWidget"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjr9wzfb7we",
+      "qualified_name": "Door::onCollisionStart",
+      "simple_name": "onCollisionStart",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F9pp3fwm1r7",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/door.dart",
+      "start_line": 28,
+      "end_line": 54,
+      "size_lines": 27,
+      "signature_hint": "@override void onCollisionStart( Set<Vector2> intersectionPoints, PositionComponent other)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1273,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "GameDecoration"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Ca675d2rdv1",
+      "qualified_name": "MiniBoss::update",
+      "simple_name": "update",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fs2dbfz2am6",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/enemies/mini_boss.dart",
+      "start_line": 34,
+      "end_line": 58,
+      "size_lines": 25,
+      "signature_hint": "@override void update(double dt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1275,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "BlockMovementCollision"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cefm8vxvrtz",
+      "qualified_name": "Knight::onJoystickAction",
+      "simple_name": "onJoystickAction",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11ri9l4y3f",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/player/knight.dart",
+      "start_line": 51,
+      "end_line": 71,
+      "size_lines": 21,
+      "signature_hint": "@override void onJoystickAction(JoystickActionEvent event)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1279,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "BlockMovementCollision"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Crugjvf8sfi",
+      "qualified_name": "WizardNPC::update",
+      "simple_name": "update",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1h8f6gp5tw",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/npc/wizard_npc.dart",
+      "start_line": 27,
+      "end_line": 44,
+      "size_lines": 18,
+      "signature_hint": "@override void update(double dt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1282,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "SimpleNpc"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Ce2fuvxvs7a",
+      "qualified_name": "Kid::update",
+      "simple_name": "update",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fgbmz3ojuay",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/npc/kid.dart",
+      "start_line": 24,
+      "end_line": 40,
+      "size_lines": 17,
+      "signature_hint": "@override void update(double dt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1283,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "GameDecoration"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cm4uk5m5hn4",
+      "qualified_name": "Knight::update",
+      "simple_name": "update",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11ri9l4y3f",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/player/knight.dart",
+      "start_line": 132,
+      "end_line": 148,
+      "size_lines": 17,
+      "signature_hint": "@override void update(double dt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1283,
+      "region": 74,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "BlockMovementCollision"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C15d5ro2jmio",
+      "qualified_name": "GameController::update",
+      "simple_name": "update",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F2i4prv78q1",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/widgets/game_controller.dart",
+      "start_line": 8,
+      "end_line": 19,
+      "size_lines": 12,
+      "signature_hint": "@override void update(double dt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1288,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "GameComponent"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C8sizb7fic4",
+      "qualified_name": "Goblin::update",
+      "simple_name": "update",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fbob7fuwoj0",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/enemies/goblin.dart",
+      "start_line": 34,
+      "end_line": 44,
+      "size_lines": 11,
+      "signature_hint": "@override void update(double dt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1289,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "BlockMovementCollision"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cn55moknmjs",
+      "qualified_name": "MyBarLifeComponent::update",
+      "simple_name": "update",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17cgnmx6sxw",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/interface/bar_life_component.dart",
+      "start_line": 23,
+      "end_line": 33,
+      "size_lines": 11,
+      "signature_hint": "@override void update(double t)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1289,
+      "region": 47,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "InterfaceComponent"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5jknon07q7",
+      "qualified_name": "Imp::update",
+      "simple_name": "update",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10ajp14cond",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/enemies/imp.dart",
+      "start_line": 39,
+      "end_line": 48,
+      "size_lines": 10,
+      "signature_hint": "@override void update(double dt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1290,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "BlockMovementCollision"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cc1bqn78nz2",
+      "qualified_name": "PotionLife::onContact",
+      "simple_name": "onContact",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F13m4s6r4999",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/potion_life.dart",
+      "start_line": 18,
+      "end_line": 25,
+      "size_lines": 8,
+      "signature_hint": "@override void onContact(Knight player)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1292,
+      "region": 7,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "GameDecoration"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C185ohgkaqtg",
+      "qualified_name": "CustomSpriteAnimationWidget::build",
+      "simple_name": "build",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fvim0i9vr2o",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/custom_sprite_animation_widget.dart",
+      "start_line": 9,
+      "end_line": 16,
+      "size_lines": 8,
+      "signature_hint": "@override Widget build(BuildContext context)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1292,
+      "region": 79,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "StatelessWidget"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8mvvxf5etr",
+      "qualified_name": "DoorKey::onContact",
+      "simple_name": "onContact",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fac48v4z5on",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/key.dart",
+      "start_line": 13,
+      "end_line": 19,
+      "size_lines": 7,
+      "signature_hint": "@override void onContact(GameComponent collision)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1293,
+      "region": 6,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "GameDecoration"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C12hcgo5slad",
+      "qualified_name": "Spikes::update",
+      "simple_name": "update",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fuk9afpawzz",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/spikes.dart",
+      "start_line": 22,
+      "end_line": 28,
+      "size_lines": 7,
+      "signature_hint": "@override void update(double dt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1293,
+      "region": 10,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "GameDecoration"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Crkqk25rcd1",
+      "qualified_name": "_MenuState::build",
+      "simple_name": "build",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F15ofo856x0o",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/menu.dart",
+      "start_line": 39,
+      "end_line": 45,
+      "size_lines": 7,
+      "signature_hint": "@override Widget build(BuildContext context)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1293,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "State"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Ck7hcff41ve",
+      "qualified_name": "GameState::initState",
+      "simple_name": "initState",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Flj60jotcrt",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/game.dart",
+      "start_line": 30,
+      "end_line": 34,
+      "size_lines": 5,
+      "signature_hint": "@override void initState()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1295,
+      "region": 43,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "State"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cj4dbhp9y1i",
+      "qualified_name": "Spikes::onContact",
+      "simple_name": "onContact",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fuk9afpawzz",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/spikes.dart",
+      "start_line": 17,
+      "end_line": 20,
+      "size_lines": 4,
+      "signature_hint": "@override void onContact(Knight collision)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1296,
+      "region": 9,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "GameDecoration"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C12mdckdd86e",
+      "qualified_name": "Spikes::onContactExit",
+      "simple_name": "onContactExit",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fuk9afpawzz",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/spikes.dart",
+      "start_line": 33,
+      "end_line": 36,
+      "size_lines": 4,
+      "signature_hint": "@override void onContactExit(Knight component)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1296,
+      "region": 12,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "GameDecoration"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C9isbxyo6mg",
+      "qualified_name": "Spikes::priority",
+      "simple_name": "priority",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fuk9afpawzz",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/spikes.dart",
+      "start_line": 30,
+      "end_line": 31,
+      "size_lines": 2,
+      "signature_hint": "@override int get priority => LayerPriority.getComponentPriority(1);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1298,
+      "region": 11,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "GameDecoration"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cqmkdq1j2wf",
+      "qualified_name": "Game::createState",
+      "simple_name": "createState",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Flj60jotcrt",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/game.dart",
+      "start_line": 25,
+      "end_line": 26,
+      "size_lines": 2,
+      "signature_hint": "@override GameState createState() => GameState();",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1298,
+      "region": 42,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "StatefulWidget"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czfa25oq5wp",
+      "qualified_name": "Menu::createState",
+      "simple_name": "createState",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F15ofo856x0o",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/menu.dart",
+      "start_line": 16,
+      "end_line": 17,
+      "size_lines": 2,
+      "signature_hint": "@override _MenuState createState() => _MenuState();",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1298,
+      "region": 56,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "StatefulWidget"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cv25f6y1vtn",
+      "qualified_name": "MyLocalizationsDelegate::isSupported",
+      "simple_name": "isSupported",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10lndzqh3zl",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/localization/my_localizations_delegate.dart",
+      "start_line": 9,
+      "end_line": 10,
+      "size_lines": 2,
+      "signature_hint": "@override bool isSupported(Locale locale) => ['en', 'pt'].contains(locale.languageCode);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1298,
+      "region": 109,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "LocalizationsDelegate"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cm9w9or1wjj",
+      "qualified_name": "MyLocalizationsDelegate::shouldReload",
+      "simple_name": "shouldReload",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10lndzqh3zl",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/localization/my_localizations_delegate.dart",
+      "start_line": 20,
+      "end_line": 21,
+      "size_lines": 2,
+      "signature_hint": "@override bool shouldReload(MyLocalizationsDelegate old) => false;",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1298,
+      "region": 111,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "LocalizationsDelegate"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cowc6cwonp7",
+      "qualified_name": "Knight::Knight",
+      "simple_name": "Knight",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11ri9l4y3f",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/player/knight.dart",
+      "start_line": 19,
+      "end_line": 35,
+      "size_lines": 17,
+      "signature_hint": "Knight(Vector2 position)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1483,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Knight",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Flj60jotcrt",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/game.dart",
+            "line": 87,
+            "name": "Knight"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cpv3wct94oc",
+      "qualified_name": "MyLocalizations::trans",
+      "simple_name": "trans",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F2k4wtrcave",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/localization/my_localizations.dart",
+      "start_line": 34,
+      "end_line": 36,
+      "size_lines": 3,
+      "signature_hint": "String trans(String key)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1497,
+      "region": 108,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "trans",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fdze4p5xzcl",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/localization/strings_location.dart",
+            "line": 19,
+            "name": "trans",
+            "receiver_hint": "_myLocalizations"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1exbth50oz",
+      "qualified_name": "MyLocalizationsDelegate::load",
+      "simple_name": "load",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10lndzqh3zl",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/localization/my_localizations_delegate.dart",
+      "start_line": 12,
+      "end_line": 18,
+      "size_lines": 7,
+      "signature_hint": "@override Future<MyLocalizations> load(Locale locale) async",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1793,
+      "region": 107,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "LocalizationsDelegate"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "load",
+          "sites": 59,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F5f93q094iu",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/barrel.dart",
+            "line": 7,
+            "name": "load",
+            "receiver_hint": "Sprite"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C3yomz6l6lz",
+      "qualified_name": "APPLY_STANDARD_SETTINGS",
+      "simple_name": "APPLY_STANDARD_SETTINGS",
+      "language": "cmake",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F88s1030tuu",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/linux/CMakeLists.txt",
+      "start_line": 42,
+      "end_line": 47,
+      "size_lines": 6,
+      "signature_hint": "function(APPLY_STANDARD_SETTINGS TARGET) target_compile_features(${TARGET} PUBLIC cxx_std_14) target_compile_options(${TARGET} PRIVATE -Wall -Werror) target_compile_options(${TARGET} PRIVATE \"$<$<NOT:$<CONFIG:Debug>>:-O3>\") target_compile_definitions(${TARGET} PRIVATE \"$<$<NOT:$<CONFIG:Debug>>:NDEBUG>\") endfunction()",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1294,
+      "region": 141,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cj8qd7yd2z3",
+      "qualified_name": "EnemySpriteSheet::goblinAnimations",
+      "simple_name": "goblinAnimations",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fuj9iv9fmu1",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/enemy_sprite_sheet.dart",
+      "start_line": 87,
+      "end_line": 121,
+      "size_lines": 35,
+      "signature_hint": "static SimpleDirectionAnimation goblinAnimations() => SimpleDirectionAnimation( idleLeft: SpriteAnimation.load( 'enemy/goblin/goblin_idle_left.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), idleRight: SpriteAnimation.load( 'enemy/goblin/goblin_idle.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), runLeft: SpriteAnimation.load( 'enemy/goblin/goblin_run_left.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), runRight: SpriteAnimation.load( 'enemy/goblin/goblin_run_right.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), );",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1465,
+      "region": 89,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "goblinAnimations",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 1,
+          "example": {
+            "file": "Fbob7fuwoj0",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/enemies/goblin.dart",
+            "line": 15,
+            "name": "goblinAnimations",
+            "receiver_hint": "EnemySpriteSheet"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjy0948j1qt",
+      "qualified_name": "EnemySpriteSheet::miniBossAnimations",
+      "simple_name": "miniBossAnimations",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fuj9iv9fmu1",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/enemy_sprite_sheet.dart",
+      "start_line": 176,
+      "end_line": 210,
+      "size_lines": 35,
+      "signature_hint": "static SimpleDirectionAnimation miniBossAnimations() => SimpleDirectionAnimation( idleLeft: SpriteAnimation.load( 'enemy/mini_boss/mini_boss_idle_left.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 24), ), ), idleRight: SpriteAnimation.load( 'enemy/mini_boss/mini_boss_idle.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 24), ), ), runLeft: SpriteAnimation.load( 'enemy/mini_boss/mini_boss_run_left.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 24), ), ), runRight: SpriteAnimation.load( 'enemy/mini_boss/mini_boss_run_right.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 24), ), ), );",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1465,
+      "region": 93,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "miniBossAnimations",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 1,
+          "example": {
+            "file": "Fs2dbfz2am6",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/enemies/mini_boss.dart",
+            "line": 16,
+            "name": "miniBossAnimations",
+            "receiver_hint": "EnemySpriteSheet"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ctci2tzgwoi",
+      "qualified_name": "EnemySpriteSheet::impAnimations",
+      "simple_name": "impAnimations",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fuj9iv9fmu1",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/enemy_sprite_sheet.dart",
+      "start_line": 132,
+      "end_line": 165,
+      "size_lines": 34,
+      "signature_hint": "static SimpleDirectionAnimation impAnimations() => SimpleDirectionAnimation( idleLeft: SpriteAnimation.load( 'enemy/imp/imp_idle_left.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), idleRight: SpriteAnimation.load( 'enemy/imp/imp_idle.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), runLeft: SpriteAnimation.load( 'enemy/imp/imp_run_left.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), runRight: SpriteAnimation.load( 'enemy/imp/imp_run_right.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 16), ), ), );",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1466,
+      "region": 91,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "impAnimations",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 1,
+          "example": {
+            "file": "F10ajp14cond",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/enemies/imp.dart",
+            "line": 15,
+            "name": "impAnimations",
+            "receiver_hint": "EnemySpriteSheet"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cbakir2df7x",
+      "qualified_name": "EnemySpriteSheet::bossAnimations",
+      "simple_name": "bossAnimations",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fuj9iv9fmu1",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/enemy_sprite_sheet.dart",
+      "start_line": 50,
+      "end_line": 76,
+      "size_lines": 27,
+      "signature_hint": "static SimpleDirectionAnimation bossAnimations() => SimpleDirectionAnimation( idleLeft: SpriteAnimation.load( 'enemy/boss/boss_idle_left.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(32, 36), ), ), idleRight: bossIdleRight(), runLeft: SpriteAnimation.load( 'enemy/boss/boss_run_left.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(32, 36), ), ), runRight: SpriteAnimation.load( 'enemy/boss/boss_run_right.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(32, 36), ), ), );",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1473,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "bossAnimations",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 1,
+          "example": {
+            "file": "F11cs1exb85n",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/enemies/boss.dart",
+            "line": 28,
+            "name": "bossAnimations",
+            "receiver_hint": "EnemySpriteSheet"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C2bl9guvhyl",
+      "qualified_name": "EnemySpriteSheet::goblinIdleRight",
+      "simple_name": "goblinIdleRight",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fuj9iv9fmu1",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/enemy_sprite_sheet.dart",
+      "start_line": 78,
+      "end_line": 85,
+      "size_lines": 8,
+      "signature_hint": "static Future<SpriteAnimation> goblinIdleRight() => SpriteAnimation.load( 'enemy/goblin/goblin_idle.png', SpriteAnimationData.sequenced( amount: 6, stepTime: 0.1, textureSize: Vector2(16, 16), ), );",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1492,
+      "region": 88,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "goblinIdleRight",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 1,
+          "example": {
+            "file": "F15ofo856x0o",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/menu.dart",
+            "line": 26,
+            "name": "goblinIdleRight",
+            "receiver_hint": "EnemySpriteSheet"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvcgrifkj00",
+      "qualified_name": "EnemySpriteSheet::impIdleRight",
+      "simple_name": "impIdleRight",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fuj9iv9fmu1",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/enemy_sprite_sheet.dart",
+      "start_line": 123,
+      "end_line": 130,
+      "size_lines": 8,
+      "signature_hint": "static Future<SpriteAnimation> impIdleRight() => SpriteAnimation.load( 'enemy/imp/imp_idle.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 16), ), );",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1492,
+      "region": 90,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "impIdleRight",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 1,
+          "example": {
+            "file": "F15ofo856x0o",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/menu.dart",
+            "line": 27,
+            "name": "impIdleRight",
+            "receiver_hint": "EnemySpriteSheet"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5n694p6vpu",
+      "qualified_name": "EnemySpriteSheet::miniBossIdleRight",
+      "simple_name": "miniBossIdleRight",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fuj9iv9fmu1",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/enemy_sprite_sheet.dart",
+      "start_line": 167,
+      "end_line": 174,
+      "size_lines": 8,
+      "signature_hint": "static Future<SpriteAnimation> miniBossIdleRight() => SpriteAnimation.load( 'enemy/mini_boss/mini_boss_idle.png', SpriteAnimationData.sequenced( amount: 4, stepTime: 0.1, textureSize: Vector2(16, 24), ), );",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1492,
+      "region": 92,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "miniBossIdleRight",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 1,
+          "example": {
+            "file": "F15ofo856x0o",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/menu.dart",
+            "line": 28,
+            "name": "miniBossIdleRight",
+            "receiver_hint": "EnemySpriteSheet"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C9bdcvwv6j9",
+      "qualified_name": "GameSpriteSheet::spikes",
+      "simple_name": "spikes",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F148ao452rw4",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/game_sprite_sheet.dart",
+      "start_line": 12,
+      "end_line": 19,
+      "size_lines": 8,
+      "signature_hint": "static Future<SpriteAnimation> spikes() => SpriteAnimation.load( 'items/spikes.png', SpriteAnimationData.sequenced( amount: 10, stepTime: 0.1, textureSize: Vector2(16, 16), ), );",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1492,
+      "region": 96,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "spikes",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 1,
+          "example": {
+            "file": "Fuk9afpawzz",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/spikes.dart",
+            "line": 12,
+            "name": "spikes",
+            "receiver_hint": "GameSpriteSheet"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cc9xqjhlsvb",
+      "qualified_name": "MyLocalizations::of",
+      "simple_name": "of",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F2k4wtrcave",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/localization/my_localizations.dart",
+      "start_line": 15,
+      "end_line": 17,
+      "size_lines": 3,
+      "signature_hint": "static MyLocalizations? of(BuildContext context)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1497,
+      "region": 106,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "of",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fxuhlymaqxi",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/util/dialogs.dart",
+            "line": 93,
+            "name": "of",
+            "receiver_hint": "Navigator"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvf0vjp78d0",
+      "qualified_name": "Imp::onLoad",
+      "simple_name": "onLoad",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10ajp14cond",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/enemies/imp.dart",
+      "start_line": 22,
+      "end_line": 37,
+      "size_lines": 16,
+      "signature_hint": "@override Future<void> onLoad()",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1784,
+      "region": 15,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "BlockMovementCollision"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "onLoad",
+          "sites": 8,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F5f93q094iu",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/barrel.dart",
+            "line": 20,
+            "name": "onLoad",
+            "receiver_hint": "super"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C5d032m1x70",
+      "qualified_name": "Knight::onLoad",
+      "simple_name": "onLoad",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11ri9l4y3f",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/player/knight.dart",
+      "start_line": 37,
+      "end_line": 49,
+      "size_lines": 13,
+      "signature_hint": "@override Future<void> onLoad()",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1787,
+      "region": 15,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "BlockMovementCollision"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "onLoad",
+          "sites": 8,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F5f93q094iu",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/barrel.dart",
+            "line": 20,
+            "name": "onLoad",
+            "receiver_hint": "super"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C3xu0mavcxj",
+      "qualified_name": "Goblin::onLoad",
+      "simple_name": "onLoad",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fbob7fuwoj0",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/enemies/goblin.dart",
+      "start_line": 22,
+      "end_line": 32,
+      "size_lines": 11,
+      "signature_hint": "@override Future<void> onLoad()",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1789,
+      "region": 15,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "BlockMovementCollision"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "onLoad",
+          "sites": 8,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F5f93q094iu",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/barrel.dart",
+            "line": 20,
+            "name": "onLoad",
+            "receiver_hint": "super"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Cbuxz12o1dt",
+      "qualified_name": "Barrel::onLoad",
+      "simple_name": "onLoad",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F5f93q094iu",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/barrel.dart",
+      "start_line": 12,
+      "end_line": 21,
+      "size_lines": 10,
+      "signature_hint": "@override Future<void> onLoad()",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1790,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "GameDecoration"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "onLoad",
+          "sites": 8,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F5f93q094iu",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/barrel.dart",
+            "line": 20,
+            "name": "onLoad",
+            "receiver_hint": "super"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C15dsih64q2b",
+      "qualified_name": "Boss::onLoad",
+      "simple_name": "onLoad",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11cs1exb85n",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/enemies/boss.dart",
+      "start_line": 35,
+      "end_line": 44,
+      "size_lines": 10,
+      "signature_hint": "@override Future<void> onLoad()",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1790,
+      "region": 15,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "BlockMovementCollision"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "onLoad",
+          "sites": 8,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F5f93q094iu",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/barrel.dart",
+            "line": 20,
+            "name": "onLoad",
+            "receiver_hint": "super"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Ctl25iqtxzv",
+      "qualified_name": "MiniBoss::onLoad",
+      "simple_name": "onLoad",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fs2dbfz2am6",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/enemies/mini_boss.dart",
+      "start_line": 23,
+      "end_line": 32,
+      "size_lines": 10,
+      "signature_hint": "@override Future<void> onLoad()",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1790,
+      "region": 15,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "BlockMovementCollision"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "onLoad",
+          "sites": 8,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F5f93q094iu",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/barrel.dart",
+            "line": 20,
+            "name": "onLoad",
+            "receiver_hint": "super"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Ccjetd14pwl",
+      "qualified_name": "Door::onLoad",
+      "simple_name": "onLoad",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F9pp3fwm1r7",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/door.dart",
+      "start_line": 19,
+      "end_line": 26,
+      "size_lines": 8,
+      "signature_hint": "@override Future<void> onLoad()",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1792,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "GameDecoration"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "onLoad",
+          "sites": 8,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F5f93q094iu",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/barrel.dart",
+            "line": 20,
+            "name": "onLoad",
+            "receiver_hint": "super"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1qjg9s95dz",
+      "qualified_name": "KnightInterface::onLoad",
+      "simple_name": "onLoad",
+      "language": "dart",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F9w9njnsx3q",
+      "path": "/storage/cgg-test_repos/app-darkness-flame/lib/interface/knight_interface.dart",
+      "start_line": 8,
+      "end_line": 13,
+      "size_lines": 6,
+      "signature_hint": "@override Future<void> onLoad() async",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1794,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "GameInterface"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "onLoad",
+          "sites": 8,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F5f93q094iu",
+            "path": "/storage/cgg-test_repos/app-darkness-flame/lib/decoration/barrel.dart",
+            "line": 20,
+            "name": "onLoad",
+            "receiver_hint": "super"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}
