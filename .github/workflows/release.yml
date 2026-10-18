@@ -25,6 +25,10 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  # Published binaries print the bare version; every other build prints
+  # its commit (crates/cgg/build.rs), so an interim build is never
+  # mistaken for a release.
+  CGG_OFFICIAL_BUILD: "1"
 
 jobs:
   wheels:

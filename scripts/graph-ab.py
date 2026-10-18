@@ -117,6 +117,40 @@ def bin_sha(bin_):
         return _sha_cache[bin_]
 
 
+def bin_identity(bin_):
+    """sha256 + `--version` (which carries the build's commit and diff
+    fingerprint for any non-release build, crates/cgg/build.rs). Written
+    beside every cache entry and into report.txt, so a result can always
+    be traced to the exact binary -- an interim build is never mistaken
+    for a release."""
+    try:
+        v = subprocess.run([bin_, "--version"], capture_output=True,
+                           text=True, timeout=30).stdout.strip()
+    except Exception as e:  # noqa: BLE001
+        v = f"unknown ({e})"
+    return {"sha256": bin_sha_full(bin_), "version": v,
+            "path": os.path.abspath(bin_)}
+
+
+def bin_sha_full(bin_):
+    h = hashlib.sha256()
+    with open(bin_, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def record_identity(bin_):
+    ident = bin_identity(bin_)
+    d = os.path.join(CACHE, bin_sha(bin_))
+    os.makedirs(d, exist_ok=True)
+    p = os.path.join(d, "BUILD.json")
+    if not os.path.exists(p):
+        with open(p, "w") as f:
+            json.dump(ident, f, indent=1)
+    return ident
+
+
 def repo_state(path):
     with _cache_lock:
         if path in _state_cache:
@@ -257,6 +291,9 @@ def main():
     repos = repo_paths([r for r in a.repos.split(",") if r])
     for side in ("old", "new"):
         os.makedirs(os.path.join(a.out, side), exist_ok=True)
+    ident = {"old": record_identity(a.old), "new": record_identity(a.new)}
+    with open(os.path.join(a.out, "binaries.json"), "w") as f:
+        json.dump(ident, f, indent=1)
     t0 = time.time()
     status = collections.defaultdict(dict)
     jobs = []
@@ -349,6 +386,8 @@ def main():
                      or r[6] != r[7] or r[8] != r[9] or r[10] != r[11]
                      or r[12] != r[13]]
     with open(os.path.join(a.out, "report.txt"), "w") as f:
+        for side in ("old", "new"):
+            f.write(f"{side}: {ident[side]['version']}  sha256={ident[side]['sha256']}\n")
         f.write(f"old={a.old}\nnew={a.new}\nrepos={len(repos)} elapsed={elapsed:.0f}s\n")
         f.write(f"excluded (timeout/error, NOT diffed): {len(excluded)}\n")
         for x in excluded:

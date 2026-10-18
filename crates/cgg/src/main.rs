@@ -64,6 +64,7 @@ fn run(cli: &Cli) -> anyhow::Result<(ExitCode, f64)> {
     // `RunOptions` — `-t` does not change the graph.
     info!(
         version = cgg_core::CGG_VERSION,
+        build = env!("CGG_BUILD_VERSION"),
         paths = cli.paths.len(),
         format = %OutputFormat::from(cli.format),
         "cgg starting"

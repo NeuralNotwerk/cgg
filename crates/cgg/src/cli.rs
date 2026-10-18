@@ -25,7 +25,9 @@ use std::path::PathBuf;
 #[derive(Debug, Parser)]
 #[command(
     name = "cgg",
-    version,
+    // The build identity (`crates/cgg/build.rs`): an interim build prints
+    // `0.11.0 (dev g<commit>[+d<diff>])`, never the bare release version.
+    version = env!("CGG_BUILD_VERSION"),
     about = "Call graph generator — point at folders, get a graph.",
     long_about = None,
     arg_required_else_help = true,

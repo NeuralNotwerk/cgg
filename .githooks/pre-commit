@@ -49,6 +49,18 @@ cargo build --release -p cgg --quiet
 # `-`, not `:-`: an explicitly empty CGG_INSTALL_DIR="" is the documented
 # opt-out and must not fall back to the default.
 CGG_INSTALL_DIR="${CGG_INSTALL_DIR-$HOME/.local/bin}"
+# Never replace an official build (bare `cgg X.Y.Z`) with an interim one
+# (`cgg X.Y.Z (dev g…)`, crates/cgg/build.rs) unless asked: an interim
+# binary in PATH is indistinguishable in use from the release it shadows.
+if [[ -n "$CGG_INSTALL_DIR" && -x "$CGG_INSTALL_DIR/cgg" && "${CGG_INSTALL_DEV:-}" != "1" ]]; then
+    installed="$("$CGG_INSTALL_DIR/cgg" --version 2>/dev/null || true)"
+    fresh="$(target/release/cgg --version)"
+    if [[ "$installed" != *"(dev "* && "$fresh" == *"(dev "* ]]; then
+        echo "[cgg pre-commit] $CGG_INSTALL_DIR/cgg is an official build ($installed);"
+        echo "[cgg pre-commit] not replacing it with $fresh. Set CGG_INSTALL_DEV=1 to install anyway."
+        CGG_INSTALL_DIR=""
+    fi
+fi
 if [[ -n "$CGG_INSTALL_DIR" ]]; then
     if [[ ! -d "$CGG_INSTALL_DIR" ]]; then
         echo "[cgg pre-commit] creating $CGG_INSTALL_DIR"

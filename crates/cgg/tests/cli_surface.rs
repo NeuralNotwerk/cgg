@@ -55,6 +55,24 @@ fn version_prints_the_crate_version() {
 }
 
 #[test]
+fn version_carries_the_build_identity() {
+    // The version number stays the second word (scripts read it with
+    // `awk '{print $2}'`), followed by the build identity for anything
+    // that is not an official build.
+    let out = cgg().arg("--version").output().unwrap();
+    let line = String::from_utf8(out.stdout).unwrap();
+    let mut words = line.split_whitespace();
+    assert_eq!(words.next(), Some("cgg"));
+    assert_eq!(words.next(), Some(env!("CARGO_PKG_VERSION")));
+    assert_eq!(line.trim(), format!("cgg {}", env!("CGG_BUILD_VERSION")));
+    let rest: Vec<_> = words.collect();
+    assert!(
+        rest.is_empty() || (rest[0] == "(dev" && rest.last().unwrap().ends_with(')')),
+        "unexpected build identity: {line}"
+    );
+}
+
+#[test]
 fn quiet_silences_the_run_summary() {
     // REGRESSION: `--quiet` promises "silence everything except
     // errors", and every advisory line in the run was gated on it
