@@ -19,6 +19,7 @@ impl LanguagePlugin for KotlinPlugin {
         crate::PluginSignals {
             attributes: true,
             visibility: true,
+            value_refs: true,
             ..Default::default()
         }
     }
@@ -29,7 +30,7 @@ impl LanguagePlugin for KotlinPlugin {
 
     fn extract(
         &self,
-        _ctx: &crate::ExtractCtx<'_>,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -37,6 +38,7 @@ impl LanguagePlugin for KotlinPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "kotlin");
         let mut w = KtWalker {
+            reference_sites: ctx.reference_sites,
             bases: Vec::new(),
             source,
             facts: &mut facts,
@@ -49,6 +51,9 @@ impl LanguagePlugin for KotlinPlugin {
 }
 
 struct KtWalker<'a> {
+    /// Record callable references (`::f`, `T::m`, `x::m`) as value
+    /// references; see `crate::ExtractCtx::reference_sites`.
+    reference_sites: bool,
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
@@ -80,6 +85,9 @@ impl<'a> KtWalker<'a> {
     }
 
     fn walk(&mut self, node: Node) {
+        if self.reference_sites {
+            self.record_callable_reference(node);
+        }
         if matches!(node.kind(), "class_declaration" | "object_declaration") {
             self.implicit.push(String::new());
             self.walk_decl(node);
@@ -540,6 +548,72 @@ impl<'a> KtWalker<'a> {
             dot_call,
             implicit_receiver,
             typed_receiver,
+            ..Default::default()
+        });
+    }
+
+    /// A callable reference names a function without calling it, wherever
+    /// it is written: `::f`, `Type::m`, `obj::m` (`callable_reference`)
+    /// and `this::m`, `a.b::m` (a navigation through `::`). Recorded the
+    /// way the call it stands for is — `f` bare, `m` through `Type`,
+    /// `obj` or `this` — marked `value_ref`, so what it resolves to is a
+    /// reference edge. A class literal (`Foo::class`, `this::class`) names
+    /// no member and is not recorded; a property reference (`Item::name`)
+    /// is dropped before resolution when no callable carries the name
+    /// (`value_refs::prune`).
+    fn record_callable_reference(&mut self, node: Node) {
+        let (name_node, recv) = match node.kind() {
+            "callable_reference" => {
+                let mut c = node.walk();
+                let mut ty = None;
+                let mut name = None;
+                for ch in node.named_children(&mut c) {
+                    match ch.kind() {
+                        "type_identifier" => ty = Some(ch),
+                        "simple_identifier" => name = Some(ch),
+                        _ => {}
+                    }
+                }
+                let Some(name) = name else { return };
+                (
+                    name,
+                    ty.map(|t| self.text(t).to_string()).unwrap_or_default(),
+                )
+            }
+            "navigation_expression" => {
+                let Some(suffix) = node
+                    .named_child((node.named_child_count() as u32).saturating_sub(1))
+                    .filter(|s| s.kind() == "navigation_suffix")
+                else {
+                    return;
+                };
+                let mut c = suffix.walk();
+                if !suffix.children(&mut c).any(|t| t.kind() == "::") {
+                    return;
+                }
+                let Some(name) = suffix
+                    .named_child(0)
+                    .filter(|n| n.kind() == "simple_identifier")
+                else {
+                    return;
+                };
+                let Some(base) = node.named_child(0) else {
+                    return;
+                };
+                (name, self.receiver_text(base))
+            }
+            _ => return,
+        };
+        let name = self.text(name_node).to_string();
+        if name.is_empty() {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: recv,
+            site_line: (name_node.start_position().row as u32) + 1,
+            site_byte: name_node.start_byte() as u32,
+            value_ref: true,
             ..Default::default()
         });
     }
@@ -1158,5 +1232,74 @@ mod tests {
         assert_eq!(abstract_tags(&f, "K.c"), vec![true]);
         assert_eq!(abstract_tags(&f, "K.d"), vec![false]);
         assert_eq!(abstract_tags(&f, "K.e"), vec![false]);
+    }
+
+    fn extract_with_refs(src: &str, refs: bool) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_kotlin_sg::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        KotlinPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(refs),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.kt"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    fn value_refs(f: &FileFacts) -> Vec<(String, String)> {
+        f.references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
+            .collect()
+    }
+
+    /// WS26 (gap 25): a callable reference names a function without
+    /// calling it — `::f`, `Type::m`, `obj::m`, `this::m` — wherever it is
+    /// written, and is recorded only when the run asks for reference
+    /// sites. A class literal is not one.
+    #[test]
+    fn callable_references_are_reference_sites() {
+        let src = "class C {\n\
+                     fun go(obj: Svc) {\n\
+                       xs.map(::top)\n\
+                       xs.forEach(Type::member)\n\
+                       xs.forEach(obj::onItem)\n\
+                       xs.forEach(this::handle)\n\
+                       val g = ::stored\n\
+                       val m = mapOf(\"k\" to ::inPair)\n\
+                       val k = Foo::class\n\
+                       val j = this::class.java\n\
+                       xs.forEach(other.inner::deep)\n\
+                     }\n\
+                     fun make() = ::returned\n\
+                   }\n";
+        let got = value_refs(&extract_with_refs(src, true));
+        let want = [
+            ("", "top"),
+            ("Type", "member"),
+            ("obj", "onItem"),
+            ("this", "handle"),
+            ("", "stored"),
+            ("", "inPair"),
+            ("other.inner", "deep"),
+            ("", "returned"),
+        ];
+        for (recv, name) in want {
+            assert!(
+                got.contains(&(recv.to_string(), name.to_string())),
+                "missing {recv}::{name} in {got:?}"
+            );
+        }
+        assert_eq!(got.len(), want.len(), "{got:?}");
+        // An ordinary run records none of them, and `a.b` is not one.
+        assert!(value_refs(&extract_with_refs(src, false)).is_empty());
+        let plain = value_refs(&extract_with_refs(
+            "fun f() { use(a.b); run(onTick) }\n",
+            true,
+        ));
+        assert!(plain.is_empty(), "{plain:?}");
     }
 }

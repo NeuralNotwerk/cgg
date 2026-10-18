@@ -355,6 +355,19 @@ otherwise change the default graph.
   package of that name), and the value reference to `f` in `f.bind(x)`
   no longer relabels the `bind` call's own edges as reference edges.
 
+- **Kotlin callable references were not references (WS26, gap 25).**
+  `xs.map(::top)`, `xs.forEach(this::handle)`, `Util::twice`,
+  `obj::onItem`, `val g = ::stored` and `onClick = ::onSiteClicked` left
+  the function with no incoming reference, so it was reported dead. Under
+  `--dead-code` and `--reference-edges` every callable reference — a
+  `callable_reference`, or a navigation through `::` (`this::m`,
+  `a.b::m`) — is now a value reference, resolved as the call through that
+  receiver would be: `::f` bare, `T::m` through the type, `x::m` through
+  the variable. A class literal (`Foo::class`) is not one. A property
+  reference (`Item::name`) is dropped when no callable carries the name,
+  and an `x::m` through an untyped variable binds only through its type,
+  never by name fan-out. Kotlin now declares the value-reference signal.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -576,6 +589,17 @@ WS26 Go (full corpus, 283 repositories, none excluded):
   low root coverage, which the new references lift over the threshold;
   81 move `medium` → `low` (an unresolved value reference of the same
   name is now doubt). No JavaScript or TypeScript finding changes.
+
+WS26 Kotlin (full corpus; `zig-zig`'s dead-code run hit the 60 s cap on
+the new side, and Zig has no Kotlin):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 1,292 Kotlin reference edges are added (1,164
+  `high`); none are removed.
+- Under `--dead-code`, 1,156 Kotlin findings leave the report (none
+  `high`): 391 named only through `::`, the rest reached from them. None
+  are newly reported, and 4 move `medium` → `low` (an unresolved
+  property reference of the same name is now doubt).
 
 ## [0.11.0] - 2026-10-16
 

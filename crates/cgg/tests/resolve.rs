@@ -2392,6 +2392,91 @@ func main() {\n\
     assert_eq!(g.matches("ref|").count(), 4, "{g}");
 }
 
+/// WS26 (gap 25): a Kotlin callable reference (`::f`, `T::m`, `this::m`)
+/// is a reference — live in the dead-code report and a `ref` edge under
+/// `--reference-edges` — with the default graph untouched. A property
+/// reference naming a same-named function of another class, a string
+/// and a class literal are not references to it.
+#[test]
+fn kotlin_callable_references_are_references() {
+    let tmp = TempDir::new().unwrap();
+    let src = "package p\n\
+class Item(val name: String)\n\
+class Other { fun name(): String = \"\" }\n\
+class Box {\n\
+    fun handle(x: Int) {}\n\
+    fun unused() {}\n\
+    fun start(xs: List<Int>) { xs.forEach(this::handle) }\n\
+}\n\
+object Util { fun twice(x: Int) = x * 2 }\n\
+fun top(x: Int) = x\n\
+fun stored(x: Int) = x\n\
+fun inString() {}\n\
+fun orphan() {}\n\
+fun main() {\n\
+    val xs = listOf(1)\n\
+    xs.map(::top)\n\
+    xs.map(Util::twice)\n\
+    val g = ::stored\n\
+    println(\"inString\")\n\
+    val items = listOf(Item(\"a\")).sortedBy(Item::name)\n\
+    val k = Box::class\n\
+    Box().start(xs)\n\
+    println(g)\n\
+    println(items)\n\
+    println(k)\n\
+}\n";
+    write(tmp.path(), "main.kt", src.as_bytes());
+
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in ["p.top", "p.stored", "p.Util.twice", "p.Box.handle"] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} is referenced as a value, findings: {dead:?}"
+        );
+    }
+    for gone in ["p.Other.name", "p.inString", "p.orphan", "p.Box.unused"] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone} has no reference, findings: {dead:?}"
+        );
+    }
+
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .arg("-o")
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain).unwrap().matches("ref|").count(),
+        0
+    );
+    let refs = tmp.path().join("r.mmd");
+    cgg()
+        .args(["--reference-edges", "-o"])
+        .arg(&refs)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&refs).unwrap();
+    assert_eq!(g.matches("ref|").count(), 4, "{g}");
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------
