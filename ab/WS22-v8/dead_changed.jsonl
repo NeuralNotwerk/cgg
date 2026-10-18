@@ -1,0 +1,2 @@
+{"repo": "app-orleans-samples", "lang": "csharp", "qn": "TodoListPage.RemoveItem", "path": "/storage/cgg-test_repos/app-orleans-samples/orleans/JournaledTodoList/JournaledTodoList.WebApp/Components/Pages/TodoListPage.razor.cs", "line": 73, "old": "high", "new": null}
+{"repo": "smithy-protocol-tests", "lang": "java", "qn": "software.amazon.smithy.model.loader.Version.isDeprecated", "path": "/storage/cgg-test_repos/smithy-protocol-tests/smithy-model/src/main/java/software/amazon/smithy/model/loader/Version.java", "line": 220, "old": "high", "new": "medium"}

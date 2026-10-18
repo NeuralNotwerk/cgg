@@ -1,0 +1,1 @@
+{"repo": "smithy-protocol-tests", "lang": "java", "qn": "software.amazon.smithy.model.loader.Version.isDeprecated", "path": "/storage/cgg-test_repos/smithy-protocol-tests/smithy-model/src/main/java/software/amazon/smithy/model/loader/Version.java", "line": 220, "old": "high", "new": "medium"}
