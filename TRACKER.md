@@ -122,7 +122,7 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 |---|---|---|---|---|---|
 | WS19 | Confidence honesty: weak receiver intra-file, lone nested def, closure params, return-type map key, include-style copies | 1,2,3,4,9 | DONE (0287d4f) (agent, 2026-10-17) | | gaps 1,2 reproduced; 4 needs a fixture |
 | WS20 | Dead-code FPs: override markers, py async, unreachable regions, Rust cfg(test), gtest/libFuzzer, test-file arms | 5,6,11,15,21,23 | DONE (52e2c7a) | | 6 reproduced |
-| WS21 | Constructor + super/this/base delegation edges | 12,13 | PLANNED | | |
+| WS21 | Constructor + super/this/base delegation edges | 12,13 | DONE (4033f2a) | | |
 | WS22 | abstract tagging, JS/TS class-field arrows, ObjC C calls | 7,8,24 | PLANNED | | |
 | WS23 | Go receivers, JVM/.NET/C declared returns, JS/TS locals typing, Swift/Groovy overload sets | 10,26,28,16 | PLANNED | | 10 reproduced (no edge at all); after WS19 |
 | WS24 | Kotlin↔Java rules, C#/Swift registrars, JS/TS harness | 14,22,30 | PLANNED | | |

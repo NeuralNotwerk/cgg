@@ -1,0 +1,216 @@
+{
+ "cpp": {
+  "drop": {
+   "high": 1,
+   "medium": 1
+  },
+  "add": {
+   "medium": 1488,
+   "high": 155
+  },
+  "chg": {
+   "high->medium": 3
+  },
+  "fate": {
+   "now unresolved: candidates-in-other-files": 1,
+   "rebound to another target": 1
+  }
+ },
+ "csharp": {
+  "drop": {},
+  "add": {
+   "high": 4363,
+   "medium": 17228
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "fsharp": {
+  "drop": {
+   "high": 6,
+   "medium": 2
+  },
+  "add": {
+   "high": 4
+  },
+  "chg": {},
+  "fate": {
+   "rebound to another target": 4,
+   "now unresolved: candidates-in-other-files": 4
+  }
+ },
+ "go": {
+  "drop": {
+   "medium": 11
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "now unresolved: candidates-in-other-files": 11
+  }
+ },
+ "groovy": {
+  "drop": {
+   "high": 3
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "now unresolved: no-candidate-in-file": 1,
+   "now unresolved: candidates-in-other-files": 2
+  }
+ },
+ "java": {
+  "drop": {
+   "high": 15,
+   "medium": 4
+  },
+  "add": {
+   "high": 6799,
+   "medium": 6530
+  },
+  "chg": {},
+  "fate": {
+   "now unresolved: fanout-cap-exceeded": 8,
+   "rebound to another target": 5,
+   "now unresolved: candidates-in-other-files": 6
+  }
+ },
+ "javascript": {
+  "drop": {
+   "high": 38
+  },
+  "add": {
+   "medium": 278,
+   "high": 174
+  },
+  "chg": {
+   "high->medium": 1
+  },
+  "fate": {
+   "now unresolved: candidates-in-other-files": 4,
+   "now unresolved: fanout-cap-exceeded": 34
+  }
+ },
+ "kotlin": {
+  "drop": {
+   "high": 14
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "now unresolved: fanout-cap-exceeded": 14
+  }
+ },
+ "lua": {
+  "drop": {
+   "medium": 4
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "now unresolved: candidates-in-other-files": 4
+  }
+ },
+ "objc": {
+  "drop": {},
+  "add": {
+   "medium": 370,
+   "high": 492
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "php": {
+  "drop": {},
+  "add": {
+   "high": 57596,
+   "medium": 7013
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "powershell": {
+  "drop": {},
+  "add": {
+   "high": 1
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "python": {
+  "drop": {
+   "medium": 243,
+   "high": 3
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 246
+  }
+ },
+ "ruby": {
+  "drop": {},
+  "add": {
+   "high": 817,
+   "medium": 246
+  },
+  "chg": {
+   "high->medium": 2
+  },
+  "fate": {}
+ },
+ "rust": {
+  "drop": {
+   "high": 2
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "now unresolved: candidates-in-other-files": 1,
+   "now unresolved: fanout-cap-exceeded": 1
+  }
+ },
+ "scala": {
+  "drop": {
+   "high": 1
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 1
+  }
+ },
+ "solidity": {
+  "drop": {},
+  "add": {
+   "high": 67
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "swift": {
+  "drop": {},
+  "add": {
+   "medium": 3356,
+   "high": 5
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "typescript": {
+  "drop": {
+   "medium": 2,
+   "high": 1
+  },
+  "add": {
+   "medium": 1306,
+   "high": 71
+  },
+  "chg": {},
+  "fate": {
+   "now unresolved: not-in-imported-module": 2,
+   "rebound to another target": 1
+  }
+ }
+}

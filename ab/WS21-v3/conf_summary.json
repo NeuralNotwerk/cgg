@@ -1,0 +1,109 @@
+{
+ "cpp": {
+  "drop": {},
+  "add": {
+   "medium": 1487,
+   "high": 155
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "csharp": {
+  "drop": {},
+  "add": {
+   "high": 4363,
+   "medium": 17228
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "java": {
+  "drop": {},
+  "add": {
+   "high": 6799,
+   "medium": 6516
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "javascript": {
+  "drop": {},
+  "add": {
+   "medium": 277,
+   "high": 174
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "objc": {
+  "drop": {},
+  "add": {
+   "medium": 370,
+   "high": 492
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "php": {
+  "drop": {},
+  "add": {
+   "high": 57596,
+   "medium": 7013
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "powershell": {
+  "drop": {},
+  "add": {
+   "high": 1
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "python": {
+  "drop": {
+   "medium": 243
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 243
+  }
+ },
+ "ruby": {
+  "drop": {},
+  "add": {
+   "high": 817,
+   "medium": 246
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "solidity": {
+  "drop": {},
+  "add": {
+   "high": 67
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "swift": {
+  "drop": {},
+  "add": {
+   "medium": 3356,
+   "high": 5
+  },
+  "chg": {},
+  "fate": {}
+ },
+ "typescript": {
+  "drop": {},
+  "add": {
+   "medium": 1262,
+   "high": 71
+  },
+  "chg": {},
+  "fate": {}
+ }
+}
