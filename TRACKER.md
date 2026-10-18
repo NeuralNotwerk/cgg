@@ -125,7 +125,7 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 | WS21 | Constructor + super/this/base delegation edges | 12,13 | DONE (4033f2a) | | |
 | WS22 | abstract tagging, JS/TS class-field arrows, ObjC C calls | 7,8,24 | DONE (71a3611) | | |
 | WS23 | Go receivers, JVM/.NET/C declared returns, JS/TS locals typing, Swift/Groovy overload sets | 10,26,28,16 | DONE (50c0bb9) | | 10 reproduced (no edge at all); after WS19 |
-| WS24 | Kotlin↔Java rules, C#/Swift registrars, JS/TS harness | 14,22,30 | PLANNED | | |
+| WS24 | Kotlin↔Java rules, C#/Swift registrars, JS/TS harness | 14,22,30 | DONE (877b3fa) | | |
 | WS25 | stdlib head split, reflection screen, shebang token match, filename detection | 17,18,19,20 | PLANNED | | |
 | WS26 | Function values as references, per plugin | 25 | PLANNED | | one language per commit |
 | WS27 | Locals specs Go/C#/C/C++… | 27 | PLANNED | | watch perf |
@@ -140,3 +140,6 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 - Kotlin `val t = make()` / `make().work()` untyped; matrix 05 claim is wrong (fix in WS29 docs, or WS28).
 - JS CommonJS default-exported classes: inherited methods through `new X()` refused `not-in-imported-module` (7 sites).
 - graph_ab.py does not flag dead-code-run timeouts (seen on zig-zig in WS20).
+- (WS24) Cypress `*.cy.*` specs are labelled with the tree's globals harness (e.g. jest); needs per-file-pattern harness attribution.
+- (WS24) AspectJ advice (`@Before`/`@Around`) has no rule.
+- (WS24) 404 production callables reached only by unresolved by-name calls from JS/TS test callbacks are now medium dead findings (`name-matches-unresolved-site`); kept as honest.

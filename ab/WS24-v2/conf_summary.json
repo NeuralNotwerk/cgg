@@ -1,0 +1,60 @@
+{
+ "java": {
+  "drop": {
+   "low": 7113
+  },
+  "add": {},
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 7113
+  }
+ },
+ "javascript": {
+  "drop": {
+   "medium": 1410,
+   "high": 349
+  },
+  "add": {
+   "low": 33125,
+   "high": 27721,
+   "medium": 42590
+  },
+  "chg": {
+   "medium->high": 3
+  },
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 2,
+   "rebound to another target": 1757
+  }
+ },
+ "kotlin": {
+  "drop": {
+   "low": 65
+  },
+  "add": {
+   "low": 26
+  },
+  "chg": {},
+  "fate": {
+   "external/stdlib or still bound (same name, kept target)": 65
+  }
+ },
+ "typescript": {
+  "drop": {
+   "high": 292,
+   "medium": 502
+  },
+  "add": {
+   "medium": 108027,
+   "high": 158580,
+   "low": 99730
+  },
+  "chg": {
+   "medium->high": 71
+  },
+  "fate": {
+   "rebound to another target": 581,
+   "external/stdlib or still bound (same name, kept target)": 213
+  }
+ }
+}
