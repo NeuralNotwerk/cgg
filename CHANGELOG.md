@@ -188,6 +188,50 @@ otherwise change the default graph.
     the callable is a member of what the alias names (a class aliased by
     importing its nested type).
 
+- **Receivers whose type the source declares were left untyped (WS23).**
+  Four gaps, each made a call fan out by name (or bind nothing) where its
+  receiver's type was written down:
+  - *Go method receivers and same-package parameters* (`func (s *Server)
+    Zap() { s.zip() }`, `func f(q *Server)`, `r client`) were untyped: the
+    type-first parser read `q *Server` back to front. Go now has a
+    name-first reader for the receiver and every parameter; a predeclared
+    type, a type parameter or a composite type types nothing. A bare type
+    binds within the caller's package (directory), `high` when one
+    callable carries the method. A `:=` in an inner block, an `if`/`for`/
+    `switch` header or an anonymous function literal's own parameter hides
+    the parameter there. Embedded struct fields and embedded interfaces are
+    recorded as bases, so promoted methods resolve; a declared type that
+    declares no such method is read as written, as before.
+  - *Java, C#, Dart, Groovy, C, C++ and Objective-C declared return types
+    were never read* (the comment claiming Java/C# was wrong). The type in
+    front of the name (`public static Tool make()`, `const Other& other()`,
+    `+ (Tool *)make`) is now read, and types a receiver written as a bare
+    call (`make().work()`, `[F make].work`) and a local assigned from one
+    (`var t = make()`, `auto t = make()`, `def t = make()`), looked up where
+    that declaration is in scope. The type is the one every definition of
+    the name declares (the calling file's own first; never a name the file
+    imports); `void`, `Object`, an awaitable (`Task<T>`, `Future<T>`) or a
+    one-letter type parameter types nothing. Groovy's `def` local is a
+    guess (`medium`). The receiver-name heuristic that guesses from return
+    types does not run for these languages.
+  - *JS/TS locals were no typing source.* `const t = new Svc()`, `const t:
+    Svc = …` and `let`/`var` likewise now type `t` where that declaration
+    is the binding in scope (`FileFacts::locals`), never another
+    function's local of the name; a constructed `let`/`var` assigned
+    anywhere in its scope types nothing, and a constructor function
+    (`var A = function () {}` with `A.prototype.m`) is read as written.
+  - *Swift and Groovy typed overload lookups* bound the overload set's
+    last member for every call. Both now record a call's argument count
+    (Swift trailing closures count; a Groovy call with named arguments or
+    a spread has none) and join arity narrowing; a call with no count
+    reads the whole set at `medium`.
+  - A typed-owner lookup that lands on more than the fan-out cap of
+    same-named classes (a `Builder` nested in forty classes) is refused as
+    `fanout-cap-exceeded` in Java, C#, Dart, Groovy, Go, JS and TS, as
+    any other over-cap guess is. Copies of one class (declared in
+    same-named files, a sample duplicated per directory) first narrow to
+    the copy nearest the caller; a tie stays refused.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -285,6 +329,25 @@ WS22 (callable extraction; full corpus, 283 repositories, none excluded):
 - Under `--dead-code`, 240 Objective-C C functions leave the report (all
   `medium`), no finding becomes `high`, one `high` finding moves to
   `medium`, and one leaves the report through a new `medium` fan-out edge.
+
+WS23 (receiver typing; full corpus, 283 repositories, none excluded):
+
+- 20,957 edges move `medium` → `high`: Go 16,342, Java 2,136, TypeScript
+  937, C++ 450, Dart 426, JavaScript 314, Groovy 242, Swift 95, C# 15. 11
+  Groovy edges move `high` → `medium` (an overload set of two survivors
+  that used to bind one arbitrary member).
+- 19,181 edges are added (11,862 `high`: Go 8,007, Java 2,656, TypeScript
+  503, Dart 453, C++ 160): calls on a typed Go receiver or parameter, on a
+  call's declared result, and on a constructed or annotated JS/TS local.
+- 28,007 edges are removed (6 `high`, each a coincidental or wrong-package
+  guess replaced by the declared type's member): by-name fan-out decoys
+  now bound to the declared type (Go 11,987, Java 6,275, Groovy 3,775,
+  TypeScript 2,230, Swift 1,721, Dart 954), overloads the argument count
+  rules out, sites whose declared type is a builtin or outside the tree
+  (`new FileReader()`, a Go func-typed field) now unresolved, and calls
+  over the same-named-class cap (all 438 removed C# edges, mostly class
+  copies across samples).
+- No dead-code finding changes.
 
 ## [0.11.0] - 2026-10-16
 

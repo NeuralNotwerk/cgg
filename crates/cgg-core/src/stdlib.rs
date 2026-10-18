@@ -148,12 +148,58 @@ pub const CALLBACK_TYPE_CONSTRUCTORS: &[(&str, &str, bool)] = &[
     ("dart", "Function", false),
 ];
 
+/// Go's predeclared types: a parameter declared as one is no workspace
+/// type, whatever a package of the tree declares under that name.
+pub const GO_PREDECLARED_TYPES: &[&str] = &[
+    "any",
+    "bool",
+    "byte",
+    "comparable",
+    "complex64",
+    "complex128",
+    "error",
+    "float32",
+    "float64",
+    "int",
+    "int8",
+    "int16",
+    "int32",
+    "int64",
+    "rune",
+    "string",
+    "uint",
+    "uint8",
+    "uint16",
+    "uint32",
+    "uint64",
+    "uintptr",
+];
+
+/// Types a function returns when it is asynchronous: a call on the
+/// result reaches the awaitable itself, or (awaited) the type it wraps,
+/// so a declared `Task<Foo>` says nothing certain about the receiver.
+pub const AWAITABLE_TYPES: &[(&str, &[&str])] = &[
+    ("csharp", &["Task", "ValueTask", "IAsyncEnumerable"]),
+    ("dart", &["Future", "FutureOr", "Stream"]),
+    ("typescript", &["Promise", "PromiseLike"]),
+    ("javascript", &["Promise"]),
+    ("cpp", &["future", "shared_future", "task"]),
+    ("java", &["CompletableFuture", "CompletionStage", "Future"]),
+];
+
+/// Whether `name` is one of `lang`'s [`AWAITABLE_TYPES`].
+pub fn is_awaitable_type(lang: &str, name: &str) -> bool {
+    lang_table(AWAITABLE_TYPES, lang).contains(&name)
+}
+
 /// Types every value has: a parameter declared as one says nothing about
 /// which class a method called on it belongs to.
 pub const TOP_TYPES: &[(&str, &[&str])] = &[
     ("scala", &["Any", "AnyRef", "AnyVal"]),
     ("csharp", &["Object", "Dynamic"]),
     ("dart", &["Object", "Dynamic"]),
+    ("java", &["Object"]),
+    ("groovy", &["Object"]),
 ];
 
 /// Whether `name` is one of `lang`'s [`TOP_TYPES`].

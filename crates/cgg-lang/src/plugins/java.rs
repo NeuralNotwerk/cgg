@@ -512,6 +512,20 @@ impl<'a> JavaWalker<'a> {
                     scope_byte: node.start_byte() as u32,
                 });
             }
+            return;
+        }
+        // `var t = make()`: the bare call's result, recorded as `make()`
+        // for type propagation to read the callee's declared return type.
+        if let Some(value) = var_node.child_by_field_name("value")
+            && value.kind() == "method_invocation"
+            && value.child_by_field_name("object").is_none()
+            && let Some(callee) = value.child_by_field_name("name")
+        {
+            self.facts.local_types.push(cgg_core::LocalType {
+                var_name,
+                type_name: format!("{}()", self.text(callee)),
+                scope_byte: node.start_byte() as u32,
+            });
         }
     }
 }

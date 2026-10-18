@@ -2560,6 +2560,25 @@ pub fn resolve(
                     None if lang == "cpp"
                         || (lang == "zig"
                             && refused_module.is_none()
+                            && external.is_none())
+                        // JS/TS (WS23): a local constructed from a
+                        // constructor function (`var A = function () {}`,
+                        // its methods assigned to `A.prototype`) has a type
+                        // no class declares members of; it is read as
+                        // written. A type the tree does not define at all
+                        // (a builtin `FileReader`) stands.
+                        || (matches!(lang.as_str(), "javascript" | "typescript")
+                            && refused_module.is_none()
+                            && external.is_none()
+                            && by_simple
+                                .get(&(lang.clone(), r.receiver_hint.clone()))
+                                .is_some_and(|c| !c.is_empty()))
+                        // Go (WS23): a declared receiver type that declares
+                        // no such method may promote it from an embedded
+                        // type the base chain does not reach (another
+                        // package's, or outside the tree).
+                        || (lang == "go"
+                            && refused_module.is_none()
                             && external.is_none()) =>
                     {
                         facts
@@ -2653,7 +2672,12 @@ pub fn resolve(
                 // count picks among it.
                 let lookup_len = resolved.as_ref().map_or(0, Vec::len);
                 let resolved = resolved.map(|cids| {
-                    let cids = if r.arity.is_some()
+                    // Swift and Groovy (WS23) read the whole set even when
+                    // the count is unknown (named arguments, a spread):
+                    // every overload is a candidate then, never the one
+                    // the index happened to keep.
+                    let cids = if (r.arity.is_some()
+                        || matches!(lang.as_str(), "swift" | "groovy"))
                         && crate::type_hints::OVERLOAD_ARITY_LANGS
                             .contains(&lang.as_str())
                     {
@@ -5095,6 +5119,29 @@ fn narrow_owner_paths(
         .collect()
 }
 
+/// Languages whose typed-owner lookups are capped when they land on
+/// several same-named classes (see the step 4 caller).
+const SAME_NAME_OWNER_CAP_LANGS: &[&str] = &[
+    "java",
+    "csharp",
+    "dart",
+    "groovy",
+    "go",
+    "javascript",
+    "typescript",
+];
+
+/// How many distinct owner paths (classes) the candidates are declared on.
+fn distinct_owner_paths(graph: &Graph, cids: &[CallableId]) -> usize {
+    cids.iter()
+        .filter_map(|c| graph.callables.get(c))
+        .filter_map(|n| {
+            crate::names::split_last_segment(&n.qualified_name).map(|(o, _)| o)
+        })
+        .collect::<std::collections::BTreeSet<&str>>()
+        .len()
+}
+
 fn narrow_specializations(
     graph: &Graph,
     cids: &[CallableId],
@@ -6910,11 +6957,87 @@ fn try_resolve_ref(
                             return found;
                         }
                         let cids = narrow_owner_paths(graph, lang, cids, rh, caller_qn);
+                        // Go (WS23): a type written without a package is the
+                        // caller's package's — its directory. A same-named
+                        // type of another package is never it; only when the
+                        // directory declares none (a dot-import) does the
+                        // name reach further.
+                        let mut go_same_pkg = false;
+                        let cids = if lang == "go" && !rh.contains('.') {
+                            let dir_of = |f: FileId| {
+                                graph.files.get(&f).and_then(|r| r.path.parent())
+                            };
+                            let here = dir_of(caller_file);
+                            let same: Vec<CallableId> = cids
+                                .iter()
+                                .copied()
+                                .filter(|c| {
+                                    graph
+                                        .callables
+                                        .get(c)
+                                        .is_some_and(|n| dir_of(n.file) == here)
+                                })
+                                .collect();
+                            go_same_pkg = !same.is_empty();
+                            if same.is_empty() { cids } else { same }
+                        } else {
+                            cids
+                        };
+                        // Several distinct classes sharing the receiver type's
+                        // bare name (a `Builder` nested in each of forty
+                        // classes) are a guess among them, bounded by the
+                        // cap like any other fan-out (WS23) — in the
+                        // languages whose receivers WS23 types.
+                        // Copies of one class narrow to the copy nearest the
+                        // caller first (`nearest_class_copies`, as Java/C#
+                        // bare calls do); only a tie, or a nearest group
+                        // still over the cap, is refused.
+                        let cids = if SAME_NAME_OWNER_CAP_LANGS.contains(&lang)
+                            && cids.len() > fanout_cap
+                            && !one_method(graph, &cids, fanout_cap)
+                            && distinct_owner_paths(graph, &cids) > 1
+                        {
+                            // Copies of one class (a sample duplicated per
+                            // directory) are declared in same-named files;
+                            // distinct classes sharing a bare name (each
+                            // outer class's own `Builder`) are not, and the
+                            // nearest of those is no more the callee than any
+                            // other.
+                            let copies = cids
+                                .iter()
+                                .filter_map(|c| graph.callables.get(c))
+                                .filter_map(|n| graph.files.get(&n.file))
+                                .filter_map(|f| f.path.file_name())
+                                .collect::<std::collections::BTreeSet<_>>()
+                                .len()
+                                == 1;
+                            match copies
+                                .then(|| nearest_class_copies(graph, &cids, caller_file))
+                                .flatten()
+                            {
+                                Some(near)
+                                    if near.len() <= fanout_cap
+                                        || one_method(graph, &near, fanout_cap) =>
+                                {
+                                    near
+                                }
+                                _ => {
+                                    *capped = cids.len() as u32;
+                                    return None;
+                                }
+                            }
+                        } else {
+                            cids
+                        };
                         let found =
                             narrow_specializations(graph, &cids, rh, fanout_cap, capped);
-                        *module_certain = found
-                            .as_deref()
-                            .is_some_and(|f| cert.owner(f) && cert.anchored(rh, f));
+                        // A package declares a type once: one method of it,
+                        // carried by one callable (no build-tag twin), is
+                        // the callee whatever other packages declare.
+                        *module_certain = found.as_deref().is_some_and(|f| {
+                            cert.owner(f) && cert.anchored(rh, f)
+                                || go_same_pkg && f.len() == 1 && cert.path(f)
+                        });
                         return found;
                     }
                 }

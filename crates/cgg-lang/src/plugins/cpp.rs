@@ -559,10 +559,32 @@ impl<'a> CppWalker<'a> {
             return;
         };
         let (ty, pointee) = (nominal_type(raw), pointee_type(raw));
+        let scope_byte = node.start_byte() as u32;
         if ty.is_none() && pointee.is_none() {
+            // `auto t = make();`: the bare call's result, recorded as
+            // `make()` for type propagation to read the callee's declared
+            // return type (WS23).
+            if raw.trim() == "auto" {
+                for declarator in declarator_fields(node) {
+                    let Some(var_name) = variable_name(declarator, self.source) else {
+                        continue;
+                    };
+                    if let Some(f) = declarator
+                        .child_by_field_name("value")
+                        .filter(|v| v.kind() == "call_expression")
+                        .and_then(|v| v.child_by_field_name("function"))
+                        .filter(|f| f.kind() == "identifier")
+                    {
+                        self.facts.local_types.push(cgg_core::LocalType {
+                            var_name,
+                            type_name: format!("{}()", self.text(f)),
+                            scope_byte,
+                        });
+                    }
+                }
+            }
             return;
         }
-        let scope_byte = node.start_byte() as u32;
         for declarator in declarator_fields(node) {
             let Some(var_name) = variable_name(declarator, self.source) else {
                 continue;

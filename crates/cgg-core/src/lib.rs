@@ -53,9 +53,9 @@ pub use facts::{
     ClosureArg, DEREF_SUFFIX, DYN_MODULE_LOADERS, DefRecord, DefVariant, DynUse,
     ExportRecord, FieldType, FileFacts, FnMacro, ImportRecord, LocalBinding, LocalType,
     MacroAlias, MacroInvocation, MarkupBinding, MemberAlias, MemberPtrTake, NameMention,
-    PARTIAL_DECLARATION, RefRecord, STRING_REF_HINT, ScopedType, TestRole, TypeSpan,
-    UnreachableRegion, VALUE_REF_HINT, Vis, first_template_arg, last_scope_segment,
-    looks_like_type_name, template_pointee,
+    PARTIAL_DECLARATION, REASSIGNED_LOCAL, RefRecord, STRING_REF_HINT, ScopedType,
+    TestRole, TypeSpan, UnreachableRegion, VALUE_REF_HINT, Vis, first_template_arg,
+    last_scope_segment, looks_like_type_name, template_pointee,
 };
 pub use frameworks::{
     EntryShape, FRAMEWORK_ENTRY_DISCLAIMER, FRAMEWORK_ENTRY_SENTINEL, FrameworkCoverage,

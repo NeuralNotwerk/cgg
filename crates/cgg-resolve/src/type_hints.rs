@@ -38,6 +38,8 @@ type ByLowerRet<'a> = HashMap<&'a str, HashMap<String, Vec<(&'a str, &'a str)>>>
 #[derive(Debug, Default)]
 pub struct ReturnTypeIndex<'a> {
     by_lower_ret: ByLowerRet<'a>,
+    /// `(language, function)` → the return type its definitions agree on.
+    by_name: HashMap<(&'a str, &'a str), &'a str>,
     empty: bool,
 }
 
@@ -65,7 +67,13 @@ impl<'a> ReturnTypeIndex<'a> {
         Self {
             empty: return_types.is_empty(),
             by_lower_ret,
+            by_name: return_types.clone(),
         }
+    }
+
+    /// The return type every definition of `name` in `lang` declares.
+    fn get(&self, lang: &str, name: &str) -> Option<&'a str> {
+        self.by_name.get(&(lang, name)).copied()
     }
 
     fn is_empty(&self) -> bool {
@@ -460,14 +468,17 @@ pub fn propagate_types_with_fields(
     // (WS14b), so they are looked up where they are in scope, as Rust's.
     let zig = facts.language == "zig";
     let kotlin = facts.language == "kotlin";
+    let js = matches!(facts.language.as_str(), "javascript" | "typescript");
     let param_store: Vec<(u32, String, String)> = facts
         .definitions
         .iter()
         .flat_map(|d| {
-            let mut v = collect_param_types(d, &facts.language);
-            if go {
-                v.extend(go_package_param_types(d));
-            }
+            // Go is name-first; it has its own reader.
+            let mut v = if go {
+                go_param_types(d)
+            } else {
+                collect_param_types(d, &facts.language)
+            };
             if zig {
                 for (_, _, ty) in &mut v {
                     *ty = zig_peel_type(ty).to_string();
@@ -498,6 +509,14 @@ pub fn propagate_types_with_fields(
     // plugin except C++ was written against (see Strategy 3 below).
     let mut local_type_map: HashMap<&str, &str> = HashMap::new();
     for lt in &facts.local_types {
+        // A bare call's result (`make()`) is read where it is in scope,
+        // by `lookup_call_local`.
+        if call_result_callee(&facts.language, &lt.type_name).is_some()
+            && CALL_RESULT_LANGS.contains(&facts.language.as_str())
+            || js
+        {
+            continue;
+        }
         if lt.var_name.starts_with("self.") {
             self_field_map
                 .insert((lt.scope_byte, lt.var_name.as_str()), lt.type_name.as_str());
@@ -597,6 +616,10 @@ pub fn propagate_types_with_fields(
     // scope (see `RefRecord::weak_receiver_type`): indices into `rewrites`'
     // reference positions.
     let mut weak: std::collections::HashSet<usize> = std::collections::HashSet::new();
+    // JS/TS and Go rewrites (WS23) whose typed lookup may fall back to the
+    // receiver as written when it finds nothing (`untyped_receivers`): a
+    // JS local's construction, a Go declared parameter or receiver.
+    let mut fallback: std::collections::HashSet<usize> = std::collections::HashSet::new();
     // The calling file's own functions' return types, built on first use
     // by Strategy 4 (see there).
     type OwnReturns<'f> = (HashMap<&'f str, Option<Option<&'f str>>>, bool);
@@ -610,6 +633,62 @@ pub fn propagate_types_with_fields(
     // its class (WS19): see [`kotlin_property_at`].
     let kotlin_fields_cell: std::cell::OnceCell<Vec<KotlinProperty>> =
         std::cell::OnceCell::new();
+    let own_returns_of = || {
+        own_returns.get_or_init(|| {
+            let mut m: HashMap<&str, Option<Option<&str>>> = HashMap::new();
+            for d in &facts.definitions {
+                agree(
+                    m.entry(d.simple_name.as_str()).or_default(),
+                    declared_return(&facts.language, d),
+                );
+            }
+            let any = m.values().any(|v| v.flatten().is_some());
+            (m, any)
+        })
+    };
+    // What a bare call `name(…)` returns (WS23): the return type the
+    // calling file's own definitions of `name` agree on, or, when the file
+    // defines none and imports no such name, the one every definition of
+    // it in the language declares. A declaration, agreed on, so not a
+    // guess.
+    // A name the file imports (a Java `import static a.B.status;`, a C#
+    // `using static`) is that import's, which may be outside the tree.
+    let imported_name = |name: &str| {
+        facts.imports.iter().any(|imp| {
+            imp.alias == name || imp.path.rsplit(['.', ':', '/']).next() == Some(name)
+        })
+    };
+    let call_return = |name: &str| -> Option<&str> {
+        match own_returns_of().0.get(name) {
+            Some(v) => v.flatten(),
+            None if imported_name(name) => None,
+            None => return_types.get(&facts.language, name),
+        }
+    };
+    let call_results = CALL_RESULT_LANGS.contains(&facts.language.as_str());
+    // Names worth a scoped lookup: a local recorded as a call's result, a
+    // JS/TS local recorded with a type.
+    let call_local_names: std::collections::HashSet<&str> = if call_results {
+        facts
+            .local_types
+            .iter()
+            .filter(|lt| call_result_callee(&facts.language, &lt.type_name).is_some())
+            .map(|lt| lt.var_name.as_str())
+            .collect()
+    } else {
+        Default::default()
+    };
+    let js_local_names: std::collections::HashSet<&str> = if js {
+        facts
+            .local_types
+            .iter()
+            .map(|lt| lt.var_name.as_str())
+            .collect()
+    } else {
+        Default::default()
+    };
+    let local_index: std::cell::OnceCell<LocalIndex<'_>> = std::cell::OnceCell::new();
+    let local_index_of = || local_index.get_or_init(|| LocalIndex::build(facts));
     for (i, rref) in facts.references.iter().enumerate() {
         let rh = rref.receiver_hint.as_str();
         // A cast or construction receiver is already its type.
@@ -627,6 +706,32 @@ pub fn propagate_types_with_fields(
             // is a path, which a `using super = Base;` may type.
             || (facts.language == "cpp" && rh == "super" && !rref.path_receiver)
         {
+            continue;
+        }
+
+        // `make().work()`, `[F make].work`: the receiver is a bare call's
+        // result, typed by what that call is declared to return. A call
+        // whose return type is unknown is left as written.
+        if call_results && let Some(callee) = call_result_callee(&facts.language, rh) {
+            if let Some(ty) = call_return(callee) {
+                rewrites.push((i, ty.to_string()));
+            }
+            continue;
+        }
+        // `var t = make(); t.work()`: a local the plugin recorded as a bare
+        // call's result (`make()`) has that call's declared return type.
+        // Groovy's `def` local may be reassigned a value of another type,
+        // so there the reading is a guess.
+        if call_results
+            && call_local_names.contains(rh)
+            && let Some(callee) =
+                lookup_call_local(facts, local_index_of(), rref.site_byte, rh)
+            && let Some(ty) = call_return(callee)
+        {
+            if facts.language == "groovy" {
+                weak.insert(i);
+            }
+            rewrites.push((i, ty.to_string()));
             continue;
         }
 
@@ -752,7 +857,24 @@ pub fn propagate_types_with_fields(
             && !rust_bindings
                 .as_ref()
                 .is_some_and(|b| b.shadowed_since(rh, enc.start_byte, rref.site_byte))
+            // Go (WS23): a declaration in an inner block, or a function
+            // literal's own parameter, hides the parameter there; the
+            // plugin records it as a local, ended where its block ends.
+            && !(go
+                && rust_lets
+                    .visible_at(
+                        rh,
+                        rref.site_byte,
+                        Some((enc.start_byte, enc.end_byte)),
+                    )
+                    .is_some_and(|(at, ty)| at > enc.start_byte && !ty.is_empty()))
         {
+            // A Go type that declares no such method may promote it from an
+            // embedded type of another package, which the base chain
+            // cannot always follow: the receiver is then read as written.
+            if go {
+                fallback.insert(i);
+            }
             rewrites.push((i, ty.to_string()));
             continue;
         }
@@ -873,6 +995,18 @@ pub fn propagate_types_with_fields(
                         .inspect(|_| scoped_reading = true)
                 })
                 .or_else(|| local_type_map.get(rh).copied())
+        } else if js {
+            // JS/TS (WS23): the declaration in scope at the site, by the
+            // plugin's scope-spanned bindings — never another function's
+            // local of the name.
+            js_local_names
+                .contains(rh)
+                .then(|| js_local_type(facts, local_index_of(), rref.site_byte, rh))
+                .flatten()
+                .inspect(|_| {
+                    scoped_reading = true;
+                    fallback.insert(i);
+                })
         } else {
             local_type_map.get(rh).copied()
         };
@@ -905,18 +1039,13 @@ pub fn propagate_types_with_fields(
         // return type, or untyped when it declares none or its
         // definitions disagree); only a name it does not define is read
         // from the language's run-wide map.
-        let (own, own_has_returns) = own_returns.get_or_init(|| {
-            let mut m: HashMap<&str, Option<Option<&str>>> = HashMap::new();
-            for d in &facts.definitions {
-                agree(
-                    m.entry(d.simple_name.as_str()).or_default(),
-                    declared_return(&facts.language, d),
-                );
-            }
-            let any = m.values().any(|v| v.flatten().is_some());
-            (m, any)
-        });
-        if !return_types.is_empty() || *own_has_returns {
+        let (own, own_has_returns) = own_returns_of();
+        // Not for the type-first languages (WS23): their call results are
+        // typed from the call itself above, and a receiver merely named
+        // like a type some called function returns (`fileSystem` beside a
+        // `getFileSystem()` returning the JDK's `FileSystem`) was measured
+        // to mistype fields and parameters.
+        if (!return_types.is_empty() || *own_has_returns) && !call_results {
             let _s4 = cgg_core::profile::span("types::strategy4");
             cgg_core::profile::count(t.s4_entered, 1);
             // Check if there's a ref earlier in this file that calls
@@ -1041,7 +1170,7 @@ pub fn propagate_types_with_fields(
         } else {
             ty
         };
-        if matches!(facts.language.as_str(), "cpp" | "zig")
+        if (matches!(facts.language.as_str(), "cpp" | "zig") || fallback.contains(&i))
             && facts.references[i].receiver_hint != ty
         {
             let r = &facts.references[i];
@@ -1050,6 +1179,16 @@ pub fn propagate_types_with_fields(
                 r.name.clone(),
                 r.receiver_hint.clone(),
             ));
+        }
+        // A Go receiver typed from a declaration (a parameter, the method's
+        // receiver) as an unexported type (`*store`) names that type: the
+        // resolver reads a lowercase receiver as a variable otherwise.
+        if go
+            && !weak.contains(&i)
+            && ty.starts_with(char::is_lowercase)
+            && !ty.contains('.')
+        {
+            facts.references[i].typed_receiver = true;
         }
         facts.references[i].weak_receiver_type = weak.contains(&i);
         facts.references[i].receiver_hint = ty;
@@ -1682,30 +1821,70 @@ fn collect_param_types(def: &DefRecord, lang: &str) -> Vec<(u32, String, String)
     out
 }
 
-/// Go parameters whose type is a package-qualified name — `t *util.T`,
-/// `a, b jobs.Runner` — as `(start, name, "util.T")`. The qualifier is
-/// kept: the resolver follows it through the file's imports to the one
+/// Go's receiver and parameters with a named type, as `(start, name,
+/// type)`: the receiver of `func (s *Server) Handle(…)` (`s` → `Server`),
+/// a same-package type written bare (`q *Server`, `r client`), and a
+/// package-qualified one (`t *util.T`, `a, b jobs.Runner`). A qualifier
+/// is kept: the resolver follows it through the file's imports to the one
 /// package it names (`modules`), where the bare `T` would match every
 /// type of that name in the tree. Go writes the name first, which the
-/// generic type-first parser never read, so these are the only Go
-/// parameters typed.
-fn go_package_param_types(def: &DefRecord) -> Vec<(u32, String, String)> {
+/// generic type-first parser reads back to front (`q *Server` as a type
+/// `q`), so this is Go's only parameter reader. A predeclared type
+/// (`int`, `error`, [`cgg_core::stdlib::GO_PREDECLARED_TYPES`]), one of
+/// the function's own type parameters, and any composite type (slice,
+/// map, channel, function, interface literal) type nothing.
+fn go_param_types(def: &DefRecord) -> Vec<(u32, String, String)> {
     let mut out = Vec::new();
-    // A method's receiver list (`func (s *Server) Handle(…)`) comes
-    // first; the parameters are the list after the name.
     let sig = def.signature_hint.trim();
     let sig = sig.strip_prefix("func").map_or(sig, str::trim_start);
+    // A method's receiver list (`func (s *Server) Handle(…)`) comes
+    // first; the parameters are the list after the name.
+    // `func Map[T any, U Shape](…)` and `func (b *Box[T]) Get(…)`: `T`
+    // and `U` are type parameters.
+    let bracket_words = |s: &str| -> Vec<String> {
+        match (s.find('['), s.find('(')) {
+            (Some(open), paren) if paren.is_none_or(|p| open < p) => {
+                let end = paren.unwrap_or(s.len());
+                let close = s[open..].find(']').map_or(end, |c| open + c);
+                param_pieces(&s[open + 1..close], false)
+                    .into_iter()
+                    .filter_map(|p| p.split_whitespace().next())
+                    .map(str::to_string)
+                    .collect()
+            }
+            _ => Vec::new(),
+        }
+    };
+    let mut type_params: Vec<String> = Vec::new();
     let sig = match sig.starts_with('(') {
         true => match matching_paren(sig.as_bytes(), 0) {
-            Some(close) => &sig[close + 1..],
+            Some(close) => {
+                type_params.extend(bracket_words(&sig[1..close]));
+                go_typed_names(&sig[1..close], &[], def.start_byte, &mut out);
+                &sig[close + 1..]
+            }
             None => return out,
         },
         false => sig,
     };
+    type_params.extend(bracket_words(sig));
+    let type_params: Vec<&str> = type_params.iter().map(String::as_str).collect();
     let Some(params) = param_list(sig) else {
         return out;
     };
-    // Names declared without a type take the next one's (`a, b T`).
+    go_typed_names(params, &type_params, def.start_byte, &mut out);
+    out
+}
+
+/// The `(start, name, type)` of each parameter in one Go parameter list
+/// (see [`go_param_types`]). Names declared without a type take the next
+/// one's (`a, b T`).
+fn go_typed_names(
+    params: &str,
+    type_params: &[&str],
+    start: u32,
+    out: &mut Vec<(u32, String, String)>,
+) {
     let mut pending: Vec<&str> = Vec::new();
     for piece in param_pieces(params, false) {
         let words = param_words(piece.trim());
@@ -1713,16 +1892,29 @@ fn go_package_param_types(def: &DefRecord) -> Vec<(u32, String, String)> {
             [name] if is_plain_ident(name) => pending.push(name),
             [name, ty] if is_plain_ident(name) => {
                 let ty = ty.trim_start_matches('*');
+                // A generic instantiation (`Box[T]`) is its type.
                 let ty = ty.split('[').next().unwrap_or(ty);
-                let qualified = ty.split_once('.').is_some_and(|(pkg, t)| {
-                    is_plain_ident(pkg)
-                        && pkg.starts_with(|c: char| c.is_lowercase())
-                        && is_plain_ident(t)
-                        && t.starts_with(char::is_uppercase)
-                });
-                if qualified {
+                let named = match ty.split_once('.') {
+                    Some((pkg, t)) => {
+                        is_plain_ident(pkg)
+                            && pkg.starts_with(|c: char| c.is_lowercase())
+                            && is_plain_ident(t)
+                            && t.starts_with(char::is_uppercase)
+                    }
+                    None => {
+                        is_plain_ident(ty)
+                            // `map[K]V`, `func(…)`, `chan T`, `struct{…}`.
+                            && !matches!(ty, "map" | "func" | "chan" | "struct" | "interface")
+                            && !cgg_core::stdlib::GO_PREDECLARED_TYPES.contains(&ty)
+                            && !type_params.contains(&ty)
+                    }
+                };
+                if named {
                     for n in pending.drain(..).chain(std::iter::once(*name)) {
-                        out.push((def.start_byte, n.to_string(), ty.to_string()));
+                        // `_` names no variable.
+                        if n != "_" {
+                            out.push((start, n.to_string(), ty.to_string()));
+                        }
                     }
                 }
                 pending.clear();
@@ -1730,7 +1922,6 @@ fn go_package_param_types(def: &DefRecord) -> Vec<(u32, String, String)> {
             _ => pending.clear(),
         }
     }
-    out
 }
 
 /// The text inside a signature's parameter list: the first parenthesised
@@ -1744,6 +1935,12 @@ fn go_package_param_types(def: &DefRecord) -> Vec<(u32, String, String)> {
 /// recovered the parameters behind it. A list that never closes (a
 /// truncated signature) runs to the last `)`, as it did.
 fn param_list(sig: &str) -> Option<&str> {
+    param_list_span(sig).map(|(open, end)| &sig[open + 1..end])
+}
+
+/// The byte positions of [`param_list`]'s opening parenthesis and of its
+/// end (the closing parenthesis).
+fn param_list_span(sig: &str) -> Option<(usize, usize)> {
     let bytes = sig.as_bytes();
     let mut depth = 0u32; // `[` / `{` nesting
     let mut i = 0usize;
@@ -1760,7 +1957,7 @@ fn param_list(sig: &str) -> Option<&str> {
                 let close = matching_paren(bytes, i);
                 if !is_modifier_args(&sig[..i]) {
                     let end = close.or_else(|| sig.rfind(')').filter(|&c| c > i))?;
-                    return Some(&sig[i + 1..end]);
+                    return Some((i, end));
                 }
                 match close {
                     Some(c) => i = c,
@@ -1776,10 +1973,11 @@ fn param_list(sig: &str) -> Option<&str> {
 
 /// Languages that overload by parameter count and whose plugins record a
 /// call's argument count ([`cgg_core::RefRecord::arity`]).
-/// C# and Groovy record the count for constructions and constructor
-/// delegation only.
+/// C# records the count for constructions and constructor delegation
+/// only; Groovy (WS23) for method calls too, except one passing named
+/// arguments or a spread.
 pub(crate) const OVERLOAD_ARITY_LANGS: &[&str] =
-    &["java", "scala", "cpp", "csharp", "groovy"];
+    &["java", "scala", "cpp", "csharp", "groovy", "swift"];
 
 /// Whether a callable declared with signature `sig` can take `arity`
 /// positional arguments: `Some(false)` only when its parameter list is
@@ -2781,11 +2979,219 @@ impl<'a> RustBindings<'a> {
     }
 }
 
+/// A file's local declarations and scope-spanned bindings by name, for
+/// the WS23 scoped lookups (built once per file, on first use).
+struct LocalIndex<'a> {
+    types: HashMap<&'a str, Vec<&'a cgg_core::LocalType>>,
+    binds: HashMap<&'a str, Vec<&'a cgg_core::LocalBinding>>,
+}
+
+impl<'a> LocalIndex<'a> {
+    fn build(facts: &'a FileFacts) -> Self {
+        let mut types: HashMap<&'a str, Vec<&'a cgg_core::LocalType>> = HashMap::new();
+        for lt in &facts.local_types {
+            types.entry(lt.var_name.as_str()).or_default().push(lt);
+        }
+        let mut binds: HashMap<&'a str, Vec<&'a cgg_core::LocalBinding>> = HashMap::new();
+        for b in &facts.locals {
+            binds.entry(b.name.as_str()).or_default().push(b);
+        }
+        Self { types, binds }
+    }
+
+    fn types(&self, name: &str) -> &[&'a cgg_core::LocalType] {
+        self.types.get(name).map_or(&[], Vec::as_slice)
+    }
+
+    fn binds(&self, name: &str) -> &[&'a cgg_core::LocalBinding] {
+        self.binds.get(name).map_or(&[], Vec::as_slice)
+    }
+}
+
+/// The type of the JS/TS local `name` at `site` (WS23): the latest
+/// declaration of it before the site that the plugin's scope-spanned
+/// [`FileFacts::locals`] say is the binding in scope there, read from its
+/// annotation (`const t: Svc`) or its construction (`const t = new
+/// Svc()`). A constructed `let`/`var` assigned anywhere in its scope types
+/// nothing; neither does a type that is not one plain class name (an
+/// array, a union of several types, a function or object type, a
+/// qualified name), nor a file without recorded bindings (minified).
+fn js_local_type<'a>(
+    facts: &'a FileFacts,
+    ix: &LocalIndex<'a>,
+    site: u32,
+    name: &str,
+) -> Option<&'a str> {
+    let mut decls: Vec<&'a cgg_core::LocalType> = ix
+        .types(name)
+        .iter()
+        .copied()
+        .filter(|lt| lt.scope_byte <= site && lt.type_name != cgg_core::REASSIGNED_LOCAL)
+        .collect();
+    if decls.is_empty() {
+        return None;
+    }
+    decls.sort_by_key(|lt| std::cmp::Reverse(lt.scope_byte));
+    let (decl, span) = decls.into_iter().find_map(|lt| {
+        visible_binding_span(ix, name, lt.scope_byte, site).map(|span| (lt, span))
+    })?;
+    let reassigned = ix.types(name).iter().any(|lt| {
+        lt.type_name == cgg_core::REASSIGNED_LOCAL
+            && span.0 <= lt.scope_byte
+            && lt.scope_byte < span.1
+    });
+    if reassigned {
+        return None;
+    }
+    let ty = cgg_core::declared_type(&facts.language, &decl.type_name)?;
+    let ty = ty.split('<').next().unwrap_or(ty).trim();
+    (is_plain_ident(ty) && ty.starts_with(char::is_uppercase) && !is_primitive(ty))
+        .then_some(ty)
+}
+
+/// The scope span of the binding of `name` in scope at `site`, when it is
+/// the declaration starting at `decl_at` (see [`local_decl_visible`]).
+/// `None` when another binding is the one in scope, or when the file
+/// records no binding of `name`.
+fn visible_binding_span(
+    ix: &LocalIndex<'_>,
+    name: &str,
+    decl_at: u32,
+    site: u32,
+) -> Option<(u32, u32)> {
+    let mut visible: Option<&cgg_core::LocalBinding> = None;
+    let mut first_after: Option<u32> = None;
+    for &b in ix.binds(name) {
+        if b.start_byte <= site
+            && site < b.end_byte
+            && b.decl_byte <= site
+            && visible.is_none_or(|v| b.decl_byte > v.decl_byte)
+        {
+            visible = Some(b);
+        }
+        if b.decl_byte >= decl_at {
+            first_after = Some(first_after.map_or(b.decl_byte, |v| v.min(b.decl_byte)));
+        }
+    }
+    let v = visible?;
+    (Some(v.decl_byte) == first_after).then_some((v.start_byte, v.end_byte))
+}
+
+/// Languages whose bare call results type a receiver (WS23): the call
+/// as a receiver (`make().work()`) and a local the plugin recorded as a
+/// call's result (`var t = make()`, type `make()`).
+const CALL_RESULT_LANGS: &[&str] =
+    &["java", "csharp", "dart", "groovy", "c", "cpp", "objc"];
+
+/// The function a receiver written as a bare call names: `make()`,
+/// `Make(a, b)` → `make`/`Make`; ObjC `[F make]` → `make`. `None` for
+/// anything else (a member call `a.make()`, a construction).
+fn call_result_callee<'a>(lang: &str, rh: &'a str) -> Option<&'a str> {
+    if lang == "objc" {
+        let inner = rh.strip_prefix('[')?.strip_suffix(']')?;
+        let mut words = inner.split_whitespace();
+        let (_recv, sel) = (words.next()?, words.next()?);
+        return (words.next().is_none() && is_plain_ident(sel)).then_some(sel);
+    }
+    if !rh.ends_with(')') {
+        return None;
+    }
+    let open = rh.find('(')?;
+    let name = &rh[..open];
+    (is_plain_ident(name) && matching_paren(rh.as_bytes(), open) == Some(rh.len() - 1))
+        .then_some(name)
+}
+
+/// The callee of the call-result local ([`CALL_RESULT_LANGS`]) `name`
+/// that is in scope at `site_byte`: the latest such declaration before the
+/// site in the calling function, else at the file's top level. A later
+/// declaration of the name with a written type hides it.
+fn lookup_call_local<'a>(
+    facts: &'a FileFacts,
+    ix: &LocalIndex<'a>,
+    site_byte: u32,
+    name: &str,
+) -> Option<&'a str> {
+    let enclosing = enclosing_def(facts, site_byte);
+    let in_enclosing =
+        |b: u32| enclosing.is_some_and(|d| d.start_byte <= b && b < d.end_byte);
+    // The calling function's declarations before the site, latest first,
+    // then the file's top-level ones: the first whose binding is the one
+    // in scope (an inner block's that has ended is not).
+    let mut decls: Vec<&cgg_core::LocalType> =
+        ix.types(name)
+            .iter()
+            .copied()
+            .filter(|lt| lt.scope_byte <= site_byte)
+            .filter(|lt| {
+                in_enclosing(lt.scope_byte)
+                    || !facts.definitions.iter().any(|d| {
+                        d.start_byte <= lt.scope_byte && lt.scope_byte < d.end_byte
+                    })
+            })
+            .collect();
+    decls.sort_by_key(|lt| {
+        (
+            !in_enclosing(lt.scope_byte),
+            std::cmp::Reverse(lt.scope_byte),
+        )
+    });
+    let lt = decls
+        .into_iter()
+        .find(|lt| local_decl_visible(ix, name, lt.scope_byte, site_byte))?;
+    call_result_callee(&facts.language, &lt.type_name)
+}
+
+/// Whether the declaration of `name` that starts at `decl_at` is the
+/// binding of `name` in scope at `site`, by the plugin's scope-spanned
+/// [`FileFacts::locals`]: the binding visible there (the latest declared
+/// whose scope holds the site) is the first one declared at or after
+/// `decl_at`. An inner block's own `x`, a loop variable or a closure
+/// parameter of the name hides the declaration. A file that records no
+/// binding of `name` (a language without a locals table, a minified
+/// file) cannot tell, and the declaration stands.
+fn local_decl_visible(ix: &LocalIndex<'_>, name: &str, decl_at: u32, site: u32) -> bool {
+    let mut any = false;
+    let mut visible: Option<u32> = None;
+    let mut first_after: Option<u32> = None;
+    for &b in ix.binds(name) {
+        any = true;
+        if b.start_byte <= site && site < b.end_byte && b.decl_byte <= site {
+            visible = Some(visible.map_or(b.decl_byte, |v| v.max(b.decl_byte)));
+        }
+        if b.decl_byte >= decl_at {
+            first_after = Some(first_after.map_or(b.decl_byte, |v| v.min(b.decl_byte)));
+        }
+    }
+    !any || visible.is_some() && visible == first_after
+}
+
 fn lookup_local_type<'a>(
     facts: &'a FileFacts,
     site_byte: u32,
     name: &str,
 ) -> Option<&'a str> {
+    lookup_local_type_any(facts, site_byte, name).filter(|ty| {
+        !(CALL_RESULT_LANGS.contains(&facts.language.as_str())
+            && call_result_callee(&facts.language, ty).is_some())
+    })
+}
+
+/// [`lookup_local_type`], call-result locals included.
+fn lookup_local_type_any<'a>(
+    facts: &'a FileFacts,
+    site_byte: u32,
+    name: &str,
+) -> Option<&'a str> {
+    lookup_local_type_at(facts, site_byte, name).map(|(_, ty)| ty)
+}
+
+/// [`lookup_local_type_any`], with where the declaration starts.
+fn lookup_local_type_at<'a>(
+    facts: &'a FileFacts,
+    site_byte: u32,
+    name: &str,
+) -> Option<(u32, &'a str)> {
     let enclosing = enclosing_def(facts, site_byte);
     let mut best_fn: Option<(u32, &'a str)> = None;
     let mut best_file: Option<(u32, &'a str)> = None;
@@ -2809,7 +3215,7 @@ fn lookup_local_type<'a>(
             best_file = Some((lt.scope_byte, lt.type_name.as_str()));
         }
     }
-    best_fn.or(best_file).map(|(_, ty)| ty)
+    best_fn.or(best_file)
 }
 
 fn enclosing_def(facts: &FileFacts, byte: u32) -> Option<&DefRecord> {
@@ -2833,6 +3239,14 @@ fn enclosing_def(facts: &FileFacts, byte: u32) -> Option<&DefRecord> {
 /// union of several real types returns nothing typed (it used to return
 /// its first member).
 fn extract_return_type<'a>(lang: &str, sig: &'a str) -> Option<&'a str> {
+    // Java/C#/Dart/Groovy/C/C++: `public Service getService()`, the type
+    // in front of the name (WS23); ObjC: `- (Service *)service`. A C++
+    // trailing `auto f() -> T` is read by the `->` branch below.
+    if TYPE_FIRST_RETURN_LANGS.contains(&lang)
+        && let Some(ret) = type_first_return(lang, sig)
+    {
+        return Some(ret);
+    }
     // Rust: `fn foo() -> Config`
     if let Some(pos) = sig.find("->") {
         let ret = return_type_text(&sig[pos + 2..]);
@@ -2850,9 +3264,8 @@ fn extract_return_type<'a>(lang: &str, sig: &'a str) -> Option<&'a str> {
             return Some(ret);
         }
     }
-    // Java/C#/Go: return type is before the function name
-    // `public Service getService()` or `func GetConfig() Config`
-    // TS/Kotlin: `fun foo(): Config` or `foo(): Config`
+    // TS/Kotlin/Swift/Scala: `fun foo(): Config` or `foo(): Config`. (A
+    // Java/C# type-first return was read by the first branch above.)
     if let Some(pos) = sig.find("): ") {
         let ret = return_type_text(&sig[pos + 3..]);
         let ret = cgg_core::declared_type(lang, ret)?;
@@ -2871,6 +3284,126 @@ fn extract_return_type<'a>(lang: &str, sig: &'a str) -> Option<&'a str> {
         }
     }
     None
+}
+
+/// Languages that write a function's return type in front of its name
+/// (or, ObjC, in the parentheses after `-`/`+`).
+const TYPE_FIRST_RETURN_LANGS: &[&str] =
+    &["java", "csharp", "dart", "groovy", "c", "cpp", "objc"];
+
+/// Words in front of a type-first function's name that are not its
+/// return type.
+const RETURN_TYPE_MODIFIERS: &[&str] = &[
+    "public",
+    "private",
+    "protected",
+    "internal",
+    "static",
+    "final",
+    "abstract",
+    "synchronized",
+    "native",
+    "default",
+    "strictfp",
+    "virtual",
+    "override",
+    "sealed",
+    "async",
+    "extern",
+    "unsafe",
+    "new",
+    "partial",
+    "readonly",
+    "inline",
+    "constexpr",
+    "consteval",
+    "explicit",
+    "friend",
+    "external",
+    "factory",
+    "operator",
+    "def",
+    "void",
+    "auto",
+    "var",
+    "dynamic",
+    "struct",
+    "class",
+    "enum",
+    "union",
+    "typename",
+    "const",
+    "volatile",
+    "register",
+    "transient",
+];
+
+/// The declared return type of a type-first signature (see
+/// [`TYPE_FIRST_RETURN_LANGS`]), as the named type a method call on the
+/// result reaches: `public static Tool make()` → `Tool`, `const Other&
+/// other()` → `Other`, `List<Tool> many()` → `List`, `- (Tool *)make` →
+/// `Tool`. `void`, `auto`, `def`, `dynamic` and a primitive return nothing
+/// typed, nor does a top type (`Object`, [`cgg_core::stdlib::TOP_TYPES`])
+/// or an awaitable (`Task<Tool>`, `Future<Tool>`): what a call on it
+/// reaches depends on whether the call site awaits it
+/// ([`cgg_core::stdlib::AWAITABLE_TYPES`]).
+fn type_first_return<'a>(lang: &str, sig: &'a str) -> Option<&'a str> {
+    let sig = sig.trim();
+    if lang == "objc" {
+        let rest = sig.strip_prefix(['-', '+'])?.trim_start();
+        let rest = rest.strip_prefix('(')?;
+        let close = rest.find(')')?;
+        return nominal_return(lang, rest[..close].trim());
+    }
+    let (open, _) = param_list_span(sig)?;
+    let head = sig[..open].trim_end();
+    // The callable's name: `make`, `Factory::make`, `~T`, `operator()`.
+    let name_start = head
+        .char_indices()
+        .rev()
+        .take_while(|(_, c)| c.is_alphanumeric() || matches!(c, '_' | ':' | '~' | '$'))
+        .last()
+        .map(|(i, _)| i)?;
+    let before = head[..name_start].trim_end();
+    // `Tool *make`, `const Other &other`: the pointer belongs to the type.
+    let before = before.trim_end_matches(['*', '&', ' ']);
+    let words = param_words(before);
+    let ty = words
+        .iter()
+        .rev()
+        .find(|w| !w.starts_with('@') && !w.starts_with('['))
+        .copied()?;
+    // A Java/C# generic method's type parameters (`<T> T pick(…)`) are
+    // not its return type, nor is anything inside a C++ `template<…>`.
+    if ty.starts_with('<') || ty.ends_with('>') && ty.starts_with("template") {
+        return None;
+    }
+    nominal_return(lang, ty)
+}
+
+/// [`type_first_return`]'s reading of one written type.
+fn nominal_return<'a>(lang: &str, ty: &'a str) -> Option<&'a str> {
+    let ty = ty.trim().trim_end_matches(['*', '&', '?', ' ', '^']);
+    let ty = cgg_core::declared_type(lang, ty)?;
+    let ty = ty.trim_start_matches("const ").trim();
+    if RETURN_TYPE_MODIFIERS.contains(&ty) {
+        return None;
+    }
+    let head = ty.split('<').next().unwrap_or(ty).trim();
+    let head = last_scope_segment(head);
+    let head = head.rsplit('.').next().unwrap_or(head);
+    let head = head.trim_end_matches(['*', '&', '?']);
+    // A one-letter name is a type parameter far more often than a class
+    // (`<T> T pick()`, `template <class T> T get()`).
+    if head.chars().count() < 2
+        || !head.chars().all(|c| c.is_alphanumeric() || c == '_')
+        || cgg_core::stdlib::is_awaitable_type(lang, head)
+        // `Object make()` says nothing about the class of what it returns.
+        || cgg_core::stdlib::is_top_type(lang, head)
+    {
+        return None;
+    }
+    Some(head)
 }
 
 /// The return-type text at the start of `s`: up to a top-level body
@@ -3209,17 +3742,111 @@ mod tests {
             0,
             100,
         );
-        let got: Vec<(String, String)> = go_package_param_types(&d)
+        let got: Vec<(String, String)> = go_param_types(&d)
             .into_iter()
             .map(|(_, n, t)| (n, t))
             .collect();
         assert_eq!(
             got,
             vec![
+                ("s".to_string(), "Server".to_string()),
                 ("t".to_string(), "util.T".to_string()),
                 ("a".to_string(), "jobs.Runner".to_string()),
                 ("b".to_string(), "jobs.Runner".to_string()),
+                ("q".to_string(), "Local".to_string()),
             ]
+        );
+    }
+
+    /// WS23 gap 26: type-first languages declare the return type in front
+    /// of the name. Modifiers, annotations, pointers and generic arguments
+    /// are not it; `void`/`def`/`auto`, a top type, an awaitable and a
+    /// one-letter type parameter type nothing.
+    #[test]
+    fn type_first_return_types_are_read_in_front_of_the_name() {
+        fn ret<'a>(lang: &str, sig: &'a str) -> Option<&'a str> {
+            extract_return_type(lang, sig)
+        }
+        assert_eq!(
+            ret("java", "@Override public static Tool make()"),
+            Some("Tool")
+        );
+        assert_eq!(
+            ret("java", "public <T> List<T> many(int n) throws IOException"),
+            Some("List")
+        );
+        // A Java `Optional` is the receiver of `.get()`, not a `Tool`.
+        assert_eq!(
+            ret("java", "public Optional<Tool> find()"),
+            Some("Optional")
+        );
+        assert_eq!(ret("java", "Object any()"), None);
+        assert_eq!(ret("java", "<T> T pick(T a)"), None);
+        assert_eq!(ret("java", "void run()"), None);
+        assert_eq!(
+            ret("csharp", "[HttpGet] public async Task<Tool> MakeAsync()"),
+            None
+        );
+        assert_eq!(ret("csharp", "public Tool? Find(string id)"), Some("Tool"));
+        assert_eq!(ret("dart", "Tool make() => Tool()"), Some("Tool"));
+        assert_eq!(ret("dart", "Future<Tool> load() async"), None);
+        assert_eq!(ret("groovy", "def dyn()"), None);
+        assert_eq!(ret("groovy", "static Tool make()"), Some("Tool"));
+        assert_eq!(ret("cpp", "static const Other& other()"), Some("Other"));
+        assert_eq!(ret("cpp", "Tool* Factory::make(int n)"), Some("Tool"));
+        assert_eq!(ret("cpp", "ns::Gear *gear()"), Some("Gear"));
+        assert_eq!(ret("cpp", "auto make() -> Tool"), Some("Tool"));
+        assert_eq!(ret("cpp", "Factory::Factory(int n)"), None);
+        assert_eq!(ret("objc", "+ (Tool *)make"), Some("Tool"));
+        assert_eq!(ret("objc", "- (void)work"), None);
+        // Not a type-first language: the name-first readers apply.
+        assert_eq!(ret("kotlin", "fun make(): Tool"), Some("Tool"));
+    }
+
+    /// WS23 gap 26: a receiver written as a bare call names its callee;
+    /// a member call, a construction-shaped text with trailing text, or a
+    /// chained call does not.
+    #[test]
+    fn call_result_receivers_name_their_callee() {
+        assert_eq!(call_result_callee("java", "make()"), Some("make"));
+        assert_eq!(call_result_callee("csharp", "Make(a, (b))"), Some("Make"));
+        assert_eq!(call_result_callee("java", "a.make()"), None);
+        assert_eq!(call_result_callee("java", "make().other()"), None);
+        assert_eq!(call_result_callee("java", "(make())"), None);
+        assert_eq!(call_result_callee("objc", "[F make]"), Some("make"));
+        assert_eq!(call_result_callee("objc", "[F make:x]"), None);
+    }
+
+    /// WS23 gap 10: a Go receiver and same-package parameters are typed
+    /// name-first. Predeclared types, type parameters, composite types
+    /// and `_` type nothing.
+    #[test]
+    fn go_receivers_and_bare_parameter_types_are_read_name_first() {
+        let read = |sig: &str| -> Vec<(String, String)> {
+            go_param_types(&mk_def("main.f", sig, 0, 100))
+                .into_iter()
+                .map(|(_, n, t)| (n, t))
+                .collect()
+        };
+        let pair = |n: &str, t: &str| (n.to_string(), t.to_string());
+        assert_eq!(read("func (c client) Ping()"), vec![pair("c", "client")]);
+        assert_eq!(
+            read("func (b *Box[T]) Get(x T, e error, s string) T"),
+            vec![pair("b", "Box")]
+        );
+        assert_eq!(
+            read("func Map[T any, U Shape](xs []T, f func(T) U, u U, k Key) U"),
+            vec![pair("k", "Key")]
+        );
+        assert_eq!(
+            read(
+                "func f(_ *Server, m map[string]Server, ch chan Server, i interface{ zip() })"
+            ),
+            Vec::<(String, String)>::new()
+        );
+        assert_eq!(
+            read("func (*Server) Anon(p *Peer)"),
+            vec![pair("p", "Peer")]
         );
     }
 

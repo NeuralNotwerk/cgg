@@ -91,6 +91,7 @@ impl LanguagePlugin for GoPlugin {
             source,
             facts: &mut facts,
             pkg,
+            param_frames: Vec::new(),
         };
         w.walk(root);
         let mut out = facts;
@@ -138,6 +139,10 @@ struct Walker<'a> {
     ctx: crate::ExtractCtx<'a>,
     facts: &'a mut FileFacts,
     pkg: String,
+    /// The receiver and parameter names of each function, method and
+    /// function literal around the node being walked, innermost last,
+    /// with its body's start byte (see [`Self::shadow_params`]).
+    param_frames: Vec<(Vec<String>, u32)>,
 }
 
 impl<'a> Walker<'a> {
@@ -151,17 +156,51 @@ impl<'a> Walker<'a> {
                 self.record_function(node);
                 self.record_param_shadows(node);
                 // Continue into body for call sites.
-                self.walk_children(node);
+                self.walk_in_function(node);
                 return;
             }
             "method_declaration" => {
                 self.record_method(node);
                 self.record_param_shadows(node);
-                self.walk_children(node);
+                self.walk_in_function(node);
                 return;
             }
             "func_literal" => {
                 self.record_param_shadows(node);
+                // `f := func(s *T) {…}` is a callable of its own, whose
+                // parameters type its body; only an anonymous literal's
+                // parameters hide the enclosing function's.
+                let named = node
+                    .parent()
+                    .map(|p| {
+                        if p.kind() == "expression_list" {
+                            p.parent().unwrap_or(p)
+                        } else {
+                            p
+                        }
+                    })
+                    .is_some_and(|p| p.kind() == "short_var_declaration");
+                self.walk_in_function_as(node, !named);
+                return;
+            }
+            "range_clause" => {
+                if let (Some(left), Some(scope)) =
+                    (node.child_by_field_name("left"), node.parent())
+                {
+                    let names = self.bound_names(left);
+                    self.shadow_params(&names, node.end_byte() as u32, scope, true);
+                }
+                self.walk_children(node);
+                return;
+            }
+            "type_switch_statement" => {
+                if let Some(alias) = node.child_by_field_name("alias") {
+                    let names = self.bound_names(alias);
+                    let at = node
+                        .child_by_field_name("value")
+                        .map_or(alias.end_byte(), |v| v.end_byte());
+                    self.shadow_params(&names, at as u32, node, true);
+                }
                 self.walk_children(node);
                 return;
             }
@@ -172,6 +211,7 @@ impl<'a> Walker<'a> {
             "type_declaration" => {
                 // Extract interface method specs
                 self.extract_interface_methods(node);
+                self.record_embedded_types(node);
                 self.walk_children(node);
                 return;
             }
@@ -267,6 +307,87 @@ impl<'a> Walker<'a> {
                 route: route.clone(),
                 ..Default::default()
             });
+        }
+    }
+
+    /// Walks a function, method or function literal with its receiver
+    /// and parameter names on [`Self::param_frames`]. A literal's own
+    /// parameter named like one of an enclosing function's hides it over
+    /// the literal's body.
+    fn walk_in_function(&mut self, node: Node) {
+        self.walk_in_function_as(node, false);
+    }
+
+    /// [`Self::walk_in_function`]; `hides` says whether the parameters
+    /// hide same-named ones of the enclosing functions (an anonymous
+    /// function literal's do).
+    fn walk_in_function_as(&mut self, node: Node, hides: bool) {
+        let mut names: Vec<String> = Vec::new();
+        for field in ["receiver", "parameters"] {
+            let Some(list) = node.child_by_field_name(field) else {
+                continue;
+            };
+            let mut c = list.walk();
+            for p in list.named_children(&mut c) {
+                let mut nc = p.walk();
+                for n in p.children_by_field_name("name", &mut nc) {
+                    names.push(self.text(n).to_string());
+                }
+            }
+        }
+        let body = node.child_by_field_name("body");
+        if let Some(body) = body
+            && hides
+        {
+            self.shadow_params(&names, body.start_byte() as u32, body, false);
+        }
+        let start = body.map_or(node.start_byte(), |b| b.start_byte()) as u32;
+        self.param_frames.push((names, start));
+        self.walk_children(node);
+        self.param_frames.pop();
+    }
+
+    /// Names a declaration's left side binds: one identifier, or each
+    /// identifier of an `expression_list` / `identifier_list`.
+    fn bound_names(&self, left: Node) -> Vec<String> {
+        if left.kind() == "identifier" {
+            return vec![self.text(left).to_string()];
+        }
+        let mut c = left.walk();
+        left.named_children(&mut c)
+            .filter(|n| n.kind() == "identifier")
+            .map(|n| self.text(n).to_string())
+            .collect()
+    }
+
+    /// A declaration that binds a name an enclosing function's receiver or
+    /// parameter carries hides that parameter from `at` to the end of
+    /// `scope` (its block, or the `if`/`for`/`switch` it heads): recorded
+    /// as a `<local>` there, so the parameter's declared type does not type
+    /// the receiver inside it (WS23). A `:=` directly in the function's
+    /// own body redeclares nothing — Go reuses the parameter there — and
+    /// `inner` says whether `scope` is past the frame's body already.
+    fn shadow_params(&mut self, names: &[String], at: u32, scope: Node, inner: bool) {
+        let own_body = self.param_frames.last().map(|(_, b)| *b);
+        let scope_start = scope.start_byte() as u32;
+        let hidden: Vec<String> = names
+            .iter()
+            .filter(|n| n.as_str() != "_")
+            .filter(|n| {
+                self.param_frames.iter().enumerate().any(|(i, (ps, _))| {
+                    let own = i + 1 == self.param_frames.len();
+                    ps.contains(n) && (!own || inner || own_body != Some(scope_start))
+                })
+            })
+            .cloned()
+            .collect();
+        for name in hidden {
+            self.push_scoped_local(
+                name,
+                LOCAL_SHADOW.to_string(),
+                at,
+                scope.end_byte() as u32,
+            );
         }
     }
 
@@ -457,6 +578,89 @@ impl<'a> Walker<'a> {
         }
     }
 
+    /// A struct's embedded fields (`type Server struct { *Base; log.Logger
+    /// }`) and an interface's embedded interfaces promote their methods
+    /// to the type: recorded as its bases, so `s.Hello()` on a `Server`
+    /// reaches `Base.Hello` through the base chain (WS23).
+    fn record_embedded_types(&mut self, node: Node) {
+        let mut cursor = node.walk();
+        for spec in node.children(&mut cursor) {
+            if spec.kind() != "type_spec" {
+                continue;
+            }
+            let (Some(name), Some(ty)) = (
+                spec.child_by_field_name("name"),
+                spec.child_by_field_name("type"),
+            ) else {
+                continue;
+            };
+            let mut bases: Vec<String> = Vec::new();
+            let mut tc = ty.walk();
+            match ty.kind() {
+                "struct_type" => {
+                    for list in ty.named_children(&mut tc) {
+                        if list.kind() != "field_declaration_list" {
+                            continue;
+                        }
+                        let mut lc = list.walk();
+                        for field in list.named_children(&mut lc) {
+                            if field.kind() != "field_declaration"
+                                || field.child_by_field_name("name").is_some()
+                            {
+                                continue;
+                            }
+                            if let Some(t) = field
+                                .child_by_field_name("type")
+                                .and_then(|t| self.embedded_type_name(t))
+                            {
+                                bases.push(t);
+                            }
+                        }
+                    }
+                }
+                "interface_type" => {
+                    for elem in ty.named_children(&mut tc) {
+                        if elem.kind() != "type_elem" || elem.named_child_count() != 1 {
+                            continue;
+                        }
+                        if let Some(t) =
+                            elem.named_child(0).and_then(|t| self.embedded_type_name(t))
+                        {
+                            bases.push(t);
+                        }
+                    }
+                }
+                _ => {}
+            }
+            if !bases.is_empty() {
+                let type_name = self.text(name).to_string();
+                self.facts.classes.push(cgg_core::ClassDecl {
+                    class_qn: self.package_prefix(&type_name),
+                    base_types: bases,
+                    line: (spec.start_position().row as u32) + 1,
+                });
+            }
+        }
+    }
+
+    /// An embedded field's type as written, pointer and type arguments
+    /// dropped: `*Base` → `Base`, `*web.Controller` → `web.Controller`.
+    fn embedded_type_name(&self, t: Node) -> Option<String> {
+        match t.kind() {
+            "qualified_type" => Some(self.text(t).to_string()),
+            "generic_type" => t
+                .child_by_field_name("type")
+                .and_then(|n| self.embedded_type_name(n)),
+            "type_identifier" => self.receiver_type_name(t),
+            "pointer_type" => {
+                let mut c = t.walk();
+                let inner = t.named_children(&mut c).next()?;
+                self.embedded_type_name(inner)
+            }
+            _ => None,
+        }
+    }
+
     /// The named type of a method receiver: `T`, `*T`, and a generic
     /// `Map[K, V]` / `*Map[K, V]` (its type parameters are not part of
     /// the owner's name).
@@ -480,6 +684,27 @@ impl<'a> Walker<'a> {
     }
 
     fn record_var_type(&mut self, node: Node) {
+        if let Some(scope) = Self::decl_scope(node)
+            && scope.kind() != "source_file"
+        {
+            let mut names = Vec::new();
+            let mut c = node.walk();
+            for spec in node.named_children(&mut c) {
+                let mut sc = spec.walk();
+                let specs: Vec<Node> = if spec.kind() == "var_spec_list" {
+                    spec.named_children(&mut sc).collect()
+                } else {
+                    vec![spec]
+                };
+                for spec in specs {
+                    let mut nc = spec.walk();
+                    for n in spec.children_by_field_name("name", &mut nc) {
+                        names.push(self.text(n).to_string());
+                    }
+                }
+            }
+            self.shadow_params(&names, node.end_byte() as u32, scope, false);
+        }
         // var_declaration -> var_spec -> name + type
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
@@ -509,8 +734,25 @@ impl<'a> Walker<'a> {
         }
     }
 
+    /// The block (or `if`/`for`/`switch` header) a declaration statement
+    /// is in scope over: its parent, seen through a `statement_list`.
+    fn decl_scope(node: Node) -> Option<Node> {
+        let p = node.parent()?;
+        if p.kind() == "statement_list" {
+            return p.parent().or(Some(p));
+        }
+        Some(p)
+    }
+
     fn record_short_var_type(&mut self, node: Node) {
         // short_var_declaration: `helper := NewHelper()` or `add := func() {}`
+        if let (Some(left), Some(scope)) =
+            (node.child_by_field_name("left"), Self::decl_scope(node))
+            && scope.kind() != "source_file"
+        {
+            let names = self.bound_names(left);
+            self.shadow_params(&names, node.end_byte() as u32, scope, false);
+        }
         let left = node.child_by_field_name("left");
         let right = node.child_by_field_name("right");
         let (Some(left), Some(right)) = (left, right) else {

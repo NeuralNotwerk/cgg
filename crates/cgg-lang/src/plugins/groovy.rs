@@ -153,6 +153,31 @@ impl<'a> GroovyWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            // `def t = make()`: the bare call's result, recorded as
+            // `make()` for type propagation to read the callee's declared
+            // return type (WS23).
+            "local_variable_declaration" => {
+                let mut c = node.walk();
+                for d in node.children_by_field_name("declarator", &mut c) {
+                    if let (Some(name), Some(value)) = (
+                        d.child_by_field_name("name"),
+                        d.child_by_field_name("value"),
+                    ) && value.kind() == "method_invocation"
+                        && value.child_by_field_name("object").is_none()
+                        && let Some(callee) = value.child_by_field_name("name")
+                    {
+                        let var_name = self.text(name).to_string();
+                        let type_name = format!("{}()", self.text(callee));
+                        self.facts.local_types.push(cgg_core::LocalType {
+                            var_name,
+                            type_name,
+                            scope_byte: node.start_byte() as u32,
+                        });
+                    }
+                }
+                self.walk_children(node);
+                return;
+            }
             "closure_expression" => {
                 // Closures are callable but typically anonymous; skip for now
                 self.walk_children(node);
@@ -314,12 +339,27 @@ impl<'a> GroovyWalker<'a> {
         if name.is_empty() {
             return;
         }
+        // The argument count, for overload narrowing (WS23): the listed
+        // arguments plus a trailing closure. Named arguments (`f(a: 1)`)
+        // are collected into one map parameter, and a spread passes an
+        // unknown number, so neither has a count.
+        let args = node.child_by_field_name("arguments");
+        let countable = args.is_none_or(|a| {
+            !a.has_error()
+                && a.named_children(&mut a.walk())
+                    .all(|c| !matches!(c.kind(), "map_item" | "spread_argument"))
+        });
+        let arity = countable.then(|| {
+            args.map_or(0, super::arg_count)
+                + u32::from(node.child_by_field_name("body").is_some())
+        });
         self.facts.references.push(RefRecord {
             name,
             receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
             typed_receiver,
+            arity,
             ..Default::default()
         });
     }

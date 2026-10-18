@@ -444,6 +444,27 @@ impl<'a> Walker<'a> {
         }
 
         if type_node.kind() == "implicit_type" {
+            // `var x = Make()`: the bare call's result, recorded as `Make()`
+            // for type propagation to read the callee's declared return
+            // type. A generic `Make<T>()` is recorded under its bare name.
+            let call = declarator
+                .children(&mut declarator.walk())
+                .find(|c| c.kind() == "invocation_expression");
+            if let Some(callee) = call
+                .and_then(|c| c.child_by_field_name("function"))
+                .and_then(|f| match f.kind() {
+                    "identifier" => Some(f),
+                    "generic_name" => f.named_child(0),
+                    _ => None,
+                })
+            {
+                self.facts.local_types.push(cgg_core::LocalType {
+                    var_name,
+                    type_name: format!("{}()", self.text(callee)),
+                    scope_byte: node.start_byte() as u32,
+                });
+                return;
+            }
             // `var x = new Foo(...)` — infer type from object_creation_expression
             let new_expr = declarator
                 .children(&mut declarator.walk())

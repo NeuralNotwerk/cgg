@@ -62,13 +62,7 @@ impl LanguagePlugin for JavaScriptPlugin {
         facts.packages = manifest.names;
         let own_package = manifest.own;
         let exported_as = manifest.exported_as;
-        let mut w = JsWalker {
-            ctx: *ctx,
-            source,
-            facts: &mut facts,
-            scope: Vec::new(),
-            bases: Vec::new(),
-        };
+        let mut w = JsWalker::new(*ctx, source, &mut facts);
         w.walk(tree.root_node());
         let mut out = facts;
         push_package_name(&mut out, own_package, exported_as);
@@ -127,6 +121,10 @@ pub(crate) struct JsWalker<'a> {
     scope: Vec<String>,
     /// `extends`/`implements` of the enclosing class, innermost last.
     bases: Vec<Vec<String>>,
+    /// Names a `let`/`var` declared from a construction (`let t = new
+    /// Svc()`): an assignment to one later is recorded as
+    /// [`cgg_core::REASSIGNED_LOCAL`] (WS23).
+    constructed_mutable: std::collections::HashSet<String>,
 }
 
 impl<'a> JsWalker<'a> {
@@ -141,6 +139,7 @@ impl<'a> JsWalker<'a> {
             facts,
             scope: Vec::new(),
             bases: Vec::new(),
+            constructed_mutable: std::collections::HashSet::new(),
         }
     }
 
@@ -228,8 +227,24 @@ impl<'a> JsWalker<'a> {
             "lexical_declaration" | "variable_declaration" => {
                 self.try_record_named_fn(node);
                 self.try_record_require(node);
+                self.record_local_types(node);
                 self.walk_children(node);
                 return;
+            }
+            "assignment_expression" => {
+                if let Some(left) = node
+                    .child_by_field_name("left")
+                    .filter(|l| l.kind() == "identifier")
+                {
+                    let name = self.text(left).to_string();
+                    if self.constructed_mutable.contains(&name) {
+                        self.facts.local_types.push(cgg_core::LocalType {
+                            var_name: name,
+                            type_name: cgg_core::REASSIGNED_LOCAL.to_string(),
+                            scope_byte: node.start_byte() as u32,
+                        });
+                    }
+                }
             }
             "export_statement" => {
                 // `export * as oak from "…/oak/mod.ts"` / `export { x } from
@@ -274,6 +289,60 @@ impl<'a> JsWalker<'a> {
             _ => {}
         }
         self.walk_children(node);
+    }
+
+    /// `const t = new Svc()`, `let t: Svc = …`, `var t = new Svc()`: a
+    /// local's type, from its annotation (TypeScript) or else from a
+    /// construction of a class written by its bare name. Recorded at the
+    /// declaration; type propagation reads it only where the scope-spanned
+    /// [`FileFacts::locals`] say that declaration is the binding in scope
+    /// (WS23).
+    fn record_local_types(&mut self, node: Node) {
+        let mutable = !node
+            .child(0)
+            .is_some_and(|k| self.text(k) == "const" || self.text(k) == "using");
+        let mut c = node.walk();
+        let declarators: Vec<Node> = node
+            .named_children(&mut c)
+            .filter(|d| d.kind() == "variable_declarator")
+            .collect();
+        for d in declarators {
+            let Some(name) = d
+                .child_by_field_name("name")
+                .filter(|n| n.kind() == "identifier")
+            else {
+                continue;
+            };
+            let var_name = self.text(name).to_string();
+            let annotated = d
+                .child_by_field_name("type")
+                .and_then(|t| t.named_child(0))
+                .map(|t| self.text(t).trim().to_string());
+            let constructed = || {
+                d.child_by_field_name("value")
+                    .filter(|v| v.kind() == "new_expression")
+                    .and_then(|v| v.child_by_field_name("constructor"))
+                    .filter(|c| c.kind() == "identifier")
+                    .map(|c| self.text(c).to_string())
+            };
+            let (type_name, by_construction) = match annotated {
+                Some(t) => (t, false),
+                None => match constructed() {
+                    Some(t) => (t, true),
+                    None => continue,
+                },
+            };
+            if by_construction && mutable {
+                self.constructed_mutable.insert(var_name.clone());
+            }
+            // At the declaration statement, where the scope-spanned
+            // binding of the name records its declaration.
+            self.facts.local_types.push(cgg_core::LocalType {
+                var_name,
+                type_name,
+                scope_byte: node.start_byte() as u32,
+            });
+        }
     }
 
     fn walk_children(&mut self, node: Node) {

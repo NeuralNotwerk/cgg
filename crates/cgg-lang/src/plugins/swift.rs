@@ -285,9 +285,33 @@ impl<'a> SwiftWalker<'a> {
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
             typed_receiver,
+            arity: call_arity(node),
             ..Default::default()
         });
     }
+}
+
+/// How many arguments a Swift call passes, for overload narrowing
+/// ([`cgg_core::RefRecord::arity`], WS23): its value arguments plus each
+/// trailing closure. `None` when the call has no argument suffix.
+fn call_arity(call: Node) -> Option<u32> {
+    let suffix = call
+        .children(&mut call.walk())
+        .find(|c| c.kind() == "call_suffix")?;
+    let mut n = 0u32;
+    for c in suffix.named_children(&mut suffix.walk()) {
+        match c.kind() {
+            "value_arguments" => {
+                n += c
+                    .named_children(&mut c.walk())
+                    .filter(|a| a.kind() == "value_argument")
+                    .count() as u32;
+            }
+            "lambda_literal" | "annotated_lambda" => n += 1,
+            _ => {}
+        }
+    }
+    Some(n)
 }
 
 /// `Wrap<Int>.s()` in expression position is parsed as two comparisons,

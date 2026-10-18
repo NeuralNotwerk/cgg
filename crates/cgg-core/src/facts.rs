@@ -992,6 +992,12 @@ pub const PARTIAL_DECLARATION: &str = "partial-declaration";
 /// read as a call on `Kernel`.
 pub const DEREF_SUFFIX: &str = "#deref";
 
+/// [`LocalType::type_name`] of an assignment to a JS/TS `let`/`var`
+/// local declared from a construction: the local may hold another value
+/// from there on, so the construction no longer types it anywhere in its
+/// scope.
+pub const REASSIGNED_LOCAL: &str = "<reassigned>";
+
 /// The first template argument of a C++ class-template type — `Kernel` of
 /// `std::unique_ptr<Kernel>`, `DisplayList` of `sk_sp<DisplayList>`,
 /// `Widget` of `std::vector<Widget>` — or `None` for a type that is not a

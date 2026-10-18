@@ -123,6 +123,35 @@ impl<'a> DartWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            // `var t = make()` / `final t = make()`: the bare call's result,
+            // recorded as `make()` for type propagation to read the
+            // callee's declared return type (WS23).
+            "local_variable_declaration" => {
+                let mut c = node.walk();
+                for d in node.named_children(&mut c) {
+                    if d.kind() != "initialized_variable_definition" {
+                        continue;
+                    }
+                    if let (Some(name), Some(value)) = (
+                        d.child_by_field_name("name"),
+                        d.child_by_field_name("value"),
+                    ) && value.kind() == "call_expression"
+                        && let Some(callee) = value
+                            .child_by_field_name("function")
+                            .filter(|f| f.kind() == "identifier")
+                    {
+                        let var_name = self.text(name).to_string();
+                        let type_name = format!("{}()", self.text(callee));
+                        self.facts.local_types.push(cgg_core::LocalType {
+                            var_name,
+                            type_name,
+                            scope_byte: node.start_byte() as u32,
+                        });
+                    }
+                }
+                self.walk_children(node);
+                return;
+            }
             "function_declaration" | "local_function_declaration" => {
                 let name = node
                     .child_by_field_name("name")

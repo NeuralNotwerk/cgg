@@ -3658,3 +3658,268 @@ fn python_super_through_a_dependency_base_is_not_high() {
         }
     }
 }
+
+/// WS23 gap 10: a Go method's receiver and a parameter of a same-package
+/// type written bare are typed, name first, and bind to that package's
+/// type at high. A same-named type of another package is not it; a `:=`
+/// in an inner block or a function literal's own parameter hides the
+/// parameter; an embedded field's methods are promoted.
+#[test]
+fn go_receivers_and_bare_parameter_types_bind_their_package_type() {
+    let tmp = TempDir::new().unwrap();
+    write(tmp.path(), "go.mod", b"module ex\n\ngo 1.21\n");
+    write(
+        tmp.path(),
+        "a.go",
+        concat!(
+            "package main\n",
+            "type Base struct{}\nfunc (b *Base) Hello() {}\n",
+            "type Server struct{ *Base }\nfunc (s *Server) zip() {}\n",
+            "type Third struct{}\nfunc (t *Third) zip() {}\n",
+            "type Other struct{}\nfunc (o *Other) Hello() {}\n",
+            "func (s *Server) Zap() { s.zip() }\n",
+            "func use(q *Server) { q.zip() }\n",
+            "func run(s *Server) { s.Hello() }\n",
+            "func inner(s *Server) {\n\tif s := (&Third{}); s != nil {\n\t\ts.zip()\n\t}\n}\n",
+            "func lit(s *Server) { _ = func(s *Third) { s.zip() } }\n",
+        )
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "b/b.go",
+        b"package b\ntype Server struct{}\nfunc (s *Server) zip() {}\nfunc local(s *Server) { s.zip() }\n",
+    );
+    let e = cpp_edges(tmp.path());
+    let has = |src: &str, dst: &str, conf: &str| {
+        e.contains(&(src.to_string(), dst.to_string(), conf.to_string()))
+    };
+    assert!(
+        has("main.Server.Zap", "main.Server.zip@a.go", "high"),
+        "{e:?}"
+    );
+    assert!(has("main.use", "main.Server.zip@a.go", "high"), "{e:?}");
+    // Promoted through the embedded `*Base`; medium, because another
+    // package also declares a `Server`, which the base chain is keyed by.
+    assert!(
+        e.iter()
+            .any(|(s, d, _)| s == "main.run" && d == "main.Base.Hello@a.go"),
+        "{e:?}"
+    );
+    assert!(has("b.local", "b.Server.zip@b.go", "high"), "{e:?}");
+    for src in ["main.inner", "main.lit"] {
+        assert!(
+            !e.iter()
+                .any(|(s, d, _)| s == src && d == "main.Server.zip@a.go"),
+            "{src}: the hidden parameter types nothing: {e:?}"
+        );
+    }
+    assert!(
+        !e.iter()
+            .any(|(s, d, _)| s.starts_with("main.") && d.ends_with("@b.go")),
+        "another package's Server is never the callee: {e:?}"
+    );
+}
+
+/// WS23 gap 26: a bare call's declared return type types a receiver
+/// written as the call (`make().work()`) and a local assigned from it
+/// (`var x = make()`), each in the function that declares it. A function
+/// returning `Object`, or one whose definitions disagree, types nothing.
+#[test]
+fn declared_return_types_type_call_results_in_type_first_languages() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "A.java",
+        concat!(
+            "class Tool { void work() {} }\nclass Other { void work() {} }\n",
+            "class F {\n  static Tool make() { return null; }\n  Other other() { return null; }\n",
+            "  Object any() { return null; }\n",
+            "  void a() { var x = make(); x.work(); }\n",
+            "  void b() { var x = other(); x.work(); }\n",
+            "  void c() { make().work(); }\n",
+            "  void d() { any().work(); }\n}\n",
+        )
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "a.cpp",
+        concat!(
+            "class Gear { public: void spin() {} };\nclass Cog { public: void spin() {} };\n",
+            "Gear* gear() { return nullptr; }\n",
+            "void e() { auto g = gear(); g->spin(); }\n",
+        )
+        .as_bytes(),
+    );
+    let e = cpp_edges(tmp.path());
+    let to = |src: &str| -> Vec<String> {
+        e.iter()
+            .filter(|(s, d, _)| s == src && (d.contains("work") || d.contains("spin")))
+            .map(|(_, d, c)| format!("{d} {c}"))
+            .collect()
+    };
+    assert_eq!(to("F.a"), vec!["Tool.work@A.java high"]);
+    assert_eq!(to("F.b"), vec!["Other.work@A.java high"]);
+    assert_eq!(to("F.c"), vec!["Tool.work@A.java high"]);
+    // Near miss: `Object` says nothing; the by-name reading stays.
+    assert_eq!(
+        to("F.d"),
+        vec!["Other.work@A.java medium", "Tool.work@A.java medium"]
+    );
+    assert_eq!(to("e"), vec!["Gear::spin@a.cpp high"]);
+}
+
+/// WS23 gap 28: a JS/TS local declared from a construction or with a
+/// type annotation types its receiver where that declaration is the
+/// binding in scope. Another function's local of the name, an inner
+/// block's own declaration, and a constructed `let` reassigned later do
+/// not.
+#[test]
+fn ts_locals_type_their_receivers_where_they_are_in_scope() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "a.ts",
+        concat!(
+            "class Svc { run() {} }\nclass Other { run() {} }\n",
+            "function a() { const x = new Svc(); x.run(); }\n",
+            "function b() { const x: Other = mk(); x.run(); }\n",
+            "function c() { let y = new Svc(); y = mk(); y.run(); }\n",
+            "function d() { const z = new Svc(); { const z = new Other(); z.run(); } }\n",
+            "function mk(): any { return null; }\n",
+        )
+        .as_bytes(),
+    );
+    let e = cpp_edges(tmp.path());
+    let to = |src: &str| -> Vec<String> {
+        e.iter()
+            .filter(|(s, d, _)| s == src && d.contains(".run"))
+            .map(|(_, d, c)| format!("{d} {c}"))
+            .collect()
+    };
+    assert_eq!(to("a"), vec!["Svc.run@a.ts high"]);
+    assert_eq!(to("b"), vec!["Other.run@a.ts high"]);
+    assert_eq!(to("d"), vec!["Other.run@a.ts high"]);
+    // Reassigned: the construction no longer types it.
+    assert_eq!(
+        to("c"),
+        vec!["Other.run@a.ts medium", "Svc.run@a.ts medium"]
+    );
+}
+
+/// WS23 gap 16: Swift and Groovy record a call's argument count, so a
+/// typed lookup into another file's overload set binds the overload the
+/// count admits, never one arbitrary member.
+#[test]
+fn swift_and_groovy_typed_overload_lookups_narrow_by_arity() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "A.swift",
+        b"class Tool {\n  func work() {}\n  func work(_ n: Int) {}\n  func work(_ n: Int, _ m: Int) {}\n}\n",
+    );
+    write(
+        tmp.path(),
+        "B.swift",
+        b"func one(t: Tool) { t.work(1) }\nfunc two(t: Tool) { t.work(1) { } }\n",
+    );
+    write(
+        tmp.path(),
+        "A.groovy",
+        b"class Gear {\n  void spin() {}\n  void spin(int n) {}\n  void spin(int n, int m) {}\n}\n",
+    );
+    write(
+        tmp.path(),
+        "B.groovy",
+        b"class U {\n  void none(Gear g) { g.spin() }\n  void named(Gear g) { g.spin(a: 1, b: 2) }\n}\n",
+    );
+    let g = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&g)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&g).unwrap()).unwrap();
+    let c = &g["callables"];
+    let lines = |src: &str| -> Vec<u64> {
+        let mut v: Vec<u64> = g["edges"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|e| c[e["src"].as_str().unwrap()]["qualified_name"] == src)
+            .map(|e| {
+                c[e["dst"].as_str().unwrap()]["start_line"]
+                    .as_u64()
+                    .unwrap()
+            })
+            .collect();
+        v.sort();
+        v
+    };
+    assert_eq!(lines("one"), vec![3]);
+    // A trailing closure is an argument.
+    assert_eq!(lines("two"), vec![4]);
+    assert_eq!(lines("U.none"), vec![2]);
+    // Near miss: named arguments are one map, so the count says nothing
+    // and the whole set stands.
+    assert_eq!(lines("U.named"), vec![2, 3, 4]);
+}
+
+/// WS23: a typed receiver whose type's bare name several classes nest
+/// (`Builder` in each of six classes) is a guess among them, refused over
+/// the fan-out cap and recorded, never bound to all of them.
+#[test]
+fn java_same_named_nested_owner_fanout_is_capped() {
+    let tmp = TempDir::new().unwrap();
+    // Distinct outer classes, each in its own file: not copies of one
+    // class, so the nearest is no more the callee than the others.
+    for i in 0..6 {
+        write(
+            tmp.path(),
+            &format!("A{i}.java"),
+            format!("class A{i} {{ static class Builder {{ Object build() {{ return null; }} }} }}\n")
+                .as_bytes(),
+        );
+    }
+    write(
+        tmp.path(),
+        "Use.java",
+        b"class Use {\n  A0.Builder mk() { return null; }\n  Builder b() { return null; }\n  void run() { b().build(); }\n}\n",
+    );
+    let e = cpp_edges(tmp.path());
+    assert!(
+        !e.iter()
+            .any(|(s, d, _)| s == "Use.run" && d.contains("build")),
+        "{e:?}"
+    );
+}
+
+/// WS23: over the cap, copies of one same-named class narrow to the copy
+/// nearest the caller (as Java/C# bare calls do) before anything is
+/// refused; a tie stays refused.
+#[test]
+fn java_same_named_owner_cap_narrows_to_the_nearest_copy() {
+    let tmp = TempDir::new().unwrap();
+    for i in 0..6 {
+        write(
+            tmp.path(),
+            &format!("s{i}/Calc.java"),
+            b"class Calc { int add() { return 0; } }\n",
+        );
+    }
+    write(
+        tmp.path(),
+        "s3/Use.java",
+        b"class Use {\n  Calc mk() { return null; }\n  void run() { mk().add(); }\n}\n",
+    );
+    let e = cpp_edges(tmp.path());
+    let to: Vec<&String> = e
+        .iter()
+        .filter(|(s, d, _)| s == "Use.run" && d.contains("add"))
+        .map(|(_, d, _)| d)
+        .collect();
+    assert_eq!(to.len(), 1, "{e:?}");
+}
