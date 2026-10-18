@@ -4,6 +4,7 @@ pub(crate) mod attrs;
 pub mod bash;
 pub mod c;
 pub mod c_macro;
+mod c_values;
 pub mod cfg;
 pub mod clojure;
 pub mod cmake;

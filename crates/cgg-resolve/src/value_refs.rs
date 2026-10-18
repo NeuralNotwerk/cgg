@@ -44,25 +44,42 @@ pub fn prune(all_facts: &mut [FileFacts]) {
         return;
     }
     let mut names: HashMap<&str, HashSet<&str>> = HashMap::new();
+    let mut members: HashMap<&str, HashSet<&str>> = HashMap::new();
     for f in all_facts.iter() {
         let set = names.entry(f.language.as_str()).or_default();
         set.extend(f.definitions.iter().map(|d| d.simple_name.as_str()));
+        if !f.data_members.is_empty() {
+            members
+                .entry(f.language.as_str())
+                .or_default()
+                .extend(f.data_members.iter().map(String::as_str));
+        }
     }
     // Owned so the facts can be borrowed mutably below.
-    let names: HashMap<String, HashSet<String>> = names
-        .into_iter()
-        .map(|(l, s)| (l.to_string(), s.into_iter().map(str::to_string).collect()))
-        .collect();
+    let own = |m: HashMap<&str, HashSet<&str>>| -> HashMap<String, HashSet<String>> {
+        m.into_iter()
+            .map(|(l, s)| (l.to_string(), s.into_iter().map(str::to_string).collect()))
+            .collect()
+    };
+    let names = own(names);
+    let members = own(members);
     let empty = HashSet::new();
     for f in all_facts.iter_mut() {
         if !f.references.iter().any(|r| r.value_ref) {
             continue;
         }
         let known = names.get(&f.language).unwrap_or(&empty);
+        // A bare name some struct or class of the language declares as a
+        // data member is, inside a member function, that field far more
+        // often than a function (`result.height = height`).
+        let fields = members.get(&f.language).unwrap_or(&empty);
         let locals = crate::scope::FileLocals::build(f);
         let defs = std::mem::take(&mut f.definitions);
         f.references.retain(|r| {
-            !r.value_ref || (known.contains(leaf(r)) && !shadowed(&locals, &defs, r))
+            !r.value_ref
+                || (known.contains(leaf(r))
+                    && !(r.receiver_hint.is_empty() && fields.contains(&r.name))
+                    && !shadowed(&locals, &defs, r))
         });
         f.definitions = defs;
     }
@@ -409,6 +426,29 @@ mod tests {
         prune(&mut all);
         assert_eq!(all[0].references.len(), 1);
         assert!(!all[0].references[0].value_ref);
+    }
+
+    /// WS26: in C/C++ a bare value-position name some struct or class
+    /// declares as a data member is that field (`result.height = height`
+    /// inside a member function), not a same-named function; a name only
+    /// functions carry, or one written through a scope, is kept.
+    #[test]
+    fn a_bare_name_carried_by_a_data_member_is_not_a_reference() {
+        let mut a = facts(
+            "cpp",
+            1,
+            &["height", "cmp"],
+            vec![vref("height", ""), vref("cmp", ""), vref("height", "Img")],
+        );
+        a.data_members = vec!["height".into()];
+        let mut all = vec![a];
+        prune(&mut all);
+        let kept: Vec<(&str, &str)> = all[0]
+            .references
+            .iter()
+            .map(|r| (r.receiver_hint.as_str(), r.name.as_str()))
+            .collect();
+        assert_eq!(kept, vec![("", "cmp"), ("Img", "height")]);
     }
 
     #[test]

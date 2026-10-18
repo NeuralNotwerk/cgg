@@ -2477,6 +2477,92 @@ fun main() {\n\
     assert_eq!(g.matches("ref|").count(), 4, "{g}");
 }
 
+/// WS26 (gap 25): a C function named as a value — a callback table, an
+/// assignment, an argument, a return, `&f` — is a reference: live in the
+/// dead-code report and a `ref` edge under `--reference-edges`, with the
+/// default graph untouched. A function-pointer parameter of the same
+/// name, a string and another file's function named like this file's
+/// variable are not references.
+#[test]
+fn c_function_values_are_references() {
+    let tmp = TempDir::new().unwrap();
+    let src = "struct ops { int (*open)(void); };\n\
+static int my_open(void) { return 0; }\n\
+static int assigned(void) { return 1; }\n\
+static int returned_fn(void) { return 2; }\n\
+static int addr_of(void) { return 3; }\n\
+static int shadowed(void) { return 4; }\n\
+static int in_string(void) { return 5; }\n\
+static int orphan(void) { return 6; }\n\
+static const struct ops table = { .open = my_open };\n\
+static int limit = 3;\n\
+static int (*pick(void))(void) { return returned_fn; }\n\
+static void pass(int (*f)(void)) { (void)f; }\n\
+static void pass_int(int x) { (void)x; }\n\
+static void take(int (*shadowed)(void)) { pass(shadowed); }\n\
+int main(void) {\n\
+    struct ops o;\n\
+    o.open = assigned;\n\
+    pass(&addr_of);\n\
+    puts(\"in_string\");\n\
+    pass_int(limit);\n\
+    (void)table;\n\
+    pick();\n\
+    take(0);\n\
+    return o.open();\n\
+}\n";
+    write(tmp.path(), "ops.c", src.as_bytes());
+    write(tmp.path(), "other.c", b"int limit(void) { return 9; }\n");
+
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in ["my_open", "assigned", "returned_fn", "addr_of"] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} is referenced as a value, findings: {dead:?}"
+        );
+    }
+    for gone in ["shadowed", "in_string", "orphan", "limit"] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone} has no reference, findings: {dead:?}"
+        );
+    }
+
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .arg("-o")
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain).unwrap().matches("ref|").count(),
+        0
+    );
+    let refs = tmp.path().join("r.mmd");
+    cgg()
+        .args(["--reference-edges", "-o"])
+        .arg(&refs)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&refs).unwrap();
+    assert_eq!(g.matches("ref|").count(), 3, "{g}");
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------

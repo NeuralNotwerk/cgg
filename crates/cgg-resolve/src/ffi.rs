@@ -132,7 +132,8 @@ pub fn link_ffi(graph: &Graph, facts: &[FileFacts], fanout_cap: usize) -> FfiOut
                 // call made here; an FFI *call* edge would claim one.
                 // A C++ member initializer (`: name(x)`, receiver `super`)
                 // initializes a base or a data member, never calls a label.
-                if r.receiver_hint == cgg_core::VALUE_REF_HINT
+                if r.value_ref
+                    || r.receiver_hint == cgg_core::VALUE_REF_HINT
                     || r.receiver_hint == cgg_core::STRING_REF_HINT
                     || r.receiver_hint == "super"
                 {
@@ -955,6 +956,14 @@ mod tests {
             context: "atexit".into(),
             site_line: 2,
             site_byte: 20,
+            ..Default::default()
+        });
+        // WS26: a value-position name (`ops.fini = _fini`) is not a call.
+        facts.references.push(cgg_core::RefRecord {
+            name: "_fini".into(),
+            value_ref: true,
+            site_line: 3,
+            site_byte: 30,
             ..Default::default()
         });
         let out = link_ffi(&g, &[facts], 5);

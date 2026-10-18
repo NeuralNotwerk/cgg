@@ -560,6 +560,13 @@ pub struct FileFacts {
     /// only add precision, never drop a call 0.8.5 resolved.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub untyped_receivers: Vec<(u32, String, String)>,
+
+    /// Data member names the file's structs and classes declare, recorded
+    /// with value-position sites (C, C++). A bare value-position name one
+    /// of them carries is read as that field, not a function
+    /// (`cgg_resolve::value_refs::prune`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub data_members: Vec<String>,
     /// Locals whose recorded type (`LocalType`) was read off a call
     /// through a module (`x = mod.Cls(…)`, recorded as the bare `Cls`): the
     /// module the type came from is lost, so a receiver typed through one
@@ -917,6 +924,7 @@ impl FileFacts {
             unified_decls: Vec::new(),
             type_aliases: Vec::new(),
             untyped_receivers: Vec::new(),
+            data_members: Vec::new(),
             module_typed_locals: Vec::new(),
             packages: Vec::new(),
             locals: Vec::new(),

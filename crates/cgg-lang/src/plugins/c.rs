@@ -53,6 +53,11 @@ impl LanguagePlugin for CPlugin {
         };
         w.walk(tree.root_node());
         let mut out = facts;
+        if ctx.reference_sites {
+            let (refs, members) = super::c_values::collect(ctx, tree, source);
+            out.references.extend(refs);
+            out.data_members = members;
+        }
         out.macro_invocations =
             super::c_macro::scan_invocations(tree.root_node(), source, false);
         if ctx.deadcode_signals {

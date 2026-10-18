@@ -368,6 +368,23 @@ otherwise change the default graph.
   and an `x::m` through an untyped variable binds only through its type,
   never by name fan-out. Kotlin now declares the value-reference signal.
 
+- **C and C++ functions used as values were not references (WS26, gap
+  25).** A callback table (`static const struct ops t = { .open =
+  my_open, my_close }`, `{ "rad", math_rad }`), an assignment (`o->cb =
+  f`, `G_OBJECT_CLASS(k)->dispose = f`), an argument outside the
+  registrar verbs (`aeCreateFileEvent(…, handler, …)`), a return, `&f`, a
+  cast (`(free_func)f`) and C++ `&Class::m` left the function with no
+  incoming reference, so it was reported dead. Under `--dead-code` and
+  `--reference-edges` each is now a value reference, bare or through the
+  scope written behind `&`. C and C++ have no scope table yet, so a name
+  any parameter, declarator or assignment of an enclosing function
+  binds, a file- or namespace-scope variable of the file, and a name some
+  struct or class of the language declares as a data member are not
+  recorded or are dropped before resolution. A qualified name without `&`
+  (an enumerator far more often), the arguments of a macro-style call
+  (`EXPECT_CALL(x, M)`) and a string are not read. A value-position name
+  is never a C → asm FFI call.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -600,6 +617,18 @@ the new side, and Zig has no Kotlin):
   `high`): 391 named only through `::`, the rest reached from them. None
   are newly reported, and 4 move `medium` → `low` (an unresolved
   property reference of the same name is now doubt).
+
+WS26 C/C++ (full corpus, none excluded):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 8,112 reference edges are added (C 5,420,
+  C++ 2,692; 7,244 `high`); none are removed.
+- Under `--dead-code`, 13,509 findings leave the report (C 10,627, C++
+  2,882; none `high`): 5,926 named only as values, the rest reached from
+  them. 4,156 previously withheld findings are now reported, all withheld
+  for low root coverage, which the new references lift over the
+  threshold; 318 move `medium` → `low` (an unresolved value reference of
+  the same name is now doubt).
 
 ## [0.11.0] - 2026-10-16
 
