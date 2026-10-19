@@ -1,0 +1,12 @@
+{
+ "old": {
+  "sha256": "2067563fe2784b7cc59cee8c808260b63765ff6eaab75c6a85e9043179f98849",
+  "version": "cgg 0.11.0 (dev gde2b77d)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-zig2-before"
+ },
+ "new": {
+  "sha256": "c78109a98be20e4bee70d432b7db43665d71599de604831e466019e38837abcc",
+  "version": "cgg 0.11.0 (dev gde2b77d+d37cde57)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-zig2-r1"
+ }
+}
