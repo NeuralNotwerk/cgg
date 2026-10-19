@@ -9,7 +9,8 @@ main() ->
     S = {worker, start_link, []},
     spawn(worker, loop, [1]),
     D = {ok, compute},
-    {F, G, S, D}.
+    L = [{worker, unused}],
+    {F, G, S, D, L}.
 
 step(X) -> X.
 helper(X) -> X.

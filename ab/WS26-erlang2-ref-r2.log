@@ -1,0 +1,7 @@
+repos 283 excluded []
+added 623
+  ('erlang', '{"kind": "reference"}', 'high') 573
+  ('erlang', '{"kind": "reference"}', 'medium') 50
+dropped 1316
+  ('erlang', '{"kind": "reference"}', 'high') 1084
+  ('erlang', '{"kind": "reference"}', 'medium') 232

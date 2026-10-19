@@ -1,0 +1,8 @@
+old: cgg 0.11.0 (dev g7933ffc)  sha256=34c017b3d102520908a2da44a35d0c2154e640b3d141693a5e36152b932b917d
+new: cgg 0.11.0 (dev g7933ffc+d422af7f)  sha256=6959cd8297a4967d41ee6f5140b34b5f1c038cfa4864ad1b3206a606e1882092
+old=target/remediation/bins/WS26-erlang2-before
+new=target/remediation/bins/WS26-erlang2-r1
+repos=282 elapsed=377s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 0
+by language: see by_language.tsv
