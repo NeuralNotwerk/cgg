@@ -1,0 +1,8 @@
+old: cgg 0.11.0 (dev gd17767b)  sha256=81a00f271620ef841e0d22df0478475520162e6965db1465568602c943a16e2a
+new: cgg 0.11.0 (dev gd17767b+da66c493)  sha256=12cb00fc278aecf2aa61a832f6d6013fee553383b611d2a6110c9676c09dbd19
+old=target/remediation/bins/WS26-lua-before
+new=target/remediation/bins/WS26-lua-r2
+repos=282 elapsed=239s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 0
+by language: see by_language.tsv

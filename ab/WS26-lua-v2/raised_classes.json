@@ -1,0 +1,1 @@
+{"withheld->reported": [["app-circuitbreaker-kong", "is_successful", "/storage/cgg-test_repos/app-circuitbreaker-kong/kong/plugins/circuit-breaker/handler.lua", 24, "medium", []], ["app-circuitbreaker-kong", "get_circuit_breaker", "/storage/cgg-test_repos/app-circuitbreaker-kong/kong/plugins/circuit-breaker/handler.lua", 29, "medium", []]]}
