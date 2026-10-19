@@ -430,6 +430,20 @@ otherwise change the default graph.
   name, as Ruby's class-level symbols do. `#selector(C.m(_:))` was
   already recorded as the call it is written as.
 
+- **Dart tear-offs were not references (WS26, gap 25).**
+  `onPressed: _handleTap`, `xs.map(parse)`, `addListener(_onChanged)`,
+  `final f = obj.method`, `final g = Foo.new`, `Foo.named`, an assignment
+  and a returned value left the function with no reference, so it was
+  reported dead. Under `--dead-code` and `--reference-edges` each is now
+  a value reference, bare or through `this`, a type or a variable
+  (`Foo.new` as the construction `Foo(…)`). A name a class declares as a
+  field or getter (`FileFacts::data_members`) is a read, not a tear-off,
+  bare or through a receiver (`tester.view`); locals are dropped through
+  the Dart locals; an `x.m` value through an untyped variable binds only
+  through its type, never by name fan-out; and a tear-off in a field
+  initializer credits only its own file's callables, as Ruby's and
+  Swift's do.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -705,6 +719,16 @@ WS26 Swift (full corpus, none excluded):
   findings in one repository are now reported, all withheld for low root
   coverage, which the new references lift over the threshold; 6 move
   `medium` → `low`.
+
+WS26 Dart (full corpus, none excluded; `zig-zig`, which has no Dart,
+timed out once under host load in the `--reference-edges` comparison):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 3,408 Dart reference edges are added (3,266
+  `high`); none are removed.
+- Under `--dead-code`, 2,251 Dart findings leave the report (none `high`;
+  1,934 in Flutter, mostly widget callbacks and listeners). None are newly
+  reported, and 23 move `medium` → `low`.
 
 ## [0.11.0] - 2026-10-16
 

@@ -7253,9 +7253,10 @@ fn try_resolve_ref(
             && !r.paren_less
             // A Go method value (`s.handle` passed or stored) through an
             // untyped variable is a field read far more often than a
-            // method, and a Kotlin `x::m` or a Swift `x.m` value as often
-            // a property: each binds only through a typed receiver (WS26).
-            && (!r.value_ref || !matches!(lang, "go" | "kotlin" | "swift"))
+            // method, and a Kotlin `x::m` or a Swift or Dart `x.m` value as
+            // often a property: each binds only through a typed receiver
+            // (WS26).
+            && (!r.value_ref || !matches!(lang, "go" | "kotlin" | "swift" | "dart"))
             // A typed receiver is never fanned out by name: its type's
             // own lookup (step 4) was the answer, hit or miss.
             && !r.typed_receiver

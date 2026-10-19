@@ -2816,6 +2816,80 @@ func main() {\n\
     );
 }
 
+/// WS26 (gap 25): a Dart tear-off (`onPressed: handleTap`,
+/// `xs.map(parse)`, `Counter.new`) is a reference, with the default graph
+/// untouched. A parameter of the same name and a function named like a
+/// field that is only read are not.
+#[test]
+fn dart_tear_offs_are_references() {
+    let tmp = TempDir::new().unwrap();
+    let src = "class Counter {\n\
+  int count = 0;\n\
+  int get size => count;\n\
+  Counter();\n\
+  Counter.named();\n\
+  void handleTap() {}\n\
+  void unused() {}\n\
+  void build(List<int> xs) {\n\
+    final b = Button(onPressed: handleTap);\n\
+    xs.map(parse);\n\
+    final g = Counter.new;\n\
+    final h = Counter.named;\n\
+    print(b); print(g); print(h); print(size);\n\
+  }\n\
+}\n\
+class Button { Button({required Function onPressed}); }\n\
+int parse(int x) => x;\n\
+int count() => 0;\n\
+void shadowed() {}\n\
+void orphan() {}\n\
+void invoke(Function f) => f();\n\
+void use(Function shadowed) { invoke(shadowed); }\n\
+void main() {\n\
+  Counter().build([1]);\n\
+  use(() {});\n\
+}\n\
+";
+    write(tmp.path(), "main.dart", src.as_bytes());
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in ["Counter::handleTap", "parse"] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} is referenced, findings: {dead:?}"
+        );
+    }
+    for gone in ["Counter::unused", "orphan", "shadowed", "count"] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone} has no reference, findings: {dead:?}"
+        );
+    }
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .arg("-o")
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain).unwrap().matches("ref|").count(),
+        0
+    );
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------

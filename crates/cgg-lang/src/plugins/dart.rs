@@ -24,7 +24,7 @@ impl LanguagePlugin for DartPlugin {
 
     fn extract(
         &self,
-        _ctx: &crate::ExtractCtx<'_>,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -32,6 +32,7 @@ impl LanguagePlugin for DartPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "dart");
         let mut w = DartWalker {
+            reference_sites: ctx.reference_sites,
             source,
             facts: &mut facts,
             scope: Vec::new(),
@@ -56,6 +57,9 @@ impl LanguagePlugin for DartPlugin {
 }
 
 struct DartWalker<'a> {
+    /// Record tear-offs as value references; see
+    /// `crate::ExtractCtx::reference_sites`.
+    reference_sites: bool,
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
@@ -77,6 +81,9 @@ impl<'a> DartWalker<'a> {
 
     fn walk(&mut self, node: Node) {
         crate::closure_types::record("dart", node, self.source, self.facts);
+        if self.reference_sites {
+            self.capture_value_positions(node);
+        }
         match node.kind() {
             // A mixin owns its members as a class does.
             "class_declaration" | "mixin_declaration" => {
@@ -231,6 +238,138 @@ impl<'a> DartWalker<'a> {
             _ => {}
         }
         self.walk_children(node);
+    }
+
+    /// Tear-offs, when the run records reference sites: a function,
+    /// method or constructor named without being called — a call's
+    /// argument (`onPressed: _handleTap`, `xs.map(parse)`), a variable's,
+    /// field's or assignment's value (`final f = obj.method`,
+    /// `final g = Foo.new`), a returned value. Recorded the way the call
+    /// would be — `f` bare, `m` through `this`, a type or a variable,
+    /// `Foo.new` as the construction `Foo(…)` — marked `value_ref`. A
+    /// field or getter a class declares is recorded as data
+    /// (`FileFacts::data_members`), so a bare read of one is not a
+    /// function; locals are dropped through the Dart locals (both in
+    /// `value_refs::prune`).
+    fn capture_value_positions(&mut self, node: Node) {
+        let values: Vec<Node> = match node.kind() {
+            "arguments" => {
+                let mut c = node.walk();
+                node.named_children(&mut c)
+                    .filter_map(|a| match a.kind() {
+                        "named_argument" => a.named_child(
+                            (a.named_child_count() as u32).saturating_sub(1),
+                        ),
+                        _ => Some(a),
+                    })
+                    .collect()
+            }
+            "initialized_variable_definition" | "initialized_identifier" => {
+                node.child_by_field_name("value").into_iter().collect()
+            }
+            "assignment_expression" => {
+                node.child_by_field_name("right").into_iter().collect()
+            }
+            "return_statement" => node.named_child(0).into_iter().collect(),
+            "class_member" => {
+                self.record_members(node);
+                return;
+            }
+            _ => return,
+        };
+        for v in values {
+            self.value_ref_in(v);
+        }
+    }
+
+    /// The fields and getters a class member declares, as data.
+    fn record_members(&mut self, member: Node) {
+        let mut names: Vec<String> = Vec::new();
+        let mut c = member.walk();
+        for ch in member.named_children(&mut c) {
+            match ch.kind() {
+                "declaration" => {
+                    let mut dc = ch.walk();
+                    for list in ch.named_children(&mut dc).filter(|n| {
+                        matches!(
+                            n.kind(),
+                            "initialized_identifier_list"
+                                | "static_final_declaration_list"
+                        )
+                    }) {
+                        let mut lc = list.walk();
+                        for item in list.named_children(&mut lc) {
+                            let name = item
+                                .child_by_field_name("name")
+                                .or_else(|| item.named_child(0))
+                                .filter(|n| n.kind() == "identifier");
+                            if let Some(n) = name {
+                                names.push(self.text(n).to_string());
+                            }
+                        }
+                    }
+                }
+                "method_declaration" => {
+                    let sig = ch.child_by_field_name("signature");
+                    let getter = sig.and_then(|s| {
+                        let mut sc = s.walk();
+                        s.named_children(&mut sc)
+                            .find(|n| n.kind() == "getter_signature")
+                    });
+                    if let Some(name) = getter.and_then(|g| g.child_by_field_name("name"))
+                    {
+                        names.push(self.text(name).to_string());
+                    }
+                }
+                _ => {}
+            }
+        }
+        for n in names {
+            if !self.facts.data_members.contains(&n) {
+                self.facts.data_members.push(n);
+            }
+        }
+    }
+
+    fn value_ref_in(&mut self, v: Node) {
+        let (name_node, recv) = match v.kind() {
+            "identifier" => (v, String::new()),
+            // `Foo.new`: the unnamed constructor, as `Foo(…)` calls it.
+            "constructor_tearoff" => {
+                let Some(t) = v.named_child(0).filter(|t| t.kind() == "type_identifier")
+                else {
+                    return;
+                };
+                (t, String::new())
+            }
+            "member_expression" => {
+                let (Some(obj), Some(prop)) = (
+                    v.child_by_field_name("object"),
+                    v.child_by_field_name("property"),
+                ) else {
+                    return;
+                };
+                let recv = match obj.kind() {
+                    "this" => "this".to_string(),
+                    "identifier" => self.text(obj).to_string(),
+                    _ => return,
+                };
+                (prop, recv)
+            }
+            _ => return,
+        };
+        let name = self.text(name_node).to_string();
+        if name.is_empty() {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: recv,
+            site_line: (name_node.start_position().row as u32) + 1,
+            site_byte: name_node.start_byte() as u32,
+            value_ref: true,
+            ..Default::default()
+        });
     }
 
     fn walk_children(&mut self, node: Node) {
@@ -846,5 +985,75 @@ mod tests {
         assert!(calls.contains(&("m", "b")), "{calls:?}");
         assert!(calls.contains(&("g", "")), "{calls:?}");
         assert!(!calls.iter().any(|(n, _)| n.contains('<')), "{calls:?}");
+    }
+
+    fn extract_with_refs(src: &str, refs: bool) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_dart::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        DartPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(refs),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.dart"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    fn value_refs(f: &FileFacts) -> Vec<(String, String)> {
+        f.references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
+            .collect()
+    }
+
+    /// WS26 (gap 25): a tear-off — a named argument's or an argument's
+    /// value, an initializer, an assignment, a return, `Foo.new`,
+    /// `Foo.named` — is a reference site, only when the run asks for them;
+    /// a string is not, and a class's fields and getters are data.
+    #[test]
+    fn tear_offs_are_reference_sites() {
+        let src = "class W {\n\
+                     final int count = 0;\n\
+                     final cb = _onField;\n\
+                     int get size => 1;\n\
+                     void build() {\n\
+                       var b = ElevatedButton(onPressed: _handleTap);\n\
+                       xs.map(parse);\n\
+                       final f = obj.method;\n\
+                       final g = Foo.new;\n\
+                       final h = Foo.named;\n\
+                       final t = this.own;\n\
+                       _x = helper;\n\
+                       log('named');\n\
+                       return made;\n\
+                     }\n\
+                   }\n";
+        let f = extract_with_refs(src, true);
+        let got = value_refs(&f);
+        for (recv, name) in [
+            ("", "_onField"),
+            ("", "_handleTap"),
+            ("", "parse"),
+            ("obj", "method"),
+            ("", "Foo"),
+            ("Foo", "named"),
+            ("this", "own"),
+            ("", "helper"),
+            ("", "made"),
+        ] {
+            assert!(
+                got.contains(&(recv.to_string(), name.to_string())),
+                "missing {recv}.{name} in {got:?}"
+            );
+        }
+        assert!(!got.iter().any(|(_, n)| n == "named'"), "{got:?}");
+        let mut members = f.data_members.clone();
+        members.sort();
+        assert_eq!(members, vec!["cb", "count", "size"]);
+        let plain = extract_with_refs(src, false);
+        assert!(value_refs(&plain).is_empty());
+        assert!(plain.data_members.is_empty());
     }
 }

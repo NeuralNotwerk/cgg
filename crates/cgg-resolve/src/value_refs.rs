@@ -73,12 +73,17 @@ pub fn prune(all_facts: &mut [FileFacts]) {
         // data member is, inside a member function, that field far more
         // often than a function (`result.height = height`).
         let fields = members.get(&f.language).unwrap_or(&empty);
+        // Where a member read through a receiver is a field or getter read
+        // (`tester.view`, `game.paused`), a member some class declares as
+        // data is not a tear-off either.
+        let member_reads = MEMBER_DATA_READ_LANGS.contains(&f.language.as_str());
         let locals = crate::scope::FileLocals::build(f);
         let defs = std::mem::take(&mut f.definitions);
         f.references.retain(|r| {
             !r.value_ref
                 || (known.contains(leaf(r))
-                    && !(r.receiver_hint.is_empty() && fields.contains(&r.name))
+                    && !((r.receiver_hint.is_empty() || member_reads)
+                        && fields.contains(&r.name))
                     && !shadowed(&locals, &defs, r))
         });
         f.definitions = defs;
@@ -106,6 +111,11 @@ fn shadowed(
         .iter()
         .any(|d| d.simple_name == r.name && decl <= d.start_byte && d.start_byte < start)
 }
+
+/// Languages whose `x.m` in value position reads a field or getter far
+/// more often than it tears off a method: a name some class declares as
+/// data (`FileFacts::data_members`) is dropped through a receiver too.
+const MEMBER_DATA_READ_LANGS: &[&str] = &["dart"];
 
 /// Whether a definition is declared without a parameter list: the text
 /// after its name in the signature (past a `[…]` type-parameter group)
@@ -449,6 +459,27 @@ mod tests {
             .map(|r| (r.receiver_hint.as_str(), r.name.as_str()))
             .collect();
         assert_eq!(kept, vec![("", "cmp"), ("Img", "height")]);
+    }
+
+    /// WS26: in Dart a member read through a receiver that names a field
+    /// or getter some class declares is that read, not a tear-off; in C++
+    /// only a bare name is filtered (`&Class::m` names a method).
+    #[test]
+    fn a_dart_member_read_naming_a_data_member_is_not_a_reference() {
+        let run = |lang: &str| -> Vec<String> {
+            let mut a = facts(
+                lang,
+                1,
+                &["view", "handler"],
+                vec![vref("view", "tester"), vref("handler", "h")],
+            );
+            a.data_members = vec!["view".into()];
+            let mut all = vec![a];
+            prune(&mut all);
+            all[0].references.iter().map(|r| r.name.clone()).collect()
+        };
+        assert_eq!(run("dart"), vec!["handler"]);
+        assert_eq!(run("cpp"), vec!["view", "handler"]);
     }
 
     #[test]
