@@ -1,0 +1,14 @@
+old: cgg 0.11.0 (dev gfcf986b)  sha256=f5180a824c3b43a3d15bae52b79bf3c2c29d75b378fbd8ae80397279d5ab1187
+new: cgg 0.11.0 (dev gfcf986b+df378879)  sha256=1b1dcd36a4aeee23b1883920b1c4c786cf4ef257c0b42194c6125a042d50ff99
+old=target/remediation/bins/WS26-clj3-before
+new=target/remediation/bins/WS26-clj3-r2
+repos=282 elapsed=232s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 6
+  app-cljdoc-pedestal: edges 1395->1438 (-0 +43 ~0) callables 1306->1306 unresolved 685->693 files 216->216 deadhigh 0->0 
+  app-lipas-reitit: edges 4443->4843 (-5 +405 ~0) callables 4317->4317 unresolved 4104->3995 files 724->724 deadhigh 0->0 
+  app-metabase-compojure: edges 206735->211231 (-59 +4555 ~4) callables 94147->94147 unresolved 388288->387164 files 15860->15860 deadhigh 0->0 
+  app-riemann-httpkit: edges 1012->1059 (-9 +56 ~0) callables 1147->1147 unresolved 2206->2054 files 153->153 deadhigh 0->0 
+  clojure-compojure: edges 128->135 (-0 +7 ~0) callables 138->138 unresolved 138->133 files 12->12 deadhigh 0->0 
+  clojure-ring: edges 457->463 (-0 +6 ~0) callables 642->642 unresolved 780->777 files 82->82 deadhigh 0->0 
+by language: see by_language.tsv

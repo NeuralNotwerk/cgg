@@ -1,0 +1,5 @@
+(ns lib.impl)
+(defn- helper [] 1)
+(defn exported-fn [x] (helper) x)
+(defn reexported-at-top [] 2)
+(defn never [] 3)

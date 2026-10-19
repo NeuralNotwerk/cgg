@@ -1,0 +1,10 @@
+old: cgg 0.11.0 (dev gfcf986b)  sha256=f5180a824c3b43a3d15bae52b79bf3c2c29d75b378fbd8ae80397279d5ab1187
+new: cgg 0.11.0 (dev gfcf986b+db00e454)  sha256=ab1bb5f1afbeec1298504d741e8e716bdf6674b2003f51d33e9e70e045be866f
+old=target/remediation/bins/WS26-clj3-before
+new=target/remediation/bins/WS26-clj3-r1
+repos=282 elapsed=367s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 1
+  app-metabase-compojure: edges 206735->210476 (-0 +3741 ~0) callables 94147->94147 unresolved 388288->388256 files 15860->15860 deadhigh 0->0 
+by language: see by_language.tsv
+
