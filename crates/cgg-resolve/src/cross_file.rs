@@ -5827,6 +5827,13 @@ fn try_resolve_ref(
             crate::modules::Scoped::NoCtor => return None,
         }
     }
+    // A Zig value through a module, a type or `Self` names that
+    // container's declaration: what the module lookup above did not bind
+    // (`constants.verify` a constant, not a function) binds nothing — never
+    // a same-named function elsewhere.
+    if lang == "zig" && r.value_ref && !r.receiver_hint.is_empty() {
+        return None;
+    }
     // WS14b: a Perl method call on the caller's invocant (`$self->m()`)
     // is the caller's package's `m` or one it inherits; inherited from a
     // base outside the tree, external.
@@ -6196,6 +6203,13 @@ fn try_resolve_ref(
                         *external_out = Some(import.clone());
                         return None;
                     }
+                }
+                // A value through an alias whose module declares no such
+                // function (`const replica = fixtures.replica;`, a
+                // constant) names nothing — never a same-named function
+                // elsewhere.
+                if r.value_ref {
+                    return None;
                 }
             }
             // Try just the name itself as a qualified name. Several

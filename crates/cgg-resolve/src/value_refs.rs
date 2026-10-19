@@ -146,6 +146,12 @@ fn zig_value_in_scope(
     imports: &[cgg_core::ImportRecord],
 ) -> bool {
     if r.receiver_hint.is_empty() {
+        // A capitalized bare name is a type (`writeInt(WORD, …)`) unless
+        // this file defines a function of that name (a C extern,
+        // `LLVMContextCreate`).
+        if r.name.starts_with(|c: char| c.is_ascii_uppercase()) {
+            return defs.iter().any(|d| d.simple_name == r.name);
+        }
         return defs.iter().any(|d| d.simple_name == r.name)
             || imports.iter().any(|i| {
                 matches!(i.kind.as_str(), "alias" | "import-member") && i.alias == r.name

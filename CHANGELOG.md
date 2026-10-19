@@ -565,13 +565,18 @@ otherwise change the default graph.
   above all — left the function with no reference, so it was reported
   dead. Under `--dead-code` and `--reference-edges` each is now a value
   reference: a bare name binds only a declaration of its own file or one a
-  file-level alias imports, never another file's function by name; a
-  member binds through `Self`, a type or an `@import`ed file of the tree
-  (`mod.f`), never through a package (`std.x`) or a variable (`x.cb` is a
-  field read and is not recorded). Locals are pruned through the Zig
-  locals spec. A value at container level credits its own file's
-  functions, or, through an imported file (`.free = mod.free`), that
-  file's.
+  file-level alias imports, never another file's function by name, and a
+  capitalized bare name (`writeInt(WORD, …)`) only a function the file
+  defines (a C extern, `LLVMContextCreate`); a member binds only what the
+  `@import` or container lookup finds — through `Self`, a type, an import
+  or a container-level declaration, every later segment a type (a
+  namespace after an import, `std.debug.print`) — and never falls back to
+  a same-named function (`constants.verify`, a constant, binds nothing;
+  so does `const replica = fixtures.replica;`). Through a local
+  (`t.rows`) a member is a field read and is not recorded. Locals are
+  pruned through the Zig locals spec. A value at container level credits
+  its own file's functions, or, through an imported file
+  (`.free = mod.free`), that file's.
 
 - **Clojure function values were not references (WS26, gap 25).**
   `(map f xs)`, `(swap! a f)`, `(partial f …)`, `(comp f g)`, a bare step
@@ -921,10 +926,10 @@ WS26 Erlang `{M, F}` follow-up (full corpus, none excluded):
 WS26 Zig (full corpus, none excluded):
 
 - The default graph is unchanged in every repository.
-- Under `--reference-edges`, 1,661 Zig reference edges are added (1,601
-  `high`); none are removed.
-- Under `--dead-code`, 3,506 Zig findings leave the report (none `high`;
-  Zig 1,557, Ghostty 1,058, TigerBeetle 678, http.zig 150, ZLS 41,
+- Under `--reference-edges`, 1,583 Zig reference edges are added, all
+  `high`; none are removed.
+- Under `--dead-code`, 3,485 Zig findings leave the report (none `high`;
+  Zig 1,548, Ghostty 1,052, TigerBeetle 676, http.zig 147, ZLS 40,
   libxev 22), none are added, and 68 move `medium` → `low`.
 
 WS26 Clojure (full corpus, none excluded):

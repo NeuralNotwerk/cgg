@@ -3546,6 +3546,47 @@ pub fn elsewhere() void {}\n\
     );
 }
 
+/// A Zig value through an import binds only a function of the imported
+/// file: `constants.verify` (a constant there) binds nothing, never the
+/// caller's own `verify`; nor does an alias of a constant
+/// (`const limit = constants.limit;`) bind another file's `limit`. A
+/// capitalized bare name is a function only where this file defines one.
+#[test]
+fn zig_import_qualified_values_bind_only_in_the_imported_file() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "constants.zig",
+        b"pub const verify = true;\npub fn check() void {}\npub const limit: u8 = 1;\n",
+    );
+    write(tmp.path(), "other.zig", b"pub fn limit() void {}\n");
+    write(
+        tmp.path(),
+        "level.zig",
+        b"const constants = @import(\"constants.zig\");\n\
+const Ctx = struct { fn verify(self: Ctx) void { _ = self; } };\n\
+const limit = constants.limit;\n\
+fn CapFn() void {}\n\
+fn uses() void { const v = .{ .limit = limit, .cap = CapFn, .w = WORD }; _ = v; }\n\
+fn assert(b: bool) void { _ = b; }\n\
+pub fn contains() void { assert(constants.verify); const c = &constants.check; _ = c; }\n",
+    );
+    let out = tmp.path().join("g.mmd");
+    cgg()
+        .args(["--reference-edges", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&out).unwrap();
+    assert_eq!(
+        g.matches("ref|").count(),
+        2,
+        "only `&constants.check` and `CapFn`:\n{g}"
+    );
+    assert!(g.contains("[\"check\"]"), "{g}");
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------

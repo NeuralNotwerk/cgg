@@ -94,9 +94,16 @@ struct ZigWalker<'a> {
     decl_names: std::collections::HashSet<String>,
 }
 
-/// Every `const`/`var` declared outside a function body.
+/// The names declared at container level (outside any function, test or
+/// block): a value through one of them names a declaration of that
+/// container — or, through a value, nothing the resolver will bind (a
+/// qualified Zig value binds only what the module or container lookup
+/// does).
 fn declared_names(n: Node, src: &[u8], out: &mut std::collections::HashSet<String>) {
-    if n.kind() == "function_declaration" {
+    if matches!(
+        n.kind(),
+        "function_declaration" | "test_declaration" | "block"
+    ) {
         return;
     }
     if n.kind() == "variable_declaration"
@@ -399,13 +406,22 @@ impl<'a> ZigWalker<'a> {
                     return;
                 };
                 let recv = self.text(obj).to_string();
-                let head = recv.split('.').next().unwrap_or("");
-                let plain = recv.split('.').all(|seg| {
+                let segs: Vec<&str> = recv.split('.').collect();
+                let plain = segs.iter().all(|seg| {
                     !seg.is_empty()
                         && seg.chars().all(|c| c.is_alphanumeric() || c == '_')
                 });
-                let declared = head.starts_with(|c: char| c.is_ascii_uppercase())
-                    || self.decl_names.contains(head);
+                let is_type = |s: &str| s.starts_with(|c: char| c.is_ascii_uppercase());
+                // The head a type, `Self`, an import or an alias of one;
+                // every later segment a type (`mod.Type.f`). `a.b.c`
+                // through a value (`build_config.version_string.ptr`) is a
+                // field read.
+                // Through an import a lowercase segment is a namespace
+                // (`std.debug.print`); what the import does not declare as a
+                // function the resolver refuses.
+                let import_head = self.imports_alias(segs[0]);
+                let declared = (is_type(segs[0]) || self.decl_names.contains(segs[0]))
+                    && (import_head || segs[1..].iter().all(|s| is_type(s)));
                 if plain && declared {
                     let name = self.text(m).to_string();
                     self.push_value(m, name, recv);
@@ -418,6 +434,14 @@ impl<'a> ZigWalker<'a> {
             }
             _ => {}
         }
+    }
+
+    /// `name` is bound by `const name = @import(…)` in this file.
+    fn imports_alias(&self, name: &str) -> bool {
+        self.facts
+            .imports
+            .iter()
+            .any(|i| i.kind == "import" && i.alias == name)
     }
 
     fn push_value(&mut self, site: Node, name: String, recv: String) {
@@ -903,6 +927,36 @@ mod tests {
             ]
         );
         assert!(values(&extract("fn f() void { g(h); }\n")).is_empty());
+        // A member through a local (`t.rows`) is a field read and not
+        // recorded; through a container-level const or an import it is
+        // recorded and bound only by the module or container lookup.
+        let f = extract_with_refs(
+            "const std = @import(\"std\");\n\
+             const build_config = @import(\"build_config.zig\");\n\
+             const helpers = struct { fn h() void {} };\n\
+             const version = \"1\";\n\
+             fn run(t: T) void {\n\
+             \x20   g(build_config.version_string.ptr, t.rows, version.len, Action);\n\
+             \x20   g(&helpers.h, std.debug.print, build_config.Type.make);\n\
+             }\n",
+        );
+        assert_eq!(
+            values(&f),
+            vec![
+                // Recorded through the import; the resolver binds it only
+                // to a function `ptr` the imported file declares.
+                ("ptr", "build_config.version_string"),
+                // Through a container-level const: recorded, and bound only
+                // if that container declares a function `len`.
+                ("len", "version"),
+                // A capitalized bare name: kept by the prune only when the
+                // file defines a function of that name.
+                ("Action", ""),
+                ("h", "helpers"),
+                ("print", "std.debug"),
+                ("make", "build_config.Type"),
+            ]
+        );
     }
 
     #[test]
