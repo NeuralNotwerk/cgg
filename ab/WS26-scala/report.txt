@@ -1,0 +1,9 @@
+old: cgg 0.11.0 (dev g7f1338e)  sha256=8481fee70cd21db724bc9ae9e47dc1198682acc2138e2b7a05b0e81efe5201ae
+new: cgg 0.11.0 (dev g7f1338e+d61c707a)  sha256=1d316303663c871de0294146ae5472ebfc83902e42f49761ef6a2581da2df83c
+old=target/remediation/bins/WS26-scala-before
+new=target/remediation/bins/WS26-scala-r1
+repos=282 elapsed=392s
+excluded (timeout/error, NOT diffed): 1
+  zig-zig: graph rc old=0 new=124
+repos changed: 0
+by language: see by_language.tsv

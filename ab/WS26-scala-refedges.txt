@@ -1,0 +1,7 @@
+repos 283 excluded []
+added 1871
+  ('scala', '{"kind": "reference"}', 'high') 1504
+  ('scala', '{"kind": "reference"}', 'medium') 367
+dropped 10
+  ('scala', '{"kind": "direct"}', 'high') 6
+  ('scala', '{"kind": "direct"}', 'medium') 4

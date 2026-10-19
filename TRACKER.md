@@ -127,7 +127,7 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 | WS23 | Go receivers, JVM/.NET/C declared returns, JS/TS locals typing, Swift/Groovy overload sets | 10,26,28,16 | DONE (50c0bb9) | | 10 reproduced (no edge at all); after WS19 |
 | WS24 | Kotlin↔Java rules, C#/Swift registrars, JS/TS harness | 14,22,30 | DONE (877b3fa) | | |
 | WS25 | stdlib head split, reflection screen, shebang token match, filename detection | 17,18,19,20 | DONE (7eca3a0) | | |
-| WS26 | Function values as references, per plugin | 25 | IN PROGRESS | 965e15a f5a877c 9df8695 48c4573 26da301 e53e16d 4f3c56d 7248525 7f1338e | JS/TS, .bind, Go, Kotlin, C/C++, Ruby, PHP, Swift, Dart done; next Scala → Lua → rest |
+| WS26 | Function values as references, per plugin | 25 | IN PROGRESS | 965e15a f5a877c 9df8695 48c4573 26da301 e53e16d 4f3c56d 7248525 7f1338e d17767b | JS/TS, .bind, Go, Kotlin, C/C++, Ruby, PHP, Swift, Dart, Scala done; next Lua → rest |
 | WS27 | Locals specs Go/C#/C/C++… | 27 | PLANNED | | watch perf |
 | WS28 | Arity narrowing C#/Kotlin/Swift/Groovy/TS | 29 | PLANNED | | |
 | WS29 | Doc corrections + re-score matrix | — | PLANNED | | orchestrator only |
@@ -155,3 +155,4 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 - (WS26) C/C++: shadow filter stands in for WS27 locals; qualified names without `&` (`ui::byName`) not read; misparsed attribute macros in system headers can leave a stray medium value edge; C value refs to asm labels make no edge.
 - (WS26) Go shadow filter is a stopgap until WS27's Go locals spec; Go method values through chains (`h.svc.Do`) / untyped variables not recorded or bound.
 - (WS26) JS/TS cross-file coincidental by-name roots from top-level value refs (~4.8k findings hidden); narrowing dropped because targets are mostly live via JSX element use, framework hooks and member values cgg can't see. Model JSX element usage first. Import-following half (wip/WS26-js2-v2-src) could ship alone.
+- WS26 Scala open: operator sections and `_.foo` placeholders are not method values (left alone).

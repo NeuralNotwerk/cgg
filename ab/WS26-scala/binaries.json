@@ -1,0 +1,12 @@
+{
+ "old": {
+  "sha256": "8481fee70cd21db724bc9ae9e47dc1198682acc2138e2b7a05b0e81efe5201ae",
+  "version": "cgg 0.11.0 (dev g7f1338e)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-scala-before"
+ },
+ "new": {
+  "sha256": "1d316303663c871de0294146ae5472ebfc83902e42f49761ef6a2581da2df83c",
+  "version": "cgg 0.11.0 (dev g7f1338e+d61c707a)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-scala-r1"
+ }
+}
