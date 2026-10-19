@@ -556,12 +556,23 @@ pub(crate) fn discover(
     // on (a call at module top level). The callee is genuinely used, but
     // nothing in the graph says so. Without this rule every Python, JS,
     // Ruby, Lua and shell entry point reads as dead.
+    //
+    // A Ruby symbol naming a method at class level (`alias show? index?`,
+    // `validate :check`, `alias_method :a, :b`) names the class's own
+    // method: it credits the same-named callables of its file, not every
+    // callable of that name in the tree (WS26).
+    let own_file_sites = own_file_value_sites(facts);
+    let own_file = |u: &AuditUnresolvedCall| {
+        u.src.is_none()
+            && own_file_sites.contains(&(u.file, u.site_byte, u.name.as_str()))
+    };
     let mut toplevel: HashSet<(String, String)> = HashSet::new();
     for u in &graph.unresolved {
         if matches!(
             u.reason,
             UnresolvedReason::NoEnclosingCallable | UnresolvedReason::ValueRefNoEnclosing
-        ) {
+        ) && !own_file(u)
+        {
             let lang = graph
                 .files
                 .get(&u.file)
@@ -579,7 +590,7 @@ pub(crate) fn discover(
                     u.reason,
                     UnresolvedReason::NoEnclosingCallable
                         | UnresolvedReason::ValueRefNoEnclosing
-                )
+                ) && !own_file(u)
             })
             .map(|u| {
                 let lang = graph
@@ -607,6 +618,45 @@ pub(crate) fn discover(
                     RootKind::TopLevelInvocation,
                     "toplevel:invocation",
                     format!("called from module top level at {path}:{}", u.site_line),
+                    &mut seen,
+                );
+            }
+        }
+    }
+
+    if !own_file_sites.is_empty() {
+        let mut by_file_name: HashMap<(cgg_core::FileId, &str), Vec<CallableId>> =
+            HashMap::new();
+        for (id, node) in &graph.callables {
+            if !node.synthetic {
+                by_file_name
+                    .entry((node.file, node.simple_name.as_str()))
+                    .or_default()
+                    .push(*id);
+            }
+        }
+        for u in graph.unresolved.iter().filter(|u| {
+            matches!(
+                u.reason,
+                UnresolvedReason::NoEnclosingCallable
+                    | UnresolvedReason::ValueRefNoEnclosing
+            ) && own_file(u)
+        }) {
+            let Some(ids) = by_file_name.get(&(u.file, u.name.as_str())) else {
+                continue;
+            };
+            let path = graph
+                .files
+                .get(&u.file)
+                .map(|f| f.path.display().to_string())
+                .unwrap_or_default();
+            for id in ids {
+                set.push(
+                    graph,
+                    *id,
+                    RootKind::TopLevelInvocation,
+                    "toplevel:invocation",
+                    format!("named at class or module level at {path}:{}", u.site_line),
                     &mut seen,
                 );
             }
@@ -1027,6 +1077,26 @@ fn collect_rust_reexports(facts: &[FileFacts]) -> HashSet<String> {
         }
     }
     out
+}
+
+/// Languages whose class- or module-level value references name the
+/// declaring file's own callables (see the top-level rule in
+/// [`discover`]).
+const FILE_SCOPED_VALUE_REF_LANGS: &[&str] = &["ruby"];
+
+/// `(file, site byte, name)` of the value-reference records of the
+/// [`FILE_SCOPED_VALUE_REF_LANGS`] files.
+fn own_file_value_sites(facts: &[FileFacts]) -> HashSet<(cgg_core::FileId, u32, &str)> {
+    facts
+        .iter()
+        .filter(|f| FILE_SCOPED_VALUE_REF_LANGS.contains(&f.language.as_str()))
+        .flat_map(|f| {
+            f.references
+                .iter()
+                .filter(|r| r.value_ref)
+                .map(move |r| (f.file, r.site_byte, r.name.as_str()))
+        })
+        .collect()
 }
 
 #[cfg(test)]

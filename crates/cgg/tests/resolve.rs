@@ -2563,6 +2563,100 @@ int main(void) {\n\
     assert_eq!(g.matches("ref|").count(), 3, "{g}");
 }
 
+/// WS26 (gap 25): a Ruby symbol naming a method without calling it —
+/// `&method(:m)`, `K.instance_method(:m)`, `alias_method`'s and `alias`'s
+/// old name — is a reference, with the default graph untouched;
+/// `respond_to?`, `send` and `define_method`'s new name are not, and a
+/// Rails `validate :m` roots `m`.
+#[test]
+fn ruby_method_naming_symbols_are_references() {
+    let tmp = TempDir::new().unwrap();
+    let src = "class Worker\n\
+  alias_method :run_now, :run_later\n\
+  alias newer older\n\
+  def run_later; end\n\
+  def older; end\n\
+  def each_one(x); x; end\n\
+  def asked; end\n\
+  def sent; end\n\
+  def orphan; end\n\
+  def go(items)\n\
+    items.each(&method(:each_one))\n\
+    respond_to?(:asked)\n\
+    send(:sent)\n\
+  end\n\
+end\n\
+class Helper\n\
+  def fmt(x); x; end\n\
+end\n\
+def main\n\
+  Worker.new.go([1])\n\
+  Helper.instance_method(:fmt)\n\
+end\n\
+main\n";
+    write(tmp.path(), "app.rb", src.as_bytes());
+    write(
+        tmp.path(),
+        "user.rb",
+        b"require 'active_record'\nclass User < ActiveRecord::Base\n  validate :check_name\n  def check_name; end\nend\n",
+    );
+    // A same-named method of another file is not what the class-level
+    // symbol names.
+    write(
+        tmp.path(),
+        "other.rb",
+        b"class Other\n  def check_name; end\nend\n",
+    );
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in [
+        "Worker::run_later",
+        "Worker::older",
+        "Worker::each_one",
+        "Helper::fmt",
+        "User::check_name",
+    ] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} is referenced, findings: {dead:?}"
+        );
+    }
+    for gone in [
+        "Worker::asked",
+        "Worker::sent",
+        "Worker::orphan",
+        "Other::check_name",
+    ] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone} has no reference, findings: {dead:?}"
+        );
+    }
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .arg("-o")
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain).unwrap().matches("ref|").count(),
+        0
+    );
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------

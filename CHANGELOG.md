@@ -385,6 +385,21 @@ otherwise change the default graph.
   (`EXPECT_CALL(x, M)`) and a string are not read. A value-position name
   is never a C → asm FFI call.
 
+- **Ruby methods named by symbol were not references (WS26, gap 25).**
+  `items.each(&method(:each_one))`, `obj.method(:m)`,
+  `Klass.instance_method(:m)`, the old name of `alias_method :new, :old`
+  and of `alias new old`, and ActiveModel's `validate :check_dates` left
+  the method with no reference, so it was reported dead. Under
+  `--dead-code` and `--reference-edges` each is now a value reference,
+  through the receiver written (the core methods are listed in
+  `cgg_core::stdlib::RUBY_METHOD_NAMING_CALLS`, the DSL verbs in
+  `cgg_core::frameworks::rules::RUBY_SYMBOL_CALLBACK_VERBS`; the other
+  Rails callbacks were already rooted by the `rails-callbacks` rule). One
+  written at class level credits only its own file's method of that name,
+  never every same-named method in the tree. `send`/`public_send` stay
+  with the reflection screen, and `respond_to?` and `define_method`'s new
+  name are not uses.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -629,6 +644,17 @@ WS26 C/C++ (full corpus, none excluded):
   for low root coverage, which the new references lift over the
   threshold; 318 move `medium` → `low` (an unresolved value reference of
   the same name is now doubt).
+
+WS26 Ruby (full corpus, none excluded):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 13 Ruby reference edges are added (12
+  `high`); most sites are at class level, where they root rather than
+  draw an edge.
+- Under `--dead-code`, 180 Ruby findings leave the report (none `high`;
+  99 named only by a symbol — `validate :m`, `alias`, `alias_method`,
+  `method(:m)` — the rest reached from them). None are newly reported,
+  and one moves `medium` → `low`.
 
 ## [0.11.0] - 2026-10-16
 

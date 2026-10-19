@@ -221,6 +221,20 @@ pub const SCALA_IMPLICIT_PACKAGES: &[&str] = &[
 /// bare calls, and a crate's own `err!` macro is a bare call.
 pub const RUST_UNTYPED_ADAPTER_METHODS: &[&str] = &["ok", "err", "as_deref"];
 
+/// Ruby core methods whose symbol argument names a method of the
+/// receiver (or of `self`), with that argument's position: `method(:m)`,
+/// `obj.public_method(:m)`, `Klass.instance_method(:m)`, and the old name
+/// of `alias_method :new, :old`. `send`/`public_send` call by name and
+/// `respond_to?` only asks; the reflection screen (`dynuse`) reads those.
+pub const RUBY_METHOD_NAMING_CALLS: &[(&str, usize)] = &[
+    ("method", 0),
+    ("public_method", 0),
+    ("singleton_method", 0),
+    ("instance_method", 0),
+    ("public_instance_method", 0),
+    ("alias_method", 1),
+];
+
 /// JavaScript/TypeScript `Function.prototype` methods that return the
 /// function they are called on, bound: `this.m.bind(this)` passed or
 /// stored as a value is a reference to `m`.

@@ -261,6 +261,11 @@ impl<'a> RubyWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            "alias" if self.ctx.reference_sites => {
+                self.record_alias(node);
+                self.walk_children(node);
+                return;
+            }
             // A bare `super`: the enclosing method's own name, up the
             // class's ancestry.
             "super" => {
@@ -444,6 +449,9 @@ impl<'a> RubyWalker<'a> {
                 ..Default::default()
             });
         }
+        if self.ctx.reference_sites {
+            self.record_method_naming(node, &method, &recv, typed_receiver);
+        }
         self.facts.references.push(RefRecord {
             name: method,
             receiver_hint: recv,
@@ -459,6 +467,83 @@ impl<'a> RubyWalker<'a> {
         let extra = super::registrar::capture(&self.ctx, node, self.source, &context);
         self.facts.references.extend(extra);
         self.extract_inline_handler(node, &context);
+    }
+
+    /// `method(:m)`, `obj.method(:m)`, `Klass.instance_method(:m)`,
+    /// `alias_method :new, :old`, `validate :m`: a symbol naming a method
+    /// without calling it (`cgg_core::stdlib::RUBY_METHOD_NAMING_CALLS`,
+    /// `cgg_core::frameworks::rules::RUBY_SYMBOL_CALLBACK_VERBS`), recorded as the
+    /// call through the same receiver it stands for, marked `value_ref`.
+    /// `&method(:m)` is the same call inside a block argument.
+    fn record_method_naming(
+        &mut self,
+        call: Node,
+        method: &str,
+        recv: &str,
+        typed: bool,
+    ) {
+        // `validate :a, :b` in a class body: every symbol argument
+        // (`cgg_core::frameworks::rules::RUBY_SYMBOL_CALLBACK_VERBS`).
+        if recv.is_empty()
+            && cgg_core::frameworks::rules::RUBY_SYMBOL_CALLBACK_VERBS.contains(&method)
+        {
+            let Some(args) = call.child_by_field_name("arguments") else {
+                return;
+            };
+            let mut c = args.walk();
+            let syms: Vec<Node> = args
+                .named_children(&mut c)
+                .filter(|a| a.kind() == "simple_symbol")
+                .collect();
+            for sym in syms {
+                self.push_symbol_ref(sym, String::new(), false);
+            }
+            return;
+        }
+        let Some(&(_, pos)) = cgg_core::stdlib::RUBY_METHOD_NAMING_CALLS
+            .iter()
+            .find(|(m, _)| *m == method)
+        else {
+            return;
+        };
+        let Some(args) = call.child_by_field_name("arguments") else {
+            return;
+        };
+        let mut c = args.walk();
+        let Some(sym) = args
+            .named_children(&mut c)
+            .nth(pos)
+            .filter(|a| a.kind() == "simple_symbol")
+        else {
+            return;
+        };
+        self.push_symbol_ref(sym, recv.to_string(), typed);
+    }
+
+    /// `alias new old`: the old name is used.
+    fn record_alias(&mut self, node: Node) {
+        if let Some(old) = node
+            .child_by_field_name("alias")
+            .filter(|n| matches!(n.kind(), "identifier" | "simple_symbol" | "constant"))
+        {
+            self.push_symbol_ref(old, String::new(), false);
+        }
+    }
+
+    fn push_symbol_ref(&mut self, sym: Node, recv: String, typed: bool) {
+        let name = self.text(sym).trim_start_matches(':').to_string();
+        if name.is_empty() {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: recv,
+            site_line: (sym.start_position().row as u32) + 1,
+            site_byte: sym.start_byte() as u32,
+            typed_receiver: typed,
+            value_ref: true,
+            ..Default::default()
+        });
     }
 
     /// Name the `do … end` block of a route registration so it can be a
@@ -676,5 +761,82 @@ mod tests {
         // Near miss: `new` on a value is an ordinary call.
         assert!(refs.contains(&("new", "k", false)), "{refs:?}");
         assert!(!refs.iter().any(|r| r.0 == "super"), "{refs:?}");
+    }
+
+    fn extract_with_refs(src: &str, refs: bool) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_ruby::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        RubyPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(refs),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.rb"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    fn value_refs(f: &FileFacts) -> Vec<(String, String)> {
+        f.references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
+            .collect()
+    }
+
+    /// WS26 (gap 25): a symbol naming a method without calling it —
+    /// `method(:m)`, `&method(:m)`, `obj.method(:m)`,
+    /// `K.instance_method(:m)`, the old name of `alias_method` and of
+    /// `alias` — is a reference site, only when the run asks for them.
+    /// `send`, `respond_to?`, `define_method`'s new name and the new name
+    /// of an alias are not.
+    #[test]
+    fn method_naming_symbols_are_reference_sites() {
+        let src = "class A\n\
+                     alias_method :fresh, :old_one\n\
+                     alias newer older\n\
+                     def go(obj)\n\
+                       xs.each(&method(:each_one))\n\
+                       h = method(:plain)\n\
+                       obj.method(:through)\n\
+                       B.instance_method(:inst)\n\
+                       send(:sent)\n\
+                       respond_to?(:asked)\n\
+                       define_method(:made) { }\n\
+                       puts :sym\n\
+                     end\n\
+                   end\n";
+        let got = value_refs(&extract_with_refs(src, true));
+        let want = [
+            ("", "old_one"),
+            ("", "older"),
+            ("", "each_one"),
+            ("", "plain"),
+            ("obj", "through"),
+            ("B", "inst"),
+        ];
+        for (recv, name) in want {
+            assert!(
+                got.contains(&(recv.to_string(), name.to_string())),
+                "missing {recv}.{name} in {got:?}"
+            );
+        }
+        assert_eq!(got.len(), want.len(), "{got:?}");
+        assert!(value_refs(&extract_with_refs(src, false)).is_empty());
+    }
+
+    /// A class-body callback DSL (`validate :a, :b`) names its symbols'
+    /// methods; the same verb through a receiver is an ordinary call.
+    #[test]
+    fn symbol_callback_dsls_name_methods() {
+        let src = "class U\n  validate :check_a, :check_b\n  def go\n    form.validate(:not_one)\n  end\nend\n";
+        let got = value_refs(&extract_with_refs(src, true));
+        assert_eq!(
+            got,
+            vec![
+                (String::new(), "check_a".to_string()),
+                (String::new(), "check_b".to_string())
+            ]
+        );
     }
 }

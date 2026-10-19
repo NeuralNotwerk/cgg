@@ -82,6 +82,13 @@ const HTTP_VERBS: &[&str] = &[
     "get", "post", "put", "delete", "patch", "head", "options", "trace", "connect",
 ];
 
+/// Ruby class-body DSL calls whose symbol arguments name methods of the
+/// class, read as value references when the run records reference sites
+/// (`validate :check_dates`, ActiveModel). Not registrar verbs: a
+/// registrar captures every call of the verb, and `validate(x, y)` is an
+/// ordinary method call far more often than the DSL.
+pub const RUBY_SYMBOL_CALLBACK_VERBS: &[&str] = &["validate"];
+
 /// Web-framework traits whose method the framework calls on a handler's
 /// return value: axum/poem `IntoResponse`, actix-web/rocket `Responder`.
 pub const RESPONSE_TRAITS: &[&str] = &["IntoResponse", "Responder"];
