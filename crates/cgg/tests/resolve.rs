@@ -3211,6 +3211,81 @@ fn clojure_bare_calls_reach_only_referred_vars() {
     assert!(!edge_to("h.refd/not-picked"), "not referred:\n{g}");
 }
 
+/// Clojure: a `#_` discarded form is nothing; a type's method lists are
+/// methods owning their calls, linked to the protocol's declaration under
+/// `--dynamic-dispatch`; and `x/defn` through a schema library or a tree
+/// namespace defining `defn` is a definition.
+#[test]
+fn clojure_discards_methods_and_schema_defns() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/lib/malli.clj",
+        b"(ns lib.malli)\n(defmacro defn [& args] `(clojure.core/defn ~@args))\n(defmacro other [& args] nil)\n",
+    );
+    write(
+        tmp.path(),
+        "src/app/proto.clj",
+        b"(ns app.proto)\n(defprotocol Store\n  (put! [this k v] \"store\")\n  (fetch [this k]))\n",
+    );
+    write(
+        tmp.path(),
+        "src/app/core.clj",
+        b"(ns app.core\n  (:require [app.proto :as p]\n            [lib.malli :as mu]\n            [schema.core :as s]))\n\n\
+#_(defn commented [] (gone))\n\
+(defn- helper [x] x)\n\
+(defn- used-by-method [x] x)\n\
+(mu/defn typed :- :int [x :- :int] (helper x))\n\
+(s/defn checked :- s/Int [x :- s/Int] x)\n\
+(mu/other not-a-def [x] x)\n\n\
+(deftype MemStore [m]\n  p/Store\n  (put! [this k v] (used-by-method v))\n  (fetch [this k] (get m k)))\n\n\
+(defn run [st] (p/fetch st :a) (typed 1) (checked 2))\n",
+    );
+    let out = tmp.path().join("g.mmd");
+    cgg()
+        .args(["--dynamic-dispatch", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&out).unwrap();
+    let id = |qn: &str| {
+        g.lines()
+            .find(|l| l.contains(&format!("[\"{qn}\"]")))
+            .and_then(|l| l.trim().split('[').next())
+            .map(str::to_string)
+            .unwrap_or_else(|| panic!("{qn} missing:\n{g}"))
+    };
+    let edge = |a: &str, b: &str, via: &str| {
+        let (a, b) = (id(a), id(b));
+        g.lines().any(|l| {
+            let l = l.trim();
+            l.starts_with(&format!("{a} -->"))
+                && l.ends_with(&format!(" {b}"))
+                && l.contains(via)
+        })
+    };
+    for gone in ["commented", "not-a-def"] {
+        assert!(!g.contains(gone), "{gone}:\n{g}");
+    }
+    assert!(edge("app.core/typed", "app.core/helper", "-->"), "{g}");
+    assert!(edge("app.core/run", "app.core/typed", "-->"), "{g}");
+    assert!(edge("app.core/run", "app.core/checked", "-->"), "{g}");
+    assert!(
+        edge("app.core/MemStore.put!", "app.core/used-by-method", "-->"),
+        "{g}"
+    );
+    assert!(edge("app.core/run", "app.proto/fetch", "-->"), "{g}");
+    assert!(
+        edge("app.proto/fetch", "app.core/MemStore.fetch", "dyn"),
+        "{g}"
+    );
+    assert!(
+        edge("app.proto/put!", "app.core/MemStore.put!", "dyn"),
+        "{g}"
+    );
+}
+
 /// WS26 Clojure: a symbol argument, a threading step, `#'alias/f` and a
 /// map value name a function; `alias/f` binds through the `require`
 /// alias only, a bare name its own namespace's function, and a `let`

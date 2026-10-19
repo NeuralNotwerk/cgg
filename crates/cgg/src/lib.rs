@@ -540,6 +540,22 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         cgg_lang::plugins::cpp::unify_declarations(&mut c_family_facts);
     }
 
+    // Clojure: a qualified `x/defn`-style head is a definition only when its
+    // macro is a schema library's or one the tree defines — known once
+    // every file is read.
+    {
+        let mut clojure_facts: Vec<&mut FileFacts> = Vec::new();
+        for result in &mut results {
+            if let FileOutcome::Analyzed(fr) = result
+                && fr.lang == "clojure"
+                && let Some(facts) = fr.facts.as_mut()
+            {
+                clojure_facts.push(facts);
+            }
+        }
+        cgg_lang::plugins::clojure::settle_defn_macros(&mut clojure_facts);
+    }
+
     // --- Sequential merge: assign IDs and build graph ---------------------
     let _phase_merge_graph_build = cgg_core::profile::span("merge::graph-build");
     for result in results {

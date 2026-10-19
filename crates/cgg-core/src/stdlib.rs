@@ -274,6 +274,22 @@ pub const CLOJURE_METHOD_BODY_FORMS: &[&str] = &[
     "definterface",
 ];
 
+/// Clojure forms that declare methods (`(defprotocol P (m [this]))`): each
+/// signature is a var of the namespace, implemented elsewhere.
+pub const CLOJURE_PROTOCOL_DECL_FORMS: &[&str] = &["defprotocol", "definterface"];
+
+/// Clojure forms whose method lists implement a protocol or interface
+/// (`(deftype T [a] P (m [this] …))`): each is a method definition, not a
+/// call.
+pub const CLOJURE_METHOD_IMPL_FORMS: &[&str] = &[
+    "deftype",
+    "defrecord",
+    "reify",
+    "proxy",
+    "extend-type",
+    "extend-protocol",
+];
+
 /// Clojure forms whose second argument is a field vector (`(deftype T
 /// [a b] …)`): the fields are locals in every method body.
 pub const CLOJURE_TYPE_FIELD_FORMS: &[&str] = &["deftype", "defrecord"];

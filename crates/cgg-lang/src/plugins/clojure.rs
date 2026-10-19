@@ -40,6 +40,7 @@ impl LanguagePlugin for ClojurePlugin {
             in_quote: 0,
             referred: Vec::new(),
             refer_all: false,
+            aliases: Vec::new(),
         };
         w.walk(tree.root_node());
         if ctx.reference_sites {
@@ -66,6 +67,8 @@ struct ClojureWalker<'a> {
     /// whole namespace (then any bare name may come from it).
     referred: Vec<String>,
     refer_all: bool,
+    /// `(:require [a.b :as x])`: `(x, a.b)`, to read a qualified operator.
+    aliases: Vec<(String, String)>,
 }
 
 impl<'a> ClojureWalker<'a> {
@@ -97,11 +100,30 @@ impl<'a> ClojureWalker<'a> {
 
     fn walk(&mut self, node: Node) {
         match node.kind() {
+            // `#_form`: commented-out code — no callable, call or value.
+            "dis_expr" => {}
             "list_lit" => {
                 if self.is_ns_form(node) {
                     self.extract_namespace(node);
+                } else if let Some(m) = self.method_spec(node) {
+                    self.record_method(node, m);
                 } else if self.is_defn_form(node) {
                     self.record_callable(node);
+                } else if self.head_name(node).is_some_and(|h| {
+                    cgg_core::frameworks::rules::CLOJURE_REEXPORT_FORMS.contains(&h)
+                }) {
+                    self.record_call(node);
+                    self.record_reexports(node);
+                } else if let Some(via) = self.qualified_def_head(node) {
+                    // `(s/defn f :- T [x] …)`: a definition if `s` names a
+                    // schema library or a namespace defining that macro —
+                    // settled once every file is read (`settle_defn_macros`).
+                    let before = self.facts.definitions.len();
+                    self.record_callable(node);
+                    self.record_call(node);
+                    if let Some(d) = self.facts.definitions.get_mut(before) {
+                        d.attributes.push(format!("{DEFN_VIA}{via}"));
+                    }
                 } else {
                     self.record_call(node);
                 }
@@ -194,23 +216,36 @@ impl<'a> ClojureWalker<'a> {
                 let _ = c.goto_next_sibling(); // past name
                 loop {
                     let n = c.node();
-                    if n.kind() == "list_lit" {
-                        // First inner child after `(` is the keyword.
-                        let kw = n
-                            .named_child(0)
-                            .map(|k| self.text(k).to_string())
-                            .unwrap_or_default();
-                        if kw == ":require" || kw == ":use" || kw == ":import" {
-                            // The rest of the form is a sequence of vec_lits / sym_lits.
-                            for i in 1..n.named_child_count() {
-                                if let Some(entry) = n.named_child(i as u32) {
-                                    self.record_require_entry(entry, &kw);
-                                }
-                            }
-                        }
+                    // `#?(:clj (:require …))`: the reader conditional's
+                    // branches hold the directives.
+                    for d in reader_branches(n) {
+                        self.record_ns_directive(d);
                     }
                     if !c.goto_next_sibling() {
                         break;
+                    }
+                }
+            }
+        }
+    }
+
+    /// `(:require …)` / `(:use …)` / `(:import …)` inside `ns`.
+    fn record_ns_directive(&mut self, n: Node) {
+        if n.kind() != "list_lit" {
+            return;
+        }
+        // First inner child after `(` is the keyword.
+        let kw = n
+            .named_child(0)
+            .map(|k| self.text(k).to_string())
+            .unwrap_or_default();
+        if kw == ":require" || kw == ":use" || kw == ":import" {
+            // The rest of the form is a sequence of vec_lits / sym_lits,
+            // some inside reader conditionals (`#?@(:clj ([a :as x]))`).
+            for i in 1..n.named_child_count() {
+                if let Some(entry) = n.named_child(i as u32) {
+                    for e in reader_branches(entry) {
+                        self.record_require_entry(e, &kw);
                     }
                 }
             }
@@ -307,6 +342,9 @@ impl<'a> ClojureWalker<'a> {
         if kind == "use" {
             self.refer_all_from(&path);
         }
+        if !alias.is_empty() {
+            self.aliases.push((alias.clone(), path.clone()));
+        }
         self.facts.imports.push(ImportRecord {
             kind: kind.into(),
             path,
@@ -334,6 +372,12 @@ impl<'a> ClojureWalker<'a> {
 
             let qn = self.qn(&name);
             let variant = DefVariant::FreeFunction;
+            // A macro: `settle_defn_macros` reads which namespaces define a
+            // `defn`-style one.
+            let attributes = match self.head_name(node) {
+                Some("defmacro" | "defmacro-") => vec![MACRO_ATTR.to_string()],
+                _ => Vec::new(),
+            };
             let (sl, el) = (
                 (node.start_position().row as u32) + 1,
                 (node.end_position().row as u32) + 1,
@@ -348,10 +392,172 @@ impl<'a> ClojureWalker<'a> {
                 end_byte: node.end_byte() as u32,
                 signature_hint: super::extract_signature(self.text(node)),
                 visibility: String::new(),
-                attributes: Vec::new(),
+                attributes,
                 ..Default::default()
             });
         }
+    }
+
+    /// The namespace an alias (or a full name) stands for in this file.
+    fn resolve_ns<'s>(&'s self, ns: &'s str) -> &'s str {
+        self.aliases
+            .iter()
+            .find(|(a, _)| a == ns)
+            .map_or(ns, |(_, p)| p.as_str())
+    }
+
+    /// `(import-vars [a.b f g] …)`: this namespace re-exports `a.b/f` as
+    /// `this/f` — a `reexport` import record, `path` the source var and
+    /// `alias` the re-exported one (read by `settle_defn_macros`).
+    fn record_reexports(&mut self, node: Node) {
+        for v in forms(node).into_iter().skip(1) {
+            if v.kind() != "vec_lit" {
+                continue;
+            }
+            let items = forms(v);
+            let Some(src) = items.first().filter(|n| n.kind() == "sym_lit") else {
+                continue;
+            };
+            let src_ns = self.resolve_ns(&self.sym_text(*src)).to_string();
+            for n in items.iter().skip(1).filter(|n| n.kind() == "sym_lit") {
+                let name = self.sym_parts(*n).1.to_string();
+                self.facts.imports.push(ImportRecord {
+                    kind: REEXPORT.into(),
+                    path: format!("{src_ns}/{name}"),
+                    alias: self.qn(&name),
+                    site_line: (n.start_position().row as u32) + 1,
+                    site_byte: n.start_byte() as u32,
+                });
+            }
+        }
+    }
+
+    /// `(x/defn …)` / `(a.b/defmethod …)`: the operator's namespace (through
+    /// the file's aliases) and name, `a.b/defn`, when the name is one of
+    /// `CLOJURE_DEFN_MACRO_NAMES` and a symbol follows.
+    fn qualified_def_head(&self, node: Node) -> Option<String> {
+        let items = forms(node);
+        let head = *items.first()?;
+        if head.kind() != "sym_lit" || items.get(1)?.kind() != "sym_lit" {
+            return None;
+        }
+        let (ns, name) = self.sym_parts(head);
+        if ns.is_empty()
+            || !cgg_core::frameworks::rules::CLOJURE_DEFN_MACRO_NAMES.contains(&name)
+        {
+            return None;
+        }
+        Some(format!("{}/{name}", self.resolve_ns(ns)))
+    }
+
+    /// A method list of a `defprotocol`/`definterface` (a declaration) or of
+    /// a `deftype`/`defrecord`/`reify`/`proxy`/`extend-type`/
+    /// `extend-protocol` (an implementation): `(m [this x] …)`.
+    fn method_spec(&self, list: Node) -> Option<MethodSpec> {
+        use cgg_core::stdlib as std_t;
+        let parent = list.parent().filter(|p| p.kind() == "list_lit")?;
+        let items = forms(list);
+        let name = *items.first().filter(|n| n.kind() == "sym_lit")?;
+        let shape = items.get(1).is_some_and(|n| {
+            n.kind() == "vec_lit"
+                || n.kind() == "list_lit"
+                    && forms(*n).first().is_some_and(|v| v.kind() == "vec_lit")
+        });
+        if !shape {
+            return None;
+        }
+        let siblings = forms(parent);
+        let h = self.head_name(parent)?;
+        let pos = siblings.iter().position(|n| n.id() == list.id())?;
+        let sym = |i: usize| {
+            siblings
+                .get(i)
+                .filter(|n| n.kind() == "sym_lit")
+                .map(|n| self.sym_parts(*n).1.to_string())
+        };
+        // The nearest symbol before the method, at or after `from`.
+        // The nearest type or protocol before the method, at or after
+        // `from`: the last form that is not itself a method list (`nil`
+        // and `String` alike in `extend-protocol`).
+        let last_sym = |from: usize| {
+            (from..pos).rev().find_map(|i| {
+                let n = siblings[i];
+                match n.kind() {
+                    "list_lit" => None,
+                    "sym_lit" => Some(self.sym_parts(n).1.to_string()),
+                    _ => Some(self.text(n).to_string()),
+                }
+            })
+        };
+        let method = self.sym_parts(name).1.to_string();
+        if std_t::CLOJURE_PROTOCOL_DECL_FORMS.contains(&h) {
+            let protocol = sym(1)?;
+            return Some(MethodSpec {
+                method,
+                owner: None,
+                protocol,
+                decl: true,
+            });
+        }
+        if !std_t::CLOJURE_METHOD_IMPL_FORMS.contains(&h) {
+            return None;
+        }
+        let (owner, protocol) = match h {
+            "deftype" | "defrecord" => (sym(1), last_sym(3)),
+            "extend-type" => (sym(1), last_sym(2)),
+            "extend-protocol" => (last_sym(2), sym(1)),
+            "proxy" => (
+                None,
+                siblings
+                    .get(1)
+                    .filter(|v| v.kind() == "vec_lit")
+                    .and_then(|v| forms(*v).into_iter().find(|n| n.kind() == "sym_lit"))
+                    .map(|n| self.sym_parts(n).1.to_string()),
+            ),
+            _ => (None, last_sym(1)),
+        };
+        let protocol = protocol?;
+        Some(MethodSpec {
+            method,
+            owner,
+            protocol,
+            decl: false,
+        })
+    }
+
+    /// A protocol method's declaration is a var of the namespace
+    /// (`ns/m`, abstract); an implementation is a method of its type, or
+    /// of the protocol for `reify`/`proxy` (`ns/T.m`). Both carry
+    /// `protocol:P`, which links a declaration to its implementations
+    /// (`dispatch::fanout`).
+    fn record_method(&mut self, node: Node, m: MethodSpec) {
+        let qn = if m.decl {
+            self.qn(&m.method)
+        } else {
+            let owner = m.owner.as_deref().unwrap_or(&m.protocol);
+            self.qn(&format!("{owner}.{}", m.method))
+        };
+        let mut attributes = vec![format!("{PROTOCOL_ATTR}{}", m.protocol)];
+        if m.decl {
+            attributes.push("abstract".to_string());
+        }
+        self.facts.definitions.push(DefRecord {
+            simple_name: m.method,
+            qualified_name: qn,
+            variant: if m.decl {
+                DefVariant::TraitMethod
+            } else {
+                DefVariant::InherentMethod
+            },
+            start_line: (node.start_position().row as u32) + 1,
+            end_line: (node.end_position().row as u32) + 1,
+            start_byte: node.start_byte() as u32,
+            end_byte: node.end_byte() as u32,
+            signature_hint: super::extract_signature(self.text(node)),
+            visibility: String::new(),
+            attributes,
+            ..Default::default()
+        });
     }
 
     fn record_call(&mut self, node: Node) {
@@ -590,6 +796,113 @@ impl<'a> ClojureWalker<'a> {
             route: route.to_string(),
             kwargs: Vec::new(),
         });
+    }
+}
+
+/// Marks a definition made by a qualified `x/defn`-style head, with the
+/// macro it names (`a.b/defn`), until `settle_defn_macros` decides it.
+const DEFN_VIA: &str = "defn-via:";
+/// `ImportRecord::kind` of an `import-vars` re-export.
+const REEXPORT: &str = "reexport";
+/// Marks a `defmacro` definition.
+const MACRO_ATTR: &str = "macro";
+/// Names the protocol (or interface) a method declares or implements.
+const PROTOCOL_ATTR: &str = cgg_core::CLOJURE_PROTOCOL_ATTR;
+
+/// A method list inside a protocol declaration or a type's body.
+struct MethodSpec {
+    method: String,
+    /// The implementing type (`deftype T`, `extend-type T`); none for
+    /// `reify`/`proxy` and declarations.
+    owner: Option<String>,
+    protocol: String,
+    decl: bool,
+}
+
+/// Keep a qualified `x/defn`-style definition only when its macro is a
+/// schema library's (`CLOJURE_DEFN_MACRO_NAMESPACES`) or a macro of that
+/// name some namespace of the tree defines; the operator's call record at
+/// the form is then dropped, as a plain `defn` records none. Otherwise the
+/// form stays a call.
+pub fn settle_defn_macros(facts: &mut [&mut FileFacts]) {
+    use cgg_core::frameworks::rules::CLOJURE_DEFN_MACRO_NAMESPACES as LIBS;
+    if !facts.iter().any(|f| {
+        f.definitions
+            .iter()
+            .any(|d| d.attributes.iter().any(|a| a.starts_with(DEFN_VIA)))
+    }) {
+        return;
+    }
+    let mut macros: std::collections::HashSet<String> = facts
+        .iter()
+        .flat_map(|f| f.definitions.iter())
+        .filter(|d| d.attributes.iter().any(|a| a == MACRO_ATTR))
+        .map(|d| d.qualified_name.clone())
+        .collect();
+    // A macro re-exported (`import-vars`) is that namespace's too; chains
+    // settle in a few passes.
+    let reexports: Vec<(&str, &str)> = facts
+        .iter()
+        .flat_map(|f| f.imports.iter())
+        .filter(|i| i.kind == REEXPORT)
+        .map(|i| (i.path.as_str(), i.alias.as_str()))
+        .collect();
+    for _ in 0..4 {
+        let more: Vec<String> = reexports
+            .iter()
+            .filter(|(src, dst)| macros.contains(*src) && !macros.contains(*dst))
+            .map(|(_, dst)| dst.to_string())
+            .collect();
+        if more.is_empty() {
+            break;
+        }
+        macros.extend(more);
+    }
+    for f in facts.iter_mut() {
+        let mut dropped_calls: Vec<u32> = Vec::new();
+        f.definitions.retain_mut(|d| {
+            let Some(i) = d.attributes.iter().position(|a| a.starts_with(DEFN_VIA))
+            else {
+                return true;
+            };
+            let via = d.attributes.remove(i);
+            let via = &via[DEFN_VIA.len()..];
+            let ns = via.rsplit_once('/').map_or("", |(n, _)| n);
+            let keep = macros.contains(via) || LIBS.contains(&ns);
+            if keep {
+                dropped_calls.push(d.start_byte);
+            }
+            keep
+        });
+        if !dropped_calls.is_empty() {
+            f.references.retain(|r| {
+                r.value_ref
+                    || !r.receiver_hint.is_empty()
+                    || !dropped_calls.contains(&r.site_byte)
+            });
+        }
+    }
+}
+
+/// A form, or — for a reader conditional (`#?(:clj a :cljs b)`) — the
+/// forms of every branch, spliced ones (`#?@(:clj (a b))`) unwrapped.
+fn reader_branches(n: Node) -> Vec<Node> {
+    match n.kind() {
+        "read_cond_lit" | "splicing_read_cond_lit" => {
+            let splice = n.kind() == "splicing_read_cond_lit";
+            forms(n)
+                .into_iter()
+                .filter(|f| f.kind() != "kwd_lit")
+                .flat_map(|f| {
+                    if splice && matches!(f.kind(), "list_lit" | "vec_lit") {
+                        forms(f)
+                    } else {
+                        vec![f]
+                    }
+                })
+                .collect()
+        }
+        _ => vec![n],
     }
 }
 
@@ -1362,12 +1675,11 @@ mod tests {
         ];
         for (src, want) in cases {
             let f = extract(&format!("(ns a.b)\n{src}\n"));
+            // The first definition is the form's own (a protocol's method
+            // signatures follow it).
             assert_eq!(
-                f.definitions
-                    .iter()
-                    .map(|d| d.simple_name.as_str())
-                    .collect::<Vec<_>>(),
-                vec![want],
+                f.definitions.first().map(|d| d.simple_name.as_str()),
+                Some(want),
                 "{src}"
             );
             assert_eq!(
@@ -1385,6 +1697,115 @@ mod tests {
         let f = extract("(defn g [s] ^String (f s) #^Foo (h s) (^:once k s))\n");
         let names: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
         assert_eq!(names, vec!["f", "h", "k"]);
+    }
+
+    /// `#_form` is commented-out code: nothing in it is extracted.
+    #[test]
+    fn a_discarded_form_yields_nothing() {
+        let f = extract_with_refs(
+            "(ns a)\n#_(defn gone [] (call-it x))\n#_ #_(def a 1) (def b 2)\n(defn kept [] 1)\n",
+        );
+        assert_eq!(defs(&f), vec!["a/kept"]);
+        assert!(f.references.is_empty(), "{:?}", f.references);
+    }
+
+    /// A type's method lists are method definitions, not calls; a
+    /// protocol's signatures are abstract declarations; both name the
+    /// protocol.
+    #[test]
+    fn protocol_methods_are_definitions() {
+        let f = extract(
+            "(ns a (:require [p.q :as p]))\n\
+             (defprotocol Store (put! [this k v] \"doc\") (fetch [this k]))\n\
+             (deftype Mem [m] p/Store (put! [this k v] (save v)) Object (toString [_] \"m\"))\n\
+             (defrecord R [x] Store (fetch [this k] k))\n\
+             (extend-type String Store (fetch [s k] s))\n\
+             (extend-protocol Store Long (fetch [n k] n) nil (fetch [_ k] nil))\n\
+             (reify Store (fetch [_ k] k))\n",
+        );
+        let got: Vec<(String, Vec<String>)> = f
+            .definitions
+            .iter()
+            .map(|d| (d.qualified_name.clone(), d.attributes.clone()))
+            .collect();
+        let want = |qn: &str, attrs: &[&str]| {
+            (
+                qn.to_string(),
+                attrs.iter().map(|a| a.to_string()).collect::<Vec<_>>(),
+            )
+        };
+        assert_eq!(
+            got,
+            vec![
+                want("a/Store", &[]),
+                want("a/put!", &["protocol:Store", "abstract"]),
+                want("a/fetch", &["protocol:Store", "abstract"]),
+                want("a/Mem", &[]),
+                want("a/Mem.put!", &["protocol:Store"]),
+                want("a/Mem.toString", &["protocol:Object"]),
+                want("a/R", &[]),
+                want("a/R.fetch", &["protocol:Store"]),
+                want("a/String.fetch", &["protocol:Store"]),
+                want("a/Long.fetch", &["protocol:Store"]),
+                want("a/nil.fetch", &["protocol:Store"]),
+                want("a/Store.fetch", &["protocol:Store"]),
+            ]
+        );
+        let calls: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
+        assert!(calls.contains(&"save"), "{calls:?}");
+        for m in ["put!", "fetch", "toString"] {
+            assert!(
+                !calls.contains(&m),
+                "a method list is not a call to {m}: {calls:?}"
+            );
+        }
+    }
+
+    /// `(s/defn f :- T [x :- T] …)` through a schema library's alias is a
+    /// tentative definition, settled once every file is read; a macro of
+    /// the tree named `defn` makes its namespace's head one too.
+    #[test]
+    fn schema_defn_heads_are_settled_definitions() {
+        let mut lib =
+            extract("(ns lib.m)\n(defmacro defn [& a] a)\n(defmacro other [& a] a)\n");
+        let mut reexp = extract(
+            "(ns lib.m2 (:require [potemkin :as p] [lib.m :as m]))\n(p/import-vars [m defn other])\n",
+        );
+        let mut app = extract(
+            "(ns app (:require [schema.core :as s] [lib.m :as mu] [lib.m2 :as m2]\n\
+             [clojure.core :as core] [elsewhere :as e]))\n\
+             (s/defn checked :- s/Int [x :- s/Int] x)\n\
+             (mu/defn ^:private typed :- :int [x] x)\n\
+             (m2/defn via-reexport [x] x)\n\
+             (core/defn plain [x] x)\n\
+             (mu/defmethod not-defined :x [y] y)\n\
+             (e/defn foreign [x] x)\n",
+        );
+        settle_defn_macros(&mut [&mut lib, &mut reexp, &mut app]);
+        assert_eq!(
+            defs(&app),
+            vec!["app/checked", "app/typed", "app/via-reexport", "app/plain"]
+        );
+        assert!(app.definitions.iter().all(|d| d.attributes.is_empty()));
+        let calls: Vec<&str> = app.references.iter().map(|r| r.name.as_str()).collect();
+        assert_eq!(calls, vec!["mu/defmethod", "e/defn"], "{calls:?}");
+    }
+
+    /// Requires inside reader conditionals are requires too.
+    #[test]
+    fn reader_conditional_requires_are_recorded() {
+        let f = extract(
+            "(ns a (:require #?@(:clj ([b.c :as x] [d :as y])) #?(:clj [e :as z]) [f :as w])\n  #?(:cljs (:require [g :as v])))\n",
+        );
+        let got: Vec<(&str, &str)> = f
+            .imports
+            .iter()
+            .map(|i| (i.path.as_str(), i.alias.as_str()))
+            .collect();
+        assert_eq!(
+            got,
+            vec![("b.c", "x"), ("d", "y"), ("e", "z"), ("f", "w"), ("g", "v")]
+        );
     }
 
     /// WS16: namespace metadata is not part of the namespace's name.

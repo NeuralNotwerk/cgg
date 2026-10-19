@@ -11,6 +11,27 @@ otherwise change the default graph.
 
 ### Fixed
 
+- **Clojure `#_` discarded forms were extracted.** A `#_(defn …)` or
+  `#_(def …)` is commented-out code; it produced callables, calls and
+  values. It now produces nothing.
+- **Clojure method lists were calls.** In `deftype`, `defrecord`,
+  `reify`, `proxy`, `extend-type` and `extend-protocol`, each
+  `(m [this …] body)` is a method definition (`ns/Type.m`, or `ns/P.m`
+  for `reify`/`proxy`) owning the calls in its body, not a call to `m`;
+  each `defprotocol`/`definterface` signature is an abstract declaration
+  (`ns/m`, a var of the namespace). Both name their protocol, and
+  `--dynamic-dispatch` (forced on by `--dead-code`) links a declaration
+  to its implementations.
+- **Clojure schema-style `defn`s were not definitions.** `(s/defn f :- T
+  [x :- T] …)`, `(mu/defn- …)`, `(mu/defmethod …)` and `(core/defn …)`
+  are definitions when the head's namespace (through the file's aliases)
+  is a schema library listed in
+  `cgg_core::frameworks::rules::CLOJURE_DEFN_MACRO_NAMESPACES`
+  (`clojure.core`, `schema.core`, `malli.experimental`) or a namespace of
+  the tree that defines — or re-exports through potemkin's
+  `import-vars` — a `defn`-style macro; `:-` annotations are not part of
+  the name or parameters. Requires inside reader conditionals
+  (`#?@(:clj ([a.b :as x]))`) are now read, so their aliases resolve.
 - **A Clojure definition with name metadata was named after its
   metadata.** `(defn ^:private f …)` was the callable `ns/^:private f`
   (likewise `^{…}`, `#^Tag`, stacked metadata, and every def form:
@@ -890,6 +911,24 @@ compared with the old metadata-carrying names normalised):
   live only through a wrong by-name edge), none `high`; 260 move
   `medium` → `low` (a call now names a multimethod whose same-file
   `defmethod`s share its name, an ambiguous site).
+
+Clojure discards, methods and schema `defn`s (full corpus, none
+excluded):
+
+- The default graph changes in seven Clojure repositories. Clojure
+  callables: Metabase 28,864 → 33,121 (2,887 schema-`defn` functions,
+  1,290 methods, 96 protocol declarations; 16 discarded definitions
+  gone), Riemann 867 → 1,140, Ring 402 → 642, cljdoc 1,062 → 1,192,
+  Compojure 124 → 138, storm-starter 14 → 18, LIPAS 4,048 → 4,042 (19
+  discarded definitions gone, 13 methods). Edges: Metabase 194,450 →
+  206,735, Riemann 960 → 1,012, Ring 408 → 457, cljdoc 1,309 → 1,395,
+  Compojure 124 → 128, LIPAS 4,450 → 4,443; of 638 removed edges 493 are
+  the same call now made by the method that contains it.
+- Under `--dead-code`, 579 Clojure findings leave the report and 3,577
+  enter it (Metabase 2,835, Riemann 563, Ring 105, cljdoc 59), none
+  `high`: the newly extracted functions and methods are reportable for
+  the first time, and calls their bodies made at the top level no longer
+  root what they call.
 
 ## [0.11.0] - 2026-10-16
 

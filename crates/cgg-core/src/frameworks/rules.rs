@@ -89,6 +89,23 @@ const HTTP_VERBS: &[&str] = &[
 /// ordinary method call far more often than the DSL.
 pub const RUBY_SYMBOL_CALLBACK_VERBS: &[&str] = &["validate"];
 
+/// Clojure libraries whose `defn`/`defn-`/`defmethod` macros define a
+/// function under a schema (`(s/defn f :- Int [x :- Int] …)`): a head
+/// qualified by an alias of one of these namespaces is a definition. A
+/// namespace of the tree that itself defines such a macro qualifies too
+/// (`cgg_lang::plugins::clojure::settle_defn_macros`).
+pub const CLOJURE_DEFN_MACRO_NAMESPACES: &[&str] =
+    &["clojure.core", "schema.core", "malli.experimental"];
+
+/// Clojure macros that re-export another namespace's vars under the
+/// calling namespace (potemkin's `(import-vars [a.b f g])`): a `defn`
+/// macro re-exported this way qualifies its new namespace too.
+pub const CLOJURE_REEXPORT_FORMS: &[&str] = &["import-vars"];
+
+/// The definition macros a [`CLOJURE_DEFN_MACRO_NAMESPACES`] namespace (or
+/// a tree namespace defining one) provides.
+pub const CLOJURE_DEFN_MACRO_NAMES: &[&str] = &["defn", "defn-", "defmethod"];
+
 /// Web-framework traits whose method the framework calls on a handler's
 /// return value: axum/poem `IntoResponse`, actix-web/rocket `Responder`.
 pub const RESPONSE_TRAITS: &[&str] = &["IntoResponse", "Responder"];

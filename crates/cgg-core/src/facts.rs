@@ -27,6 +27,12 @@ use crate::ids::FileId;
 /// external buckets.
 pub const VALUE_REF_HINT: &str = "\u{1}value-ref";
 
+/// `DefRecord::attributes` entry naming the protocol (or interface) a
+/// Clojure method declares or implements: `protocol:P`. The declaration
+/// also carries `abstract`; `dispatch::fanout` links it to the
+/// implementations.
+pub const CLOJURE_PROTOCOL_ATTR: &str = "protocol:";
+
 /// Sentinel `RefRecord::receiver_hint` value marking a *string literal*
 /// argument of a registration call — `Route::get('/x', 'C@method')`,
 /// `get 'photos', to: 'photos#index'`. `name` holds the literal

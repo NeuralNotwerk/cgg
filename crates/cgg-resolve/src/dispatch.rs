@@ -46,6 +46,21 @@ pub fn fanout(graph: &Graph) -> Vec<CallEdge> {
     let mut decls: HashMap<(String, String, String), CallableId> = HashMap::new();
 
     for c in graph.callables.values() {
+        // Clojure: a protocol method's declaration and implementations name
+        // their protocol (`protocol:P`); the declaration is `abstract`.
+        if let Some(p) = c
+            .attributes
+            .iter()
+            .find_map(|a| a.strip_prefix(cgg_core::CLOJURE_PROTOCOL_ATTR))
+        {
+            let key = (c.language.clone(), p.to_string(), c.simple_name.clone());
+            if c.attributes.iter().any(|a| a == "abstract") {
+                decls.entry(key).or_insert(c.id);
+            } else {
+                impls.entry(key).or_default().push(c.id);
+            }
+            continue;
+        }
         if let Some(tr) = &c.trait_impl_target {
             impls
                 .entry((c.language.clone(), tr.clone(), c.simple_name.clone()))
