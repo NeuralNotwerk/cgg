@@ -3143,6 +3143,74 @@ tick(X) -> X.\n",
     );
 }
 
+/// A Clojure definition's name metadata (`^:private`, `^{…}`) is not
+/// part of its name: the callable is `ns/f`, and calls to it bind.
+#[test]
+fn clojure_name_metadata_is_not_part_of_the_name() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/a/core.clj",
+        b"(ns a.core)\n\
+(defn ^:private helper [x] x)\n\
+(def ^{:doc \"d\"} table {})\n\
+(defn run [] (helper table) ^String (helper 2))\n",
+    );
+    let g = graph_of(tmp.path());
+    assert!(g.contains("\"a.core/helper\""), "{g}");
+    assert!(!g.contains("^:private"), "{g}");
+    assert!(g.matches("-->").count() >= 1, "the call must bind:\n{g}");
+}
+
+/// A bare Clojure symbol is a var of its own namespace, one it
+/// `:refer`s, or one of a namespace it refers whole — never a same-named
+/// var of a namespace it only `:require`s with an alias (`(- a b)` is
+/// `clojure.core/-`, not a SQL helper's `-`).
+#[test]
+fn clojure_bare_calls_reach_only_referred_vars() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/h/sql.clj",
+        b"(ns h.sql (:refer-clojure :exclude [-]))\n(defn ^{:arglists '([x y])} - [x y] x)\n(defn helper [x] x)\n",
+    );
+    write(
+        tmp.path(),
+        "src/h/refd.clj",
+        b"(ns h.refd)\n(defn picked [x] x)\n(defn not-picked [x] x)\n",
+    );
+    write(
+        tmp.path(),
+        "src/h/whole.clj",
+        b"(ns h.whole)\n(defn every [x] x)\n",
+    );
+    write(
+        tmp.path(),
+        "src/h/core.clj",
+        b"(ns h.core (:require [h.sql :as sql] [h.refd :refer [picked]] [h.whole :refer :all]))\n\
+(defn run [a b] (- a b) (helper a) (sql/helper a) (picked a) (not-picked a) (every a))\n",
+    );
+    let g = graph_of(tmp.path());
+    let targets: Vec<&str> = g.lines().filter(|l| l.contains("-->")).collect();
+    let named = |qn: &str| {
+        g.lines()
+            .find(|l| l.contains(&format!("[\"{qn}\"]")))
+            .and_then(|l| l.trim().split('[').next())
+            .map(str::to_string)
+    };
+    let edge_to = |qn: &str| {
+        let id = named(qn).unwrap_or_else(|| panic!("{qn} missing:\n{g}"));
+        targets
+            .iter()
+            .any(|l| l.trim_end().ends_with(&format!(" {id}")))
+    };
+    assert!(edge_to("h.sql/helper"), "sql/helper is called:\n{g}");
+    assert!(edge_to("h.refd/picked"), "picked is referred:\n{g}");
+    assert!(edge_to("h.whole/every"), ":refer :all reaches every:\n{g}");
+    assert!(!edge_to("h.sql/-"), "(- a b) is clojure.core/-:\n{g}");
+    assert!(!edge_to("h.refd/not-picked"), "not referred:\n{g}");
+}
+
 /// WS26 Clojure: a symbol argument, a threading step, `#'alias/f` and a
 /// map value name a function; `alias/f` binds through the `require`
 /// alias only, a bare name its own namespace's function, and a `let`

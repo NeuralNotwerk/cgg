@@ -1857,6 +1857,18 @@ pub fn resolve(
                         if req_path.is_empty() {
                             continue;
                         }
+                        // Clojure: `(:require [a.b :as x])` makes `x/f` and
+                        // `a.b/f` reachable, never a bare `f` — that takes a
+                        // `:refer` (the `refer` / `refer-all` records).
+                        if lang == "clojure" {
+                            let key = if imp.alias.is_empty() {
+                                req_path.to_string()
+                            } else {
+                                imp.alias.clone()
+                            };
+                            module_aliases.insert(key, req_path.to_string());
+                            continue;
+                        }
 
                         // 1) Direct file-include resolution.
                         for try_path in [
@@ -1893,6 +1905,19 @@ pub fn resolve(
                             }
                         }
                         unqualified_prefixes.push(req_path.to_string());
+                    }
+                    // Clojure `(:require [a.b :refer [f]])`: the bare `f` is
+                    // `a.b/f`.
+                    "refer" if lang == "clojure" => {
+                        let qn = format!("{}/{}", imp.path.trim(), imp.alias);
+                        let slot = direct_imports.entry(imp.alias.clone()).or_default();
+                        if !slot.contains(&qn) {
+                            slot.push(qn);
+                        }
+                    }
+                    // Clojure `:refer :all`: every var of the namespace.
+                    "refer-all" if lang == "clojure" => {
+                        unqualified_prefixes.push(imp.path.trim().to_string());
                     }
                     "load" => {
                         // Starlark: `load("//path:file.bzl", "symbol", aliased="other")`.
@@ -6266,8 +6291,14 @@ fn try_resolve_ref(
         // Step 1b: bare-name lookup via unqualified-import prefixes
         // (Haskell `import Data.Map` + `lookup`, OCaml `open Foo` + `bar`,
         // Elixir `import Foo` + `bar`, F# `open System.IO` + `File`, …).
+        // Clojure joins a namespace and a var with `/`.
+        let joiners: &[&str] = if lang == "clojure" {
+            &["/"]
+        } else {
+            &[".", "::"]
+        };
         for prefix in unqualified_prefixes {
-            for joiner in [".", "::"] {
+            for &joiner in joiners {
                 let qn = format!("{prefix}{joiner}{}", r.name);
                 if let Some(cid) = lookup_with_reexports(lang, &qn, by_qn, reexports) {
                     // Certain when no other opened module or namespace
@@ -6275,7 +6306,7 @@ fn try_resolve_ref(
                     // a reason to prefer it.
                     let mut hits: Vec<CallableId> = Vec::new();
                     for p in unqualified_prefixes {
-                        for j in [".", "::"] {
+                        for &j in joiners {
                             if let Some(c) = lookup_with_reexports(
                                 lang,
                                 &format!("{p}{j}{}", r.name),
@@ -6291,6 +6322,13 @@ fn try_resolve_ref(
                     return Some(with_overloads(cid));
                 }
             }
+        }
+        // Clojure: a bare symbol is a var of the caller's namespace (the
+        // intra-file pass), one it `:refer`s (step 1) or one of a namespace
+        // it refers or `:use`s whole (step 1b) — otherwise `clojure.core`'s
+        // or a local's, never another namespace's same-named var.
+        if lang == "clojure" {
+            return None;
         }
         // Zig resolves a bare name in the file's own containers first; a
         // name the file declares is never another file's (FINDINGS R13).

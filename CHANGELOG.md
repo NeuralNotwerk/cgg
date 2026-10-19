@@ -11,6 +11,31 @@ otherwise change the default graph.
 
 ### Fixed
 
+- **A Clojure definition with name metadata was named after its
+  metadata.** `(defn ^:private f …)` was the callable `ns/^:private f`
+  (likewise `^{…}`, `#^Tag`, stacked metadata, and every def form:
+  `defn-`, `defmacro`, `defmulti`, `defmethod`, `defprotocol`,
+  `definterface`, `defrecord`, `deftype`, `defstruct`, `def`, `defonce`),
+  so no call or reference to `f` ever reached it and it was reported dead:
+  4,941 of Metabase's 28,974 Clojure callables, 164 of LIPAS's. Metadata
+  on a whole form is skipped too: `^:x (defn k …)` is a definition and a
+  hinted call `^String (f x)` is a call. A template's unquoted name
+  (`(defmulti ^:private ~n …)`) is not a definition.
+- **A bare Clojure call reached any namespace's same-named var.** Only a
+  var of the caller's namespace, one it `:refer`s, or one of a namespace
+  it refers whole (`:refer :all`, `:use`) is in scope bare; a
+  `:require`d namespace is reached through its alias (`sql/helper`). A
+  bare call to anything else is `clojure.core`'s or a local's, and was
+  bound by name to an unrelated namespace's var: `(for …)`, `(fn …)`,
+  `(format …)`, `(isa? …)` and clojure.test's `(is …)` to Metabase's
+  same-named macros and clj-kondo hooks, and — once the names above were
+  fixed — `(- a b)` to a SQL helper's `-`. A `:refer`'d name now binds
+  to its namespace's var at `high` (`refer` / `refer-all` import
+  records).
+- **`(get table k)` was a Compojure route.** A registrar verb that is
+  also a `clojure.core` function, written without a route string, no
+  longer captures its symbol arguments as handlers (107 false Metabase
+  entry points).
 - **`high` no longer reports a guess as certain, nor a certainty as a
   guess (WS19).** Seven ways the `?` marker was wrong:
   - *A guessed receiver type bound its same-file candidate at `high`*
@@ -847,6 +872,24 @@ WS26 Clojure (full corpus, none excluded):
   Compojure 2), and 88 move `medium` → `low`: a multimethod named as a
   value has several in-file `defmethod`s, so the site is ambiguous. None
   are added.
+
+Clojure names and bare-call scope (full corpus, none excluded; edges
+compared with the old metadata-carrying names normalised):
+
+- The default graph changes in seven Clojure repositories. Metabase:
+  4,941 callables lose their metadata (28,974 → 28,864 Clojure callables:
+  107 false Compojure entries and two template names gone, one form-level
+  definition gained); 15,647 edges removed (wrong by-name bindings of bare
+  calls, almost all `medium`), 1,245 added (`high`), 1,720 change
+  confidence (almost all `medium` → `high`). LIPAS: 51 removed, 25
+  added, 659 `medium` → `high`. Riemann 161 / 21, cljdoc 67 / 9, Ring
+  47 / 5, Compojure 0 / 5. No two callables of one file newly share a
+  name.
+- Under `--dead-code`, 2,725 Clojure findings leave the report (2,230 of
+  them the misnamed definitions themselves) and 431 enter it (functions
+  live only through a wrong by-name edge), none `high`; 260 move
+  `medium` → `low` (a call now names a multimethod whose same-file
+  `defmethod`s share its name, an ambiguous site).
 
 ## [0.11.0] - 2026-10-16
 

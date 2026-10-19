@@ -72,6 +72,21 @@ impl<'a> ClojureWalker<'a> {
     fn text(&self, n: Node) -> &str {
         n.utf8_text(self.source).unwrap_or("")
     }
+    /// A symbol as written, without its metadata (`^:private f` is `f`,
+    /// `^String a/b` is `a/b`); any other node's text.
+    fn sym_text(&self, n: Node) -> String {
+        if n.kind() != "sym_lit" {
+            return self.text(n).to_string();
+        }
+        let Some(name) = n.child_by_field_name("name") else {
+            return self.text(n).to_string();
+        };
+        match n.child_by_field_name("namespace") {
+            Some(ns) => format!("{}/{}", self.text(ns), self.text(name)),
+            None => self.text(name).to_string(),
+        }
+    }
+
     fn qn(&self, simple: &str) -> String {
         if self.namespace.is_empty() {
             simple.to_string()
@@ -131,7 +146,7 @@ impl<'a> ClojureWalker<'a> {
     }
 
     fn is_ns_form(&self, node: Node) -> bool {
-        if let Some(first) = node.named_child(0) {
+        if let Some(first) = forms(node).first().copied() {
             self.text(first) == "ns"
         } else {
             false
@@ -139,7 +154,7 @@ impl<'a> ClojureWalker<'a> {
     }
 
     fn is_defn_form(&self, node: Node) -> bool {
-        if let Some(first) = node.named_child(0) {
+        if let Some(first) = forms(node).first().copied() {
             let text = self.text(first);
             matches!(
                 text,
@@ -164,7 +179,7 @@ impl<'a> ClojureWalker<'a> {
 
     fn extract_namespace(&mut self, node: Node) {
         // (ns name (:require [foo.bar :as fb] [baz]) (:use [qux]) ...)
-        if let Some(name_node) = node.named_child(1) {
+        if let Some(name_node) = forms(node).get(1).copied() {
             // `(ns ^{:added "1.0"} a.b …)`: the metadata is not part of
             // the namespace's name.
             let name_node = name_node.child_by_field_name("name").unwrap_or(name_node);
@@ -216,6 +231,7 @@ impl<'a> ClojureWalker<'a> {
                 let mut alias = String::new();
                 let mut seen_as = false;
                 let mut refers_all = false;
+                let mut refer_names: Vec<String> = Vec::new();
                 let mut c = node.walk();
                 if c.goto_first_child() {
                     loop {
@@ -240,6 +256,7 @@ impl<'a> ClojureWalker<'a> {
                                             if n.kind() == "sym_lit" {
                                                 let name =
                                                     self.sym_parts(n).1.to_string();
+                                                refer_names.push(name.clone());
                                                 self.referred.push(name);
                                             }
                                         }
@@ -255,6 +272,30 @@ impl<'a> ClojureWalker<'a> {
                 }
                 if refers_all {
                     self.refer_all_from(&path);
+                }
+                // `:refer [f]` / `:refer :all`: the bare names the file
+                // reaches in that namespace (`refer` / `refer-all`).
+                let site = node.start_byte() as u32;
+                let line = (node.start_position().row as u32) + 1;
+                if !path.is_empty() {
+                    for name in refer_names {
+                        self.facts.imports.push(ImportRecord {
+                            kind: "refer".into(),
+                            path: path.clone(),
+                            alias: name,
+                            site_line: line,
+                            site_byte: site,
+                        });
+                    }
+                    if refers_all {
+                        self.facts.imports.push(ImportRecord {
+                            kind: "refer-all".into(),
+                            path: path.clone(),
+                            alias: String::new(),
+                            site_line: line,
+                            site_byte: site,
+                        });
+                    }
                 }
                 (path, alias)
             }
@@ -276,9 +317,15 @@ impl<'a> ClojureWalker<'a> {
     }
 
     fn record_callable(&mut self, node: Node) {
-        // (defn name [...] ...)
-        if let Some(name_node) = node.named_child(1) {
-            let name = self.text(name_node).to_string();
+        // (defn name [...] ...) — `(defn ^:private name …)`, `^{…}`,
+        // `#^Tag` and stacked metadata belong to the symbol node but are
+        // not part of the name (`sym_text`), nor is metadata on the form.
+        if let Some(name_node) = forms(node).get(1).copied() {
+            // `(defmulti ^:private ~n …)`: a template's unquoted name.
+            if name_node.kind() == "unquoting_lit" {
+                return;
+            }
+            let name = self.sym_text(name_node);
             // `(defn ~n …)` / `(defn ~(symbol …) …)` inside a syntax-quote:
             // a template whose name the macro computes, not a definition.
             if name.is_empty() || name.starts_with('~') {
@@ -309,10 +356,12 @@ impl<'a> ClojureWalker<'a> {
 
     fn record_call(&mut self, node: Node) {
         // (func_name ...)
-        if let Some(func_node) = node.named_child(0)
+        // `^String (f x)`: the type hint is the form's metadata, not its
+        // operator.
+        if let Some(func_node) = forms(node).first().copied()
             && func_node.kind() == "sym_lit"
         {
-            let name = self.text(func_node).to_string();
+            let name = self.sym_text(func_node);
             if name.is_empty() || name.starts_with(':') {
                 return;
             }
@@ -356,9 +405,8 @@ impl<'a> ClojureWalker<'a> {
         if !self.ctx.is_registrar_verb(verb) {
             return;
         }
-        let mut cursor = node.walk();
         // Everything after the operator symbol.
-        let elems: Vec<Node> = node.named_children(&mut cursor).skip(1).collect();
+        let elems: Vec<Node> = forms(node).into_iter().skip(1).collect();
         if elems.is_empty() {
             return;
         }
@@ -378,6 +426,12 @@ impl<'a> ClojureWalker<'a> {
         // would bind every route to whatever definition happens to
         // share the binding's name.
         let binding_pos = (!route.is_empty()).then_some(1usize);
+        // Without a route, a verb that is also a `clojure.core` function
+        // is that function: `(get table k)` reads a map, and `table` is no
+        // handler. (`(defroutes app handler)` keeps its captures.)
+        let core_call = route.is_empty()
+            && cgg_core::stdlib::stdlib_names("clojure")
+                .is_some_and(|s| s.contains(verb));
 
         let mut out: Vec<RefRecord> = Vec::new();
         let mut body: Vec<Node> = Vec::new();
@@ -424,7 +478,7 @@ impl<'a> ClojureWalker<'a> {
                     });
                 }
                 "sym_lit" => {
-                    if Some(i) == binding_pos {
+                    if Some(i) == binding_pos || core_call {
                         continue;
                     }
                     let t = super::registrar::last_segment(self.text(*el))
@@ -929,11 +983,16 @@ mod tests {
     #[test]
     fn unquoted_defn_names_are_not_definitions() {
         let f = extract(
-            "(ns app.gen)\n(defmacro defgetter [n]\n  `(defn ~(symbol (str \"get-\" n)) [] ~(str n)))\n(defmacro defh [n & body] `(defn ~n [] ~@body))\n(defn real [] 1)\n",
+            "(ns app.gen)\n(defmacro defgetter [n]\n  `(defn ~(symbol (str \"get-\" n)) [] ~(str n)))\n(defmacro defh [n & body] `(defn ~n [] ~@body))\n(defmacro defm [n] `(defmulti ^:private ~n identity))\n(defn real [] 1)\n",
         );
         assert_eq!(
             defs(&f),
-            vec!["app.gen/defgetter", "app.gen/defh", "app.gen/real"]
+            vec![
+                "app.gen/defgetter",
+                "app.gen/defh",
+                "app.gen/defm",
+                "app.gen/real"
+            ]
         );
     }
 
@@ -1147,6 +1206,18 @@ mod tests {
         );
     }
 
+    /// `(get table k)` without a route is `clojure.core/get`: `table` is a
+    /// map, not a handler.
+    #[test]
+    fn a_core_get_without_a_route_captures_no_handler() {
+        let f = extract("(ns app)\n(defn f [k] (get table k))\n");
+        assert!(
+            hinted(&f, cgg_core::VALUE_REF_HINT).is_empty(),
+            "refs: {:?}",
+            hinted(&f, cgg_core::VALUE_REF_HINT)
+        );
+    }
+
     #[test]
     fn a_namespaced_operator_reduces_to_its_verb() {
         // The rule engine splits the context on `.`/`:`/`-`/`>` and not
@@ -1263,6 +1334,57 @@ mod tests {
         assert!(value_names(&f).is_empty());
         let off = extract("(defn r [] (map step []) #'h)\n");
         assert!(value_names(&off).is_empty());
+    }
+
+    /// Metadata on a definition's name (`^:private`, `^{…}`, `#^Tag`,
+    /// stacked) is not part of the name, for every def form.
+    #[test]
+    fn name_metadata_is_not_part_of_any_definition_name() {
+        let cases = [
+            ("(defn ^:private f [x] x)", "f"),
+            ("(defn- ^:deprecated f [x] x)", "f"),
+            ("(defn ^{:arglists '([x])} f [x] x)", "f"),
+            ("(defn #^String f [x] x)", "f"),
+            ("(defn ^:private ^:deprecated ^String f [x] x)", "f"),
+            ("(defmacro ^:private m [x] x)", "m"),
+            ("(defmulti ^:private mm (fn [x] x))", "mm"),
+            ("(defmethod ^:private mm :a [x] x)", "mm"),
+            ("(defmethod ^:private other/mm :a [x] x)", "other/mm"),
+            ("(defprotocol ^:private P (pm [this]))", "P"),
+            ("(definterface ^:private I (im []))", "I"),
+            ("(defrecord ^:private R [a])", "R"),
+            ("(deftype ^{:private true} T [a])", "T"),
+            ("(defstruct ^:private S :a)", "S"),
+            ("(def ^:private d 1)", "d"),
+            ("(def ^{:doc \"x\" :private true} d 1)", "d"),
+            ("(defonce ^:private o 1)", "o"),
+            ("^:x (defn k [] 1)", "k"),
+        ];
+        for (src, want) in cases {
+            let f = extract(&format!("(ns a.b)\n{src}\n"));
+            assert_eq!(
+                f.definitions
+                    .iter()
+                    .map(|d| d.simple_name.as_str())
+                    .collect::<Vec<_>>(),
+                vec![want],
+                "{src}"
+            );
+            assert_eq!(
+                f.definitions[0].qualified_name,
+                format!("a.b/{want}"),
+                "{src}"
+            );
+        }
+    }
+
+    /// A type hint on a call form (`^String (f x)`) is its metadata, not
+    /// its operator.
+    #[test]
+    fn a_hinted_call_is_still_a_call() {
+        let f = extract("(defn g [s] ^String (f s) #^Foo (h s) (^:once k s))\n");
+        let names: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
+        assert_eq!(names, vec!["f", "h", "k"]);
     }
 
     /// WS16: namespace metadata is not part of the namespace's name.
