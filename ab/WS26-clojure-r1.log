@@ -1,0 +1,9 @@
+old: cgg 0.11.0 (dev g6438024)  sha256=3ba12e7f04af8ef6a77a5ec3da76b2b752cd16860fd2de49613b542e2435f823
+new: cgg 0.11.0 (dev g6438024+de9ff678)  sha256=f4b4f61825e6f7b89296fefeb4eec02def3189e440b1ed121ee4fa96550d579e
+old=target/remediation/bins/WS26-clojure-before
+new=target/remediation/bins/WS26-clojure-r1a
+repos=282 elapsed=374s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 0
+by language: see by_language.tsv
+

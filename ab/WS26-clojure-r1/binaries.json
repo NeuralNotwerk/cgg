@@ -1,0 +1,12 @@
+{
+ "old": {
+  "sha256": "3ba12e7f04af8ef6a77a5ec3da76b2b752cd16860fd2de49613b542e2435f823",
+  "version": "cgg 0.11.0 (dev g6438024)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-clojure-before"
+ },
+ "new": {
+  "sha256": "f4b4f61825e6f7b89296fefeb4eec02def3189e440b1ed121ee4fa96550d579e",
+  "version": "cgg 0.11.0 (dev g6438024+de9ff678)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-clojure-r1a"
+ }
+}
