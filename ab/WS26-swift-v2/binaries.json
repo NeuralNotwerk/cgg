@@ -1,0 +1,12 @@
+{
+ "old": {
+  "sha256": "9776db11b702e8ace3ff76561c21289af50d2762ad5cc044a16dd59332fcc1e3",
+  "version": "cgg 0.11.0 (dev g4f3c56d)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-swift-before"
+ },
+ "new": {
+  "sha256": "f13780f91936d1dcb6e8595731b5e523b3920e071fbd4992ee945ea6c4ef7eb1",
+  "version": "cgg 0.11.0 (dev g4f3c56d+dc114eec)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-swift-r2"
+ }
+}

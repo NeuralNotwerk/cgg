@@ -1,0 +1,8 @@
+old: cgg 0.11.0 (dev g4f3c56d)  sha256=9776db11b702e8ace3ff76561c21289af50d2762ad5cc044a16dd59332fcc1e3
+new: cgg 0.11.0 (dev g4f3c56d+d6165d5b)  sha256=bc51074a322a1b0f74ab63af4816de59944d6a0aa2f53cec24a93755664ca760
+old=target/remediation/bins/WS26-swift-before
+new=target/remediation/bins/WS26-swift-r1
+repos=282 elapsed=386s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 0
+by language: see by_language.tsv
