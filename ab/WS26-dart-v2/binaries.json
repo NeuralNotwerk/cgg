@@ -1,0 +1,12 @@
+{
+ "old": {
+  "sha256": "39082ba4af4ddf325de614300409e71e13e5dcb36a642c2e79184889c86a31c0",
+  "version": "cgg 0.11.0 (dev g7248525)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-dart-before"
+ },
+ "new": {
+  "sha256": "e913fe50066138c42d5caea95dc31c6508984d4b00ba17c21db3b1cd5952a698",
+  "version": "cgg 0.11.0 (dev g7248525+d2ca8686)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-dart-r2"
+ }
+}
