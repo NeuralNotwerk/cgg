@@ -3143,6 +3143,96 @@ tick(X) -> X.\n",
     );
 }
 
+/// WS26 Clojure: a symbol argument, a threading step, `#'alias/f` and a
+/// map value name a function; `alias/f` binds through the `require`
+/// alias only, a bare name its own namespace's function, and a `let`
+/// local or quoted data names nothing.
+#[test]
+fn clojure_function_values_are_references() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/app/util.clj",
+        b"(ns app.util)\n\
+\n\
+(defn- normalize [x] x)\n\
+(defn- hook [x] x)\n\
+(defn- unused [] 1)\n\
+(defn- step [x] (normalize x))\n\
+(defn top-fn [] 1)\n",
+    );
+    write(
+        tmp.path(),
+        "src/app/core.clj",
+        b"(ns app.core\n\
+  (:require [app.util :as u]))\n\
+\n\
+(defn- on-req [r] r)\n\
+(defn- step [x] x)\n\
+(defn- orphan [] 1)\n\
+(defn- shadowed [] 1)\n\
+\n\
+(defn -main [& args]\n\
+  (let [shadowed identity]\n\
+    (map shadowed args))\n\
+  (map step args)\n\
+  (-> args u/normalize)\n\
+  (println #'u/hook '(orphan))\n\
+  {:handler on-req})\n\
+\n\
+(defn top-fn [] 2)\n\
+(register! top-fn)\n",
+    );
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in [
+        "app.core/on-req",
+        "app.core/step",
+        "app.util/hook",
+        "app.util/normalize",
+        "app.core/top-fn",
+    ] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} is referenced, findings: {dead:?}"
+        );
+    }
+    for gone in [
+        "app.core/shadowed",
+        "app.util/step",
+        "app.util/unused",
+        "app.util/top-fn",
+    ] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone} has no reference, findings: {dead:?}"
+        );
+    }
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .arg("-o")
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain).unwrap().matches("ref|").count(),
+        0
+    );
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------

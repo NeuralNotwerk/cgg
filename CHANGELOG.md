@@ -491,6 +491,24 @@ otherwise change the default graph.
   A value outside any function (a `-record` default) credits only its own
   module's functions, as Ruby's, Swift's, Dart's, Scala's and Lua's do.
 
+- **Clojure function values were not references (WS26, gap 25).**
+  `(map f xs)`, `(swap! a f)`, `(partial f …)`, `(comp f g)`, a bare step
+  of `->`/`->>`, `#'f` and `#'alias/f`, `(def handler f)`, `{:handler f}`,
+  a vector of components (`[misc/icon-text …]`) and a function returning
+  one left the function with no reference, so it was reported dead. Under
+  `--dead-code` and `--reference-edges` each is now a value reference;
+  `alias/f` and `ns/f` resolve through the `require` alias exactly as
+  calls do. Clojure has no locals table, so the plugin drops names bound
+  by an enclosing `let`/`loop`/`binding`/`doseq`/`for` (`:let` included),
+  `fn`/`defn`/`defmethod` parameters (`:-` schema annotations skipped),
+  `letfn`, `deftype`/`defrecord` fields and method parameters, a `with-…`
+  macro's vector, and destructuring (`{:keys [f]}`, `[f & more]`); quoted
+  data, `case` constants and `ns`/`comment`/`declare` arguments are not
+  values. A bare name reaches only its own namespace's var or one the
+  `ns` form refers (`:refer [f]`, `:refer :all` or `:use` of a namespace
+  outside the standard library), and a value outside any definition
+  credits only its own file's functions.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -817,6 +835,18 @@ WS26 Erlang `{M, F}` follow-up (full corpus, none excluded):
 - Under `--dead-code` (Erlang/OTP only), 12 findings leave the report
   (`{M, F, N}` trace and lint targets) and 9 return (functions named only
   by a bare pair in a list or an event tuple). None are `high`.
+
+WS26 Clojure (full corpus, none excluded):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 9,121 Clojure reference edges are added
+  (8,869 `high`), and 86 `medium` edges from a route verb's capture
+  (`(get table k)`) become `high`; none are removed.
+- Under `--dead-code`, 3,654 Clojure findings leave the report (none
+  `high`; Metabase 2,209, LIPAS 1,100, cljdoc 223, Riemann 103, Ring 17,
+  Compojure 2), and 88 move `medium` → `low`: a multimethod named as a
+  value has several in-file `defmethod`s, so the site is ambiguous. None
+  are added.
 
 ## [0.11.0] - 2026-10-16
 

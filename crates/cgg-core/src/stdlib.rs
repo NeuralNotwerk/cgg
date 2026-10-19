@@ -221,6 +221,96 @@ pub const SCALA_IMPLICIT_PACKAGES: &[&str] = &[
 /// bare calls, and a crate's own `err!` macro is a bare call.
 pub const RUST_UNTYPED_ADAPTER_METHODS: &[&str] = &["ok", "err", "as_deref"];
 
+/// Clojure forms whose first argument is a binding vector of
+/// `pattern init` pairs (`(let [x (f)] …)`): each pattern binds a local
+/// over the form, and each init is a value.
+pub const CLOJURE_BINDING_FORMS: &[&str] = &[
+    "let",
+    "let*",
+    "loop",
+    "loop*",
+    "binding",
+    "doseq",
+    "for",
+    "when-let",
+    "if-let",
+    "when-some",
+    "if-some",
+    "when-first",
+    "dotimes",
+];
+
+/// Prefixes of Clojure macros whose first argument, when it is a vector,
+/// binds locals in a shape cgg does not know (`with-open`, `with-redefs`,
+/// a library's `with-temp`): every symbol in it is taken as bound and
+/// none as a value.
+pub const CLOJURE_BINDING_FORM_PREFIXES: &[&str] = &["with-"];
+
+/// Clojure forms that define a function: the parameter vector(s) after
+/// the name (`fn` may name itself) bind locals over the form. The number
+/// is how many leading arguments to skip before looking for parameters.
+pub const CLOJURE_FN_FORMS: &[(&str, usize)] = &[
+    ("fn", 0),
+    ("fn*", 0),
+    ("bound-fn", 0),
+    ("defn", 1),
+    ("defn-", 1),
+    ("defmacro", 1),
+    ("defmethod", 2),
+];
+
+/// Clojure forms whose body lists are method implementations
+/// (`(m [this x] …)`), not calls: their parameter vectors bind locals.
+/// `letfn`'s binding vector holds the same shape.
+pub const CLOJURE_METHOD_BODY_FORMS: &[&str] = &[
+    "letfn",
+    "deftype",
+    "defrecord",
+    "reify",
+    "proxy",
+    "extend-type",
+    "extend-protocol",
+    "defprotocol",
+    "definterface",
+];
+
+/// Clojure forms whose second argument is a field vector (`(deftype T
+/// [a b] …)`): the fields are locals in every method body.
+pub const CLOJURE_TYPE_FIELD_FORMS: &[&str] = &["deftype", "defrecord"];
+
+/// Clojure forms whose arguments are not values: quoted data, constants
+/// (`case`), class names (`new`, `catch`), declarations and namespace
+/// directives.
+pub const CLOJURE_NON_VALUE_FORMS: &[&str] = &[
+    "quote",
+    "ns",
+    "comment",
+    "case",
+    "catch",
+    "new",
+    ".",
+    "..",
+    "set!",
+    "import",
+    "require",
+    "use",
+    "refer",
+    "declare",
+    "in-ns",
+    "defprotocol",
+    "definterface",
+    "deftype",
+    "defrecord",
+    "defstruct",
+    "monitor-enter",
+    "monitor-exit",
+    "var",
+];
+
+/// Clojure forms that define a var from a value (`(def x f)`): the last
+/// argument is a value.
+pub const CLOJURE_DEF_FORMS: &[&str] = &["def", "defonce", "defmulti"];
+
 /// The module of Erlang's auto-imported BIFs: `erlang:apply(M, F, A)` is
 /// `apply(M, F, A)` (`ERLANG_MFA_CALLS` lists the unqualified spelling).
 pub const ERLANG_BIF_MODULE: &str = "erlang";

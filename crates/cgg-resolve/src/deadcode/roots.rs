@@ -1087,7 +1087,7 @@ fn collect_rust_reexports(facts: &[FileFacts]) -> HashSet<String> {
 /// declaring file's own callables (see the top-level rule in
 /// [`discover`]).
 const FILE_SCOPED_VALUE_REF_LANGS: &[&str] =
-    &["ruby", "swift", "dart", "scala", "lua", "erlang"];
+    &["ruby", "swift", "dart", "scala", "lua", "erlang", "clojure"];
 
 /// `(file, site byte, name)` of the value-reference records of the
 /// [`FILE_SCOPED_VALUE_REF_LANGS`] files.

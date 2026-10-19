@@ -36,8 +36,16 @@ impl LanguagePlugin for ClojurePlugin {
             source,
             facts: &mut facts,
             namespace: String::new(),
+            locals: Vec::new(),
+            in_quote: 0,
+            referred: Vec::new(),
+            refer_all: false,
         };
         w.walk(tree.root_node());
+        if ctx.reference_sites {
+            let (referred, refer_all) = (std::mem::take(&mut w.referred), w.refer_all);
+            keep_reachable_values(&mut facts, &referred, refer_all);
+        }
         facts
     }
 }
@@ -48,6 +56,16 @@ struct ClojureWalker<'a> {
     ctx: crate::ExtractCtx<'a>,
     facts: &'a mut FileFacts,
     namespace: String,
+    /// Under `reference_sites`: the names bound by the enclosing `let`,
+    /// `fn` parameters, `doseq` … (innermost last). Clojure has no locals
+    /// spec, so the shadow filter for value references lives here.
+    locals: Vec<String>,
+    /// Depth of quoted data (`'(a b)`), where a symbol is not a value.
+    in_quote: u32,
+    /// Names the `ns` form `:refer`s, and whether it refers or `:use`s a
+    /// whole namespace (then any bare name may come from it).
+    referred: Vec<String>,
+    refer_all: bool,
 }
 
 impl<'a> ClojureWalker<'a> {
@@ -72,7 +90,29 @@ impl<'a> ClojureWalker<'a> {
                 } else {
                     self.record_call(node);
                 }
+                if self.ctx.reference_sites {
+                    let mark = self.locals.len();
+                    let quoted = self.head_name(node) == Some("quote");
+                    self.in_quote += u32::from(quoted);
+                    self.enter_form(node);
+                    self.walk_children(node);
+                    self.in_quote -= u32::from(quoted);
+                    self.locals.truncate(mark);
+                } else {
+                    self.walk_children(node);
+                }
+            }
+            "quoting_lit" if self.ctx.reference_sites => {
+                self.in_quote += 1;
                 self.walk_children(node);
+                self.in_quote -= 1;
+            }
+            // `#'f`, `#'ns/f`: the var itself, never a local.
+            "var_quoting_lit" if self.ctx.reference_sites => {
+                if let Some(sym) = forms(node).into_iter().find(|n| n.kind() == "sym_lit")
+                {
+                    self.push_value(sym, false);
+                }
             }
             _ => self.walk_children(node),
         }
@@ -175,6 +215,7 @@ impl<'a> ClojureWalker<'a> {
                 let mut path = String::new();
                 let mut alias = String::new();
                 let mut seen_as = false;
+                let mut refers_all = false;
                 let mut c = node.walk();
                 if c.goto_first_child() {
                     loop {
@@ -189,11 +230,31 @@ impl<'a> ClojureWalker<'a> {
                             }
                         } else if ch.kind() == "kwd_lit" && self.text(ch) == ":as" {
                             seen_as = true;
+                        } else if ch.kind() == "kwd_lit" && self.text(ch) == ":refer" {
+                            // `:refer [a b]` / `:refer :all`: the names the
+                            // file may use bare (a value reference's scope).
+                            if let Some(next) = ch.next_named_sibling() {
+                                match next.kind() {
+                                    "vec_lit" => {
+                                        for n in forms(next) {
+                                            if n.kind() == "sym_lit" {
+                                                let name =
+                                                    self.sym_parts(n).1.to_string();
+                                                self.referred.push(name);
+                                            }
+                                        }
+                                    }
+                                    _ => refers_all = true,
+                                }
+                            }
                         }
                         if !c.goto_next_sibling() {
                             break;
                         }
                     }
+                }
+                if refers_all {
+                    self.refer_all_from(&path);
                 }
                 (path, alias)
             }
@@ -201,6 +262,9 @@ impl<'a> ClojureWalker<'a> {
         };
         if path.is_empty() {
             return;
+        }
+        if kind == "use" {
+            self.refer_all_from(&path);
         }
         self.facts.imports.push(ImportRecord {
             kind: kind.into(),
@@ -472,6 +536,317 @@ impl<'a> ClojureWalker<'a> {
             route: route.to_string(),
             kwargs: Vec::new(),
         });
+    }
+}
+
+/// The forms of a collection or list: its named children, less metadata,
+/// comments and `#_` discards.
+fn forms(node: Node) -> Vec<Node> {
+    let mut c = node.walk();
+    node.named_children(&mut c)
+        .filter(|n| {
+            !matches!(
+                n.kind(),
+                "meta_lit" | "old_meta_lit" | "comment" | "dis_expr"
+            )
+        })
+        .collect()
+}
+
+/// A bare symbol names a var of its own namespace or one the `ns` form
+/// refers (`:refer [f]`, `:refer :all`, `:use`); it never reaches
+/// another namespace's function by name, so a bare value reference to
+/// neither is a local cgg cannot see (a library macro's binding) and is
+/// dropped. `alias/f` is kept: it resolves through the alias.
+fn keep_reachable_values(facts: &mut FileFacts, referred: &[String], refer_all: bool) {
+    if refer_all {
+        return;
+    }
+    let own: std::collections::HashSet<&str> = facts
+        .definitions
+        .iter()
+        .map(|d| d.simple_name.as_str())
+        .collect();
+    let keep: Vec<bool> = facts
+        .references
+        .iter()
+        .map(|r| {
+            !r.value_ref
+                || r.name.contains('/') && r.name.len() > 1
+                || own.contains(r.name.as_str())
+                || referred.contains(&r.name)
+        })
+        .collect();
+    let mut i = 0;
+    facts.references.retain(|_| {
+        i += 1;
+        keep[i - 1]
+    });
+}
+
+/// WS26: function values. Recorded only under `reference_sites`.
+impl ClojureWalker<'_> {
+    /// `(:require [x :refer :all])` / `(:use x)`: any bare name may come
+    /// from `x` — unless `x` is the standard library (`clojure.test`),
+    /// which defines none of the tree's functions.
+    fn refer_all_from(&mut self, ns: &str) {
+        if !cgg_core::stdlib::stdlib_modules("clojure").contains(&ns) {
+            self.refer_all = true;
+        }
+    }
+
+    /// `(ns, name)` of a symbol, read without its metadata.
+    fn sym_parts(&self, sym: Node) -> (&str, &str) {
+        let name = sym
+            .child_by_field_name("name")
+            .map_or_else(|| self.text(sym), |n| self.text(n));
+        let ns = sym
+            .child_by_field_name("namespace")
+            .map_or("", |n| self.text(n));
+        (ns, name)
+    }
+
+    /// The operator's name, without namespace (`clojure.core/let` is `let`).
+    fn head_name(&self, list: Node) -> Option<&str> {
+        let head = *forms(list).first()?;
+        (head.kind() == "sym_lit").then(|| self.sym_parts(head).1)
+    }
+
+    /// A symbol in value position: a reference to the function it names,
+    /// unless a local binds the name (`check_locals`).
+    fn push_value(&mut self, sym: Node, check_locals: bool) {
+        if self.in_quote > 0 {
+            return;
+        }
+        let (ns, name) = self.sym_parts(sym);
+        // A Java class or a namespace (`java.util.Date`, `clojure.string`)
+        // is not a function; nor are `&`, `_` or a reader literal.
+        if name.is_empty()
+            || name == "&"
+            || name == "_"
+            || name.starts_with(['%', '.'])
+            || (ns.is_empty() && name.contains('.'))
+            || name.ends_with('.')
+        {
+            return;
+        }
+        if check_locals && ns.is_empty() && self.locals.iter().any(|l| l == name) {
+            return;
+        }
+        let full = if ns.is_empty() {
+            name.to_string()
+        } else {
+            format!("{ns}/{name}")
+        };
+        self.facts.references.push(RefRecord {
+            name: full,
+            site_line: (sym.start_position().row as u32) + 1,
+            site_byte: sym.start_byte() as u32,
+            value_ref: true,
+            ..Default::default()
+        });
+    }
+
+    /// A form in value position: a symbol, or the elements of a vector or
+    /// the values of a map holding one (`{:handler f}`, `[f g]`). Lists
+    /// are calls and are walked on their own.
+    fn value_form(&mut self, n: Node) {
+        match n.kind() {
+            "sym_lit" => self.push_value(n, true),
+            "vec_lit" => {
+                for e in forms(n) {
+                    self.value_form(e);
+                }
+            }
+            "map_lit" => {
+                for (i, e) in forms(n).into_iter().enumerate() {
+                    if i % 2 == 1 {
+                        self.value_form(e);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn value_forms(&mut self, items: &[Node]) {
+        for n in items {
+            self.value_form(*n);
+        }
+    }
+
+    /// Every symbol of a destructuring pattern (`x`, `[a & more]`,
+    /// `{:keys [f] :as m}`) is a local.
+    fn bind_pattern(&mut self, n: Node) {
+        if n.kind() == "sym_lit" {
+            let name = self.sym_parts(n).1;
+            if name != "&" {
+                self.locals.push(name.to_string());
+            }
+            return;
+        }
+        for e in forms(n) {
+            self.bind_pattern(e);
+        }
+    }
+
+    /// `[pattern init …]`: each init is a value, then its pattern binds.
+    /// `:let [..]` in `for`/`doseq` nests another such vector.
+    fn bind_pairs(&mut self, vec: Node) {
+        let items = forms(vec);
+        for pair in items.chunks(2) {
+            let pat = pair[0];
+            let init = pair.get(1).copied();
+            if pat.kind() == "kwd_lit" {
+                if self.text(pat) == ":let"
+                    && let Some(v) = init.filter(|v| v.kind() == "vec_lit")
+                {
+                    self.bind_pairs(v);
+                }
+                continue;
+            }
+            if let Some(init) = init {
+                self.value_form(init);
+            }
+            self.bind_pattern(pat);
+        }
+    }
+
+    /// The parameter vector(s) from `items[start..]`: one vector, or the
+    /// arity lists `([x] …) ([x y] …)`; a docstring or attribute map before
+    /// them is skipped.
+    /// Returns the index of the first body form after a single parameter
+    /// vector (arity lists carry their own bodies).
+    fn bind_params(&mut self, items: &[Node], start: usize) -> Option<usize> {
+        for (i, n) in items.iter().enumerate().skip(start) {
+            match n.kind() {
+                "str_lit" | "map_lit" => continue,
+                // A schema annotation (`(mu/defn f :- :int [x] …)`): the
+                // keyword and the schema after it.
+                "kwd_lit" if self.text(*n) == ":-" => continue,
+                _ if i > start
+                    && items.get(i - 1).is_some_and(|p| self.text(*p) == ":-") =>
+                {
+                    continue;
+                }
+                "vec_lit" => {
+                    self.bind_pattern(*n);
+                    return Some(i + 1);
+                }
+                "list_lit" => {
+                    if let Some(p) = forms(*n).first().filter(|p| p.kind() == "vec_lit") {
+                        self.bind_pattern(*p);
+                    } else {
+                        return None;
+                    }
+                }
+                _ => return None,
+            }
+        }
+        None
+    }
+
+    /// A method or `letfn` body (`(m [this x] …)`) rather than a call.
+    fn is_fn_spec(&self, list: Node) -> bool {
+        let Some(p) = list.parent() else {
+            return false;
+        };
+        let owner = if p.kind() == "vec_lit" {
+            match p.parent() {
+                Some(g) if g.kind() == "list_lit" => g,
+                _ => return false,
+            }
+        } else if p.kind() == "list_lit" {
+            p
+        } else {
+            return false;
+        };
+        let Some(h) = self.head_name(owner) else {
+            return false;
+        };
+        if !cgg_core::stdlib::CLOJURE_METHOD_BODY_FORMS.contains(&h) {
+            return false;
+        }
+        if p.kind() == "vec_lit" && h != "letfn" {
+            return false;
+        }
+        forms(list)
+            .get(1)
+            .is_some_and(|n| matches!(n.kind(), "vec_lit" | "list_lit"))
+    }
+
+    /// Bind what a form binds over its body and record the function
+    /// values among its arguments.
+    fn enter_form(&mut self, list: Node) {
+        use cgg_core::stdlib as std_t;
+        let items = forms(list);
+        if self.is_fn_spec(list) {
+            if let Some(body) = self.bind_params(&items, 1) {
+                self.value_forms(&items[body..]);
+            }
+            return;
+        }
+        let Some(head) = items.first().copied() else {
+            return;
+        };
+        let h = if head.kind() == "sym_lit" {
+            self.sym_parts(head).1.to_string()
+        } else {
+            String::new()
+        };
+        let h = h.as_str();
+        let first_vec = items.get(1).copied().filter(|v| v.kind() == "vec_lit");
+        if let Some(&(_, skip)) = std_t::CLOJURE_FN_FORMS.iter().find(|(f, _)| *f == h) {
+            let mut start = 1 + skip;
+            // `(fn name [x] …)` binds its own name too.
+            if skip == 0 && items.get(1).is_some_and(|n| n.kind() == "sym_lit") {
+                self.bind_pattern(items[1]);
+                start += 1;
+            }
+            // The body's forms are values too: a function returning a
+            // handler or a route table (`(defn routes [] [["/" {:get h}]])`).
+            if let Some(body) = self.bind_params(&items, start) {
+                self.value_forms(&items[body..]);
+            }
+        } else if h == "letfn" {
+            if let Some(v) = first_vec {
+                for spec in forms(v) {
+                    if let Some(name) =
+                        forms(spec).first().filter(|n| n.kind() == "sym_lit")
+                    {
+                        self.bind_pattern(*name);
+                    }
+                }
+            }
+        } else if std_t::CLOJURE_BINDING_FORMS.contains(&h) {
+            if let Some(v) = first_vec {
+                self.bind_pairs(v);
+                self.value_forms(&items[2..]);
+            }
+        } else if let Some(v) = first_vec.filter(|_| {
+            std_t::CLOJURE_BINDING_FORM_PREFIXES
+                .iter()
+                .any(|p| h.starts_with(p))
+        }) {
+            self.bind_pattern(v);
+        } else if std_t::CLOJURE_TYPE_FIELD_FORMS.contains(&h) {
+            if let Some(fields) = items.get(2).filter(|v| v.kind() == "vec_lit") {
+                self.bind_pattern(*fields);
+            }
+        } else if std_t::CLOJURE_DEF_FORMS.contains(&h) {
+            if items.len() >= 3
+                && let Some(last) = items.last()
+            {
+                self.value_form(*last);
+            }
+        } else if !(std_t::CLOJURE_NON_VALUE_FORMS.contains(&h)
+            || std_t::CLOJURE_METHOD_BODY_FORMS.contains(&h)
+            || head.kind() == "kwd_lit")
+        {
+            // A call, or a threading step (`(-> x f)`): every argument
+            // in value position.
+            self.value_forms(&items[1..]);
+        }
     }
 }
 
@@ -784,6 +1159,110 @@ mod tests {
             "refs: {:?}",
             hinted(&f, cgg_core::VALUE_REF_HINT)
         );
+    }
+
+    fn extract_with_refs(src: &str) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_clojure_orchard::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        ClojurePlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(true),
+            FileId::new(0),
+            &PathBuf::from("/tmp/x.clj"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    fn value_names(f: &FileFacts) -> Vec<&str> {
+        f.references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| r.name.as_str())
+            .collect()
+    }
+
+    /// WS26: symbols passed to a function, threaded, var-quoted or held
+    /// in a map or vector name functions.
+    #[test]
+    fn function_values_are_value_references() {
+        let f = extract_with_refs(
+            "(ns app (:require [a.util :as u :refer [step norm]]))\n\
+             (def state (atom 0))\n(defn update-fn [x] x)\n(defn wrap [x] x)\n(defn f1 [x] x)\n\
+             (defn f2 [x] x)\n(defn key-fn [x] x)\n(defn handler [x] x)\n(defn on-req [x] x)\n\
+             (defn r1 [x] x)\n(defn r2 [x] x)\n(defn a-fn [x] x)\n\
+             (defn run [xs]\n\
+             \x20 (map step xs)\n\
+             \x20 (reduce u/merge {} xs)\n\
+             \x20 (swap! state update-fn)\n\
+             \x20 (partial wrap 1)\n\
+             \x20 (comp f1 f2)\n\
+             \x20 (-> xs norm (sort-by key-fn))\n\
+             \x20 #'handler\n\
+             \x20 #'u/hook\n\
+             \x20 {:handler on-req :routes [r1 r2]})\n\
+             (def table [a-fn])\n",
+        );
+        let mut got = value_names(&f);
+        got.sort_unstable();
+        let mut want = vec![
+            "step",
+            "xs",
+            "u/merge",
+            "xs",
+            "state",
+            "update-fn",
+            "wrap",
+            "f1",
+            "f2",
+            "xs",
+            "norm",
+            "key-fn",
+            "handler",
+            "u/hook",
+            "on-req",
+            "r1",
+            "r2",
+            "a-fn",
+        ];
+        want.retain(|n| *n != "xs");
+        want.sort_unstable();
+        assert_eq!(got, want);
+    }
+
+    /// Locals bound by `let`, `fn`/`defn` parameters, `loop`, `doseq`,
+    /// `for` (with `:let`), `letfn`, destructuring and `with-*` vectors
+    /// are not functions; quoted data and `case` constants are not
+    /// values; and nothing is recorded without `reference_sites`.
+    #[test]
+    fn locals_and_data_are_not_function_values() {
+        let f = extract_with_refs(
+            "(defn g [{:keys [a]} [b & more] ^String c]\n\
+             \x20 (let [d (inc a) {e :e} a] (map d [a b c e more]))\n\
+             \x20 (fn self [h] (map h (map self [])))\n\
+             \x20 (loop [i 0] (recur (inc i)))\n\
+             \x20 (doseq [x xs :let [y x]] (run! y x))\n\
+             \x20 (letfn [(k [z] (map z []))] (map k []))\n\
+             \x20 (with-temp [Model m {:a 1}] (use-it m))\n\
+             \x20 (case v foo 1 bar 2)\n\
+             \x20 (quote (map nope []))\n\
+             \x20 '(map nope2 []))\n\
+             (deftype T [field] P (meth [this q] (map q [field this])))\n\
+             (mu/defn sch :- [:map {:x 1}] [p :- :int] (map p []))\n(defn p [x] x)\n\
+             (def xs [])\n(defn a [x] x)\n(defn d [x] x)\n(defn h [x] x)\n(defn field [x] x)\n\
+             (defn run! [f x] x)\n(defn k [x] x)\n(defn m [x] x)\n(defn nope [x] x)\n\
+             (defn self [x] x)\n(defn y [x] x)\n(defn q [x] x)\n(defn z [x] x)\n(defn more [x] x)\n",
+        );
+        assert_eq!(value_names(&f), vec!["xs"]);
+        // A bare name neither defined here nor referred is a local of a
+        // macro cgg cannot read, never another namespace's function.
+        let f = extract_with_refs(
+            "(ns b (:require [c :as c]))\n(defn g [] (map elsewhere []))\n",
+        );
+        assert!(value_names(&f).is_empty());
+        let off = extract("(defn r [] (map step []) #'h)\n");
+        assert!(value_names(&off).is_empty());
     }
 
     /// WS16: namespace metadata is not part of the namespace's name.

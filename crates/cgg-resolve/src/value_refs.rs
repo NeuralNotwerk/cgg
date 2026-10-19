@@ -27,8 +27,16 @@ use cgg_core::ids::FileId;
 use cgg_core::{FileFacts, RefRecord};
 
 /// The callable name a value-ref record must match: its last path
-/// segment (`a.b.Foo` for a constructor reference is `Foo`).
+/// segment (`a.b.Foo` for a constructor reference is `Foo`, Erlang
+/// `m:f` is `f`, Clojure `alias/f` and `a.b/f` are `f`).
 fn leaf(r: &RefRecord) -> &str {
+    if let Some((ns, f)) = r.name.split_once('/')
+        && !ns.is_empty()
+        && !f.is_empty()
+        && !ns.contains(':')
+    {
+        return f;
+    }
     r.name.rsplit(['.', ':']).next().unwrap_or(&r.name)
 }
 
