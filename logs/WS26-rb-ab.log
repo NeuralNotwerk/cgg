@@ -1,0 +1,17 @@
+old: cgg 0.11.0 (dev g26da301)  sha256=251dbdcdc6eed84f968eeb194835c85354d44432b257d5f8cec8b4c480425dc9
+new: cgg 0.11.0 (dev g26da301+d0bf7433)  sha256=3a5908a599acf7fa7b5b4966dc90401d7793a24a9794b6e6989c3c6d8aed1400
+old=target/remediation/bins/WS26-rb-before
+new=target/remediation/bins/WS26-rb-r1
+repos=282 elapsed=384s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 8
+  app-barong-grape: edges 896->896 (-0 +0 ~0) callables 823->823 unresolved 4011->4022 files 320->320 deadhigh 0->0 
+  app-diaspora-sidekiq: edges 7592->7592 (-0 +0 ~0) callables 4721->4721 unresolved 19611->19643 files 1139->1139 deadhigh 0->0 
+  app-html2rss-roda: edges 1310->1310 (-0 +0 ~0) callables 1004->1004 unresolved 1397->1404 files 197->197 deadhigh 0->0 
+  app-itunesweb-padrino: edges 163->163 (-0 +0 ~0) callables 356->356 unresolved 867->874 files 94->94 deadhigh 0->0 
+  app-lobsters-puma: edges 1332->1332 (-0 +0 ~0) callables 1392->1393 unresolved 3959->3971 files 499->499 deadhigh 0->0 
+  app-rails-mastodon: edges 18906->18906 (-0 +0 ~0) callables 13114->13114 unresolved 50203->50252 files 4161->4161 deadhigh 0->0 
+  app-resque-sinatra: edges 1054->1054 (-0 +0 ~0) callables 795->795 unresolved 1766->1767 files 76->76 deadhigh 0->0 
+  app-terminus-hanami: edges 967->967 (-0 +0 ~0) callables 971->971 unresolved 3744->3745 files 908->908 deadhigh 0->0 
+by language: see by_language.tsv
+

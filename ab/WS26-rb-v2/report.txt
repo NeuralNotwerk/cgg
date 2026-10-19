@@ -1,0 +1,8 @@
+old: cgg 0.11.0 (dev g26da301)  sha256=251dbdcdc6eed84f968eeb194835c85354d44432b257d5f8cec8b4c480425dc9
+new: cgg 0.11.0 (dev g26da301+d7bcc081)  sha256=5124c1c14be0193df4328e04780927b3086bc2e7d1f3f66f368c8053e3f5bdfa
+old=target/remediation/bins/WS26-rb-before
+new=target/remediation/bins/WS26-rb-r2
+repos=282 elapsed=243s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 0
+by language: see by_language.tsv
