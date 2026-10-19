@@ -1,0 +1,12 @@
+{
+ "old": {
+  "sha256": "bcb4077cf0cc8c43c747499a4b3a1209992b1da54ad377e14cf23e8d44e7a15c",
+  "version": "cgg 0.11.0 (dev ga95dc09)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-erlang-before"
+ },
+ "new": {
+  "sha256": "144f790f609b556ddfde0f0c8d8df67db84fce4f4502396c87625bcac11a5502",
+  "version": "cgg 0.11.0 (dev ga95dc09+dafdb041)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-erlang-r3"
+ }
+}
