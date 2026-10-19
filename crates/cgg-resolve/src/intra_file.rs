@@ -1055,7 +1055,7 @@ pub(crate) fn first_clause_per_arity(
 
 /// The arity a clause's signature declares: `f(A, B) -> …` is 2, Elixir's
 /// paren-less `def g, do: …` is 0. `None` when the hint does not show it.
-fn clause_arity(hint: &str, name: &str) -> Option<u32> {
+pub(crate) fn clause_arity(hint: &str, name: &str) -> Option<u32> {
     let ident = |c: char| c.is_alphanumeric() || c == '_' || c == '?' || c == '!';
     // The name as a whole word: `f` in `def f(a)` is not the `f` of `def`.
     let at = hint.match_indices(name).map(|(i, _)| i).find(|&i| {

@@ -470,6 +470,21 @@ otherwise change the default graph.
   with no enclosing function (a module's returned table) credits only its
   own file's functions, as Ruby's, Swift's, Dart's and Scala's do.
 
+- **Erlang function values were not references (WS26, gap 25).**
+  `fun f/N`, `fun m:f/N`, an `{M, F, A}` / `{M, F}` callback tuple and the
+  `M, F, A` arguments of `spawn`/`spawn_link`/`apply`/`proc_lib:spawn*`/
+  `timer:apply_*`/`rpc:call` (`cgg_core::stdlib::ERLANG_MFA_CALLS`)
+  left the function with no reference, so it was reported dead. Under
+  `--dead-code` and `--reference-edges` each is now a value reference of
+  one arity: `fun f/N` names only a clause of `f/N` in its own module, and
+  a value through a module (`fun m:f/N`, a tuple, a callback argument)
+  only a clause of `m:f` of that arity in a module the tree declares. A
+  value whose arity no clause has names no function, never one of another
+  arity, and `{ok, Name}`-style data tuples and tuples in a pattern (a
+  clause head, a `case`/`receive` pattern, the left of `=`) name nothing.
+  A value outside any function (a `-record` default) credits only its own
+  module's functions, as Ruby's, Swift's, Dart's, Scala's and Lua's do.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -775,6 +790,15 @@ WS26 Lua (full corpus, none excluded):
   Kong 667, APISIX 257, Neovim 190). 2 previously withheld findings are
   now reported (low root coverage lifted over the threshold), and 71 move
   `medium` → `low`.
+
+WS26 Erlang (full corpus, none excluded):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 12,274 Erlang reference edges are added
+  (11,974 `high`); none are removed.
+- Under `--dead-code`, 1,257 Erlang findings leave the report (none
+  `high`; Erlang/OTP 1,086, VerneMQ 124, rebar3 47). None are added and
+  none change confidence.
 
 ## [0.11.0] - 2026-10-16
 

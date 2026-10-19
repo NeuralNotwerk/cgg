@@ -3052,6 +3052,96 @@ main({})\n\
     );
 }
 
+/// WS26 Erlang: `fun f/N`, `fun m:f/N`, `{M, F, A}` and `spawn(M, F, A)`
+/// name a function of one arity. `fun helper/2` with only `helper/1`
+/// names nothing, `fun worker:stop/1` leaves `stop/2` dead, and
+/// `{ok, compute}` (no module `ok` in the tree) is data. A record
+/// default's `fun tick/1` names its own module's `tick`, not another's.
+#[test]
+fn erlang_function_values_are_references() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "main.erl",
+        b"-module(main).\n\
+-export([main/0]).\n\
+-record(st, {cb = fun tick/1}).\n\
+\n\
+main() ->\n\
+    lists:map(fun step/1, [1]),\n\
+    F = fun helper/2,\n\
+    G = fun worker:stop/1,\n\
+    S = {worker, start_link, []},\n\
+    spawn(worker, loop, [1]),\n\
+    D = {ok, compute},\n\
+    {F, G, S, D}.\n\
+\n\
+step(X) -> X.\n\
+helper(X) -> X.\n\
+compute() -> ok.\n\
+tick(X) -> X.\n",
+    );
+    write(
+        tmp.path(),
+        "worker.erl",
+        b"-module(worker).\n\
+\n\
+start_link() -> ok.\n\
+loop(N) -> N.\n\
+stop(R) -> R.\n\
+stop(R, T) -> {R, T}.\n\
+unused() -> ok.\n\
+tick(X) -> X.\n",
+    );
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in ["main:step", "main:tick", "worker:start_link", "worker:loop"] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} is referenced, findings: {dead:?}"
+        );
+    }
+    for gone in [
+        "main:helper",
+        "main:compute",
+        "worker:unused",
+        "worker:tick",
+    ] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone} has no reference, findings: {dead:?}"
+        );
+    }
+    assert_eq!(
+        dead.iter().filter(|q| *q == "worker:stop").count(),
+        1,
+        "only stop/2 is unreferenced: {dead:?}"
+    );
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .arg("-o")
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain).unwrap().matches("ref|").count(),
+        0
+    );
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------

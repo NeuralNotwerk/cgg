@@ -24,7 +24,7 @@ impl LanguagePlugin for ErlangPlugin {
 
     fn extract(
         &self,
-        _ctx: &crate::ExtractCtx<'_>,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -32,6 +32,7 @@ impl LanguagePlugin for ErlangPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "erlang");
         let mut w = ErlangWalker {
+            reference_sites: ctx.reference_sites,
             source,
             facts: &mut facts,
             module: String::new(),
@@ -42,6 +43,8 @@ impl LanguagePlugin for ErlangPlugin {
 }
 
 struct ErlangWalker<'a> {
+    /// Record function values; see `crate::ExtractCtx::reference_sites`.
+    reference_sites: bool,
     source: &'a [u8],
     facts: &'a mut FileFacts,
     module: String,
@@ -107,6 +110,43 @@ impl<'a> ErlangWalker<'a> {
             }
             "call" => {
                 self.record_call(node);
+                self.walk_children(node);
+            }
+            // `fun f/1`: a local function value, of that arity.
+            "internal_fun" if self.reference_sites => {
+                if let (Some(f), Some(a)) = (
+                    node.child_by_field_name("fun")
+                        .filter(|f| f.kind() == "atom"),
+                    self.arity_of(node),
+                ) {
+                    let name = self.text(f).to_string();
+                    self.push_value_ref(f, name, String::new(), Some(a));
+                }
+                self.walk_children(node);
+            }
+            // `fun m:f/2`: a remote function value.
+            "external_fun" if self.reference_sites => {
+                let module = node
+                    .child_by_field_name("module")
+                    .and_then(|m| m.child_by_field_name("name").or(Some(m)))
+                    .filter(|m| m.kind() == "atom");
+                if let (Some(m), Some(f), Some(a)) = (
+                    module,
+                    node.child_by_field_name("fun")
+                        .filter(|f| f.kind() == "atom"),
+                    self.arity_of(node),
+                ) {
+                    let m = self.text(m).to_string();
+                    let name = format!("{m}:{}", self.text(f));
+                    self.push_value_ref(f, name, m, Some(a));
+                }
+                self.walk_children(node);
+            }
+            // `{M, F}` / `{M, F, A}` of atoms: a callback named by module
+            // and function (kept only when `M` is a module of the tree that
+            // declares `F`, `value_refs::prune`).
+            "tuple" if self.reference_sites => {
+                self.record_mfa_tuple(node);
                 self.walk_children(node);
             }
             _ => self.walk_children(node),
@@ -251,6 +291,9 @@ impl<'a> ErlangWalker<'a> {
                 String::new()
             };
 
+            if self.reference_sites {
+                self.record_mfa_call(node, &name);
+            }
             // `f(A, B)` is `f/2`; the arity is part of the callee's name.
             let arity = node
                 .child_by_field_name("args")
@@ -265,6 +308,118 @@ impl<'a> ErlangWalker<'a> {
             });
         }
     }
+}
+
+impl ErlangWalker<'_> {
+    /// The `/N` of a `fun f/N` / `fun m:f/N`.
+    fn arity_of(&self, fun: Node) -> Option<u32> {
+        fun.child_by_field_name("arity")
+            .and_then(|a| a.child_by_field_name("value"))
+            .and_then(|v| self.text(v).parse().ok())
+    }
+
+    fn push_value_ref(
+        &mut self,
+        site: Node,
+        name: String,
+        recv: String,
+        arity: Option<u32>,
+    ) {
+        if name.is_empty() {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: recv,
+            site_line: (site.start_position().row as u32) + 1,
+            site_byte: site.start_byte() as u32,
+            arity,
+            value_ref: true,
+            ..Default::default()
+        });
+    }
+
+    /// `M`, `F` atoms and, when `A` is a literal list, its length: the
+    /// callee `M:F/len(A)` they name.
+    fn push_mfa(&mut self, m: Node, f: Node, args: Option<Node>) {
+        if m.kind() != "atom" || f.kind() != "atom" {
+            return;
+        }
+        let arity = match args {
+            Some(a) if a.kind() == "list" => Some(a.named_child_count() as u32),
+            Some(_) => None,
+            None => None,
+        };
+        let module = self.text(m).to_string();
+        let name = format!("{module}:{}", self.text(f));
+        self.push_value_ref(f, name, module, arity);
+    }
+
+    fn record_mfa_tuple(&mut self, tuple: Node) {
+        if in_pattern(tuple) {
+            return;
+        }
+        let mut c = tuple.walk();
+        let items: Vec<Node> = tuple.named_children(&mut c).collect();
+        match items.as_slice() {
+            [m, f] => self.push_mfa(*m, *f, None),
+            [m, f, a] if a.kind() == "list" => self.push_mfa(*m, *f, Some(*a)),
+            _ => {}
+        }
+    }
+
+    /// `spawn(M, F, A)`, `timer:apply_after(T, M, F, A)`, …
+    /// (`cgg_core::stdlib::ERLANG_MFA_CALLS`).
+    fn record_mfa_call(&mut self, call: Node, callee: &str) {
+        let callee = callee
+            .strip_prefix(cgg_core::stdlib::ERLANG_BIF_MODULE)
+            .and_then(|c| c.strip_prefix(':'))
+            .unwrap_or(callee);
+        let Some(args) = call.child_by_field_name("args") else {
+            return;
+        };
+        let mut c = args.walk();
+        let items: Vec<Node> = args.named_children(&mut c).collect();
+        let Some(&(_, _, pos)) = cgg_core::stdlib::ERLANG_MFA_CALLS
+            .iter()
+            .find(|(f, n, _)| *f == callee && *n == items.len())
+        else {
+            return;
+        };
+        if let (Some(m), Some(f)) = (items.get(pos), items.get(pos + 1)) {
+            self.push_mfa(*m, *f, items.get(pos + 2).copied());
+        }
+    }
+}
+
+/// Whether `node` is (inside) a pattern — a clause head, a `case`/
+/// `receive`/`catch` pattern, the left of `=` or of a generator — where a
+/// tuple of atoms matches a value rather than naming a function.
+fn in_pattern(node: Node) -> bool {
+    let mut n = node;
+    while let Some(p) = n.parent() {
+        match p.kind() {
+            "tuple" | "list" | "cons" | "paren_expr" | "map_expr" | "map_field"
+            | "record_expr" | "record_field" | "binary" | "bin_element" => n = p,
+            "cr_clause" | "catch_clause" => return field_of(p, n) == Some("pat"),
+            "match_expr" | "cond_match_expr" | "generator" | "b_generator"
+            | "map_generator" => return field_of(p, n) == Some("lhs"),
+            "expr_args" => {
+                return p.parent().is_some_and(|g| {
+                    matches!(g.kind(), "function_clause" | "fun_clause")
+                });
+            }
+            _ => return false,
+        }
+    }
+    false
+}
+
+/// The field `child` fills in `parent`.
+fn field_of(parent: Node, child: Node) -> Option<&'static str> {
+    let mut c = parent.walk();
+    let i = parent.children(&mut c).position(|x| x.id() == child.id())?;
+    parent.field_name_for_child(i as u32)
 }
 
 #[cfg(test)]
@@ -307,6 +462,76 @@ mod tests {
             .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
             .collect();
         assert_eq!(refs, vec![("other_mod:gen", "other_mod"), ("local", "")]);
+    }
+
+    fn extract_with_refs(src: &str) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_erlang::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        ErlangPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(true),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.erl"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    fn value_refs(f: &FileFacts) -> Vec<(&str, &str, Option<u32>)> {
+        f.references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str(), r.arity))
+            .collect()
+    }
+
+    /// WS26: `fun f/N`, `fun m:f/N`, `{M, F, A}` callbacks and the
+    /// M/F arguments of `spawn`/`apply`/`timer:apply_after` name functions.
+    #[test]
+    fn function_values_are_value_references() {
+        let src = "-module(a).\n\
+            run(X) ->\n\
+            \x20 lists:map(fun step/1, X),\n\
+            \x20 F = fun b:go/2,\n\
+            \x20 S = {worker, start_link, [X]},\n\
+            \x20 spawn(c, loop, [X, 1]),\n\
+            \x20 erlang:apply(d, h, []),\n\
+            \x20 timer:apply_after(10, e, tick, [X]),\n\
+            \x20 {F, S}.\n";
+        let f = extract_with_refs(src);
+        assert_eq!(
+            value_refs(&f),
+            vec![
+                ("step", "", Some(1)),
+                ("b:go", "b", Some(2)),
+                ("worker:start_link", "worker", Some(1)),
+                ("c:loop", "c", Some(2)),
+                ("d:h", "d", Some(0)),
+                ("e:tick", "e", Some(1)),
+            ]
+        );
+    }
+
+    /// Data tuples are recorded only as atom pairs (the resolver drops a
+    /// module the tree does not declare); a variable M/F names nothing,
+    /// and nothing is recorded without `reference_sites`.
+    #[test]
+    fn non_literal_callbacks_and_plain_runs_record_nothing() {
+        let src = "-module(a).\n\
+            run(M, F, X) ->\n\
+            \x20 spawn(M, F, X),\n\
+            \x20 apply(a, F, []),\n\
+            \x20 {ok, X},\n\
+            \x20 case X of {c, h} -> 1; _ -> 2 end,\n\
+            \x20 {d, e} = X,\n\
+            \x20 [1 || {g, h} <- X],\n\
+            \x20 {1, 2, 3}.\n\
+            exc({erlang, error}, [E]) -> E.\n";
+        assert!(value_refs(&extract_with_refs(src)).is_empty());
+        let off =
+            extract("-module(a).\nrun() -> fun f/1, {m, f, []}, spawn(m, f, []).\n");
+        assert!(value_refs(&off).is_empty());
     }
 
     #[test]

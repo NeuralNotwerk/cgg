@@ -221,6 +221,47 @@ pub const SCALA_IMPLICIT_PACKAGES: &[&str] = &[
 /// bare calls, and a crate's own `err!` macro is a bare call.
 pub const RUST_UNTYPED_ADAPTER_METHODS: &[&str] = &["ok", "err", "as_deref"];
 
+/// The module of Erlang's auto-imported BIFs: `erlang:apply(M, F, A)` is
+/// `apply(M, F, A)` (`ERLANG_MFA_CALLS` lists the unqualified spelling).
+pub const ERLANG_BIF_MODULE: &str = "erlang";
+
+/// Erlang functions that call `M:F(A…)` given the module, function and
+/// argument list as separate arguments, keyed by the callee as written
+/// (`erlang:` dropped from a BIF) and its argument count, with the
+/// position of `M` (`F` and `A` follow): `spawn(M, F, A)`,
+/// `spawn(Node, M, F, A)`, `timer:apply_after(T, M, F, A)`.
+pub const ERLANG_MFA_CALLS: &[(&str, usize, usize)] = &[
+    ("apply", 3, 0),
+    ("spawn", 3, 0),
+    ("spawn", 4, 1),
+    ("spawn_link", 3, 0),
+    ("spawn_link", 4, 1),
+    ("spawn_monitor", 3, 0),
+    ("spawn_monitor", 4, 1),
+    ("spawn_opt", 4, 0),
+    ("spawn_opt", 5, 1),
+    ("proc_lib:spawn", 3, 0),
+    ("proc_lib:spawn", 4, 1),
+    ("proc_lib:spawn_link", 3, 0),
+    ("proc_lib:spawn_link", 4, 1),
+    ("proc_lib:spawn_opt", 4, 0),
+    ("proc_lib:start", 3, 0),
+    ("proc_lib:start", 4, 0),
+    ("proc_lib:start", 5, 0),
+    ("proc_lib:start_link", 3, 0),
+    ("proc_lib:start_link", 4, 0),
+    ("proc_lib:start_link", 5, 0),
+    ("timer:apply_after", 4, 1),
+    ("timer:apply_interval", 4, 1),
+    ("timer:apply_repeatedly", 4, 1),
+    ("rpc:call", 4, 1),
+    ("rpc:call", 5, 1),
+    ("rpc:cast", 4, 1),
+    ("erpc:call", 4, 1),
+    ("erpc:call", 5, 1),
+    ("erpc:cast", 4, 1),
+];
+
 /// PHP core functions that take a callable, with the callable argument's
 /// position: `array_map('f', $xs)`, `usort($xs, [$this, 'cmp'])`,
 /// `spl_autoload_register([self::class, 'load'])`,

@@ -63,6 +63,20 @@ pub fn prune(all_facts: &mut [FileFacts]) {
     };
     let names = own(names);
     let members = own(members);
+    // Erlang: the arities of every clause by qualified name (`m:f`), for
+    // the strict arity check below.
+    let mut erlang_clauses: HashMap<String, Vec<Option<u32>>> = HashMap::new();
+    for f in all_facts.iter().filter(|f| f.language == "erlang") {
+        for d in &f.definitions {
+            erlang_clauses
+                .entry(d.qualified_name.clone())
+                .or_default()
+                .push(crate::intra_file::clause_arity(
+                    &d.signature_hint,
+                    &d.simple_name,
+                ));
+        }
+    }
     let empty = HashSet::new();
     for f in all_facts.iter_mut() {
         if !f.references.iter().any(|r| r.value_ref) {
@@ -79,9 +93,26 @@ pub fn prune(all_facts: &mut [FileFacts]) {
         let member_reads = MEMBER_DATA_READ_LANGS.contains(&f.language.as_str());
         let locals = crate::scope::FileLocals::build(f);
         let defs = std::mem::take(&mut f.definitions);
+        // Erlang: this module's clause arities by bare name.
+        let own_clauses: Option<HashMap<&str, Vec<Option<u32>>>> =
+            (f.language == "erlang").then(|| {
+                let mut m: HashMap<&str, Vec<Option<u32>>> = HashMap::new();
+                for d in &defs {
+                    m.entry(d.simple_name.as_str()).or_default().push(
+                        crate::intra_file::clause_arity(
+                            &d.signature_hint,
+                            &d.simple_name,
+                        ),
+                    );
+                }
+                m
+            });
         f.references.retain(|r| {
             !r.value_ref
                 || (known.contains(leaf(r))
+                    && own_clauses.as_ref().is_none_or(|own| {
+                        erlang_value_names_a_clause(r, own, &erlang_clauses)
+                    })
                     && !((r.receiver_hint.is_empty() || member_reads)
                         && fields.contains(&r.name))
                     && !shadowed(&locals, &defs, r))
@@ -110,6 +141,25 @@ fn shadowed(
     !defs
         .iter()
         .any(|d| d.simple_name == r.name && decl <= d.start_byte && d.start_byte < start)
+}
+
+/// An Erlang function value names one function of one arity: `fun f/N`
+/// a clause of `f/N` in its own module (file), `fun m:f/N` and an
+/// `{m, f, [..]}` callback a clause of `m:f/N` in a module of the tree.
+/// A value whose arity no clause has names no function here — never one
+/// of another arity — and one through a module the tree does not declare
+/// (`{error, badarg}`, `fun lists:map/2`) names nothing in it.
+fn erlang_value_names_a_clause(
+    r: &RefRecord,
+    own: &HashMap<&str, Vec<Option<u32>>>,
+    clauses: &HashMap<String, Vec<Option<u32>>>,
+) -> bool {
+    let arities = if r.receiver_hint.is_empty() {
+        own.get(r.name.as_str())
+    } else {
+        clauses.get(&r.name)
+    };
+    arities.is_some_and(|a| r.arity.is_none() || a.contains(&r.arity))
 }
 
 /// Languages whose `x.m` in value position reads a field or getter far
