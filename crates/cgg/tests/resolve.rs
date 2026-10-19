@@ -2966,6 +2966,92 @@ object Main {\n\
     );
 }
 
+/// WS26 (gap 25): a Lua function used as a value (`pcall(f)`,
+/// `table.sort(t, util.cmp)`, `{ handler = f }`, `obj.cb = f`) is a
+/// reference, with the default graph untouched; a parameter of the same
+/// name and a string are not.
+#[test]
+fn lua_function_values_are_references() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "util.lua",
+        "local M = {}\n\
+function M.cmp(a, b) return a < b end\n\
+function M.unused() end\n\
+return M\n\
+"
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "main.lua",
+        "local util = require(\"util\")\n\
+\n\
+local function protected() return 1 end\n\
+local function on_event() end\n\
+local function stored() end\n\
+local function orphan() end\n\
+local function shadowed() end\n\
+local function in_string() end\n\
+\n\
+local function use(shadowed) invoke(shadowed) end\n\
+local function invoke(f) f() end\n\
+\n\
+local function main(t)\n\
+  pcall(protected)\n\
+  table.sort(t, util.cmp)\n\
+  local h = { handler = on_event }\n\
+  local obj = {}\n\
+  obj.cb = stored\n\
+  print(\"in_string\")\n\
+  use(nil)\n\
+  return h, obj\n\
+end\n\
+\n\
+main({})\n\
+"
+        .as_bytes(),
+    );
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in ["protected", "on_event", "stored", "M.cmp"] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} is referenced, findings: {dead:?}"
+        );
+    }
+    for gone in ["orphan", "shadowed", "in_string", "M.unused"] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone} has no reference, findings: {dead:?}"
+        );
+    }
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .arg("-o")
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain).unwrap().matches("ref|").count(),
+        0
+    );
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------

@@ -458,6 +458,18 @@ otherwise change the default graph.
   only through its type; and a method value with no enclosing callable
   credits only its own file's callables, as Ruby's, Swift's and Dart's do.
 
+- **Lua functions used as values were not references (WS26, gap 25).**
+  `pcall(f, …)`, `table.sort(t, cmp)`, `ngx.timer.at(d, handler)`,
+  `{ handler = f }`, `{ f, g }`, `metric.set = set`, `local g = M.f`
+  and a returned value left the function with no reference, so it was
+  reported dead. Under `--dead-code` and `--reference-edges` each is now a
+  value reference, bare or through the table written (`M.f`, `obj.f`; a
+  method `obj:m` cannot be a value). Names a local or parameter binds are
+  dropped through the Lua locals; an `x.f` value through an untyped table
+  binds only through what resolves it, never by name fan-out; and a value
+  with no enclosing function (a module's returned table) credits only its
+  own file's functions, as Ruby's, Swift's, Dart's and Scala's do.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -753,6 +765,16 @@ WS26 Scala (full corpus, none excluded):
   643 in Spark). 401 previously withheld findings in one repository are
   now reported, all withheld for low root coverage, which the new
   references lift over the threshold; 50 move `medium` → `low`.
+
+WS26 Lua (full corpus, none excluded):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 1,016 Lua reference edges are added (889
+  `high`); none are removed.
+- Under `--dead-code`, 1,127 Lua findings leave the report (none `high`;
+  Kong 667, APISIX 257, Neovim 190). 2 previously withheld findings are
+  now reported (low root coverage lifted over the threshold), and 71 move
+  `medium` → `low`.
 
 ## [0.11.0] - 2026-10-16
 

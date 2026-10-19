@@ -24,7 +24,7 @@ impl LanguagePlugin for LuaPlugin {
 
     fn extract(
         &self,
-        _ctx: &crate::ExtractCtx<'_>,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -32,6 +32,7 @@ impl LanguagePlugin for LuaPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "lua");
         let mut w = LuaWalker {
+            reference_sites: ctx.reference_sites,
             source,
             facts: &mut facts,
             scope: Vec::new(),
@@ -118,6 +119,9 @@ fn chunk_bindings(root: Node, source: &[u8], facts: &mut FileFacts) {
 }
 
 struct LuaWalker<'a> {
+    /// Record functions used as values; see
+    /// `crate::ExtractCtx::reference_sites`.
+    reference_sites: bool,
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
@@ -136,6 +140,9 @@ impl<'a> LuaWalker<'a> {
     }
 
     fn walk(&mut self, node: Node) {
+        if self.reference_sites {
+            self.capture_value_positions(node);
+        }
         match node.kind() {
             "function_declaration" => {
                 if let Some(name) = node.child_by_field_name("name") {
@@ -203,6 +210,79 @@ impl<'a> LuaWalker<'a> {
             _ => {}
         }
         self.walk_children(node);
+    }
+
+    /// Functions used as values, when the run records reference sites: a
+    /// call's argument (`pcall(f, …)`, `table.sort(t, cmp)`), a table
+    /// constructor's value (`{ handler = f }`, `{ f, g }`), the right side
+    /// of `=`/`local` and a returned value. Recorded the way the call
+    /// would be — `f` bare, `M.f`/`obj.f` through the table — marked
+    /// `value_ref`. A method (`obj:m`) cannot be a value. Names a local or
+    /// parameter binds are dropped through the Lua locals
+    /// (`value_refs::prune`).
+    fn capture_value_positions(&mut self, node: Node) {
+        let values: Vec<Node> = match node.kind() {
+            "arguments" => {
+                let mut c = node.walk();
+                node.named_children(&mut c).collect()
+            }
+            "field" => node.child_by_field_name("value").into_iter().collect(),
+            "expression_list" => {
+                // Only a value list: the right side of an assignment or a
+                // `local`, or a `return`'s.
+                if !node.parent().is_some_and(|p| {
+                    matches!(p.kind(), "assignment_statement" | "return_statement")
+                }) {
+                    return;
+                }
+                let mut c = node.walk();
+                node.named_children(&mut c).collect()
+            }
+            _ => return,
+        };
+        for v in values {
+            self.value_ref_in(v, 0);
+        }
+    }
+
+    fn value_ref_in(&mut self, v: Node, depth: u8) {
+        if depth > 4 {
+            return;
+        }
+        let (name_node, recv) = match v.kind() {
+            "identifier" => (v, String::new()),
+            "dot_index_expression" => {
+                let (Some(table), Some(field)) = (
+                    v.child_by_field_name("table"),
+                    v.child_by_field_name("field"),
+                ) else {
+                    return;
+                };
+                if !matches!(table.kind(), "identifier" | "dot_index_expression") {
+                    return;
+                }
+                (field, self.text(table).split_whitespace().collect())
+            }
+            "parenthesized_expression" => {
+                if let Some(inner) = v.named_child(0) {
+                    self.value_ref_in(inner, depth + 1);
+                }
+                return;
+            }
+            _ => return,
+        };
+        let name = self.text(name_node).to_string();
+        if name.is_empty() {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: recv,
+            site_line: (name_node.start_position().row as u32) + 1,
+            site_byte: name_node.start_byte() as u32,
+            value_ref: true,
+            ..Default::default()
+        });
     }
 
     fn walk_children(&mut self, node: Node) {
@@ -495,5 +575,66 @@ mod tests {
             got,
             vec![("check_phase", "pc", "check"), ("log", "ngx", "log")]
         );
+    }
+
+    fn extract_with_refs(src: &str, refs: bool) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_lua::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        LuaPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(refs),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.lua"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    fn value_refs(f: &FileFacts) -> Vec<(String, String)> {
+        f.references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
+            .collect()
+    }
+
+    /// WS26 (gap 25): a function used as a value — an argument, a table
+    /// constructor value, the right side of `=`/`local`, a return — is a
+    /// reference site only when the run asks for them; a string, a call's
+    /// own callee and an assignment target are not.
+    #[test]
+    fn function_values_are_reference_sites() {
+        let src = "local M = {}\n\
+                   local function go(t)\n\
+                     pcall(protected, 1)\n\
+                     table.sort(t, M.cmp)\n\
+                     local h = { handler = on_event, positional }\n\
+                     M.cb = stored\n\
+                     local alias = aliased\n\
+                     print('in_string')\n\
+                     return returned\n\
+                   end\n\
+                   return { check = check_phase }\n";
+        let got = value_refs(&extract_with_refs(src, true));
+        for (recv, name) in [
+            ("", "protected"),
+            ("M", "cmp"),
+            ("", "on_event"),
+            ("", "positional"),
+            ("", "stored"),
+            ("", "aliased"),
+            ("", "returned"),
+            ("", "check_phase"),
+        ] {
+            assert!(
+                got.contains(&(recv.to_string(), name.to_string())),
+                "missing {recv}.{name} in {got:?}"
+            );
+        }
+        let names: Vec<&str> = got.iter().map(|(_, n)| n.as_str()).collect();
+        for n in ["pcall", "sort", "in_string", "cb", "h", "alias"] {
+            assert!(!names.contains(&n), "{n} recorded: {got:?}");
+        }
+        assert!(value_refs(&extract_with_refs(src, false)).is_empty());
     }
 }
