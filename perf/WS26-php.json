@@ -1,0 +1,7927 @@
+[
+ {
+  "repo": "app-4minitz-meteor",
+  "old_ms": 158.77368400106207,
+  "new_ms": 157.6447049737908,
+  "old": {
+   "callables": 2553,
+   "edges": 6583,
+   "cross": 5826,
+   "unresolved": 2793,
+   "entries": 1063
+  },
+  "new": {
+   "callables": 2553,
+   "edges": 6583,
+   "cross": 5826,
+   "unresolved": 2793,
+   "entries": 1063
+  },
+  "old_dead": 614,
+  "new_dead": 614,
+  "new_skipmin": {
+   "callables": 2553,
+   "edges": 6583,
+   "cross": 5826,
+   "unresolved": 2793,
+   "entries": 1063
+  }
+ },
+ {
+  "repo": "app-actix-examples",
+  "old_ms": 100.12511402601376,
+  "new_ms": 95.43280897196382,
+  "old": {
+   "callables": 810,
+   "edges": 515,
+   "cross": 361,
+   "unresolved": 802,
+   "entries": 260
+  },
+  "new": {
+   "callables": 810,
+   "edges": 515,
+   "cross": 361,
+   "unresolved": 802,
+   "entries": 260
+  },
+  "old_dead": 79,
+  "new_dead": 79,
+  "new_skipmin": {
+   "callables": 810,
+   "edges": 515,
+   "cross": 361,
+   "unresolved": 802,
+   "entries": 260
+  }
+ },
+ {
+  "repo": "app-adocasts-adonisjs",
+  "old_ms": 154.35686899581924,
+  "new_ms": 155.5163679877296,
+  "old": {
+   "callables": 1538,
+   "edges": 1856,
+   "cross": 1368,
+   "unresolved": 1139,
+   "entries": 0
+  },
+  "new": {
+   "callables": 1538,
+   "edges": 1856,
+   "cross": 1368,
+   "unresolved": 1139,
+   "entries": 0
+  },
+  "old_dead": 647,
+  "new_dead": 647,
+  "new_skipmin": {
+   "callables": 1538,
+   "edges": 1856,
+   "cross": 1368,
+   "unresolved": 1139,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-aiproxy-hangfire",
+  "old_ms": 3060.0433640065603,
+  "new_ms": 3092.870022985153,
+  "old": {
+   "callables": 11130,
+   "edges": 26700,
+   "cross": 9297,
+   "unresolved": 68895,
+   "entries": 37
+  },
+  "new": {
+   "callables": 11130,
+   "edges": 26700,
+   "cross": 9297,
+   "unresolved": 68895,
+   "entries": 37
+  },
+  "old_dead": 5696,
+  "new_dead": 5696,
+  "new_skipmin": {
+   "callables": 4127,
+   "edges": 9012,
+   "cross": 2057,
+   "unresolved": 9073,
+   "entries": 37
+  }
+ },
+ {
+  "repo": "app-akka-samples",
+  "old_ms": 81.03640098124743,
+  "new_ms": 79.16699396446347,
+  "old": {
+   "callables": 656,
+   "edges": 509,
+   "cross": 82,
+   "unresolved": 379,
+   "entries": 16
+  },
+  "new": {
+   "callables": 656,
+   "edges": 509,
+   "cross": 82,
+   "unresolved": 379,
+   "entries": 16
+  },
+  "old_dead": 264,
+  "new_dead": 264,
+  "new_skipmin": {
+   "callables": 656,
+   "edges": 509,
+   "cross": 82,
+   "unresolved": 379,
+   "entries": 16
+  }
+ },
+ {
+  "repo": "app-alarik-vapor",
+  "old_ms": 248.67981200804934,
+  "new_ms": 241.2108340067789,
+  "old": {
+   "callables": 2580,
+   "edges": 9510,
+   "cross": 5787,
+   "unresolved": 5972,
+   "entries": 0
+  },
+  "new": {
+   "callables": 2580,
+   "edges": 9510,
+   "cross": 5787,
+   "unresolved": 5972,
+   "entries": 0
+  },
+  "old_dead": 282,
+  "new_dead": 282,
+  "new_skipmin": {
+   "callables": 2580,
+   "edges": 9510,
+   "cross": 5787,
+   "unresolved": 5972,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-alphapem-genie",
+  "old_ms": 96.77318797912449,
+  "new_ms": 88.42519402969629,
+  "old": {
+   "callables": 508,
+   "edges": 848,
+   "cross": 113,
+   "unresolved": 2411,
+   "entries": 1
+  },
+  "new": {
+   "callables": 508,
+   "edges": 848,
+   "cross": 113,
+   "unresolved": 2411,
+   "entries": 1
+  },
+  "old_dead": 240,
+  "new_dead": 240,
+  "new_skipmin": {
+   "callables": 508,
+   "edges": 848,
+   "cross": 113,
+   "unresolved": 2411,
+   "entries": 1
+  }
+ },
+ {
+  "repo": "app-amurex-robyn",
+  "old_ms": 44.48356799548492,
+  "new_ms": 43.20444096811116,
+  "old": {
+   "callables": 73,
+   "edges": 90,
+   "cross": 27,
+   "unresolved": 28,
+   "entries": 17
+  },
+  "new": {
+   "callables": 73,
+   "edges": 90,
+   "cross": 27,
+   "unresolved": 28,
+   "entries": 17
+  },
+  "old_dead": 1,
+  "new_dead": 1,
+  "new_skipmin": {
+   "callables": 73,
+   "edges": 90,
+   "cross": 27,
+   "unresolved": 28,
+   "entries": 17
+  }
+ },
+ {
+  "repo": "app-annif-connexion",
+  "old_ms": 168.56397897936404,
+  "new_ms": 156.03000001283363,
+  "old": {
+   "callables": 1793,
+   "edges": 3345,
+   "cross": 2137,
+   "unresolved": 3126,
+   "entries": 593
+  },
+  "new": {
+   "callables": 1793,
+   "edges": 3345,
+   "cross": 2137,
+   "unresolved": 3126,
+   "entries": 593
+  },
+  "old_dead": 462,
+  "new_dead": 462,
+  "new_skipmin": {
+   "callables": 1149,
+   "edges": 2427,
+   "cross": 2134,
+   "unresolved": 1111,
+   "entries": 593
+  }
+ },
+ {
+  "repo": "app-apisix-openresty",
+  "old_ms": 326.80750999134034,
+  "new_ms": 332.5288770138286,
+  "old": {
+   "callables": 3581,
+   "edges": 7168,
+   "cross": 4743,
+   "unresolved": 3045,
+   "entries": 148
+  },
+  "new": {
+   "callables": 3581,
+   "edges": 7168,
+   "cross": 4743,
+   "unresolved": 3045,
+   "entries": 148
+  },
+  "old_dead": 1272,
+  "new_dead": 1272,
+  "new_skipmin": {
+   "callables": 3581,
+   "edges": 7168,
+   "cross": 4743,
+   "unresolved": 3045,
+   "entries": 148
+  }
+ },
+ {
+  "repo": "app-arcos-plumber",
+  "old_ms": 37.35217597568408,
+  "new_ms": 38.11006300384179,
+  "old": {
+   "callables": 30,
+   "edges": 0,
+   "cross": 0,
+   "unresolved": 0,
+   "entries": 0
+  },
+  "new": {
+   "callables": 30,
+   "edges": 0,
+   "cross": 0,
+   "unresolved": 0,
+   "entries": 0
+  },
+  "old_dead": 1,
+  "new_dead": 1,
+  "new_skipmin": {
+   "callables": 30,
+   "edges": 0,
+   "cross": 0,
+   "unresolved": 0,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-arduinoagent-goa",
+  "old_ms": 57.24077799823135,
+  "new_ms": 60.243376006837934,
+  "old": {
+   "callables": 442,
+   "edges": 586,
+   "cross": 378,
+   "unresolved": 94,
+   "entries": 47
+  },
+  "new": {
+   "callables": 442,
+   "edges": 586,
+   "cross": 378,
+   "unresolved": 94,
+   "entries": 47
+  },
+  "old_dead": 89,
+  "new_dead": 89,
+  "new_skipmin": {
+   "callables": 442,
+   "edges": 586,
+   "cross": 378,
+   "unresolved": 94,
+   "entries": 47
+  }
+ },
+ {
+  "repo": "app-avalonia-samples",
+  "old_ms": 393.589160987176,
+  "new_ms": 412.2181960265152,
+  "old": {
+   "callables": 2374,
+   "edges": 4132,
+   "cross": 1642,
+   "unresolved": 2115,
+   "entries": 62
+  },
+  "new": {
+   "callables": 2374,
+   "edges": 4132,
+   "cross": 1642,
+   "unresolved": 2115,
+   "entries": 62
+  },
+  "old_dead": 1135,
+  "new_dead": 1135,
+  "new_skipmin": {
+   "callables": 2374,
+   "edges": 4132,
+   "cross": 1642,
+   "unresolved": 2115,
+   "entries": 62
+  }
+ },
+ {
+  "repo": "app-awslambda-go",
+  "old_ms": 66.72385497950017,
+  "new_ms": 71.31034595659003,
+  "old": {
+   "callables": 617,
+   "edges": 878,
+   "cross": 733,
+   "unresolved": 341,
+   "entries": 336
+  },
+  "new": {
+   "callables": 617,
+   "edges": 878,
+   "cross": 733,
+   "unresolved": 341,
+   "entries": 336
+  },
+  "old_dead": 44,
+  "new_dead": 44,
+  "new_skipmin": {
+   "callables": 617,
+   "edges": 878,
+   "cross": 733,
+   "unresolved": 341,
+   "entries": 336
+  }
+ },
+ {
+  "repo": "app-axum-cratesio",
+  "old_ms": 425.91415997594595,
+  "new_ms": 424.296882993076,
+  "old": {
+   "callables": 4429,
+   "edges": 14705,
+   "cross": 10701,
+   "unresolved": 9572,
+   "entries": 2179
+  },
+  "new": {
+   "callables": 4429,
+   "edges": 14705,
+   "cross": 10701,
+   "unresolved": 9572,
+   "entries": 2179
+  },
+  "old_dead": 377,
+  "new_dead": 377,
+  "new_skipmin": {
+   "callables": 4429,
+   "edges": 14705,
+   "cross": 10701,
+   "unresolved": 9572,
+   "entries": 2179
+  }
+ },
+ {
+  "repo": "app-azure-functions-dotnet",
+  "old_ms": 35.8951460220851,
+  "new_ms": 36.13526205299422,
+  "old": {
+   "callables": 21,
+   "edges": 9,
+   "cross": 2,
+   "unresolved": 20,
+   "entries": 2
+  },
+  "new": {
+   "callables": 21,
+   "edges": 9,
+   "cross": 2,
+   "unresolved": 20,
+   "entries": 2
+  },
+  "old_dead": 3,
+  "new_dead": 3,
+  "new_skipmin": {
+   "callables": 21,
+   "edges": 9,
+   "cross": 2,
+   "unresolved": 20,
+   "entries": 2
+  }
+ },
+ {
+  "repo": "app-azure-functions-js",
+  "old_ms": 20.842387981247157,
+  "new_ms": 19.934353011194617,
+  "old": {
+   "callables": 4,
+   "edges": 2,
+   "cross": 2,
+   "unresolved": 2,
+   "entries": 2
+  },
+  "new": {
+   "callables": 4,
+   "edges": 2,
+   "cross": 2,
+   "unresolved": 2,
+   "entries": 2
+  },
+  "old_dead": 0,
+  "new_dead": 0,
+  "new_skipmin": {
+   "callables": 4,
+   "edges": 2,
+   "cross": 2,
+   "unresolved": 2,
+   "entries": 2
+  }
+ },
+ {
+  "repo": "app-bamboobsc-struts",
+  "old_ms": 2210.3375060250983,
+  "new_ms": 2226.2095190235414,
+  "old": {
+   "callables": 32006,
+   "edges": 73324,
+   "cross": 45783,
+   "unresolved": 206214,
+   "entries": 55
+  },
+  "new": {
+   "callables": 32006,
+   "edges": 73324,
+   "cross": 45783,
+   "unresolved": 206214,
+   "entries": 55
+  },
+  "old_dead": 11293,
+  "new_dead": 11293,
+  "new_skipmin": {
+   "callables": 29186,
+   "edges": 66190,
+   "cross": 41025,
+   "unresolved": 162428,
+   "entries": 55
+  }
+ },
+ {
+  "repo": "app-bambufarm-vaadin",
+  "old_ms": 61.78983498830348,
+  "new_ms": 60.19977299729362,
+  "old": {
+   "callables": 579,
+   "edges": 992,
+   "cross": 590,
+   "unresolved": 358,
+   "entries": 2
+  },
+  "new": {
+   "callables": 579,
+   "edges": 992,
+   "cross": 590,
+   "unresolved": 358,
+   "entries": 2
+  },
+  "old_dead": 108,
+  "new_dead": 108,
+  "new_skipmin": {
+   "callables": 579,
+   "edges": 992,
+   "cross": 590,
+   "unresolved": 358,
+   "entries": 2
+  }
+ },
+ {
+  "repo": "app-barong-grape",
+  "old_ms": 145.991760015022,
+  "new_ms": 147.31136802583933,
+  "old": {
+   "callables": 823,
+   "edges": 896,
+   "cross": 453,
+   "unresolved": 5989,
+   "entries": 121
+  },
+  "new": {
+   "callables": 823,
+   "edges": 896,
+   "cross": 453,
+   "unresolved": 5989,
+   "entries": 121
+  },
+  "old_dead": 197,
+  "new_dead": 197,
+  "new_skipmin": {
+   "callables": 823,
+   "edges": 896,
+   "cross": 453,
+   "unresolved": 5989,
+   "entries": 121
+  }
+ },
+ {
+  "repo": "app-basedosdados-prefect",
+  "old_ms": 970.0191130395979,
+  "new_ms": 969.490704999771,
+  "old": {
+   "callables": 7880,
+   "edges": 15847,
+   "cross": 5896,
+   "unresolved": 51508,
+   "entries": 320
+  },
+  "new": {
+   "callables": 7880,
+   "edges": 15847,
+   "cross": 5896,
+   "unresolved": 51508,
+   "entries": 320
+  },
+  "old_dead": 322,
+  "new_dead": 322,
+  "new_skipmin": {
+   "callables": 7880,
+   "edges": 15847,
+   "cross": 5896,
+   "unresolved": 51508,
+   "entries": 320
+  }
+ },
+ {
+  "repo": "app-betting-expressgateway",
+  "old_ms": 77.02237600460649,
+  "new_ms": 74.09069698769599,
+  "old": {
+   "callables": 538,
+   "edges": 497,
+   "cross": 428,
+   "unresolved": 487,
+   "entries": 246
+  },
+  "new": {
+   "callables": 538,
+   "edges": 497,
+   "cross": 428,
+   "unresolved": 487,
+   "entries": 246
+  },
+  "old_dead": 11,
+  "new_dead": 11,
+  "new_skipmin": {
+   "callables": 538,
+   "edges": 497,
+   "cross": 428,
+   "unresolved": 487,
+   "entries": 246
+  }
+ },
+ {
+  "repo": "app-bewcloud-deno",
+  "old_ms": 308.0796530121006,
+  "new_ms": 306.5088710281998,
+  "old": {
+   "callables": 2856,
+   "edges": 5275,
+   "cross": 1773,
+   "unresolved": 7291,
+   "entries": 1
+  },
+  "new": {
+   "callables": 2856,
+   "edges": 5275,
+   "cross": 1773,
+   "unresolved": 7291,
+   "entries": 1
+  },
+  "old_dead": 1696,
+  "new_dead": 1696,
+  "new_skipmin": {
+   "callables": 1671,
+   "edges": 6297,
+   "cross": 4693,
+   "unresolved": 2958,
+   "entries": 1
+  }
+ },
+ {
+  "repo": "app-black-click",
+  "old_ms": 884.5753869973123,
+  "new_ms": 898.2727659749798,
+  "old": {
+   "callables": 2610,
+   "edges": 2462,
+   "cross": 1377,
+   "unresolved": 3271,
+   "entries": 403
+  },
+  "new": {
+   "callables": 2610,
+   "edges": 2462,
+   "cross": 1377,
+   "unresolved": 3271,
+   "entries": 403
+  },
+  "old_dead": 91,
+  "new_dead": 91,
+  "new_skipmin": {
+   "callables": 2610,
+   "edges": 2462,
+   "cross": 1377,
+   "unresolved": 3271,
+   "entries": 403
+  }
+ },
+ {
+  "repo": "app-blazor-samples",
+  "old_ms": 379.27061202935874,
+  "new_ms": 406.80474002147093,
+  "old": {
+   "callables": 3132,
+   "edges": 920,
+   "cross": 472,
+   "unresolved": 866,
+   "entries": 141
+  },
+  "new": {
+   "callables": 3132,
+   "edges": 920,
+   "cross": 472,
+   "unresolved": 866,
+   "entries": 141
+  },
+  "old_dead": 2322,
+  "new_dead": 2322,
+  "new_skipmin": {
+   "callables": 3098,
+   "edges": 799,
+   "cross": 472,
+   "unresolved": 863,
+   "entries": 141
+  }
+ },
+ {
+  "repo": "app-brightsky-huey",
+  "old_ms": 2039.9459449690767,
+  "new_ms": 2045.6248529953882,
+  "old": {
+   "callables": 4310,
+   "edges": 5420,
+   "cross": 243,
+   "unresolved": 24590,
+   "entries": 92
+  },
+  "new": {
+   "callables": 4310,
+   "edges": 5420,
+   "cross": 243,
+   "unresolved": 24590,
+   "entries": 92
+  },
+  "old_dead": 2652,
+  "new_dead": 2652,
+  "new_skipmin": {
+   "callables": 283,
+   "edges": 424,
+   "cross": 243,
+   "unresolved": 541,
+   "entries": 92
+  }
+ },
+ {
+  "repo": "app-bugbug-gcpfunctions",
+  "old_ms": 314.6532690152526,
+  "new_ms": 304.6532080043107,
+  "old": {
+   "callables": 4436,
+   "edges": 9106,
+   "cross": 5537,
+   "unresolved": 6074,
+   "entries": 1570
+  },
+  "new": {
+   "callables": 4436,
+   "edges": 9106,
+   "cross": 5537,
+   "unresolved": 6074,
+   "entries": 1570
+  },
+  "old_dead": 331,
+  "new_dead": 331,
+  "new_skipmin": {
+   "callables": 4436,
+   "edges": 9106,
+   "cross": 5537,
+   "unresolved": 6074,
+   "entries": 1570
+  }
+ },
+ {
+  "repo": "app-calcom-nextjs",
+  "old_ms": 5131.175912043545,
+  "new_ms": 5090.039662027266,
+  "old": {
+   "callables": 26393,
+   "edges": 61897,
+   "cross": 37343,
+   "unresolved": 69077,
+   "entries": 7102
+  },
+  "new": {
+   "callables": 26393,
+   "edges": 61897,
+   "cross": 37343,
+   "unresolved": 69077,
+   "entries": 7102
+  },
+  "old_dead": 8978,
+  "new_dead": 8978,
+  "new_skipmin": {
+   "callables": 17852,
+   "edges": 44676,
+   "cross": 37082,
+   "unresolved": 28607,
+   "entries": 6891
+  }
+ },
+ {
+  "repo": "app-caninclude-polka",
+  "old_ms": 42.58992802351713,
+  "new_ms": 45.872144983150065,
+  "old": {
+   "callables": 49,
+   "edges": 3,
+   "cross": 2,
+   "unresolved": 37,
+   "entries": 2
+  },
+  "new": {
+   "callables": 49,
+   "edges": 3,
+   "cross": 2,
+   "unresolved": 37,
+   "entries": 2
+  },
+  "old_dead": 6,
+  "new_dead": 6,
+  "new_skipmin": {
+   "callables": 49,
+   "edges": 3,
+   "cross": 2,
+   "unresolved": 37,
+   "entries": 2
+  }
+ },
+ {
+  "repo": "app-cardmgmt-giraffe",
+  "old_ms": 30.81792703596875,
+  "new_ms": 31.556165020447224,
+  "old": {
+   "callables": 188,
+   "edges": 128,
+   "cross": 33,
+   "unresolved": 143,
+   "entries": 0
+  },
+  "new": {
+   "callables": 188,
+   "edges": 128,
+   "cross": 33,
+   "unresolved": 143,
+   "entries": 0
+  },
+  "old_dead": 113,
+  "new_dead": 113,
+  "new_skipmin": {
+   "callables": 188,
+   "edges": 128,
+   "cross": 33,
+   "unresolved": 143,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-carvera-firmware-cpp",
+  "old_ms": 301.97556799976155,
+  "new_ms": 322.2985430038534,
+  "old": {
+   "callables": 5745,
+   "edges": 20095,
+   "cross": 16259,
+   "unresolved": 2345,
+   "entries": 1
+  },
+  "new": {
+   "callables": 5745,
+   "edges": 20095,
+   "cross": 16259,
+   "unresolved": 2345,
+   "entries": 1
+  },
+  "old_dead": 2396,
+  "new_dead": 2396,
+  "new_skipmin": {
+   "callables": 5745,
+   "edges": 20095,
+   "cross": 16259,
+   "unresolved": 2345,
+   "entries": 1
+  }
+ },
+ {
+  "repo": "app-casdoor-beego",
+  "old_ms": 1928.5734340082854,
+  "new_ms": 1891.345725976862,
+  "old": {
+   "callables": 14588,
+   "edges": 30992,
+   "cross": 20357,
+   "unresolved": 65640,
+   "entries": 223
+  },
+  "new": {
+   "callables": 14588,
+   "edges": 30992,
+   "cross": 20357,
+   "unresolved": 65640,
+   "entries": 223
+  },
+  "old_dead": 7110,
+  "new_dead": 7110,
+  "new_skipmin": {
+   "callables": 7537,
+   "edges": 20380,
+   "cross": 13698,
+   "unresolved": 4692,
+   "entries": 223
+  }
+ },
+ {
+  "repo": "app-cdk-examples",
+  "old_ms": 302.22104996209964,
+  "new_ms": 316.40576699282974,
+  "old": {
+   "callables": 1373,
+   "edges": 1382,
+   "cross": 754,
+   "unresolved": 1937,
+   "entries": 320
+  },
+  "new": {
+   "callables": 1373,
+   "edges": 1382,
+   "cross": 754,
+   "unresolved": 1937,
+   "entries": 320
+  },
+  "old_dead": 329,
+  "new_dead": 329,
+  "new_skipmin": {
+   "callables": 1373,
+   "edges": 1382,
+   "cross": 754,
+   "unresolved": 1937,
+   "entries": 320
+  }
+ },
+ {
+  "repo": "app-circuitbreaker-kong",
+  "old_ms": 23.966232023667544,
+  "new_ms": 24.064361001364887,
+  "old": {
+   "callables": 16,
+   "edges": 7,
+   "cross": 4,
+   "unresolved": 98,
+   "entries": 0
+  },
+  "new": {
+   "callables": 16,
+   "edges": 7,
+   "cross": 4,
+   "unresolved": 98,
+   "entries": 0
+  },
+  "old_dead": 7,
+  "new_dead": 7,
+  "new_skipmin": {
+   "callables": 16,
+   "edges": 7,
+   "cross": 4,
+   "unresolved": 98,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-clashverge-tauri",
+  "old_ms": 263.2970110280439,
+  "new_ms": 282.8241150127724,
+  "old": {
+   "callables": 3217,
+   "edges": 8089,
+   "cross": 4401,
+   "unresolved": 3450,
+   "entries": 502
+  },
+  "new": {
+   "callables": 3217,
+   "edges": 8089,
+   "cross": 4401,
+   "unresolved": 3450,
+   "entries": 502
+  },
+  "old_dead": 545,
+  "new_dead": 545,
+  "new_skipmin": {
+   "callables": 3217,
+   "edges": 8089,
+   "cross": 4401,
+   "unresolved": 3450,
+   "entries": 502
+  }
+ },
+ {
+  "repo": "app-cljdoc-pedestal",
+  "old_ms": 185.07849000161514,
+  "new_ms": 163.03521604277194,
+  "old": {
+   "callables": 1176,
+   "edges": 1367,
+   "cross": 546,
+   "unresolved": 773,
+   "entries": 0
+  },
+  "new": {
+   "callables": 1176,
+   "edges": 1367,
+   "cross": 546,
+   "unresolved": 773,
+   "entries": 0
+  },
+  "old_dead": 675,
+  "new_dead": 675,
+  "new_skipmin": {
+   "callables": 1176,
+   "edges": 1367,
+   "cross": 546,
+   "unresolved": 773,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-cloudflare-workers",
+  "old_ms": 135.58324001496658,
+  "new_ms": 133.22704599704593,
+  "old": {
+   "callables": 2307,
+   "edges": 3824,
+   "cross": 3070,
+   "unresolved": 2027,
+   "entries": 572
+  },
+  "new": {
+   "callables": 2307,
+   "edges": 3824,
+   "cross": 3070,
+   "unresolved": 2027,
+   "entries": 572
+  },
+  "old_dead": 621,
+  "new_dead": 621,
+  "new_skipmin": {
+   "callables": 2307,
+   "edges": 3824,
+   "cross": 3070,
+   "unresolved": 2027,
+   "entries": 572
+  }
+ },
+ {
+  "repo": "app-codeedit-combine",
+  "old_ms": 188.21666500298306,
+  "new_ms": 203.62215401837602,
+  "old": {
+   "callables": 1989,
+   "edges": 2877,
+   "cross": 2023,
+   "unresolved": 2413,
+   "entries": 160
+  },
+  "new": {
+   "callables": 1989,
+   "edges": 2877,
+   "cross": 2023,
+   "unresolved": 2413,
+   "entries": 160
+  },
+  "old_dead": 728,
+  "new_dead": 728,
+  "new_skipmin": {
+   "callables": 1989,
+   "edges": 2877,
+   "cross": 2023,
+   "unresolved": 2413,
+   "entries": 160
+  }
+ },
+ {
+  "repo": "app-codeigniter-starter",
+  "old_ms": 34.05669599305838,
+  "new_ms": 34.05123605625704,
+  "old": {
+   "callables": 26,
+   "edges": 7,
+   "cross": 3,
+   "unresolved": 11,
+   "entries": 2
+  },
+  "new": {
+   "callables": 26,
+   "edges": 7,
+   "cross": 3,
+   "unresolved": 11,
+   "entries": 2
+  },
+  "old_dead": 9,
+  "new_dead": 9,
+  "new_skipmin": {
+   "callables": 26,
+   "edges": 7,
+   "cross": 3,
+   "unresolved": 11,
+   "entries": 2
+  }
+ },
+ {
+  "repo": "app-concordium-gotham",
+  "old_ms": 652.7929669828154,
+  "new_ms": 640.9979989985004,
+  "old": {
+   "callables": 20228,
+   "edges": 19478,
+   "cross": 9541,
+   "unresolved": 6691,
+   "entries": 28
+  },
+  "new": {
+   "callables": 20228,
+   "edges": 19478,
+   "cross": 9541,
+   "unresolved": 6691,
+   "entries": 28
+  },
+  "old_dead": 10670,
+  "new_dead": 10670,
+  "new_skipmin": {
+   "callables": 20228,
+   "edges": 19478,
+   "cross": 9541,
+   "unresolved": 6691,
+   "entries": 28
+  }
+ },
+ {
+  "repo": "app-crnn-flux",
+  "old_ms": 36.741266027092934,
+  "new_ms": 38.57457701815292,
+  "old": {
+   "callables": 146,
+   "edges": 64,
+   "cross": 0,
+   "unresolved": 356,
+   "entries": 0
+  },
+  "new": {
+   "callables": 146,
+   "edges": 64,
+   "cross": 0,
+   "unresolved": 356,
+   "entries": 0
+  },
+  "old_dead": 39,
+  "new_dead": 39,
+  "new_skipmin": {
+   "callables": 146,
+   "edges": 64,
+   "cross": 0,
+   "unresolved": 356,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-cuda-samples",
+  "old_ms": 820.2950819977559,
+  "new_ms": 799.8195479740389,
+  "old": {
+   "callables": 6813,
+   "edges": 13349,
+   "cross": 9383,
+   "unresolved": 8015,
+   "entries": 2
+  },
+  "new": {
+   "callables": 6813,
+   "edges": 13349,
+   "cross": 9383,
+   "unresolved": 8015,
+   "entries": 2
+  },
+  "old_dead": 4429,
+  "new_dead": 4429,
+  "new_skipmin": {
+   "callables": 6813,
+   "edges": 13349,
+   "cross": 9383,
+   "unresolved": 8015,
+   "entries": 2
+  }
+ },
+ {
+  "repo": "app-dailynotes-quart",
+  "old_ms": 68.31704900832847,
+  "new_ms": 72.16773799154907,
+  "old": {
+   "callables": 291,
+   "edges": 215,
+   "cross": 114,
+   "unresolved": 371,
+   "entries": 40
+  },
+  "new": {
+   "callables": 291,
+   "edges": 215,
+   "cross": 114,
+   "unresolved": 371,
+   "entries": 40
+  },
+  "old_dead": 97,
+  "new_dead": 97,
+  "new_skipmin": {
+   "callables": 291,
+   "edges": 215,
+   "cross": 114,
+   "unresolved": 371,
+   "entries": 40
+  }
+ },
+ {
+  "repo": "app-darkness-flame",
+  "old_ms": 47.663749021012336,
+  "new_ms": 53.54299797909334,
+  "old": {
+   "callables": 157,
+   "edges": 203,
+   "cross": 164,
+   "unresolved": 128,
+   "entries": 0
+  },
+  "new": {
+   "callables": 157,
+   "edges": 203,
+   "cross": 164,
+   "unresolved": 128,
+   "entries": 0
+  },
+  "old_dead": 66,
+  "new_dead": 66,
+  "new_skipmin": {
+   "callables": 157,
+   "edges": 203,
+   "cross": 164,
+   "unresolved": 128,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-dartpad-shelf",
+  "old_ms": 898.0019640293904,
+  "new_ms": 922.5369430496357,
+  "old": {
+   "callables": 5773,
+   "edges": 11276,
+   "cross": 3114,
+   "unresolved": 15753,
+   "entries": 46
+  },
+  "new": {
+   "callables": 5773,
+   "edges": 11276,
+   "cross": 3114,
+   "unresolved": 15753,
+   "entries": 46
+  },
+  "old_dead": 3269,
+  "new_dead": 3269,
+  "new_skipmin": {
+   "callables": 5773,
+   "edges": 11276,
+   "cross": 3114,
+   "unresolved": 15753,
+   "entries": 46
+  }
+ },
+ {
+  "repo": "app-dash-sample-apps",
+  "old_ms": 283.67638000054285,
+  "new_ms": 281.6678120288998,
+  "old": {
+   "callables": 1861,
+   "edges": 1802,
+   "cross": 914,
+   "unresolved": 13594,
+   "entries": 505
+  },
+  "new": {
+   "callables": 1861,
+   "edges": 1802,
+   "cross": 914,
+   "unresolved": 13594,
+   "entries": 505
+  },
+  "old_dead": 240,
+  "new_dead": 240,
+  "new_skipmin": {
+   "callables": 1861,
+   "edges": 1802,
+   "cross": 914,
+   "unresolved": 13594,
+   "entries": 505
+  }
+ },
+ {
+  "repo": "app-dataverse-jsf",
+  "old_ms": 1329.68265801901,
+  "new_ms": 1311.5117929992266,
+  "old": {
+   "callables": 19758,
+   "edges": 88100,
+   "cross": 76405,
+   "unresolved": 36154,
+   "entries": 3696
+  },
+  "new": {
+   "callables": 19758,
+   "edges": 88100,
+   "cross": 76405,
+   "unresolved": 36154,
+   "entries": 3696
+  },
+  "old_dead": 5607,
+  "new_dead": 5607,
+  "new_skipmin": {
+   "callables": 19468,
+   "edges": 87856,
+   "cross": 76252,
+   "unresolved": 31132,
+   "entries": 3696
+  }
+ },
+ {
+  "repo": "app-deno-std",
+  "old_ms": 479.30204204749316,
+  "new_ms": 476.3481030240655,
+  "old": {
+   "callables": 4038,
+   "edges": 9417,
+   "cross": 6126,
+   "unresolved": 36047,
+   "entries": 26
+  },
+  "new": {
+   "callables": 4038,
+   "edges": 9417,
+   "cross": 6126,
+   "unresolved": 36047,
+   "entries": 26
+  },
+  "old_dead": 1555,
+  "new_dead": 1555,
+  "new_skipmin": {
+   "callables": 4038,
+   "edges": 9417,
+   "cross": 6126,
+   "unresolved": 36047,
+   "entries": 26
+  }
+ },
+ {
+  "repo": "app-diaspora-sidekiq",
+  "old_ms": 492.9699780186638,
+  "new_ms": 485.07090500788763,
+  "old": {
+   "callables": 4721,
+   "edges": 7603,
+   "cross": 6001,
+   "unresolved": 24546,
+   "entries": 2067
+  },
+  "new": {
+   "callables": 4721,
+   "edges": 7603,
+   "cross": 6001,
+   "unresolved": 24546,
+   "entries": 2067
+  },
+  "old_dead": 821,
+  "new_dead": 821,
+  "new_skipmin": {
+   "callables": 4721,
+   "edges": 7603,
+   "cross": 6001,
+   "unresolved": 24546,
+   "entries": 2067
+  }
+ },
+ {
+  "repo": "app-django-netbox",
+  "old_ms": 3798.411366005894,
+  "new_ms": 3527.375847043004,
+  "old": {
+   "callables": 10522,
+   "edges": 20020,
+   "cross": 12939,
+   "unresolved": 85767,
+   "entries": 3529
+  },
+  "new": {
+   "callables": 10522,
+   "edges": 20020,
+   "cross": 12939,
+   "unresolved": 85767,
+   "entries": 3529
+  },
+  "old_dead": 1331,
+  "new_dead": 1331,
+  "new_skipmin": {
+   "callables": 10522,
+   "edges": 20020,
+   "cross": 12939,
+   "unresolved": 85767,
+   "entries": 3529
+  }
+ },
+ {
+  "repo": "app-domainwatchdog-symfony",
+  "old_ms": 90.07556701544672,
+  "new_ms": 93.93556899158284,
+  "old": {
+   "callables": 903,
+   "edges": 524,
+   "cross": 405,
+   "unresolved": 663,
+   "entries": 31
+  },
+  "new": {
+   "callables": 903,
+   "edges": 524,
+   "cross": 405,
+   "unresolved": 663,
+   "entries": 31
+  },
+  "old_dead": 545,
+  "new_dead": 544,
+  "new_skipmin": {
+   "callables": 903,
+   "edges": 524,
+   "cross": 405,
+   "unresolved": 663,
+   "entries": 31
+  }
+ },
+ {
+  "repo": "app-druid-jaxrs",
+  "old_ms": 5813.217026996426,
+  "new_ms": 5994.031323003583,
+  "old": {
+   "callables": 93679,
+   "edges": 380798,
+   "cross": 321821,
+   "unresolved": 165697,
+   "entries": 25039
+  },
+  "new": {
+   "callables": 93679,
+   "edges": 380798,
+   "cross": 321821,
+   "unresolved": 165697,
+   "entries": 25039
+  },
+  "old_dead": 9761,
+  "new_dead": 9761,
+  "new_skipmin": {
+   "callables": 93679,
+   "edges": 380798,
+   "cross": 321821,
+   "unresolved": 165697,
+   "entries": 25039
+  }
+ },
+ {
+  "repo": "app-edrys-oak",
+  "old_ms": 38.742718985304236,
+  "new_ms": 36.6004109964706,
+  "old": {
+   "callables": 76,
+   "edges": 58,
+   "cross": 26,
+   "unresolved": 46,
+   "entries": 0
+  },
+  "new": {
+   "callables": 76,
+   "edges": 58,
+   "cross": 26,
+   "unresolved": 46,
+   "entries": 0
+  },
+  "old_dead": 21,
+  "new_dead": 21,
+  "new_skipmin": {
+   "callables": 76,
+   "edges": 58,
+   "cross": 26,
+   "unresolved": 46,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-elasticsuite-magento",
+  "old_ms": 456.57657500123605,
+  "new_ms": 487.37326299306005,
+  "old": {
+   "callables": 5208,
+   "edges": 5372,
+   "cross": 1108,
+   "unresolved": 6491,
+   "entries": 75
+  },
+  "new": {
+   "callables": 5208,
+   "edges": 5372,
+   "cross": 1108,
+   "unresolved": 6491,
+   "entries": 75
+  },
+  "old_dead": 2563,
+  "new_dead": 2559,
+  "new_skipmin": {
+   "callables": 5207,
+   "edges": 5372,
+   "cross": 1108,
+   "unresolved": 6477,
+   "entries": 75
+  }
+ },
+ {
+  "repo": "app-eshop-aspnet",
+  "old_ms": 158.9714879519306,
+  "new_ms": 172.24642599467188,
+  "old": {
+   "callables": 2584,
+   "edges": 1198,
+   "cross": 687,
+   "unresolved": 794,
+   "entries": 135
+  },
+  "new": {
+   "callables": 2584,
+   "edges": 1198,
+   "cross": 687,
+   "unresolved": 794,
+   "entries": 135
+  },
+  "old_dead": 1595,
+  "new_dead": 1595,
+  "new_skipmin": {
+   "callables": 2584,
+   "edges": 1198,
+   "cross": 687,
+   "unresolved": 794,
+   "entries": 135
+  }
+ },
+ {
+  "repo": "app-facto-specs2",
+  "old_ms": 207.131995994132,
+  "new_ms": 213.14855001401156,
+  "old": {
+   "callables": 3016,
+   "edges": 6127,
+   "cross": 3673,
+   "unresolved": 4988,
+   "entries": 0
+  },
+  "new": {
+   "callables": 3016,
+   "edges": 6127,
+   "cross": 3673,
+   "unresolved": 4988,
+   "entries": 0
+  },
+  "old_dead": 880,
+  "new_dead": 880,
+  "new_skipmin": {
+   "callables": 3016,
+   "edges": 6127,
+   "cross": 3673,
+   "unresolved": 4988,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-fastapi-dispatch",
+  "old_ms": 449.06113302567974,
+  "new_ms": 420.02138699172065,
+  "old": {
+   "callables": 4753,
+   "edges": 5256,
+   "cross": 4277,
+   "unresolved": 10676,
+   "entries": 936
+  },
+  "new": {
+   "callables": 4753,
+   "edges": 5256,
+   "cross": 4277,
+   "unresolved": 10676,
+   "entries": 936
+  },
+  "old_dead": 1806,
+  "new_dead": 1806,
+  "new_skipmin": {
+   "callables": 4753,
+   "edges": 5256,
+   "cross": 4277,
+   "unresolved": 10676,
+   "entries": 936
+  }
+ },
+ {
+  "repo": "app-ferry-machinery",
+  "old_ms": 4544.912879006006,
+  "new_ms": 4633.790932013653,
+  "old": {
+   "callables": 28240,
+   "edges": 54172,
+   "cross": 19614,
+   "unresolved": 182110,
+   "entries": 52
+  },
+  "new": {
+   "callables": 28240,
+   "edges": 54172,
+   "cross": 19614,
+   "unresolved": 182110,
+   "entries": 52
+  },
+  "old_dead": 9846,
+  "new_dead": 9846,
+  "new_skipmin": {
+   "callables": 20350,
+   "edges": 34463,
+   "cross": 5829,
+   "unresolved": 120077,
+   "entries": 52
+  }
+ },
+ {
+  "repo": "app-fiber-recipes",
+  "old_ms": 212.52781501971185,
+  "new_ms": 192.5318959983997,
+  "old": {
+   "callables": 1964,
+   "edges": 1942,
+   "cross": 1505,
+   "unresolved": 1193,
+   "entries": 215
+  },
+  "new": {
+   "callables": 1964,
+   "edges": 1942,
+   "cross": 1505,
+   "unresolved": 1193,
+   "entries": 215
+  },
+  "old_dead": 1100,
+  "new_dead": 1100,
+  "new_skipmin": {
+   "callables": 1964,
+   "edges": 1942,
+   "cross": 1505,
+   "unresolved": 1193,
+   "entries": 215
+  }
+ },
+ {
+  "repo": "app-firebase-samples",
+  "old_ms": 95.70483700372279,
+  "new_ms": 102.05501801101491,
+  "old": {
+   "callables": 413,
+   "edges": 250,
+   "cross": 124,
+   "unresolved": 258,
+   "entries": 105
+  },
+  "new": {
+   "callables": 413,
+   "edges": 250,
+   "cross": 124,
+   "unresolved": 258,
+   "entries": 105
+  },
+  "old_dead": 54,
+  "new_dead": 54,
+  "new_skipmin": {
+   "callables": 413,
+   "edges": 250,
+   "cross": 124,
+   "unresolved": 258,
+   "entries": 105
+  }
+ },
+ {
+  "repo": "app-flaskbb-flask",
+  "old_ms": 332.3280810145661,
+  "new_ms": 362.6388249685988,
+  "old": {
+   "callables": 2961,
+   "edges": 5690,
+   "cross": 2912,
+   "unresolved": 6914,
+   "entries": 596
+  },
+  "new": {
+   "callables": 2961,
+   "edges": 5690,
+   "cross": 2912,
+   "unresolved": 6914,
+   "entries": 596
+  },
+  "old_dead": 759,
+  "new_dead": 759,
+  "new_skipmin": {
+   "callables": 1716,
+   "edges": 3209,
+   "cross": 2677,
+   "unresolved": 3295,
+   "entries": 596
+  }
+ },
+ {
+  "repo": "app-flinkplatform-flink",
+  "old_ms": 1189.4532350124791,
+  "new_ms": 1157.1655569714494,
+  "old": {
+   "callables": 8228,
+   "edges": 6781,
+   "cross": 3167,
+   "unresolved": 56923,
+   "entries": 120
+  },
+  "new": {
+   "callables": 8228,
+   "edges": 6781,
+   "cross": 3167,
+   "unresolved": 56923,
+   "entries": 120
+  },
+  "old_dead": 2017,
+  "new_dead": 2017,
+  "new_skipmin": {
+   "callables": 2814,
+   "edges": 2430,
+   "cross": 1616,
+   "unresolved": 14588,
+   "entries": 120
+  }
+ },
+ {
+  "repo": "app-fpm-fortran",
+  "old_ms": 142.80119101749733,
+  "new_ms": 141.8195539736189,
+  "old": {
+   "callables": 1216,
+   "edges": 3198,
+   "cross": 2282,
+   "unresolved": 33,
+   "entries": 0
+  },
+  "new": {
+   "callables": 1216,
+   "edges": 3198,
+   "cross": 2282,
+   "unresolved": 33,
+   "entries": 0
+  },
+  "old_dead": 506,
+  "new_dead": 506,
+  "new_skipmin": {
+   "callables": 1216,
+   "edges": 3198,
+   "cross": 2282,
+   "unresolved": 33,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-fsautocomplete-expecto",
+  "old_ms": 312.34187295194715,
+  "new_ms": 338.85110198752955,
+  "old": {
+   "callables": 2569,
+   "edges": 5920,
+   "cross": 1865,
+   "unresolved": 5686,
+   "entries": 26
+  },
+  "new": {
+   "callables": 2569,
+   "edges": 5920,
+   "cross": 1865,
+   "unresolved": 5686,
+   "entries": 26
+  },
+  "old_dead": 821,
+  "new_dead": 821,
+  "new_skipmin": {
+   "callables": 2569,
+   "edges": 5920,
+   "cross": 1865,
+   "unresolved": 5686,
+   "entries": 26
+  }
+ },
+ {
+  "repo": "app-fssnip-suave",
+  "old_ms": 104.58468599244952,
+  "new_ms": 106.90065298695117,
+  "old": {
+   "callables": 265,
+   "edges": 213,
+   "cross": 25,
+   "unresolved": 869,
+   "entries": 0
+  },
+  "new": {
+   "callables": 265,
+   "edges": 213,
+   "cross": 25,
+   "unresolved": 869,
+   "entries": 0
+  },
+  "old_dead": 112,
+  "new_dead": 112,
+  "new_skipmin": {
+   "callables": 117,
+   "edges": 159,
+   "cross": 25,
+   "unresolved": 142,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-gcp-functions",
+  "old_ms": 37.299422023352236,
+  "new_ms": 39.34312297496945,
+  "old": {
+   "callables": 230,
+   "edges": 302,
+   "cross": 226,
+   "unresolved": 109,
+   "entries": 107
+  },
+  "new": {
+   "callables": 230,
+   "edges": 302,
+   "cross": 226,
+   "unresolved": 109,
+   "entries": 107
+  },
+  "old_dead": 9,
+  "new_dead": 9,
+  "new_skipmin": {
+   "callables": 230,
+   "edges": 302,
+   "cross": 226,
+   "unresolved": 109,
+   "entries": 107
+  }
+ },
+ {
+  "repo": "app-ghcli-cobra",
+  "old_ms": 542.5424509448931,
+  "new_ms": 563.7829200131819,
+  "old": {
+   "callables": 6599,
+   "edges": 36127,
+   "cross": 30150,
+   "unresolved": 5369,
+   "entries": 1752
+  },
+  "new": {
+   "callables": 6599,
+   "edges": 36127,
+   "cross": 30150,
+   "unresolved": 5369,
+   "entries": 1752
+  },
+  "old_dead": 875,
+  "new_dead": 875,
+  "new_skipmin": {
+   "callables": 6385,
+   "edges": 35737,
+   "cross": 30150,
+   "unresolved": 4117,
+   "entries": 1752
+  }
+ },
+ {
+  "repo": "app-ghost-express",
+  "old_ms": 2610.479301016312,
+  "new_ms": 2631.3114240183495,
+  "old": {
+   "callables": 44687,
+   "edges": 114899,
+   "cross": 91970,
+   "unresolved": 108527,
+   "entries": 24196
+  },
+  "new": {
+   "callables": 44687,
+   "edges": 114899,
+   "cross": 91970,
+   "unresolved": 108527,
+   "entries": 24196
+  },
+  "old_dead": 7042,
+  "new_dead": 7042,
+  "new_skipmin": {
+   "callables": 44481,
+   "edges": 105678,
+   "cross": 82993,
+   "unresolved": 100463,
+   "entries": 24191
+  }
+ },
+ {
+  "repo": "app-ghostfolio-nestjs",
+  "old_ms": 251.50812399806455,
+  "new_ms": 272.0737640047446,
+  "old": {
+   "callables": 2173,
+   "edges": 3572,
+   "cross": 2828,
+   "unresolved": 1603,
+   "entries": 357
+  },
+  "new": {
+   "callables": 2173,
+   "edges": 3572,
+   "cross": 2828,
+   "unresolved": 1603,
+   "entries": 357
+  },
+  "old_dead": 910,
+  "new_dead": 910,
+  "new_skipmin": {
+   "callables": 2173,
+   "edges": 3572,
+   "cross": 2828,
+   "unresolved": 1603,
+   "entries": 357
+  }
+ },
+ {
+  "repo": "app-ghostty-zig",
+  "old_ms": 5313.265573990066,
+  "new_ms": 5741.356215963606,
+  "old": {
+   "callables": 9954,
+   "edges": 21934,
+   "cross": 13263,
+   "unresolved": 54396,
+   "entries": 32
+  },
+  "new": {
+   "callables": 9954,
+   "edges": 21934,
+   "cross": 13263,
+   "unresolved": 54396,
+   "entries": 32
+  },
+  "old_dead": 4569,
+  "new_dead": 4569,
+  "new_skipmin": {
+   "callables": 9954,
+   "edges": 21934,
+   "cross": 13263,
+   "unresolved": 54396,
+   "entries": 32
+  }
+ },
+ {
+  "repo": "app-gin-photoprism",
+  "old_ms": 1253.1969450064935,
+  "new_ms": 1233.636535005644,
+  "old": {
+   "callables": 14189,
+   "edges": 63771,
+   "cross": 56521,
+   "unresolved": 28561,
+   "entries": 6559
+  },
+  "new": {
+   "callables": 14189,
+   "edges": 63771,
+   "cross": 56521,
+   "unresolved": 28561,
+   "entries": 6559
+  },
+  "old_dead": 891,
+  "new_dead": 891,
+  "new_skipmin": {
+   "callables": 13978,
+   "edges": 63425,
+   "cross": 56514,
+   "unresolved": 28477,
+   "entries": 6559
+  }
+ },
+ {
+  "repo": "app-godot-demos",
+  "old_ms": 149.13517300738022,
+  "new_ms": 159.5842240494676,
+  "old": {
+   "callables": 295,
+   "edges": 135,
+   "cross": 46,
+   "unresolved": 62,
+   "entries": 18
+  },
+  "new": {
+   "callables": 295,
+   "edges": 135,
+   "cross": 46,
+   "unresolved": 62,
+   "entries": 18
+  },
+  "old_dead": 142,
+  "new_dead": 142,
+  "new_skipmin": {
+   "callables": 295,
+   "edges": 135,
+   "cross": 46,
+   "unresolved": 62,
+   "entries": 18
+  }
+ },
+ {
+  "repo": "app-golangflow-buffalo",
+  "old_ms": 275.29534499626607,
+  "new_ms": 291.28041298827156,
+  "old": {
+   "callables": 152,
+   "edges": 209,
+   "cross": 31,
+   "unresolved": 351,
+   "entries": 19
+  },
+  "new": {
+   "callables": 152,
+   "edges": 209,
+   "cross": 31,
+   "unresolved": 351,
+   "entries": 19
+  },
+  "old_dead": 23,
+  "new_dead": 23,
+  "new_skipmin": {
+   "callables": 152,
+   "edges": 209,
+   "cross": 31,
+   "unresolved": 351,
+   "entries": 19
+  }
+ },
+ {
+  "repo": "app-grape-swagger",
+  "old_ms": 88.0934179876931,
+  "new_ms": 77.921082964167,
+  "old": {
+   "callables": 796,
+   "edges": 500,
+   "cross": 272,
+   "unresolved": 2054,
+   "entries": 203
+  },
+  "new": {
+   "callables": 796,
+   "edges": 500,
+   "cross": 272,
+   "unresolved": 2054,
+   "entries": 203
+  },
+  "old_dead": 58,
+  "new_dead": 58,
+  "new_skipmin": {
+   "callables": 796,
+   "edges": 500,
+   "cross": 272,
+   "unresolved": 2054,
+   "entries": 203
+  }
+ },
+ {
+  "repo": "app-grocy-slim",
+  "old_ms": 168.8746649888344,
+  "new_ms": 154.68630305258557,
+  "old": {
+   "callables": 1570,
+   "edges": 1633,
+   "cross": 858,
+   "unresolved": 3620,
+   "entries": 0
+  },
+  "new": {
+   "callables": 1570,
+   "edges": 1633,
+   "cross": 858,
+   "unresolved": 3620,
+   "entries": 0
+  },
+  "old_dead": 394,
+  "new_dead": 394,
+  "new_skipmin": {
+   "callables": 1570,
+   "edges": 1633,
+   "cross": 858,
+   "unresolved": 3620,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-gs-batch-processing",
+  "old_ms": 25.459752010647207,
+  "new_ms": 25.458841992076486,
+  "old": {
+   "callables": 24,
+   "edges": 8,
+   "cross": 5,
+   "unresolved": 29,
+   "entries": 5
+  },
+  "new": {
+   "callables": 24,
+   "edges": 8,
+   "cross": 5,
+   "unresolved": 29,
+   "entries": 5
+  },
+  "old_dead": 1,
+  "new_dead": 1,
+  "new_skipmin": {
+   "callables": 24,
+   "edges": 8,
+   "cross": 5,
+   "unresolved": 29,
+   "entries": 5
+  }
+ },
+ {
+  "repo": "app-hadolint-hspec",
+  "old_ms": 84.73037503426895,
+  "new_ms": 92.60616899700835,
+  "old": {
+   "callables": 1967,
+   "edges": 2121,
+   "cross": 1581,
+   "unresolved": 55,
+   "entries": 85
+  },
+  "new": {
+   "callables": 1967,
+   "edges": 2121,
+   "cross": 1581,
+   "unresolved": 55,
+   "entries": 85
+  },
+  "old_dead": 1126,
+  "new_dead": 1126,
+  "new_skipmin": {
+   "callables": 1967,
+   "edges": 2121,
+   "cross": 1581,
+   "unresolved": 55,
+   "entries": 85
+  }
+ },
+ {
+  "repo": "app-hertz-examples",
+  "old_ms": 572.6895550033078,
+  "new_ms": 577.3054109886289,
+  "old": {
+   "callables": 5958,
+   "edges": 3757,
+   "cross": 960,
+   "unresolved": 4649,
+   "entries": 158
+  },
+  "new": {
+   "callables": 5958,
+   "edges": 3757,
+   "cross": 960,
+   "unresolved": 4649,
+   "entries": 158
+  },
+  "old_dead": 2969,
+  "new_dead": 2969,
+  "new_skipmin": {
+   "callables": 5766,
+   "edges": 3547,
+   "cross": 896,
+   "unresolved": 2360,
+   "entries": 158
+  }
+ },
+ {
+  "repo": "app-homebox-chi",
+  "old_ms": 474.28437700727955,
+  "new_ms": 539.5372770144604,
+  "old": {
+   "callables": 10330,
+   "edges": 11275,
+   "cross": 5968,
+   "unresolved": 6740,
+   "entries": 464
+  },
+  "new": {
+   "callables": 10330,
+   "edges": 11275,
+   "cross": 5968,
+   "unresolved": 6740,
+   "entries": 464
+  },
+  "old_dead": 4910,
+  "new_dead": 4910,
+  "new_skipmin": {
+   "callables": 10330,
+   "edges": 11275,
+   "cross": 5968,
+   "unresolved": 6740,
+   "entries": 464
+  }
+ },
+ {
+  "repo": "app-hono-examples",
+  "old_ms": 82.30816095601767,
+  "new_ms": 85.36740101408213,
+  "old": {
+   "callables": 374,
+   "edges": 192,
+   "cross": 171,
+   "unresolved": 131,
+   "entries": 63
+  },
+  "new": {
+   "callables": 374,
+   "edges": 192,
+   "cross": 171,
+   "unresolved": 131,
+   "entries": 63
+  },
+  "old_dead": 226,
+  "new_dead": 226,
+  "new_skipmin": {
+   "callables": 374,
+   "edges": 192,
+   "cross": 171,
+   "unresolved": 131,
+   "entries": 63
+  }
+ },
+ {
+  "repo": "app-html2rss-roda",
+  "old_ms": 116.97652394650504,
+  "new_ms": 110.05201598163694,
+  "old": {
+   "callables": 1004,
+   "edges": 1310,
+   "cross": 601,
+   "unresolved": 1547,
+   "entries": 157
+  },
+  "new": {
+   "callables": 1004,
+   "edges": 1310,
+   "cross": 601,
+   "unresolved": 1547,
+   "entries": 157
+  },
+  "old_dead": 293,
+  "new_dead": 293,
+  "new_skipmin": {
+   "callables": 1004,
+   "edges": 1310,
+   "cross": 601,
+   "unresolved": 1547,
+   "entries": 157
+  }
+ },
+ {
+  "repo": "app-humhub-yii",
+  "old_ms": 949.965544976294,
+  "new_ms": 929.4274710118771,
+  "old": {
+   "callables": 8943,
+   "edges": 11780,
+   "cross": 6595,
+   "unresolved": 18516,
+   "entries": 183
+  },
+  "new": {
+   "callables": 8943,
+   "edges": 11780,
+   "cross": 6595,
+   "unresolved": 18516,
+   "entries": 183
+  },
+  "old_dead": 2976,
+  "new_dead": 2974,
+  "new_skipmin": {
+   "callables": 8736,
+   "edges": 11526,
+   "cross": 6746,
+   "unresolved": 17211,
+   "entries": 164
+  }
+ },
+ {
+  "repo": "app-hypothesis-pyramid",
+  "old_ms": 2363.130894023925,
+  "new_ms": 2314.1002579941414,
+  "old": {
+   "callables": 13210,
+   "edges": 22909,
+   "cross": 12413,
+   "unresolved": 40504,
+   "entries": 5026
+  },
+  "new": {
+   "callables": 13210,
+   "edges": 22909,
+   "cross": 12413,
+   "unresolved": 40504,
+   "entries": 5026
+  },
+  "old_dead": 3432,
+  "new_dead": 3432,
+  "new_skipmin": {
+   "callables": 7661,
+   "edges": 13329,
+   "cross": 11438,
+   "unresolved": 17947,
+   "entries": 5026
+  }
+ },
+ {
+  "repo": "app-immich-nestjs",
+  "old_ms": 1153.7403729744256,
+  "new_ms": 1076.0487130028196,
+  "old": {
+   "callables": 15674,
+   "edges": 32737,
+   "cross": 27319,
+   "unresolved": 22095,
+   "entries": 5454
+  },
+  "new": {
+   "callables": 15674,
+   "edges": 32737,
+   "cross": 27319,
+   "unresolved": 22095,
+   "entries": 5454
+  },
+  "old_dead": 4787,
+  "new_dead": 4787,
+  "new_skipmin": {
+   "callables": 15674,
+   "edges": 32737,
+   "cross": 27319,
+   "unresolved": 22095,
+   "entries": 5454
+  }
+ },
+ {
+  "repo": "app-importexcel-pester",
+  "old_ms": 110.31141498824582,
+  "new_ms": 94.54265999374911,
+  "old": {
+   "callables": 130,
+   "edges": 54,
+   "cross": 1,
+   "unresolved": 2281,
+   "entries": 0
+  },
+  "new": {
+   "callables": 130,
+   "edges": 54,
+   "cross": 1,
+   "unresolved": 2281,
+   "entries": 0
+  },
+  "old_dead": 91,
+  "new_dead": 91,
+  "new_skipmin": {
+   "callables": 130,
+   "edges": 54,
+   "cross": 1,
+   "unresolved": 2281,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-insights-feathers",
+  "old_ms": 64.10205701831728,
+  "new_ms": 70.93258702661842,
+  "old": {
+   "callables": 344,
+   "edges": 241,
+   "cross": 114,
+   "unresolved": 175,
+   "entries": 35
+  },
+  "new": {
+   "callables": 344,
+   "edges": 241,
+   "cross": 114,
+   "unresolved": 175,
+   "entries": 35
+  },
+  "old_dead": 167,
+  "new_dead": 167,
+  "new_skipmin": {
+   "callables": 344,
+   "edges": 241,
+   "cross": 114,
+   "unresolved": 175,
+   "entries": 35
+  }
+ },
+ {
+  "repo": "app-itunesweb-padrino",
+  "old_ms": 122.17191100353375,
+  "new_ms": 119.52885502250865,
+  "old": {
+   "callables": 356,
+   "edges": 163,
+   "cross": 98,
+   "unresolved": 1296,
+   "entries": 35
+  },
+  "new": {
+   "callables": 356,
+   "edges": 163,
+   "cross": 98,
+   "unresolved": 1296,
+   "entries": 35
+  },
+  "old_dead": 127,
+  "new_dead": 127,
+  "new_skipmin": {
+   "callables": 245,
+   "edges": 144,
+   "cross": 98,
+   "unresolved": 500,
+   "entries": 35
+  }
+ },
+ {
+  "repo": "app-jabref-javafx",
+  "old_ms": 1339.0657000127248,
+  "new_ms": 1344.425440998748,
+  "old": {
+   "callables": 21975,
+   "edges": 81701,
+   "cross": 69771,
+   "unresolved": 36694,
+   "entries": 5716
+  },
+  "new": {
+   "callables": 21975,
+   "edges": 81701,
+   "cross": 69771,
+   "unresolved": 36694,
+   "entries": 5716
+  },
+  "old_dead": 3143,
+  "new_dead": 3143,
+  "new_skipmin": {
+   "callables": 21975,
+   "edges": 81701,
+   "cross": 69771,
+   "unresolved": 36694,
+   "entries": 5716
+  }
+ },
+ {
+  "repo": "app-jobserver-spark",
+  "old_ms": 255.64734498038888,
+  "new_ms": 232.1972490171902,
+  "old": {
+   "callables": 1650,
+   "edges": 2205,
+   "cross": 1305,
+   "unresolved": 4730,
+   "entries": 8
+  },
+  "new": {
+   "callables": 1650,
+   "edges": 2205,
+   "cross": 1305,
+   "unresolved": 4730,
+   "entries": 8
+  },
+  "old_dead": 416,
+  "new_dead": 416,
+  "new_skipmin": {
+   "callables": 1526,
+   "edges": 2129,
+   "cross": 1303,
+   "unresolved": 4080,
+   "entries": 8
+  }
+ },
+ {
+  "repo": "app-jupyterhub-tornado",
+  "old_ms": 239.28861902095377,
+  "new_ms": 236.534585012123,
+  "old": {
+   "callables": 2392,
+   "edges": 4893,
+   "cross": 3702,
+   "unresolved": 6464,
+   "entries": 693
+  },
+  "new": {
+   "callables": 2392,
+   "edges": 4893,
+   "cross": 3702,
+   "unresolved": 6464,
+   "entries": 693
+  },
+  "old_dead": 517,
+  "new_dead": 517,
+  "new_skipmin": {
+   "callables": 2392,
+   "edges": 4893,
+   "cross": 3702,
+   "unresolved": 6464,
+   "entries": 693
+  }
+ },
+ {
+  "repo": "app-kapua-camel",
+  "old_ms": 1536.898857972119,
+  "new_ms": 1603.5200179903768,
+  "old": {
+   "callables": 26562,
+   "edges": 65108,
+   "cross": 58248,
+   "unresolved": 24977,
+   "entries": 4384
+  },
+  "new": {
+   "callables": 26562,
+   "edges": 65108,
+   "cross": 58248,
+   "unresolved": 24977,
+   "entries": 4384
+  },
+  "old_dead": 11937,
+  "new_dead": 11937,
+  "new_skipmin": {
+   "callables": 26562,
+   "edges": 65108,
+   "cross": 58248,
+   "unresolved": 24977,
+   "entries": 4384
+  }
+ },
+ {
+  "repo": "app-katrain-kivy",
+  "old_ms": 117.774277983699,
+  "new_ms": 120.0350490398705,
+  "old": {
+   "callables": 784,
+   "edges": 1332,
+   "cross": 767,
+   "unresolved": 1036,
+   "entries": 39
+  },
+  "new": {
+   "callables": 784,
+   "edges": 1332,
+   "cross": 767,
+   "unresolved": 1036,
+   "entries": 39
+  },
+  "old_dead": 173,
+  "new_dead": 173,
+  "new_skipmin": {
+   "callables": 784,
+   "edges": 1332,
+   "cross": 767,
+   "unresolved": 1036,
+   "entries": 39
+  }
+ },
+ {
+  "repo": "app-kori-ktorclient",
+  "old_ms": 3743.6062460183166,
+  "new_ms": 3628.661437018309,
+  "old": {
+   "callables": 17146,
+   "edges": 40016,
+   "cross": 17649,
+   "unresolved": 142511,
+   "entries": 16
+  },
+  "new": {
+   "callables": 17146,
+   "edges": 40016,
+   "cross": 17649,
+   "unresolved": 142511,
+   "entries": 16
+  },
+  "old_dead": 10975,
+  "new_dead": 10975,
+  "new_skipmin": {
+   "callables": 1648,
+   "edges": 3104,
+   "cross": 2067,
+   "unresolved": 537,
+   "entries": 16
+  }
+ },
+ {
+  "repo": "app-kotlinconf-ktor",
+  "old_ms": 132.44116998976097,
+  "new_ms": 135.46961196698248,
+  "old": {
+   "callables": 1050,
+   "edges": 1892,
+   "cross": 1335,
+   "unresolved": 293,
+   "entries": 62
+  },
+  "new": {
+   "callables": 1050,
+   "edges": 1892,
+   "cross": 1335,
+   "unresolved": 293,
+   "entries": 62
+  },
+  "old_dead": 345,
+  "new_dead": 345,
+  "new_skipmin": {
+   "callables": 1050,
+   "edges": 1892,
+   "cross": 1335,
+   "unresolved": 293,
+   "entries": 62
+  }
+ },
+ {
+  "repo": "app-ksql-kafkastreams",
+  "old_ms": 3207.8538589994423,
+  "new_ms": 3235.234212013893,
+  "old": {
+   "callables": 28309,
+   "edges": 93688,
+   "cross": 77307,
+   "unresolved": 45370,
+   "entries": 9917
+  },
+  "new": {
+   "callables": 28309,
+   "edges": 93688,
+   "cross": 77307,
+   "unresolved": 45370,
+   "entries": 9917
+  },
+  "old_dead": 2680,
+  "new_dead": 2680,
+  "new_skipmin": {
+   "callables": 28309,
+   "edges": 93688,
+   "cross": 77307,
+   "unresolved": 45370,
+   "entries": 9917
+  }
+ },
+ {
+  "repo": "app-kubepi-iris",
+  "old_ms": 455.493692017626,
+  "new_ms": 440.37961499998346,
+  "old": {
+   "callables": 2304,
+   "edges": 3724,
+   "cross": 2356,
+   "unresolved": 6432,
+   "entries": 37
+  },
+  "new": {
+   "callables": 2304,
+   "edges": 3724,
+   "cross": 2356,
+   "unresolved": 6432,
+   "entries": 37
+  },
+  "old_dead": 1124,
+  "new_dead": 1124,
+  "new_skipmin": {
+   "callables": 1669,
+   "edges": 3202,
+   "cross": 2289,
+   "unresolved": 927,
+   "entries": 37
+  }
+ },
+ {
+  "repo": "app-kythe-bazel",
+  "old_ms": 664.3607630394399,
+  "new_ms": 707.736735988874,
+  "old": {
+   "callables": 13543,
+   "edges": 22214,
+   "cross": 11898,
+   "unresolved": 10053,
+   "entries": 898
+  },
+  "new": {
+   "callables": 13543,
+   "edges": 22214,
+   "cross": 11898,
+   "unresolved": 10053,
+   "entries": 898
+  },
+  "old_dead": 7253,
+  "new_dead": 7253,
+  "new_skipmin": {
+   "callables": 13543,
+   "edges": 22214,
+   "cross": 11898,
+   "unresolved": 10053,
+   "entries": 898
+  }
+ },
+ {
+  "repo": "app-lemmy-actix",
+  "old_ms": 351.2213689973578,
+  "new_ms": 338.25922902906314,
+  "old": {
+   "callables": 2464,
+   "edges": 11154,
+   "cross": 9352,
+   "unresolved": 6838,
+   "entries": 489
+  },
+  "new": {
+   "callables": 2464,
+   "edges": 11154,
+   "cross": 9352,
+   "unresolved": 6838,
+   "entries": 489
+  },
+  "old_dead": 360,
+  "new_dead": 360,
+  "new_skipmin": {
+   "callables": 2464,
+   "edges": 11154,
+   "cross": 9352,
+   "unresolved": 6838,
+   "entries": 489
+  }
+ },
+ {
+  "repo": "app-libchecker-gradle",
+  "old_ms": 458.2119950209744,
+  "new_ms": 490.37605500780046,
+  "old": {
+   "callables": 7183,
+   "edges": 16734,
+   "cross": 11382,
+   "unresolved": 4117,
+   "entries": 748
+  },
+  "new": {
+   "callables": 7183,
+   "edges": 16734,
+   "cross": 11382,
+   "unresolved": 4117,
+   "entries": 748
+  },
+  "old_dead": 2302,
+  "new_dead": 2302,
+  "new_skipmin": {
+   "callables": 7183,
+   "edges": 16734,
+   "cross": 11382,
+   "unresolved": 4117,
+   "entries": 748
+  }
+ },
+ {
+  "repo": "app-libxev-zig",
+  "old_ms": 91.70348598854616,
+  "new_ms": 92.11592102656141,
+  "old": {
+   "callables": 819,
+   "edges": 1440,
+   "cross": 911,
+   "unresolved": 944,
+   "entries": 0
+  },
+  "new": {
+   "callables": 819,
+   "edges": 1440,
+   "cross": 911,
+   "unresolved": 944,
+   "entries": 0
+  },
+  "old_dead": 451,
+  "new_dead": 451,
+  "new_skipmin": {
+   "callables": 819,
+   "edges": 1440,
+   "cross": 911,
+   "unresolved": 944,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-lipas-reitit",
+  "old_ms": 359.15646998910233,
+  "new_ms": 365.69584999233484,
+  "old": {
+   "callables": 4322,
+   "edges": 4476,
+   "cross": 1884,
+   "unresolved": 4917,
+   "entries": 0
+  },
+  "new": {
+   "callables": 4322,
+   "edges": 4476,
+   "cross": 1884,
+   "unresolved": 4917,
+   "entries": 0
+  },
+  "old_dead": 2509,
+  "new_dead": 2509,
+  "new_skipmin": {
+   "callables": 4322,
+   "edges": 4476,
+   "cross": 1884,
+   "unresolved": 4917,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-litestar-fullstack",
+  "old_ms": 145.39305900689214,
+  "new_ms": 156.45855001639575,
+  "old": {
+   "callables": 1822,
+   "edges": 2787,
+   "cross": 2170,
+   "unresolved": 1957,
+   "entries": 742
+  },
+  "new": {
+   "callables": 1822,
+   "edges": 2787,
+   "cross": 2170,
+   "unresolved": 1957,
+   "entries": 742
+  },
+  "old_dead": 356,
+  "new_dead": 356,
+  "new_skipmin": {
+   "callables": 1822,
+   "edges": 2787,
+   "cross": 2170,
+   "unresolved": 1957,
+   "entries": 742
+  }
+ },
+ {
+  "repo": "app-lobsters-puma",
+  "old_ms": 178.24234097497538,
+  "new_ms": 176.84453801484779,
+  "old": {
+   "callables": 1392,
+   "edges": 1335,
+   "cross": 888,
+   "unresolved": 5858,
+   "entries": 199
+  },
+  "new": {
+   "callables": 1392,
+   "edges": 1335,
+   "cross": 888,
+   "unresolved": 5858,
+   "entries": 199
+  },
+  "old_dead": 496,
+  "new_dead": 496,
+  "new_skipmin": {
+   "callables": 1392,
+   "edges": 1335,
+   "cross": 888,
+   "unresolved": 5858,
+   "entries": 199
+  }
+ },
+ {
+  "repo": "app-marktext-electron",
+  "old_ms": 570.384953985922,
+  "new_ms": 598.0120819876902,
+  "old": {
+   "callables": 10078,
+   "edges": 26996,
+   "cross": 18777,
+   "unresolved": 13238,
+   "entries": 4596
+  },
+  "new": {
+   "callables": 10078,
+   "edges": 26996,
+   "cross": 18777,
+   "unresolved": 13238,
+   "entries": 4596
+  },
+  "old_dead": 1737,
+  "new_dead": 1737,
+  "new_skipmin": {
+   "callables": 10069,
+   "edges": 26979,
+   "cross": 18766,
+   "unresolved": 13228,
+   "entries": 4596
+  }
+ },
+ {
+  "repo": "app-marquez-dropwizard",
+  "old_ms": 278.59068900579587,
+  "new_ms": 295.4955190070905,
+  "old": {
+   "callables": 3551,
+   "edges": 10972,
+   "cross": 8769,
+   "unresolved": 6950,
+   "entries": 838
+  },
+  "new": {
+   "callables": 3551,
+   "edges": 10972,
+   "cross": 8769,
+   "unresolved": 6950,
+   "entries": 838
+  },
+  "old_dead": 599,
+  "new_dead": 599,
+  "new_skipmin": {
+   "callables": 3551,
+   "edges": 10972,
+   "cross": 8769,
+   "unresolved": 6950,
+   "entries": 838
+  }
+ },
+ {
+  "repo": "app-masstransit-sample",
+  "old_ms": 34.174875007010996,
+  "new_ms": 33.84242003085092,
+  "old": {
+   "callables": 218,
+   "edges": 40,
+   "cross": 38,
+   "unresolved": 11,
+   "entries": 24
+  },
+  "new": {
+   "callables": 218,
+   "edges": 40,
+   "cross": 38,
+   "unresolved": 11,
+   "entries": 24
+  },
+  "old_dead": 165,
+  "new_dead": 165,
+  "new_skipmin": {
+   "callables": 218,
+   "edges": 40,
+   "cross": 38,
+   "unresolved": 11,
+   "entries": 24
+  }
+ },
+ {
+  "repo": "app-mediom-revel",
+  "old_ms": 107.23778896499425,
+  "new_ms": 111.24620900955051,
+  "old": {
+   "callables": 387,
+   "edges": 285,
+   "cross": 166,
+   "unresolved": 1322,
+   "entries": 6
+  },
+  "new": {
+   "callables": 387,
+   "edges": 285,
+   "cross": 166,
+   "unresolved": 1322,
+   "entries": 6
+  },
+  "old_dead": 111,
+  "new_dead": 111,
+  "new_skipmin": {
+   "callables": 160,
+   "edges": 218,
+   "cross": 163,
+   "unresolved": 8,
+   "entries": 6
+  }
+ },
+ {
+  "repo": "app-memos-echo",
+  "old_ms": 415.43603502213955,
+  "new_ms": 422.9058129712939,
+  "old": {
+   "callables": 7555,
+   "edges": 12701,
+   "cross": 8883,
+   "unresolved": 4750,
+   "entries": 1309
+  },
+  "new": {
+   "callables": 7555,
+   "edges": 12701,
+   "cross": 8883,
+   "unresolved": 4750,
+   "entries": 1309
+  },
+  "old_dead": 3443,
+  "new_dead": 3443,
+  "new_skipmin": {
+   "callables": 7555,
+   "edges": 12701,
+   "cross": 8883,
+   "unresolved": 4750,
+   "entries": 1309
+  }
+ },
+ {
+  "repo": "app-metabase-compojure",
+  "old_ms": 6770.007849961985,
+  "new_ms": 7089.440688025206,
+  "old": {
+   "callables": 90000,
+   "edges": 208896,
+   "cross": 154159,
+   "unresolved": 436339,
+   "entries": 31290
+  },
+  "new": {
+   "callables": 90000,
+   "edges": 208896,
+   "cross": 154159,
+   "unresolved": 436339,
+   "entries": 31290
+  },
+  "old_dead": 20538,
+  "new_dead": 20538,
+  "new_skipmin": {
+   "callables": 86759,
+   "edges": 199455,
+   "cross": 148845,
+   "unresolved": 387196,
+   "entries": 31284
+  }
+ },
+ {
+  "repo": "app-metacpan-catalyst",
+  "old_ms": 90.30404197983444,
+  "new_ms": 87.48348499648273,
+  "old": {
+   "callables": 427,
+   "edges": 311,
+   "cross": 126,
+   "unresolved": 1067,
+   "entries": 11
+  },
+  "new": {
+   "callables": 427,
+   "edges": 311,
+   "cross": 126,
+   "unresolved": 1067,
+   "entries": 11
+  },
+  "old_dead": 246,
+  "new_dead": 246,
+  "new_skipmin": {
+   "callables": 427,
+   "edges": 311,
+   "cross": 126,
+   "unresolved": 1067,
+   "entries": 11
+  }
+ },
+ {
+  "repo": "app-micromdm-gokit",
+  "old_ms": 200.38410200504586,
+  "new_ms": 185.5503530241549,
+  "old": {
+   "callables": 1926,
+   "edges": 1800,
+   "cross": 1232,
+   "unresolved": 200,
+   "entries": 36
+  },
+  "new": {
+   "callables": 1926,
+   "edges": 1800,
+   "cross": 1232,
+   "unresolved": 200,
+   "entries": 36
+  },
+  "old_dead": 1083,
+  "new_dead": 1083,
+  "new_skipmin": {
+   "callables": 1926,
+   "edges": 1800,
+   "cross": 1232,
+   "unresolved": 200,
+   "entries": 36
+  }
+ },
+ {
+  "repo": "app-micronaut-graalapp",
+  "old_ms": 22.6069149794057,
+  "new_ms": 23.43802497489378,
+  "old": {
+   "callables": 16,
+   "edges": 3,
+   "cross": 3,
+   "unresolved": 27,
+   "entries": 2
+  },
+  "new": {
+   "callables": 16,
+   "edges": 3,
+   "cross": 3,
+   "unresolved": 27,
+   "entries": 2
+  },
+  "old_dead": 4,
+  "new_dead": 4,
+  "new_skipmin": {
+   "callables": 16,
+   "edges": 3,
+   "cross": 3,
+   "unresolved": 27,
+   "entries": 2
+  }
+ },
+ {
+  "repo": "app-mimic-kivy",
+  "old_ms": 139.80915100546554,
+  "new_ms": 139.84945003176108,
+  "old": {
+   "callables": 765,
+   "edges": 1694,
+   "cross": 735,
+   "unresolved": 499,
+   "entries": 1
+  },
+  "new": {
+   "callables": 765,
+   "edges": 1694,
+   "cross": 735,
+   "unresolved": 499,
+   "entries": 1
+  },
+  "old_dead": 144,
+  "new_dead": 144,
+  "new_skipmin": {
+   "callables": 765,
+   "edges": 1694,
+   "cross": 735,
+   "unresolved": 499,
+   "entries": 1
+  }
+ },
+ {
+  "repo": "app-mineadmin-swoole",
+  "old_ms": 75.20127604948357,
+  "new_ms": 71.15450501441956,
+  "old": {
+   "callables": 644,
+   "edges": 727,
+   "cross": 379,
+   "unresolved": 565,
+   "entries": 46
+  },
+  "new": {
+   "callables": 644,
+   "edges": 727,
+   "cross": 379,
+   "unresolved": 565,
+   "entries": 46
+  },
+  "old_dead": 317,
+  "new_dead": 317,
+  "new_skipmin": {
+   "callables": 644,
+   "edges": 727,
+   "cross": 379,
+   "unresolved": 565,
+   "entries": 46
+  }
+ },
+ {
+  "repo": "app-monica-laravel",
+  "old_ms": 3881.7811849876307,
+  "new_ms": 3840.770023991354,
+  "old": {
+   "callables": 13228,
+   "edges": 22008,
+   "cross": 6349,
+   "unresolved": 38851,
+   "entries": 504
+  },
+  "new": {
+   "callables": 13228,
+   "edges": 22008,
+   "cross": 6349,
+   "unresolved": 38851,
+   "entries": 504
+  },
+  "old_dead": 4663,
+  "new_dead": 4663,
+  "new_skipmin": {
+   "callables": 5511,
+   "edges": 8378,
+   "cross": 6319,
+   "unresolved": 8186,
+   "entries": 504
+  }
+ },
+ {
+  "repo": "app-monogame-samples",
+  "old_ms": 235.40534597123042,
+  "new_ms": 240.11789896758273,
+  "old": {
+   "callables": 4570,
+   "edges": 4418,
+   "cross": 3173,
+   "unresolved": 2524,
+   "entries": 0
+  },
+  "new": {
+   "callables": 4570,
+   "edges": 4418,
+   "cross": 3173,
+   "unresolved": 2524,
+   "entries": 0
+  },
+  "old_dead": 2970,
+  "new_dead": 2970,
+  "new_skipmin": {
+   "callables": 4570,
+   "edges": 4418,
+   "cross": 3173,
+   "unresolved": 2524,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-moon-kratos",
+  "old_ms": 983.0996319651604,
+  "new_ms": 926.6451679868624,
+  "old": {
+   "callables": 17466,
+   "edges": 21237,
+   "cross": 11171,
+   "unresolved": 16826,
+   "entries": 388
+  },
+  "new": {
+   "callables": 17466,
+   "edges": 21237,
+   "cross": 11171,
+   "unresolved": 16826,
+   "entries": 388
+  },
+  "old_dead": 9938,
+  "new_dead": 9938,
+  "new_skipmin": {
+   "callables": 13530,
+   "edges": 13597,
+   "cross": 9563,
+   "unresolved": 4722,
+   "entries": 388
+  }
+ },
+ {
+  "repo": "app-mtgnode-sails",
+  "old_ms": 36.84526699362323,
+  "new_ms": 39.434427046217024,
+  "old": {
+   "callables": 118,
+   "edges": 64,
+   "cross": 35,
+   "unresolved": 101,
+   "entries": 0
+  },
+  "new": {
+   "callables": 118,
+   "edges": 64,
+   "cross": 35,
+   "unresolved": 101,
+   "entries": 0
+  },
+  "old_dead": 60,
+  "new_dead": 60,
+  "new_skipmin": {
+   "callables": 118,
+   "edges": 64,
+   "cross": 35,
+   "unresolved": 101,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-nanocl-ntex",
+  "old_ms": 87.77700696373358,
+  "new_ms": 80.80672100186348,
+  "old": {
+   "callables": 530,
+   "edges": 669,
+   "cross": 283,
+   "unresolved": 629,
+   "entries": 124
+  },
+  "new": {
+   "callables": 530,
+   "edges": 669,
+   "cross": 283,
+   "unresolved": 629,
+   "entries": 124
+  },
+  "old_dead": 117,
+  "new_dead": 117,
+  "new_skipmin": {
+   "callables": 530,
+   "edges": 669,
+   "cross": 283,
+   "unresolved": 629,
+   "entries": 124
+  }
+ },
+ {
+  "repo": "app-neorv32-vhdl",
+  "old_ms": 118.71949600754306,
+  "new_ms": 120.41212595067918,
+  "old": {
+   "callables": 911,
+   "edges": 3563,
+   "cross": 2583,
+   "unresolved": 1,
+   "entries": 0
+  },
+  "new": {
+   "callables": 911,
+   "edges": 3563,
+   "cross": 2583,
+   "unresolved": 1,
+   "entries": 0
+  },
+  "old_dead": 346,
+  "new_dead": 346,
+  "new_skipmin": {
+   "callables": 911,
+   "edges": 3563,
+   "cross": 2583,
+   "unresolved": 1,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-networkingdsc-dsc",
+  "old_ms": 108.2633410114795,
+  "new_ms": 99.0259219543077,
+  "old": {
+   "callables": 122,
+   "edges": 169,
+   "cross": 96,
+   "unresolved": 1226,
+   "entries": 82
+  },
+  "new": {
+   "callables": 122,
+   "edges": 169,
+   "cross": 96,
+   "unresolved": 1226,
+   "entries": 82
+  },
+  "old_dead": 0,
+  "new_dead": 0,
+  "new_skipmin": {
+   "callables": 122,
+   "edges": 169,
+   "cross": 96,
+   "unresolved": 1226,
+   "entries": 82
+  }
+ },
+ {
+  "repo": "app-newscrawl-storm",
+  "old_ms": 28.920323005877435,
+  "new_ms": 29.531216016039252,
+  "old": {
+   "callables": 71,
+   "edges": 90,
+   "cross": 35,
+   "unresolved": 25,
+   "entries": 15
+  },
+  "new": {
+   "callables": 71,
+   "edges": 90,
+   "cross": 35,
+   "unresolved": 25,
+   "entries": 15
+  },
+  "old_dead": 16,
+  "new_dead": 16,
+  "new_skipmin": {
+   "callables": 71,
+   "edges": 90,
+   "cross": 35,
+   "unresolved": 25,
+   "entries": 15
+  }
+ },
+ {
+  "repo": "app-nextcloud-android",
+  "old_ms": 655.5100639816374,
+  "new_ms": 655.9055609977804,
+  "old": {
+   "callables": 10671,
+   "edges": 20451,
+   "cross": 13998,
+   "unresolved": 11610,
+   "entries": 1405
+  },
+  "new": {
+   "callables": 10671,
+   "edges": 20451,
+   "cross": 13998,
+   "unresolved": 11610,
+   "entries": 1405
+  },
+  "old_dead": 4050,
+  "new_dead": 4050,
+  "new_skipmin": {
+   "callables": 10671,
+   "edges": 20451,
+   "cross": 13998,
+   "unresolved": 11610,
+   "entries": 1405
+  }
+ },
+ {
+  "repo": "app-ocamlci-alcotest",
+  "old_ms": 276.8602459691465,
+  "new_ms": 255.9820159804076,
+  "old": {
+   "callables": 3345,
+   "edges": 2785,
+   "cross": 175,
+   "unresolved": 2621,
+   "entries": 0
+  },
+  "new": {
+   "callables": 3345,
+   "edges": 2785,
+   "cross": 175,
+   "unresolved": 2621,
+   "entries": 0
+  },
+  "old_dead": 2345,
+  "new_dead": 2345,
+  "new_skipmin": {
+   "callables": 3076,
+   "edges": 2470,
+   "cross": 156,
+   "unresolved": 1732,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-ocamlorg-dream",
+  "old_ms": 9458.289495960344,
+  "new_ms": 10795.00324500259,
+  "old": {
+   "callables": 33891,
+   "edges": 25876,
+   "cross": 15780,
+   "unresolved": 204962,
+   "entries": 0
+  },
+  "new": {
+   "callables": 33891,
+   "edges": 25876,
+   "cross": 15780,
+   "unresolved": 204962,
+   "entries": 0
+  },
+  "old_dead": 20180,
+  "new_dead": 20180,
+  "new_skipmin": {
+   "callables": 3079,
+   "edges": 1384,
+   "cross": 190,
+   "unresolved": 807,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-oldata-dagster",
+  "old_ms": 291.64880799362436,
+  "new_ms": 292.4377820454538,
+  "old": {
+   "callables": 3452,
+   "edges": 7310,
+   "cross": 4666,
+   "unresolved": 6593,
+   "entries": 1764
+  },
+  "new": {
+   "callables": 3452,
+   "edges": 7310,
+   "cross": 4666,
+   "unresolved": 6593,
+   "entries": 1764
+  },
+  "old_dead": 187,
+  "new_dead": 187,
+  "new_skipmin": {
+   "callables": 3452,
+   "edges": 7310,
+   "cross": 4666,
+   "unresolved": 6593,
+   "entries": 1764
+  }
+ },
+ {
+  "repo": "app-ombi-quartz",
+  "old_ms": 738.0007719621062,
+  "new_ms": 741.4481380255893,
+  "old": {
+   "callables": 16712,
+   "edges": 11465,
+   "cross": 8832,
+   "unresolved": 9713,
+   "entries": 2750
+  },
+  "new": {
+   "callables": 16712,
+   "edges": 11465,
+   "cross": 8832,
+   "unresolved": 9713,
+   "entries": 2750
+  },
+  "old_dead": 10379,
+  "new_dead": 10379,
+  "new_skipmin": {
+   "callables": 16712,
+   "edges": 11465,
+   "cross": 8832,
+   "unresolved": 9713,
+   "entries": 2750
+  }
+ },
+ {
+  "repo": "app-oncall-falcon",
+  "old_ms": 195.43606002116576,
+  "new_ms": 200.29455301119015,
+  "old": {
+   "callables": 1672,
+   "edges": 2662,
+   "cross": 1090,
+   "unresolved": 6277,
+   "entries": 309
+  },
+  "new": {
+   "callables": 1672,
+   "edges": 2662,
+   "cross": 1090,
+   "unresolved": 6277,
+   "entries": 309
+  },
+  "old_dead": 298,
+  "new_dead": 298,
+  "new_skipmin": {
+   "callables": 1233,
+   "edges": 1942,
+   "cross": 966,
+   "unresolved": 2642,
+   "entries": 309
+  }
+ },
+ {
+  "repo": "app-opam-cmdliner",
+  "old_ms": 317.37185799283907,
+  "new_ms": 333.8082359987311,
+  "old": {
+   "callables": 11880,
+   "edges": 8832,
+   "cross": 1652,
+   "unresolved": 3108,
+   "entries": 0
+  },
+  "new": {
+   "callables": 11880,
+   "edges": 8832,
+   "cross": 1652,
+   "unresolved": 3108,
+   "entries": 0
+  },
+  "old_dead": 8264,
+  "new_dead": 8264,
+  "new_skipmin": {
+   "callables": 11880,
+   "edges": 8832,
+   "cross": 1652,
+   "unresolved": 3108,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-opensocial-drupal",
+  "old_ms": 721.6589860036038,
+  "new_ms": 711.4034700207412,
+  "old": {
+   "callables": 7823,
+   "edges": 6030,
+   "cross": 2681,
+   "unresolved": 13993,
+   "entries": 287
+  },
+  "new": {
+   "callables": 7823,
+   "edges": 6030,
+   "cross": 2681,
+   "unresolved": 13993,
+   "entries": 287
+  },
+  "old_dead": 3000,
+  "new_dead": 2998,
+  "new_skipmin": {
+   "callables": 7644,
+   "edges": 5684,
+   "cross": 2665,
+   "unresolved": 11138,
+   "entries": 287
+  }
+ },
+ {
+  "repo": "app-ora-swifttesting",
+  "old_ms": 143.21170403854921,
+  "new_ms": 135.67728304769844,
+  "old": {
+   "callables": 973,
+   "edges": 1201,
+   "cross": 581,
+   "unresolved": 1131,
+   "entries": 6
+  },
+  "new": {
+   "callables": 973,
+   "edges": 1201,
+   "cross": 581,
+   "unresolved": 1131,
+   "entries": 6
+  },
+  "old_dead": 523,
+  "new_dead": 523,
+  "new_skipmin": {
+   "callables": 973,
+   "edges": 1201,
+   "cross": 581,
+   "unresolved": 1131,
+   "entries": 6
+  }
+ },
+ {
+  "repo": "app-orleans-samples",
+  "old_ms": 1324.680823017843,
+  "new_ms": 1401.7525290255435,
+  "old": {
+   "callables": 20780,
+   "edges": 15703,
+   "cross": 8061,
+   "unresolved": 27104,
+   "entries": 646
+  },
+  "new": {
+   "callables": 20780,
+   "edges": 15703,
+   "cross": 8061,
+   "unresolved": 27104,
+   "entries": 646
+  },
+  "old_dead": 14111,
+  "new_dead": 14111,
+  "new_skipmin": {
+   "callables": 19729,
+   "edges": 14035,
+   "cross": 7780,
+   "unresolved": 17769,
+   "entries": 646
+  }
+ },
+ {
+  "repo": "app-owllook-sanic",
+  "old_ms": 74.47147503262386,
+  "new_ms": 55.49220502143726,
+  "old": {
+   "callables": 220,
+   "edges": 273,
+   "cross": 154,
+   "unresolved": 572,
+   "entries": 1
+  },
+  "new": {
+   "callables": 220,
+   "edges": 273,
+   "cross": 154,
+   "unresolved": 572,
+   "entries": 1
+  },
+  "old_dead": 108,
+  "new_dead": 108,
+  "new_skipmin": {
+   "callables": 220,
+   "edges": 273,
+   "cross": 154,
+   "unresolved": 572,
+   "entries": 1
+  }
+ },
+ {
+  "repo": "app-pa11y-hapi",
+  "old_ms": 192.65683402772993,
+  "new_ms": 199.86879802308977,
+  "old": {
+   "callables": 294,
+   "edges": 344,
+   "cross": 325,
+   "unresolved": 153,
+   "entries": 241
+  },
+  "new": {
+   "callables": 294,
+   "edges": 344,
+   "cross": 325,
+   "unresolved": 153,
+   "entries": 241
+  },
+  "old_dead": 13,
+  "new_dead": 13,
+  "new_skipmin": {
+   "callables": 294,
+   "edges": 344,
+   "cross": 325,
+   "unresolved": 153,
+   "entries": 241
+  }
+ },
+ {
+  "repo": "app-papercups-phoenix",
+  "old_ms": 579.9329509609379,
+  "new_ms": 612.7823340357281,
+  "old": {
+   "callables": 6202,
+   "edges": 7301,
+   "cross": 2055,
+   "unresolved": 14250,
+   "entries": 105
+  },
+  "new": {
+   "callables": 6202,
+   "edges": 7301,
+   "cross": 2055,
+   "unresolved": 14250,
+   "entries": 105
+  },
+  "old_dead": 2265,
+  "new_dead": 2265,
+  "new_skipmin": {
+   "callables": 4221,
+   "edges": 3784,
+   "cross": 2056,
+   "unresolved": 9370,
+   "entries": 105
+  }
+ },
+ {
+  "repo": "app-passbolt-cakephp",
+  "old_ms": 1909.9588200333528,
+  "new_ms": 1885.0537989637814,
+  "old": {
+   "callables": 23402,
+   "edges": 39472,
+   "cross": 26091,
+   "unresolved": 44044,
+   "entries": 7181
+  },
+  "new": {
+   "callables": 23402,
+   "edges": 39472,
+   "cross": 26091,
+   "unresolved": 44044,
+   "entries": 7181
+  },
+  "old_dead": 10026,
+  "new_dead": 10026,
+  "new_skipmin": {
+   "callables": 15012,
+   "edges": 21831,
+   "cross": 17925,
+   "unresolved": 30713,
+   "entries": 7181
+  }
+ },
+ {
+  "repo": "app-perlmaven-dancer2",
+  "old_ms": 288.3765299920924,
+  "new_ms": 280.97137302393094,
+  "old": {
+   "callables": 1562,
+   "edges": 2467,
+   "cross": 201,
+   "unresolved": 8146,
+   "entries": 8
+  },
+  "new": {
+   "callables": 1562,
+   "edges": 2467,
+   "cross": 201,
+   "unresolved": 8146,
+   "entries": 8
+  },
+  "old_dead": 291,
+  "new_dead": 291,
+  "new_skipmin": {
+   "callables": 216,
+   "edges": 291,
+   "cross": 34,
+   "unresolved": 272,
+   "entries": 8
+  }
+ },
+ {
+  "repo": "app-pfr-lean",
+  "old_ms": 382.5776239973493,
+  "new_ms": 395.7442090031691,
+  "old": {
+   "callables": 305,
+   "edges": 401,
+   "cross": 168,
+   "unresolved": 493,
+   "entries": 0
+  },
+  "new": {
+   "callables": 305,
+   "edges": 401,
+   "cross": 168,
+   "unresolved": 493,
+   "entries": 0
+  },
+  "old_dead": 202,
+  "new_dead": 202,
+  "new_skipmin": {
+   "callables": 305,
+   "edges": 401,
+   "cross": 168,
+   "unresolved": 493,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-pixlserv-martini",
+  "old_ms": 27.7566320146434,
+  "new_ms": 27.011219004634768,
+  "old": {
+   "callables": 88,
+   "edges": 129,
+   "cross": 67,
+   "unresolved": 2,
+   "entries": 5
+  },
+  "new": {
+   "callables": 88,
+   "edges": 129,
+   "cross": 67,
+   "unresolved": 2,
+   "entries": 5
+  },
+  "old_dead": 9,
+  "new_dead": 9,
+  "new_skipmin": {
+   "callables": 88,
+   "edges": 129,
+   "cross": 67,
+   "unresolved": 2,
+   "entries": 5
+  }
+ },
+ {
+  "repo": "app-plausible-phoenix",
+  "old_ms": 624.4444249896333,
+  "new_ms": 621.0318430094048,
+  "old": {
+   "callables": 8447,
+   "edges": 10787,
+   "cross": 6795,
+   "unresolved": 55212,
+   "entries": 1201
+  },
+  "new": {
+   "callables": 8447,
+   "edges": 10787,
+   "cross": 6795,
+   "unresolved": 55212,
+   "entries": 1201
+  },
+  "old_dead": 2564,
+  "new_dead": 2564,
+  "new_skipmin": {
+   "callables": 8442,
+   "edges": 10781,
+   "cross": 6793,
+   "unresolved": 55205,
+   "entries": 1201
+  }
+ },
+ {
+  "repo": "app-powertools-lambda",
+  "old_ms": 2004.7893869923428,
+  "new_ms": 1991.5191220352426,
+  "old": {
+   "callables": 13389,
+   "edges": 21336,
+   "cross": 13576,
+   "unresolved": 39711,
+   "entries": 4350
+  },
+  "new": {
+   "callables": 13389,
+   "edges": 21336,
+   "cross": 13576,
+   "unresolved": 39711,
+   "entries": 4350
+  },
+  "old_dead": 3784,
+  "new_dead": 3784,
+  "new_skipmin": {
+   "callables": 8956,
+   "edges": 15925,
+   "cross": 13563,
+   "unresolved": 16824,
+   "entries": 4350
+  }
+ },
+ {
+  "repo": "app-pydantic-core",
+  "old_ms": 340.0085289613344,
+  "new_ms": 362.45514499023557,
+  "old": {
+   "callables": 4321,
+   "edges": 17980,
+   "cross": 16113,
+   "unresolved": 8610,
+   "entries": 1839
+  },
+  "new": {
+   "callables": 4321,
+   "edges": 17980,
+   "cross": 16113,
+   "unresolved": 8610,
+   "entries": 1839
+  },
+  "old_dead": 742,
+  "new_dead": 742,
+  "new_skipmin": {
+   "callables": 4321,
+   "edges": 17980,
+   "cross": 16113,
+   "unresolved": 8610,
+   "entries": 1839
+  }
+ },
+ {
+  "repo": "app-pywallet-kivy",
+  "old_ms": 44.67867303173989,
+  "new_ms": 55.55081000784412,
+  "old": {
+   "callables": 320,
+   "edges": 452,
+   "cross": 274,
+   "unresolved": 133,
+   "entries": 36
+  },
+  "new": {
+   "callables": 320,
+   "edges": 452,
+   "cross": 274,
+   "unresolved": 133,
+   "entries": 36
+  },
+  "old_dead": 24,
+  "new_dead": 24,
+  "new_skipmin": {
+   "callables": 320,
+   "edges": 452,
+   "cross": 274,
+   "unresolved": 133,
+   "entries": 36
+  }
+ },
+ {
+  "repo": "app-quack-oak",
+  "old_ms": 146.74576901597902,
+  "new_ms": 143.81419896380976,
+  "old": {
+   "callables": 969,
+   "edges": 1204,
+   "cross": 703,
+   "unresolved": 2357,
+   "entries": 15
+  },
+  "new": {
+   "callables": 969,
+   "edges": 1204,
+   "cross": 703,
+   "unresolved": 2357,
+   "entries": 15
+  },
+  "old_dead": 483,
+  "new_dead": 483,
+  "new_skipmin": {
+   "callables": 969,
+   "edges": 1204,
+   "cross": 703,
+   "unresolved": 2357,
+   "entries": 15
+  }
+ },
+ {
+  "repo": "app-quotesbot-scrapy",
+  "old_ms": 18.716623017098755,
+  "new_ms": 19.39716498600319,
+  "old": {
+   "callables": 3,
+   "edges": 0,
+   "cross": 0,
+   "unresolved": 0,
+   "entries": 0
+  },
+  "new": {
+   "callables": 3,
+   "edges": 0,
+   "cross": 0,
+   "unresolved": 0,
+   "entries": 0
+  },
+  "old_dead": 1,
+  "new_dead": 1,
+  "new_skipmin": {
+   "callables": 3,
+   "edges": 0,
+   "cross": 0,
+   "unresolved": 0,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-rails-mastodon",
+  "old_ms": 1975.7083940203302,
+  "new_ms": 1925.297498004511,
+  "old": {
+   "callables": 13114,
+   "edges": 18914,
+   "cross": 12770,
+   "unresolved": 67369,
+   "entries": 882
+  },
+  "new": {
+   "callables": 13114,
+   "edges": 18914,
+   "cross": 12770,
+   "unresolved": 67369,
+   "entries": 882
+  },
+  "old_dead": 5299,
+  "new_dead": 5299,
+  "new_skipmin": {
+   "callables": 13114,
+   "edges": 18914,
+   "cross": 12770,
+   "unresolved": 67369,
+   "entries": 882
+  }
+ },
+ {
+  "repo": "app-ravada-mojolicious",
+  "old_ms": 595.5024580471218,
+  "new_ms": 556.5907370182686,
+  "old": {
+   "callables": 4778,
+   "edges": 20645,
+   "cross": 12885,
+   "unresolved": 20772,
+   "entries": 204
+  },
+  "new": {
+   "callables": 4778,
+   "edges": 20645,
+   "cross": 12885,
+   "unresolved": 20772,
+   "entries": 204
+  },
+  "old_dead": 822,
+  "new_dead": 822,
+  "new_skipmin": {
+   "callables": 4778,
+   "edges": 20645,
+   "cross": 12885,
+   "unresolved": 20772,
+   "entries": 204
+  }
+ },
+ {
+  "repo": "app-realworld-scotty",
+  "old_ms": 39.50864297803491,
+  "new_ms": 35.10268998797983,
+  "old": {
+   "callables": 542,
+   "edges": 320,
+   "cross": 235,
+   "unresolved": 45,
+   "entries": 3
+  },
+  "new": {
+   "callables": 542,
+   "edges": 320,
+   "cross": 235,
+   "unresolved": 45,
+   "entries": 3
+  },
+  "old_dead": 248,
+  "new_dead": 248,
+  "new_skipmin": {
+   "callables": 542,
+   "edges": 320,
+   "cross": 235,
+   "unresolved": 45,
+   "entries": 3
+  }
+ },
+ {
+  "repo": "app-realworld-tide",
+  "old_ms": 46.52373201679438,
+  "new_ms": 45.72271998040378,
+  "old": {
+   "callables": 257,
+   "edges": 516,
+   "cross": 439,
+   "unresolved": 121,
+   "entries": 27
+  },
+  "new": {
+   "callables": 257,
+   "edges": 516,
+   "cross": 439,
+   "unresolved": 121,
+   "entries": 27
+  },
+  "old_dead": 14,
+  "new_dead": 14,
+  "new_skipmin": {
+   "callables": 257,
+   "edges": 516,
+   "cross": 439,
+   "unresolved": 121,
+   "entries": 27
+  }
+ },
+ {
+  "repo": "app-rebar3-eunit",
+  "old_ms": 231.62755102384835,
+  "new_ms": 205.7391230482608,
+  "old": {
+   "callables": 7491,
+   "edges": 10958,
+   "cross": 5064,
+   "unresolved": 1061,
+   "entries": 318
+  },
+  "new": {
+   "callables": 7491,
+   "edges": 10958,
+   "cross": 5064,
+   "unresolved": 1061,
+   "entries": 318
+  },
+  "old_dead": 3443,
+  "new_dead": 3443,
+  "new_skipmin": {
+   "callables": 7491,
+   "edges": 10958,
+   "cross": 5064,
+   "unresolved": 1061,
+   "entries": 318
+  }
+ },
+ {
+  "repo": "app-reggie-restify",
+  "old_ms": 25.013319973368198,
+  "new_ms": 25.443251011893153,
+  "old": {
+   "callables": 98,
+   "edges": 98,
+   "cross": 68,
+   "unresolved": 12,
+   "entries": 32
+  },
+  "new": {
+   "callables": 98,
+   "edges": 98,
+   "cross": 68,
+   "unresolved": 12,
+   "entries": 32
+  },
+  "old_dead": 9,
+  "new_dead": 9,
+  "new_skipmin": {
+   "callables": 98,
+   "edges": 98,
+   "cross": 68,
+   "unresolved": 12,
+   "entries": 32
+  }
+ },
+ {
+  "repo": "app-resque-sinatra",
+  "old_ms": 133.35010898299515,
+  "new_ms": 133.77080200007185,
+  "old": {
+   "callables": 795,
+   "edges": 1055,
+   "cross": 436,
+   "unresolved": 2359,
+   "entries": 55
+  },
+  "new": {
+   "callables": 795,
+   "edges": 1055,
+   "cross": 436,
+   "unresolved": 2359,
+   "entries": 55
+  },
+  "old_dead": 176,
+  "new_dead": 176,
+  "new_skipmin": {
+   "callables": 694,
+   "edges": 990,
+   "cross": 436,
+   "unresolved": 1285,
+   "entries": 55
+  }
+ },
+ {
+  "repo": "app-riemann-httpkit",
+  "old_ms": 98.38415001286194,
+  "new_ms": 106.74332396592945,
+  "old": {
+   "callables": 874,
+   "edges": 1100,
+   "cross": 377,
+   "unresolved": 2529,
+   "entries": 0
+  },
+  "new": {
+   "callables": 874,
+   "edges": 1100,
+   "cross": 377,
+   "unresolved": 2529,
+   "entries": 0
+  },
+  "old_dead": 355,
+  "new_dead": 355,
+  "new_skipmin": {
+   "callables": 874,
+   "edges": 1100,
+   "cross": 377,
+   "unresolved": 2529,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-riffraff-play",
+  "old_ms": 284.24664301564917,
+  "new_ms": 312.9972580354661,
+  "old": {
+   "callables": 2902,
+   "edges": 3675,
+   "cross": 1341,
+   "unresolved": 8479,
+   "entries": 0
+  },
+  "new": {
+   "callables": 2902,
+   "edges": 3675,
+   "cross": 1341,
+   "unresolved": 8479,
+   "entries": 0
+  },
+  "old_dead": 1347,
+  "new_dead": 1347,
+  "new_skipmin": {
+   "callables": 2446,
+   "edges": 3207,
+   "cross": 1100,
+   "unresolved": 5946,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-rn-expensify",
+  "old_ms": 7259.61087300675,
+  "new_ms": 7794.833741965704,
+  "old": {
+   "callables": 68752,
+   "edges": 183833,
+   "cross": 131924,
+   "unresolved": 211961,
+   "entries": 27499
+  },
+  "new": {
+   "callables": 68752,
+   "edges": 183833,
+   "cross": 131924,
+   "unresolved": 211961,
+   "entries": 27499
+  },
+  "old_dead": 15362,
+  "new_dead": 15362,
+  "new_skipmin": {
+   "callables": 68585,
+   "edges": 183628,
+   "cross": 131910,
+   "unresolved": 191575,
+   "entries": 27499
+  }
+ },
+ {
+  "repo": "app-saleor-celery",
+  "old_ms": 2012.9197740461677,
+  "new_ms": 2050.358820008114,
+  "old": {
+   "callables": 23722,
+   "edges": 89294,
+   "cross": 79343,
+   "unresolved": 84154,
+   "entries": 13779
+  },
+  "new": {
+   "callables": 23722,
+   "edges": 89294,
+   "cross": 79343,
+   "unresolved": 84154,
+   "entries": 13779
+  },
+  "old_dead": 3959,
+  "new_dead": 3959,
+  "new_skipmin": {
+   "callables": 23722,
+   "edges": 89294,
+   "cross": 79343,
+   "unresolved": 84154,
+   "entries": 13779
+  }
+ },
+ {
+  "repo": "app-salvo-examples",
+  "old_ms": 2333.1414670101367,
+  "new_ms": 2336.96313604014,
+  "old": {
+   "callables": 18339,
+   "edges": 38194,
+   "cross": 16540,
+   "unresolved": 68135,
+   "entries": 1908
+  },
+  "new": {
+   "callables": 18339,
+   "edges": 38194,
+   "cross": 16540,
+   "unresolved": 68135,
+   "entries": 1908
+  },
+  "old_dead": 8957,
+  "new_dead": 8957,
+  "new_skipmin": {
+   "callables": 6035,
+   "edges": 14897,
+   "cross": 10475,
+   "unresolved": 14283,
+   "entries": 1908
+  }
+ },
+ {
+  "repo": "app-saplib-jenkins",
+  "old_ms": 661.6063329856843,
+  "new_ms": 684.0645399643108,
+  "old": {
+   "callables": 8226,
+   "edges": 26386,
+   "cross": 21593,
+   "unresolved": 6221,
+   "entries": 1459
+  },
+  "new": {
+   "callables": 8226,
+   "edges": 26386,
+   "cross": 21593,
+   "unresolved": 6221,
+   "entries": 1459
+  },
+  "old_dead": 1477,
+  "new_dead": 1477,
+  "new_skipmin": {
+   "callables": 8226,
+   "edges": 26386,
+   "cross": 21593,
+   "unresolved": 6221,
+   "entries": 1459
+  }
+ },
+ {
+  "repo": "app-sdwebui-gradio",
+  "old_ms": 202.6436789892614,
+  "new_ms": 211.8222140124999,
+  "old": {
+   "callables": 2596,
+   "edges": 4209,
+   "cross": 2143,
+   "unresolved": 6077,
+   "entries": 82
+  },
+  "new": {
+   "callables": 2596,
+   "edges": 4209,
+   "cross": 2143,
+   "unresolved": 6077,
+   "entries": 82
+  },
+  "old_dead": 542,
+  "new_dead": 542,
+  "new_skipmin": {
+   "callables": 2596,
+   "edges": 4209,
+   "cross": 2143,
+   "unresolved": 6077,
+   "entries": 82
+  }
+ },
+ {
+  "repo": "app-serverless-examples",
+  "old_ms": 130.94286900013685,
+  "new_ms": 126.6821080353111,
+  "old": {
+   "callables": 778,
+   "edges": 639,
+   "cross": 357,
+   "unresolved": 1031,
+   "entries": 85
+  },
+  "new": {
+   "callables": 778,
+   "edges": 639,
+   "cross": 357,
+   "unresolved": 1031,
+   "entries": 85
+  },
+  "old_dead": 344,
+  "new_dead": 344,
+  "new_skipmin": {
+   "callables": 778,
+   "edges": 639,
+   "cross": 357,
+   "unresolved": 1031,
+   "entries": 85
+  }
+ },
+ {
+  "repo": "app-shlink-roadrunner",
+  "old_ms": 194.4201539736241,
+  "new_ms": 202.22908799769357,
+  "old": {
+   "callables": 2107,
+   "edges": 3358,
+   "cross": 2692,
+   "unresolved": 1301,
+   "entries": 504
+  },
+  "new": {
+   "callables": 2107,
+   "edges": 3358,
+   "cross": 2692,
+   "unresolved": 1301,
+   "entries": 504
+  },
+  "old_dead": 720,
+  "new_dead": 720,
+  "new_skipmin": {
+   "callables": 2107,
+   "edges": 3358,
+   "cross": 2692,
+   "unresolved": 1301,
+   "entries": 504
+  }
+ },
+ {
+  "repo": "app-shopping-loopback",
+  "old_ms": 60.263045015744865,
+  "new_ms": 62.53991700941697,
+  "old": {
+   "callables": 437,
+   "edges": 539,
+   "cross": 334,
+   "unresolved": 374,
+   "entries": 199
+  },
+  "new": {
+   "callables": 437,
+   "edges": 539,
+   "cross": 334,
+   "unresolved": 374,
+   "entries": 199
+  },
+  "old_dead": 61,
+  "new_dead": 61,
+  "new_skipmin": {
+   "callables": 437,
+   "edges": 539,
+   "cross": 334,
+   "unresolved": 374,
+   "entries": 199
+  }
+ },
+ {
+  "repo": "app-shuttle-examples",
+  "old_ms": 85.0383149809204,
+  "new_ms": 88.1694849813357,
+  "old": {
+   "callables": 659,
+   "edges": 516,
+   "cross": 391,
+   "unresolved": 265,
+   "entries": 303
+  },
+  "new": {
+   "callables": 659,
+   "edges": 516,
+   "cross": 391,
+   "unresolved": 265,
+   "entries": 303
+  },
+  "old_dead": 105,
+  "new_dead": 105,
+  "new_skipmin": {
+   "callables": 659,
+   "edges": 516,
+   "cross": 391,
+   "unresolved": 265,
+   "entries": 303
+  }
+ },
+ {
+  "repo": "app-smoothie-kivy",
+  "old_ms": 103.40943897608668,
+  "new_ms": 91.53566596796736,
+  "old": {
+   "callables": 841,
+   "edges": 1222,
+   "cross": 587,
+   "unresolved": 829,
+   "entries": 1
+  },
+  "new": {
+   "callables": 841,
+   "edges": 1222,
+   "cross": 587,
+   "unresolved": 829,
+   "entries": 1
+  },
+  "old_dead": 218,
+  "new_dead": 218,
+  "new_skipmin": {
+   "callables": 841,
+   "edges": 1222,
+   "cross": 587,
+   "unresolved": 829,
+   "entries": 1
+  }
+ },
+ {
+  "repo": "app-smoothieware-cpp",
+  "old_ms": 206.79263601778075,
+  "new_ms": 417.50011302065104,
+  "old": {
+   "callables": 3961,
+   "edges": 10691,
+   "cross": 7706,
+   "unresolved": 2164,
+   "entries": 1
+  },
+  "new": {
+   "callables": 3961,
+   "edges": 10691,
+   "cross": 7706,
+   "unresolved": 2164,
+   "entries": 1
+  },
+  "old_dead": 1594,
+  "new_dead": 1594,
+  "new_skipmin": {
+   "callables": 3943,
+   "edges": 10678,
+   "cross": 7704,
+   "unresolved": 2163,
+   "entries": 1
+  }
+ },
+ {
+  "repo": "app-snlquest-kivy",
+  "old_ms": 3298.9542129798792,
+  "new_ms": 3332.5099920039065,
+  "old": {
+   "callables": 7430,
+   "edges": 11321,
+   "cross": 7602,
+   "unresolved": 22052,
+   "entries": 0
+  },
+  "new": {
+   "callables": 7430,
+   "edges": 11321,
+   "cross": 7602,
+   "unresolved": 22052,
+   "entries": 0
+  },
+  "old_dead": 2681,
+  "new_dead": 2681,
+  "new_skipmin": {
+   "callables": 6791,
+   "edges": 10855,
+   "cross": 7462,
+   "unresolved": 13041,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-socialhome-dramatiq",
+  "old_ms": 136.8781269993633,
+  "new_ms": 145.45592298964038,
+  "old": {
+   "callables": 1171,
+   "edges": 1891,
+   "cross": 1678,
+   "unresolved": 3927,
+   "entries": 598
+  },
+  "new": {
+   "callables": 1171,
+   "edges": 1891,
+   "cross": 1678,
+   "unresolved": 3927,
+   "entries": 598
+  },
+  "old_dead": 147,
+  "new_dead": 147,
+  "new_skipmin": {
+   "callables": 1171,
+   "edges": 1891,
+   "cross": 1678,
+   "unresolved": 3927,
+   "entries": 598
+  }
+ },
+ {
+  "repo": "app-spring-mall",
+  "old_ms": 362.56222799420357,
+  "new_ms": 353.43013901729137,
+  "old": {
+   "callables": 14266,
+   "edges": 11639,
+   "cross": 2294,
+   "unresolved": 1756,
+   "entries": 262
+  },
+  "new": {
+   "callables": 14266,
+   "edges": 11639,
+   "cross": 2294,
+   "unresolved": 1756,
+   "entries": 262
+  },
+  "old_dead": 11937,
+  "new_dead": 11937,
+  "new_skipmin": {
+   "callables": 14266,
+   "edges": 11639,
+   "cross": 2294,
+   "unresolved": 1756,
+   "entries": 262
+  }
+ },
+ {
+  "repo": "app-stackage-yesod",
+  "old_ms": 157.76239102706313,
+  "new_ms": 167.08464903058484,
+  "old": {
+   "callables": 1424,
+   "edges": 864,
+   "cross": 395,
+   "unresolved": 1810,
+   "entries": 0
+  },
+  "new": {
+   "callables": 1424,
+   "edges": 864,
+   "cross": 395,
+   "unresolved": 1810,
+   "entries": 0
+  },
+  "old_dead": 982,
+  "new_dead": 982,
+  "new_skipmin": {
+   "callables": 1206,
+   "edges": 754,
+   "cross": 395,
+   "unresolved": 182,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-storm-starter",
+  "old_ms": 2685.212842945475,
+  "new_ms": 2652.3275959771127,
+  "old": {
+   "callables": 31271,
+   "edges": 62398,
+   "cross": 37716,
+   "unresolved": 38175,
+   "entries": 2712
+  },
+  "new": {
+   "callables": 31271,
+   "edges": 62398,
+   "cross": 37716,
+   "unresolved": 38175,
+   "entries": 2712
+  },
+  "old_dead": 12828,
+  "new_dead": 12828,
+  "new_skipmin": {
+   "callables": 31271,
+   "edges": 62398,
+   "cross": 37716,
+   "unresolved": 38175,
+   "entries": 2712
+  }
+ },
+ {
+  "repo": "app-streama-grails",
+  "old_ms": 418.96898701088503,
+  "new_ms": 441.0296310088597,
+  "old": {
+   "callables": 3682,
+   "edges": 6649,
+   "cross": 2353,
+   "unresolved": 11373,
+   "entries": 0
+  },
+  "new": {
+   "callables": 3682,
+   "edges": 6649,
+   "cross": 2353,
+   "unresolved": 11373,
+   "entries": 0
+  },
+  "old_dead": 1196,
+  "new_dead": 1196,
+  "new_skipmin": {
+   "callables": 3673,
+   "edges": 6640,
+   "cross": 2349,
+   "unresolved": 11058,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-swate-saturn",
+  "old_ms": 606.9245749968104,
+  "new_ms": 568.0893380194902,
+  "old": {
+   "callables": 5116,
+   "edges": 15020,
+   "cross": 8173,
+   "unresolved": 12338,
+   "entries": 44
+  },
+  "new": {
+   "callables": 5116,
+   "edges": 15020,
+   "cross": 8173,
+   "unresolved": 12338,
+   "entries": 44
+  },
+  "old_dead": 3302,
+  "new_dead": 3302,
+  "new_skipmin": {
+   "callables": 5116,
+   "edges": 15020,
+   "cross": 8173,
+   "unresolved": 12338,
+   "entries": 44
+  }
+ },
+ {
+  "repo": "app-symfony-demo",
+  "old_ms": 46.19461495894939,
+  "new_ms": 46.14902404136956,
+  "old": {
+   "callables": 248,
+   "edges": 134,
+   "cross": 87,
+   "unresolved": 113,
+   "entries": 60
+  },
+  "new": {
+   "callables": 248,
+   "edges": 134,
+   "cross": 87,
+   "unresolved": 113,
+   "entries": 60
+  },
+  "old_dead": 136,
+  "new_dead": 136,
+  "new_skipmin": {
+   "callables": 248,
+   "edges": 134,
+   "cross": 87,
+   "unresolved": 113,
+   "entries": 60
+  }
+ },
+ {
+  "repo": "app-symfony-messenger",
+  "old_ms": 3998.0351109988987,
+  "new_ms": 3968.5236599761993,
+  "old": {
+   "callables": 56880,
+   "edges": 120654,
+   "cross": 97459,
+   "unresolved": 154879,
+   "entries": 22665
+  },
+  "new": {
+   "callables": 56880,
+   "edges": 120654,
+   "cross": 97459,
+   "unresolved": 154879,
+   "entries": 22665
+  },
+  "old_dead": 14490,
+  "new_dead": 14487,
+  "new_skipmin": {
+   "callables": 55405,
+   "edges": 118372,
+   "cross": 97446,
+   "unresolved": 146082,
+   "entries": 22665
+  }
+ },
+ {
+  "repo": "app-temporal-samples",
+  "old_ms": 118.5416950029321,
+  "new_ms": 115.78739801188931,
+  "old": {
+   "callables": 1029,
+   "edges": 733,
+   "cross": 552,
+   "unresolved": 521,
+   "entries": 306
+  },
+  "new": {
+   "callables": 1029,
+   "edges": 733,
+   "cross": 552,
+   "unresolved": 521,
+   "entries": 306
+  },
+  "old_dead": 145,
+  "new_dead": 145,
+  "new_skipmin": {
+   "callables": 1029,
+   "edges": 733,
+   "cross": 552,
+   "unresolved": 521,
+   "entries": 306
+  }
+ },
+ {
+  "repo": "app-terminus-hanami",
+  "old_ms": 193.894102005288,
+  "new_ms": 208.4147830028087,
+  "old": {
+   "callables": 971,
+   "edges": 967,
+   "cross": 453,
+   "unresolved": 4224,
+   "entries": 16
+  },
+  "new": {
+   "callables": 971,
+   "edges": 967,
+   "cross": 453,
+   "unresolved": 4224,
+   "entries": 16
+  },
+  "old_dead": 395,
+  "new_dead": 395,
+  "new_skipmin": {
+   "callables": 971,
+   "edges": 967,
+   "cross": 453,
+   "unresolved": 4224,
+   "entries": 16
+  }
+ },
+ {
+  "repo": "app-thingsboard-concurrent",
+  "old_ms": 4225.007070985157,
+  "new_ms": 4410.808934015222,
+  "old": {
+   "callables": 50160,
+   "edges": 167346,
+   "cross": 134561,
+   "unresolved": 105858,
+   "entries": 6065
+  },
+  "new": {
+   "callables": 50160,
+   "edges": 167346,
+   "cross": 134561,
+   "unresolved": 105858,
+   "entries": 6065
+  },
+  "old_dead": 17888,
+  "new_dead": 17888,
+  "new_skipmin": {
+   "callables": 46771,
+   "edges": 163800,
+   "cross": 134254,
+   "unresolved": 89297,
+   "entries": 6065
+  }
+ },
+ {
+  "repo": "app-tigerbeetle-zig",
+  "old_ms": 513.1894780206494,
+  "new_ms": 527.8590229572728,
+  "old": {
+   "callables": 6324,
+   "edges": 24435,
+   "cross": 17536,
+   "unresolved": 12537,
+   "entries": 524
+  },
+  "new": {
+   "callables": 6324,
+   "edges": 24435,
+   "cross": 17536,
+   "unresolved": 12537,
+   "entries": 524
+  },
+  "old_dead": 2667,
+  "new_dead": 2667,
+  "new_skipmin": {
+   "callables": 6324,
+   "edges": 24435,
+   "cross": 17536,
+   "unresolved": 12537,
+   "entries": 524
+  }
+ },
+ {
+  "repo": "app-toiletmap-yoga",
+  "old_ms": 79.29606700781733,
+  "new_ms": 80.24818496778607,
+  "old": {
+   "callables": 445,
+   "edges": 352,
+   "cross": 214,
+   "unresolved": 221,
+   "entries": 121
+  },
+  "new": {
+   "callables": 445,
+   "edges": 352,
+   "cross": 214,
+   "unresolved": 221,
+   "entries": 121
+  },
+  "old_dead": 113,
+  "new_dead": 113,
+  "new_skipmin": {
+   "callables": 445,
+   "edges": 352,
+   "cross": 214,
+   "unresolved": 221,
+   "entries": 121
+  }
+ },
+ {
+  "repo": "app-torch-ultralytics",
+  "old_ms": 317.171384987887,
+  "new_ms": 316.2265330320224,
+  "old": {
+   "callables": 3278,
+   "edges": 5907,
+   "cross": 3819,
+   "unresolved": 5252,
+   "entries": 203
+  },
+  "new": {
+   "callables": 3278,
+   "edges": 5907,
+   "cross": 3819,
+   "unresolved": 5252,
+   "entries": 203
+  },
+  "old_dead": 397,
+  "new_dead": 397,
+  "new_skipmin": {
+   "callables": 3278,
+   "edges": 5907,
+   "cross": 3819,
+   "unresolved": 5252,
+   "entries": 203
+  }
+ },
+ {
+  "repo": "app-tweetconf-shiny",
+  "old_ms": 27.59331598645076,
+  "new_ms": 27.345275972038507,
+  "old": {
+   "callables": 37,
+   "edges": 24,
+   "cross": 0,
+   "unresolved": 94,
+   "entries": 0
+  },
+  "new": {
+   "callables": 37,
+   "edges": 24,
+   "cross": 0,
+   "unresolved": 94,
+   "entries": 0
+  },
+  "old_dead": 22,
+  "new_dead": 22,
+  "new_skipmin": {
+   "callables": 37,
+   "edges": 24,
+   "cross": 0,
+   "unresolved": 94,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-unity-boat",
+  "old_ms": 125.93879096675664,
+  "new_ms": 121.89020897494629,
+  "old": {
+   "callables": 677,
+   "edges": 520,
+   "cross": 135,
+   "unresolved": 118,
+   "entries": 16
+  },
+  "new": {
+   "callables": 677,
+   "edges": 520,
+   "cross": 135,
+   "unresolved": 118,
+   "entries": 16
+  },
+  "old_dead": 251,
+  "new_dead": 251,
+  "new_skipmin": {
+   "callables": 677,
+   "edges": 520,
+   "cross": 135,
+   "unresolved": 118,
+   "entries": 16
+  }
+ },
+ {
+  "repo": "app-unity-gamekit",
+  "old_ms": 129.78488096268848,
+  "new_ms": 124.60372195346281,
+  "old": {
+   "callables": 824,
+   "edges": 1257,
+   "cross": 684,
+   "unresolved": 608,
+   "entries": 10
+  },
+  "new": {
+   "callables": 824,
+   "edges": 1257,
+   "cross": 684,
+   "unresolved": 608,
+   "entries": 10
+  },
+  "old_dead": 487,
+  "new_dead": 487,
+  "new_skipmin": {
+   "callables": 824,
+   "edges": 1257,
+   "cross": 684,
+   "unresolved": 608,
+   "entries": 10
+  }
+ },
+ {
+  "repo": "app-vaultwarden-rocket",
+  "old_ms": 300.36113498499617,
+  "new_ms": 277.8509199852124,
+  "old": {
+   "callables": 2810,
+   "edges": 7041,
+   "cross": 4356,
+   "unresolved": 3336,
+   "entries": 489
+  },
+  "new": {
+   "callables": 2810,
+   "edges": 7041,
+   "cross": 4356,
+   "unresolved": 3336,
+   "entries": 489
+  },
+  "old_dead": 566,
+  "new_dead": 566,
+  "new_skipmin": {
+   "callables": 2810,
+   "edges": 7041,
+   "cross": 4356,
+   "unresolved": 3336,
+   "entries": 489
+  }
+ },
+ {
+  "repo": "app-vernemq-cowboy",
+  "old_ms": 263.90312099829316,
+  "new_ms": 278.0572400079109,
+  "old": {
+   "callables": 7527,
+   "edges": 11937,
+   "cross": 4892,
+   "unresolved": 3641,
+   "entries": 654
+  },
+  "new": {
+   "callables": 7527,
+   "edges": 11937,
+   "cross": 4892,
+   "unresolved": 3641,
+   "entries": 654
+  },
+  "old_dead": 2771,
+  "new_dead": 2771,
+  "new_skipmin": {
+   "callables": 7361,
+   "edges": 11827,
+   "cross": 4892,
+   "unresolved": 2304,
+   "entries": 654
+  }
+ },
+ {
+  "repo": "app-watchlistarr-http4s",
+  "old_ms": 37.07305301213637,
+  "new_ms": 40.91246600728482,
+  "old": {
+   "callables": 108,
+   "edges": 138,
+   "cross": 63,
+   "unresolved": 176,
+   "entries": 0
+  },
+  "new": {
+   "callables": 108,
+   "edges": 138,
+   "cross": 63,
+   "unresolved": 176,
+   "entries": 0
+  },
+  "old_dead": 45,
+  "new_dead": 45,
+  "new_skipmin": {
+   "callables": 108,
+   "edges": 138,
+   "cross": 63,
+   "unresolved": 176,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-waybar-catch2",
+  "old_ms": 164.70267804106697,
+  "new_ms": 167.90223098360002,
+  "old": {
+   "callables": 1954,
+   "edges": 4101,
+   "cross": 2697,
+   "unresolved": 2127,
+   "entries": 1
+  },
+  "new": {
+   "callables": 1954,
+   "edges": 4101,
+   "cross": 2697,
+   "unresolved": 2127,
+   "entries": 1
+  },
+  "old_dead": 1081,
+  "new_dead": 1081,
+  "new_skipmin": {
+   "callables": 1954,
+   "edges": 4101,
+   "cross": 2697,
+   "unresolved": 2127,
+   "entries": 1
+  }
+ },
+ {
+  "repo": "app-wificonnect-iron",
+  "old_ms": 38.187050027772784,
+  "new_ms": 36.74036299344152,
+  "old": {
+   "callables": 90,
+   "edges": 166,
+   "cross": 16,
+   "unresolved": 54,
+   "entries": 0
+  },
+  "new": {
+   "callables": 90,
+   "edges": 166,
+   "cross": 16,
+   "unresolved": 54,
+   "entries": 0
+  },
+  "old_dead": 7,
+  "new_dead": 7,
+  "new_skipmin": {
+   "callables": 90,
+   "edges": 166,
+   "cross": 16,
+   "unresolved": 54,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-wiregui-nicegui",
+  "old_ms": 81.86185796512291,
+  "new_ms": 90.24236002005637,
+  "old": {
+   "callables": 633,
+   "edges": 1119,
+   "cross": 839,
+   "unresolved": 946,
+   "entries": 369
+  },
+  "new": {
+   "callables": 633,
+   "edges": 1119,
+   "cross": 839,
+   "unresolved": 946,
+   "entries": 369
+  },
+  "old_dead": 126,
+  "new_dead": 126,
+  "new_skipmin": {
+   "callables": 633,
+   "edges": 1119,
+   "cross": 839,
+   "unresolved": 946,
+   "entries": 369
+  }
+ },
+ {
+  "repo": "app-wishlist-remix",
+  "old_ms": 24.3183079874143,
+  "new_ms": 23.593190009705722,
+  "old": {
+   "callables": 32,
+   "edges": 2,
+   "cross": 2,
+   "unresolved": 1,
+   "entries": 0
+  },
+  "new": {
+   "callables": 32,
+   "edges": 2,
+   "cross": 2,
+   "unresolved": 1,
+   "entries": 0
+  },
+  "old_dead": 30,
+  "new_dead": 30,
+  "new_skipmin": {
+   "callables": 32,
+   "edges": 2,
+   "cross": 2,
+   "unresolved": 1,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-wordpress",
+  "old_ms": 2153.606090985704,
+  "new_ms": 2311.101045983378,
+  "old": {
+   "callables": 27339,
+   "edges": 77792,
+   "cross": 52105,
+   "unresolved": 203973,
+   "entries": 1479
+  },
+  "new": {
+   "callables": 27339,
+   "edges": 77792,
+   "cross": 52105,
+   "unresolved": 203973,
+   "entries": 1479
+  },
+  "old_dead": 10481,
+  "new_dead": 10430,
+  "new_skipmin": {
+   "callables": 19031,
+   "edges": 62866,
+   "cross": 43977,
+   "unresolved": 106397,
+   "entries": 1479
+  }
+ },
+ {
+  "repo": "app-wordpress-android",
+  "old_ms": 2266.1784180090763,
+  "new_ms": 2296.0162480012514,
+  "old": {
+   "callables": 40581,
+   "edges": 110197,
+   "cross": 84341,
+   "unresolved": 37969,
+   "entries": 9028
+  },
+  "new": {
+   "callables": 40581,
+   "edges": 110197,
+   "cross": 84341,
+   "unresolved": 37969,
+   "entries": 9028
+  },
+  "old_dead": 10674,
+  "new_dead": 10674,
+  "new_skipmin": {
+   "callables": 40581,
+   "edges": 110197,
+   "cross": 84341,
+   "unresolved": 37969,
+   "entries": 9028
+  }
+ },
+ {
+  "repo": "app-workerstunnel-cloudflare",
+  "old_ms": 32.44686598191038,
+  "new_ms": 32.18975698109716,
+  "old": {
+   "callables": 36,
+   "edges": 52,
+   "cross": 13,
+   "unresolved": 6,
+   "entries": 13
+  },
+  "new": {
+   "callables": 36,
+   "edges": 52,
+   "cross": 13,
+   "unresolved": 6,
+   "entries": 13
+  },
+  "old_dead": 7,
+  "new_dead": 7,
+  "new_skipmin": {
+   "callables": 36,
+   "edges": 52,
+   "cross": 13,
+   "unresolved": 6,
+   "entries": 13
+  }
+ },
+ {
+  "repo": "app-xrviz-panel",
+  "old_ms": 41.600851982366294,
+  "new_ms": 44.804635050240904,
+  "old": {
+   "callables": 191,
+   "edges": 257,
+   "cross": 170,
+   "unresolved": 175,
+   "entries": 62
+  },
+  "new": {
+   "callables": 191,
+   "edges": 257,
+   "cross": 170,
+   "unresolved": 175,
+   "entries": 62
+  },
+  "old_dead": 55,
+  "new_dead": 55,
+  "new_skipmin": {
+   "callables": 191,
+   "edges": 257,
+   "cross": 170,
+   "unresolved": 175,
+   "entries": 62
+  }
+ },
+ {
+  "repo": "app-yapi-koa",
+  "old_ms": 4702.320231008343,
+  "new_ms": 4820.461746014189,
+  "old": {
+   "callables": 10186,
+   "edges": 3733,
+   "cross": 2569,
+   "unresolved": 66074,
+   "entries": 33
+  },
+  "new": {
+   "callables": 10186,
+   "edges": 3733,
+   "cross": 2569,
+   "unresolved": 66074,
+   "entries": 33
+  },
+  "old_dead": 3617,
+  "new_dead": 3617,
+  "new_skipmin": {
+   "callables": 1579,
+   "edges": 2837,
+   "cross": 2157,
+   "unresolved": 638,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-zenplayer-kivy",
+  "old_ms": 50.73498701676726,
+  "new_ms": 41.83776502031833,
+  "old": {
+   "callables": 315,
+   "edges": 411,
+   "cross": 244,
+   "unresolved": 178,
+   "entries": 1
+  },
+  "new": {
+   "callables": 315,
+   "edges": 411,
+   "cross": 244,
+   "unresolved": 178,
+   "entries": 1
+  },
+  "old_dead": 59,
+  "new_dead": 59,
+  "new_skipmin": {
+   "callables": 315,
+   "edges": 411,
+   "cross": 244,
+   "unresolved": 178,
+   "entries": 1
+  }
+ },
+ {
+  "repo": "app-zls-zig",
+  "old_ms": 204.50365397846326,
+  "new_ms": 203.84587399894372,
+  "old": {
+   "callables": 1163,
+   "edges": 4755,
+   "cross": 2361,
+   "unresolved": 5211,
+   "entries": 0
+  },
+  "new": {
+   "callables": 1163,
+   "edges": 4755,
+   "cross": 2361,
+   "unresolved": 5211,
+   "entries": 0
+  },
+  "old_dead": 394,
+  "new_dead": 394,
+  "new_skipmin": {
+   "callables": 1163,
+   "edges": 4755,
+   "cross": 2361,
+   "unresolved": 5211,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "app-zpool-opium",
+  "old_ms": 460.6930229929276,
+  "new_ms": 470.0197969796136,
+  "old": {
+   "callables": 20127,
+   "edges": 9323,
+   "cross": 2963,
+   "unresolved": 7379,
+   "entries": 0
+  },
+  "new": {
+   "callables": 20127,
+   "edges": 9323,
+   "cross": 2963,
+   "unresolved": 7379,
+   "entries": 0
+  },
+  "old_dead": 12776,
+  "new_dead": 12776,
+  "new_skipmin": {
+   "callables": 20127,
+   "edges": 9323,
+   "cross": 2963,
+   "unresolved": 7379,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "asm-xv6",
+  "old_ms": 53.72266500489786,
+  "new_ms": 48.7184600206092,
+  "old": {
+   "callables": 397,
+   "edges": 2333,
+   "cross": 1937,
+   "unresolved": 193,
+   "entries": 0
+  },
+  "new": {
+   "callables": 397,
+   "edges": 2333,
+   "cross": 1937,
+   "unresolved": 193,
+   "entries": 0
+  },
+  "old_dead": 117,
+  "new_dead": 117,
+  "new_skipmin": {
+   "callables": 397,
+   "edges": 2333,
+   "cross": 1937,
+   "unresolved": 193,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "asyncapi-spec",
+  "old_ms": 36.435677960980684,
+  "new_ms": 34.787463024258614,
+  "old": {
+   "callables": 308,
+   "edges": 394,
+   "cross": 30,
+   "unresolved": 100,
+   "entries": 0
+  },
+  "new": {
+   "callables": 308,
+   "edges": 394,
+   "cross": 30,
+   "unresolved": 100,
+   "entries": 0
+  },
+  "old_dead": 7,
+  "new_dead": 7,
+  "new_skipmin": {
+   "callables": 308,
+   "edges": 394,
+   "cross": 30,
+   "unresolved": 100,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "bash-acme",
+  "old_ms": 157.27649600012228,
+  "new_ms": 175.92971702106297,
+  "old": {
+   "callables": 1437,
+   "edges": 3907,
+   "cross": 0,
+   "unresolved": 21668,
+   "entries": 0
+  },
+  "new": {
+   "callables": 1437,
+   "edges": 3907,
+   "cross": 0,
+   "unresolved": 21668,
+   "entries": 0
+  },
+  "old_dead": 471,
+  "new_dead": 471,
+  "new_skipmin": {
+   "callables": 1437,
+   "edges": 3907,
+   "cross": 0,
+   "unresolved": 21668,
+   "entries": 0
+  },
+  "ctags": 1287
+ },
+ {
+  "repo": "c-jq",
+  "old_ms": 133.51605704519898,
+  "new_ms": 126.8133670091629,
+  "old": {
+   "callables": 915,
+   "edges": 5656,
+   "cross": 3812,
+   "unresolved": 1061,
+   "entries": 8
+  },
+  "new": {
+   "callables": 915,
+   "edges": 5656,
+   "cross": 3812,
+   "unresolved": 1061,
+   "entries": 8
+  },
+  "old_dead": 299,
+  "new_dead": 299,
+  "new_skipmin": {
+   "callables": 915,
+   "edges": 5656,
+   "cross": 3812,
+   "unresolved": 1061,
+   "entries": 8
+  },
+  "ctags": 639
+ },
+ {
+  "repo": "c-redis",
+  "old_ms": 783.2111950265244,
+  "new_ms": 774.9508249689825,
+  "old": {
+   "callables": 13922,
+   "edges": 62418,
+   "cross": 39726,
+   "unresolved": 16036,
+   "entries": 1
+  },
+  "new": {
+   "callables": 13922,
+   "edges": 62418,
+   "cross": 39726,
+   "unresolved": 16036,
+   "entries": 1
+  },
+  "old_dead": 3984,
+  "new_dead": 3984,
+  "new_skipmin": {
+   "callables": 13922,
+   "edges": 62418,
+   "cross": 39726,
+   "unresolved": 16036,
+   "entries": 1
+  }
+ },
+ {
+  "repo": "clojure-compojure",
+  "old_ms": 32.50446601305157,
+  "new_ms": 31.517950003035367,
+  "old": {
+   "callables": 124,
+   "edges": 119,
+   "cross": 62,
+   "unresolved": 135,
+   "entries": 40
+  },
+  "new": {
+   "callables": 124,
+   "edges": 119,
+   "cross": 62,
+   "unresolved": 135,
+   "entries": 40
+  },
+  "old_dead": 41,
+  "new_dead": 41,
+  "new_skipmin": {
+   "callables": 124,
+   "edges": 119,
+   "cross": 62,
+   "unresolved": 135,
+   "entries": 40
+  }
+ },
+ {
+  "repo": "clojure-ring",
+  "old_ms": 66.6229379712604,
+  "new_ms": 69.39328002044931,
+  "old": {
+   "callables": 402,
+   "edges": 450,
+   "cross": 111,
+   "unresolved": 749,
+   "entries": 0
+  },
+  "new": {
+   "callables": 402,
+   "edges": 450,
+   "cross": 111,
+   "unresolved": 749,
+   "entries": 0
+  },
+  "old_dead": 187,
+  "new_dead": 187,
+  "new_skipmin": {
+   "callables": 402,
+   "edges": 450,
+   "cross": 111,
+   "unresolved": 749,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "cloudflare-worker-examples",
+  "old_ms": 17.97114301007241,
+  "new_ms": 17.81430304981768,
+  "old": {
+   "callables": 2,
+   "edges": 1,
+   "cross": 0,
+   "unresolved": 0,
+   "entries": 0
+  },
+  "new": {
+   "callables": 2,
+   "edges": 1,
+   "cross": 0,
+   "unresolved": 0,
+   "entries": 0
+  },
+  "old_dead": 0,
+  "new_dead": 0,
+  "new_skipmin": {
+   "callables": 2,
+   "edges": 1,
+   "cross": 0,
+   "unresolved": 0,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "cmake-kitware",
+  "old_ms": 3352.3174190195277,
+  "new_ms": 3410.284698999021,
+  "old": {
+   "callables": 37480,
+   "edges": 131991,
+   "cross": 89129,
+   "unresolved": 150591,
+   "entries": 166
+  },
+  "new": {
+   "callables": 37480,
+   "edges": 131991,
+   "cross": 89129,
+   "unresolved": 150591,
+   "entries": 166
+  },
+  "old_dead": 17002,
+  "new_dead": 17002,
+  "new_skipmin": {
+   "callables": 37480,
+   "edges": 131991,
+   "cross": 89129,
+   "unresolved": 150591,
+   "entries": 166
+  }
+ },
+ {
+  "repo": "cpp-nlohmann-json",
+  "old_ms": 864.8258250323124,
+  "new_ms": 800.5788269801997,
+  "old": {
+   "callables": 5317,
+   "edges": 14368,
+   "cross": 4963,
+   "unresolved": 38470,
+   "entries": 102
+  },
+  "new": {
+   "callables": 5317,
+   "edges": 14368,
+   "cross": 4963,
+   "unresolved": 38470,
+   "entries": 102
+  },
+  "old_dead": 1624,
+  "new_dead": 1624,
+  "new_skipmin": {
+   "callables": 5317,
+   "edges": 14368,
+   "cross": 4963,
+   "unresolved": 38470,
+   "entries": 102
+  },
+  "ctags": 334
+ },
+ {
+  "repo": "cpp-spdlog",
+  "old_ms": 215.01698397332802,
+  "new_ms": 213.51591002894565,
+  "old": {
+   "callables": 2321,
+   "edges": 5006,
+   "cross": 2221,
+   "unresolved": 3311,
+   "entries": 0
+  },
+  "new": {
+   "callables": 2321,
+   "edges": 5006,
+   "cross": 2221,
+   "unresolved": 3311,
+   "entries": 0
+  },
+  "old_dead": 1190,
+  "new_dead": 1190,
+  "new_skipmin": {
+   "callables": 2321,
+   "edges": 5006,
+   "cross": 2221,
+   "unresolved": 3311,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "csharp-mediatr",
+  "old_ms": 92.63718000147492,
+  "new_ms": 98.09283999493346,
+  "old": {
+   "callables": 949,
+   "edges": 870,
+   "cross": 615,
+   "unresolved": 428,
+   "entries": 179
+  },
+  "new": {
+   "callables": 949,
+   "edges": 870,
+   "cross": 615,
+   "unresolved": 428,
+   "entries": 179
+  },
+  "old_dead": 209,
+  "new_dead": 209,
+  "new_skipmin": {
+   "callables": 949,
+   "edges": 870,
+   "cross": 615,
+   "unresolved": 428,
+   "entries": 179
+  }
+ },
+ {
+  "repo": "csharp-newtonsoft",
+  "old_ms": 689.2684379708953,
+  "new_ms": 709.2328410362825,
+  "old": {
+   "callables": 11666,
+   "edges": 101649,
+   "cross": 89678,
+   "unresolved": 8373,
+   "entries": 3323
+  },
+  "new": {
+   "callables": 11666,
+   "edges": 101649,
+   "cross": 89678,
+   "unresolved": 8373,
+   "entries": 3323
+  },
+  "old_dead": 3897,
+  "new_dead": 3897,
+  "new_skipmin": {
+   "callables": 11666,
+   "edges": 101649,
+   "cross": 89678,
+   "unresolved": 8373,
+   "entries": 3323
+  }
+ },
+ {
+  "repo": "csharp-serilog",
+  "old_ms": 197.40665098652244,
+  "new_ms": 162.87538700271398,
+  "old": {
+   "callables": 1649,
+   "edges": 5793,
+   "cross": 2629,
+   "unresolved": 1338,
+   "entries": 439
+  },
+  "new": {
+   "callables": 1649,
+   "edges": 5793,
+   "cross": 2629,
+   "unresolved": 1338,
+   "entries": 439
+  },
+  "old_dead": 405,
+  "new_dead": 405,
+  "new_skipmin": {
+   "callables": 1649,
+   "edges": 5793,
+   "cross": 2629,
+   "unresolved": 1338,
+   "entries": 439
+  },
+  "ctags": 220
+ },
+ {
+  "repo": "dart-flame",
+  "old_ms": 639.1423699678853,
+  "new_ms": 595.8189769880846,
+  "old": {
+   "callables": 6964,
+   "edges": 14181,
+   "cross": 11600,
+   "unresolved": 16636,
+   "entries": 0
+  },
+  "new": {
+   "callables": 6964,
+   "edges": 14181,
+   "cross": 11600,
+   "unresolved": 16636,
+   "entries": 0
+  },
+  "old_dead": 3683,
+  "new_dead": 3683,
+  "new_skipmin": {
+   "callables": 6964,
+   "edges": 14181,
+   "cross": 11600,
+   "unresolved": 16636,
+   "entries": 0
+  },
+  "ctags": 0
+ },
+ {
+  "repo": "dart-flutter",
+  "old_ms": 9497.523744008504,
+  "new_ms": 9567.14594195364,
+  "old": {
+   "callables": 120107,
+   "edges": 580615,
+   "cross": 511683,
+   "unresolved": 403980,
+   "entries": 6495
+  },
+  "new": {
+   "callables": 120107,
+   "edges": 580615,
+   "cross": 511683,
+   "unresolved": 403980,
+   "entries": 6495
+  },
+  "old_dead": 59105,
+  "new_dead": 59105,
+  "new_skipmin": {
+   "callables": 120107,
+   "edges": 580615,
+   "cross": 511683,
+   "unresolved": 403980,
+   "entries": 6495
+  }
+ },
+ {
+  "repo": "elixir-phoenix",
+  "old_ms": 185.98766904324293,
+  "new_ms": 184.06681797932833,
+  "old": {
+   "callables": 3470,
+   "edges": 5209,
+   "cross": 2812,
+   "unresolved": 9780,
+   "entries": 539
+  },
+  "new": {
+   "callables": 3470,
+   "edges": 5209,
+   "cross": 2812,
+   "unresolved": 9780,
+   "entries": 539
+  },
+  "old_dead": 919,
+  "new_dead": 919,
+  "new_skipmin": {
+   "callables": 3340,
+   "edges": 4859,
+   "cross": 2625,
+   "unresolved": 9460,
+   "entries": 539
+  },
+  "ctags": 781
+ },
+ {
+  "repo": "erlang-otp",
+  "old_ms": 7917.338920990005,
+  "new_ms": 7733.841153036337,
+  "old": {
+   "callables": 271239,
+   "edges": 725507,
+   "cross": 415020,
+   "unresolved": 397328,
+   "entries": 7885
+  },
+  "new": {
+   "callables": 271239,
+   "edges": 725507,
+   "cross": 415020,
+   "unresolved": 397328,
+   "entries": 7885
+  },
+  "old_dead": 96759,
+  "new_dead": 96759,
+  "new_skipmin": {
+   "callables": 271126,
+   "edges": 725407,
+   "cross": 415020,
+   "unresolved": 395668,
+   "entries": 7885
+  },
+  "ctags": 6715
+ },
+ {
+  "repo": "fortran-stdlib",
+  "old_ms": 149.89212900400162,
+  "new_ms": 149.35161103494465,
+  "old": {
+   "callables": 1477,
+   "edges": 1112,
+   "cross": 326,
+   "unresolved": 1121,
+   "entries": 0
+  },
+  "new": {
+   "callables": 1477,
+   "edges": 1112,
+   "cross": 326,
+   "unresolved": 1121,
+   "entries": 0
+  },
+  "old_dead": 664,
+  "new_dead": 664,
+  "new_skipmin": {
+   "callables": 1477,
+   "edges": 1112,
+   "cross": 326,
+   "unresolved": 1121,
+   "entries": 0
+  },
+  "ctags": 134
+ },
+ {
+  "repo": "fsharp-paket",
+  "old_ms": 429.0677339886315,
+  "new_ms": 384.63818101445213,
+  "old": {
+   "callables": 3920,
+   "edges": 11046,
+   "cross": 7289,
+   "unresolved": 8041,
+   "entries": 1508
+  },
+  "new": {
+   "callables": 3920,
+   "edges": 11046,
+   "cross": 7289,
+   "unresolved": 8041,
+   "entries": 1508
+  },
+  "old_dead": 1493,
+  "new_dead": 1493,
+  "new_skipmin": {
+   "callables": 3920,
+   "edges": 11046,
+   "cross": 7289,
+   "unresolved": 8041,
+   "entries": 1508
+  }
+ },
+ {
+  "repo": "go-caddy",
+  "old_ms": 222.60584199102595,
+  "new_ms": 227.9557150322944,
+  "old": {
+   "callables": 3166,
+   "edges": 9433,
+   "cross": 7383,
+   "unresolved": 3424,
+   "entries": 552
+  },
+  "new": {
+   "callables": 3166,
+   "edges": 9433,
+   "cross": 7383,
+   "unresolved": 3424,
+   "entries": 552
+  },
+  "old_dead": 1002,
+  "new_dead": 1002,
+  "new_skipmin": {
+   "callables": 2867,
+   "edges": 9056,
+   "cross": 7383,
+   "unresolved": 2185,
+   "entries": 552
+  }
+ },
+ {
+  "repo": "go-fzf",
+  "old_ms": 228.45848003635183,
+  "new_ms": 231.60921200178564,
+  "old": {
+   "callables": 1617,
+   "edges": 10931,
+   "cross": 7659,
+   "unresolved": 1187,
+   "entries": 490
+  },
+  "new": {
+   "callables": 1617,
+   "edges": 10931,
+   "cross": 7659,
+   "unresolved": 1187,
+   "entries": 490
+  },
+  "old_dead": 118,
+  "new_dead": 118,
+  "new_skipmin": {
+   "callables": 1617,
+   "edges": 10931,
+   "cross": 7659,
+   "unresolved": 1187,
+   "entries": 490
+  },
+  "ctags": 588
+ },
+ {
+  "repo": "go-hertz",
+  "old_ms": 261.4406200009398,
+  "new_ms": 276.5296039870009,
+  "old": {
+   "callables": 4322,
+   "edges": 17051,
+   "cross": 14256,
+   "unresolved": 6823,
+   "entries": 1230
+  },
+  "new": {
+   "callables": 4322,
+   "edges": 17051,
+   "cross": 14256,
+   "unresolved": 6823,
+   "entries": 1230
+  },
+  "old_dead": 689,
+  "new_dead": 689,
+  "new_skipmin": {
+   "callables": 4322,
+   "edges": 17051,
+   "cross": 14256,
+   "unresolved": 6823,
+   "entries": 1230
+  }
+ },
+ {
+  "repo": "go-martini",
+  "old_ms": 33.201394020579755,
+  "new_ms": 33.063304028473794,
+  "old": {
+   "callables": 217,
+   "edges": 459,
+   "cross": 401,
+   "unresolved": 131,
+   "entries": 46
+  },
+  "new": {
+   "callables": 217,
+   "edges": 459,
+   "cross": 401,
+   "unresolved": 131,
+   "entries": 46
+  },
+  "old_dead": 49,
+  "new_dead": 49,
+  "new_skipmin": {
+   "callables": 217,
+   "edges": 459,
+   "cross": 401,
+   "unresolved": 131,
+   "entries": 46
+  }
+ },
+ {
+  "repo": "graphql-github",
+  "old_ms": 263.6624029837549,
+  "new_ms": 275.12581599876285,
+  "old": {
+   "callables": 1625,
+   "edges": 5722,
+   "cross": 0,
+   "unresolved": 0,
+   "entries": 0
+  },
+  "new": {
+   "callables": 1625,
+   "edges": 5722,
+   "cross": 0,
+   "unresolved": 0,
+   "entries": 0
+  },
+  "old_dead": 1,
+  "new_dead": 1,
+  "new_skipmin": {
+   "callables": 1625,
+   "edges": 5722,
+   "cross": 0,
+   "unresolved": 0,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "groovy-gradle",
+  "old_ms": 7182.926853012759,
+  "new_ms": 7382.556211028714,
+  "old": {
+   "callables": 109194,
+   "edges": 177089,
+   "cross": 125280,
+   "unresolved": 338581,
+   "entries": 2456
+  },
+  "new": {
+   "callables": 109194,
+   "edges": 177089,
+   "cross": 125280,
+   "unresolved": 338581,
+   "entries": 2456
+  },
+  "old_dead": 41359,
+  "new_dead": 41359,
+  "new_skipmin": {
+   "callables": 108959,
+   "edges": 176564,
+   "cross": 125277,
+   "unresolved": 332755,
+   "entries": 2456
+  },
+  "ctags": 0
+ },
+ {
+  "repo": "haskell-hspec",
+  "old_ms": 120.23765500634909,
+  "new_ms": 108.34364005131647,
+  "old": {
+   "callables": 1898,
+   "edges": 2978,
+   "cross": 1950,
+   "unresolved": 390,
+   "entries": 61
+  },
+  "new": {
+   "callables": 1898,
+   "edges": 2978,
+   "cross": 1950,
+   "unresolved": 390,
+   "entries": 61
+  },
+  "old_dead": 81,
+  "new_dead": 81,
+  "new_skipmin": {
+   "callables": 1898,
+   "edges": 2978,
+   "cross": 1950,
+   "unresolved": 390,
+   "entries": 61
+  }
+ },
+ {
+  "repo": "haskell-pandoc",
+  "old_ms": 650.5366599885747,
+  "new_ms": 667.7225590101443,
+  "old": {
+   "callables": 22984,
+   "edges": 26867,
+   "cross": 16083,
+   "unresolved": 12844,
+   "entries": 65
+  },
+  "new": {
+   "callables": 22984,
+   "edges": 26867,
+   "cross": 16083,
+   "unresolved": 12844,
+   "entries": 65
+  },
+  "old_dead": 17782,
+  "new_dead": 17782,
+  "new_skipmin": {
+   "callables": 22984,
+   "edges": 26867,
+   "cross": 16083,
+   "unresolved": 12844,
+   "entries": 65
+  },
+  "ctags": 5650
+ },
+ {
+  "repo": "hcl-terraform-aws",
+  "old_ms": 7171.1856159963645,
+  "new_ms": 7244.699669943657,
+  "old": {
+   "callables": 108389,
+   "edges": 414049,
+   "cross": 311864,
+   "unresolved": 28987,
+   "entries": 20111
+  },
+  "new": {
+   "callables": 108389,
+   "edges": 414049,
+   "cross": 311864,
+   "unresolved": 28987,
+   "entries": 20111
+  },
+  "old_dead": 20856,
+  "new_dead": 20856,
+  "new_skipmin": {
+   "callables": 108389,
+   "edges": 414049,
+   "cross": 311864,
+   "unresolved": 28987,
+   "entries": 20111
+  }
+ },
+ {
+  "repo": "hcl-vpc",
+  "old_ms": 79.1557990014553,
+  "new_ms": 79.63942596688867,
+  "old": {
+   "callables": 1779,
+   "edges": 0,
+   "cross": 0,
+   "unresolved": 0,
+   "entries": 0
+  },
+  "new": {
+   "callables": 1779,
+   "edges": 0,
+   "cross": 0,
+   "unresolved": 0,
+   "entries": 0
+  },
+  "old_dead": 1779,
+  "new_dead": 1779,
+  "new_skipmin": {
+   "callables": 1779,
+   "edges": 0,
+   "cross": 0,
+   "unresolved": 0,
+   "entries": 0
+  },
+  "ctags": 0
+ },
+ {
+  "repo": "java-gson",
+  "old_ms": 241.64082104107365,
+  "new_ms": 265.6159600010142,
+  "old": {
+   "callables": 3401,
+   "edges": 20218,
+   "cross": 18126,
+   "unresolved": 3151,
+   "entries": 1577
+  },
+  "new": {
+   "callables": 3401,
+   "edges": 20218,
+   "cross": 18126,
+   "unresolved": 3151,
+   "entries": 1577
+  },
+  "old_dead": 264,
+  "new_dead": 264,
+  "new_skipmin": {
+   "callables": 3401,
+   "edges": 20218,
+   "cross": 18126,
+   "unresolved": 3151,
+   "entries": 1577
+  },
+  "ctags": 444
+ },
+ {
+  "repo": "java-okhttp",
+  "old_ms": 576.2179419980384,
+  "new_ms": 565.4411399737,
+  "old": {
+   "callables": 7951,
+   "edges": 37539,
+   "cross": 30353,
+   "unresolved": 11272,
+   "entries": 2890
+  },
+  "new": {
+   "callables": 7951,
+   "edges": 37539,
+   "cross": 30353,
+   "unresolved": 11272,
+   "entries": 2890
+  },
+  "old_dead": 1135,
+  "new_dead": 1135,
+  "new_skipmin": {
+   "callables": 7951,
+   "edges": 37539,
+   "cross": 30353,
+   "unresolved": 11272,
+   "entries": 2890
+  }
+ },
+ {
+  "repo": "java-spring-batch",
+  "old_ms": 599.5100809959695,
+  "new_ms": 611.2611269927584,
+  "old": {
+   "callables": 10677,
+   "edges": 26687,
+   "cross": 23493,
+   "unresolved": 11524,
+   "entries": 3374
+  },
+  "new": {
+   "callables": 10677,
+   "edges": 26687,
+   "cross": 23493,
+   "unresolved": 11524,
+   "entries": 3374
+  },
+  "old_dead": 1774,
+  "new_dead": 1774,
+  "new_skipmin": {
+   "callables": 10677,
+   "edges": 26687,
+   "cross": 23493,
+   "unresolved": 11524,
+   "entries": 3374
+  }
+ },
+ {
+  "repo": "js-express",
+  "old_ms": 125.57699001627043,
+  "new_ms": 128.03846603492275,
+  "old": {
+   "callables": 2871,
+   "edges": 3660,
+   "cross": 3285,
+   "unresolved": 3922,
+   "entries": 1749
+  },
+  "new": {
+   "callables": 2871,
+   "edges": 3660,
+   "cross": 3285,
+   "unresolved": 3922,
+   "entries": 1749
+  },
+  "old_dead": 60,
+  "new_dead": 60,
+  "new_skipmin": {
+   "callables": 2871,
+   "edges": 3660,
+   "cross": 3285,
+   "unresolved": 3922,
+   "entries": 1749
+  },
+  "ctags": 96
+ },
+ {
+  "repo": "js-lodash",
+  "old_ms": 524.4440140086226,
+  "new_ms": 548.6664710333571,
+  "old": {
+   "callables": 815,
+   "edges": 953,
+   "cross": 79,
+   "unresolved": 5711,
+   "entries": 4
+  },
+  "new": {
+   "callables": 815,
+   "edges": 953,
+   "cross": 79,
+   "unresolved": 5711,
+   "entries": 4
+  },
+  "old_dead": 13,
+  "new_dead": 13,
+  "new_skipmin": {
+   "callables": 815,
+   "edges": 953,
+   "cross": 79,
+   "unresolved": 5711,
+   "entries": 4
+  }
+ },
+ {
+  "repo": "js-loopback",
+  "old_ms": 632.1935430169106,
+  "new_ms": 654.548604041338,
+  "old": {
+   "callables": 12259,
+   "edges": 36405,
+   "cross": 32729,
+   "unresolved": 20901,
+   "entries": 6962
+  },
+  "new": {
+   "callables": 12259,
+   "edges": 36405,
+   "cross": 32729,
+   "unresolved": 20901,
+   "entries": 6962
+  },
+  "old_dead": 1217,
+  "new_dead": 1217,
+  "new_skipmin": {
+   "callables": 12259,
+   "edges": 36405,
+   "cross": 32729,
+   "unresolved": 20901,
+   "entries": 6962
+  }
+ },
+ {
+  "repo": "js-polka",
+  "old_ms": 49.92216301616281,
+  "new_ms": 53.80211002193391,
+  "old": {
+   "callables": 295,
+   "edges": 489,
+   "cross": 443,
+   "unresolved": 254,
+   "entries": 162
+  },
+  "new": {
+   "callables": 295,
+   "edges": 489,
+   "cross": 443,
+   "unresolved": 254,
+   "entries": 162
+  },
+  "old_dead": 21,
+  "new_dead": 21,
+  "new_skipmin": {
+   "callables": 295,
+   "edges": 489,
+   "cross": 443,
+   "unresolved": 254,
+   "entries": 162
+  }
+ },
+ {
+  "repo": "js-restify",
+  "old_ms": 153.89735298231244,
+  "new_ms": 149.27140099462122,
+  "old": {
+   "callables": 2243,
+   "edges": 4643,
+   "cross": 4315,
+   "unresolved": 3891,
+   "entries": 1270
+  },
+  "new": {
+   "callables": 2243,
+   "edges": 4643,
+   "cross": 4315,
+   "unresolved": 3891,
+   "entries": 1270
+  },
+  "old_dead": 170,
+  "new_dead": 170,
+  "new_skipmin": {
+   "callables": 2243,
+   "edges": 4643,
+   "cross": 4315,
+   "unresolved": 3891,
+   "entries": 1270
+  }
+ },
+ {
+  "repo": "julia-flux",
+  "old_ms": 79.71747498959303,
+  "new_ms": 72.46214797487482,
+  "old": {
+   "callables": 634,
+   "edges": 866,
+   "cross": 6,
+   "unresolved": 3853,
+   "entries": 0
+  },
+  "new": {
+   "callables": 634,
+   "edges": 866,
+   "cross": 6,
+   "unresolved": 3853,
+   "entries": 0
+  },
+  "old_dead": 142,
+  "new_dead": 142,
+  "new_skipmin": {
+   "callables": 634,
+   "edges": 866,
+   "cross": 6,
+   "unresolved": 3853,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "julia-genie",
+  "old_ms": 141.76284399582073,
+  "new_ms": 137.16243201633915,
+  "old": {
+   "callables": 889,
+   "edges": 1336,
+   "cross": 100,
+   "unresolved": 1846,
+   "entries": 3
+  },
+  "new": {
+   "callables": 889,
+   "edges": 1336,
+   "cross": 100,
+   "unresolved": 1846,
+   "entries": 3
+  },
+  "old_dead": 366,
+  "new_dead": 366,
+  "new_skipmin": {
+   "callables": 800,
+   "edges": 1277,
+   "cross": 97,
+   "unresolved": 1127,
+   "entries": 3
+  }
+ },
+ {
+  "repo": "kivy-carvera",
+  "old_ms": 431.6694199806079,
+  "new_ms": 418.22881798725575,
+  "old": {
+   "callables": 2878,
+   "edges": 4787,
+   "cross": 2578,
+   "unresolved": 2381,
+   "entries": 210
+  },
+  "new": {
+   "callables": 2878,
+   "edges": 4787,
+   "cross": 2578,
+   "unresolved": 2381,
+   "entries": 210
+  },
+  "old_dead": 232,
+  "new_dead": 232,
+  "new_skipmin": {
+   "callables": 2878,
+   "edges": 4787,
+   "cross": 2578,
+   "unresolved": 2381,
+   "entries": 210
+  }
+ },
+ {
+  "repo": "kivy-kivymd",
+  "old_ms": 289.76098500424996,
+  "new_ms": 282.9066440463066,
+  "old": {
+   "callables": 1401,
+   "edges": 1181,
+   "cross": 494,
+   "unresolved": 1258,
+   "entries": 6
+  },
+  "new": {
+   "callables": 1401,
+   "edges": 1181,
+   "cross": 494,
+   "unresolved": 1258,
+   "entries": 6
+  },
+  "old_dead": 481,
+  "new_dead": 481,
+  "new_skipmin": {
+   "callables": 1401,
+   "edges": 1181,
+   "cross": 494,
+   "unresolved": 1258,
+   "entries": 6
+  }
+ },
+ {
+  "repo": "kotlin-okio",
+  "old_ms": 299.73701102426276,
+  "new_ms": 326.6466789646074,
+  "old": {
+   "callables": 4458,
+   "edges": 31419,
+   "cross": 28740,
+   "unresolved": 6862,
+   "entries": 1466
+  },
+  "new": {
+   "callables": 4458,
+   "edges": 31419,
+   "cross": 28740,
+   "unresolved": 6862,
+   "entries": 1466
+  },
+  "old_dead": 729,
+  "new_dead": 729,
+  "new_skipmin": {
+   "callables": 4458,
+   "edges": 31419,
+   "cross": 28740,
+   "unresolved": 6862,
+   "entries": 1466
+  },
+  "ctags": 1412
+ },
+ {
+  "repo": "lean-batteries",
+  "old_ms": 204.3501419830136,
+  "new_ms": 218.91956398030743,
+  "old": {
+   "callables": 2538,
+   "edges": 8429,
+   "cross": 5340,
+   "unresolved": 6300,
+   "entries": 0
+  },
+  "new": {
+   "callables": 2538,
+   "edges": 8429,
+   "cross": 5340,
+   "unresolved": 6300,
+   "entries": 0
+  },
+  "old_dead": 1430,
+  "new_dead": 1430,
+  "new_skipmin": {
+   "callables": 2538,
+   "edges": 8429,
+   "cross": 5340,
+   "unresolved": 6300,
+   "entries": 0
+  },
+  "ctags": 0
+ },
+ {
+  "repo": "lua-kong",
+  "old_ms": 641.5926939807832,
+  "new_ms": 610.1038139895536,
+  "old": {
+   "callables": 5144,
+   "edges": 10177,
+   "cross": 5570,
+   "unresolved": 38967,
+   "entries": 8
+  },
+  "new": {
+   "callables": 5144,
+   "edges": 10177,
+   "cross": 5570,
+   "unresolved": 38967,
+   "entries": 8
+  },
+  "old_dead": 1810,
+  "new_dead": 1810,
+  "new_skipmin": {
+   "callables": 5144,
+   "edges": 10177,
+   "cross": 5570,
+   "unresolved": 38967,
+   "entries": 8
+  },
+  "ctags": 2776
+ },
+ {
+  "repo": "lua-neovim",
+  "old_ms": 1166.1817019921727,
+  "new_ms": 1140.2454240014777,
+  "old": {
+   "callables": 14824,
+   "edges": 77471,
+   "cross": 56089,
+   "unresolved": 102950,
+   "entries": 0
+  },
+  "new": {
+   "callables": 14824,
+   "edges": 77471,
+   "cross": 56089,
+   "unresolved": 102950,
+   "entries": 0
+  },
+  "old_dead": 4465,
+  "new_dead": 4465,
+  "new_skipmin": {
+   "callables": 14824,
+   "edges": 77471,
+   "cross": 56089,
+   "unresolved": 102950,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "nix-home-manager",
+  "old_ms": 359.46011496707797,
+  "new_ms": 353.298490983434,
+  "old": {
+   "callables": 1347,
+   "edges": 1438,
+   "cross": 454,
+   "unresolved": 5361,
+   "entries": 0
+  },
+  "new": {
+   "callables": 1347,
+   "edges": 1438,
+   "cross": 454,
+   "unresolved": 5361,
+   "entries": 0
+  },
+  "old_dead": 468,
+  "new_dead": 468,
+  "new_skipmin": {
+   "callables": 1347,
+   "edges": 1438,
+   "cross": 454,
+   "unresolved": 5361,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "objc-afnetworking",
+  "old_ms": 95.15130502404645,
+  "new_ms": 97.67688997089863,
+  "old": {
+   "callables": 790,
+   "edges": 1244,
+   "cross": 829,
+   "unresolved": 654,
+   "entries": 285
+  },
+  "new": {
+   "callables": 790,
+   "edges": 1244,
+   "cross": 829,
+   "unresolved": 654,
+   "entries": 285
+  },
+  "old_dead": 121,
+  "new_dead": 121,
+  "new_skipmin": {
+   "callables": 790,
+   "edges": 1244,
+   "cross": 829,
+   "unresolved": 654,
+   "entries": 285
+  },
+  "ctags": 83
+ },
+ {
+  "repo": "ocaml-dune",
+  "old_ms": 1405.204726033844,
+  "new_ms": 1527.2759229992516,
+  "old": {
+   "callables": 29797,
+   "edges": 14596,
+   "cross": 3158,
+   "unresolved": 115053,
+   "entries": 0
+  },
+  "new": {
+   "callables": 29797,
+   "edges": 14596,
+   "cross": 3158,
+   "unresolved": 115053,
+   "entries": 0
+  },
+  "old_dead": 19013,
+  "new_dead": 19013,
+  "new_skipmin": {
+   "callables": 29797,
+   "edges": 14596,
+   "cross": 3158,
+   "unresolved": 115053,
+   "entries": 0
+  },
+  "ctags": 1670
+ },
+ {
+  "repo": "openapi-spec",
+  "old_ms": 43.21055201580748,
+  "new_ms": 37.9161550081335,
+  "old": {
+   "callables": 144,
+   "edges": 340,
+   "cross": 4,
+   "unresolved": 25,
+   "entries": 4
+  },
+  "new": {
+   "callables": 144,
+   "edges": 340,
+   "cross": 4,
+   "unresolved": 25,
+   "entries": 4
+  },
+  "old_dead": 1,
+  "new_dead": 1,
+  "new_skipmin": {
+   "callables": 144,
+   "edges": 340,
+   "cross": 4,
+   "unresolved": 25,
+   "entries": 4
+  }
+ },
+ {
+  "repo": "perl-dancer2",
+  "old_ms": 134.79345402447507,
+  "new_ms": 149.80149001348764,
+  "old": {
+   "callables": 1159,
+   "edges": 2082,
+   "cross": 1709,
+   "unresolved": 5136,
+   "entries": 341
+  },
+  "new": {
+   "callables": 1159,
+   "edges": 2082,
+   "cross": 1709,
+   "unresolved": 5136,
+   "entries": 341
+  },
+  "old_dead": 258,
+  "new_dead": 258,
+  "new_skipmin": {
+   "callables": 1159,
+   "edges": 2082,
+   "cross": 1709,
+   "unresolved": 5136,
+   "entries": 341
+  }
+ },
+ {
+  "repo": "perl-mojolicious",
+  "old_ms": 457.9995709937066,
+  "new_ms": 467.1110239578411,
+  "old": {
+   "callables": 2187,
+   "edges": 3215,
+   "cross": 1288,
+   "unresolved": 28190,
+   "entries": 283
+  },
+  "new": {
+   "callables": 2187,
+   "edges": 3215,
+   "cross": 1288,
+   "unresolved": 28190,
+   "entries": 283
+  },
+  "old_dead": 863,
+  "new_dead": 863,
+  "new_skipmin": {
+   "callables": 2069,
+   "edges": 3035,
+   "cross": 1265,
+   "unresolved": 27628,
+   "entries": 283
+  },
+  "ctags": 1
+ },
+ {
+  "repo": "php-laravel",
+  "old_ms": 1774.3003200157546,
+  "new_ms": 1790.6812420114875,
+  "old": {
+   "callables": 29924,
+   "edges": 59010,
+   "cross": 42255,
+   "unresolved": 95058,
+   "entries": 12538
+  },
+  "new": {
+   "callables": 29924,
+   "edges": 59010,
+   "cross": 42255,
+   "unresolved": 95058,
+   "entries": 12538
+  },
+  "old_dead": 9904,
+  "new_dead": 9904,
+  "new_skipmin": {
+   "callables": 29924,
+   "edges": 59010,
+   "cross": 42255,
+   "unresolved": 95058,
+   "entries": 12538
+  },
+  "ctags": 6905
+ },
+ {
+  "repo": "powershell-psget",
+  "old_ms": 64.355683978647,
+  "new_ms": 67.4518349696882,
+  "old": {
+   "callables": 62,
+   "edges": 23,
+   "cross": 0,
+   "unresolved": 790,
+   "entries": 0
+  },
+  "new": {
+   "callables": 62,
+   "edges": 23,
+   "cross": 0,
+   "unresolved": 790,
+   "entries": 0
+  },
+  "old_dead": 25,
+  "new_dead": 25,
+  "new_skipmin": {
+   "callables": 62,
+   "edges": 23,
+   "cross": 0,
+   "unresolved": 790,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "proto-grpc",
+  "old_ms": 28.034943039529026,
+  "new_ms": 26.606881991028786,
+  "old": {
+   "callables": 269,
+   "edges": 314,
+   "cross": 90,
+   "unresolved": 0,
+   "entries": 0
+  },
+  "new": {
+   "callables": 269,
+   "edges": 314,
+   "cross": 90,
+   "unresolved": 0,
+   "entries": 0
+  },
+  "old_dead": 0,
+  "new_dead": 0,
+  "new_skipmin": {
+   "callables": 269,
+   "edges": 314,
+   "cross": 90,
+   "unresolved": 0,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "py-apscheduler",
+  "old_ms": 96.64350101957098,
+  "new_ms": 97.00308798346668,
+  "old": {
+   "callables": 640,
+   "edges": 1487,
+   "cross": 1272,
+   "unresolved": 1626,
+   "entries": 173
+  },
+  "new": {
+   "callables": 640,
+   "edges": 1487,
+   "cross": 1272,
+   "unresolved": 1626,
+   "entries": 173
+  },
+  "old_dead": 62,
+  "new_dead": 62,
+  "new_skipmin": {
+   "callables": 640,
+   "edges": 1487,
+   "cross": 1272,
+   "unresolved": 1626,
+   "entries": 173
+  }
+ },
+ {
+  "repo": "py-dash",
+  "old_ms": 430.361315025948,
+  "new_ms": 500.7080310024321,
+  "old": {
+   "callables": 6299,
+   "edges": 28711,
+   "cross": 25627,
+   "unresolved": 10547,
+   "entries": 3021
+  },
+  "new": {
+   "callables": 6299,
+   "edges": 28711,
+   "cross": 25627,
+   "unresolved": 10547,
+   "entries": 3021
+  },
+  "old_dead": 568,
+  "new_dead": 568,
+  "new_skipmin": {
+   "callables": 6190,
+   "edges": 28651,
+   "cross": 25625,
+   "unresolved": 8898,
+   "entries": 3019
+  }
+ },
+ {
+  "repo": "py-dramatiq",
+  "old_ms": 72.57218100130558,
+  "new_ms": 96.02339199045673,
+  "old": {
+   "callables": 1129,
+   "edges": 2032,
+   "cross": 1846,
+   "unresolved": 1172,
+   "entries": 445
+  },
+  "new": {
+   "callables": 1129,
+   "edges": 2032,
+   "cross": 1846,
+   "unresolved": 1172,
+   "entries": 445
+  },
+  "old_dead": 111,
+  "new_dead": 111,
+  "new_skipmin": {
+   "callables": 1129,
+   "edges": 2032,
+   "cross": 1846,
+   "unresolved": 1172,
+   "entries": 445
+  }
+ },
+ {
+  "repo": "py-falcon",
+  "old_ms": 283.76291500171646,
+  "new_ms": 323.2470839866437,
+  "old": {
+   "callables": 4069,
+   "edges": 10769,
+   "cross": 9232,
+   "unresolved": 6822,
+   "entries": 2046
+  },
+  "new": {
+   "callables": 4069,
+   "edges": 10769,
+   "cross": 9232,
+   "unresolved": 6822,
+   "entries": 2046
+  },
+  "old_dead": 221,
+  "new_dead": 221,
+  "new_skipmin": {
+   "callables": 4069,
+   "edges": 10769,
+   "cross": 9232,
+   "unresolved": 6822,
+   "entries": 2046
+  }
+ },
+ {
+  "repo": "py-huey",
+  "old_ms": 166.5054049808532,
+  "new_ms": 149.32587300427258,
+  "old": {
+   "callables": 1485,
+   "edges": 3203,
+   "cross": 2344,
+   "unresolved": 1835,
+   "entries": 513
+  },
+  "new": {
+   "callables": 1485,
+   "edges": 3203,
+   "cross": 2344,
+   "unresolved": 1835,
+   "entries": 513
+  },
+  "old_dead": 189,
+  "new_dead": 189,
+  "new_skipmin": {
+   "callables": 1485,
+   "edges": 3203,
+   "cross": 2344,
+   "unresolved": 1835,
+   "entries": 513
+  }
+ },
+ {
+  "repo": "py-litestar",
+  "old_ms": 418.5712140169926,
+  "new_ms": 419.14556903066114,
+  "old": {
+   "callables": 6831,
+   "edges": 12893,
+   "cross": 11650,
+   "unresolved": 17244,
+   "entries": 3774
+  },
+  "new": {
+   "callables": 6831,
+   "edges": 12893,
+   "cross": 11650,
+   "unresolved": 17244,
+   "entries": 3774
+  },
+  "old_dead": 248,
+  "new_dead": 248,
+  "new_skipmin": {
+   "callables": 6831,
+   "edges": 12893,
+   "cross": 11650,
+   "unresolved": 17244,
+   "entries": 3774
+  }
+ },
+ {
+  "repo": "py-quart",
+  "old_ms": 81.77250000881031,
+  "new_ms": 77.88677496137097,
+  "old": {
+   "callables": 980,
+   "edges": 1602,
+   "cross": 1393,
+   "unresolved": 1312,
+   "entries": 464
+  },
+  "new": {
+   "callables": 980,
+   "edges": 1602,
+   "cross": 1393,
+   "unresolved": 1312,
+   "entries": 464
+  },
+  "old_dead": 124,
+  "new_dead": 124,
+  "new_skipmin": {
+   "callables": 980,
+   "edges": 1602,
+   "cross": 1393,
+   "unresolved": 1312,
+   "entries": 464
+  }
+ },
+ {
+  "repo": "py-robyn",
+  "old_ms": 121.42561801010743,
+  "new_ms": 136.81096996879205,
+  "old": {
+   "callables": 2047,
+   "edges": 2473,
+   "cross": 1984,
+   "unresolved": 1752,
+   "entries": 785
+  },
+  "new": {
+   "callables": 2047,
+   "edges": 2473,
+   "cross": 1984,
+   "unresolved": 1752,
+   "entries": 785
+  },
+  "old_dead": 334,
+  "new_dead": 334,
+  "new_skipmin": {
+   "callables": 2047,
+   "edges": 2473,
+   "cross": 1984,
+   "unresolved": 1752,
+   "entries": 785
+  }
+ },
+ {
+  "repo": "py-scrapy",
+  "old_ms": 321.6833620099351,
+  "new_ms": 349.2946549667977,
+  "old": {
+   "callables": 5847,
+   "edges": 15556,
+   "cross": 12612,
+   "unresolved": 11828,
+   "entries": 2622
+  },
+  "new": {
+   "callables": 5847,
+   "edges": 15556,
+   "cross": 12612,
+   "unresolved": 11828,
+   "entries": 2622
+  },
+  "old_dead": 372,
+  "new_dead": 372,
+  "new_skipmin": {
+   "callables": 5847,
+   "edges": 15556,
+   "cross": 12612,
+   "unresolved": 11828,
+   "entries": 2622
+  }
+ },
+ {
+  "repo": "python-flask",
+  "old_ms": 114.19899202883244,
+  "new_ms": 117.57267004577443,
+  "old": {
+   "callables": 1737,
+   "edges": 2565,
+   "cross": 2322,
+   "unresolved": 1656,
+   "entries": 877
+  },
+  "new": {
+   "callables": 1737,
+   "edges": 2565,
+   "cross": 2322,
+   "unresolved": 1656,
+   "entries": 877
+  },
+  "old_dead": 85,
+  "new_dead": 85,
+  "new_skipmin": {
+   "callables": 1737,
+   "edges": 2565,
+   "cross": 2322,
+   "unresolved": 1656,
+   "entries": 877
+  },
+  "ctags": 252
+ },
+ {
+  "repo": "python-httpie",
+  "old_ms": 80.26872796472162,
+  "new_ms": 90.11141496011987,
+  "old": {
+   "callables": 1080,
+   "edges": 1828,
+   "cross": 1362,
+   "unresolved": 1602,
+   "entries": 458
+  },
+  "new": {
+   "callables": 1080,
+   "edges": 1828,
+   "cross": 1362,
+   "unresolved": 1602,
+   "entries": 458
+  },
+  "old_dead": 65,
+  "new_dead": 65,
+  "new_skipmin": {
+   "callables": 1080,
+   "edges": 1828,
+   "cross": 1362,
+   "unresolved": 1602,
+   "entries": 458
+  }
+ },
+ {
+  "repo": "r-ggplot2",
+  "old_ms": 149.5169849949889,
+  "new_ms": 142.90959702339023,
+  "old": {
+   "callables": 1070,
+   "edges": 436,
+   "cross": 24,
+   "unresolved": 17996,
+   "entries": 2
+  },
+  "new": {
+   "callables": 1070,
+   "edges": 436,
+   "cross": 24,
+   "unresolved": 17996,
+   "entries": 2
+  },
+  "old_dead": 626,
+  "new_dead": 626,
+  "new_skipmin": {
+   "callables": 1070,
+   "edges": 436,
+   "cross": 24,
+   "unresolved": 17996,
+   "entries": 2
+  },
+  "ctags": 1786
+ },
+ {
+  "repo": "ruby-jekyll",
+  "old_ms": 154.99936003470793,
+  "new_ms": 135.5798440054059,
+  "old": {
+   "callables": 1190,
+   "edges": 2028,
+   "cross": 1051,
+   "unresolved": 5046,
+   "entries": 4
+  },
+  "new": {
+   "callables": 1190,
+   "edges": 2028,
+   "cross": 1051,
+   "unresolved": 5046,
+   "entries": 4
+  },
+  "old_dead": 582,
+  "new_dead": 582,
+  "new_skipmin": {
+   "callables": 1174,
+   "edges": 2006,
+   "cross": 1050,
+   "unresolved": 4912,
+   "entries": 4
+  },
+  "ctags": 680
+ },
+ {
+  "repo": "rust-bat",
+  "old_ms": 1533.2482490339316,
+  "new_ms": 1585.7353530009277,
+  "old": {
+   "callables": 1981,
+   "edges": 2926,
+   "cross": 1507,
+   "unresolved": 2544,
+   "entries": 938
+  },
+  "new": {
+   "callables": 1981,
+   "edges": 2926,
+   "cross": 1507,
+   "unresolved": 2544,
+   "entries": 938
+  },
+  "old_dead": 50,
+  "new_dead": 50,
+  "new_skipmin": {
+   "callables": 1981,
+   "edges": 2926,
+   "cross": 1507,
+   "unresolved": 2544,
+   "entries": 938
+  }
+ },
+ {
+  "repo": "rust-ntex",
+  "old_ms": 343.7690830323845,
+  "new_ms": 358.6830970016308,
+  "old": {
+   "callables": 5317,
+   "edges": 19717,
+   "cross": 15257,
+   "unresolved": 16062,
+   "entries": 791
+  },
+  "new": {
+   "callables": 5317,
+   "edges": 19717,
+   "cross": 15257,
+   "unresolved": 16062,
+   "entries": 791
+  },
+  "old_dead": 1122,
+  "new_dead": 1122,
+  "new_skipmin": {
+   "callables": 5317,
+   "edges": 19717,
+   "cross": 15257,
+   "unresolved": 16062,
+   "entries": 791
+  }
+ },
+ {
+  "repo": "rust-ripgrep",
+  "old_ms": 280.6525669875555,
+  "new_ms": 300.87794503197074,
+  "old": {
+   "callables": 2975,
+   "edges": 8687,
+   "cross": 4681,
+   "unresolved": 8722,
+   "entries": 512
+  },
+  "new": {
+   "callables": 2975,
+   "edges": 8687,
+   "cross": 4681,
+   "unresolved": 8722,
+   "entries": 512
+  },
+  "old_dead": 793,
+  "new_dead": 793,
+  "new_skipmin": {
+   "callables": 2975,
+   "edges": 8687,
+   "cross": 4681,
+   "unresolved": 8722,
+   "entries": 512
+  },
+  "ctags": 1160
+ },
+ {
+  "repo": "rust-rtic",
+  "old_ms": 1156.7446299595758,
+  "new_ms": 1186.04746600613,
+  "old": {
+   "callables": 4557,
+   "edges": 5365,
+   "cross": 1165,
+   "unresolved": 10629,
+   "entries": 579
+  },
+  "new": {
+   "callables": 4557,
+   "edges": 5365,
+   "cross": 1165,
+   "unresolved": 10629,
+   "entries": 579
+  },
+  "old_dead": 2104,
+  "new_dead": 2104,
+  "new_skipmin": {
+   "callables": 1509,
+   "edges": 1697,
+   "cross": 1165,
+   "unresolved": 2020,
+   "entries": 579
+  }
+ },
+ {
+  "repo": "scala-play",
+  "old_ms": 981.1152829788625,
+  "new_ms": 968.5874910210259,
+  "old": {
+   "callables": 14009,
+   "edges": 33516,
+   "cross": 20745,
+   "unresolved": 33825,
+   "entries": 1096
+  },
+  "new": {
+   "callables": 14009,
+   "edges": 33516,
+   "cross": 20745,
+   "unresolved": 33825,
+   "entries": 1096
+  },
+  "old_dead": 5624,
+  "new_dead": 5624,
+  "new_skipmin": {
+   "callables": 13724,
+   "edges": 33114,
+   "cross": 20548,
+   "unresolved": 30223,
+   "entries": 1086
+  },
+  "ctags": 0
+ },
+ {
+  "repo": "scala-spark",
+  "old_ms": 10776.295728981495,
+  "new_ms": 10852.941760967951,
+  "old": {
+   "callables": 112369,
+   "edges": 303913,
+   "cross": 222255,
+   "unresolved": 1023676,
+   "entries": 8583
+  },
+  "new": {
+   "callables": 112369,
+   "edges": 303913,
+   "cross": 222255,
+   "unresolved": 1023676,
+   "entries": 8583
+  },
+  "old_dead": 28476,
+  "new_dead": 28476,
+  "new_skipmin": {
+   "callables": 107394,
+   "edges": 295775,
+   "cross": 220411,
+   "unresolved": 989435,
+   "entries": 8583
+  }
+ },
+ {
+  "repo": "smithy-protocol-tests",
+  "old_ms": 1280.8659439906478,
+  "new_ms": 1302.197472017724,
+  "old": {
+   "callables": 23483,
+   "edges": 75183,
+   "cross": 60236,
+   "unresolved": 41927,
+   "entries": 3845
+  },
+  "new": {
+   "callables": 23483,
+   "edges": 75183,
+   "cross": 60236,
+   "unresolved": 41927,
+   "entries": 3845
+  },
+  "old_dead": 3352,
+  "new_dead": 3352,
+  "new_skipmin": {
+   "callables": 23483,
+   "edges": 75183,
+   "cross": 60236,
+   "unresolved": 41927,
+   "entries": 3845
+  }
+ },
+ {
+  "repo": "solidity-openzeppelin",
+  "old_ms": 374.2547110305168,
+  "new_ms": 351.27748898230493,
+  "old": {
+   "callables": 8858,
+   "edges": 18806,
+   "cross": 14468,
+   "unresolved": 7466,
+   "entries": 5609
+  },
+  "new": {
+   "callables": 8858,
+   "edges": 18806,
+   "cross": 14468,
+   "unresolved": 7466,
+   "entries": 5609
+  },
+  "old_dead": 962,
+  "new_dead": 962,
+  "new_skipmin": {
+   "callables": 8858,
+   "edges": 18806,
+   "cross": 14468,
+   "unresolved": 7466,
+   "entries": 5609
+  }
+ },
+ {
+  "repo": "starlark-skylib",
+  "old_ms": 53.00165497465059,
+  "new_ms": 55.167988990433514,
+  "old": {
+   "callables": 439,
+   "edges": 205,
+   "cross": 13,
+   "unresolved": 498,
+   "entries": 1
+  },
+  "new": {
+   "callables": 439,
+   "edges": 205,
+   "cross": 13,
+   "unresolved": 498,
+   "entries": 1
+  },
+  "old_dead": 117,
+  "new_dead": 117,
+  "new_skipmin": {
+   "callables": 439,
+   "edges": 205,
+   "cross": 13,
+   "unresolved": 498,
+   "entries": 1
+  }
+ },
+ {
+  "repo": "swift-alamofire",
+  "old_ms": 233.49473800044507,
+  "new_ms": 237.4528200016357,
+  "old": {
+   "callables": 2615,
+   "edges": 8784,
+   "cross": 6832,
+   "unresolved": 6434,
+   "entries": 621
+  },
+  "new": {
+   "callables": 2615,
+   "edges": 8784,
+   "cross": 6832,
+   "unresolved": 6434,
+   "entries": 621
+  },
+  "old_dead": 558,
+  "new_dead": 558,
+  "new_skipmin": {
+   "callables": 2405,
+   "edges": 8564,
+   "cross": 6806,
+   "unresolved": 4398,
+   "entries": 621
+  },
+  "ctags": 0
+ },
+ {
+  "repo": "ts-typeorm",
+  "old_ms": 991.1595040466636,
+  "new_ms": 1021.932244009804,
+  "old": {
+   "callables": 11179,
+   "edges": 62015,
+   "cross": 57959,
+   "unresolved": 27313,
+   "entries": 7090
+  },
+  "new": {
+   "callables": 11179,
+   "edges": 62015,
+   "cross": 57959,
+   "unresolved": 27313,
+   "entries": 7090
+  },
+  "old_dead": 1669,
+  "new_dead": 1669,
+  "new_skipmin": {
+   "callables": 11179,
+   "edges": 62015,
+   "cross": 57959,
+   "unresolved": 27313,
+   "entries": 7090
+  }
+ },
+ {
+  "repo": "ts-zod",
+  "old_ms": 342.93461102060974,
+  "new_ms": 358.1797850201838,
+  "old": {
+   "callables": 3843,
+   "edges": 19684,
+   "cross": 18450,
+   "unresolved": 9791,
+   "entries": 1900
+  },
+  "new": {
+   "callables": 3843,
+   "edges": 19684,
+   "cross": 18450,
+   "unresolved": 9791,
+   "entries": 1900
+  },
+  "old_dead": 599,
+  "new_dead": 599,
+  "new_skipmin": {
+   "callables": 3843,
+   "edges": 19684,
+   "cross": 18450,
+   "unresolved": 9791,
+   "entries": 1900
+  },
+  "ctags": 499
+ },
+ {
+  "repo": "verilog-picorv32",
+  "old_ms": 127.07546801539138,
+  "new_ms": 131.32680801209062,
+  "old": {
+   "callables": 341,
+   "edges": 556,
+   "cross": 181,
+   "unresolved": 739,
+   "entries": 0
+  },
+  "new": {
+   "callables": 341,
+   "edges": 556,
+   "cross": 181,
+   "unresolved": 739,
+   "entries": 0
+  },
+  "old_dead": 139,
+  "new_dead": 139,
+  "new_skipmin": {
+   "callables": 341,
+   "edges": 556,
+   "cross": 181,
+   "unresolved": 739,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "vhdl-uvvm",
+  "old_ms": 385.97276696236804,
+  "new_ms": 395.29757300624624,
+  "old": {
+   "callables": 3037,
+   "edges": 896,
+   "cross": 31,
+   "unresolved": 844,
+   "entries": 0
+  },
+  "new": {
+   "callables": 3037,
+   "edges": 896,
+   "cross": 31,
+   "unresolved": 844,
+   "entries": 0
+  },
+  "old_dead": 2506,
+  "new_dead": 2506,
+  "new_skipmin": {
+   "callables": 3037,
+   "edges": 896,
+   "cross": 31,
+   "unresolved": 844,
+   "entries": 0
+  }
+ },
+ {
+  "repo": "zig-http",
+  "old_ms": 86.20466000866145,
+  "new_ms": 87.29137299815193,
+  "old": {
+   "callables": 552,
+   "edges": 1001,
+   "cross": 550,
+   "unresolved": 2277,
+   "entries": 0
+  },
+  "new": {
+   "callables": 552,
+   "edges": 1001,
+   "cross": 550,
+   "unresolved": 2277,
+   "entries": 0
+  },
+  "old_dead": 388,
+  "new_dead": 388,
+  "new_skipmin": {
+   "callables": 552,
+   "edges": 1001,
+   "cross": 550,
+   "unresolved": 2277,
+   "entries": 0
+  },
+  "ctags": 0
+ },
+ {
+  "repo": "zig-zig",
+  "old_ms": 34281.69183502905,
+  "new_ms": 36773.76075001666,
+  "old": {
+   "callables": 362991,
+   "edges": 275046,
+   "cross": 145319,
+   "unresolved": 274463,
+   "entries": 0
+  },
+  "new": {
+   "callables": 362991,
+   "edges": 275046,
+   "cross": 145319,
+   "unresolved": 274463,
+   "entries": 0
+  },
+  "old_dead": 323913,
+  "new_dead": 323913,
+  "new_skipmin": {
+   "callables": 362991,
+   "edges": 275046,
+   "cross": 145319,
+   "unresolved": 274463,
+   "entries": 0
+  }
+ }
+]
