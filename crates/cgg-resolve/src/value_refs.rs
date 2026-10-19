@@ -115,7 +115,7 @@ fn shadowed(
 /// Languages whose `x.m` in value position reads a field or getter far
 /// more often than it tears off a method: a name some class declares as
 /// data (`FileFacts::data_members`) is dropped through a receiver too.
-const MEMBER_DATA_READ_LANGS: &[&str] = &["dart"];
+const MEMBER_DATA_READ_LANGS: &[&str] = &["dart", "scala"];
 
 /// Whether a definition is declared without a parameter list: the text
 /// after its name in the signature (past a `[…]` type-parameter group)
@@ -182,6 +182,22 @@ pub fn prune_paren_less(all_facts: &mut [FileFacts]) {
         f.references.retain(|r| {
             !r.paren_less || (known.contains(&r.name) && !shadowed(&locals, &defs, r))
         });
+        // A kept paren-less site is a call of a parameterless `def`: a
+        // value reference the plugin recorded on the same name and byte
+        // (Scala eta-expansion) is that call, not a value.
+        let calls: HashSet<(u32, &str)> = f
+            .references
+            .iter()
+            .filter(|r| r.paren_less)
+            .map(|r| (r.site_byte, r.name.as_str()))
+            .collect();
+        if !calls.is_empty() {
+            let calls: HashSet<(u32, String)> =
+                calls.into_iter().map(|(b, n)| (b, n.to_string())).collect();
+            f.references.retain(|r| {
+                !r.value_ref || !calls.contains(&(r.site_byte, r.name.clone()))
+            });
+        }
         f.definitions = defs;
     }
 }
@@ -480,6 +496,61 @@ mod tests {
         };
         assert_eq!(run("dart"), vec!["handler"]);
         assert_eq!(run("cpp"), vec!["view", "handler"]);
+    }
+
+    /// WS26: a Scala name in a value position is recorded both as a
+    /// paren-less site and as a value reference. When a parameterless
+    /// `def` of the name exists the site is that call, and the value
+    /// reference at the same byte is dropped; otherwise the value
+    /// reference stands.
+    #[test]
+    fn a_kept_paren_less_call_drops_its_twin_value_reference() {
+        let pl = |name: &str, byte: u32| RefRecord {
+            name: name.into(),
+            site_byte: byte,
+            paren_less: true,
+            ..Default::default()
+        };
+        let vr = |name: &str, byte: u32| RefRecord {
+            name: name.into(),
+            site_byte: byte,
+            value_ref: true,
+            ..Default::default()
+        };
+        let mut a = facts(
+            "scala",
+            1,
+            &[],
+            vec![
+                pl("size", 10),
+                vr("size", 10),
+                pl("parse", 20),
+                vr("parse", 20),
+            ],
+        );
+        a.definitions = vec![
+            DefRecord {
+                simple_name: "size".into(),
+                qualified_name: "C.size".into(),
+                signature_hint: "def size: Int".into(),
+                ..Default::default()
+            },
+            DefRecord {
+                simple_name: "parse".into(),
+                qualified_name: "C.parse".into(),
+                signature_hint: "def parse(s: String): Int".into(),
+                ..Default::default()
+            },
+        ];
+        let mut all = vec![a];
+        prune(&mut all);
+        prune_paren_less(&mut all);
+        let kept: Vec<(&str, bool)> = all[0]
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.value_ref))
+            .collect();
+        assert_eq!(kept, vec![("size", false), ("parse", true)]);
     }
 
     #[test]

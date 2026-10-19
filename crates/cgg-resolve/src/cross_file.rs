@@ -7256,7 +7256,7 @@ fn try_resolve_ref(
             // method, and a Kotlin `x::m` or a Swift or Dart `x.m` value as
             // often a property: each binds only through a typed receiver
             // (WS26).
-            && (!r.value_ref || !matches!(lang, "go" | "kotlin" | "swift" | "dart"))
+            && (!r.value_ref || !matches!(lang, "go" | "kotlin" | "swift" | "dart" | "scala"))
             // A typed receiver is never fanned out by name: its type's
             // own lookup (step 4) was the answer, hit or miss.
             && !r.typed_receiver

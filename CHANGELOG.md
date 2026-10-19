@@ -444,6 +444,20 @@ otherwise change the default graph.
   initializer credits only its own file's callables, as Ruby's and
   Swift's do.
 
+- **Scala method values were not references (WS26, gap 25).**
+  `xs.map(parse)`, `.sortWith(compareExecutors)`, `handle _`,
+  `obj.m _`, `f andThen g`, a `val` initializer and a returned value left
+  the method with no reference, so it was reported dead. Under
+  `--dead-code` and `--reference-edges` each is now a value reference,
+  bare or through its receiver. A name in a value position is recorded
+  both ways: when a parameterless `def` of that name exists, the
+  paren-less call stands and the value reference at the same site is
+  dropped (`value_refs::prune_paren_less`). `val`/`var`/`lazy val`
+  members and class parameters are data (`FileFacts::data_members`), bare
+  or through a receiver; an `x.m` value through an untyped variable binds
+  only through its type; and a method value with no enclosing callable
+  credits only its own file's callables, as Ruby's, Swift's and Dart's do.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -729,6 +743,16 @@ timed out once under host load in the `--reference-edges` comparison):
 - Under `--dead-code`, 2,251 Dart findings leave the report (none `high`;
   1,934 in Flutter, mostly widget callbacks and listeners). None are newly
   reported, and 23 move `medium` → `low`.
+
+WS26 Scala (full corpus, none excluded):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 1,871 Scala reference edges are added (1,504
+  `high`); none are removed.
+- Under `--dead-code`, 743 Scala findings leave the report (none `high`;
+  643 in Spark). 401 previously withheld findings in one repository are
+  now reported, all withheld for low root coverage, which the new
+  references lift over the threshold; 50 move `medium` → `low`.
 
 ## [0.11.0] - 2026-10-16
 

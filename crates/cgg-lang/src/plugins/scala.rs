@@ -24,7 +24,7 @@ impl LanguagePlugin for ScalaPlugin {
 
     fn extract(
         &self,
-        _ctx: &crate::ExtractCtx<'_>,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -32,6 +32,7 @@ impl LanguagePlugin for ScalaPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "scala");
         let mut w = ScalaWalker {
+            reference_sites: ctx.reference_sites,
             bases: Vec::new(),
             source,
             facts: &mut facts,
@@ -39,11 +40,26 @@ impl LanguagePlugin for ScalaPlugin {
             package: String::new(),
         };
         w.walk(tree.root_node());
+        // `val`/`var`/`lazy val` members and class parameters are data: a
+        // bare name of one is that field, never a function value.
+        if ctx.reference_sites {
+            let mut members: Vec<String> = facts
+                .class_fields
+                .iter()
+                .map(|f| f.field_name.clone())
+                .collect();
+            members.sort_unstable();
+            members.dedup();
+            facts.data_members = members;
+        }
         facts
     }
 }
 
 struct ScalaWalker<'a> {
+    /// Record method values as value references; see
+    /// `crate::ExtractCtx::reference_sites`.
+    reference_sites: bool,
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
@@ -261,6 +277,19 @@ impl<'a> ScalaWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            // `handle _`, `obj.m _`: an explicit method value (a
+            // `method_value`, or a postfix `_` in older grammars).
+            "method_value" | "postfix_expression"
+                if self.reference_sites && is_method_value(node, self.source) =>
+            {
+                if let Some(target) = node.named_child(0) {
+                    self.record_method_value(target);
+                }
+                // The target's receiver may hold calls of its own
+                // (`Predicate.create(c).eval _`).
+                self.walk_children(node);
+                return;
+            }
             _ => {}
         }
         self.walk_children(node);
@@ -325,6 +354,22 @@ impl<'a> ScalaWalker<'a> {
         if name.is_empty() || matches!(name.as_str(), "this" | "super" | "_") {
             return;
         }
+        // A name in a value position may also be an eta-expanded method
+        // (`xs.map(parse)`, `val g = f andThen h`): recorded as a value
+        // reference beside the paren-less site, which `prune_paren_less`
+        // keeps instead only when a parameterless `def` of the name
+        // exists — then the site is that call, not a value.
+        if self.reference_sites && value_position(node) {
+            self.facts.references.push(RefRecord {
+                name: name.clone(),
+                receiver_hint: receiver.clone(),
+                site_line: (node.start_position().row as u32) + 1,
+                site_byte: node.start_byte() as u32,
+                typed_receiver,
+                value_ref: true,
+                ..Default::default()
+            });
+        }
         self.facts.references.push(RefRecord {
             name,
             receiver_hint: receiver,
@@ -332,6 +377,36 @@ impl<'a> ScalaWalker<'a> {
             site_byte: node.start_byte() as u32,
             paren_less: true,
             typed_receiver,
+            ..Default::default()
+        });
+    }
+
+    /// `f _` / `obj.m _`: the method named, through its receiver.
+    fn record_method_value(&mut self, target: Node) {
+        let (name, (receiver, typed_receiver)) = match target.kind() {
+            "identifier" => (self.text(target).to_string(), (String::new(), false)),
+            "field_expression" => {
+                let Some(field) = target.child_by_field_name("field") else {
+                    return;
+                };
+                let recv = target
+                    .child_by_field_name("value")
+                    .map(|v| self.shaped_receiver(v))
+                    .unwrap_or_default();
+                (self.text(field).to_string(), recv)
+            }
+            _ => return,
+        };
+        if name.is_empty() {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: receiver,
+            site_line: (target.start_position().row as u32) + 1,
+            site_byte: target.start_byte() as u32,
+            typed_receiver,
+            value_ref: true,
             ..Default::default()
         });
     }
@@ -589,6 +664,38 @@ impl<'a> ScalaWalker<'a> {
 /// definition's value or body, a branch, the receiver of a further access.
 /// Names, patterns, parameters, types and the callee of a call with an
 /// argument list are not.
+/// `f _` / `obj.m _`: a method value, the target followed by `_`.
+fn is_method_value(node: Node, src: &[u8]) -> bool {
+    if node.kind() == "method_value" {
+        return true;
+    }
+    let n = node.named_child_count();
+    n == 2
+        && node
+            .named_child(1)
+            .is_some_and(|w| w.utf8_text(src).unwrap_or("") == "_")
+        && node
+            .named_child(0)
+            .is_some_and(|t| matches!(t.kind(), "identifier" | "field_expression"))
+}
+
+/// A position where a function is expected as often as a value: a call's
+/// argument, a `val`/`var` initializer, a returned value, an operand of an
+/// infix operator (`f andThen g`), an assignment's value.
+fn value_position(node: Node) -> bool {
+    let Some(p) = node.parent() else {
+        return false;
+    };
+    let is = |field: &str| p.child_by_field_name(field) == Some(node);
+    match p.kind() {
+        "arguments" | "return_expression" => true,
+        "infix_expression" => is("left") || is("right"),
+        "val_definition" | "var_definition" => is("value"),
+        "assignment_expression" => is("right"),
+        _ => false,
+    }
+}
+
 fn paren_less_position(node: Node) -> bool {
     let Some(p) = node.parent() else {
         return false;
@@ -856,5 +963,77 @@ mod tests {
         // class without a parameter list has no constructor node.
         assert!(!refs.iter().any(|r| r.0 == "T"), "{refs:?}");
         assert!(!f.definitions.iter().any(|d| d.qualified_name == "P::P"));
+    }
+
+    fn extract_with_refs(src: &str, refs: bool) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_scala::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        ScalaPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(refs),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.scala"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    fn value_refs(f: &FileFacts) -> Vec<(String, String)> {
+        f.references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
+            .collect()
+    }
+
+    /// WS26 (gap 25): a method value — an argument, an initializer, an
+    /// `andThen` operand, a return, `f _`, `obj.m _` — is a reference site
+    /// only when the run asks for them; a block's last expression stays a
+    /// paren-less call only, and `val` members and class parameters are
+    /// data.
+    #[test]
+    fn method_values_are_reference_sites() {
+        let src = "class C(val name: String) {\n\
+                     val count = 1\n\
+                     lazy val cache = 2\n\
+                     def go(xs: List[Int]) = {\n\
+                       xs.map(parse)\n\
+                       val g = handle _\n\
+                       val e = Pred.create(c).eval _\n\
+                       val h = obj.m _\n\
+                       val k = f andThen g2\n\
+                       helper\n\
+                     }\n\
+                     def back() = { return made }\n\
+                   }\n";
+        let f = extract_with_refs(src, true);
+        let got = value_refs(&f);
+        for (recv, name) in [
+            ("", "parse"),
+            ("", "handle"),
+            ("obj", "m"),
+            ("", "f"),
+            ("", "g2"),
+            ("", "made"),
+            ("Pred.create(c)", "eval"),
+        ] {
+            assert!(
+                got.contains(&(recv.to_string(), name.to_string())),
+                "missing {recv}.{name} in {got:?}"
+            );
+        }
+        assert!(!got.iter().any(|(_, n)| n == "helper"), "{got:?}");
+        // The receiver's own call is still recorded.
+        assert!(
+            f.references
+                .iter()
+                .any(|r| r.name == "create" && !r.value_ref && !r.paren_less),
+            "{:?}",
+            f.references
+        );
+        assert_eq!(f.data_members, vec!["cache", "count", "name"]);
+        let plain = extract_with_refs(src, false);
+        assert!(value_refs(&plain).is_empty());
+        assert!(plain.data_members.is_empty());
     }
 }

@@ -2890,6 +2890,82 @@ void main() {\n\
     );
 }
 
+/// WS26 (gap 25): a Scala method value (`xs.map(parse)`, `handle _`,
+/// `Util.twice _`, an `andThen` operand) is a reference, with the default
+/// graph untouched; a parameterless `def` named bare stays a call, and a
+/// function named like a `val` member that is only read is no reference.
+#[test]
+fn scala_method_values_are_references() {
+    let tmp = TempDir::new().unwrap();
+    let src = "package p\n\
+\n\
+import Funcs._\n\
+\n\
+class Svc(val label: String) {\n\
+  val count = 1\n\
+  def size: Int = 2\n\
+  def handle(x: Int): Int = x\n\
+  def unused(): Unit = ()\n\
+  def go(xs: List[Int]): Int = {\n\
+    val ys = xs.map(parse)\n\
+    val g = handle _\n\
+    val h = Util.twice _\n\
+    val k = (parse _) andThen inc\n\
+    ys.size + size + count + g(1) + h(1) + k(1)\n\
+  }\n\
+}\n\
+object Util { def twice(x: Int): Int = x * 2 }\n\
+object Funcs {\n\
+  def parse(x: Int): Int = x\n\
+  def inc(x: Int): Int = x + 1\n\
+  def count(): Int = 0\n\
+  def orphan(): Unit = ()\n\
+}\n\
+object Main {\n\
+  import Funcs._\n\
+  def main(args: Array[String]): Unit = { new Svc(\"a\").go(List(1)) }\n\
+}\n\
+";
+    write(tmp.path(), "App.scala", src.as_bytes());
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in ["Funcs::parse", "Funcs::inc", "Svc::handle", "Util::twice"] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} is referenced, findings: {dead:?}"
+        );
+    }
+    for gone in ["Funcs::count", "Funcs::orphan", "Svc::unused"] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone} has no reference, findings: {dead:?}"
+        );
+    }
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .arg("-o")
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain).unwrap().matches("ref|").count(),
+        0
+    );
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------

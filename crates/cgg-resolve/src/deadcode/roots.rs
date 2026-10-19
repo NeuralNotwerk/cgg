@@ -558,9 +558,10 @@ pub(crate) fn discover(
     // Ruby, Lua and shell entry point reads as dead.
     //
     // A Ruby symbol naming a method at class level (`alias show? index?`,
-    // `validate :check`, `alias_method :a, :b`) or a Swift or Dart
-    // function value in a property or field initializer (`let f =
-    // Self.process`, `final cb = _onTap;`) names a method
+    // `validate :check`, `alias_method :a, :b`) or a Swift, Dart or
+    // Scala function value in a property, field or object-member
+    // initializer (`let f = Self.process`, `final cb = _onTap;`,
+    // `val h = handle _`) names a method
     // of its own file: it credits the same-named callables of its file,
     // not every callable of that name in the tree (WS26).
     let own_file_sites = own_file_value_sites(facts);
@@ -1084,7 +1085,7 @@ fn collect_rust_reexports(facts: &[FileFacts]) -> HashSet<String> {
 /// Languages whose class- or module-level value references name the
 /// declaring file's own callables (see the top-level rule in
 /// [`discover`]).
-const FILE_SCOPED_VALUE_REF_LANGS: &[&str] = &["ruby", "swift", "dart"];
+const FILE_SCOPED_VALUE_REF_LANGS: &[&str] = &["ruby", "swift", "dart", "scala"];
 
 /// `(file, site byte, name)` of the value-reference records of the
 /// [`FILE_SCOPED_VALUE_REF_LANGS`] files.
