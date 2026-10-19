@@ -2734,6 +2734,88 @@ class Sorter {\n\
     assert_eq!(g.matches("ref|").count(), 4, "{g}");
 }
 
+/// WS26 (gap 25): a Swift function named without being called —
+/// `#selector(tap)`, `xs.map(transform)`, `sorted(by: compare)`,
+/// `let g = self.handle`, `xs.map(Panel.process)` — is a reference, with
+/// the default graph untouched. A parameter of the same name and a
+/// function named like a stored property that is only read are not.
+#[test]
+fn swift_function_values_are_references() {
+    let tmp = TempDir::new().unwrap();
+    let src = "class Panel {\n\
+    var title: String = \"\"\n\
+    func tap() {}\n\
+    func handle() {}\n\
+    func unused() {}\n\
+    static func process(_ x: Int) -> Int { x }\n\
+    func wire(xs: [Int]) {\n\
+        button.addTarget(self, action: #selector(tap), for: .touchUpInside)\n\
+        let g = self.handle\n\
+        let ys = xs.map(Panel.process)\n\
+        _ = (g, ys, title)\n\
+    }\n\
+}\n\
+func transform(_ x: Int) -> Int { x }\n\
+func compare(_ a: Int, _ b: Int) -> Bool { a < b }\n\
+func title() -> String { \"\" }\n\
+func shadowed() {}\n\
+func orphan() {}\n\
+func use(_ shadowed: () -> Void) { invoke(shadowed) }\n\
+func invoke(_ f: () -> Void) { f() }\n\
+func main() {\n\
+    let xs = [3, 1]\n\
+    _ = xs.map(transform)\n\
+    _ = xs.sorted(by: compare)\n\
+    Panel().wire(xs: xs)\n\
+    use({})\n\
+}\n\
+";
+    write(tmp.path(), "App.swift", src.as_bytes());
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in [
+        "Panel.tap",
+        "Panel.handle",
+        "Panel.process",
+        "transform",
+        "compare",
+    ] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} is referenced, findings: {dead:?}"
+        );
+    }
+    for gone in ["Panel.unused", "orphan", "shadowed", "title"] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone} has no reference, findings: {dead:?}"
+        );
+    }
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .arg("-o")
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain).unwrap().matches("ref|").count(),
+        0
+    );
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------

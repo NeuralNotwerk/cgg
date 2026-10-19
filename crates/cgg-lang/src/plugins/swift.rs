@@ -64,6 +64,9 @@ impl<'a> SwiftWalker<'a> {
     }
 
     fn walk(&mut self, node: Node) {
+        if self.ctx.reference_sites {
+            self.capture_value_positions(node);
+        }
         match node.kind() {
             "class_declaration"
             | "struct_declaration"
@@ -135,6 +138,88 @@ impl<'a> SwiftWalker<'a> {
             _ => {}
         }
         self.walk_children(node);
+    }
+
+    /// Value positions, when the run records reference sites: a function
+    /// named without being called — `#selector(tap)`, a call's argument
+    /// (`xs.map(transform)`, `sorted(by: compare)`), a property's or
+    /// local's initializer (`let f = self.handle`, `let g = Self.process`),
+    /// an assignment's value and a returned value. Recorded the way the
+    /// call would be — `f` bare, `m` through `self`, a type or a variable
+    /// — marked `value_ref`. A key path (`\C.name`) is not one, a name a
+    /// local binds is dropped through the Swift locals, and a name some
+    /// type declares as a property through `FileFacts::data_members`
+    /// (both in `value_refs::prune`). A selector written as a call
+    /// (`#selector(C.m(_:))`) is recorded as that call already.
+    fn capture_value_positions(&mut self, node: Node) {
+        let values: Vec<Node> = match node.kind() {
+            "selector_expression" => node.named_child(0).into_iter().collect(),
+            "value_argument" => node.child_by_field_name("value").into_iter().collect(),
+            "property_declaration" => {
+                // A property a type declares is data: a bare name of it is
+                // that property, not a same-named function.
+                if node.parent().is_some_and(|p| {
+                    matches!(p.kind(), "class_body" | "enum_class_body" | "protocol_body")
+                }) {
+                    let mut c = node.walk();
+                    for pat in node.children_by_field_name("name", &mut c) {
+                        if let Some(id) = pat.child_by_field_name("bound_identifier") {
+                            let name = self.text(id).to_string();
+                            if !self.facts.data_members.contains(&name) {
+                                self.facts.data_members.push(name);
+                            }
+                        }
+                    }
+                }
+                let mut c = node.walk();
+                node.children_by_field_name("value", &mut c).collect()
+            }
+            "assignment" => node.child_by_field_name("result").into_iter().collect(),
+            "control_transfer_statement" => {
+                node.child_by_field_name("result").into_iter().collect()
+            }
+            _ => return,
+        };
+        for v in values {
+            self.value_ref_in(v);
+        }
+    }
+
+    fn value_ref_in(&mut self, v: Node) {
+        let (name_node, recv) = match v.kind() {
+            "simple_identifier" => (v, String::new()),
+            "navigation_expression" => {
+                let Some(target) = v.child_by_field_name("target") else {
+                    return;
+                };
+                let recv = match target.kind() {
+                    "self_expression" => "self".to_string(),
+                    "simple_identifier" => self.text(target).to_string(),
+                    _ => return,
+                };
+                let Some(name) = v
+                    .child_by_field_name("suffix")
+                    .and_then(|s| s.child_by_field_name("suffix"))
+                    .filter(|n| n.kind() == "simple_identifier")
+                else {
+                    return;
+                };
+                (name, recv)
+            }
+            _ => return,
+        };
+        let name = self.text(name_node).to_string();
+        if name.is_empty() {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: recv,
+            site_line: (name_node.start_position().row as u32) + 1,
+            site_byte: name_node.start_byte() as u32,
+            value_ref: true,
+            ..Default::default()
+        });
     }
 
     fn walk_children(&mut self, node: Node) {
@@ -612,5 +697,71 @@ mod tests {
             refs,
             vec![("handler_at_1", "Lambda.run"), ("handle", "Lambda.run")]
         );
+    }
+
+    fn extract_with_refs(src: &str, refs: bool) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_swift::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        SwiftPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(refs),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.swift"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    fn value_refs(f: &FileFacts) -> Vec<(String, String)> {
+        f.references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
+            .collect()
+    }
+
+    /// WS26 (gap 25): a function named without being called is a
+    /// reference site — `#selector(tap)`, an argument, an initializer, an
+    /// assignment, a return — only when the run asks for them; a key path
+    /// and a string are not, and a type's properties are recorded as data.
+    #[test]
+    fn function_values_are_reference_sites() {
+        let src = "class C {\n\
+                     var name: String = \"\"\n\
+                     let f = Self.process\n\
+                     func go(xs: [Int]) -> Int {\n\
+                       button.addTarget(self, action: #selector(tap), for: .touchUpInside)\n\
+                       let ys = xs.map(transform)\n\
+                       let zs = xs.sorted(by: compare)\n\
+                       let g = self.handle\n\
+                       h = helper\n\
+                       use(\\C.name)\n\
+                       log(\"named\")\n\
+                       return made\n\
+                     }\n\
+                   }\n";
+        let f = extract_with_refs(src, true);
+        let got = value_refs(&f);
+        for (recv, name) in [
+            ("Self", "process"),
+            ("", "tap"),
+            ("", "transform"),
+            ("", "compare"),
+            ("self", "handle"),
+            ("", "helper"),
+            ("", "made"),
+        ] {
+            assert!(
+                got.contains(&(recv.to_string(), name.to_string())),
+                "missing {recv}.{name} in {got:?}"
+            );
+        }
+        let names: Vec<&str> = got.iter().map(|(_, n)| n.as_str()).collect();
+        assert!(!names.contains(&"name"), "{got:?}");
+        assert!(!names.contains(&"named"), "{got:?}");
+        assert_eq!(f.data_members, vec!["name".to_string(), "f".to_string()]);
+        let plain = extract_with_refs(src, false);
+        assert!(value_refs(&plain).is_empty());
+        assert!(plain.data_members.is_empty());
     }
 }

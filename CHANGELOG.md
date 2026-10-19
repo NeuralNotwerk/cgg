@@ -415,6 +415,21 @@ otherwise change the default graph.
   with the reflection screen, a first-class callable (`f(...)`) was
   already recorded as its call, and `is_callable` is not a use.
 
+- **Swift functions used as values were not references (WS26, gap 25).**
+  `#selector(tap)`, `xs.map(transform)`, `sorted(by: compare)`,
+  `routes.get(use: self.listBuckets)`, `let g = self.handle`,
+  `.map(ResourceMatcher.init)`, an assignment and a returned value left
+  the function with no reference, so it was reported dead. Under
+  `--dead-code` and `--reference-edges` each is now a value reference,
+  bare or through `self`, a type or a variable. A key path is not one; a
+  name a local binds is dropped through the Swift locals, and a name a
+  type declares as a property through `FileFacts::data_members`; an
+  `x.m` value through an untyped variable binds only through its type,
+  never by name fan-out. A function value with no enclosing callable (a
+  property initializer) credits only its own file's callables of that
+  name, as Ruby's class-level symbols do. `#selector(C.m(_:))` was
+  already recorded as the call it is written as.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -679,6 +694,17 @@ re-run alone: its default graph is unchanged):
   `high`); none are removed.
 - Under `--dead-code`, 63 PHP findings leave the report (none `high`; 51
   in WordPress), none are newly reported, and 2 move `medium` → `low`.
+
+WS26 Swift (full corpus, none excluded):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 238 Swift reference edges are added (186
+  `high`); none are removed.
+- Under `--dead-code`, 188 Swift findings leave the report (none `high`;
+  126 Vapor route handlers in one repository). 424 previously withheld
+  findings in one repository are now reported, all withheld for low root
+  coverage, which the new references lift over the threshold; 6 move
+  `medium` → `low`.
 
 ## [0.11.0] - 2026-10-16
 
