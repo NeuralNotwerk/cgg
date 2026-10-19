@@ -3286,6 +3286,89 @@ fn clojure_discards_methods_and_schema_defns() {
     );
 }
 
+/// Clojure dead code: a method of an interface the tree does not declare
+/// is called from outside; a top-level `alias/f` call roots exactly `f`
+/// of the aliased namespace, through `import-vars` re-exports; and a call
+/// through a re-exporting alias reaches the defining namespace.
+#[test]
+fn clojure_external_methods_toplevel_qualified_calls_and_reexports() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/lib/impl.clj",
+        b"(ns lib.impl)\n(defn reexported-at-top [] 2)\n(defn via-reexport [] 3)\n(defn never [] 4)\n",
+    );
+    write(
+        tmp.path(),
+        "src/lib/api.clj",
+        b"(ns lib.api (:require [potemkin :as p] [lib.impl]))\n(p/import-vars [lib.impl reexported-at-top via-reexport])\n",
+    );
+    write(
+        tmp.path(),
+        "src/app/util.clj",
+        b"(ns app.util)\n(defn from-run [] 1)\n(defn at-top [] 1)\n(defn unused [] 1)\n",
+    );
+    write(
+        tmp.path(),
+        "src/app/core.clj",
+        b"(ns app.core (:require [lib.api :as api] [app.util :as u]))\n\
+(defprotocol Fmt (fmt [x]) (unused-op [x]))\n\
+(extend-protocol Fmt String (fmt [s] s) (unused-op [s] s))\n\
+(defmulti area :shape)\n\
+(defmethod area :circle [c] 1)\n\
+(defmulti unused-mm identity)\n\
+(defmethod unused-mm :x [_] 1)\n\
+(defmethod print-method String [x w] nil)\n\
+(defn start [] (api/via-reexport) (map #(fmt %) [\"a\"]) (area {:shape :circle}))\n\
+(def job (reify Runnable (run [this] (u/from-run))))\n\
+(u/at-top)\n\
+(api/reexported-at-top)\n\
+(start)\n",
+    );
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in [
+        "app.core/Runnable.run",
+        "app.util/from-run",
+        "app.util/at-top",
+        "lib.impl/reexported-at-top",
+        "lib.impl/via-reexport",
+        "app.core/fmt",
+        "app.core/String.fmt",
+        "app.core/area[:circle]",
+        "app.core/print-method[String]",
+    ] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} is live, findings: {dead:?}"
+        );
+    }
+    for gone in [
+        "app.util/unused",
+        "lib.impl/never",
+        "app.core/unused-op",
+        "app.core/String.unused-op",
+        "app.core/unused-mm[:x]",
+    ] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone} is dead, findings: {dead:?}"
+        );
+    }
+}
+
 /// WS26 Clojure: a symbol argument, a threading step, `#'alias/f` and a
 /// map value name a function; `alias/f` binds through the `require`
 /// alias only, a bare name its own namespace's function, and a `let`

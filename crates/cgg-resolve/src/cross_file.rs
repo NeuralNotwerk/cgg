@@ -1076,6 +1076,37 @@ pub fn resolve(
                 .push(c.id);
         }
     }
+    // Clojure `(import-vars [a.b f])` in namespace `x` makes `x/f` the
+    // var `a.b/f`: a call or value through `x` binds there (chains
+    // followed, depth 8). Added only where `x/f` names nothing itself.
+    {
+        let reexports: std::collections::BTreeMap<&str, &str> = facts
+            .iter()
+            .filter(|f| f.language == "clojure")
+            .flat_map(|f| f.imports.iter())
+            .filter(|i| i.kind == cgg_core::CLOJURE_REEXPORT_KIND)
+            .map(|i| (i.alias.as_str(), i.path.as_str()))
+            .collect();
+        for (&alias, &src) in &reexports {
+            let lang = "clojure".to_string();
+            if by_qn.contains_key(&(lang.clone(), alias.to_string())) {
+                continue;
+            }
+            let mut target = src;
+            for _ in 0..8 {
+                if by_qn.contains_key(&(lang.clone(), target.to_string())) {
+                    break;
+                }
+                match reexports.get(target) {
+                    Some(next) if *next != target => target = next,
+                    _ => break,
+                }
+            }
+            if let Some(&cid) = by_qn.get(&(lang.clone(), target.to_string())) {
+                by_qn.insert((lang, alias.to_string()), cid);
+            }
+        }
+    }
 
     let unique_owners = OwnerFacts::build(graph);
 

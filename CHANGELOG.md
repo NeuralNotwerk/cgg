@@ -32,6 +32,26 @@ otherwise change the default graph.
   `import-vars` — a `defn`-style macro; `:-` annotations are not part of
   the name or parameters. Requires inside reader conditionals
   (`#?@(:clj ([a.b :as x]))`) are now read, so their aliases resolve.
+- **Clojure calls inside `#(…)` were not calls.** An anonymous function
+  literal's body is now read like any list: `(map #(f %) xs)` calls `f`.
+- **Clojure multimethods were not linked.** A `defmethod` was a callable
+  named like its `defmulti`, so a call to the multimethod bound to an
+  arbitrary one of them and the others looked dead. Each `defmethod` is
+  now `ns/m[dispatch]`, carrying the multimethod it implements
+  (`multimethod:a.b/m`, through the file's aliases); the dispatch
+  fan-out links the `defmulti` to every `defmethod`, and a call to `m`
+  reaches the `defmulti` only. A type's protocol method is likewise
+  named `Type.m`, so a call to the protocol's var `m` never binds an
+  implementation directly.
+- **Clojure `import-vars` re-exports did not resolve.** `(p/import-vars
+  [a.b f])` in `x` makes `x/f` the var `a.b/f`; calls and `#'x/f` values
+  through `x` now reach it.
+- **Clojure dead code missed outside contracts and top-level qualified
+  calls.** A method implementing a protocol or interface the tree does
+  not declare (`(reify Runnable (run [_] …))`), and a `defmethod` of a
+  multimethod the tree does not declare (`print-method`), are roots
+  (`clojure:external-contract`); a top-level `(alias/f)` or `#'alias/f`
+  roots exactly `f` of the aliased namespace, through re-exports.
 - **A Clojure definition with name metadata was named after its
   metadata.** `(defn ^:private f …)` was the callable `ns/^:private f`
   (likewise `^{…}`, `#^Tag`, stacked metadata, and every def form:
@@ -912,23 +932,29 @@ compared with the old metadata-carrying names normalised):
   `medium` → `low` (a call now names a multimethod whose same-file
   `defmethod`s share its name, an ambiguous site).
 
-Clojure discards, methods and schema `defn`s (full corpus, none
-excluded):
+Clojure discards, methods, schema `defn`s, multimethods and re-exports
+(full corpus, none excluded; both changes together, against the graph
+before either):
 
 - The default graph changes in seven Clojure repositories. Clojure
   callables: Metabase 28,864 → 33,121 (2,887 schema-`defn` functions,
   1,290 methods, 96 protocol declarations; 16 discarded definitions
   gone), Riemann 867 → 1,140, Ring 402 → 642, cljdoc 1,062 → 1,192,
   Compojure 124 → 138, storm-starter 14 → 18, LIPAS 4,048 → 4,042 (19
-  discarded definitions gone, 13 methods). Edges: Metabase 194,450 →
-  206,735, Riemann 960 → 1,012, Ring 408 → 457, cljdoc 1,309 → 1,395,
-  Compojure 124 → 128, LIPAS 4,450 → 4,443; of 638 removed edges 493 are
-  the same call now made by the method that contains it.
-- Under `--dead-code`, 579 Clojure findings leave the report and 3,577
-  enter it (Metabase 2,835, Riemann 563, Ring 105, cljdoc 59), none
-  `high`: the newly extracted functions and methods are reportable for
-  the first time, and calls their bodies made at the top level no longer
-  root what they call.
+  discarded definitions gone, 13 methods); every `defmethod` is renamed
+  `m[dispatch]`. Edges: Metabase 194,450 → 212,149, LIPAS 4,450 →
+  4,846, cljdoc 1,309 → 1,443, Riemann 960 → 1,064, Ring 408 → 464,
+  Compojure 124 → 135 — calls inside `#(…)`, calls through an
+  `import-vars` re-export, and calls made inside method bodies; calls
+  bound by name to a `defmethod` or a type's method are gone.
+- Under `--dead-code` (findings matched by location, so a renamed
+  `defmethod` is the same finding), 9,266 Clojure findings leave the
+  report and 568 enter it, none `high`. Metabase reports 16,121 →
+  7,788 findings (candidates 33,805 → 23,881). Of the 568, Riemann's 330
+  were already candidates, withheld while root coverage was low;
+  Metabase's 220 and Ring's 18 are mostly library entry points cgg has
+  no root for (ClojureScript `^:export` functions, Leiningen tasks,
+  namespaces re-exported by a macro other than `import-vars`).
 
 ## [0.11.0] - 2026-10-16
 

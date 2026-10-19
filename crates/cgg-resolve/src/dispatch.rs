@@ -46,6 +46,21 @@ pub fn fanout(graph: &Graph) -> Vec<CallEdge> {
     let mut decls: HashMap<(String, String, String), CallableId> = HashMap::new();
 
     for c in graph.callables.values() {
+        // Clojure: a `defmulti` and its `defmethod`s name the multimethod;
+        // the `defmulti` is the one whose qualified name it is.
+        if let Some(m) = c
+            .attributes
+            .iter()
+            .find_map(|a| a.strip_prefix(cgg_core::CLOJURE_MULTIMETHOD_ATTR))
+        {
+            let key = (c.language.clone(), m.to_string(), String::new());
+            if c.qualified_name == m {
+                decls.entry(key).or_insert(c.id);
+            } else {
+                impls.entry(key).or_default().push(c.id);
+            }
+            continue;
+        }
         // Clojure: a protocol method's declaration and implementations name
         // their protocol (`protocol:P`); the declaration is `abstract`.
         if let Some(p) = c
@@ -53,7 +68,9 @@ pub fn fanout(graph: &Graph) -> Vec<CallEdge> {
             .iter()
             .find_map(|a| a.strip_prefix(cgg_core::CLOJURE_PROTOCOL_ATTR))
         {
-            let key = (c.language.clone(), p.to_string(), c.simple_name.clone());
+            // An implementation's simple name is `Type.m`.
+            let method = c.simple_name.rsplit('.').next().unwrap_or(&c.simple_name);
+            let key = (c.language.clone(), p.to_string(), method.to_string());
             if c.attributes.iter().any(|a| a == "abstract") {
                 decls.entry(key).or_insert(c.id);
             } else {

@@ -454,6 +454,33 @@ pub(crate) fn discover(
     let mut set = RootSet::default();
     let mut seen: HashSet<CallableId> = HashSet::new();
     let returned_unwrapped = rust_returned_types(graph);
+    // Clojure protocols and interfaces the tree declares (`defprotocol`,
+    // `definterface`): their implementations are reached through the
+    // declaration's dispatch fan-out, the others' are not.
+    let clojure_protocols: HashSet<&str> = graph
+        .callables
+        .values()
+        .filter(|n| {
+            n.language == "clojure" && n.attributes.iter().any(|a| a == "abstract")
+        })
+        .filter_map(|n| {
+            n.attributes
+                .iter()
+                .find_map(|a| a.strip_prefix(cgg_core::CLOJURE_PROTOCOL_ATTR))
+        })
+        .collect();
+    // Clojure multimethods the tree declares (`defmulti`).
+    let clojure_multimethods: HashSet<&str> = graph
+        .callables
+        .values()
+        .filter(|n| n.language == "clojure")
+        .filter_map(|n| {
+            n.attributes
+                .iter()
+                .find_map(|a| a.strip_prefix(cgg_core::CLOJURE_MULTIMETHOD_ATTR))
+                .filter(|m| *m == n.qualified_name)
+        })
+        .collect();
 
     // --- Rule: synthesized framework entry nodes -------------------------
     //
@@ -666,6 +693,12 @@ pub(crate) fn discover(
             }
         }
     }
+
+    // Clojure: a top-level `alias/f` call or `#'alias/f` value names one
+    // var — `f` of the namespace the file's `:require` gives `alias`,
+    // through `import-vars` re-exports — and credits exactly the callables
+    // of that qualified name (a multimethod's `defmethod`s among them).
+    clojure_qualified_toplevel(graph, facts, &mut set, &mut seen);
 
     // --- Rule: C-family macro invoked outside any function -------------
     //
@@ -895,6 +928,49 @@ pub(crate) fn discover(
             continue;
         }
 
+        // A Clojure method implementing a protocol or interface the tree
+        // does not declare (`(reify Runnable (run [_] …))`, a Java
+        // listener's `proxy`): the outside code that holds the object
+        // calls it.
+        if lang == "clojure"
+            && !node.attributes.iter().any(|a| a == "abstract")
+            && let Some(p) = node
+                .attributes
+                .iter()
+                .find_map(|a| a.strip_prefix(cgg_core::CLOJURE_PROTOCOL_ATTR))
+            && !clojure_protocols.contains(p)
+        {
+            set.push(
+                graph,
+                *id,
+                RootKind::LifecycleCallback,
+                "clojure:external-contract",
+                format!("implements `{p}`, declared outside the tree"),
+                &mut seen,
+            );
+            continue;
+        }
+        // A `defmethod` of a multimethod the tree does not declare
+        // (`print-method`, a library's): the library dispatches to it.
+        if lang == "clojure"
+            && let Some(m) = node
+                .attributes
+                .iter()
+                .find_map(|a| a.strip_prefix(cgg_core::CLOJURE_MULTIMETHOD_ATTR))
+            && m != node.qualified_name
+            && !clojure_multimethods.contains(m)
+        {
+            set.push(
+                graph,
+                *id,
+                RootKind::LifecycleCallback,
+                "clojure:external-contract",
+                format!("a method of `{m}`, declared outside the tree"),
+                &mut seen,
+            );
+            continue;
+        }
+
         // Trait methods invoked by syntax, an operator, or a derive. Not
         // for an impl a macro stamped out: rooting every generated
         // `Display`/`From` would make the whole generated surface — and
@@ -1081,6 +1157,93 @@ fn collect_rust_reexports(facts: &[FileFacts]) -> HashSet<String> {
         }
     }
     out
+}
+
+fn clojure_qualified_toplevel(
+    graph: &Graph,
+    facts: &[FileFacts],
+    set: &mut RootSet,
+    seen: &mut HashSet<CallableId>,
+) {
+    let clj: Vec<&FileFacts> = facts.iter().filter(|f| f.language == "clojure").collect();
+    if clj.is_empty() {
+        return;
+    }
+    let aliases: HashMap<cgg_core::FileId, HashMap<&str, &str>> = clj
+        .iter()
+        .map(|f| {
+            let m = f
+                .imports
+                .iter()
+                .filter(|i| i.kind == "require" && !i.alias.is_empty())
+                .map(|i| (i.alias.as_str(), i.path.as_str()))
+                .collect();
+            (f.file, m)
+        })
+        .collect();
+    let reexports: HashMap<&str, &str> = clj
+        .iter()
+        .flat_map(|f| f.imports.iter())
+        .filter(|i| i.kind == cgg_core::CLOJURE_REEXPORT_KIND)
+        .map(|i| (i.alias.as_str(), i.path.as_str()))
+        .collect();
+    let mut by_qn: HashMap<&str, Vec<CallableId>> = HashMap::new();
+    for (id, n) in &graph.callables {
+        if n.language == "clojure" && !n.synthetic {
+            by_qn
+                .entry(n.qualified_name.as_str())
+                .or_default()
+                .push(*id);
+        }
+    }
+    // Every qualified site outside the file's definitions. A qualified
+    // call resolves in another file, so the audit files it in the
+    // external or no-candidate buckets rather than as a top-level site:
+    // read it off the facts instead.
+    for f in &clj {
+        let Some(file_aliases) = aliases.get(&f.file) else {
+            continue;
+        };
+        for r in &f.references {
+            let Some((ns, name)) = r.name.split_once('/') else {
+                continue;
+            };
+            if ns.is_empty()
+                || name.is_empty()
+                || !r.receiver_hint.is_empty() && !r.value_ref
+                || f.definitions
+                    .iter()
+                    .any(|d| d.start_byte <= r.site_byte && r.site_byte < d.end_byte)
+            {
+                continue;
+            }
+            let ns = file_aliases.get(ns).copied().unwrap_or(ns);
+            let mut qn = format!("{ns}/{name}");
+            for _ in 0..8 {
+                if by_qn.contains_key(qn.as_str()) {
+                    break;
+                }
+                match reexports.get(qn.as_str()) {
+                    Some(next) => qn = (*next).to_string(),
+                    None => break,
+                }
+            }
+            let Some(ids) = by_qn.get(qn.as_str()) else {
+                continue;
+            };
+            let path = f.path.display().to_string();
+            for id in ids {
+                set.push(
+                    graph,
+                    *id,
+                    RootKind::TopLevelInvocation,
+                    "toplevel:invocation",
+                    format!("called from module top level at {path}:{}", r.site_line),
+                    seen,
+                );
+            }
+        }
+    }
 }
 
 /// Languages whose class- or module-level value references name the

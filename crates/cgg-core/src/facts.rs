@@ -33,6 +33,15 @@ pub const VALUE_REF_HINT: &str = "\u{1}value-ref";
 /// implementations.
 pub const CLOJURE_PROTOCOL_ATTR: &str = "protocol:";
 
+/// `ImportRecord::kind` of a Clojure `import-vars` re-export: `path` is
+/// the source var (`a.b/f`), `alias` the re-exported one (`this.ns/f`).
+pub const CLOJURE_REEXPORT_KIND: &str = "reexport";
+
+/// `DefRecord::attributes` entry naming the multimethod (its qualified
+/// name, `a.b/m`) a Clojure `defmulti` declares or a `defmethod`
+/// implements. `dispatch::fanout` links the one to the others.
+pub const CLOJURE_MULTIMETHOD_ATTR: &str = "multimethod:";
+
 /// Sentinel `RefRecord::receiver_hint` value marking a *string literal*
 /// argument of a registration call — `Route::get('/x', 'C@method')`,
 /// `get 'photos', to: 'photos#index'`. `name` holds the literal

@@ -102,7 +102,8 @@ impl<'a> ClojureWalker<'a> {
         match node.kind() {
             // `#_form`: commented-out code — no callable, call or value.
             "dis_expr" => {}
-            "list_lit" => {
+            // `#(f %)` is a function whose body is the call `(f %)`.
+            "list_lit" | "anon_fn_lit" => {
                 if self.is_ns_form(node) {
                     self.extract_namespace(node);
                 } else if let Some(m) = self.method_spec(node) {
@@ -370,20 +371,49 @@ impl<'a> ClojureWalker<'a> {
                 return;
             }
 
-            let qn = self.qn(&name);
+            let mut qn = self.qn(&name);
+            let mut simple = name;
             let variant = DefVariant::FreeFunction;
             // A macro: `settle_defn_macros` reads which namespaces define a
             // `defn`-style one.
-            let attributes = match self.head_name(node) {
-                Some("defmacro" | "defmacro-") => vec![MACRO_ATTR.to_string()],
-                _ => Vec::new(),
-            };
+            let mut attributes = Vec::new();
+            match self.head_name(node) {
+                Some("defmacro" | "defmacro-") => attributes.push(MACRO_ATTR.to_string()),
+                Some("defmulti") => attributes.push(format!("{MULTI_ATTR}{qn}")),
+                // `(defmethod m :k [x] …)` / `(defmethod alias/m :k …)`: one
+                // implementation of the multimethod `m`, named by its
+                // dispatch value (`m[:k]`) — reached through the
+                // multimethod's dispatch, never by a call naming `m`.
+                Some("defmethod") => {
+                    let (ns, m) = self.sym_parts(name_node);
+                    let target = if ns.is_empty() {
+                        self.qn(m)
+                    } else {
+                        format!("{}/{m}", self.resolve_ns(ns))
+                    };
+                    attributes.push(format!("{MULTI_ATTR}{target}"));
+                    let dispatch = forms(node)
+                        .get(2)
+                        .map(|d| {
+                            let t: String = self
+                                .text(*d)
+                                .split_whitespace()
+                                .collect::<Vec<_>>()
+                                .join(" ");
+                            t.chars().take(60).collect::<String>()
+                        })
+                        .unwrap_or_default();
+                    qn = format!("{qn}[{dispatch}]");
+                    simple = format!("{simple}[{dispatch}]");
+                }
+                _ => {}
+            }
             let (sl, el) = (
                 (node.start_position().row as u32) + 1,
                 (node.end_position().row as u32) + 1,
             );
             self.facts.definitions.push(DefRecord {
-                simple_name: name,
+                simple_name: simple,
                 qualified_name: qn,
                 variant,
                 start_line: sl,
@@ -541,8 +571,18 @@ impl<'a> ClojureWalker<'a> {
         if m.decl {
             attributes.push("abstract".to_string());
         }
+        // An implementation is reached through its protocol's dispatch,
+        // never by a call naming `m`, which is the protocol's var: its
+        // simple name is `Type.m` (`dispatch::fanout` reads the method
+        // back off it).
+        let simple = if m.decl {
+            m.method
+        } else {
+            qn.rsplit_once('/')
+                .map_or(m.method.clone(), |(_, s)| s.to_string())
+        };
         self.facts.definitions.push(DefRecord {
-            simple_name: m.method,
+            simple_name: simple,
             qualified_name: qn,
             variant: if m.decl {
                 DefVariant::TraitMethod
@@ -803,7 +843,9 @@ impl<'a> ClojureWalker<'a> {
 /// macro it names (`a.b/defn`), until `settle_defn_macros` decides it.
 const DEFN_VIA: &str = "defn-via:";
 /// `ImportRecord::kind` of an `import-vars` re-export.
-const REEXPORT: &str = "reexport";
+const REEXPORT: &str = cgg_core::CLOJURE_REEXPORT_KIND;
+/// Names the multimethod a `defmulti` declares or a `defmethod` implements.
+const MULTI_ATTR: &str = cgg_core::CLOJURE_MULTIMETHOD_ATTR;
 /// Marks a `defmacro` definition.
 const MACRO_ATTR: &str = "macro";
 /// Names the protocol (or interface) a method declares or implements.
@@ -1282,7 +1324,9 @@ mod tests {
             "(defmethod l :x [_] 1)\n",
         );
         let f = extract(src);
-        for name in ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"] {
+        for name in [
+            "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l[:x]",
+        ] {
             assert!(
                 f.definitions.iter().any(|d| d.simple_name == name),
                 "`{name}` was not captured; defs: {:?}",
@@ -1661,8 +1705,8 @@ mod tests {
             ("(defn ^:private ^:deprecated ^String f [x] x)", "f"),
             ("(defmacro ^:private m [x] x)", "m"),
             ("(defmulti ^:private mm (fn [x] x))", "mm"),
-            ("(defmethod ^:private mm :a [x] x)", "mm"),
-            ("(defmethod ^:private other/mm :a [x] x)", "other/mm"),
+            ("(defmethod ^:private mm :a [x] x)", "mm[:a]"),
+            ("(defmethod ^:private other/mm :a [x] x)", "other/mm[:a]"),
             ("(defprotocol ^:private P (pm [this]))", "P"),
             ("(definterface ^:private I (im []))", "I"),
             ("(defrecord ^:private R [a])", "R"),
@@ -1697,6 +1741,50 @@ mod tests {
         let f = extract("(defn g [s] ^String (f s) #^Foo (h s) (^:once k s))\n");
         let names: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
         assert_eq!(names, vec!["f", "h", "k"]);
+    }
+
+    /// A `defmethod` is one implementation of its multimethod, named by
+    /// its dispatch value; both name the multimethod (through aliases).
+    #[test]
+    fn defmethods_name_their_multimethod() {
+        let f = extract(
+            "(ns a (:require [x.y :as xy]))\n(defmulti area :shape)\n(defmethod area :circle [c] 1)\n(defmethod xy/render [:a :b] [v] 2)\n",
+        );
+        let got: Vec<(&str, &str, Vec<&str>)> = f
+            .definitions
+            .iter()
+            .map(|d| {
+                (
+                    d.qualified_name.as_str(),
+                    d.simple_name.as_str(),
+                    d.attributes.iter().map(String::as_str).collect(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            got,
+            vec![
+                ("a/area", "area", vec!["multimethod:a/area"]),
+                (
+                    "a/area[:circle]",
+                    "area[:circle]",
+                    vec!["multimethod:a/area"]
+                ),
+                (
+                    "a/xy/render[[:a :b]]",
+                    "xy/render[[:a :b]]",
+                    vec!["multimethod:x.y/render"]
+                ),
+            ]
+        );
+    }
+
+    /// `#(f %)` calls `f`.
+    #[test]
+    fn calls_inside_an_anonymous_fn_literal_are_calls() {
+        let f = extract("(ns a)\n(defn g [xs] (map #(h % 1) xs) #(k))\n");
+        let names: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
+        assert_eq!(names, vec!["map", "h", "k"]);
     }
 
     /// `#_form` is commented-out code: nothing in it is extracted.
@@ -1750,6 +1838,29 @@ mod tests {
                 want("a/nil.fetch", &["protocol:Store"]),
                 want("a/Store.fetch", &["protocol:Store"]),
             ]
+        );
+        let simple: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.simple_name.as_str())
+            .collect();
+        assert_eq!(
+            simple,
+            vec![
+                "Store",
+                "put!",
+                "fetch",
+                "Mem",
+                "Mem.put!",
+                "Mem.toString",
+                "R",
+                "R.fetch",
+                "String.fetch",
+                "Long.fetch",
+                "nil.fetch",
+                "Store.fetch"
+            ],
+            "an implementation is never named by a call to the protocol's var"
         );
         let calls: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
         assert!(calls.contains(&"save"), "{calls:?}");
