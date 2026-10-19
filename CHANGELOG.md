@@ -471,8 +471,9 @@ otherwise change the default graph.
   own file's functions, as Ruby's, Swift's, Dart's and Scala's do.
 
 - **Erlang function values were not references (WS26, gap 25).**
-  `fun f/N`, `fun m:f/N`, an `{M, F, A}` / `{M, F}` callback tuple and the
-  `M, F, A` arguments of `spawn`/`spawn_link`/`apply`/`proc_lib:spawn*`/
+  `fun f/N`, `fun m:f/N`, an `{M, F, [A…]}` callback tuple, an
+  `{M, F, N}` function-by-arity tuple (`erlang:trace_pattern`, `dbg:tp`)
+  and the `M, F, A` arguments of `spawn`/`spawn_link`/`apply`/`proc_lib:spawn*`/
   `timer:apply_*`/`rpc:call` (`cgg_core::stdlib::ERLANG_MFA_CALLS`)
   left the function with no reference, so it was reported dead. Under
   `--dead-code` and `--reference-edges` each is now a value reference of
@@ -482,6 +483,11 @@ otherwise change the default graph.
   value whose arity no clause has names no function, never one of another
   arity, and `{ok, Name}`-style data tuples and tuples in a pattern (a
   clause head, a `case`/`receive` pattern, the left of `=`) name nothing.
+  A bare `{M, F}` names a function only as a call argument, the right of
+  `=`, a record field's value or a clause's value — never inside a list,
+  a map, a binary or another tuple, where it is a group, a label or an
+  event — and its binding is never `high`: a pair of atoms is a callback
+  as often as it is a key.
   A value outside any function (a `-record` default) credits only its own
   module's functions, as Ruby's, Swift's, Dart's, Scala's and Lua's do.
 
@@ -799,6 +805,18 @@ WS26 Erlang (full corpus, none excluded):
 - Under `--dead-code`, 1,257 Erlang findings leave the report (none
   `high`; Erlang/OTP 1,086, VerneMQ 124, rebar3 47). None are added and
   none change confidence.
+
+WS26 Erlang `{M, F}` follow-up (full corpus, none excluded):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 1,266 Erlang reference edges are removed
+  (1,034 `high`): bare `{M, F}` pairs inside lists, maps and other tuples
+  (common_test groups and events and report labels among them). 50 bare
+  pairs that remain move `high` → `medium`, and 573
+  `high` edges are added from `{M, F, N}` tuples.
+- Under `--dead-code` (Erlang/OTP only), 12 findings leave the report
+  (`{M, F, N}` trace and lint targets) and 9 return (functions named only
+  by a bare pair in a list or an event tuple). None are `high`.
 
 ## [0.11.0] - 2026-10-16
 

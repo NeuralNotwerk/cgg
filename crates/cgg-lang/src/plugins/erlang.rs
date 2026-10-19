@@ -341,20 +341,35 @@ impl ErlangWalker<'_> {
 
     /// `M`, `F` atoms and, when `A` is a literal list, its length: the
     /// callee `M:F/len(A)` they name.
-    fn push_mfa(&mut self, m: Node, f: Node, args: Option<Node>) {
+    fn push_mfa(&mut self, m: Node, f: Node, arity: Option<u32>) {
         if m.kind() != "atom" || f.kind() != "atom" {
             return;
         }
-        let arity = match args {
-            Some(a) if a.kind() == "list" => Some(a.named_child_count() as u32),
-            Some(_) => None,
-            None => None,
-        };
         let module = self.text(m).to_string();
         let name = format!("{module}:{}", self.text(f));
         self.push_value_ref(f, name, module, arity);
     }
 
+    /// A bare `{M, F}` as an argument or a value: a callback as often as
+    /// data, so its binding is never `high` (`weak_receiver_type`).
+    fn push_mfa_weak(&mut self, m: Node, f: Node) {
+        let before = self.facts.references.len();
+        self.push_mfa(m, f, None);
+        if let Some(r) = self.facts.references.get_mut(before) {
+            r.weak_receiver_type = true;
+        }
+    }
+
+    /// The arity an `A` argument states: a literal list's length, else
+    /// unknown.
+    fn args_arity(a: Option<Node>) -> Option<u32> {
+        a.filter(|a| a.kind() == "list")
+            .map(|a| a.named_child_count() as u32)
+    }
+
+    /// `{M, F, [A…]}` (a callback with its arguments), `{M, F, N}` (a
+    /// function by arity, as `erlang:trace_pattern` takes it) and a bare
+    /// `{M, F}` standing as an argument or a value (`push_mfa_weak`).
     fn record_mfa_tuple(&mut self, tuple: Node) {
         if in_pattern(tuple) {
             return;
@@ -362,8 +377,16 @@ impl ErlangWalker<'_> {
         let mut c = tuple.walk();
         let items: Vec<Node> = tuple.named_children(&mut c).collect();
         match items.as_slice() {
-            [m, f] => self.push_mfa(*m, *f, None),
-            [m, f, a] if a.kind() == "list" => self.push_mfa(*m, *f, Some(*a)),
+            [m, f, a] if a.kind() == "list" => {
+                self.push_mfa(*m, *f, Self::args_arity(Some(*a)))
+            }
+            [m, f] if bare_value_position(tuple) => self.push_mfa_weak(*m, *f),
+            [m, f, n] if n.kind() == "integer" => {
+                let arity = self.text(*n).parse().ok();
+                if arity.is_some() {
+                    self.push_mfa(*m, *f, arity);
+                }
+            }
             _ => {}
         }
     }
@@ -387,8 +410,24 @@ impl ErlangWalker<'_> {
             return;
         };
         if let (Some(m), Some(f)) = (items.get(pos), items.get(pos + 1)) {
-            self.push_mfa(*m, *f, items.get(pos + 2).copied());
+            self.push_mfa(*m, *f, Self::args_arity(items.get(pos + 2).copied()));
         }
+    }
+}
+
+/// Whether a tuple stands as a call argument, the right of `=`, a
+/// record field's value or an expression of a clause body — not inside a
+/// list, a map, a binary or another tuple, where a pair of atoms is data.
+fn bare_value_position(tuple: Node) -> bool {
+    let Some(p) = tuple.parent() else {
+        return false;
+    };
+    match p.kind() {
+        "expr_args" => p.parent().is_some_and(|g| g.kind() == "call"),
+        "match_expr" => field_of(p, tuple) == Some("rhs"),
+        "field_expr" => p.parent().is_some_and(|g| g.kind() == "record_field"),
+        "clause_body" => true,
+        _ => false,
     }
 }
 
@@ -498,6 +537,7 @@ mod tests {
             \x20 spawn(c, loop, [X, 1]),\n\
             \x20 erlang:apply(d, h, []),\n\
             \x20 timer:apply_after(10, e, tick, [X]),\n\
+            \x20 erlang:trace_pattern({g, init, 1}, true, []),\n\
             \x20 {F, S}.\n";
         let f = extract_with_refs(src);
         assert_eq!(
@@ -509,6 +549,7 @@ mod tests {
                 ("c:loop", "c", Some(2)),
                 ("d:h", "d", Some(0)),
                 ("e:tick", "e", Some(1)),
+                ("g:init", "g", Some(1)),
             ]
         );
     }
@@ -523,6 +564,9 @@ mod tests {
             \x20 spawn(M, F, X),\n\
             \x20 apply(a, F, []),\n\
             \x20 {ok, X},\n\
+            \x20 [{worker, start}],\n\
+            \x20 {{x, y}, z},\n\
+            \x20 #{label => {gen, stop}},\n\
             \x20 case X of {c, h} -> 1; _ -> 2 end,\n\
             \x20 {d, e} = X,\n\
             \x20 [1 || {g, h} <- X],\n\
@@ -532,6 +576,25 @@ mod tests {
         let off =
             extract("-module(a).\nrun() -> fun f/1, {m, f, []}, spawn(m, f, []).\n");
         assert!(value_refs(&off).is_empty());
+    }
+
+    /// A bare `{M, F}` as an argument or a value is recorded, but its
+    /// binding is never certain.
+    #[test]
+    fn a_bare_module_function_pair_is_a_weak_value_reference() {
+        let f = extract_with_refs(
+            "-module(a).\nrun(X) -> register_cb({m, f}), C = {n, g}, #s{cb = {o, h}}, {p, i}.\n",
+        );
+        let refs: Vec<(&str, bool)> = f
+            .references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.name.as_str(), r.weak_receiver_type))
+            .collect();
+        assert_eq!(
+            refs,
+            vec![("m:f", true), ("n:g", true), ("o:h", true), ("p:i", true)]
+        );
     }
 
     #[test]

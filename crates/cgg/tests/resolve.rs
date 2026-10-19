@@ -3074,7 +3074,8 @@ main() ->\n\
     S = {worker, start_link, []},\n\
     spawn(worker, loop, [1]),\n\
     D = {ok, compute},\n\
-    {F, G, S, D}.\n\
+    L = [{worker, unused}],\n\
+    {F, G, S, D, L}.\n\
 \n\
 step(X) -> X.\n\
 helper(X) -> X.\n\
