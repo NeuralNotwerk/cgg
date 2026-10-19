@@ -3459,6 +3459,93 @@ fn clojure_function_values_are_references() {
     );
 }
 
+/// WS26 Zig: a function passed (`std.sort.block(…, lessThan)`), stored
+/// (`&f`, `&Self.f`), returned or named in a container-level vtable
+/// (`.alloc = alloc`, `.free = mod.free`) is referenced; a parameter
+/// shadowing a function's name is not.
+#[test]
+fn zig_function_values_are_references() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "main.zig",
+        b"const std = @import(\"std\");\n\
+const mod = @import(\"mod.zig\");\n\
+const Self = @This();\n\
+const VTable = struct { alloc: *const fn () void, free: *const fn () void };\n\
+pub const vtable = VTable{ .alloc = alloc, .free = mod.free };\n\
+fn alloc() void {}\n\
+fn lessThan(a: u8, b: u8) bool { return a < b; }\n\
+fn worker() void {}\n\
+fn stored() void {}\n\
+fn returned() void {}\n\
+fn viaSelf() void {}\n\
+fn orphan() void {}\n\
+fn shadowed() void {}\n\
+pub fn main() void {\n\
+    var xs = [_]u8{ 3, 1 };\n\
+    std.sort.block(u8, &xs, {}, lessThan);\n\
+    _ = std.Thread.spawn(.{}, worker, .{}) catch {};\n\
+    var cb: *const fn () void = &stored;\n\
+    cb = &Self.viaSelf;\n\
+    _ = pick();\n\
+    use(1);\n\
+    const t = .{elsewhere};\n\
+    _ = t;\n\
+}\n\
+fn pick() *const fn () void { return returned; }\n\
+fn use(shadowed: u8) void { _ = shadowed; }\n\
+",
+    );
+    write(
+        tmp.path(),
+        "mod.zig",
+        b"pub fn free() void {}\n\
+pub fn unused() void {}\n\
+pub fn elsewhere() void {}\n\
+",
+    );
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in [
+        "alloc", "free", "lessThan", "worker", "stored", "returned", "viaSelf",
+    ] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} is referenced, findings: {dead:?}"
+        );
+    }
+    for gone in ["orphan", "shadowed", "unused", "elsewhere"] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone} has no reference, findings: {dead:?}"
+        );
+    }
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .arg("-o")
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain).unwrap().matches("ref|").count(),
+        0
+    );
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------

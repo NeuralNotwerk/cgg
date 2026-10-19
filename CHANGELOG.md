@@ -557,6 +557,22 @@ otherwise change the default graph.
   A value outside any function (a `-record` default) credits only its own
   module's functions, as Ruby's, Swift's, Dart's, Scala's and Lua's do.
 
+- **Zig function values were not references (WS26, gap 25).** A
+  function passed (`std.sort.block(T, xs, {}, lessThan)`,
+  `std.Thread.spawn(.{}, worker, .{})`), stored (`const h = f`,
+  `cb = &Self.f`), returned, or named in a struct or anonymous-struct
+  initializer — the comptime vtable `.vtable = &.{ .alloc = alloc, … }`
+  above all — left the function with no reference, so it was reported
+  dead. Under `--dead-code` and `--reference-edges` each is now a value
+  reference: a bare name binds only a declaration of its own file or one a
+  file-level alias imports, never another file's function by name; a
+  member binds through `Self`, a type or an `@import`ed file of the tree
+  (`mod.f`), never through a package (`std.x`) or a variable (`x.cb` is a
+  field read and is not recorded). Locals are pruned through the Zig
+  locals spec. A value at container level credits its own file's
+  functions, or, through an imported file (`.free = mod.free`), that
+  file's.
+
 - **Clojure function values were not references (WS26, gap 25).**
   `(map f xs)`, `(swap! a f)`, `(partial f …)`, `(comp f g)`, a bare step
   of `->`/`->>`, `#'f` and `#'alias/f`, `(def handler f)`, `{:handler f}`,
@@ -901,6 +917,15 @@ WS26 Erlang `{M, F}` follow-up (full corpus, none excluded):
 - Under `--dead-code` (Erlang/OTP only), 12 findings leave the report
   (`{M, F, N}` trace and lint targets) and 9 return (functions named only
   by a bare pair in a list or an event tuple). None are `high`.
+
+WS26 Zig (full corpus, none excluded):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 1,661 Zig reference edges are added (1,601
+  `high`); none are removed.
+- Under `--dead-code`, 3,506 Zig findings leave the report (none `high`;
+  Zig 1,557, Ghostty 1,058, TigerBeetle 678, http.zig 150, ZLS 41,
+  libxev 22), none are added, and 68 move `medium` → `low`.
 
 WS26 Clojure (full corpus, none excluded):
 

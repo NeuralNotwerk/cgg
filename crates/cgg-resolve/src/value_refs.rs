@@ -115,9 +115,12 @@ pub fn prune(all_facts: &mut [FileFacts]) {
                 }
                 m
             });
+        let zig = f.language == "zig";
+        let imports = std::mem::take(&mut f.imports);
         f.references.retain(|r| {
             !r.value_ref
                 || (known.contains(leaf(r))
+                    && (!zig || zig_value_in_scope(r, &defs, &imports))
                     && own_clauses.as_ref().is_none_or(|own| {
                         erlang_value_names_a_clause(r, own, &erlang_clauses)
                     })
@@ -126,6 +129,35 @@ pub fn prune(all_facts: &mut [FileFacts]) {
                     && !shadowed(&locals, &defs, r))
         });
         f.definitions = defs;
+        f.imports = imports;
+    }
+}
+
+/// A Zig value names a declaration in scope: a bare name one of this
+/// file (any container's) or a file-level alias of another file's
+/// (`const fatal = protocol.fatal;`); a member through `@import` a file of
+/// the tree (`mod.f`, a relative `.zig` path), `Self` or a type. A bare
+/// name declared nowhere here is a local the locals spec did not reach,
+/// never another file's function; a member of a package (`std.x`,
+/// `builtin.target`) is that package's.
+fn zig_value_in_scope(
+    r: &RefRecord,
+    defs: &[cgg_core::DefRecord],
+    imports: &[cgg_core::ImportRecord],
+) -> bool {
+    if r.receiver_hint.is_empty() {
+        return defs.iter().any(|d| d.simple_name == r.name)
+            || imports.iter().any(|i| {
+                matches!(i.kind.as_str(), "alias" | "import-member") && i.alias == r.name
+            });
+    }
+    let head = r.receiver_hint.split('.').next().unwrap_or("");
+    match imports
+        .iter()
+        .find(|i| i.kind == "import" && i.alias == head)
+    {
+        Some(i) => i.path.ends_with(".zig"),
+        None => true,
     }
 }
 

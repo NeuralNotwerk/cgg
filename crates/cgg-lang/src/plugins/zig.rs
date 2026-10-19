@@ -21,7 +21,7 @@ impl LanguagePlugin for ZigPlugin {
 
     fn extract(
         &self,
-        _ctx: &crate::ExtractCtx<'_>,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -36,7 +36,14 @@ impl LanguagePlugin for ZigPlugin {
             fns: Vec::new(),
             fn_stack: Vec::new(),
             pending: Vec::new(),
+            reference_sites: ctx.reference_sites,
+            decl_names: std::collections::HashSet::new(),
         };
+        if ctx.reference_sites {
+            let mut names = std::collections::HashSet::new();
+            declared_names(tree.root_node(), source, &mut names);
+            w.decl_names = names;
+        }
         w.walk(tree.root_node());
         w.type_locals();
         // A build script names the modules its packages are imported as:
@@ -79,6 +86,31 @@ struct ZigWalker<'a> {
     /// Functions being walked (indices into `fns`), innermost last.
     fn_stack: Vec<usize>,
     pending: Vec<PendingLocal>,
+    /// Record function values (WS26); see `crate::ExtractCtx`.
+    reference_sites: bool,
+    /// Names declared outside any function (`const std = @import(…)`,
+    /// `const Self = @This()`, `pub const x = …`): a value through one of
+    /// them names a declaration, never a field.
+    decl_names: std::collections::HashSet<String>,
+}
+
+/// Every `const`/`var` declared outside a function body.
+fn declared_names(n: Node, src: &[u8], out: &mut std::collections::HashSet<String>) {
+    if n.kind() == "function_declaration" {
+        return;
+    }
+    if n.kind() == "variable_declaration"
+        && let Some(id) = n
+            .named_children(&mut n.walk())
+            .find(|c| c.kind() == "identifier")
+        && let Ok(t) = id.utf8_text(src)
+    {
+        out.insert(t.to_string());
+    }
+    let mut c = n.walk();
+    for ch in n.named_children(&mut c) {
+        declared_names(ch, src, out);
+    }
 }
 
 /// A function of the file, for typing locals from what it returns.
@@ -227,6 +259,17 @@ impl<'a> ZigWalker<'a> {
             // the name is that declaration of the aliased container, which
             // the resolver follows (`const link = @import("link.zig")`).
             "variable_declaration" => {
+                if self.reference_sites {
+                    // `const h = handler;`, `cb = &Self.f;`: the value.
+                    let ty = node.child_by_field_name("type").map(|t| t.id());
+                    let named: Vec<Node> =
+                        node.named_children(&mut node.walk()).collect();
+                    if named.len() >= 2
+                        && let Some(v) = named.last().filter(|v| Some(v.id()) != ty)
+                    {
+                        self.value(*v);
+                    }
+                }
                 if node.parent().is_some_and(|p| p.kind() == "source_file") {
                     self.record_alias(node, false);
                 }
@@ -247,6 +290,17 @@ impl<'a> ZigWalker<'a> {
                     .child_by_field_name("function")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
+                if self.reference_sites {
+                    // `std.sort.block(T, xs, {}, lessThan)`: arguments.
+                    let f = node.child_by_field_name("function").map(|f| f.id());
+                    let args: Vec<Node> = node
+                        .named_children(&mut node.walk())
+                        .filter(|a| Some(a.id()) != f)
+                        .collect();
+                    for a in args {
+                        self.value(a);
+                    }
+                }
                 if !func.is_empty() {
                     let (name, recv) = if let Some(pos) = func.rfind('.') {
                         (func[pos + 1..].to_string(), func[..pos].to_string())
@@ -263,6 +317,26 @@ impl<'a> ZigWalker<'a> {
                 }
                 self.walk_children(node);
                 return;
+            }
+            "return_expression" if self.reference_sites => {
+                if let Some(v) = node.named_child(0) {
+                    self.value(v);
+                }
+            }
+            // `.handler = f`, `x.cb = f`: the right-hand side.
+            "assignment_expression" if self.reference_sites => {
+                if let Some(v) = node.child_by_field_name("right") {
+                    self.value(v);
+                }
+            }
+            // `.{ f, g }`: positional elements of an initializer.
+            "initializer_list" if self.reference_sites => {
+                let items: Vec<Node> = node.named_children(&mut node.walk()).collect();
+                for v in items {
+                    if v.kind() != "assignment_expression" {
+                        self.value(v);
+                    }
+                }
             }
             "builtin_function" => {
                 // @import("std") -> import
@@ -306,6 +380,58 @@ impl<'a> ZigWalker<'a> {
             _ => {}
         }
         self.walk_children(node);
+    }
+
+    /// A function value: a bare name, `&f`, or a member through a type, a
+    /// module or `Self` (`Self.f`, `mod.f`, `&std.mem.f`). A member
+    /// through a variable (`x.cb`) is a field read and is not recorded.
+    fn value(&mut self, n: Node) {
+        match n.kind() {
+            "identifier" => {
+                let name = self.text(n).to_string();
+                self.push_value(n, name, String::new());
+            }
+            "field_expression" => {
+                let (Some(obj), Some(m)) = (
+                    n.child_by_field_name("object"),
+                    n.child_by_field_name("member"),
+                ) else {
+                    return;
+                };
+                let recv = self.text(obj).to_string();
+                let head = recv.split('.').next().unwrap_or("");
+                let plain = recv.split('.').all(|seg| {
+                    !seg.is_empty()
+                        && seg.chars().all(|c| c.is_alphanumeric() || c == '_')
+                });
+                let declared = head.starts_with(|c: char| c.is_ascii_uppercase())
+                    || self.decl_names.contains(head);
+                if plain && declared {
+                    let name = self.text(m).to_string();
+                    self.push_value(m, name, recv);
+                }
+            }
+            "unary_expression" if n.child(0).is_some_and(|op| self.text(op) == "&") => {
+                if let Some(a) = n.child_by_field_name("argument") {
+                    self.value(a);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn push_value(&mut self, site: Node, name: String, recv: String) {
+        if name.is_empty() || name == "_" {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: recv,
+            site_line: (site.start_position().row as u32) + 1,
+            site_byte: site.start_byte() as u32,
+            value_ref: true,
+            ..Default::default()
+        });
     }
 
     /// Directly in a function body (not in a container nested in one).
@@ -721,6 +847,62 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    fn extract_with_refs(src: &str) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_zig::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        ZigPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(true),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.zig"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    fn values(f: &FileFacts) -> Vec<(&str, &str)> {
+        f.references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect()
+    }
+
+    /// WS26: function names passed, stored, returned, address-taken and in
+    /// (comptime vtable) initializers are values; a member through a
+    /// variable is a field read.
+    #[test]
+    fn function_values_are_value_references() {
+        let f = extract_with_refs(
+            "const std = @import(\"std\");\n\
+             const mod = @import(\"mod.zig\");\n\
+             const Self = @This();\n\
+             pub const vt = VTable{ .alloc = alloc, .free = mod.free };\n\
+             fn run(xs: []u8, x: anytype) void {\n\
+             \x20   std.sort.block(u8, xs, {}, lessThan);\n\
+             \x20   var g = &Self.worker;\n\
+             \x20   g = other;\n\
+             \x20   const v = .{ .vtable = &.{ .alloc = alloc2 } };\n\
+             \x20   x.cb = x.field;\n\
+             \x20   return done;\n\
+             }\n",
+        );
+        assert_eq!(
+            values(&f),
+            vec![
+                ("alloc", ""),
+                ("free", "mod"),
+                ("xs", ""),
+                ("lessThan", ""),
+                ("worker", "Self"),
+                ("other", ""),
+                ("alloc2", ""),
+                ("done", ""),
+            ]
+        );
+        assert!(values(&extract("fn f() void { g(h); }\n")).is_empty());
     }
 
     #[test]

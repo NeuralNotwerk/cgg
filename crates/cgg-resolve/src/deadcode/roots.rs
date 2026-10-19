@@ -699,6 +699,10 @@ pub(crate) fn discover(
     // through `import-vars` re-exports — and credits exactly the callables
     // of that qualified name (a multimethod's `defmethod`s among them).
     clojure_qualified_toplevel(graph, facts, &mut set, &mut seen);
+    // Zig: a container-level value through a module or a type
+    // (`.free = mod.free`, `.deinit = Self.deinit`) names the function of
+    // the file that `@import` gives the module, or of this file.
+    zig_qualified_toplevel(graph, facts, &mut set, &mut seen);
 
     // --- Rule: C-family macro invoked outside any function -------------
     //
@@ -1159,6 +1163,91 @@ fn collect_rust_reexports(facts: &[FileFacts]) -> HashSet<String> {
     out
 }
 
+fn zig_qualified_toplevel(
+    graph: &Graph,
+    facts: &[FileFacts],
+    set: &mut RootSet,
+    seen: &mut HashSet<CallableId>,
+) {
+    let zig: Vec<&FileFacts> = facts.iter().filter(|f| f.language == "zig").collect();
+    if zig.is_empty() {
+        return;
+    }
+    let mut by_file_name: HashMap<(cgg_core::FileId, &str), Vec<CallableId>> =
+        HashMap::new();
+    let mut file_by_path: HashMap<std::path::PathBuf, cgg_core::FileId> = HashMap::new();
+    for (id, n) in &graph.callables {
+        if n.language == "zig" && !n.synthetic {
+            by_file_name
+                .entry((n.file, n.simple_name.as_str()))
+                .or_default()
+                .push(*id);
+        }
+    }
+    for f in &zig {
+        file_by_path.insert(f.path.clone(), f.file);
+    }
+    for f in &zig {
+        for r in f.references.iter().filter(|r| {
+            r.value_ref
+                && !r.receiver_hint.is_empty()
+                && !f
+                    .definitions
+                    .iter()
+                    .any(|d| d.start_byte <= r.site_byte && r.site_byte < d.end_byte)
+        }) {
+            let head = r.receiver_hint.split('.').next().unwrap_or("");
+            // `const mod = @import("mod.zig")`: that file, beside this one.
+            let target = f
+                .imports
+                .iter()
+                .find(|i| {
+                    i.kind == "import" && i.alias == head && i.path.ends_with(".zig")
+                })
+                .and_then(|i| {
+                    let p = f.path.parent()?.join(&i.path);
+                    let p = normalize_path(&p);
+                    file_by_path.get(&p).copied()
+                });
+            let file = match target {
+                Some(t) => t,
+                // A module the tree does not hold.
+                None if f.imports.iter().any(|i| i.alias == head) => continue,
+                None => f.file,
+            };
+            let Some(ids) = by_file_name.get(&(file, r.name.as_str())) else {
+                continue;
+            };
+            let path = f.path.display().to_string();
+            for id in ids {
+                set.push(
+                    graph,
+                    *id,
+                    RootKind::TopLevelInvocation,
+                    "toplevel:invocation",
+                    format!("named at container level at {path}:{}", r.site_line),
+                    seen,
+                );
+            }
+        }
+    }
+}
+
+/// `a/./b/../c` → `a/c`, lexically.
+fn normalize_path(p: &std::path::Path) -> std::path::PathBuf {
+    let mut out = std::path::PathBuf::new();
+    for c in p.components() {
+        match c {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                out.pop();
+            }
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out
+}
+
 fn clojure_qualified_toplevel(
     graph: &Graph,
     facts: &[FileFacts],
@@ -1249,8 +1338,9 @@ fn clojure_qualified_toplevel(
 /// Languages whose class- or module-level value references name the
 /// declaring file's own callables (see the top-level rule in
 /// [`discover`]).
-const FILE_SCOPED_VALUE_REF_LANGS: &[&str] =
-    &["ruby", "swift", "dart", "scala", "lua", "erlang", "clojure"];
+const FILE_SCOPED_VALUE_REF_LANGS: &[&str] = &[
+    "ruby", "swift", "dart", "scala", "lua", "erlang", "clojure", "zig",
+];
 
 /// `(file, site byte, name)` of the value-reference records of the
 /// [`FILE_SCOPED_VALUE_REF_LANGS`] files.
@@ -1261,7 +1351,11 @@ fn own_file_value_sites(facts: &[FileFacts]) -> HashSet<(cgg_core::FileId, u32, 
         .flat_map(|f| {
             f.references
                 .iter()
-                .filter(|r| r.value_ref)
+                // A Zig value through a module or type (`mod.f`) names
+                // that module's declaration, not this file's.
+                .filter(|r| {
+                    r.value_ref && (f.language != "zig" || r.receiver_hint.is_empty())
+                })
                 .map(move |r| (f.file, r.site_byte, r.name.as_str()))
         })
         .collect()

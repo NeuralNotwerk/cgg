@@ -6361,6 +6361,12 @@ fn try_resolve_ref(
         if lang == "clojure" {
             return None;
         }
+        // A Zig value named bare is a declaration of its own file (bound
+        // intra-file) or one a file-level alias imports (step 1) — never
+        // another file's same-named function found by name.
+        if lang == "zig" && r.value_ref {
+            return None;
+        }
         // Zig resolves a bare name in the file's own containers first; a
         // name the file declares is never another file's (FINDINGS R13).
         if lang == "zig"
@@ -7325,7 +7331,8 @@ fn try_resolve_ref(
             // method, and a Kotlin `x::m` or a Swift or Dart `x.m` value as
             // often a property: each binds only through a typed receiver
             // (WS26).
-            && (!r.value_ref || !matches!(lang, "go" | "kotlin" | "swift" | "dart" | "scala" | "lua"))
+            && (!r.value_ref
+                || !matches!(lang, "go" | "kotlin" | "swift" | "dart" | "scala" | "lua" | "zig"))
             // A typed receiver is never fanned out by name: its type's
             // own lookup (step 4) was the answer, hit or miss.
             && !r.typed_receiver
