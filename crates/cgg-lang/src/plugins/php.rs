@@ -407,6 +407,9 @@ impl<'a> PhpWalker<'a> {
         } else {
             format!("{recv}::{func}")
         };
+        if self.ctx.reference_sites {
+            self.record_callable_arg(node, &func, &recv);
+        }
         self.facts.references.push(RefRecord {
             name: func,
             receiver_hint: recv,
@@ -420,6 +423,120 @@ impl<'a> PhpWalker<'a> {
         // needs `add_action('hook', 'fn')`. All three arrive here.
         let extra = super::registrar::capture(&self.ctx, node, self.source, &context);
         self.facts.references.extend(extra);
+    }
+}
+
+impl PhpWalker<'_> {
+    /// A callable handed to a core callable-taking function
+    /// (`cgg_core::stdlib::PHP_CALLABLE_ARG_FUNCS`): `'f'`, `'Foo::m'`,
+    /// `[$this, 'm']`, `[self::class, 'm']`, `[Foo::class, 'm']`,
+    /// `['Foo', 'm']`, recorded as the call it names through that
+    /// receiver, marked `value_ref`. A first-class callable (`f(...)`) is
+    /// already recorded as the call it names.
+    fn record_callable_arg(&mut self, call: Node, func: &str, recv: &str) {
+        let strip = |s: &str| s.trim_start_matches('\\').to_string();
+        let key = if recv.is_empty() || call.kind() != "scoped_call_expression" {
+            strip(func)
+        } else {
+            format!("{}::{func}", strip(recv))
+        };
+        let Some(&(_, pos)) = cgg_core::stdlib::PHP_CALLABLE_ARG_FUNCS
+            .iter()
+            .find(|(f, _)| *f == key)
+        else {
+            return;
+        };
+        let Some(args) = call.child_by_field_name("arguments") else {
+            return;
+        };
+        let mut c = args.walk();
+        let Some(arg) = args
+            .named_children(&mut c)
+            .filter(|a| a.kind() == "argument")
+            .nth(pos)
+            .and_then(|a| a.named_child(0))
+        else {
+            return;
+        };
+        match arg.kind() {
+            "string" | "encapsed_string" => {
+                let Some(text) = self.literal(arg) else {
+                    return;
+                };
+                match text.rsplit_once("::") {
+                    Some((class, m)) => self.push_callable(arg, m, &strip(class)),
+                    None => {
+                        let name = text.rsplit('\\').next().unwrap_or(&text).to_string();
+                        self.push_callable(arg, &name, "");
+                    }
+                }
+            }
+            "array_creation_expression" => {
+                let mut ac = arg.walk();
+                let elems: Vec<Node> = arg
+                    .named_children(&mut ac)
+                    .filter(|e| e.kind() == "array_element_initializer")
+                    .filter_map(|e| e.named_child(0))
+                    .collect();
+                let [target, method] = elems.as_slice() else {
+                    return;
+                };
+                let Some(name) = matches!(method.kind(), "string" | "encapsed_string")
+                    .then(|| self.literal(*method))
+                    .flatten()
+                else {
+                    return;
+                };
+                let owner = match target.kind() {
+                    "variable_name" if self.text(*target) == "$this" => {
+                        "this".to_string()
+                    }
+                    "variable_name" => self.text(*target).to_string(),
+                    // `Foo::class`, `self::class`, `static::class`.
+                    "class_constant_access_expression" => {
+                        let t = self.text(*target);
+                        match t.strip_suffix("::class") {
+                            Some(cls) => strip(cls.trim()),
+                            None => return,
+                        }
+                    }
+                    "string" | "encapsed_string" => match self.literal(*target) {
+                        Some(cls) => strip(&cls),
+                        None => return,
+                    },
+                    _ => return,
+                };
+                self.push_callable(*method, &name, &owner);
+            }
+            _ => {}
+        }
+    }
+
+    /// A plain string literal's text, or `None` when it interpolates.
+    fn literal(&self, n: Node) -> Option<String> {
+        let raw = self.text(n);
+        if n.kind() == "encapsed_string" && raw.contains('$') {
+            return None;
+        }
+        let s = super::registrar::unquote(raw);
+        let ident = !s.is_empty()
+            && s.chars()
+                .all(|c| c.is_alphanumeric() || matches!(c, '_' | '\\' | ':'));
+        ident.then_some(s)
+    }
+
+    fn push_callable(&mut self, site: Node, name: &str, recv: &str) {
+        if name.is_empty() {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name: name.to_string(),
+            receiver_hint: recv.to_string(),
+            site_line: (site.start_position().row as u32) + 1,
+            site_byte: site.start_byte() as u32,
+            value_ref: true,
+            ..Default::default()
+        });
     }
 }
 
@@ -622,5 +739,67 @@ mod tests {
             "{:?}",
             f.references
         );
+    }
+
+    fn extract_with_refs(src: &str, refs: bool) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_php::LANGUAGE_PHP.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        PhpPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(refs),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.php"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    fn value_refs(f: &FileFacts) -> Vec<(String, String)> {
+        f.references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
+            .collect()
+    }
+
+    /// WS26 (gap 25): a callable handed to a core callable-taking
+    /// function — a string, `'Foo::m'` or a `[target, 'm']` array — is a
+    /// reference site, only when the run asks for them; `is_callable` and
+    /// `call_user_func` are not read here, and an interpolated string or a
+    /// non-callable argument position is not one.
+    #[test]
+    fn callable_arguments_are_reference_sites() {
+        let src = "<?php\nclass A {\n  function go($xs, $o) {\n\
+                     array_map('fmt', $xs);\n\
+                     usort($xs, [$this, 'cmp']);\n\
+                     spl_autoload_register([self::class, 'load']);\n\
+                     array_filter($xs, [Helper::class, 'keep']);\n\
+                     set_error_handler('Err::handle');\n\
+                     $c = \\Closure::fromCallable([$o, 'later']);\n\
+                     array_walk($xs, ['Util', 'each']);\n\
+                     is_callable('asked');\n\
+                     call_user_func('dyn');\n\
+                     array_map(\"pre_$x\", $xs);\n\
+                     usort('notcallable', $xs);\n\
+                   }\n}\n";
+        let got = value_refs(&extract_with_refs(src, true));
+        let want = [
+            ("", "fmt"),
+            ("this", "cmp"),
+            ("self", "load"),
+            ("Helper", "keep"),
+            ("Err", "handle"),
+            ("$o", "later"),
+            ("Util", "each"),
+        ];
+        for (recv, name) in want {
+            assert!(
+                got.contains(&(recv.to_string(), name.to_string())),
+                "missing {recv}::{name} in {got:?}"
+            );
+        }
+        assert_eq!(got.len(), want.len(), "{got:?}");
+        assert!(value_refs(&extract_with_refs(src, false)).is_empty());
     }
 }

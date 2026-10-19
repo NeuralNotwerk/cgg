@@ -221,6 +221,35 @@ pub const SCALA_IMPLICIT_PACKAGES: &[&str] = &[
 /// bare calls, and a crate's own `err!` macro is a bare call.
 pub const RUST_UNTYPED_ADAPTER_METHODS: &[&str] = &["ok", "err", "as_deref"];
 
+/// PHP core functions that take a callable, with the callable argument's
+/// position: `array_map('f', $xs)`, `usort($xs, [$this, 'cmp'])`,
+/// `spl_autoload_register([self::class, 'load'])`,
+/// `Closure::fromCallable('f')` (a static call is keyed `Class::method`).
+/// `call_user_func(_array)` and `is_callable` are left to the reflection
+/// screen (`dynuse`): the first calls by name, the second only asks.
+pub const PHP_CALLABLE_ARG_FUNCS: &[(&str, usize)] = &[
+    ("array_map", 0),
+    ("array_filter", 1),
+    ("array_walk", 1),
+    ("array_walk_recursive", 1),
+    ("array_reduce", 1),
+    ("usort", 1),
+    ("uasort", 1),
+    ("uksort", 1),
+    ("iterator_apply", 1),
+    ("preg_replace_callback", 1),
+    ("spl_autoload_register", 0),
+    ("register_shutdown_function", 0),
+    ("register_tick_function", 0),
+    ("set_error_handler", 0),
+    ("set_exception_handler", 0),
+    ("header_register_callback", 0),
+    ("ob_start", 0),
+    ("forward_static_call", 0),
+    ("forward_static_call_array", 0),
+    ("Closure::fromCallable", 0),
+];
+
 /// Ruby core methods whose symbol argument names a method of the
 /// receiver (or of `self`), with that argument's position: `method(:m)`,
 /// `obj.public_method(:m)`, `Klass.instance_method(:m)`, and the old name

@@ -400,6 +400,21 @@ otherwise change the default graph.
   with the reflection screen, and `respond_to?` and `define_method`'s new
   name are not uses.
 
+- **PHP callables handed to core functions were not references (WS26,
+  gap 25).** `array_map('fmt', $xs)`, `usort($xs, [$this, 'cmp'])`,
+  `spl_autoload_register([self::class, 'load'])`,
+  `array_filter($xs, [Helper::class, 'keep'])`,
+  `preg_replace_callback($re, 'cb', $s)`, `set_error_handler('Err::h')`
+  and `Closure::fromCallable([...])` left the callable with no
+  reference, so it was reported dead. Under `--dead-code` and
+  `--reference-edges` each is now a value reference, through the target
+  written (`$this`, `self`, `static`, a class, a variable); the functions
+  and their callback positions are listed in
+  `cgg_core::stdlib::PHP_CALLABLE_ARG_FUNCS`. WordPress `add_action` /
+  `add_filter` stay with the `wordpress` rule, `call_user_func(_array)`
+  with the reflection screen, a first-class callable (`f(...)`) was
+  already recorded as its call, and `is_callable` is not a use.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -655,6 +670,15 @@ WS26 Ruby (full corpus, none excluded):
   99 named only by a symbol — `validate :m`, `alias`, `alias_method`,
   `method(:m)` — the rest reached from them). None are newly reported,
   and one moves `medium` → `low`.
+
+WS26 PHP (full corpus; `zig-zig` timed out once under host load and was
+re-run alone: its default graph is unchanged):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 267 PHP reference edges are added (266
+  `high`); none are removed.
+- Under `--dead-code`, 63 PHP findings leave the report (none `high`; 51
+  in WordPress), none are newly reported, and 2 move `medium` → `low`.
 
 ## [0.11.0] - 2026-10-16
 

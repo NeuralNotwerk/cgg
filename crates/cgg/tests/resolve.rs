@@ -2657,6 +2657,83 @@ main\n";
     );
 }
 
+/// WS26 (gap 25): a PHP callable handed to a core callable-taking
+/// function (`array_map('f', …)`, `usort($xs, [$this, 'm'])`,
+/// `[self::class, 'm']`, `[Foo::class, 'm']`) is a reference, with the
+/// default graph untouched; `is_callable('f')` and a string elsewhere are
+/// not.
+#[test]
+fn php_callable_arguments_are_references() {
+    let tmp = TempDir::new().unwrap();
+    let src = "<?php\n\
+function fmt($x) { return $x; }\n\
+function asked() {}\n\
+function orphan() {}\n\
+function in_string() {}\n\
+class Helper { public static function keep($x) { return true; } }\n\
+class Sorter {\n\
+    public function cmp($a, $b) { return 0; }\n\
+    public static function load($c) {}\n\
+    public function unused() {}\n\
+    public function run($xs) {\n\
+        array_map('fmt', $xs);\n\
+        usort($xs, [$this, 'cmp']);\n\
+        spl_autoload_register([self::class, 'load']);\n\
+        array_filter($xs, [Helper::class, 'keep']);\n\
+        is_callable('asked');\n\
+        echo 'in_string';\n\
+    }\n\
+}\n\
+(new Sorter())->run([2, 1]);\n";
+    write(tmp.path(), "app.php", src.as_bytes());
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in ["fmt", "Sorter::cmp", "Sorter::load", "Helper::keep"] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} is referenced, findings: {dead:?}"
+        );
+    }
+    for gone in ["asked", "orphan", "in_string", "Sorter::unused"] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone} has no reference, findings: {dead:?}"
+        );
+    }
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .arg("-o")
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain).unwrap().matches("ref|").count(),
+        0
+    );
+    let refs = tmp.path().join("r.mmd");
+    cgg()
+        .args(["--reference-edges", "-o"])
+        .arg(&refs)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&refs).unwrap();
+    assert_eq!(g.matches("ref|").count(), 4, "{g}");
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------
