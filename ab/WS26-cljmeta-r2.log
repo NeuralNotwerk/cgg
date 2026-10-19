@@ -1,0 +1,16 @@
+old: cgg 0.11.0 (dev g557e265)  sha256=05999383a8f3e935053dd6c9b4aab3d5ef52a1bc4e194c6eed16d9e48204c9af
+new: cgg 0.11.0 (dev g557e265+d07b87c2)  sha256=b48b7367ad75e24050ffcfeecbb87fa140b6286e87389eea26adfbfe481a3e2f
+old=target/remediation/bins/WS26-cljmeta-before
+new=target/remediation/bins/WS26-cljmeta-r2
+repos=282 elapsed=235s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 7
+  app-cljdoc-pedestal: edges 1367->1309 (-139 +81 ~0) callables 1176->1176 unresolved 625->692 files 216->216 deadhigh 0->0 
+  app-lipas-reitit: edges 4476->4450 (-64 +38 ~659) callables 4322->4323 unresolved 4059->4116 files 724->724 deadhigh 0->0 
+  app-metabase-compojure: edges 208852->194650 (-16951 +2749 ~1720) callables 90000->90090 unresolved 370747->386113 files 15860->15860 deadhigh 0->0 
+  app-riemann-httpkit: edges 1100->960 (-166 +26 ~36) callables 874->874 unresolved 2165->2313 files 153->153 deadhigh 0->0 
+  app-storm-starter: edges 62318->62318 (-1 +1 ~0) callables 31271->31271 unresolved 34677->34677 files 2162->2162 deadhigh 11->11 
+  clojure-compojure: edges 119->124 (-5 +10 ~0) callables 124->124 unresolved 135->135 files 12->12 deadhigh 0->0 
+  clojure-ring: edges 450->408 (-49 +7 ~9) callables 402->402 unresolved 739->788 files 82->82 deadhigh 0->0 
+by language: see by_language.tsv
+

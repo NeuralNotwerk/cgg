@@ -1,0 +1,12 @@
+{
+ "old": {
+  "sha256": "05999383a8f3e935053dd6c9b4aab3d5ef52a1bc4e194c6eed16d9e48204c9af",
+  "version": "cgg 0.11.0 (dev g557e265)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-cljmeta-before"
+ },
+ "new": {
+  "sha256": "571c673e9fd799ac2b3f03e8fa29b83e21d36e9c0cf0670145ce69b3059ba077",
+  "version": "cgg 0.11.0 (dev g557e265+d50d4ee7)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-cljmeta-r3"
+ }
+}
