@@ -1,0 +1,12 @@
+old: cgg 0.11.0 (dev gf8a1e02)  sha256=d388767a4918b810948a499a7d6e16424b4b54ba6d74eaa43d897f014cc06da2
+new: cgg 0.11.0 (dev gf8a1e02+d9571710)  sha256=a106fb61a67d43b67f0612d9c54923a520fdd92b9471e1c39dc9ca9b42b09a86
+old=target/remediation/bins/WS27-cs-before
+new=target/remediation/bins/WS27-cs-r1
+repos=283 elapsed=384s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 4
+  app-blazor-samples: edges 920->920 (-0 +0 ~0) callables 3132->3132 unresolved 830->830 files 1053->1053 deadhigh 0->4 
+  app-eshop-aspnet: edges 1196->1196 (-0 +0 ~0) callables 2584->2584 unresolved 746->746 files 542->542 deadhigh 2->4 
+  csharp-mediatr: edges 870->870 (-0 +0 ~0) callables 949->949 unresolved 423->423 files 157->157 deadhigh 2->5 
+  csharp-serilog: edges 5793->5744 (-49 +0 ~49) callables 1649->1649 unresolved 1245->1245 files 218->218 deadhigh 0->0 
+by language: see by_language.tsv

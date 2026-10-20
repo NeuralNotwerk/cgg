@@ -1,0 +1,18 @@
+repos 283 excluded []
+added 347
+  ('csharp', '{"kind": "direct"}', 'high') 49
+  ('csharp', '{"kind": "reference"}', 'high') 2
+  ('dart', '{"kind": "reference"}', 'high') 19
+  ('go', '{"kind": "reference"}', 'high') 16
+  ('javascript', '{"kind": "reference"}', 'high') 74
+  ('lua', '{"kind": "reference"}', 'high') 3
+  ('python', '{"kind": "reference"}', 'high') 46
+  ('python', '{"kind": "reference"}', 'medium') 1
+  ('scala', '{"kind": "direct"}', 'high') 91
+  ('scala', '{"kind": "reference"}', 'high') 5
+  ('swift', '{"kind": "reference"}', 'high') 30
+  ('typescript', '{"kind": "reference"}', 'high') 11
+dropped 111
+  ('csharp', '{"kind": "direct"}', 'medium') 98
+  ('csharp', '{"kind": "reference"}', 'high') 1
+  ('csharp', '{"kind": "reference"}', 'medium') 12

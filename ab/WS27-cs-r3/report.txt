@@ -1,0 +1,9 @@
+old: cgg 0.11.0 (dev gf8a1e02)  sha256=d388767a4918b810948a499a7d6e16424b4b54ba6d74eaa43d897f014cc06da2
+new: cgg 0.11.0 (dev gf8a1e02+db765104)  sha256=47c889e7b26b0a236f485e7319a357d86dda9ba56474580312fc6bf0c6a4f142
+old=target/remediation/bins/WS27-cs-before
+new=target/remediation/bins/WS27-cs-r3
+repos=283 elapsed=235s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 1
+  csharp-serilog: edges 5793->5744 (-49 +0 ~49) callables 1649->1649 unresolved 1245->1245 files 218->218 deadhigh 0->0 
+by language: see by_language.tsv

@@ -1,0 +1,12 @@
+old: cgg 0.11.0 (dev gf8a1e02)  sha256=d388767a4918b810948a499a7d6e16424b4b54ba6d74eaa43d897f014cc06da2
+new: cgg 0.11.0 (dev gf8a1e02+d3ea1ebf)  sha256=8805449ae29056313b46ed674f3e6314c9aae9b60164ed318be1a3f5c913de54
+old=target/remediation/bins/WS27-cs-before
+new=target/remediation/bins/WS27-cs-r2
+repos=283 elapsed=238s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 3
+  csharp-serilog: edges 5793->5744 (-49 +0 ~49) callables 1649->1649 unresolved 1245->1245 files 218->218 deadhigh 0->0 
+  scala-play: edges 33445->33467 (-0 +22 ~2) callables 14009->14009 unresolved 26522->26522 files 1617->1617 deadhigh 1->1 
+  scala-spark: edges 303165->303234 (-0 +69 ~6) callables 112369->112369 unresolved 742811->742811 files 9202->9202 deadhigh 68->68 
+by language: see by_language.tsv
+
