@@ -1,0 +1,8 @@
+old: cgg 0.11.0 (dev g2a28ff8)  sha256=12b099084424e2cf98bb06729b752c1c42d7558b911f7a2f731308fd3a7136bf
+new: cgg 0.11.0 (dev g2a28ff8+d132f021)  sha256=d1c2634d40e1ed86c3ff54bc257df5b4ce48e6526821d8c8231d30d1a841706d
+old=target/remediation/bins/WS26-objc-before
+new=target/remediation/bins/WS26-objc-r2
+repos=282 elapsed=258s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 0
+by language: see by_language.tsv

@@ -127,7 +127,7 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 | WS23 | Go receivers, JVM/.NET/C declared returns, JS/TS locals typing, Swift/Groovy overload sets | 10,26,28,16 | DONE (50c0bb9) | | 10 reproduced (no edge at all); after WS19 |
 | WS24 | Kotlin↔Java rules, C#/Swift registrars, JS/TS harness | 14,22,30 | DONE (877b3fa) | | |
 | WS25 | stdlib head split, reflection screen, shebang token match, filename detection | 17,18,19,20 | DONE (7eca3a0) | | |
-| WS26 | Function values as references, per plugin | 25 | IN PROGRESS | 965e15a f5a877c 9df8695 48c4573 26da301 e53e16d 4f3c56d 7248525 7f1338e d17767b a95dc09 7933ffc 6438024 557e265 ebf0d43 fcf986b 73b6ce1 de2b77d 9f3c317 2a28ff8 | JS/TS, .bind, Go, Kotlin, C/C++, Ruby, PHP, Swift, Dart, Scala, Lua, Erlang, Clojure (+meta names, bare-call scope), Zig, Groovy done; next ObjC → ObjC |
+| WS26 | Function values as references, per plugin | 25 | IN PROGRESS | 965e15a f5a877c 9df8695 48c4573 26da301 e53e16d 4f3c56d 7248525 7f1338e d17767b a95dc09 7933ffc 6438024 557e265 ebf0d43 fcf986b 73b6ce1 de2b77d 9f3c317 2a28ff8 6f38216 | JS/TS, .bind, Go, Kotlin, C/C++, Ruby, PHP, Swift, Dart, Scala, Lua, Erlang, Clojure (+meta names, bare-call scope), Zig, Groovy, ObjC done; next ObjC wrong-high fix → Groovy Spock-name reparse → ObjC |
 | WS27 | Locals specs Go/C#/C/C++… | 27 | PLANNED | | watch perf |
 | WS28 | Arity narrowing C#/Kotlin/Swift/Groovy/TS | 29 | PLANNED | | |
 | WS29 | Doc corrections + re-score matrix | — | PLANNED | | orchestrator only |
@@ -164,3 +164,5 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 - Clojure (73b6ce1) open root gaps: Leiningen tasks, ClojureScript ^:export, user-defined re-export macros (import-fns), library public API (Riemann).
 - Zig: wrong medium/high qualified-value edges FIXED in 9f3c317.
 - Groovy open (MAJOR candidate): parse errors in Spock specs/GStrings drop methods from extraction — 43 of Gradle's 66 `.&` targets are never extracted; grammar (tree-sitter-groovy 0.1.2) is the limit.
+- ObjC open: 3 wrong high C-value edges in .mm (C++ member `view_controller_` passed as arg binds same-named callable x2; `ShaderFunctionMTL::Cast(…)` binds constructor); 256 medium selector fan-outs on common selectors.
+- Groovy parse gap measured: ~75% of Gradle Groovy methods lost in ERROR spans; Spock `def "name"()` rewrite recovers 12,449 → 36,779 method nodes; fuller grammar (vendor) is the bigger lever.
