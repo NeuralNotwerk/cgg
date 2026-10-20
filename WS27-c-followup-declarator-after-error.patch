@@ -1,0 +1,50 @@
+--- a/crates/cgg-lang/src/locals.rs
++++ b/crates/cgg-lang/src/locals.rs
+@@ -764,22 +764,32 @@
+     /// Each variable a block-scope declaration declares, from the end of
+     /// its declarator to `end`; none from one with a parse error.
+     fn declaration(&mut self, decl: Node<'_>, end: u32) {
+-        // One the parser recovered from an error is not trusted: C++ read
+-        // as C (`STDMETHOD(F)(…) PURE; using Base::F;`) leaves `F` as a
+-        // declarator.
+-        if decl.has_error() {
+-            return;
+-        }
++        // A declarator after a parse error is not trusted: C++ read as C
++        // (`STDMETHOD(F)(…) PURE; using Base::F;`) leaves `F` as one. An
++        // error inside an initializer (`T *dep = va_arg(ap, struct T *);`)
++        // comes after its declarator, which stands.
++        let first_error = if decl.has_error() {
++            let mut c = decl.walk();
++            decl.children(&mut c)
++                .find(|n| n.is_error() || n.is_missing())
++                .map(|n| n.start_byte())
++        } else {
++            None
++        };
+         let at = decl.start_byte() as u32;
+         let mut c = decl.walk();
+         let declarators: Vec<Node<'_>> =
+             decl.children_by_field_name("declarator", &mut c).collect();
+         for d in declarators {
++            if first_error.is_some_and(|e| e < d.start_byte()) {
++                continue;
++            }
+             if let Some(name) = c_variable(d) {
+                 self.push(name, d.end_byte() as u32, end, at, false);
+             }
+         }
+     }
++
+ }
+ 
+ /// The identifier a C declarator declares as a variable: through pointer,
+@@ -1710,6 +1720,8 @@
+         let broken =
+             c_locals("void f(void) { STDMETHOD(N)(int a) PURE; using B::N; N(1); }\n");
+         assert!(!broken.iter().any(|b| b.name == "N"), "{broken:?}");
++        let va = c_locals("void f(void) { struct T *dep = va_arg(ap, struct T *); g(dep); }\n");
++        assert!(va.iter().any(|b| b.name == "dep"), "{va:?}");
+         // A macro header misparsed as a K&R definition names nothing.
+         let misparsed = c_locals(
+             "STDMETHOD_(HRESULT, CreateBitmap)(int w) { return CreateBitmap(w); }\n",

@@ -1,0 +1,5170 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 14,
+      "callables": 71,
+      "roots": 28,
+      "reachable": 50,
+      "reachable_pct": 70,
+      "findings": 21,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    },
+    {
+      "language": "proto",
+      "class": "descriptor",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [],
+      "files": 2,
+      "callables": 10,
+      "roots": 0,
+      "reachable": 0,
+      "reachable_pct": 0,
+      "findings": 0
+    },
+    {
+      "language": "typescript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "builtin:framework-attr",
+        "framework:entry-node",
+        "framework:test-harness",
+        "toplevel:invocation"
+      ],
+      "files": 79,
+      "callables": 151,
+      "roots": 228,
+      "reachable": 67,
+      "reachable_pct": 44,
+      "findings": 40,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 232,
+    "edges": 563,
+    "unresolved_call_sites": 357,
+    "roots": 256,
+    "candidates": 106,
+    "reported": 61,
+    "regions": 48,
+    "withheld": [
+      {
+        "language": "proto",
+        "category": "never-referenced",
+        "reason": "descriptor-language",
+        "would_have_reported": 4
+      },
+      {
+        "language": "proto",
+        "category": "reachable-only-from-dead-code",
+        "reason": "descriptor-language",
+        "would_have_reported": 6
+      },
+      {
+        "language": "typescript",
+        "category": "only-used-by-tests",
+        "reason": "missing-signal",
+        "would_have_reported": 35
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "C3cf5pymvvr",
+      "qualified_name": "handler_at_13",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Clul2857ssz",
+      "qualified_name": "handler_at_17",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cey4inulexx",
+      "qualified_name": "handler_at_24",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C176umaq5xtg",
+      "qualified_name": "handler_at_32",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C10xwvq3qzem",
+      "qualified_name": "handler_at_41",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C6fx6koafik",
+      "qualified_name": "handler_at_49",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C16y5sphwfmv",
+      "qualified_name": "handler_at_12",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C5nqvy6b1td",
+      "qualified_name": "handler_at_14",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C2qs2ubl31",
+      "qualified_name": "handler_at_20",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C12rt57zb4ob",
+      "qualified_name": "handler_at_26",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cqcvy6cer2",
+      "qualified_name": "main",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/index.ts:56"
+    },
+    {
+      "id": "Coqq2p3af5s",
+      "qualified_name": "grpcMain",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/recommender/src/recommendation-grpc.ts:79"
+    },
+    {
+      "id": "Cd4xgs81964",
+      "qualified_name": "addToCart",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js:533"
+    },
+    {
+      "id": "Cwirejtitt8",
+      "qualified_name": "signUp",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js:532"
+    },
+    {
+      "id": "Cvxkyz33kgp",
+      "qualified_name": "logIn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js:531"
+    },
+    {
+      "id": "C9kzjbzbmai",
+      "qualified_name": "t",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/purify.js:11"
+    },
+    {
+      "id": "Cot3fk82y6e",
+      "qualified_name": "r",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/purify.js:11"
+    },
+    {
+      "id": "Czqfqxv0s7h",
+      "qualified_name": "u",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/purify.js:11"
+    },
+    {
+      "id": "Cfj00o8fle8",
+      "qualified_name": "addPagination",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js:527"
+    },
+    {
+      "id": "C1242qb1k9cn",
+      "qualified_name": "refreshLogInStatus",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js:625"
+    },
+    {
+      "id": "Cvd760vl1s9",
+      "qualified_name": "updateCartDetails",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js:529"
+    },
+    {
+      "id": "Cpyowaokc6v",
+      "qualified_name": "logOut",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js:530"
+    },
+    {
+      "id": "Czm9dhicpxe",
+      "qualified_name": "logIn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js:531"
+    },
+    {
+      "id": "C1462zclb4oi",
+      "qualified_name": "signUp",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js:532"
+    },
+    {
+      "id": "Cdckuy0qvrq",
+      "qualified_name": "addToCart",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js:533"
+    },
+    {
+      "id": "C5b72aratju",
+      "qualified_name": "updateAddToCartUi",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js:534"
+    },
+    {
+      "id": "Cuuroa0j00",
+      "qualified_name": "addToCartApi",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js:535"
+    },
+    {
+      "id": "Cdtezolq03y",
+      "qualified_name": "displayShoppingCart",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js:536"
+    },
+    {
+      "id": "Ca97q84kdg8",
+      "qualified_name": "updateCount",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js:537"
+    },
+    {
+      "id": "Ckm3dr0u85r",
+      "qualified_name": "updatePrice",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js:538"
+    },
+    {
+      "id": "Cqehprzpxs0",
+      "qualified_name": "removeFromCart",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js:539"
+    },
+    {
+      "id": "Crfkqsctbd9",
+      "qualified_name": "removeItems",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js:540"
+    },
+    {
+      "id": "Cqltmk406r",
+      "qualified_name": "getCurrentPageNumber",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/util.js:84"
+    },
+    {
+      "id": "Coufyucecla",
+      "qualified_name": "getUserId",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/util.js:90"
+    },
+    {
+      "id": "C10r5lf3u24x",
+      "qualified_name": "getProductId",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/util.js:85"
+    },
+    {
+      "id": "Cm6mkndwnem",
+      "qualified_name": "parseYml",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/util.js:87"
+    },
+    {
+      "id": "C6cbtyxrq3l",
+      "qualified_name": "isLoggedIn",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/util.js:86"
+    },
+    {
+      "id": "Cvc3lx631c5",
+      "qualified_name": "isAdmin",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/util.js:88"
+    },
+    {
+      "id": "C3yqkj12w4u",
+      "qualified_name": "isSupport",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/util.js:89"
+    },
+    {
+      "id": "C17p5julnxqr",
+      "qualified_name": "fullName",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/util.js:91"
+    },
+    {
+      "id": "Ch13hd5tddt",
+      "qualified_name": "handler_at_24",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Ce261x697ld",
+      "qualified_name": "handler_at_44",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cxl9yyrpbx7",
+      "qualified_name": "handler_at_49",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C4pp4pz62bn",
+      "qualified_name": "handler_at_59",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cc8xdhwt6fi",
+      "qualified_name": "handler_at_64",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C13tn2uz3c6r",
+      "qualified_name": "handler_at_70",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cppq8av32yt",
+      "qualified_name": "handler_at_78",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C9iixcde0h",
+      "qualified_name": "handler_at_95",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Coxw1xpbpe4",
+      "qualified_name": "handler_at_107",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C12q30jaubca",
+      "qualified_name": "handler_at_119",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cqwaluplh68",
+      "qualified_name": "handler_at_130",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cn48ocxebr1",
+      "qualified_name": "handler_at_142",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C142taewhxh3",
+      "qualified_name": "handler_at_151",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cjafc4up6sm",
+      "qualified_name": "handler_at_160",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Ceq655j31j9",
+      "qualified_name": "handler_at_166",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C835nti4k0i",
+      "qualified_name": "handler_at_174",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Ct1muz5neuf",
+      "qualified_name": "handler_at_184",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C14dhn6fosfc",
+      "qualified_name": "handler_at_189",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cqjhb2eb550",
+      "qualified_name": "handler_at_198",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C17mgls4x6ll",
+      "qualified_name": "setupApp",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cw9du271at7",
+      "qualified_name": "createUser",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cx22m5fcpwc",
+      "qualified_name": "clearDatabase",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Czcirk0f7g3",
+      "qualified_name": "createTokenService",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cluzva9o0w",
+      "qualified_name": "createUserService",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cfv4iycu32q",
+      "qualified_name": "handler_at_14",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C2vgapmhmqu",
+      "qualified_name": "handler_at_24",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C9cwa7qhxnx",
+      "qualified_name": "handler_at_31",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cvb7crq6g8k",
+      "qualified_name": "handler_at_35",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cqlgvdfvg2g",
+      "qualified_name": "handler_at_36",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cn0t79hd51f",
+      "qualified_name": "handler_at_69",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Ciasolvhb90",
+      "qualified_name": "handler_at_70",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C3142yspc19",
+      "qualified_name": "handler_at_110",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Ccq3dn8ctka",
+      "qualified_name": "handler_at_117",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cxnyy84zj3c",
+      "qualified_name": "clearDatabase",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C7xvt0erlkn",
+      "qualified_name": "migrateSchema",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C16735u5i2mr",
+      "qualified_name": "handler_at_10",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Coxpp9937ul",
+      "qualified_name": "handler_at_14",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cli4pe7znca",
+      "qualified_name": "handler_at_18",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Ccyh1gspfwj",
+      "qualified_name": "handler_at_22",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C142otc0hyfw",
+      "qualified_name": "handler_at_30",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C12yzg1i238y",
+      "qualified_name": "handler_at_10",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Codxt1ty5jm",
+      "qualified_name": "handler_at_14",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cktv7i6uqf8",
+      "qualified_name": "handler_at_18",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C11aocukdv1a",
+      "qualified_name": "handler_at_22",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cfhde8cagh2",
+      "qualified_name": "handler_at_18",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C7sfybfjq4a",
+      "qualified_name": "handler_at_32",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C11e2vt031td",
+      "qualified_name": "handler_at_37",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cd3yit2tff9",
+      "qualified_name": "handler_at_42",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cfbsz40ledx",
+      "qualified_name": "handler_at_51",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cqnhokz6pew",
+      "qualified_name": "handler_at_64",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C10s0aqesojw",
+      "qualified_name": "handler_at_77",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cx3cnxw7qrn",
+      "qualified_name": "handler_at_97",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cfhsm9zbyhv",
+      "qualified_name": "handler_at_125",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cgngsuufwk1",
+      "qualified_name": "clearDatabase",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C108cr0c1ggh",
+      "qualified_name": "handler_at_29",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cmc8mjf74lo",
+      "qualified_name": "handler_at_47",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C8ul9zc3394",
+      "qualified_name": "handler_at_59",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C17x0r9gijmh",
+      "qualified_name": "handler_at_63",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Ca6jpblomjo",
+      "qualified_name": "handler_at_77",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cok8adzx8l7",
+      "qualified_name": "handler_at_91",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cgv4u7xuemc",
+      "qualified_name": "handler_at_107",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C170mqutrygu",
+      "qualified_name": "handler_at_121",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cb1wg6h8ydw",
+      "qualified_name": "handler_at_139",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C12gcxkpaj4x",
+      "qualified_name": "handler_at_146",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cklraevcxc2",
+      "qualified_name": "handler_at_159",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C17wxqtzyw0s",
+      "qualified_name": "handler_at_164",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C1454wx1c2gw",
+      "qualified_name": "handler_at_165",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C16b4tl73v5q",
+      "qualified_name": "handler_at_179",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C5tru1kifkg",
+      "qualified_name": "handler_at_193",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cqyb4tvgjdn",
+      "qualified_name": "handler_at_206",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cnb6tj0el3y",
+      "qualified_name": "handler_at_207",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cvdygu29e66",
+      "qualified_name": "handler_at_215",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cjcxjl5mm4n",
+      "qualified_name": "handler_at_225",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Couswvejsj6",
+      "qualified_name": "handler_at_248",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Ca4tk3vd1vj",
+      "qualified_name": "handler_at_249",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cb8t39279ac",
+      "qualified_name": "handler_at_265",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cf5jna67l7r",
+      "qualified_name": "handler_at_282",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Ccqtsa1mjt6",
+      "qualified_name": "handler_at_283",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cbsx1uaqhs7",
+      "qualified_name": "handler_at_295",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Co7qmfz8io7",
+      "qualified_name": "handler_at_306",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Csk4lw4t7ff",
+      "qualified_name": "handler_at_317",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cklr48pwyf8",
+      "qualified_name": "handler_at_339",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C5gs6h3xyz5",
+      "qualified_name": "handler_at_347",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cl922kmm3n",
+      "qualified_name": "handler_at_358",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cqxqqj8jual",
+      "qualified_name": "handler_at_369",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C13bbkkbtqm",
+      "qualified_name": "handler_at_381",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C14e9jne6ckd",
+      "qualified_name": "handler_at_385",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cio4gd23h3q",
+      "qualified_name": "handler_at_394",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cd0ynjb3nll",
+      "qualified_name": "handler_at_401",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C16mm4w0vh0u",
+      "qualified_name": "handler_at_408",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Citqvejbt5y",
+      "qualified_name": "clearDatabase",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Czrlow4np3s",
+      "qualified_name": "migrateSchema",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C17401ystqsi",
+      "qualified_name": "givenAnExpiredToken",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C1djbe8h7yt",
+      "qualified_name": "handler_at_13",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Ceaw9da6bl8",
+      "qualified_name": "handler_at_26",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cup6ncu9ppi",
+      "qualified_name": "handler_at_33",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Ctnas5fouqq",
+      "qualified_name": "handler_at_40",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cl5vvjpaoj6",
+      "qualified_name": "handler_at_44",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cf7tro91436",
+      "qualified_name": "handler_at_63",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C16vfuv13vx1",
+      "qualified_name": "handler_at_84",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cyw6kqfm74t",
+      "qualified_name": "handler_at_104",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C96k1vmul5c",
+      "qualified_name": "handler_at_112",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C6c5ydar1ko",
+      "qualified_name": "handler_at_117",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C15adunlzun9",
+      "qualified_name": "handler_at_145",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Co2j8r4ob6q",
+      "qualified_name": "handler_at_155",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Clm17fg1j72",
+      "qualified_name": "handler_at_166",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cfskz6y09zp",
+      "qualified_name": "handler_at_175",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C12nneiop7ub",
+      "qualified_name": "clearDatabase",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C8gpers4boe",
+      "qualified_name": "handler_at_6",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Comta2eypuo",
+      "qualified_name": "handler_at_7",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cryjw0mrlqk",
+      "qualified_name": "handler_at_9",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C5vsnhqdee8",
+      "qualified_name": "handler_at_18",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cuivirjs26",
+      "qualified_name": "handler_at_6",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cev8e013r7o",
+      "qualified_name": "handler_at_7",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C1532enlekux",
+      "qualified_name": "handler_at_9",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Ccujk2ozaer",
+      "qualified_name": "handler_at_13",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C1q3k1dcrh4",
+      "qualified_name": "handler_at_32",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cxpix1ltmwy",
+      "qualified_name": "handler_at_6",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C160n361d2en",
+      "qualified_name": "handler_at_7",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C67op6yy4lx",
+      "qualified_name": "handler_at_9",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cro7ek4cjeb",
+      "qualified_name": "handler_at_13",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cmzhwr572t4",
+      "qualified_name": "handler_at_28",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cpodpec4k66",
+      "qualified_name": "handler_at_37",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cj256rr4hwu",
+      "qualified_name": "handler_at_46",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C14xpxhldftl",
+      "qualified_name": "handler_at_6",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cxm58nogael",
+      "qualified_name": "handler_at_7",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C4fy7ju8vh0",
+      "qualified_name": "handler_at_9",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C16xiii9o0kq",
+      "qualified_name": "handler_at_17",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cwlb82mqu4c",
+      "qualified_name": "handler_at_25",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Ckxzds6xt5r",
+      "qualified_name": "handler_at_35",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Ctcjxhoagpi",
+      "qualified_name": "handler_at_6",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cbdbofm5ogv",
+      "qualified_name": "handler_at_7",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cv2hmbuoxkh",
+      "qualified_name": "handler_at_9",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Caydzqypy86",
+      "qualified_name": "handler_at_34",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cssdycz2lnw",
+      "qualified_name": "handler_at_58",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cfb117laest",
+      "qualified_name": "handler_at_6",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cd8vm193zbi",
+      "qualified_name": "handler_at_7",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cjt8dhct6gl",
+      "qualified_name": "handler_at_9",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Chykcgps9xl",
+      "qualified_name": "handler_at_6",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C76gomewsp",
+      "qualified_name": "handler_at_7",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C5c1136iilg",
+      "qualified_name": "handler_at_9",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cmjwqii9tfr",
+      "qualified_name": "handler_at_39",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cpncjhih6th",
+      "qualified_name": "handler_at_51",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cn2hscqcfpt",
+      "qualified_name": "handler_at_11",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C9l9c1dwq9p",
+      "qualified_name": "handler_at_17",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Ctwztq334id",
+      "qualified_name": "handler_at_24",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Ceugr4ugd7c",
+      "qualified_name": "handler_at_28",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cip0q8qrsa8",
+      "qualified_name": "handler_at_33",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Ccho17c4vbz",
+      "qualified_name": "handler_at_37",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C13w83trx6lu",
+      "qualified_name": "handler_at_44",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cgytz4qj621",
+      "qualified_name": "handler_at_53",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C637exp4m82",
+      "qualified_name": "handler_at_59",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C5orfam3acz",
+      "qualified_name": "handler_at_9",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cvd7uy1tjyp",
+      "qualified_name": "handler_at_10",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cnygp8gpgby",
+      "qualified_name": "handler_at_19",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C8osm5mywbp",
+      "qualified_name": "handler_at_27",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cfxkq4brpvo",
+      "qualified_name": "handler_at_28",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cgjvjd7ee0n",
+      "qualified_name": "handler_at_41",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C4tnq8u0tde",
+      "qualified_name": "handler_at_53",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cwmpne2xrs6",
+      "qualified_name": "handler_at_66",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C7g25sglk7u",
+      "qualified_name": "handler_at_79",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "Cbzanbudswl",
+      "qualified_name": "PingController.ping",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@get('/ping', {\n    responses: {\n      '200': PING_RESPONSE,\n    },\n  })"
+    },
+    {
+      "id": "Cyx3j98xncv",
+      "qualified_name": "ProductController.create",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@post('/products', {\n    security: OPERATION_SECURITY_SPEC,\n    responses: {\n      '200': {\n        description: 'Product model instance',\n        content: {'application/json': {schema: getModelSchemaRef(Product)}},\n      },\n    },\n  })"
+    },
+    {
+      "id": "C6ksixsvmgg",
+      "qualified_name": "ProductController.count",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@get('/products/count', {\n    responses: {\n      '200': {\n        description: 'Product model count',\n        content: {'application/json': {schema: CountSchema}},\n      },\n    },\n  })"
+    },
+    {
+      "id": "Cj35ssxgn57",
+      "qualified_name": "ProductController.find",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@get('/products', {\n    responses: {\n      '200': {\n        description: 'Array of Product model instances',\n        content: {\n          'application/json': {\n            schema: {\n              type: 'array',\n              items: getModelSchemaRef(Product, {includeRelations: true}),\n            },\n          },\n        },\n      },\n    },\n  })"
+    },
+    {
+      "id": "Ct5s3vssvwy",
+      "qualified_name": "ProductController.updateAll",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@patch('/products', {\n    security: OPERATION_SECURITY_SPEC,\n    responses: {\n      '200': {\n        description: 'Product PATCH success count',\n        content: {'application/json': {schema: CountSchema}},\n      },\n    },\n  })"
+    },
+    {
+      "id": "C15kaqakv1g8",
+      "qualified_name": "ProductController.findById",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@get('/products/{id}', {\n    responses: {\n      '200': {\n        description: 'Product model instance',\n        content: {\n          'application/json': {\n            schema: getModelSchemaRef(Product, {includeRelations: true}),\n          },\n        },\n      },\n    },\n  })"
+    },
+    {
+      "id": "Caj6m9fsoyd",
+      "qualified_name": "ProductController.updateById",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@patch('/products/{id}', {\n    security: OPERATION_SECURITY_SPEC,\n    responses: {\n      '204': {\n        description: 'Product PATCH success',\n      },\n    },\n  })"
+    },
+    {
+      "id": "C12ldvaang00",
+      "qualified_name": "ProductController.replaceById",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@put('/products/{id}', {\n    security: OPERATION_SECURITY_SPEC,\n    responses: {\n      '204': {\n        description: 'Product PUT success',\n      },\n    },\n  })"
+    },
+    {
+      "id": "Cjvpl92kw9g",
+      "qualified_name": "ShoppingCartController.create",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@post('/shoppingCarts/{userId}', {\n    security: OPERATION_SECURITY_SPEC,\n    responses: {\n      '204': {\n        description: 'User shopping cart is created or updated',\n      },\n    },\n  })"
+    },
+    {
+      "id": "Ck0vp32iky6",
+      "qualified_name": "ShoppingCartController.set",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@put('/shoppingCarts/{userId}', {\n    security: OPERATION_SECURITY_SPEC,\n    responses: {\n      '204': {\n        description: 'User shopping cart is created or updated',\n      },\n    },\n  })"
+    },
+    {
+      "id": "Ctnzcgu7u9k",
+      "qualified_name": "ShoppingCartController.get",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@get('/shoppingCarts/{userId}', {\n    security: OPERATION_SECURITY_SPEC,\n    responses: {\n      '200': {\n        description: 'User shopping cart is read',\n        content: {'application/json': {schema: {'x-ts-type': ShoppingCart}}},\n      },\n    },\n  })"
+    },
+    {
+      "id": "Cjcqehb4tpi",
+      "qualified_name": "ShoppingCartController.addItem",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@post('/shoppingCarts/{userId}/items', {\n    security: OPERATION_SECURITY_SPEC,\n    responses: {\n      '200': {\n        description: 'User shopping cart item is created',\n        content: {\n          'application/json': {schema: {'x-ts-type': ShoppingCart}},\n        },\n      },\n    },\n  })"
+    },
+    {
+      "id": "Ckqilxohhys",
+      "qualified_name": "UserManagementController.create",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@post('/users', {\n    responses: {\n      '200': {\n        description: 'User',\n        content: {\n          'application/json': {\n            schema: {\n              'x-ts-type': User,\n            },\n          },\n        },\n      },\n    },\n  })"
+    },
+    {
+      "id": "Ceo11g6j8fp",
+      "qualified_name": "UserManagementController.set",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@put('/users/{userId}', {\n    security: OPERATION_SECURITY_SPEC,\n    responses: {\n      '200': {\n        description: 'User',\n        content: {\n          'application/json': {\n            schema: {\n              'x-ts-type': User,\n            },\n          },\n        },\n      },\n    },\n  })"
+    },
+    {
+      "id": "C11qpq94ql9d",
+      "qualified_name": "UserManagementController.findById",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@get('/users/{userId}', {\n    security: OPERATION_SECURITY_SPEC,\n    responses: {\n      '200': {\n        description: 'User',\n        content: {\n          'application/json': {\n            schema: {\n              'x-ts-type': User,\n            },\n          },\n        },\n      },\n    },\n  })"
+    },
+    {
+      "id": "C12m5zdr708d",
+      "qualified_name": "UserManagementController.printCurrentUser",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@get('/users/me', {\n    security: OPERATION_SECURITY_SPEC,\n    responses: {\n      '200': {\n        description: 'The current user profile',\n        content: {\n          'application/json': {\n            schema: UserProfileSchema,\n          },\n        },\n      },\n    },\n  })"
+    },
+    {
+      "id": "Cytipbeau61",
+      "qualified_name": "UserManagementController.productRecommendations",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@get('/users/{userId}/recommend', {\n    responses: {\n      '200': {\n        description: 'Products',\n        content: {\n          'application/json': {\n            schema: {\n              type: 'array',\n              items: {\n                'x-ts-type': Product,\n              },\n            },\n          },\n        },\n      },\n    },\n  })"
+    },
+    {
+      "id": "C14k5n4ufoi5",
+      "qualified_name": "UserManagementController.login",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@post('/users/login', {\n    responses: {\n      '200': {\n        description: 'Token',\n        content: {\n          'application/json': {\n            schema: {\n              type: 'object',\n              properties: {\n                token: {\n                  type: 'string',\n                },\n              },\n            },\n          },\n        },\n      },\n    },\n  })"
+    },
+    {
+      "id": "Cdlyr0zko0z",
+      "qualified_name": "UserManagementController.forgotPassword",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@put('/users/forgot-password', {\n    security: OPERATION_SECURITY_SPEC,\n    responses: {\n      '200': {\n        description: 'The updated user profile',\n        content: {\n          'application/json': {\n            schema: UserProfileSchema,\n          },\n        },\n      },\n    },\n  })"
+    },
+    {
+      "id": "Cjf22z654nq",
+      "qualified_name": "UserManagementController.resetPasswordInit",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@post('/users/reset-password/init', {\n    responses: {\n      '200': {\n        description: 'Confirmation that reset password email has been sent',\n      },\n    },\n  })"
+    },
+    {
+      "id": "Cvq3gdfaug7",
+      "qualified_name": "UserManagementController.resetPasswordFinish",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@put('/users/reset-password/finish', {\n    responses: {\n      '200': {\n        description: 'A successful password reset response',\n      },\n    },\n  })"
+    },
+    {
+      "id": "C545hd9zdlw",
+      "qualified_name": "UserOrderController.createOrder",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@post('/users/{userId}/orders', {\n    security: OPERATION_SECURITY_SPEC,\n    responses: {\n      '200': {\n        description: 'User.Order model instance',\n        content: {'application/json': {schema: {'x-ts-type': Order}}},\n      },\n    },\n  })"
+    },
+    {
+      "id": "Cd0nprhoh8q",
+      "qualified_name": "UserOrderController.findOrders",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@get('/users/{userId}/orders', {\n    security: OPERATION_SECURITY_SPEC,\n    responses: {\n      '200': {\n        description: \"Array of User's Orders\",\n        content: {\n          'application/json': {\n            schema: {type: 'array', items: {'x-ts-type': Order}},\n          },\n        },\n      },\n    },\n  })"
+    },
+    {
+      "id": "Csovt5wkne6",
+      "qualified_name": "UserOrderController.patchOrders",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@patch('/users/{userId}/orders', {\n    security: OPERATION_SECURITY_SPEC,\n    responses: {\n      '200': {\n        description: 'User.Order PATCH success count',\n        content: {'application/json': {schema: CountSchema}},\n      },\n    },\n  })"
+    },
+    {
+      "id": "Cnyyaiusiob",
+      "qualified_name": "main",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/index.ts:56"
+    },
+    {
+      "id": "Cz12t5cweyr",
+      "qualified_name": "migrate",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/migrate.ts:22"
+    },
+    {
+      "id": "Cy9j29v8q6z",
+      "qualified_name": "<framework-entry>::test::mocha",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::mocha`"
+    },
+    {
+      "id": "C5jvq6pfdh1",
+      "qualified_name": "<framework-entry>::network::express::get(\"/:userId\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::get(\"/:userId\")`"
+    },
+    {
+      "id": "Cmcw7h9xnwe",
+      "qualified_name": "<framework-entry>::network::loopback::get(\"/ping\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::get(\"/ping\")`"
+    },
+    {
+      "id": "Co4lfg5nmau",
+      "qualified_name": "<framework-entry>::network::loopback::post(\"/products\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::post(\"/products\")`"
+    },
+    {
+      "id": "C14irnq1xlnz",
+      "qualified_name": "<framework-entry>::network::loopback::get(\"/products/count\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::get(\"/products/count\")`"
+    },
+    {
+      "id": "Caibtziwwoj",
+      "qualified_name": "<framework-entry>::network::loopback::get(\"/products\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::get(\"/products\")`"
+    },
+    {
+      "id": "C2dof6hgplt",
+      "qualified_name": "<framework-entry>::network::loopback::patch(\"/products\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::patch(\"/products\")`"
+    },
+    {
+      "id": "Coyz29gxoyq",
+      "qualified_name": "<framework-entry>::network::loopback::get(\"/products/{id}\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::get(\"/products/{id}\")`"
+    },
+    {
+      "id": "C222lnhe5cl",
+      "qualified_name": "<framework-entry>::network::loopback::patch(\"/products/{id}\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::patch(\"/products/{id}\")`"
+    },
+    {
+      "id": "Ccxyofi3nl9",
+      "qualified_name": "<framework-entry>::network::loopback::put(\"/products/{id}\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::put(\"/products/{id}\")`"
+    },
+    {
+      "id": "C12tlgm05g1",
+      "qualified_name": "<framework-entry>::network::loopback::del(\"/products/{id}\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::del(\"/products/{id}\")`"
+    },
+    {
+      "id": "Cbhqg1bvx9t",
+      "qualified_name": "<framework-entry>::network::loopback::post(\"/shoppingCarts/{userId}\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::post(\"/shoppingCarts/{userId}\")`"
+    },
+    {
+      "id": "Cpvmqq5flc6",
+      "qualified_name": "<framework-entry>::network::loopback::put(\"/shoppingCarts/{userId}\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::put(\"/shoppingCarts/{userId}\")`"
+    },
+    {
+      "id": "C7u8llaygwe",
+      "qualified_name": "<framework-entry>::network::loopback::get(\"/shoppingCarts/{userId}\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::get(\"/shoppingCarts/{userId}\")`"
+    },
+    {
+      "id": "C10nrumln9md",
+      "qualified_name": "<framework-entry>::network::loopback::del(\"/shoppingCarts/{userId}\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::del(\"/shoppingCarts/{userId}\")`"
+    },
+    {
+      "id": "C9v4wqeltn",
+      "qualified_name": "<framework-entry>::network::loopback::post(\"/shoppingCarts/{userId}/items\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::post(\"/shoppingCarts/{userId}/items\")`"
+    },
+    {
+      "id": "Cmiyr2ei9vo",
+      "qualified_name": "<framework-entry>::network::loopback::post(\"/users\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::post(\"/users\")`"
+    },
+    {
+      "id": "Cw205ujq7bn",
+      "qualified_name": "<framework-entry>::network::loopback::put(\"/users/{userId}\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::put(\"/users/{userId}\")`"
+    },
+    {
+      "id": "Caoxhc73h9n",
+      "qualified_name": "<framework-entry>::network::loopback::get(\"/users/{userId}\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::get(\"/users/{userId}\")`"
+    },
+    {
+      "id": "C879v3177yc",
+      "qualified_name": "<framework-entry>::network::loopback::get(\"/users/me\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::get(\"/users/me\")`"
+    },
+    {
+      "id": "C4iafu92cm",
+      "qualified_name": "<framework-entry>::network::loopback::get(\"/users/{userId}/recommend\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::get(\"/users/{userId}/recommend\")`"
+    },
+    {
+      "id": "Cosyqg3wrhj",
+      "qualified_name": "<framework-entry>::network::loopback::post(\"/users/login\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::post(\"/users/login\")`"
+    },
+    {
+      "id": "Cfa6ngi20kw",
+      "qualified_name": "<framework-entry>::network::loopback::put(\"/users/forgot-password\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::put(\"/users/forgot-password\")`"
+    },
+    {
+      "id": "C16593l0wpjm",
+      "qualified_name": "<framework-entry>::network::loopback::post(\"/users/reset-password/init\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::post(\"/users/reset-password/init\")`"
+    },
+    {
+      "id": "Cellftay40u",
+      "qualified_name": "<framework-entry>::network::loopback::put(\"/users/reset-password/finish\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::put(\"/users/reset-password/finish\")`"
+    },
+    {
+      "id": "Crqajt5l8il",
+      "qualified_name": "<framework-entry>::network::loopback::post(\"/users/{userId}/orders\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::post(\"/users/{userId}/orders\")`"
+    },
+    {
+      "id": "C8i3fswyzt3",
+      "qualified_name": "<framework-entry>::network::loopback::get(\"/users/{userId}/orders\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::get(\"/users/{userId}/orders\")`"
+    },
+    {
+      "id": "Czuuety4ks4",
+      "qualified_name": "<framework-entry>::network::loopback::patch(\"/users/{userId}/orders\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::patch(\"/users/{userId}/orders\")`"
+    },
+    {
+      "id": "C9iqpmojmdu",
+      "qualified_name": "<framework-entry>::network::loopback::del(\"/users/{userId}/orders\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::loopback::del(\"/users/{userId}/orders\")`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "Cxg7rxdrb1",
+        "C7g51m543w1",
+        "C3j9f590sqr",
+        "Cyku52df1y"
+      ],
+      "anchors": [
+        "Cyku52df1y"
+      ],
+      "files": [
+        "Fbtosg12wmi"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 3,
+      "members": [
+        "Can1gqt8vkl"
+      ],
+      "anchors": [
+        "Can1gqt8vkl"
+      ],
+      "files": [
+        "Fbtosg12wmi"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 23,
+      "members": [
+        "Cndosfynrio",
+        "Cgjbugcanpv",
+        "Cbyxg0r47ib",
+        "Cx2qzbjacn"
+      ],
+      "anchors": [
+        "Cx2qzbjacn"
+      ],
+      "files": [
+        "Fjvdqo2fojt"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 26,
+      "members": [
+        "Cy3pwvdxdgj"
+      ],
+      "anchors": [
+        "Cy3pwvdxdgj"
+      ],
+      "files": [
+        "Fjvdqo2fojt"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 28,
+      "members": [
+        "Cb5zd6mp37z"
+      ],
+      "anchors": [
+        "Cb5zd6mp37z"
+      ],
+      "files": [
+        "Fke280i1yi2"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 29,
+      "members": [
+        "Cwesaj1pjnf",
+        "Ciim7zfsp3r"
+      ],
+      "anchors": [
+        "Ciim7zfsp3r"
+      ],
+      "files": [
+        "Fke280i1yi2",
+        "Fkkzj1ad2e9"
+      ],
+      "total_lines": 41,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 30,
+      "members": [
+        "C9dbqz6rnu4"
+      ],
+      "anchors": [
+        "C9dbqz6rnu4"
+      ],
+      "files": [
+        "Fke280i1yi2"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 31,
+      "members": [
+        "Ckttcpn3n7q"
+      ],
+      "anchors": [
+        "Ckttcpn3n7q"
+      ],
+      "files": [
+        "Fke280i1yi2"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 33,
+      "members": [
+        "C7dx5ux1pqc",
+        "C14ye3rv82do"
+      ],
+      "anchors": [],
+      "files": [
+        "Fke280i1yi2",
+        "Fkkzj1ad2e9"
+      ],
+      "total_lines": 24,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 38,
+      "members": [
+        "Cie3hc8iepn",
+        "C6f3xdqf6hg"
+      ],
+      "anchors": [],
+      "files": [
+        "Fke280i1yi2",
+        "Fkkzj1ad2e9"
+      ],
+      "total_lines": 70,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 39,
+      "members": [
+        "Cyksrao84ix",
+        "Co8s36mbk26",
+        "Ck6vufikaon"
+      ],
+      "anchors": [],
+      "files": [
+        "Fke280i1yi2",
+        "Fkkzj1ad2e9"
+      ],
+      "total_lines": 42,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 40,
+      "members": [
+        "Ckz4styzuh2",
+        "Cbppaomkc9m"
+      ],
+      "anchors": [],
+      "files": [
+        "Fke280i1yi2",
+        "Fkkzj1ad2e9"
+      ],
+      "total_lines": 67,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 42,
+      "members": [
+        "Cg4p8o4qqox"
+      ],
+      "anchors": [
+        "Cg4p8o4qqox"
+      ],
+      "files": [
+        "Fke280i1yi2"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 44,
+      "members": [
+        "Cz80ewsm6eo",
+        "Cdc2f9d15xc"
+      ],
+      "anchors": [
+        "Cdc2f9d15xc"
+      ],
+      "files": [
+        "Fke280i1yi2",
+        "Fkkzj1ad2e9"
+      ],
+      "total_lines": 24,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 45,
+      "members": [
+        "C6a4sfqiwns",
+        "C11jkl2pzlwp"
+      ],
+      "anchors": [],
+      "files": [
+        "Fke280i1yi2",
+        "Fkkzj1ad2e9"
+      ],
+      "total_lines": 35,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 79,
+      "members": [
+        "Cwjm7xzbc2q"
+      ],
+      "anchors": [
+        "Cwjm7xzbc2q"
+      ],
+      "files": [
+        "Fkkzj1ad2e9"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 90,
+      "members": [
+        "C64iycx4jal"
+      ],
+      "anchors": [
+        "C64iycx4jal"
+      ],
+      "files": [
+        "Fkkzj1ad2e9"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 305,
+      "members": [
+        "Cq1ep8kn09a"
+      ],
+      "anchors": [
+        "Cq1ep8kn09a"
+      ],
+      "files": [
+        "Ffwfpf5avvb"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 307,
+      "members": [
+        "C9useooboqq"
+      ],
+      "anchors": [
+        "C9useooboqq"
+      ],
+      "files": [
+        "Fu24fo6khql"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 316,
+      "members": [
+        "C1894rywsn95"
+      ],
+      "anchors": [
+        "C1894rywsn95"
+      ],
+      "files": [
+        "Fq9i2sfr45b"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 322,
+      "members": [
+        "Ci3zy7cgh15"
+      ],
+      "anchors": [
+        "Ci3zy7cgh15"
+      ],
+      "files": [
+        "Fw1bp7i7qmd"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 332,
+      "members": [
+        "C17th5m8h0sn"
+      ],
+      "anchors": [
+        "C17th5m8h0sn"
+      ],
+      "files": [
+        "Fmoq4cka2r6"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 337,
+      "members": [
+        "Crp9rtc047v",
+        "C16x3hh0068o"
+      ],
+      "anchors": [
+        "C16x3hh0068o"
+      ],
+      "files": [
+        "Fjl9n2fcuhv"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 340,
+      "members": [
+        "Cdm0eqqdvyi",
+        "C17tlmplukup",
+        "Cb7rt3lkgvp",
+        "Cc6t3fp3bf8"
+      ],
+      "anchors": [
+        "Cc6t3fp3bf8"
+      ],
+      "files": [
+        "F14iemdsleg4",
+        "F461d9mmhmk"
+      ],
+      "total_lines": 29,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 343,
+      "members": [
+        "Cvj70hh827q",
+        "Ckmo0ydg617"
+      ],
+      "anchors": [
+        "Ckmo0ydg617"
+      ],
+      "files": [
+        "Fut0x3l63it"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 349,
+      "members": [
+        "Cyweatiosjn"
+      ],
+      "anchors": [
+        "Cyweatiosjn"
+      ],
+      "files": [
+        "F5b95lbcb2n"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 350,
+      "members": [
+        "Clsvn1tfvta",
+        "Cirri2680n",
+        "Cm5zbu8aclo"
+      ],
+      "anchors": [
+        "Clsvn1tfvta"
+      ],
+      "files": [
+        "F5b95lbcb2n"
+      ],
+      "total_lines": 31,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 356,
+      "members": [
+        "Czssgbu5wo"
+      ],
+      "anchors": [
+        "Czssgbu5wo"
+      ],
+      "files": [
+        "Frzc4upc3tc"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 357,
+      "members": [
+        "C3ji9t744g9"
+      ],
+      "anchors": [
+        "C3ji9t744g9"
+      ],
+      "files": [
+        "Fi1v4pw5ib9"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 358,
+      "members": [
+        "Chbii988ing"
+      ],
+      "anchors": [
+        "Chbii988ing"
+      ],
+      "files": [
+        "Frz6r4pzbdl"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 361,
+      "members": [
+        "C1jfc4p5ht4"
+      ],
+      "anchors": [
+        "C1jfc4p5ht4"
+      ],
+      "files": [
+        "Ftk8rky3fgt"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 362,
+      "members": [
+        "Ci7x1mchjaz"
+      ],
+      "anchors": [
+        "Ci7x1mchjaz"
+      ],
+      "files": [
+        "Fgcq533yj8k"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 363,
+      "members": [
+        "Cuczbpxzbez"
+      ],
+      "anchors": [
+        "Cuczbpxzbez"
+      ],
+      "files": [
+        "Fjy0g4rwzyi"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 364,
+      "members": [
+        "Cx16l1ixarn"
+      ],
+      "anchors": [
+        "Cx16l1ixarn"
+      ],
+      "files": [
+        "Fsbrebpjrgf"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 369,
+      "members": [
+        "Ckzwaj62opp"
+      ],
+      "anchors": [
+        "Ckzwaj62opp"
+      ],
+      "files": [
+        "F16jh8kge6yd"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 370,
+      "members": [
+        "Cx1aj32v7yp"
+      ],
+      "anchors": [
+        "Cx1aj32v7yp"
+      ],
+      "files": [
+        "Fvk3zjaqahg"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 372,
+      "members": [
+        "Cg86dh84irq"
+      ],
+      "anchors": [
+        "Cg86dh84irq"
+      ],
+      "files": [
+        "Ftbrw5ia3p7"
+      ],
+      "total_lines": 57,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 378,
+      "members": [
+        "Cve231696va"
+      ],
+      "anchors": [
+        "Cve231696va"
+      ],
+      "files": [
+        "F6gtdlqaghy"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 381,
+      "members": [
+        "Cwhxk5l6raw"
+      ],
+      "anchors": [
+        "Cwhxk5l6raw"
+      ],
+      "files": [
+        "Fbpcq3oms8k"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 383,
+      "members": [
+        "Ctulqeam9re"
+      ],
+      "anchors": [
+        "Ctulqeam9re"
+      ],
+      "files": [
+        "Fcp2e3g79fr"
+      ],
+      "total_lines": 29,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 385,
+      "members": [
+        "Ccihy3q63d6"
+      ],
+      "anchors": [
+        "Ccihy3q63d6"
+      ],
+      "files": [
+        "F461d9mmhmk"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 387,
+      "members": [
+        "C10r8ddve40i"
+      ],
+      "anchors": [
+        "C10r8ddve40i"
+      ],
+      "files": [
+        "F461d9mmhmk"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 388,
+      "members": [
+        "Cqwsnjqseah"
+      ],
+      "anchors": [
+        "Cqwsnjqseah"
+      ],
+      "files": [
+        "Fc1s6y4tl1z"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 389,
+      "members": [
+        "Ck34o9ucxhq"
+      ],
+      "anchors": [
+        "Ck34o9ucxhq"
+      ],
+      "files": [
+        "Fc1s6y4tl1z"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 391,
+      "members": [
+        "C10znw74evpx",
+        "C13dy8g5dtyq"
+      ],
+      "anchors": [
+        "C10znw74evpx"
+      ],
+      "files": [
+        "F9tuz8qh93l"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 393,
+      "members": [
+        "Clbi3lzg2ca",
+        "Clwwyv92h5e"
+      ],
+      "anchors": [
+        "Clwwyv92h5e"
+      ],
+      "files": [
+        "F9tuz8qh93l"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 395,
+      "members": [
+        "Cvpxy4x8xio"
+      ],
+      "anchors": [
+        "Cvpxy4x8xio"
+      ],
+      "files": [
+        "F9tuz8qh93l"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 396,
+      "members": [
+        "Cyw6af394cw"
+      ],
+      "anchors": [
+        "Cyw6af394cw"
+      ],
+      "files": [
+        "F695dpqrony"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cb7rt3lkgvp",
+      "qualified_name": "RecommenderGrpcDataSource.getProtoFile",
+      "simple_name": "getProtoFile",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "static_method",
+      "file": "F14iemdsleg4",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/datasources/recommender-grpc.datasource.ts",
+      "start_line": 44,
+      "end_line": 46,
+      "size_lines": 3,
+      "signature_hint": "private static getProtoFile()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 340,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C17tlmplukup"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cbppaomkc9m",
+      "qualified_name": "passwordResetFinish",
+      "simple_name": "passwordResetFinish",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fkkzj1ad2e9",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js",
+      "start_line": 221,
+      "end_line": 278,
+      "size_lines": 58,
+      "signature_hint": "async function passwordResetFinish(resetKey, password, confirmPassword)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -42,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C6f3xdqf6hg",
+      "qualified_name": "forgotPassword",
+      "simple_name": "forgotPassword",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fkkzj1ad2e9",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js",
+      "start_line": 128,
+      "end_line": 184,
+      "size_lines": 57,
+      "signature_hint": "async function forgotPassword(email, password, confirmPassword)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -43,
+      "region": 38,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ck6vufikaon",
+      "qualified_name": "passwordResetInit",
+      "simple_name": "passwordResetInit",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fkkzj1ad2e9",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js",
+      "start_line": 192,
+      "end_line": 219,
+      "size_lines": 28,
+      "signature_hint": "async function passwordResetInit(email)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -72,
+      "region": 39,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Ciim7zfsp3r",
+      "qualified_name": "updateUser",
+      "simple_name": "updateUser",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fkkzj1ad2e9",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js",
+      "start_line": 497,
+      "end_line": 524,
+      "size_lines": 28,
+      "signature_hint": "async function updateUser()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -72,
+      "region": 29,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C11jkl2pzlwp",
+      "qualified_name": "saveProduct",
+      "simple_name": "saveProduct",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fkkzj1ad2e9",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js",
+      "start_line": 280,
+      "end_line": 301,
+      "size_lines": 22,
+      "signature_hint": "async function saveProduct()",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -78,
+      "region": 45,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C9dbqz6rnu4",
+      "qualified_name": "getOrders",
+      "simple_name": "getOrders",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fke280i1yi2",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/api.js",
+      "start_line": 37,
+      "end_line": 54,
+      "size_lines": 18,
+      "signature_hint": "getOrders()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -82,
+      "region": 30,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckttcpn3n7q",
+      "qualified_name": "makeOrder",
+      "simple_name": "makeOrder",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fke280i1yi2",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/api.js",
+      "start_line": 56,
+      "end_line": 72,
+      "size_lines": 17,
+      "signature_hint": "makeOrder(body)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -83,
+      "region": 31,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7dx5ux1pqc",
+      "qualified_name": "deleteShoppingCart",
+      "simple_name": "deleteShoppingCart",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fke280i1yi2",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/api.js",
+      "start_line": 89,
+      "end_line": 102,
+      "size_lines": 14,
+      "signature_hint": "deleteShoppingCart()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -86,
+      "region": 33,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C14ye3rv82do"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwesaj1pjnf",
+      "qualified_name": "updateUser",
+      "simple_name": "updateUser",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fke280i1yi2",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/api.js",
+      "start_line": 23,
+      "end_line": 35,
+      "size_lines": 13,
+      "signature_hint": "updateUser(userId, body)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -87,
+      "region": 29,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ciim7zfsp3r"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cie3hc8iepn",
+      "qualified_name": "forgotPassword",
+      "simple_name": "forgotPassword",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fke280i1yi2",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/api.js",
+      "start_line": 156,
+      "end_line": 168,
+      "size_lines": 13,
+      "signature_hint": "forgotPassword(body)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -87,
+      "region": 38,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C6f3xdqf6hg"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6a4sfqiwns",
+      "qualified_name": "createProduct",
+      "simple_name": "createProduct",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fke280i1yi2",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/api.js",
+      "start_line": 240,
+      "end_line": 252,
+      "size_lines": 13,
+      "signature_hint": "createProduct(product)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -87,
+      "region": 45,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C11jkl2pzlwp"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdc2f9d15xc",
+      "qualified_name": "deleteProduct",
+      "simple_name": "deleteProduct",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fkkzj1ad2e9",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js",
+      "start_line": 303,
+      "end_line": 315,
+      "size_lines": 13,
+      "signature_hint": "async function deleteProduct(productId)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -87,
+      "region": 44,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cdm0eqqdvyi",
+      "qualified_name": "updateConfig",
+      "simple_name": "updateConfig",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14iemdsleg4",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/datasources/recommender-grpc.datasource.ts",
+      "start_line": 17,
+      "end_line": 28,
+      "size_lines": 12,
+      "signature_hint": "function updateConfig(dsConfig: AnyObject)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -88,
+      "region": 340,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C17tlmplukup"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cz80ewsm6eo",
+      "qualified_name": "deleteProduct",
+      "simple_name": "deleteProduct",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fke280i1yi2",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/api.js",
+      "start_line": 228,
+      "end_line": 238,
+      "size_lines": 11,
+      "signature_hint": "deleteProduct(id)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -89,
+      "region": 44,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cdc2f9d15xc"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwjm7xzbc2q",
+      "qualified_name": "displayPasswordReset",
+      "simple_name": "displayPasswordReset",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fkkzj1ad2e9",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js",
+      "start_line": 317,
+      "end_line": 327,
+      "size_lines": 11,
+      "signature_hint": "function displayPasswordReset()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -89,
+      "region": 79,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cirri2680n",
+      "qualified_name": "ErrorHandlerMiddlewareProvider.middleware",
+      "simple_name": "middleware",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F5b95lbcb2n",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/middlewares/error-handler.middleware.ts",
+      "start_line": 27,
+      "end_line": 37,
+      "size_lines": 11,
+      "signature_hint": "middleware: Middleware = async ( ctx: MiddlewareContext, next: Next, ) =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -89,
+      "region": 350,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Clsvn1tfvta"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C14ye3rv82do",
+      "qualified_name": "checkOut",
+      "simple_name": "checkOut",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fkkzj1ad2e9",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js",
+      "start_line": 481,
+      "end_line": 490,
+      "size_lines": 10,
+      "signature_hint": "async function checkOut()",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -90,
+      "region": 33,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cyksrao84ix",
+      "qualified_name": "passwordResetInit",
+      "simple_name": "passwordResetInit",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fke280i1yi2",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/api.js",
+      "start_line": 170,
+      "end_line": 178,
+      "size_lines": 9,
+      "signature_hint": "passwordResetInit(body)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 39,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ck6vufikaon"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckz4styzuh2",
+      "qualified_name": "passwordResetFinish",
+      "simple_name": "passwordResetFinish",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fke280i1yi2",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/api.js",
+      "start_line": 180,
+      "end_line": 188,
+      "size_lines": 9,
+      "signature_hint": "passwordResetFinish(body)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 40,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cbppaomkc9m"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvj70hh827q",
+      "qualified_name": "updateConfig",
+      "simple_name": "updateConfig",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fut0x3l63it",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/datasources/recommender.datasource.ts",
+      "start_line": 32,
+      "end_line": 39,
+      "size_lines": 8,
+      "signature_hint": "function updateConfig(dsConfig: AnyObject)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -92,
+      "region": 343,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ckmo0ydg617"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Crp9rtc047v",
+      "qualified_name": "updateConfig",
+      "simple_name": "updateConfig",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjl9n2fcuhv",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/datasources/mongo.datasource.ts",
+      "start_line": 22,
+      "end_line": 28,
+      "size_lines": 7,
+      "signature_hint": "function updateConfig(dsConfig: AnyObject)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -93,
+      "region": 337,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C16x3hh0068o"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Clbi3lzg2ca",
+      "qualified_name": "recommenderFilter",
+      "simple_name": "recommenderFilter",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F9tuz8qh93l",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/services/recommender.service.ts",
+      "start_line": 36,
+      "end_line": 42,
+      "size_lines": 7,
+      "signature_hint": "recommenderFilter: BindingFilter = binding =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -93,
+      "region": 393,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Clwwyv92h5e"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Co8s36mbk26",
+      "qualified_name": "isEmailValid",
+      "simple_name": "isEmailValid",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fkkzj1ad2e9",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js",
+      "start_line": 186,
+      "end_line": 190,
+      "size_lines": 5,
+      "signature_hint": "function isEmailValid(email)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 39,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ck6vufikaon"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C64iycx4jal",
+      "qualified_name": "showProfile",
+      "simple_name": "showProfile",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fkkzj1ad2e9",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/ui.js",
+      "start_line": 492,
+      "end_line": 495,
+      "size_lines": 4,
+      "signature_hint": "function showProfile()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -96,
+      "region": 90,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C13dy8g5dtyq",
+      "qualified_name": "asRecommenderService",
+      "simple_name": "asRecommenderService",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F9tuz8qh93l",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/services/recommender.service.ts",
+      "start_line": 29,
+      "end_line": 32,
+      "size_lines": 4,
+      "signature_hint": "asRecommenderService: BindingTemplate = binding =>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -96,
+      "region": 391,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C10znw74evpx"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Clsvn1tfvta",
+      "qualified_name": "ErrorHandlerMiddlewareProvider.value",
+      "simple_name": "value",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F5b95lbcb2n",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/middlewares/error-handler.middleware.ts",
+      "start_line": 26,
+      "end_line": 39,
+      "size_lines": 14,
+      "signature_hint": "async value()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -386,
+      "region": 350,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cg4p8o4qqox",
+      "qualified_name": "getProducts",
+      "simple_name": "getProducts",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fke280i1yi2",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/api.js",
+      "start_line": 202,
+      "end_line": 214,
+      "size_lines": 13,
+      "signature_hint": "getProducts(options)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -387,
+      "region": 42,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 2
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cb5zd6mp37z",
+      "qualified_name": "getUser",
+      "simple_name": "getUser",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fke280i1yi2",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/public/api.js",
+      "start_line": 11,
+      "end_line": 21,
+      "size_lines": 11,
+      "signature_hint": "getUser(userId)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -389,
+      "region": 28,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwhxk5l6raw",
+      "qualified_name": "SecuritySpecEnhancer.modifySpec",
+      "simple_name": "modifySpec",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fbpcq3oms8k",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/services/jwt-spec.enhancer.ts",
+      "start_line": 39,
+      "end_line": 49,
+      "size_lines": 11,
+      "signature_hint": "modifySpec(spec: OpenApiSpec)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -389,
+      "region": 381,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C10r8ddve40i",
+      "qualified_name": "RecommenderGrpcServiceProvider.value",
+      "simple_name": "value",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F461d9mmhmk",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/services/recommender-grpc.service.ts",
+      "start_line": 32,
+      "end_line": 41,
+      "size_lines": 10,
+      "signature_hint": "async value()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -390,
+      "region": 387,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cm5zbu8aclo",
+      "qualified_name": "ErrorHandlerMiddlewareProvider.handleError",
+      "simple_name": "handleError",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F5b95lbcb2n",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/middlewares/error-handler.middleware.ts",
+      "start_line": 41,
+      "end_line": 46,
+      "size_lines": 6,
+      "signature_hint": "handleError(context: MiddlewareContext, err: HttpErrors.HttpError)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 350,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cirri2680n"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ck34o9ucxhq",
+      "qualified_name": "RecommenderRestServiceProvider.value",
+      "simple_name": "value",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fc1s6y4tl1z",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/services/recommender-rest.service.ts",
+      "start_line": 23,
+      "end_line": 25,
+      "size_lines": 3,
+      "signature_hint": "value()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 389,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvpxy4x8xio",
+      "qualified_name": "RecommenderServiceProvider.value",
+      "simple_name": "value",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F9tuz8qh93l",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/services/recommender.service.ts",
+      "start_line": 56,
+      "end_line": 58,
+      "size_lines": 3,
+      "signature_hint": "value()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 395,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccihy3q63d6",
+      "qualified_name": "RecommenderGrpc.recommend",
+      "simple_name": "recommend",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "trait_method",
+      "file": "F461d9mmhmk",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/services/recommender-grpc.service.ts",
+      "start_line": 16,
+      "end_line": 16,
+      "size_lines": 1,
+      "signature_hint": "recommend(req: {userId: string})",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 385,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cg86dh84irq",
+      "qualified_name": "basicAuthorization",
+      "simple_name": "basicAuthorization",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftbrw5ia3p7",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/services/basic.authorizor.ts",
+      "start_line": 16,
+      "end_line": 72,
+      "size_lines": 57,
+      "signature_hint": "async function basicAuthorization( authorizationCtx: AuthorizationContext, metadata: AuthorizationMetadata, )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -543,
+      "region": 372,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "basicAuthorization",
+          "sites": 16,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fu24fo6khql",
+            "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/controllers/product.controller.ts",
+            "line": 48,
+            "name": "basicAuthorization"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C10znw74evpx",
+      "qualified_name": "recommender",
+      "simple_name": "recommender",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F9tuz8qh93l",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/services/recommender.service.ts",
+      "start_line": 28,
+      "end_line": 34,
+      "size_lines": 7,
+      "signature_hint": "function recommender(protocol: string)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -593,
+      "region": 391,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "recommender",
+          "sites": 2,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F461d9mmhmk",
+            "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/services/recommender-grpc.service.ts",
+            "line": 22,
+            "name": "recommender"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ctulqeam9re",
+      "qualified_name": "JWTService.verifyToken",
+      "simple_name": "verifyToken",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fcp2e3g79fr",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/services/jwt.service.ts",
+      "start_line": 25,
+      "end_line": 53,
+      "size_lines": 29,
+      "signature_hint": "async verifyToken(token: string)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -671,
+      "region": 383,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 2
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cx1aj32v7yp",
+      "qualified_name": "UserRepository.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fvk3zjaqahg",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/repositories/user.repository.ts",
+      "start_line": 34,
+      "end_line": 49,
+      "size_lines": 16,
+      "signature_hint": "constructor( @inject('datasources.mongo') dataSource: juggler.DataSource, @repository(OrderRepository) protected orderRepository: OrderRepository, @repository.getter('UserCredentialsRepository') protected userCredentialsRepositoryGetter: Getter<UserCredentialsRepository>, )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -684,
+      "region": 370,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ci3zy7cgh15",
+      "qualified_name": "UserManagementController.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fw1bp7i7qmd",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/controllers/user-management.controller.ts",
+      "start_line": 56,
+      "end_line": 69,
+      "size_lines": 14,
+      "signature_hint": "constructor( @repository(UserRepository) public userRepository: UserRepository, @inject('services.RecommenderService') public recommender: RecommenderService, @inject(PasswordHasherBindings.PASSWORD_HASHER) public passwordHasher: PasswordHasher, @inject(TokenServiceBindings.TOKEN_SERVICE) public jwtService: TokenService, @inject(UserServiceBindings.USER_SERVICE) public userService: UserService<User, Credentials>, @inject(UserServiceBindings.USER_SERVICE) public userManagementService: UserManagementService, )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -686,
+      "region": 322,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17tlmplukup",
+      "qualified_name": "RecommenderGrpcDataSource.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F14iemdsleg4",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/datasources/recommender-grpc.datasource.ts",
+      "start_line": 34,
+      "end_line": 42,
+      "size_lines": 9,
+      "signature_hint": "constructor( @inject('datasources.config.recommender_grpc', {optional: true}) dsConfig: AnyObject = config, )",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 340,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cc6t3fp3bf8"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cyw6af394cw",
+      "qualified_name": "UserManagementService.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F695dpqrony",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/services/user-management.service.ts",
+      "start_line": 22,
+      "end_line": 29,
+      "size_lines": 8,
+      "signature_hint": "constructor( @repository(UserRepository) public userRepository: UserRepository, @inject(PasswordHasherBindings.PASSWORD_HASHER) public passwordHasher: PasswordHasher, @inject('services.EmailService') public emailService: EmailService, )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 396,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1894rywsn95",
+      "qualified_name": "ShoppingCartController.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fq9i2sfr45b",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/controllers/shopping-cart.controller.ts",
+      "start_line": 31,
+      "end_line": 36,
+      "size_lines": 6,
+      "signature_hint": "constructor( @inject(SecurityBindings.USER) public currentUserProfile: UserProfile, @repository(ShoppingCartRepository) public shoppingCartRepository: ShoppingCartRepository, )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 316,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16x3hh0068o",
+      "qualified_name": "MongoDataSource.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fjl9n2fcuhv",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/datasources/mongo.datasource.ts",
+      "start_line": 35,
+      "end_line": 40,
+      "size_lines": 6,
+      "signature_hint": "constructor( @inject('datasources.config.mongo', {optional: true}) dsConfig: AnyObject = config, )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 337,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ckmo0ydg617",
+      "qualified_name": "RecommenderDataSource.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fut0x3l63it",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/datasources/recommender.datasource.ts",
+      "start_line": 45,
+      "end_line": 50,
+      "size_lines": 6,
+      "signature_hint": "constructor( @inject('datasources.config.recommender', {optional: true}) dsConfig: AnyObject = config, )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 343,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cc6t3fp3bf8",
+      "qualified_name": "RecommenderGrpcServiceProvider.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F461d9mmhmk",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/services/recommender-grpc.service.ts",
+      "start_line": 26,
+      "end_line": 30,
+      "size_lines": 5,
+      "signature_hint": "constructor( // recommender must match the name property in the datasource json file @inject('datasources.recommender_grpc') protected dataSource: RecommenderGrpcDataSource = new RecommenderGrpcDataSource(), )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 340,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C9useooboqq",
+      "qualified_name": "ProductController.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fu24fo6khql",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/controllers/product.controller.ts",
+      "start_line": 33,
+      "end_line": 36,
+      "size_lines": 4,
+      "signature_hint": "constructor( @repository(ProductRepository) public productRepository: ProductRepository, )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 307,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17th5m8h0sn",
+      "qualified_name": "UserOrderController.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fmoq4cka2r6",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/controllers/user-order.controller.ts",
+      "start_line": 35,
+      "end_line": 38,
+      "size_lines": 4,
+      "signature_hint": "constructor( @repository(UserRepository) protected userRepo: UserRepository, )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 332,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cyweatiosjn",
+      "qualified_name": "ErrorHandlerMiddlewareProvider.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F5b95lbcb2n",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/middlewares/error-handler.middleware.ts",
+      "start_line": 21,
+      "end_line": 24,
+      "size_lines": 4,
+      "signature_hint": "constructor( @inject(RestBindings.SequenceActions.LOG_ERROR) protected logError: LogError, )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 349,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cve231696va",
+      "qualified_name": "BcryptHasher.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F6gtdlqaghy",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/services/hash.password.bcryptjs.ts",
+      "start_line": 35,
+      "end_line": 38,
+      "size_lines": 4,
+      "signature_hint": "constructor( @inject(PasswordHasherBindings.ROUNDS) private readonly rounds: number, )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 378,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cqwsnjqseah",
+      "qualified_name": "RecommenderRestServiceProvider.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fc1s6y4tl1z",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/services/recommender-rest.service.ts",
+      "start_line": 18,
+      "end_line": 21,
+      "size_lines": 4,
+      "signature_hint": "constructor( @inject('datasources.recommender') protected datasource: RecommenderDataSource, )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 388,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Clwwyv92h5e",
+      "qualified_name": "RecommenderServiceProvider.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F9tuz8qh93l",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/services/recommender.service.ts",
+      "start_line": 51,
+      "end_line": 54,
+      "size_lines": 4,
+      "signature_hint": "constructor( @inject(recommenderFilter) private recommenderServices: RecommenderService[], )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 393,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Czssgbu5wo",
+      "qualified_name": "Order.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Frzc4upc3tc",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/models/order.model.ts",
+      "start_line": 40,
+      "end_line": 42,
+      "size_lines": 3,
+      "signature_hint": "constructor(data?: Partial<Order>)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 356,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3ji9t744g9",
+      "qualified_name": "Product.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fi1v4pw5ib9",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/models/product.model.ts",
+      "start_line": 44,
+      "end_line": 46,
+      "size_lines": 3,
+      "signature_hint": "constructor(data?: Partial<Product>)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 357,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chbii988ing",
+      "qualified_name": "ResetPasswordInit.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Frz6r4pzbdl",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/models/reset-password-init.model.ts",
+      "start_line": 16,
+      "end_line": 18,
+      "size_lines": 3,
+      "signature_hint": "constructor(data?: Partial<ResetPasswordInit>)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 358,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1jfc4p5ht4",
+      "qualified_name": "UserCredentials.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Ftk8rky3fgt",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/models/user-credentials.model.ts",
+      "start_line": 30,
+      "end_line": 32,
+      "size_lines": 3,
+      "signature_hint": "constructor(data?: Partial<UserCredentials>)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 361,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ci7x1mchjaz",
+      "qualified_name": "User.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fgcq533yj8k",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/models/user.model.ts",
+      "start_line": 83,
+      "end_line": 85,
+      "size_lines": 3,
+      "signature_hint": "constructor(data?: Partial<User>)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 362,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cuczbpxzbez",
+      "qualified_name": "OrderRepository.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fjy0g4rwzyi",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/repositories/order.repository.ts",
+      "start_line": 14,
+      "end_line": 16,
+      "size_lines": 3,
+      "signature_hint": "constructor(@inject('datasources.mongo') dataSource: juggler.DataSource)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 363,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cx16l1ixarn",
+      "qualified_name": "ProductRepository.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fsbrebpjrgf",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/repositories/product.repository.ts",
+      "start_line": 16,
+      "end_line": 18,
+      "size_lines": 3,
+      "signature_hint": "constructor(@inject('datasources.mongo') dataSource: MongoDataSource)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 364,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckzwaj62opp",
+      "qualified_name": "UserCredentialsRepository.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F16jh8kge6yd",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/repositories/user-credentials.repository.ts",
+      "start_line": 15,
+      "end_line": 17,
+      "size_lines": 3,
+      "signature_hint": "constructor(@inject('datasources.mongo') dataSource: juggler.DataSource)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 369,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cq1ep8kn09a",
+      "qualified_name": "PingController.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Ffwfpf5avvb",
+      "path": "/storage/cgg-test_repos/app-shopping-loopback/packages/shopping/src/controllers/ping.controller.ts",
+      "start_line": 39,
+      "end_line": 39,
+      "size_lines": 1,
+      "signature_hint": "constructor(@inject(RestBindings.Http.REQUEST) private req: Request)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 305,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

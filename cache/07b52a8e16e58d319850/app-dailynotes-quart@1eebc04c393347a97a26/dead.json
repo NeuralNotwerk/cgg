@@ -1,0 +1,6327 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "bash",
+      "class": "script-driven",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 6,
+      "callables": 2,
+      "roots": 1,
+      "reachable": 1,
+      "reachable_pct": 50,
+      "findings": 1
+    },
+    {
+      "language": "python",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "full",
+      "test_tagging": "full",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "builtin:framework-attr",
+        "builtin:lifecycle",
+        "framework:entry-node",
+        "toplevel:invocation"
+      ],
+      "files": 25,
+      "callables": 163,
+      "roots": 95,
+      "reachable": 109,
+      "reachable_pct": 66,
+      "findings": 54,
+      "blind_spots": [
+        "getattr/setattr and other string-dispatched calls"
+      ]
+    },
+    {
+      "language": "typescript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 18,
+      "callables": 83,
+      "roots": 17,
+      "reachable": 18,
+      "reachable_pct": 21,
+      "findings": 42,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 248,
+    "edges": 224,
+    "unresolved_call_sites": 367,
+    "roots": 113,
+    "candidates": 120,
+    "reported": 97,
+    "regions": 86,
+    "withheld": [
+      {
+        "language": "typescript",
+        "category": "reachable-only-from-dead-code",
+        "reason": "low-root-coverage",
+        "would_have_reported": 18
+      },
+      {
+        "language": "typescript",
+        "category": "dead-cycle",
+        "reason": "low-root-coverage",
+        "would_have_reported": 4
+      },
+      {
+        "language": "typescript",
+        "category": "unreachable-from-roots",
+        "reason": "low-root-coverage",
+        "would_have_reported": 1
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "C4r1iel0olj",
+      "qualified_name": "app.__init__.DatabaseWrapper.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Crptup36tyr",
+      "qualified_name": "app.__init__.Argon2Wrapper.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cftph3vhvrn",
+      "qualified_name": "app.__init__.JWTManager.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cjsgk6p0pbx",
+      "qualified_name": "app.email_service.EmailService.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C3yhv99ptqd",
+      "qualified_name": "app.models.User.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "Cuaej54grz4",
+      "qualified_name": "app.models.Meta.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "Ckaixv1qlu4",
+      "qualified_name": "app.models.Upload.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "C231pv10jbi",
+      "qualified_name": "app.models.Note.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "Chzy9on0q31",
+      "qualified_name": "app.models.before_change_note",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/app/models.py:628"
+    },
+    {
+      "id": "C1082ru7o7uf",
+      "qualified_name": "app.models.after_change_note",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/app/models.py:630"
+    },
+    {
+      "id": "Ckpvv4yh4rs",
+      "qualified_name": "app.models.before_update_task",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/app/models.py:631"
+    },
+    {
+      "id": "C1238p8vs7vv",
+      "qualified_name": "app.models.ExternalCalendar.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "C9zv5ka6050",
+      "qualified_name": "app.models.AuthToken.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "Cewxzk0095g",
+      "qualified_name": "app.models.RateLimit.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "C2rtgac00t3",
+      "qualified_name": "app.routes.health_check",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/health\", methods=[\"GET\"])"
+    },
+    {
+      "id": "C139arqbo0wx",
+      "qualified_name": "app.routes.sign_up",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/sign-up\", methods=[\"POST\"])"
+    },
+    {
+      "id": "Cczkku78sh1",
+      "qualified_name": "app.routes.login",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/login\", methods=[\"POST\"])"
+    },
+    {
+      "id": "Cyaj5n2gwpg",
+      "qualified_name": "app.routes.get_profile",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/profile\", methods=[\"GET\"])"
+    },
+    {
+      "id": "Ckucw91espm",
+      "qualified_name": "app.routes.change_password",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/settings/password\", methods=[\"PUT\"])"
+    },
+    {
+      "id": "C16t8bqiym78",
+      "qualified_name": "app.routes.update_email",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/settings/email\", methods=[\"PUT\"])"
+    },
+    {
+      "id": "Chz2eghjakr",
+      "qualified_name": "app.routes.forgot_password",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/forgot-password\", methods=[\"POST\"])"
+    },
+    {
+      "id": "Cx04bscfd03",
+      "qualified_name": "app.routes.reset_password",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/reset-password\", methods=[\"POST\"])"
+    },
+    {
+      "id": "C1232dh876oh",
+      "qualified_name": "app.routes.request_magic_link",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/magic-link\", methods=[\"POST\"])"
+    },
+    {
+      "id": "Cmpoixtvqrc",
+      "qualified_name": "app.routes.verify_magic_link",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/magic-link/verify\", methods=[\"POST\"])"
+    },
+    {
+      "id": "Cgnsrol3qgp",
+      "qualified_name": "app.routes.save_day",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/save_day\", methods=[\"PUT\"])"
+    },
+    {
+      "id": "C9wtgzm3ru1",
+      "qualified_name": "app.routes.create_note",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/create_note\", methods=[\"POST\"])"
+    },
+    {
+      "id": "Cnahrgv17ug",
+      "qualified_name": "app.routes.save_task",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/save_task\", methods=[\"PUT\"])"
+    },
+    {
+      "id": "Cl6aw8hju6u",
+      "qualified_name": "app.routes.save_note",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/save_note\", methods=[\"PUT\"])"
+    },
+    {
+      "id": "Ck1h6ccdlro",
+      "qualified_name": "app.routes.delete_note",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/delete_note/<uuid>\", methods=[\"DELETE\"])"
+    },
+    {
+      "id": "Cqkcsgdapig",
+      "qualified_name": "app.routes.refresh_jwt",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/refresh_jwt\", methods=[\"GET\"])"
+    },
+    {
+      "id": "Cf71bwxr8ob",
+      "qualified_name": "app.routes.calendar_token",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/calendar_token\", methods=[\"GET\", \"POST\", \"DELETE\"])"
+    },
+    {
+      "id": "C7du2n8lefy",
+      "qualified_name": "app.routes.external_calendars",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/external_calendars\", methods=[\"GET\", \"POST\"])"
+    },
+    {
+      "id": "Cxnxng5mvyt",
+      "qualified_name": "app.routes.delete_external_calendar",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/external_calendars/<uuid>\", methods=[\"DELETE\"])"
+    },
+    {
+      "id": "C6yvbr3cbpm",
+      "qualified_name": "app.routes.external_events",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/external_events\", methods=[\"GET\"])"
+    },
+    {
+      "id": "Cub0hw5zezp",
+      "qualified_name": "app.routes.calendar_feed",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/calendar.ics\", methods=[\"GET\"])"
+    },
+    {
+      "id": "Cnh5so3sack",
+      "qualified_name": "app.routes.get_note",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/note\", methods=[\"GET\"])"
+    },
+    {
+      "id": "Cwpt9ub9fh7",
+      "qualified_name": "app.routes.get_date",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/date\", methods=[\"GET\"])"
+    },
+    {
+      "id": "C1nmkwxuitf",
+      "qualified_name": "app.routes.cal_events",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/events\", methods=[\"GET\"])"
+    },
+    {
+      "id": "Coh5b13zr25",
+      "qualified_name": "app.routes.sidebar_data",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/sidebar\", methods=[\"GET\"])"
+    },
+    {
+      "id": "Cjbcr6id493",
+      "qualified_name": "app.routes.toggle_auto_save",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/toggle_auto_save\", methods=[\"POST\"])"
+    },
+    {
+      "id": "C176mnoywxkd",
+      "qualified_name": "app.routes.toggle_vim_mode",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/toggle_vim_mode\", methods=[\"POST\"])"
+    },
+    {
+      "id": "C4p9e8n1su7",
+      "qualified_name": "app.routes.get_settings",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/settings\", methods=[\"GET\"])"
+    },
+    {
+      "id": "Cnxkhqhamjj",
+      "qualified_name": "app.routes.update_settings",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/settings\", methods=[\"PUT\"])"
+    },
+    {
+      "id": "C2yjvki8bw",
+      "qualified_name": "app.routes.update_task_column",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/task_column\", methods=[\"PUT\"])"
+    },
+    {
+      "id": "C2dmyp79n3z",
+      "qualified_name": "app.routes.search",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/search\", methods=[\"POST\"])"
+    },
+    {
+      "id": "C4g51i3d4ur",
+      "qualified_name": "app.routes.export",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/export\")"
+    },
+    {
+      "id": "Cr7m6cvqqdz",
+      "qualified_name": "app.routes.import_notes",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/import\", methods=[\"POST\"])"
+    },
+    {
+      "id": "Cixnyyikedm",
+      "qualified_name": "app.routes.upload_file",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/upload\", methods=[\"POST\"])"
+    },
+    {
+      "id": "Cit2qx8fifh",
+      "qualified_name": "app.routes.uploaded_file",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/uploads/<path:filename>\")"
+    },
+    {
+      "id": "Cu4nhq7syq",
+      "qualified_name": "app.routes.list_orphan_uploads",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/uploads/orphans\", methods=[\"GET\"])"
+    },
+    {
+      "id": "Cn7pnzrvxy9",
+      "qualified_name": "app.routes.cleanup_orphan_uploads",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/uploads/orphans/cleanup\", methods=[\"POST\"])"
+    },
+    {
+      "id": "C16frzwbb2pc",
+      "qualified_name": "app.routes.sse_stream",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/api/events/stream\", methods=[\"GET\", \"OPTIONS\"])"
+    },
+    {
+      "id": "Cv2hg7pzdbf",
+      "qualified_name": "app.routes.catch_all",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/\", defaults={\"path\": \"\"})"
+    },
+    {
+      "id": "C4o9bjxgm8v",
+      "qualified_name": "Home",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/client/src/router/index.ts:71"
+    },
+    {
+      "id": "Cnwre22og33",
+      "qualified_name": "PageNotFound",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/client/src/router/index.ts:104"
+    },
+    {
+      "id": "Cjigy2egrjx",
+      "qualified_name": "UnauthorizedPage",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/client/src/router/index.ts:109"
+    },
+    {
+      "id": "Ci9hefnv2n7",
+      "qualified_name": "ErrorPage",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/client/src/router/index.ts:114"
+    },
+    {
+      "id": "Ckk6g8u93x3",
+      "qualified_name": "Day",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/client/src/router/index.ts:82"
+    },
+    {
+      "id": "Ccl4zsacvd3",
+      "qualified_name": "Note",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/client/src/router/index.ts:87"
+    },
+    {
+      "id": "C49azre3ant",
+      "qualified_name": "NewNote",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/client/src/router/index.ts:92"
+    },
+    {
+      "id": "C122mim15i93",
+      "qualified_name": "Search",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/client/src/router/index.ts:97"
+    },
+    {
+      "id": "C145g9g5ivwn",
+      "qualified_name": "HomeRedirect",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/client/src/router/index.ts:77"
+    },
+    {
+      "id": "Cu0tttwa48n",
+      "qualified_name": "Auth",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/client/src/router/index.ts:33"
+    },
+    {
+      "id": "C1b47m5fna0",
+      "qualified_name": "Login",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/client/src/router/index.ts:40"
+    },
+    {
+      "id": "Clo86ioqky7",
+      "qualified_name": "Signup",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/client/src/router/index.ts:45"
+    },
+    {
+      "id": "Ca1c6h0ujal",
+      "qualified_name": "ForgotPassword",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/client/src/router/index.ts:50"
+    },
+    {
+      "id": "Ctc1spi4dsw",
+      "qualified_name": "ResetPassword",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/client/src/router/index.ts:55"
+    },
+    {
+      "id": "C12biossz3mg",
+      "qualified_name": "MagicLinkRequest",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/client/src/router/index.ts:60"
+    },
+    {
+      "id": "C3ltqlg64c4",
+      "qualified_name": "MagicLinkVerify",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/client/src/router/index.ts:65"
+    },
+    {
+      "id": "C39y5kw2bqo",
+      "qualified_name": "SidebarSerivce.getExternalEvents",
+      "language": "typescript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sidebar.ts:114"
+    },
+    {
+      "id": "C68qsg4cl24",
+      "qualified_name": "check_service",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/dev:132"
+    },
+    {
+      "id": "Codewjrvq79",
+      "qualified_name": "env.run_migrations_offline",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/migrations/env.py:95"
+    },
+    {
+      "id": "Cumjyrv3kyk",
+      "qualified_name": "env.run_migrations_online",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/migrations/env.py:97"
+    },
+    {
+      "id": "Ci0h63n1gb5",
+      "qualified_name": "verify_env.main",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-dailynotes-quart/verify_env.py:43"
+    },
+    {
+      "id": "C16jarzvy0tk",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/health\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/health\")`"
+    },
+    {
+      "id": "Cv4cdti8n14",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/sign-up\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/sign-up\")`"
+    },
+    {
+      "id": "C61l0r15fak",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/login\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/login\")`"
+    },
+    {
+      "id": "Cdswdb74ypc",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/profile\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/profile\")`"
+    },
+    {
+      "id": "Ci1zb6u3q28",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/settings/password\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/settings/password\")`"
+    },
+    {
+      "id": "Ctj8i2ua1oe",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/settings/email\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/settings/email\")`"
+    },
+    {
+      "id": "C149rn4j8lwr",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/forgot-password\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/forgot-password\")`"
+    },
+    {
+      "id": "C14pnbsjoh9s",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/reset-password\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/reset-password\")`"
+    },
+    {
+      "id": "C4nemdv34ww",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/magic-link\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/magic-link\")`"
+    },
+    {
+      "id": "C22dial8wff",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/magic-link/verify\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/magic-link/verify\")`"
+    },
+    {
+      "id": "C27qvhwe097",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/save_day\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/save_day\")`"
+    },
+    {
+      "id": "Cwddecy5wkf",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/create_note\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/create_note\")`"
+    },
+    {
+      "id": "Cxuwel5zhbk",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/save_task\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/save_task\")`"
+    },
+    {
+      "id": "Ccoh8a1mcwa",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/save_note\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/save_note\")`"
+    },
+    {
+      "id": "C197kaxx8y8",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/delete_note/<uuid>\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/delete_note/<uuid>\")`"
+    },
+    {
+      "id": "Cwv9t39z5qt",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/refresh_jwt\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/refresh_jwt\")`"
+    },
+    {
+      "id": "C3m9k067y4y",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/calendar_token\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/calendar_token\")`"
+    },
+    {
+      "id": "Cuoh8wigs4h",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/external_calendars\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/external_calendars\")`"
+    },
+    {
+      "id": "Cdksp6kox4n",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/external_calendars/<uuid>\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/external_calendars/<uuid>\")`"
+    },
+    {
+      "id": "Cav6xfc2mb1",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/external_events\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/external_events\")`"
+    },
+    {
+      "id": "C15sj4qr40l1",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/calendar.ics\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/calendar.ics\")`"
+    },
+    {
+      "id": "Cpy0lzpz6h5",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/note\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/note\")`"
+    },
+    {
+      "id": "Cgbzqzc4gl2",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/date\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/date\")`"
+    },
+    {
+      "id": "Cehbumasax5",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/events\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/events\")`"
+    },
+    {
+      "id": "Cyfh7djettb",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/sidebar\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/sidebar\")`"
+    },
+    {
+      "id": "Czfb9t6k10h",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/toggle_auto_save\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/toggle_auto_save\")`"
+    },
+    {
+      "id": "Ckdt57nmvm1",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/toggle_vim_mode\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/toggle_vim_mode\")`"
+    },
+    {
+      "id": "C13q6t7jtl3l",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/settings\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/settings\")`"
+    },
+    {
+      "id": "Ck2qflgw1ag",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/task_column\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/task_column\")`"
+    },
+    {
+      "id": "Cugfilze7r6",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/search\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/search\")`"
+    },
+    {
+      "id": "Cxssc63k7sw",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/export\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/export\")`"
+    },
+    {
+      "id": "C3ywpfrde00",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/import\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/import\")`"
+    },
+    {
+      "id": "C154ze7fpqfz",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/upload\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/upload\")`"
+    },
+    {
+      "id": "C2v46p5xfb8",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/uploads/<path:filename>\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/uploads/<path:filename>\")`"
+    },
+    {
+      "id": "Cnmd83wb79k",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/uploads/orphans\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/uploads/orphans\")`"
+    },
+    {
+      "id": "C9n3322cope",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/uploads/orphans/cleanup\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/uploads/orphans/cleanup\")`"
+    },
+    {
+      "id": "Cgzt1zebv0y",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/api/events/stream\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/api/events/stream\")`"
+    },
+    {
+      "id": "Cg0g6cfo5hd",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/\")`"
+    },
+    {
+      "id": "C14bcauf1fs7",
+      "qualified_name": "<framework-entry>::network::quart::route(\"/<path:path>\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::quart::route(\"/<path:path>\")`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 1,
+      "members": [
+        "C16fwuoeyoa6"
+      ],
+      "anchors": [
+        "C16fwuoeyoa6"
+      ],
+      "files": [
+        "Faqxbxyj2zt"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 2,
+      "members": [
+        "Cam58kngajn"
+      ],
+      "anchors": [
+        "Cam58kngajn"
+      ],
+      "files": [
+        "Faqxbxyj2zt"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 12,
+      "members": [
+        "Cxi66fdcv8x",
+        "Cqr5232u5xn",
+        "Chjckzv51ox"
+      ],
+      "anchors": [
+        "Cxi66fdcv8x"
+      ],
+      "files": [
+        "Faqxbxyj2zt"
+      ],
+      "total_lines": 58,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 24,
+      "members": [
+        "Cn6gkuh65l2"
+      ],
+      "anchors": [
+        "Cn6gkuh65l2"
+      ],
+      "files": [
+        "Fdab8kz6vxn"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 28,
+      "members": [
+        "Cm6rtukt1op"
+      ],
+      "anchors": [
+        "Cm6rtukt1op"
+      ],
+      "files": [
+        "Fk90ne6z47n"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 32,
+      "members": [
+        "Cq7emprqqxp"
+      ],
+      "anchors": [
+        "Cq7emprqqxp"
+      ],
+      "files": [
+        "Fww176ikclj"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 33,
+      "members": [
+        "C14r5llgk6nk"
+      ],
+      "anchors": [
+        "C14r5llgk6nk"
+      ],
+      "files": [
+        "Fww176ikclj"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 34,
+      "members": [
+        "Cuxdr01pjm7"
+      ],
+      "anchors": [
+        "Cuxdr01pjm7"
+      ],
+      "files": [
+        "Fww176ikclj"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 42,
+      "members": [
+        "C3dbk2dbxbx"
+      ],
+      "anchors": [
+        "C3dbk2dbxbx"
+      ],
+      "files": [
+        "F11rq4wfpd3o"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 43,
+      "members": [
+        "C4q4ff4yph0"
+      ],
+      "anchors": [
+        "C4q4ff4yph0"
+      ],
+      "files": [
+        "F11rq4wfpd3o"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 44,
+      "members": [
+        "C16w5wo6y21m"
+      ],
+      "anchors": [
+        "C16w5wo6y21m"
+      ],
+      "files": [
+        "F11rq4wfpd3o"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 46,
+      "members": [
+        "Cl02j5ssa3w"
+      ],
+      "anchors": [
+        "Cl02j5ssa3w"
+      ],
+      "files": [
+        "F11rq4wfpd3o"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 47,
+      "members": [
+        "C9aaxdlkfbh"
+      ],
+      "anchors": [
+        "C9aaxdlkfbh"
+      ],
+      "files": [
+        "F11rq4wfpd3o"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 49,
+      "members": [
+        "Cc577k62oh9"
+      ],
+      "anchors": [
+        "Cc577k62oh9"
+      ],
+      "files": [
+        "F11rq4wfpd3o"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 51,
+      "members": [
+        "Cxv6rjl9cms"
+      ],
+      "anchors": [
+        "Cxv6rjl9cms"
+      ],
+      "files": [
+        "F11rq4wfpd3o"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 52,
+      "members": [
+        "Cnw55105x8w"
+      ],
+      "anchors": [
+        "Cnw55105x8w"
+      ],
+      "files": [
+        "F11rq4wfpd3o"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 53,
+      "members": [
+        "C13e70jwz7xv"
+      ],
+      "anchors": [
+        "C13e70jwz7xv"
+      ],
+      "files": [
+        "F11rq4wfpd3o"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 54,
+      "members": [
+        "Chyeplo8vlq"
+      ],
+      "anchors": [
+        "Chyeplo8vlq"
+      ],
+      "files": [
+        "F11rq4wfpd3o"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 55,
+      "members": [
+        "C68zfyrdsn7"
+      ],
+      "anchors": [
+        "C68zfyrdsn7"
+      ],
+      "files": [
+        "F11rq4wfpd3o"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 57,
+      "members": [
+        "Ckmyk0j7p7z"
+      ],
+      "anchors": [
+        "Ckmyk0j7p7z"
+      ],
+      "files": [
+        "F11rq4wfpd3o"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 58,
+      "members": [
+        "C12bt2zba30t"
+      ],
+      "anchors": [
+        "C12bt2zba30t"
+      ],
+      "files": [
+        "F11rq4wfpd3o"
+      ],
+      "total_lines": 29,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 65,
+      "members": [
+        "Caxjwyg4k0r"
+      ],
+      "anchors": [
+        "Caxjwyg4k0r"
+      ],
+      "files": [
+        "F11rq4wfpd3o"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 67,
+      "members": [
+        "C14ksuy5t22r"
+      ],
+      "anchors": [
+        "C14ksuy5t22r"
+      ],
+      "files": [
+        "F11rq4wfpd3o"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 68,
+      "members": [
+        "Cbnfs9dyfzm"
+      ],
+      "anchors": [
+        "Cbnfs9dyfzm"
+      ],
+      "files": [
+        "F11rq4wfpd3o"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 146,
+      "members": [
+        "Cxp0sqe4d63"
+      ],
+      "anchors": [
+        "Cxp0sqe4d63"
+      ],
+      "files": [
+        "Fd3osl8aqs5"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 147,
+      "members": [
+        "Cojh9n66hn7"
+      ],
+      "anchors": [
+        "Cojh9n66hn7"
+      ],
+      "files": [
+        "Fd3osl8aqs5"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 148,
+      "members": [
+        "Cw6yjf19e01",
+        "Cv9278jf44x",
+        "C14sagqnfby",
+        "C178is6be1tq",
+        "Cs70oyhtsl7",
+        "C2ad901o1pn",
+        "Cu6gh81sjpd",
+        "C17maia92py2",
+        "Ct754z00qce",
+        "Ca1u95w9793",
+        "Chezoy10zls",
+        "Cpzte12mb77",
+        "C17x7nrp6fn1",
+        "Clya8ebevtl",
+        "C5on8ook9fr",
+        "C8yv35qq11c",
+        "Cyfvnobn6sz",
+        "Csx81s5s4ai",
+        "Cdbkp2e5nau",
+        "C9b4mtldjvo",
+        "C5n152d1k3u"
+      ],
+      "anchors": [
+        "Cv9278jf44x",
+        "C178is6be1tq",
+        "Ca1u95w9793",
+        "Chezoy10zls",
+        "Cpzte12mb77",
+        "C17x7nrp6fn1",
+        "Clya8ebevtl",
+        "Cdbkp2e5nau",
+        "C5n152d1k3u"
+      ],
+      "files": [
+        "Fd3osl8aqs5",
+        "F656c69n56v",
+        "Far90mqqv1g",
+        "F10jph7gt0i5",
+        "Fwicomfy5nq"
+      ],
+      "total_lines": 209,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 151,
+      "members": [
+        "C49c3p500r8"
+      ],
+      "anchors": [
+        "C49c3p500r8"
+      ],
+      "files": [
+        "F656c69n56v"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 152,
+      "members": [
+        "C157lngpl42a"
+      ],
+      "anchors": [
+        "C157lngpl42a"
+      ],
+      "files": [
+        "F656c69n56v"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 153,
+      "members": [
+        "Cwiqxvgfotm"
+      ],
+      "anchors": [
+        "Cwiqxvgfotm"
+      ],
+      "files": [
+        "F656c69n56v"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 154,
+      "members": [
+        "Clhorpz7ifi"
+      ],
+      "anchors": [
+        "Clhorpz7ifi"
+      ],
+      "files": [
+        "F656c69n56v"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 155,
+      "members": [
+        "C17gvhfcxhjf"
+      ],
+      "anchors": [
+        "C17gvhfcxhjf"
+      ],
+      "files": [
+        "F656c69n56v"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 165,
+      "members": [
+        "C4k6dpgsuk3"
+      ],
+      "anchors": [
+        "C4k6dpgsuk3"
+      ],
+      "files": [
+        "Far90mqqv1g"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 172,
+      "members": [
+        "Cgx6de4tsrf",
+        "C153kxqszqay",
+        "C10l06r6lotv"
+      ],
+      "anchors": [
+        "C10l06r6lotv"
+      ],
+      "files": [
+        "Fykk9bnbdq9"
+      ],
+      "total_lines": 49,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 175,
+      "members": [
+        "C2gghasjpby"
+      ],
+      "anchors": [
+        "C2gghasjpby"
+      ],
+      "files": [
+        "Fykk9bnbdq9"
+      ],
+      "total_lines": 29,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 177,
+      "members": [
+        "C7k32xo148j",
+        "Cei3bzov4ww",
+        "C6p4v6xmv2a",
+        "Clagkj9fv2t",
+        "C8ragliut5q",
+        "Ci3xcihuhj3"
+      ],
+      "anchors": [
+        "C6p4v6xmv2a",
+        "Clagkj9fv2t",
+        "C8ragliut5q",
+        "Ci3xcihuhj3"
+      ],
+      "files": [
+        "Fykk9bnbdq9"
+      ],
+      "total_lines": 101,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 182,
+      "members": [
+        "C5hiyxeu1kw"
+      ],
+      "anchors": [
+        "C5hiyxeu1kw"
+      ],
+      "files": [
+        "Fykk9bnbdq9"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 183,
+      "members": [
+        "Cwii99eggi2"
+      ],
+      "anchors": [
+        "Cwii99eggi2"
+      ],
+      "files": [
+        "Fykk9bnbdq9"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 184,
+      "members": [
+        "C11dnkk9a6tx"
+      ],
+      "anchors": [
+        "C11dnkk9a6tx"
+      ],
+      "files": [
+        "Fykk9bnbdq9"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 185,
+      "members": [
+        "C10rx4h0uh9n"
+      ],
+      "anchors": [
+        "C10rx4h0uh9n"
+      ],
+      "files": [
+        "Fykk9bnbdq9"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 186,
+      "members": [
+        "Cll9uhzau6c"
+      ],
+      "anchors": [
+        "Cll9uhzau6c"
+      ],
+      "files": [
+        "Fykk9bnbdq9"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 188,
+      "members": [
+        "Coqt8hh0gw4"
+      ],
+      "anchors": [
+        "Coqt8hh0gw4"
+      ],
+      "files": [
+        "Fooc80h6oj2"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 189,
+      "members": [
+        "C94altx8n5e"
+      ],
+      "anchors": [
+        "C94altx8n5e"
+      ],
+      "files": [
+        "Fooc80h6oj2"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 190,
+      "members": [
+        "Csx7w0sx8r9"
+      ],
+      "anchors": [
+        "Csx7w0sx8r9"
+      ],
+      "files": [
+        "Fooc80h6oj2"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 191,
+      "members": [
+        "Cd6skj5ml0u",
+        "C1466o1t8w4x",
+        "C1803e6vasxj",
+        "Cq7lw5dg4ri",
+        "Csolhlpxeks",
+        "Cq7i9ufy5hh"
+      ],
+      "anchors": [],
+      "cycles": [
+        [
+          "Cd6skj5ml0u",
+          "C1466o1t8w4x",
+          "C1803e6vasxj",
+          "Csolhlpxeks"
+        ]
+      ],
+      "files": [
+        "Fooc80h6oj2",
+        "Fwicomfy5nq"
+      ],
+      "total_lines": 196,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 196,
+      "members": [
+        "C12qfzhqk7i6"
+      ],
+      "anchors": [
+        "C12qfzhqk7i6"
+      ],
+      "files": [
+        "Fooc80h6oj2"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 197,
+      "members": [
+        "C75663mntk3"
+      ],
+      "anchors": [
+        "C75663mntk3"
+      ],
+      "files": [
+        "Fooc80h6oj2"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 198,
+      "members": [
+        "Cnt7cvj7c9a"
+      ],
+      "anchors": [
+        "Cnt7cvj7c9a"
+      ],
+      "files": [
+        "Fooc80h6oj2"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 199,
+      "members": [
+        "Co6vmipe19"
+      ],
+      "anchors": [
+        "Co6vmipe19"
+      ],
+      "files": [
+        "Fooc80h6oj2"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 201,
+      "members": [
+        "Cfggeibc8do"
+      ],
+      "anchors": [
+        "Cfggeibc8do"
+      ],
+      "files": [
+        "F10jph7gt0i5"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 202,
+      "members": [
+        "Chomt0rmy3f"
+      ],
+      "anchors": [
+        "Chomt0rmy3f"
+      ],
+      "files": [
+        "F10jph7gt0i5"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 203,
+      "members": [
+        "C60lq688obm"
+      ],
+      "anchors": [
+        "C60lq688obm"
+      ],
+      "files": [
+        "F10jph7gt0i5"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 204,
+      "members": [
+        "Co8b3gghrsq"
+      ],
+      "anchors": [
+        "Co8b3gghrsq"
+      ],
+      "files": [
+        "F10jph7gt0i5"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 205,
+      "members": [
+        "C1t0lwphp2v"
+      ],
+      "anchors": [
+        "C1t0lwphp2v"
+      ],
+      "files": [
+        "F10jph7gt0i5"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 210,
+      "members": [
+        "C179n8dgtwpr"
+      ],
+      "anchors": [
+        "C179n8dgtwpr"
+      ],
+      "files": [
+        "F10jph7gt0i5"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 211,
+      "members": [
+        "Ci5p79kjtko"
+      ],
+      "anchors": [
+        "Ci5p79kjtko"
+      ],
+      "files": [
+        "F10jph7gt0i5"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 215,
+      "members": [
+        "C12rhqvdi7yn"
+      ],
+      "anchors": [],
+      "files": [
+        "Fwicomfy5nq"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 218,
+      "members": [
+        "Crwkqbxgszu"
+      ],
+      "anchors": [
+        "Crwkqbxgszu"
+      ],
+      "files": [
+        "F160hvi3eja"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "bash"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 222,
+      "members": [
+        "Cd34b5oej6i"
+      ],
+      "anchors": [
+        "Cd34b5oej6i"
+      ],
+      "files": [
+        "F111x5oluwzx"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 223,
+      "members": [
+        "Chzona07djx"
+      ],
+      "anchors": [
+        "Chzona07djx"
+      ],
+      "files": [
+        "F111x5oluwzx"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 224,
+      "members": [
+        "C163zgk6az9l"
+      ],
+      "anchors": [
+        "C163zgk6az9l"
+      ],
+      "files": [
+        "Fpmaw8zrhn2"
+      ],
+      "total_lines": 22,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 225,
+      "members": [
+        "Cmdecg0fgrk"
+      ],
+      "anchors": [
+        "Cmdecg0fgrk"
+      ],
+      "files": [
+        "Fpmaw8zrhn2"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 226,
+      "members": [
+        "Cfutbke0h2g"
+      ],
+      "anchors": [
+        "Cfutbke0h2g"
+      ],
+      "files": [
+        "Fiqxch6v90z"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 227,
+      "members": [
+        "Ct419vgw0v6"
+      ],
+      "anchors": [
+        "Ct419vgw0v6"
+      ],
+      "files": [
+        "Fiqxch6v90z"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 228,
+      "members": [
+        "C161e6xykmd1"
+      ],
+      "anchors": [
+        "C161e6xykmd1"
+      ],
+      "files": [
+        "Ft0yp5bpkae"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 229,
+      "members": [
+        "C18825oy39wa"
+      ],
+      "anchors": [
+        "C18825oy39wa"
+      ],
+      "files": [
+        "Ft0yp5bpkae"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 230,
+      "members": [
+        "Cnif6guu2cc"
+      ],
+      "anchors": [
+        "Cnif6guu2cc"
+      ],
+      "files": [
+        "F144kdyo67r7"
+      ],
+      "total_lines": 34,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 231,
+      "members": [
+        "Cvxweiw14zc"
+      ],
+      "anchors": [
+        "Cvxweiw14zc"
+      ],
+      "files": [
+        "F144kdyo67r7"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 232,
+      "members": [
+        "C17zjavns45o"
+      ],
+      "anchors": [
+        "C17zjavns45o"
+      ],
+      "files": [
+        "F7fk79r48uu"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 233,
+      "members": [
+        "C156ffrar8ii"
+      ],
+      "anchors": [
+        "C156ffrar8ii"
+      ],
+      "files": [
+        "F7fk79r48uu"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 234,
+      "members": [
+        "C133m2yqm2ps"
+      ],
+      "anchors": [
+        "C133m2yqm2ps"
+      ],
+      "files": [
+        "F112hf13g9rh"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 235,
+      "members": [
+        "C105d6jtcbnx"
+      ],
+      "anchors": [
+        "C105d6jtcbnx"
+      ],
+      "files": [
+        "F112hf13g9rh"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 236,
+      "members": [
+        "Cjgreqj742h"
+      ],
+      "anchors": [
+        "Cjgreqj742h"
+      ],
+      "files": [
+        "F67d50cx0tv"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 237,
+      "members": [
+        "C12qr9ac5hw9"
+      ],
+      "anchors": [
+        "C12qr9ac5hw9"
+      ],
+      "files": [
+        "F67d50cx0tv"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 238,
+      "members": [
+        "Clb7z6n2usc"
+      ],
+      "anchors": [
+        "Clb7z6n2usc"
+      ],
+      "files": [
+        "F1733nr7yxan"
+      ],
+      "total_lines": 36,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 239,
+      "members": [
+        "Cmxke80mobn"
+      ],
+      "anchors": [
+        "Cmxke80mobn"
+      ],
+      "files": [
+        "F1733nr7yxan"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 240,
+      "members": [
+        "Chgpd9dpm3d"
+      ],
+      "anchors": [
+        "Chgpd9dpm3d"
+      ],
+      "files": [
+        "Fr0hn79z3a"
+      ],
+      "total_lines": 22,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 241,
+      "members": [
+        "C4iw7z2hwx1"
+      ],
+      "anchors": [
+        "C4iw7z2hwx1"
+      ],
+      "files": [
+        "Fr0hn79z3a"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 242,
+      "members": [
+        "Cjy20nw0vxy"
+      ],
+      "anchors": [
+        "Cjy20nw0vxy"
+      ],
+      "files": [
+        "F76ja54qczz"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 243,
+      "members": [
+        "C128lkowleqk"
+      ],
+      "anchors": [
+        "C128lkowleqk"
+      ],
+      "files": [
+        "F76ja54qczz"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 244,
+      "members": [
+        "C9j2y08zxxn"
+      ],
+      "anchors": [
+        "C9j2y08zxxn"
+      ],
+      "files": [
+        "Fmcl6b8fjuq"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 245,
+      "members": [
+        "C14twnlab27p"
+      ],
+      "anchors": [
+        "C14twnlab27p"
+      ],
+      "files": [
+        "Fmcl6b8fjuq"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 246,
+      "members": [
+        "Cgx0dlkgs48"
+      ],
+      "anchors": [
+        "Cgx0dlkgs48"
+      ],
+      "files": [
+        "Ft0j9p8fc52"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 247,
+      "members": [
+        "Czwn671c5rt"
+      ],
+      "anchors": [
+        "Czwn671c5rt"
+      ],
+      "files": [
+        "Ft0j9p8fc52"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 248,
+      "members": [
+        "Ca32e7hpvtj"
+      ],
+      "anchors": [
+        "Ca32e7hpvtj"
+      ],
+      "files": [
+        "F9sbn7cbz1x"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 249,
+      "members": [
+        "C16x6h8vfxbm"
+      ],
+      "anchors": [
+        "C16x6h8vfxbm"
+      ],
+      "files": [
+        "F9sbn7cbz1x"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Clb7z6n2usc",
+      "qualified_name": "email_and_auth_tokens.upgrade",
+      "simple_name": "upgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1733nr7yxan",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/email_and_auth_tokens.py",
+      "start_line": 21,
+      "end_line": 56,
+      "size_lines": 36,
+      "signature_hint": "def upgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 136,
+      "region": 238,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnif6guu2cc",
+      "qualified_name": "a477f34dbaa4_initial_config.upgrade",
+      "simple_name": "upgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F144kdyo67r7",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/a477f34dbaa4_initial_config.py",
+      "start_line": 21,
+      "end_line": 54,
+      "size_lines": 34,
+      "signature_hint": "def upgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 134,
+      "region": 230,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cn6gkuh65l2",
+      "qualified_name": "app.auth_tokens.cleanup_expired_tokens",
+      "simple_name": "cleanup_expired_tokens",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fdab8kz6vxn",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/auth_tokens.py",
+      "start_line": 196,
+      "end_line": 222,
+      "size_lines": 27,
+      "signature_hint": "def cleanup_expired_tokens()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 127,
+      "region": 24,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C163zgk6az9l",
+      "qualified_name": "7bd1ee1840ca_meta_table.upgrade",
+      "simple_name": "upgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fpmaw8zrhn2",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/7bd1ee1840ca_meta_table.py",
+      "start_line": 21,
+      "end_line": 42,
+      "size_lines": 22,
+      "signature_hint": "def upgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 122,
+      "region": 224,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chgpd9dpm3d",
+      "qualified_name": "external_calendars.upgrade",
+      "simple_name": "upgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fr0hn79z3a",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/external_calendars.py",
+      "start_line": 21,
+      "end_line": 42,
+      "size_lines": 22,
+      "signature_hint": "def upgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 122,
+      "region": 240,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cqr5232u5xn",
+      "qualified_name": "app.__init__.jwt_required.decorator",
+      "simple_name": "decorator",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Faqxbxyj2zt",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/__init__.py",
+      "start_line": 152,
+      "end_line": 170,
+      "size_lines": 19,
+      "signature_hint": "def decorator(f)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 119,
+      "region": 12,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cxi66fdcv8x"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C3dbk2dbxbx",
+      "qualified_name": "app.models.aes_decrypt_old",
+      "simple_name": "aes_decrypt_old",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F11rq4wfpd3o",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+      "start_line": 193,
+      "end_line": 208,
+      "size_lines": 16,
+      "signature_hint": "def aes_decrypt_old(data)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 116,
+      "region": 42,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Chjckzv51ox",
+      "qualified_name": "app.__init__.jwt_required.decorator.decorated_function",
+      "simple_name": "decorated_function",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Faqxbxyj2zt",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/__init__.py",
+      "start_line": 154,
+      "end_line": 168,
+      "size_lines": 15,
+      "signature_hint": "async def decorated_function(*args, **kwargs)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 115,
+      "region": 12,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cqr5232u5xn"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cgx0dlkgs48",
+      "qualified_name": "vim_mode_column.upgrade",
+      "simple_name": "upgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ft0j9p8fc52",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/vim_mode_column.py",
+      "start_line": 21,
+      "end_line": 28,
+      "size_lines": 8,
+      "signature_hint": "def upgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 108,
+      "region": 246,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C161e6xykmd1",
+      "qualified_name": "9ca5901af374_cleanup.upgrade",
+      "simple_name": "upgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ft0yp5bpkae",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/9ca5901af374_cleanup.py",
+      "start_line": 21,
+      "end_line": 27,
+      "size_lines": 7,
+      "signature_hint": "def upgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 228,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C18825oy39wa",
+      "qualified_name": "9ca5901af374_cleanup.downgrade",
+      "simple_name": "downgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ft0yp5bpkae",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/9ca5901af374_cleanup.py",
+      "start_line": 30,
+      "end_line": 36,
+      "size_lines": 7,
+      "signature_hint": "def downgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 229,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvxweiw14zc",
+      "qualified_name": "a477f34dbaa4_initial_config.downgrade",
+      "simple_name": "downgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F144kdyo67r7",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/a477f34dbaa4_initial_config.py",
+      "start_line": 57,
+      "end_line": 63,
+      "size_lines": 7,
+      "signature_hint": "def downgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 231,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C133m2yqm2ps",
+      "qualified_name": "c440f31aff28_add_unique_constraint_name_for_note_.upgrade",
+      "simple_name": "upgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F112hf13g9rh",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/c440f31aff28_add_unique_constraint_name_for_note_.py",
+      "start_line": 21,
+      "end_line": 27,
+      "size_lines": 7,
+      "signature_hint": "def upgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 234,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ca32e7hpvtj",
+      "qualified_name": "week_start_monday_column.upgrade",
+      "simple_name": "upgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F9sbn7cbz1x",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/week_start_monday_column.py",
+      "start_line": 20,
+      "end_line": 26,
+      "size_lines": 7,
+      "signature_hint": "def upgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 248,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cam58kngajn",
+      "qualified_name": "app.__init__.shutdown_session",
+      "simple_name": "shutdown_session",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Faqxbxyj2zt",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/__init__.py",
+      "start_line": 61,
+      "end_line": 66,
+      "size_lines": 6,
+      "signature_hint": "def shutdown_session(exception=None)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 106,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cd34b5oej6i",
+      "qualified_name": "52e14ce1cf76_add_kanban_enabled_and_kanban_columns_.upgrade",
+      "simple_name": "upgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F111x5oluwzx",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/52e14ce1cf76_add_kanban_enabled_and_kanban_columns_.py",
+      "start_line": 20,
+      "end_line": 25,
+      "size_lines": 6,
+      "signature_hint": "def upgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 106,
+      "region": 222,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cfutbke0h2g",
+      "qualified_name": "9bd71ed6ccff_remove_unique_constraint_name_.upgrade",
+      "simple_name": "upgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fiqxch6v90z",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/9bd71ed6ccff_remove_unique_constraint_name_.py",
+      "start_line": 21,
+      "end_line": 26,
+      "size_lines": 6,
+      "signature_hint": "def upgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 106,
+      "region": 226,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17zjavns45o",
+      "qualified_name": "ad68860179f2_added_auto_save_column_to_user_table.upgrade",
+      "simple_name": "upgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F7fk79r48uu",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/ad68860179f2_added_auto_save_column_to_user_table.py",
+      "start_line": 21,
+      "end_line": 26,
+      "size_lines": 6,
+      "signature_hint": "def upgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 106,
+      "region": 232,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C156ffrar8ii",
+      "qualified_name": "ad68860179f2_added_auto_save_column_to_user_table.downgrade",
+      "simple_name": "downgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F7fk79r48uu",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/ad68860179f2_added_auto_save_column_to_user_table.py",
+      "start_line": 29,
+      "end_line": 34,
+      "size_lines": 6,
+      "signature_hint": "def downgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 106,
+      "region": 233,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjgreqj742h",
+      "qualified_name": "calendar_token_column.upgrade",
+      "simple_name": "upgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F67d50cx0tv",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/calendar_token_column.py",
+      "start_line": 20,
+      "end_line": 25,
+      "size_lines": 6,
+      "signature_hint": "def upgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 106,
+      "region": 236,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czwn671c5rt",
+      "qualified_name": "vim_mode_column.downgrade",
+      "simple_name": "downgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ft0j9p8fc52",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/vim_mode_column.py",
+      "start_line": 31,
+      "end_line": 36,
+      "size_lines": 6,
+      "signature_hint": "def downgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 106,
+      "region": 247,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmdecg0fgrk",
+      "qualified_name": "7bd1ee1840ca_meta_table.downgrade",
+      "simple_name": "downgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fpmaw8zrhn2",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/7bd1ee1840ca_meta_table.py",
+      "start_line": 45,
+      "end_line": 49,
+      "size_lines": 5,
+      "signature_hint": "def downgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 105,
+      "region": 225,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmxke80mobn",
+      "qualified_name": "email_and_auth_tokens.downgrade",
+      "simple_name": "downgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1733nr7yxan",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/email_and_auth_tokens.py",
+      "start_line": 59,
+      "end_line": 63,
+      "size_lines": 5,
+      "signature_hint": "def downgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 105,
+      "region": 239,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjy20nw0vxy",
+      "qualified_name": "f1803e0263f1_add_task_column_to_meta_model.upgrade",
+      "simple_name": "upgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F76ja54qczz",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/f1803e0263f1_add_task_column_to_meta_model.py",
+      "start_line": 20,
+      "end_line": 24,
+      "size_lines": 5,
+      "signature_hint": "def upgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 105,
+      "region": 242,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chzona07djx",
+      "qualified_name": "52e14ce1cf76_add_kanban_enabled_and_kanban_columns_.downgrade",
+      "simple_name": "downgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F111x5oluwzx",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/52e14ce1cf76_add_kanban_enabled_and_kanban_columns_.py",
+      "start_line": 28,
+      "end_line": 31,
+      "size_lines": 4,
+      "signature_hint": "def downgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 104,
+      "region": 223,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C12qr9ac5hw9",
+      "qualified_name": "calendar_token_column.downgrade",
+      "simple_name": "downgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F67d50cx0tv",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/calendar_token_column.py",
+      "start_line": 28,
+      "end_line": 31,
+      "size_lines": 4,
+      "signature_hint": "def downgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 104,
+      "region": 237,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C9j2y08zxxn",
+      "qualified_name": "note_templates.upgrade",
+      "simple_name": "upgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fmcl6b8fjuq",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/note_templates.py",
+      "start_line": 20,
+      "end_line": 23,
+      "size_lines": 4,
+      "signature_hint": "def upgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 104,
+      "region": 244,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14twnlab27p",
+      "qualified_name": "note_templates.downgrade",
+      "simple_name": "downgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fmcl6b8fjuq",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/note_templates.py",
+      "start_line": 26,
+      "end_line": 29,
+      "size_lines": 4,
+      "signature_hint": "def downgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 104,
+      "region": 245,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C105d6jtcbnx",
+      "qualified_name": "c440f31aff28_add_unique_constraint_name_for_note_.downgrade",
+      "simple_name": "downgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F112hf13g9rh",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/c440f31aff28_add_unique_constraint_name_for_note_.py",
+      "start_line": 30,
+      "end_line": 32,
+      "size_lines": 3,
+      "signature_hint": "def downgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 235,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4iw7z2hwx1",
+      "qualified_name": "external_calendars.downgrade",
+      "simple_name": "downgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fr0hn79z3a",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/external_calendars.py",
+      "start_line": 45,
+      "end_line": 47,
+      "size_lines": 3,
+      "signature_hint": "def downgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 241,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C128lkowleqk",
+      "qualified_name": "f1803e0263f1_add_task_column_to_meta_model.downgrade",
+      "simple_name": "downgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F76ja54qczz",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/f1803e0263f1_add_task_column_to_meta_model.py",
+      "start_line": 27,
+      "end_line": 29,
+      "size_lines": 3,
+      "signature_hint": "def downgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 243,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16x6h8vfxbm",
+      "qualified_name": "week_start_monday_column.downgrade",
+      "simple_name": "downgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F9sbn7cbz1x",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/week_start_monday_column.py",
+      "start_line": 29,
+      "end_line": 31,
+      "size_lines": 3,
+      "signature_hint": "def downgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 249,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ct419vgw0v6",
+      "qualified_name": "9bd71ed6ccff_remove_unique_constraint_name_.downgrade",
+      "simple_name": "downgrade",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fiqxch6v90z",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/migrations/versions/9bd71ed6ccff_remove_unique_constraint_name_.py",
+      "start_line": 29,
+      "end_line": 30,
+      "size_lines": 2,
+      "signature_hint": "def downgrade()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 102,
+      "region": 227,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5n152d1k3u",
+      "qualified_name": "updateJWT",
+      "simple_name": "updateJWT",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fwicomfy5nq",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/user.ts",
+      "start_line": 25,
+      "end_line": 35,
+      "size_lines": 11,
+      "signature_hint": "async function updateJWT()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -89,
+      "region": 148,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cojh9n66hn7",
+      "qualified_name": "add",
+      "simple_name": "add",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fd3osl8aqs5",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/calendars.ts",
+      "start_line": 10,
+      "end_line": 17,
+      "size_lines": 8,
+      "signature_hint": "async add(payload: { name: string; url: string; color?: string | null; })",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -92,
+      "region": 147,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C94altx8n5e",
+      "qualified_name": "markNoteUpdatedLocally",
+      "simple_name": "markNoteUpdatedLocally",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fooc80h6oj2",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sse.ts",
+      "start_line": 26,
+      "end_line": 32,
+      "size_lines": 7,
+      "signature_hint": "markNoteUpdatedLocally = (noteUuid: string) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -93,
+      "region": 189,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Csx7w0sx8r9",
+      "qualified_name": "wasRecentlyUpdatedLocally",
+      "simple_name": "wasRecentlyUpdatedLocally",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fooc80h6oj2",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sse.ts",
+      "start_line": 34,
+      "end_line": 38,
+      "size_lines": 5,
+      "signature_hint": "wasRecentlyUpdatedLocally = (noteUuid: string)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 190,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxp0sqe4d63",
+      "qualified_name": "list",
+      "simple_name": "list",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fd3osl8aqs5",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/calendars.ts",
+      "start_line": 5,
+      "end_line": 8,
+      "size_lines": 4,
+      "signature_hint": "async list()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -96,
+      "region": 146,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ca1u95w9793",
+      "qualified_name": "saveFoldState",
+      "simple_name": "saveFoldState",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Far90mqqv1g",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/localstorage.ts",
+      "start_line": 30,
+      "end_line": 33,
+      "size_lines": 4,
+      "signature_hint": "function saveFoldState(noteId: string, folds: FoldRange[])",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -96,
+      "region": 148,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Chezoy10zls",
+      "qualified_name": "getFoldState",
+      "simple_name": "getFoldState",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Far90mqqv1g",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/localstorage.ts",
+      "start_line": 35,
+      "end_line": 38,
+      "size_lines": 4,
+      "signature_hint": "function getFoldState(noteId: string)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -96,
+      "region": 148,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C4k6dpgsuk3",
+      "qualified_name": "clearFoldState",
+      "simple_name": "clearFoldState",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Far90mqqv1g",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/localstorage.ts",
+      "start_line": 40,
+      "end_line": 43,
+      "size_lines": 4,
+      "signature_hint": "function clearFoldState(noteId: string)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -96,
+      "region": 165,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cpzte12mb77",
+      "qualified_name": "getExpandedTags",
+      "simple_name": "getExpandedTags",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Far90mqqv1g",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/localstorage.ts",
+      "start_line": 47,
+      "end_line": 49,
+      "size_lines": 3,
+      "signature_hint": "function getExpandedTags()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 148,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C17x7nrp6fn1",
+      "qualified_name": "saveExpandedTags",
+      "simple_name": "saveExpandedTags",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Far90mqqv1g",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/localstorage.ts",
+      "start_line": 51,
+      "end_line": 53,
+      "size_lines": 3,
+      "signature_hint": "function saveExpandedTags(tags: string[])",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 148,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Coqt8hh0gw4",
+      "qualified_name": "getSessionId",
+      "simple_name": "getSessionId",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fooc80h6oj2",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sse.ts",
+      "start_line": 20,
+      "end_line": 20,
+      "size_lines": 1,
+      "signature_hint": "getSessionId = () => SESSION_ID",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -99,
+      "region": 188,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C12bt2zba30t",
+      "qualified_name": "app.models.Note.get_kanban_columns",
+      "simple_name": "get_kanban_columns",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11rq4wfpd3o",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+      "start_line": 361,
+      "end_line": 389,
+      "size_lines": 29,
+      "signature_hint": "def get_kanban_columns(self, user_default_columns=None)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -171,
+      "region": 58,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Base"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14r5llgk6nk",
+      "qualified_name": "app.model_types.GUID.process_bind_param",
+      "simple_name": "process_bind_param",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fww176ikclj",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/model_types.py",
+      "start_line": 23,
+      "end_line": 33,
+      "size_lines": 11,
+      "signature_hint": "def process_bind_param(self, value, dialect)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -189,
+      "region": 33,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "TypeDecorator"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cuxdr01pjm7",
+      "qualified_name": "app.model_types.GUID.process_result_value",
+      "simple_name": "process_result_value",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fww176ikclj",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/model_types.py",
+      "start_line": 35,
+      "end_line": 41,
+      "size_lines": 7,
+      "signature_hint": "def process_result_value(self, value, dialect)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -193,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "TypeDecorator"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cq7emprqqxp",
+      "qualified_name": "app.model_types.GUID.load_dialect_impl",
+      "simple_name": "load_dialect_impl",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fww176ikclj",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/model_types.py",
+      "start_line": 17,
+      "end_line": 21,
+      "size_lines": 5,
+      "signature_hint": "def load_dialect_impl(self, dialect)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 32,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "TypeDecorator"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cm6rtukt1op",
+      "qualified_name": "app.email_service.EmailService.is_enabled",
+      "simple_name": "is_enabled",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "Fk90ne6z47n",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/email_service.py",
+      "start_line": 60,
+      "end_line": 62,
+      "size_lines": 3,
+      "signature_hint": "def is_enabled(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -197,
+      "region": 28,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16fwuoeyoa6",
+      "qualified_name": "app.__init__.DatabaseWrapper.create_all",
+      "simple_name": "create_all",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Faqxbxyj2zt",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/__init__.py",
+      "start_line": 52,
+      "end_line": 53,
+      "size_lines": 2,
+      "signature_hint": "def create_all(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -198,
+      "region": 1,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2gghasjpby",
+      "qualified_name": "SidebarSerivce.getEvents",
+      "simple_name": "getEvents",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fykk9bnbdq9",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sidebar.ts",
+      "start_line": 127,
+      "end_line": 155,
+      "size_lines": 29,
+      "signature_hint": "public async getEvents()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -371,
+      "region": 175,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxi66fdcv8x",
+      "qualified_name": "app.__init__.jwt_required",
+      "simple_name": "jwt_required",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Faqxbxyj2zt",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/__init__.py",
+      "start_line": 149,
+      "end_line": 172,
+      "size_lines": 24,
+      "signature_hint": "def jwt_required()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -376,
+      "region": 12,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "jwt_required",
+          "sites": 28,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fcevdp9r88g",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/routes.py",
+            "line": 757,
+            "name": "jwt_required"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C178is6be1tq",
+      "qualified_name": "DirectionService.updateAutoDirection",
+      "simple_name": "updateAutoDirection",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F656c69n56v",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/direction.ts",
+      "start_line": 89,
+      "end_line": 100,
+      "size_lines": 12,
+      "signature_hint": "public updateAutoDirection(content: string)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -388,
+      "region": 148,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Ci3xcihuhj3",
+      "qualified_name": "SidebarSerivce.updateTaskColumn",
+      "simple_name": "updateTaskColumn",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fykk9bnbdq9",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sidebar.ts",
+      "start_line": 309,
+      "end_line": 320,
+      "size_lines": 12,
+      "signature_hint": "public async updateTaskColumn( taskUuid: string, column: string )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -388,
+      "region": 177,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C12qfzhqk7i6",
+      "qualified_name": "SSEService.disconnect",
+      "simple_name": "disconnect",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fooc80h6oj2",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sse.ts",
+      "start_line": 212,
+      "end_line": 218,
+      "size_lines": 7,
+      "signature_hint": "disconnect()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -393,
+      "region": 196,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C179n8dgtwpr",
+      "qualified_name": "ThemeService.toggle",
+      "simple_name": "toggle",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10jph7gt0i5",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/theme.ts",
+      "start_line": 138,
+      "end_line": 144,
+      "size_lines": 7,
+      "signature_hint": "public toggle()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -393,
+      "region": 210,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6p4v6xmv2a",
+      "qualified_name": "SidebarSerivce.saveTaskProgress",
+      "simple_name": "saveTaskProgress",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fykk9bnbdq9",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sidebar.ts",
+      "start_line": 253,
+      "end_line": 258,
+      "size_lines": 6,
+      "signature_hint": "public async saveTaskProgress(name: string, uuid: string)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 177,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Clagkj9fv2t",
+      "qualified_name": "SidebarSerivce.toggleAutoSave",
+      "simple_name": "toggleAutoSave",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fykk9bnbdq9",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sidebar.ts",
+      "start_line": 260,
+      "end_line": 265,
+      "size_lines": 6,
+      "signature_hint": "public async toggleAutoSave(autoSave: boolean)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 177,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C8ragliut5q",
+      "qualified_name": "SidebarSerivce.toggleVimMode",
+      "simple_name": "toggleVimMode",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fykk9bnbdq9",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sidebar.ts",
+      "start_line": 267,
+      "end_line": 272,
+      "size_lines": 6,
+      "signature_hint": "public async toggleVimMode(vimMode: boolean)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 177,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C5hiyxeu1kw",
+      "qualified_name": "SidebarSerivce.toggleKanban",
+      "simple_name": "toggleKanban",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fykk9bnbdq9",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sidebar.ts",
+      "start_line": 274,
+      "end_line": 279,
+      "size_lines": 6,
+      "signature_hint": "public async toggleKanban(enabled: boolean)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 182,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwii99eggi2",
+      "qualified_name": "SidebarSerivce.toggleWeekStartMonday",
+      "simple_name": "toggleWeekStartMonday",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fykk9bnbdq9",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sidebar.ts",
+      "start_line": 281,
+      "end_line": 286,
+      "size_lines": 6,
+      "signature_hint": "public async toggleWeekStartMonday(enabled: boolean)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 183,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11dnkk9a6tx",
+      "qualified_name": "SidebarSerivce.updateKanbanColumns",
+      "simple_name": "updateKanbanColumns",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fykk9bnbdq9",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sidebar.ts",
+      "start_line": 288,
+      "end_line": 293,
+      "size_lines": 6,
+      "signature_hint": "public async updateKanbanColumns(columns: string[])",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 184,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C10rx4h0uh9n",
+      "qualified_name": "SidebarSerivce.updateDailyTemplate",
+      "simple_name": "updateDailyTemplate",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fykk9bnbdq9",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sidebar.ts",
+      "start_line": 295,
+      "end_line": 300,
+      "size_lines": 6,
+      "signature_hint": "public async updateDailyTemplate(template: string | null)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 185,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cll9uhzau6c",
+      "qualified_name": "SidebarSerivce.updateNoteTemplate",
+      "simple_name": "updateNoteTemplate",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fykk9bnbdq9",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sidebar.ts",
+      "start_line": 302,
+      "end_line": 307,
+      "size_lines": 6,
+      "signature_hint": "public async updateNoteTemplate(template: string | null)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 186,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C75663mntk3",
+      "qualified_name": "SSEService.on",
+      "simple_name": "on",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fooc80h6oj2",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sse.ts",
+      "start_line": 223,
+      "end_line": 228,
+      "size_lines": 6,
+      "signature_hint": "on(eventType: string, handler: SSEEventHandler)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 197,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnt7cvj7c9a",
+      "qualified_name": "SSEService.off",
+      "simple_name": "off",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fooc80h6oj2",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sse.ts",
+      "start_line": 233,
+      "end_line": 238,
+      "size_lines": 6,
+      "signature_hint": "off(eventType: string, handler: SSEEventHandler)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 198,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ci5p79kjtko",
+      "qualified_name": "ThemeService.cycle",
+      "simple_name": "cycle",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10jph7gt0i5",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/theme.ts",
+      "start_line": 149,
+      "end_line": 154,
+      "size_lines": 6,
+      "signature_hint": "public cycle()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 211,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdbkp2e5nau",
+      "qualified_name": "ThemeService.destroy",
+      "simple_name": "destroy",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10jph7gt0i5",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/theme.ts",
+      "start_line": 159,
+      "end_line": 163,
+      "size_lines": 5,
+      "signature_hint": "public destroy()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 148,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Co6vmipe19",
+      "qualified_name": "SSEService.resetReconnect",
+      "simple_name": "resetReconnect",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fooc80h6oj2",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sse.ts",
+      "start_line": 243,
+      "end_line": 246,
+      "size_lines": 4,
+      "signature_hint": "resetReconnect()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -396,
+      "region": 199,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14ksuy5t22r",
+      "qualified_name": "app.models.AuthToken.is_expired",
+      "simple_name": "is_expired",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F11rq4wfpd3o",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+      "start_line": 685,
+      "end_line": 686,
+      "size_lines": 2,
+      "signature_hint": "def is_expired(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -498,
+      "region": 67,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Base"
+        },
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cbnfs9dyfzm",
+      "qualified_name": "app.models.AuthToken.is_used",
+      "simple_name": "is_used",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F11rq4wfpd3o",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+      "start_line": 689,
+      "end_line": 690,
+      "size_lines": 2,
+      "signature_hint": "def is_used(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -498,
+      "region": 68,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Base"
+        },
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Clya8ebevtl",
+      "qualified_name": "ThemeService.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F10jph7gt0i5",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/theme.ts",
+      "start_line": 18,
+      "end_line": 46,
+      "size_lines": 29,
+      "signature_hint": "constructor()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -671,
+      "region": 148,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "Cv9278jf44x",
+      "qualified_name": "DirectionService.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F656c69n56v",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/direction.ts",
+      "start_line": 18,
+      "end_line": 38,
+      "size_lines": 21,
+      "signature_hint": "constructor()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -679,
+      "region": 148,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "C16w5wo6y21m",
+      "qualified_name": "app.models.User.email",
+      "simple_name": "email",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11rq4wfpd3o",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+      "start_line": 242,
+      "end_line": 246,
+      "size_lines": 5,
+      "signature_hint": "def email(self, value)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 44,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Base"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "email",
+          "sites": 12,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fdab8kz6vxn",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/auth_tokens.py",
+            "line": 70,
+            "name": "email"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C49c3p500r8",
+      "qualified_name": "DirectionService.preference",
+      "simple_name": "preference",
+      "language": "typescript",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F656c69n56v",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/direction.ts",
+      "start_line": 43,
+      "end_line": 45,
+      "size_lines": 3,
+      "signature_hint": "get preference()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 151,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C157lngpl42a",
+      "qualified_name": "DirectionService.preference",
+      "simple_name": "preference",
+      "language": "typescript",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F656c69n56v",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/direction.ts",
+      "start_line": 50,
+      "end_line": 52,
+      "size_lines": 3,
+      "signature_hint": "set preference(value: DirectionPreference)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 152,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwiqxvgfotm",
+      "qualified_name": "DirectionService.resolved",
+      "simple_name": "resolved",
+      "language": "typescript",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F656c69n56v",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/direction.ts",
+      "start_line": 57,
+      "end_line": 59,
+      "size_lines": 3,
+      "signature_hint": "get resolved()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 153,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Clhorpz7ifi",
+      "qualified_name": "DirectionService.isRTL",
+      "simple_name": "isRTL",
+      "language": "typescript",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F656c69n56v",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/direction.ts",
+      "start_line": 64,
+      "end_line": 66,
+      "size_lines": 3,
+      "signature_hint": "get isRTL()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 154,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17gvhfcxhjf",
+      "qualified_name": "DirectionService.isLTR",
+      "simple_name": "isLTR",
+      "language": "typescript",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F656c69n56v",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/direction.ts",
+      "start_line": 71,
+      "end_line": 73,
+      "size_lines": 3,
+      "signature_hint": "get isLTR()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 155,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C10l06r6lotv",
+      "qualified_name": "SidebarSerivce.tagTree",
+      "simple_name": "tagTree",
+      "language": "typescript",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "Fykk9bnbdq9",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/sidebar.ts",
+      "start_line": 94,
+      "end_line": 96,
+      "size_lines": 3,
+      "signature_hint": "public get tagTree()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 172,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cfggeibc8do",
+      "qualified_name": "ThemeService.preference",
+      "simple_name": "preference",
+      "language": "typescript",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F10jph7gt0i5",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/theme.ts",
+      "start_line": 51,
+      "end_line": 53,
+      "size_lines": 3,
+      "signature_hint": "get preference()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 201,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chomt0rmy3f",
+      "qualified_name": "ThemeService.preference",
+      "simple_name": "preference",
+      "language": "typescript",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F10jph7gt0i5",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/theme.ts",
+      "start_line": 58,
+      "end_line": 60,
+      "size_lines": 3,
+      "signature_hint": "set preference(value: ThemePreference)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 202,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C60lq688obm",
+      "qualified_name": "ThemeService.resolved",
+      "simple_name": "resolved",
+      "language": "typescript",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F10jph7gt0i5",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/theme.ts",
+      "start_line": 65,
+      "end_line": 67,
+      "size_lines": 3,
+      "signature_hint": "get resolved()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 203,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Co8b3gghrsq",
+      "qualified_name": "ThemeService.isDark",
+      "simple_name": "isDark",
+      "language": "typescript",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F10jph7gt0i5",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/theme.ts",
+      "start_line": 72,
+      "end_line": 74,
+      "size_lines": 3,
+      "signature_hint": "get isDark()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 204,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1t0lwphp2v",
+      "qualified_name": "ThemeService.isLight",
+      "simple_name": "isLight",
+      "language": "typescript",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F10jph7gt0i5",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/client/src/services/theme.ts",
+      "start_line": 79,
+      "end_line": 81,
+      "size_lines": 3,
+      "signature_hint": "get isLight()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 205,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cc577k62oh9",
+      "qualified_name": "app.models.Meta.serialize",
+      "simple_name": "serialize",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F11rq4wfpd3o",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+      "start_line": 277,
+      "end_line": 286,
+      "size_lines": 10,
+      "signature_hint": "def serialize(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -990,
+      "region": 49,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Base"
+        },
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "serialize",
+          "sites": 8,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fcevdp9r88g",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/routes.py",
+            "line": 1129,
+            "name": "serialize"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxv6rjl9cms",
+      "qualified_name": "app.models.Upload.serialize",
+      "simple_name": "serialize",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F11rq4wfpd3o",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+      "start_line": 306,
+      "end_line": 314,
+      "size_lines": 9,
+      "signature_hint": "def serialize(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -991,
+      "region": 51,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Base"
+        },
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "serialize",
+          "sites": 8,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fcevdp9r88g",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/routes.py",
+            "line": 1129,
+            "name": "serialize"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckmyk0j7p7z",
+      "qualified_name": "app.models.Note.serialize",
+      "simple_name": "serialize",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F11rq4wfpd3o",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+      "start_line": 352,
+      "end_line": 359,
+      "size_lines": 8,
+      "signature_hint": "def serialize(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -992,
+      "region": 57,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Base"
+        },
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "serialize",
+          "sites": 8,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fcevdp9r88g",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/routes.py",
+            "line": 1129,
+            "name": "serialize"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Caxjwyg4k0r",
+      "qualified_name": "app.models.ExternalCalendar.serialize",
+      "simple_name": "serialize",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F11rq4wfpd3o",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+      "start_line": 650,
+      "end_line": 656,
+      "size_lines": 7,
+      "signature_hint": "def serialize(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -993,
+      "region": 65,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Base"
+        },
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "serialize",
+          "sites": 8,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fcevdp9r88g",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/routes.py",
+            "line": 1129,
+            "name": "serialize"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4q4ff4yph0",
+      "qualified_name": "app.models.User.email",
+      "simple_name": "email",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F11rq4wfpd3o",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+      "start_line": 238,
+      "end_line": 239,
+      "size_lines": 2,
+      "signature_hint": "def email(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -998,
+      "region": 43,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Base"
+        },
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "email",
+          "sites": 12,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fdab8kz6vxn",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/auth_tokens.py",
+            "line": 70,
+            "name": "email"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Crwkqbxgszu",
+      "qualified_name": "cleanup",
+      "simple_name": "cleanup",
+      "language": "bash",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F160hvi3eja",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/docker-entrypoint-dev.sh",
+      "start_line": 38,
+      "end_line": 43,
+      "size_lines": 6,
+      "signature_hint": "cleanup()",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1294,
+      "region": 218,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C68zfyrdsn7",
+      "qualified_name": "app.models.Note.name",
+      "simple_name": "name",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11rq4wfpd3o",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+      "start_line": 343,
+      "end_line": 346,
+      "size_lines": 4,
+      "signature_hint": "def name(self, value)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1296,
+      "region": 55,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 8,
+          "file_local_candidates": 2,
+          "example": {
+            "file": "F11rq4wfpd3o",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+            "line": 356,
+            "name": "name",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "implements-external-contract",
+          "contract": "Base"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 6
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "name",
+          "sites": 23,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 8,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F11rq4wfpd3o",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+            "line": 356,
+            "name": "name",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C9aaxdlkfbh",
+      "qualified_name": "app.models.Meta.name",
+      "simple_name": "name",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11rq4wfpd3o",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+      "start_line": 270,
+      "end_line": 271,
+      "size_lines": 2,
+      "signature_hint": "def name(self, value)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1298,
+      "region": 47,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 8,
+          "file_local_candidates": 2,
+          "example": {
+            "file": "F11rq4wfpd3o",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+            "line": 356,
+            "name": "name",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "implements-external-contract",
+          "contract": "Base"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 6
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "name",
+          "sites": 23,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 8,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F11rq4wfpd3o",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+            "line": 356,
+            "name": "name",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C13e70jwz7xv",
+      "qualified_name": "app.models.Note.text",
+      "simple_name": "text",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11rq4wfpd3o",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+      "start_line": 335,
+      "end_line": 336,
+      "size_lines": 2,
+      "signature_hint": "def text(self, value)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1298,
+      "region": 53,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 4,
+          "file_local_candidates": 2,
+          "example": {
+            "file": "F11rq4wfpd3o",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+            "line": 355,
+            "name": "text",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "implements-external-contract",
+          "contract": "Base"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 3
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "text",
+          "sites": 23,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 12,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F11rq4wfpd3o",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+            "line": 355,
+            "name": "text",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cl02j5ssa3w",
+      "qualified_name": "app.models.Meta.name",
+      "simple_name": "name",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F11rq4wfpd3o",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+      "start_line": 266,
+      "end_line": 267,
+      "size_lines": 2,
+      "signature_hint": "def name(self)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1598,
+      "region": 46,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 8,
+          "file_local_candidates": 2,
+          "example": {
+            "file": "F11rq4wfpd3o",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+            "line": 356,
+            "name": "name",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "implements-external-contract",
+          "contract": "Base"
+        },
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 6
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "name",
+          "sites": 23,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 8,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F11rq4wfpd3o",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+            "line": 356,
+            "name": "name",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cnw55105x8w",
+      "qualified_name": "app.models.Note.text",
+      "simple_name": "text",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F11rq4wfpd3o",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+      "start_line": 331,
+      "end_line": 332,
+      "size_lines": 2,
+      "signature_hint": "def text(self)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1598,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 4,
+          "file_local_candidates": 2,
+          "example": {
+            "file": "F11rq4wfpd3o",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+            "line": 355,
+            "name": "text",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "implements-external-contract",
+          "contract": "Base"
+        },
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 3
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "text",
+          "sites": 23,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 12,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F11rq4wfpd3o",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+            "line": 355,
+            "name": "text",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Chyeplo8vlq",
+      "qualified_name": "app.models.Note.name",
+      "simple_name": "name",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F11rq4wfpd3o",
+      "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+      "start_line": 339,
+      "end_line": 340,
+      "size_lines": 2,
+      "signature_hint": "def name(self)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1598,
+      "region": 54,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 8,
+          "file_local_candidates": 2,
+          "example": {
+            "file": "F11rq4wfpd3o",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+            "line": 356,
+            "name": "name",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "implements-external-contract",
+          "contract": "Base"
+        },
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 6
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "name",
+          "sites": 23,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 8,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F11rq4wfpd3o",
+            "path": "/storage/cgg-test_repos/app-dailynotes-quart/app/models.py",
+            "line": 356,
+            "name": "name",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+repos 283 excluded []
+added 1
+  ('c', '{"kind": "reference"}', 'medium') 1
+dropped 71
+  ('c', '{"kind": "direct"}', 'high') 1
+  ('c', '{"kind": "direct"}', 'medium') 70

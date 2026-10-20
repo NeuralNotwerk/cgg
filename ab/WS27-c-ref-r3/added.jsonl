@@ -1,0 +1,1 @@
+{"repo": "cmake-kitware", "key": ["c", "{\"kind\": \"reference\"}", "setopt_pointers", "/storage/cgg-test_repos/cmake-kitware/Utilities/cmcurl/lib/setopt.c", "dep", "/storage/cgg-test_repos/cmake-kitware/Tests/RunCMake/Ninja/dep.c", 1521, "medium"]}

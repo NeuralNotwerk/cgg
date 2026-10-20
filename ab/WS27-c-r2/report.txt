@@ -1,0 +1,12 @@
+old: cgg 0.11.0 (dev gd867994)  sha256=953eda75c2465032360f06244c4672fe098d6229b0b29df705c98c2ac7372d7e
+new: cgg 0.11.0 (dev gd867994+d0046c3e)  sha256=4d38c01869c5d8fa4a8ed120d00b7a009161cf033c63c750f73670ff4391cf2b
+old=target/remediation/bins/WS27-c-before
+new=target/remediation/bins/WS27-c-r2
+repos=283 elapsed=239s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 4
+  c-redis: edges 62365->62364 (-1 +0 ~0) callables 13922->13922 unresolved 9941->9942 files 948->948 deadhigh 0->0 
+  cmake-kitware: edges 131887->131865 (-22 +0 ~0) callables 37480->37480 unresolved 125382->125395 files 17741->17741 deadhigh 0->0 
+  erlang-otp: edges 725294->725275 (-19 +0 ~0) callables 271239->271239 unresolved 220316->220325 files 5652->5652 deadhigh 2->2 
+  zig-zig: edges 274897->274861 (-36 +0 ~0) callables 362991->362991 unresolved 202169->202185 files 17351->17351 deadhigh -> dead rc old=0 new=124
+by language: see by_language.tsv
