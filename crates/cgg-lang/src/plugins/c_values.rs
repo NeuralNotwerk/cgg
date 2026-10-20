@@ -87,6 +87,17 @@ pub(super) fn collect(
     (out, members)
 }
 
+/// The source right after `n`, past spaces, starts with `::` or `(`.
+fn continues_as_path_or_call(n: Node, src: &[u8]) -> bool {
+    let rest = src.get(n.end_byte()..).unwrap_or(&[]);
+    let i = rest
+        .iter()
+        .position(|b| !b.is_ascii_whitespace())
+        .unwrap_or(rest.len());
+    let rest = &rest[i..];
+    rest.starts_with(b"::") || rest.starts_with(b"(")
+}
+
 fn text<'s>(n: Node, src: &'s [u8]) -> &'s str {
     n.utf8_text(src).unwrap_or("")
 }
@@ -311,6 +322,11 @@ impl Walk<'_, '_> {
             return;
         }
         match v.kind() {
+            // A name the source continues with `::` or `(` is the head of a
+            // qualified name or a call an error-recovering parse split off
+            // (Objective-C++'s `ShaderFunctionMTL::Cast(x)` read as
+            // `… = ShaderFunctionMTL`), never a value.
+            "identifier" if continues_as_path_or_call(v, self.src) => {}
             "identifier" => {
                 let frame = self.stack.last().copied();
                 if let Some(r) = record(v, String::new(), false, self.src) {

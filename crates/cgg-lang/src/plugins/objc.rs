@@ -394,6 +394,18 @@ mod tests {
             "{:?}",
             f.references
         );
+        // `ShaderFunctionMTL::Cast(x)`, split by the parse into an
+        // assignment of `ShaderFunctionMTL`, is a call, not that value.
+        let f = extract_with_refs(
+            "void f(void) {\n  d.fn =\n      ShaderFunctionMTL::Cast(*x.y()).z();\n}\n",
+        );
+        assert!(
+            f.references
+                .iter()
+                .all(|r| !(r.value_ref && r.name == "ShaderFunctionMTL")),
+            "{:?}",
+            f.references
+        );
         // A method's parameter is a variable, not a function of its name.
         let f = extract_with_refs(
             "@implementation A\n- (void)writeSize:(int)size { report(size); }\n@end\n",

@@ -63,6 +63,17 @@ pub fn prune(all_facts: &mut [FileFacts]) {
                 .extend(f.data_members.iter().map(String::as_str));
         }
     }
+    // Objective-C++ (`.mm`) shares the C and C++ headers' classes: a field
+    // a `.h` declares (`__weak FlutterViewController* view_controller_;`) is
+    // data in the `.m`/`.mm` files that use it too.
+    let c_family: HashSet<&str> = ["c", "cpp"]
+        .iter()
+        .filter_map(|l| members.get(l))
+        .flat_map(|m| m.iter().copied())
+        .collect();
+    if !c_family.is_empty() {
+        members.entry("objc").or_default().extend(c_family);
+    }
     // Owned so the facts can be borrowed mutably below.
     let own = |m: HashMap<&str, HashSet<&str>>| -> HashMap<String, HashSet<String>> {
         m.into_iter()

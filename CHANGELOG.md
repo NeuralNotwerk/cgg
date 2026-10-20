@@ -569,7 +569,10 @@ otherwise change the default graph.
   when one class does, `medium` for several, refused over `--fanout-cap`.
   A C function value is read as the C plugin reads one, and a bare name in
   an Objective-C file is kept only when it names a C function, never a
-  method; an Objective-C method's parameters are variables.
+  method; an Objective-C method's parameters are variables, and a field a
+  C or C++ header declares is data there too. A name the source continues
+  with `::` or `(` — Objective-C++'s `ShaderFunctionMTL::Cast(x)`, which
+  the grammar splits — is never a value.
 
 - **Groovy method pointers were not references (WS26, gap 25).**
   `this.&m`, `Util.&helper`, `obj.&go` (also inside an argument, as a
@@ -954,10 +957,10 @@ WS26 Erlang `{M, F}` follow-up (full corpus, none excluded):
 WS26 Objective-C (full corpus, none excluded):
 
 - The default graph is unchanged in every repository.
-- Under `--reference-edges`, 369 Objective-C reference edges are added
-  (113 `high`); none are removed.
+- Under `--reference-edges`, 366 Objective-C reference edges are added
+  (110 `high`); none are removed.
 - Under `--dead-code`, 77 findings leave the report (Flutter 57,
-  AFNetworking 18, Orleans samples 2; none `high`) and 263 Flutter
+  AFNetworking 18, Orleans samples 2; none `high`) and 265 Flutter
   findings enter it: candidates fell 75,229 → 75,126, and the extra roots
   lifted Objective-C's reachable-only-from-dead-code findings over the
   root-coverage threshold, so the ones withheld before are now reported.

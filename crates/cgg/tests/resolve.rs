@@ -3763,6 +3763,32 @@ static void unusedFn(void) {}\n\
     );
 }
 
+/// A field a C/C++ header declares is data in the Objective-C++ files that
+/// use it: `use(view_controller_)` does not name a same-named callable.
+#[test]
+fn objc_values_see_c_header_fields() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "Delegate.h",
+        b"struct Delegate {\n  void *view_controller_;\n};\n",
+    );
+    write(
+        tmp.path(),
+        "Delegate.mm",
+        b"#import \"Delegate.h\"\nstatic void view_controller_(void) {}\nstatic void use(void *p) {}\n@implementation D\n- (void)go {\n  use(view_controller_);\n}\n@end\n",
+    );
+    let out = tmp.path().join("g.mmd");
+    cgg()
+        .args(["--reference-edges", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&out).unwrap();
+    assert_eq!(g.matches("ref|").count(), 0, "{g}");
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------
