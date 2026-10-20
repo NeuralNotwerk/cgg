@@ -1,0 +1,705 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [],
+      "files": 1,
+      "callables": 6,
+      "roots": 0,
+      "reachable": 0,
+      "reachable_pct": 0,
+      "findings": 3,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    },
+    {
+      "language": "php",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "framework:entry-node"
+      ],
+      "files": 67,
+      "callables": 18,
+      "roots": 2,
+      "reachable": 2,
+      "reachable_pct": 11,
+      "findings": 6
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 24,
+    "edges": 8,
+    "unresolved_call_sites": 11,
+    "roots": 2,
+    "candidates": 22,
+    "reported": 9,
+    "regions": 17,
+    "withheld": [
+      {
+        "language": "javascript",
+        "category": "reachable-only-from-dead-code",
+        "reason": "no-roots-found",
+        "would_have_reported": 3
+      },
+      {
+        "language": "php",
+        "category": "reachable-only-from-dead-code",
+        "reason": "low-root-coverage",
+        "would_have_reported": 2
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Ccsgvwzvink",
+      "qualified_name": "<framework-entry>::network::codeigniter::BaseController::initController",
+      "language": "php",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::codeigniter::BaseController::initController`"
+    },
+    {
+      "id": "Cso4hy7od6u",
+      "qualified_name": "<framework-entry>::network::codeigniter::get(\"/\")",
+      "language": "php",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::codeigniter::get(\"/\")`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "C143bpbam764"
+      ],
+      "anchors": [
+        "C143bpbam764"
+      ],
+      "files": [
+        "Fwauu3skd3j"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "php"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 1,
+      "members": [
+        "C3p30odltgr"
+      ],
+      "anchors": [
+        "C3p30odltgr"
+      ],
+      "files": [
+        "Fkfrji3asg4"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "php"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 2,
+      "members": [
+        "C2xuq9c8cjm"
+      ],
+      "anchors": [
+        "C2xuq9c8cjm"
+      ],
+      "files": [
+        "Fnk7s00zaxs"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "php"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 3,
+      "members": [
+        "Ckuuwvg0glj"
+      ],
+      "anchors": [
+        "Ckuuwvg0glj"
+      ],
+      "files": [
+        "Fnk7s00zaxs"
+      ],
+      "total_lines": 25,
+      "languages": [
+        "php"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 6,
+      "members": [
+        "Chrfw7zpab1",
+        "Czeppvnnmm0",
+        "Cn5y2m7la74",
+        "Csnag0j61ww"
+      ],
+      "anchors": [
+        "Chrfw7zpab1"
+      ],
+      "files": [
+        "F2qesmzq9l4"
+      ],
+      "total_lines": 84,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 7,
+      "members": [
+        "C8q8uawcxpb"
+      ],
+      "anchors": [
+        "C8q8uawcxpb"
+      ],
+      "files": [
+        "F2qesmzq9l4"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 11,
+      "members": [
+        "C4edlci46a1"
+      ],
+      "anchors": [
+        "C4edlci46a1"
+      ],
+      "files": [
+        "F2qesmzq9l4"
+      ],
+      "total_lines": 25,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 12,
+      "members": [
+        "C4e4m4wq6v3",
+        "C17ej8pgdn91"
+      ],
+      "anchors": [
+        "C4e4m4wq6v3"
+      ],
+      "files": [
+        "F10pdlmzc24k"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "php"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 14,
+      "members": [
+        "C6pbno4nlol"
+      ],
+      "anchors": [
+        "C6pbno4nlol"
+      ],
+      "files": [
+        "F10pdlmzc24k"
+      ],
+      "total_lines": 25,
+      "languages": [
+        "php"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 15,
+      "members": [
+        "Cpuhe2rfq0w"
+      ],
+      "anchors": [
+        "Cpuhe2rfq0w"
+      ],
+      "files": [
+        "Fqv2zy8zk6u"
+      ],
+      "total_lines": 21,
+      "languages": [
+        "php"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 16,
+      "members": [
+        "C4lg77d8iqk"
+      ],
+      "anchors": [
+        "C4lg77d8iqk"
+      ],
+      "files": [
+        "Fqv2zy8zk6u"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "php"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 17,
+      "members": [
+        "Cmreek0l057"
+      ],
+      "anchors": [
+        "Cmreek0l057"
+      ],
+      "files": [
+        "F9ll3zqbm6d"
+      ],
+      "total_lines": 32,
+      "languages": [
+        "php"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 18,
+      "members": [
+        "C17oa1gyit3",
+        "C145mgj29zxo"
+      ],
+      "anchors": [
+        "C145mgj29zxo"
+      ],
+      "files": [
+        "Fidwe0qzs2c",
+        "Fmrhkkuzbgl"
+      ],
+      "total_lines": 35,
+      "languages": [
+        "php"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 19,
+      "members": [
+        "C66qhpboieu"
+      ],
+      "anchors": [
+        "C66qhpboieu"
+      ],
+      "files": [
+        "Feggio2a75d"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "php"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 20,
+      "members": [
+        "Ciotf30901m"
+      ],
+      "anchors": [
+        "Ciotf30901m"
+      ],
+      "files": [
+        "Feggio2a75d"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "php"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 21,
+      "members": [
+        "Co9gi8vkdqa"
+      ],
+      "anchors": [
+        "Co9gi8vkdqa"
+      ],
+      "files": [
+        "Fifqqxg40wb"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "php"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 22,
+      "members": [
+        "Cwq3cjjxpmv"
+      ],
+      "anchors": [
+        "Cwq3cjjxpmv"
+      ],
+      "files": [
+        "Fmrhkkuzbgl"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "php"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Chrfw7zpab1",
+      "qualified_name": "init",
+      "simple_name": "init",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F2qesmzq9l4",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Views/errors/html/debug.js",
+      "start_line": 4,
+      "end_line": 49,
+      "size_lines": 46,
+      "signature_hint": "function init()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -54,
+      "region": 6,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Ckuuwvg0glj",
+      "qualified_name": "Mimes::guessExtensionFromType",
+      "simple_name": "guessExtensionFromType",
+      "language": "php",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fnk7s00zaxs",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Mimes.php",
+      "start_line": 509,
+      "end_line": 533,
+      "size_lines": 25,
+      "signature_hint": "public static function guessExtensionFromType(string $type, ?string $proposedExtension = null)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -75,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4edlci46a1",
+      "qualified_name": "toggle",
+      "simple_name": "toggle",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F2qesmzq9l4",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Views/errors/html/debug.js",
+      "start_line": 92,
+      "end_line": 116,
+      "size_lines": 25,
+      "signature_hint": "function toggle(elem)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -75,
+      "region": 11,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2xuq9c8cjm",
+      "qualified_name": "Mimes::guessTypeFromExtension",
+      "simple_name": "guessTypeFromExtension",
+      "language": "php",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fnk7s00zaxs",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Mimes.php",
+      "start_line": 491,
+      "end_line": 500,
+      "size_lines": 10,
+      "signature_hint": "public static function guessTypeFromExtension(string $extension)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -90,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3p30odltgr",
+      "qualified_name": "Exceptions::handler",
+      "simple_name": "handler",
+      "language": "php",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fkfrji3asg4",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Exceptions.php",
+      "start_line": 102,
+      "end_line": 105,
+      "size_lines": 4,
+      "signature_hint": "public function handler(int $statusCode, Throwable $exception)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -96,
+      "region": 1,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8q8uawcxpb",
+      "qualified_name": "onfocus",
+      "simple_name": "onfocus",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F2qesmzq9l4",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Views/errors/html/debug.js",
+      "start_line": 27,
+      "end_line": 29,
+      "size_lines": 3,
+      "signature_hint": "tabLinks[id].onfocus = function ()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 7,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6pbno4nlol",
+      "qualified_name": "preload::load",
+      "simple_name": "load",
+      "language": "php",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10pdlmzc24k",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/preload.php",
+      "start_line": 85,
+      "end_line": 109,
+      "size_lines": 25,
+      "signature_hint": "public function load()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -375,
+      "region": 14,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C143bpbam764",
+      "qualified_name": "Database::__construct",
+      "simple_name": "__construct",
+      "language": "php",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fwauu3skd3j",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Config/Database.php",
+      "start_line": 193,
+      "end_line": 203,
+      "size_lines": 11,
+      "signature_hint": "public function __construct()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -589,
+      "region": 0,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "__construct",
+          "sites": 11,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Femibe71be6",
+            "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Views/errors/html/error_exception.php",
+            "line": 124,
+            "name": "__construct",
+            "receiver_hint": "ReflectionMethod"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4e4m4wq6v3",
+      "qualified_name": "preload::__construct",
+      "simple_name": "__construct",
+      "language": "php",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10pdlmzc24k",
+      "path": "/storage/cgg-test_repos/app-codeigniter-starter/preload.php",
+      "start_line": 69,
+      "end_line": 72,
+      "size_lines": 4,
+      "signature_hint": "public function __construct()",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -596,
+      "region": 12,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "__construct",
+          "sites": 11,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 4,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Femibe71be6",
+            "path": "/storage/cgg-test_repos/app-codeigniter-starter/app/Views/errors/html/error_exception.php",
+            "line": 124,
+            "name": "__construct",
+            "receiver_hint": "ReflectionMethod"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    }
+  ]
+}

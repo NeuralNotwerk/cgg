@@ -1,0 +1,17 @@
+{
+ "high|none|bare": [
+  {
+   "repo": "zig-zig",
+   "lang": "cpp",
+   "src": "install",
+   "dst": "install",
+   "dst_path": "/storage/cgg-test_repos/zig-zig/lib/libcxx/src/locale.cpp",
+   "site_path": "/storage/cgg-test_repos/zig-zig/lib/libcxx/src/locale.cpp",
+   "site_line": 149,
+   "via": "direct",
+   "confidence": "high",
+   "resolver": "intra-file",
+   "line": "install(f, f->id.__get());"
+  }
+ ]
+}

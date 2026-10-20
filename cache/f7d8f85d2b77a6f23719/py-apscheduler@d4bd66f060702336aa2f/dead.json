@@ -1,0 +1,6018 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "python",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "full",
+      "test_tagging": "full",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "builtin:framework-attr",
+        "builtin:lifecycle",
+        "framework:entry-node",
+        "framework:rule",
+        "framework:test-harness",
+        "toplevel:invocation"
+      ],
+      "files": 72,
+      "callables": 632,
+      "roots": 312,
+      "reachable": 568,
+      "reachable_pct": 89,
+      "findings": 62,
+      "blind_spots": [
+        "getattr/setattr and other string-dispatched calls"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 632,
+    "edges": 2054,
+    "unresolved_call_sites": 1362,
+    "roots": 312,
+    "candidates": 122,
+    "reported": 62,
+    "regions": 40,
+    "withheld": [
+      {
+        "language": "python",
+        "category": "only-used-by-tests",
+        "reason": "missing-signal",
+        "would_have_reported": 58
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "C85bl1nalb",
+      "qualified_name": "qt_executor.MainWindow.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cls5bkylm9h",
+      "qualified_name": "qt_executor.MainWindow.update_time",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/gui/qt_executor.py:44"
+    },
+    {
+      "id": "C9fzhn3wk2j",
+      "qualified_name": "async_scheduler.main",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/standalone/async_postgres.py:38"
+    },
+    {
+      "id": "Ceknxs5k8dy",
+      "qualified_name": "async_worker.main",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/standalone/async_postgres.py:38"
+    },
+    {
+      "id": "Cq0j36yxm8l",
+      "qualified_name": "example_tasks.tick",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/web/wsgi_noframework.py:42"
+    },
+    {
+      "id": "Co75df0d8lr",
+      "qualified_name": "async_memory.tick",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/web/wsgi_noframework.py:42"
+    },
+    {
+      "id": "C153pq9715rm",
+      "qualified_name": "async_memory.main",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/standalone/async_postgres.py:38"
+    },
+    {
+      "id": "C122yihuq462",
+      "qualified_name": "async_mysql.tick",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/web/wsgi_noframework.py:42"
+    },
+    {
+      "id": "C13h0gl8wqor",
+      "qualified_name": "async_mysql.main",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/standalone/async_postgres.py:38"
+    },
+    {
+      "id": "C10odtyxp8it",
+      "qualified_name": "async_postgres.tick",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/web/wsgi_noframework.py:42"
+    },
+    {
+      "id": "C7gyzc1kgjk",
+      "qualified_name": "async_postgres.main",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/standalone/async_postgres.py:38"
+    },
+    {
+      "id": "C18922rotykj",
+      "qualified_name": "sync_memory.tick",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/web/wsgi_noframework.py:42"
+    },
+    {
+      "id": "Cghcrr5jt6x",
+      "qualified_name": "asgi_fastapi.tick",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/web/wsgi_noframework.py:42"
+    },
+    {
+      "id": "Cqapwfetti5",
+      "qualified_name": "asgi_fastapi.lifespan",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/web/asgi_fastapi.py:51"
+    },
+    {
+      "id": "C3fqgwebix",
+      "qualified_name": "asgi_fastapi.root",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/web/asgi_starlette.py:63"
+    },
+    {
+      "id": "Cfw672p1bvv",
+      "qualified_name": "asgi_noframework.tick",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/web/wsgi_noframework.py:42"
+    },
+    {
+      "id": "C6pnwlbtqrt",
+      "qualified_name": "asgi_noframework.scheduler_middleware",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/web/asgi_noframework.py:74"
+    },
+    {
+      "id": "Crychhacjkt",
+      "qualified_name": "asgi_starlette.tick",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/web/wsgi_noframework.py:42"
+    },
+    {
+      "id": "Cb5pco9djsl",
+      "qualified_name": "asgi_starlette.SchedulerMiddleware.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C4jw2s9pho7",
+      "qualified_name": "asgi_starlette.SchedulerMiddleware.__call__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__call__` is invoked by the runtime"
+    },
+    {
+      "id": "Cclxio3mg51",
+      "qualified_name": "asgi_starlette.root",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/web/asgi_starlette.py:63"
+    },
+    {
+      "id": "C1bnqr5aph5",
+      "qualified_name": "wsgi_flask.tick",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/web/wsgi_noframework.py:42"
+    },
+    {
+      "id": "Cuvxi7f48k2",
+      "qualified_name": "wsgi_flask.hello_world",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@app.route(\"/\")"
+    },
+    {
+      "id": "Craynr554rj",
+      "qualified_name": "wsgi_noframework.tick",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/web/wsgi_noframework.py:42"
+    },
+    {
+      "id": "C16bhq7e0wtp",
+      "qualified_name": "apscheduler._converters.as_int",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/src/apscheduler/triggers/cron/expressions.py:90"
+    },
+    {
+      "id": "Ckooig3o2iy",
+      "qualified_name": "apscheduler._converters.as_datetime",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/src/apscheduler/triggers/cron/__init__.py:73"
+    },
+    {
+      "id": "Cj8t0k608xf",
+      "qualified_name": "apscheduler._converters.as_aware_datetime",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/src/apscheduler/triggers/interval.py:54"
+    },
+    {
+      "id": "C3ysw673bbx",
+      "qualified_name": "apscheduler._converters.as_date",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/src/apscheduler/triggers/calendarinterval.py:74"
+    },
+    {
+      "id": "C1v3p8qizut",
+      "qualified_name": "apscheduler._converters.as_timezone",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/src/apscheduler/triggers/cron/__init__.py:78"
+    },
+    {
+      "id": "C24e3vgh3gl",
+      "qualified_name": "apscheduler._converters.as_uuid",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/src/apscheduler/_events.py:270"
+    },
+    {
+      "id": "Cy0g0i3sneq",
+      "qualified_name": "apscheduler._converters.as_timedelta",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/src/apscheduler/triggers/combining.py:60"
+    },
+    {
+      "id": "Coltmlef3oa",
+      "qualified_name": "apscheduler._converters.as_enum.converter",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/src/apscheduler/triggers/interval.py:54"
+    },
+    {
+      "id": "Cga1apwdfjf",
+      "qualified_name": "apscheduler._exceptions.TaskLookupError.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C161rdbo7g7e",
+      "qualified_name": "apscheduler._exceptions.ScheduleLookupError.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Crs3gftuqmj",
+      "qualified_name": "apscheduler._exceptions.JobLookupError.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cexm8ujlgdn",
+      "qualified_name": "apscheduler._exceptions.JobResultNotReady.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C67e2k1kb39",
+      "qualified_name": "apscheduler._exceptions.ConflictingIdError.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Ccjvqptsw9n",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.__attrs_post_init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__attrs_post_init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cpsvef9y9hi",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.__aenter__",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `py-context-manager:base-type`"
+    },
+    {
+      "id": "Crcbqauoggc",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.__aexit__",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `py-context-manager:base-type`"
+    },
+    {
+      "id": "Ci7hs5dz63i",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "C15tme9g2fld",
+      "qualified_name": "apscheduler._schedulers.sync.Scheduler.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C7cw06ytxil",
+      "qualified_name": "apscheduler._schedulers.sync.Scheduler.data_store",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/web/wsgi_noframework.py:41"
+    },
+    {
+      "id": "Cty0f8ol7k5",
+      "qualified_name": "apscheduler._schedulers.sync.Scheduler.event_broker",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/examples/web/wsgi_noframework.py:41"
+    },
+    {
+      "id": "C10s84avf7uz",
+      "qualified_name": "apscheduler._schedulers.sync.Scheduler.__enter__",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `py-context-manager:base-type`"
+    },
+    {
+      "id": "Czkw8cpxmim",
+      "qualified_name": "apscheduler._schedulers.sync.Scheduler.__exit__",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `py-context-manager:base-type`"
+    },
+    {
+      "id": "Cto7uzpq2r6",
+      "qualified_name": "apscheduler._schedulers.sync.Scheduler.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "Cscedoilcdo",
+      "qualified_name": "apscheduler._structures.Task.__hash__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__hash__` is invoked by the runtime"
+    },
+    {
+      "id": "Ctr1c2oihtt",
+      "qualified_name": "apscheduler._structures.Task.__eq__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__eq__` is invoked by the runtime"
+    },
+    {
+      "id": "C11cryqlqgku",
+      "qualified_name": "apscheduler._structures.Task.__lt__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__lt__` is invoked by the runtime"
+    },
+    {
+      "id": "Cr62kvf1cl0",
+      "qualified_name": "apscheduler._structures.Schedule.__hash__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__hash__` is invoked by the runtime"
+    },
+    {
+      "id": "Chnpaww3k5d",
+      "qualified_name": "apscheduler._structures.Schedule.__eq__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__eq__` is invoked by the runtime"
+    },
+    {
+      "id": "Cwz77gkhmn8",
+      "qualified_name": "apscheduler._structures.Schedule.__lt__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__lt__` is invoked by the runtime"
+    },
+    {
+      "id": "C11ahaj7flov",
+      "qualified_name": "apscheduler._structures.Job.__hash__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__hash__` is invoked by the runtime"
+    },
+    {
+      "id": "Cmo8b3xb1c1",
+      "qualified_name": "apscheduler._structures.Job.__eq__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__eq__` is invoked by the runtime"
+    },
+    {
+      "id": "C5gorsrucx5",
+      "qualified_name": "apscheduler._structures.JobResult.__hash__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__hash__` is invoked by the runtime"
+    },
+    {
+      "id": "C1504mooy7mw",
+      "qualified_name": "apscheduler._structures.JobResult.__eq__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__eq__` is invoked by the runtime"
+    },
+    {
+      "id": "C7q3mc1hkuw",
+      "qualified_name": "apscheduler._utils.UnsetValue.__new__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__new__` is invoked by the runtime"
+    },
+    {
+      "id": "Cbbbs83jc57",
+      "qualified_name": "apscheduler._utils.UnsetValue.__getstate__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__getstate__` is invoked by the runtime"
+    },
+    {
+      "id": "Cgqghefw0wp",
+      "qualified_name": "apscheduler._utils.UnsetValue.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "Cbkos903ag2",
+      "qualified_name": "apscheduler._validators.positive_number",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/src/apscheduler/triggers/cron/expressions.py:50"
+    },
+    {
+      "id": "Cy695omvpjd",
+      "qualified_name": "apscheduler._validators.non_negative_number",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/src/apscheduler/triggers/cron/expressions.py:91"
+    },
+    {
+      "id": "Ccns347bzu5",
+      "qualified_name": "apscheduler._validators.valid_metadata",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/src/apscheduler/_structures.py:310"
+    },
+    {
+      "id": "Cd5pwd4cf8z",
+      "qualified_name": "apscheduler.abc.Trigger.__getstate__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__getstate__` is invoked by the runtime"
+    },
+    {
+      "id": "C121jk6caqal",
+      "qualified_name": "apscheduler.abc.Trigger.__setstate__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__setstate__` is invoked by the runtime"
+    },
+    {
+      "id": "C7knpp4qotr",
+      "qualified_name": "apscheduler.abc.Trigger.__iter__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__iter__` is invoked by the runtime"
+    },
+    {
+      "id": "Cbww87lmv2m",
+      "qualified_name": "apscheduler.abc.Trigger.__next__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__next__` is invoked by the runtime"
+    },
+    {
+      "id": "C8kx73srbep",
+      "qualified_name": "apscheduler.abc.Subscription.__enter__",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `py-context-manager:base-type`"
+    },
+    {
+      "id": "Ch1nebv6xb5",
+      "qualified_name": "apscheduler.abc.Subscription.__exit__",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `py-context-manager:base-type`"
+    },
+    {
+      "id": "C22hu3ymybh",
+      "qualified_name": "apscheduler.datastores.memory.MemoryDataStore.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "Cuc356vuhrn",
+      "qualified_name": "apscheduler.datastores.mongodb.CustomEncoder.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cyq2smea00",
+      "qualified_name": "apscheduler.datastores.mongodb.MongoDBDataStore.__attrs_post_init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__attrs_post_init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cx2sn1h85em",
+      "qualified_name": "apscheduler.datastores.mongodb.MongoDBDataStore.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "Cc0qsgknbmf",
+      "qualified_name": "apscheduler.datastores.sqlalchemy.SQLAlchemyDataStore.__attrs_post_init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__attrs_post_init__` is invoked by the runtime"
+    },
+    {
+      "id": "Ccfympp2vi8",
+      "qualified_name": "apscheduler.datastores.sqlalchemy.SQLAlchemyDataStore.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "C10iurk6rivm",
+      "qualified_name": "apscheduler.eventbrokers.asyncpg.AsyncpgEventBroker.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "Co9krqgs7iq",
+      "qualified_name": "apscheduler.eventbrokers.local.LocalEventBroker.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "C6e4pmk9p9m",
+      "qualified_name": "apscheduler.eventbrokers.mqtt.MQTTEventBroker.__attrs_post_init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__attrs_post_init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cpacvuybckq",
+      "qualified_name": "apscheduler.eventbrokers.mqtt.MQTTEventBroker.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "Cdllxl5wx09",
+      "qualified_name": "apscheduler.eventbrokers.psycopg.convert_options",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/src/apscheduler/eventbrokers/psycopg.py:52"
+    },
+    {
+      "id": "Cfde9rfiyi2",
+      "qualified_name": "apscheduler.eventbrokers.psycopg.PsycopgEventBroker.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "Cmeysmj5129",
+      "qualified_name": "apscheduler.eventbrokers.redis.RedisEventBroker.__attrs_post_init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__attrs_post_init__` is invoked by the runtime"
+    },
+    {
+      "id": "Crn3lbao1mb",
+      "qualified_name": "apscheduler.eventbrokers.redis.RedisEventBroker.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "Cuufc2kc2nq",
+      "qualified_name": "apscheduler.executors.qt.QtJobExecutor.__attrs_post_init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__attrs_post_init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cihyvvz9fzj",
+      "qualified_name": "apscheduler.serializers.cbor.CBORSerializer.__attrs_post_init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__attrs_post_init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cb7umd8lrpr",
+      "qualified_name": "apscheduler.serializers.json.JSONSerializer.__attrs_post_init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__attrs_post_init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cfn5d9zxmss",
+      "qualified_name": "apscheduler.triggers.calendarinterval.CalendarIntervalTrigger.__attrs_post_init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__attrs_post_init__` is invoked by the runtime"
+    },
+    {
+      "id": "Ct80jb6u4ys",
+      "qualified_name": "apscheduler.triggers.calendarinterval.CalendarIntervalTrigger.__getstate__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__getstate__` is invoked by the runtime"
+    },
+    {
+      "id": "Cvlmviswnbz",
+      "qualified_name": "apscheduler.triggers.calendarinterval.CalendarIntervalTrigger.__setstate__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__setstate__` is invoked by the runtime"
+    },
+    {
+      "id": "Cmvo0f5059m",
+      "qualified_name": "apscheduler.triggers.calendarinterval.CalendarIntervalTrigger.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "C10bixs8yybi",
+      "qualified_name": "apscheduler.triggers.combining.BaseCombiningTrigger.__getstate__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__getstate__` is invoked by the runtime"
+    },
+    {
+      "id": "Ck6xfcakod6",
+      "qualified_name": "apscheduler.triggers.combining.BaseCombiningTrigger.__setstate__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__setstate__` is invoked by the runtime"
+    },
+    {
+      "id": "Cy7x35h40m0",
+      "qualified_name": "apscheduler.triggers.combining.AndTrigger.__getstate__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__getstate__` is invoked by the runtime"
+    },
+    {
+      "id": "Cfre4wv6f7s",
+      "qualified_name": "apscheduler.triggers.combining.AndTrigger.__setstate__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__setstate__` is invoked by the runtime"
+    },
+    {
+      "id": "C13rfg127ave",
+      "qualified_name": "apscheduler.triggers.combining.AndTrigger.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "Cunyjz7hil4",
+      "qualified_name": "apscheduler.triggers.combining.OrTrigger.__setstate__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__setstate__` is invoked by the runtime"
+    },
+    {
+      "id": "C501tthllzv",
+      "qualified_name": "apscheduler.triggers.combining.OrTrigger.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "Cumuujnmzke",
+      "qualified_name": "apscheduler.triggers.cron.__init__.CronTrigger.__attrs_post_init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__attrs_post_init__` is invoked by the runtime"
+    },
+    {
+      "id": "C8b0lhc1um1",
+      "qualified_name": "apscheduler.triggers.cron.__init__.CronTrigger.__getstate__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__getstate__` is invoked by the runtime"
+    },
+    {
+      "id": "Csjrk2nydxs",
+      "qualified_name": "apscheduler.triggers.cron.__init__.CronTrigger.__setstate__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__setstate__` is invoked by the runtime"
+    },
+    {
+      "id": "Cgsr2b5e59m",
+      "qualified_name": "apscheduler.triggers.cron.__init__.CronTrigger.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "Ckvr2any2y8",
+      "qualified_name": "apscheduler.triggers.cron.expressions.AllExpression.__str__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__str__` is invoked by the runtime"
+    },
+    {
+      "id": "Cqmlw9fsez3",
+      "qualified_name": "apscheduler.triggers.cron.expressions.RangeExpression.__attrs_post_init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__attrs_post_init__` is invoked by the runtime"
+    },
+    {
+      "id": "C6rmrczpndq",
+      "qualified_name": "apscheduler.triggers.cron.expressions.RangeExpression.__str__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__str__` is invoked by the runtime"
+    },
+    {
+      "id": "C16wnhgvddhu",
+      "qualified_name": "apscheduler.triggers.cron.expressions.MonthRangeExpression.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cvmlbfp0ucw",
+      "qualified_name": "apscheduler.triggers.cron.expressions.MonthRangeExpression.__str__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__str__` is invoked by the runtime"
+    },
+    {
+      "id": "Cooeyqk75v9",
+      "qualified_name": "apscheduler.triggers.cron.expressions.WeekdayRangeExpression.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Chm3om8oagy",
+      "qualified_name": "apscheduler.triggers.cron.expressions.WeekdayRangeExpression.__str__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__str__` is invoked by the runtime"
+    },
+    {
+      "id": "Czd8y71qwbv",
+      "qualified_name": "apscheduler.triggers.cron.expressions.WeekdayPositionExpression.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Culifvd53ta",
+      "qualified_name": "apscheduler.triggers.cron.expressions.WeekdayPositionExpression.__str__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__str__` is invoked by the runtime"
+    },
+    {
+      "id": "Czgyw1sza2c",
+      "qualified_name": "apscheduler.triggers.cron.expressions.LastDayOfMonthExpression.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cuhu0w7h1wt",
+      "qualified_name": "apscheduler.triggers.cron.expressions.LastDayOfMonthExpression.__str__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__str__` is invoked by the runtime"
+    },
+    {
+      "id": "Con9lea8eg4",
+      "qualified_name": "apscheduler.triggers.cron.fields.BaseField.__init_subclass__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init_subclass__` is invoked by the runtime"
+    },
+    {
+      "id": "C142adrqbyxl",
+      "qualified_name": "apscheduler.triggers.cron.fields.BaseField.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Ckvpctlbb55",
+      "qualified_name": "apscheduler.triggers.cron.fields.BaseField.__str__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__str__` is invoked by the runtime"
+    },
+    {
+      "id": "C6f3po1clmc",
+      "qualified_name": "apscheduler.triggers.date.DateTrigger.__getstate__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__getstate__` is invoked by the runtime"
+    },
+    {
+      "id": "Cah3ryz419m",
+      "qualified_name": "apscheduler.triggers.date.DateTrigger.__setstate__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__setstate__` is invoked by the runtime"
+    },
+    {
+      "id": "C9hr61zlnte",
+      "qualified_name": "apscheduler.triggers.date.DateTrigger.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "Cmaedk7o618",
+      "qualified_name": "apscheduler.triggers.interval.IntervalTrigger.__attrs_post_init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__attrs_post_init__` is invoked by the runtime"
+    },
+    {
+      "id": "Ckq81gavpee",
+      "qualified_name": "apscheduler.triggers.interval.IntervalTrigger.__getstate__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__getstate__` is invoked by the runtime"
+    },
+    {
+      "id": "C9qu409fsv1",
+      "qualified_name": "apscheduler.triggers.interval.IntervalTrigger.__setstate__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__setstate__` is invoked by the runtime"
+    },
+    {
+      "id": "C1nl7spkxb5",
+      "qualified_name": "apscheduler.triggers.interval.IntervalTrigger.__repr__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__repr__` is invoked by the runtime"
+    },
+    {
+      "id": "Cuugnbnchgs",
+      "qualified_name": "conftest.timezone",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ctksrrxe8dx",
+      "qualified_name": "conftest.utc_timezone",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Czab2e0w602",
+      "qualified_name": "conftest.serializer",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C1510ywzzxqk",
+      "qualified_name": "conftest.anyio_backend",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C7caid8b7md",
+      "qualified_name": "conftest.local_broker",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ckkq34916sm",
+      "qualified_name": "conftest.redis_broker",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cc7m5ynbiel",
+      "qualified_name": "conftest.mqtt_broker",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C3w8gpl2rxv",
+      "qualified_name": "conftest.asyncpg_broker",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cqi860kni1n",
+      "qualified_name": "conftest.psycopg_broker",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C129iha9ojkr",
+      "qualified_name": "conftest.raw_event_broker",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C1469t4euojc",
+      "qualified_name": "conftest.event_broker",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ccgz2j9wcc6",
+      "qualified_name": "conftest.memory_store",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cjx1uwaki2g",
+      "qualified_name": "conftest.mongodb_store",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cfmakh37r3b",
+      "qualified_name": "conftest.psycopg_async_store",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Crfpapuct01",
+      "qualified_name": "conftest.psycopg_sync_store",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cvnjd3qavik",
+      "qualified_name": "conftest.pymysql_store",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Co94w8ex0sf",
+      "qualified_name": "conftest.aiosqlite_store",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C31j9jzhp3r",
+      "qualified_name": "conftest.asyncpg_store",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C14l5mevjabd",
+      "qualified_name": "conftest.asyncmy_store",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Chjufznrmlh",
+      "qualified_name": "conftest.raw_datastore",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Csy1irscr1a",
+      "qualified_name": "conftest.logger",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C9mngw3wqtx",
+      "qualified_name": "test_datastores.datastore",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cpvk27m1skb",
+      "qualified_name": "test_datastores.schedules",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C4tzxn8awcd",
+      "qualified_name": "test_datastores.test_add_replace_task",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cy74psckwdj",
+      "qualified_name": "test_datastores.test_add_schedules",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C47v9ze9su5",
+      "qualified_name": "test_datastores.test_replace_schedules",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C17lqyhngk6g",
+      "qualified_name": "test_datastores.test_remove_schedules",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cu9n9at8i78",
+      "qualified_name": "test_datastores.test_acquire_release_schedules",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cgfgwvlo5kw",
+      "qualified_name": "test_datastores.test_release_schedule_two_identical_fire_times",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cddip18r087",
+      "qualified_name": "test_datastores.test_release_two_schedules_at_once",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cwnualxw7gn",
+      "qualified_name": "test_datastores.test_acquire_schedules_lock_timeout",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cm44w30vjz1",
+      "qualified_name": "test_datastores.test_acquire_multiple_workers",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cx2v2x98tkd",
+      "qualified_name": "test_datastores.test_job_release_success",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C15ub412vqqt",
+      "qualified_name": "test_datastores.test_job_release_failure",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C13174kejcki",
+      "qualified_name": "test_datastores.test_job_release_missed_deadline",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C6ul77dtwn8",
+      "qualified_name": "test_datastores.test_job_release_cancelled",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C45ihnpcubu",
+      "qualified_name": "test_datastores.test_acquire_jobs_lock_timeout",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C53ujvp9r4h",
+      "qualified_name": "test_datastores.test_acquire_jobs_max_number_exceeded",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Clx32ysoo3w",
+      "qualified_name": "test_datastores.test_add_get_task",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cypcs0x9hmf",
+      "qualified_name": "test_datastores.test_cancel_start",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C4n0zagfmv1",
+      "qualified_name": "test_datastores.test_cancel_stop",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Chucrjvidme",
+      "qualified_name": "test_datastores.test_next_schedule_run_time",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C5coskvasdy",
+      "qualified_name": "test_datastores.test_extend_acquired_schedule_leases",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C14w4clposaa",
+      "qualified_name": "test_datastores.test_extend_acquired_job_leases",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C8ymfi8vg9i",
+      "qualified_name": "test_datastores.test_acquire_jobs_deserialization_failure",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cjmjpap8iht",
+      "qualified_name": "test_datastores.test_reap_abandoned_jobs",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cy10ycid8os",
+      "qualified_name": "test_datastores.TestRepr.test_memory",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Chn13rcy4aa",
+      "qualified_name": "test_datastores.TestRepr.test_sqlite",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cu7ujht6b6e",
+      "qualified_name": "test_datastores.TestRepr.test_psycopg",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C14qyuxawss2",
+      "qualified_name": "test_datastores.TestRepr.test_mongodb",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cdfc8d8cc16",
+      "qualified_name": "test_eventbrokers.test_publish_subscribe",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cxk1yq71sr5",
+      "qualified_name": "test_eventbrokers.test_subscribe_one_shot",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C118maooc9gu",
+      "qualified_name": "test_eventbrokers.test_unsubscribe",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C9wnti47rnk",
+      "qualified_name": "test_eventbrokers.test_publish_no_subscribers",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ctffrfq6xat",
+      "qualified_name": "test_eventbrokers.test_publish_exception",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C416fl0z9do",
+      "qualified_name": "test_eventbrokers.test_cancel_start",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cuz0vhlw4d9",
+      "qualified_name": "test_eventbrokers.test_cancel_stop",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C8b30fzg4i5",
+      "qualified_name": "test_eventbrokers.test_asyncpg_broker_from_async_engine",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C51y415hcja",
+      "qualified_name": "test_eventbrokers.test_psycopg_broker_from_async_engine",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ct8gv0b0tik",
+      "qualified_name": "test_marshalling.DummyClass.meth",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/tests/test_marshalling.py:61"
+    },
+    {
+      "id": "Ct45c6cjyeg",
+      "qualified_name": "test_marshalling.DummyClass.staticmeth",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/tests/test_marshalling.py:61"
+    },
+    {
+      "id": "Csliqbeq197",
+      "qualified_name": "test_marshalling.DummyClass.classmeth",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/tests/test_marshalling.py:61"
+    },
+    {
+      "id": "C4bvnq56gf1",
+      "qualified_name": "test_marshalling.DummyClass.__call__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__call__` is invoked by the runtime"
+    },
+    {
+      "id": "Cibq0nbctei",
+      "qualified_name": "test_marshalling.DummyClass.InnerDummyClass.innerclassmeth",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/tests/test_marshalling.py:61"
+    },
+    {
+      "id": "C1175fgu1r7m",
+      "qualified_name": "test_marshalling.TestCallableToRef.test_errors",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ckyhtdaf72s",
+      "qualified_name": "test_marshalling.TestCallableToRef.test_nested_function_error",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cge6j9myosm",
+      "qualified_name": "test_marshalling.TestCallableToRef.test_valid_refs",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cykf79gl38s",
+      "qualified_name": "test_marshalling.TestCallableFromRef.test_valid_ref",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C9wjrstcnxm",
+      "qualified_name": "test_marshalling.TestCallableFromRef.test_complex_path",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cl9nwsf4l5p",
+      "qualified_name": "test_marshalling.TestCallableFromRef.test_lookup_error",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cj1rn62cxo0",
+      "qualified_name": "test_schedulers.dummy_async_job",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/tests/test_schedulers.py:428"
+    },
+    {
+      "id": "Cz0lxzfm8v2",
+      "qualified_name": "test_schedulers.dummy_sync_job",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/tests/test_schedulers.py:429"
+    },
+    {
+      "id": "Cehy6jhau01",
+      "qualified_name": "test_schedulers.decorated_job",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@task(\n    job_executor=\"threadpool\",\n    max_running_jobs=3,\n    misfire_grace_time=timedelta(seconds=6),\n)"
+    },
+    {
+      "id": "Cw1alckp7mu",
+      "qualified_name": "test_schedulers.DummyClass.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Caeln2fv927",
+      "qualified_name": "test_schedulers.DummyClass.dummy_static_method",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/tests/test_schedulers.py:430"
+    },
+    {
+      "id": "Cmydxljh2i2",
+      "qualified_name": "test_schedulers.DummyClass.dummy_async_static_method",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/tests/test_schedulers.py:432"
+    },
+    {
+      "id": "C13glh3suy0x",
+      "qualified_name": "test_schedulers.DummyClass.dummy_class_method",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/tests/test_schedulers.py:434"
+    },
+    {
+      "id": "Cttpcyv3sbo",
+      "qualified_name": "test_schedulers.DummyClass.dummy_async_class_method",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/py-apscheduler/tests/test_schedulers.py:436"
+    },
+    {
+      "id": "Cinqlq2qxcp",
+      "qualified_name": "test_schedulers.DummyClass.__call__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__call__` is invoked by the runtime"
+    },
+    {
+      "id": "C12k6fv8gnvk",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_repr",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ccc4q2jxdlh",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_use_before_initialized",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cb07u1n8yi6",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_properties",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C4wrddd0qxq",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_async_executor",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cmpjoy4r99k",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_threadpool_executor",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cgokb56c4we",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_processpool_executor",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cbxxtryjw5",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_configure_task",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cktn12jpcxx",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_configure_task_with_decorator",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cjg78ktt7qo",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_configure_local_task_with_decorator",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Co8imh91ek3",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_configure_local_task_with_decorator.taskfunc",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "builtin:framework-attr",
+      "detail": "@task(\n            id=\"taskfunc\",\n            job_executor=\"threadpool\",\n            max_running_jobs=3,\n            misfire_grace_time=timedelta(seconds=6),\n            metadata={\"local\": 6},\n        )"
+    },
+    {
+      "id": "Cwogfzehazc",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_add_pause_unpause_remove_schedule",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C9ssnp1979m",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_add_job_wait_result",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Czg1poyuluo",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_run_job",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ctfdb8yawq5",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_callable_types",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C8qdywj0usf",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_scheduled_job_missed_deadline",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cux0cjfnzur",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_coalesce_policy",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ckt6ndk0ev7",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_jitter",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cu5zs557cx9",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_add_job_get_result_success",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cn203sw8fxo",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_add_job_get_result_empty",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C74j3id8q2j",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_add_job_get_result_error",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C7nbah5wvyw",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_add_job_get_result_no_ready_yet",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C6vs1nunvpe",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_add_job_not_rewriting_task_config",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cz13tcya1bh",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_contextvars",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cze5cker5ql",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_explicit_cleanup",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cn5lisht674",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_explicit_cleanup_avoid_schedules_still_having_jobs",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C5sdczhe613",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_implicit_cleanup",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Czy6x4ijb58",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_wait_until_stopped",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cw5tbtvo345",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_max_concurrent_jobs",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cyuebmyr9oi",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_pause_unpause_schedule",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Csfflh1mydm",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_schedule_job_result_expiration_time",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cgaqe63d56i",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_scheduler_crash_restart_schedule_immediately",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C15oqbnvidz4",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_scheduler_crash_reap_abandoned_jobs",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Csh84lmdyqy",
+      "qualified_name": "test_schedulers.TestAsyncScheduler.test_stop_scheduler_while_job_running",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Crawtg30rof",
+      "qualified_name": "test_schedulers.TestSyncScheduler.test_interface_parity",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C11u0ypfnsw",
+      "qualified_name": "test_schedulers.TestSyncScheduler.test_repr",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cilkif4pbuv",
+      "qualified_name": "test_schedulers.TestSyncScheduler.test_configure",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C2ize8h6hu7",
+      "qualified_name": "test_schedulers.TestSyncScheduler.test_threadpool_executor",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cmc86ilhng2",
+      "qualified_name": "test_schedulers.TestSyncScheduler.test_processpool_executor",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C16tq98k5r0f",
+      "qualified_name": "test_schedulers.TestSyncScheduler.test_properties",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C16af9cl95fs",
+      "qualified_name": "test_schedulers.TestSyncScheduler.test_use_without_contextmanager",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C7s4of4t2gj",
+      "qualified_name": "test_schedulers.TestSyncScheduler.test_configure_task",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cvcgq17dhrm",
+      "qualified_name": "test_schedulers.TestSyncScheduler.test_add_remove_schedule",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ce3f6al953n",
+      "qualified_name": "test_schedulers.TestSyncScheduler.test_add_job_wait_result",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cfflkoita1f",
+      "qualified_name": "test_schedulers.TestSyncScheduler.test_wait_until_stopped",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cxa53fajfm9",
+      "qualified_name": "test_schedulers.TestSyncScheduler.test_explicit_cleanup",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ctg2oz9au90",
+      "qualified_name": "test_schedulers.TestSyncScheduler.test_run_until_stopped",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C14pusqgxgb9",
+      "qualified_name": "test_schedulers.TestSyncScheduler.test_uwsgi_threads_error",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cpen2n6tk3l",
+      "qualified_name": "test_serializers.test_serialize_event",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C17cbgadb7lw",
+      "qualified_name": "test_serializers.test_serialization_error",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C144gavj3ri6",
+      "qualified_name": "test_serializers.test_serialization_error.Unserializable.__getstate__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__getstate__` is invoked by the runtime"
+    },
+    {
+      "id": "Cmpf16bjvcp",
+      "qualified_name": "test_serializers.test_deserialization_error",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C1sslytge3q",
+      "qualified_name": "test_calendarinterval.test_bad_interval",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C10fi8e80kq7",
+      "qualified_name": "test_calendarinterval.test_bad_start_end_dates",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cs2n0al8mkf",
+      "qualified_name": "test_calendarinterval.test_end_date",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cwz12zcg3uj",
+      "qualified_name": "test_calendarinterval.test_missing_time",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Col2f2ievs7",
+      "qualified_name": "test_calendarinterval.test_repeated_time",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cebsox3ziig",
+      "qualified_name": "test_calendarinterval.test_nonexistent_days",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cvi3eifjrrj",
+      "qualified_name": "test_calendarinterval.test_repr",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cpo5pe929k6",
+      "qualified_name": "test_calendarinterval.test_utc_timezone",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C6qssmg0nsr",
+      "qualified_name": "test_combining.TestAndTrigger.test_two_datetriggers",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cudiokkiikh",
+      "qualified_name": "test_combining.TestAndTrigger.test_max_iterations",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C179bubczkuj",
+      "qualified_name": "test_combining.TestAndTrigger.test_repr",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Clwjioh4iog",
+      "qualified_name": "test_combining.TestAndTrigger.test_overlapping_triggers",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cq5geeo2v2k",
+      "qualified_name": "test_combining.TestOrTrigger.test_two_datetriggers",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cg3sfm62m2j",
+      "qualified_name": "test_combining.TestOrTrigger.test_two_interval_triggers",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ccslqwl6o5q",
+      "qualified_name": "test_combining.TestOrTrigger.test_repr",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C17z2nsmety2",
+      "qualified_name": "test_cron.test_invalid_expression",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C158a2czy1qm",
+      "qualified_name": "test_cron.test_invalid_step",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C1279ghf7fyp",
+      "qualified_name": "test_cron.test_invalid_range",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cwnhcji378y",
+      "qualified_name": "test_cron.test_invalid_month_name",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C13uz3qdz8sb",
+      "qualified_name": "test_cron.test_invalid_weekday_name",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C11ihmsc5a7s",
+      "qualified_name": "test_cron.test_invalid_weekday_position_name",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Coqbppoglrl",
+      "qualified_name": "test_cron.test_invalid_ranges",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ct1yhtnq25z",
+      "qualified_name": "test_cron.test_cron_trigger_1",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cv1j61bl5gl",
+      "qualified_name": "test_cron.test_cron_trigger_2",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Crgideonh53",
+      "qualified_name": "test_cron.test_cron_trigger_3",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cv5iayrbp8s",
+      "qualified_name": "test_cron.test_cron_trigger_4",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cgckc3hneqd",
+      "qualified_name": "test_cron.test_weekday_overlap",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cxa44m2h7tp",
+      "qualified_name": "test_cron.test_weekday_range",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Czkxncf4iv",
+      "qualified_name": "test_cron.test_last_weekday",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cdpp3wdocjj",
+      "qualified_name": "test_cron.test_increment_weekday",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C15d6c4pkist",
+      "qualified_name": "test_cron.test_month_rollover",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cmvogkypgpz",
+      "qualified_name": "test_cron.test_weekday_nomatch",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cjg8vppdwry",
+      "qualified_name": "test_cron.test_weekday_positional",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C1680jlp1rs9",
+      "qualified_name": "test_cron.test_end_time",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C15zsqu2f1s8",
+      "qualified_name": "test_cron.test_week_1",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ca8sn2eswlb",
+      "qualified_name": "test_cron.test_week_2",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C2t1dh4711b",
+      "qualified_name": "test_cron.test_dst_change",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ciq6i98zcyp",
+      "qualified_name": "test_cron.test_dst_change2",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cahxiqjq2r7",
+      "qualified_name": "test_cron.test_zero_value",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C14xp7x0an5w",
+      "qualified_name": "test_cron.test_year_list",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cuj9ycam84z",
+      "qualified_name": "test_cron.test_from_crontab",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cqcm03t5w70",
+      "qualified_name": "test_cron.test_from_crontab_wrong_number_of_fields",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C8964vrtow2",
+      "qualified_name": "test_cron.test_from_crontab_start_end_time",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C14mcij0ly8u",
+      "qualified_name": "test_cron.test_aware_start_time_timezone_conversion",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C4ktscpcxb1",
+      "qualified_name": "test_cron.test_aware_end_time_timezone_conversion",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cdrvz0npij9",
+      "qualified_name": "test_cron.test_non_existing_naive_start_time",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C12ay9x77yvy",
+      "qualified_name": "test_cron.test_non_existing_naive_end_time",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C6jy00to6hw",
+      "qualified_name": "test_date.test_run_time",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Codgfu95v1b",
+      "qualified_name": "test_interval.test_bad_interval",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cgcghmfcvcu",
+      "qualified_name": "test_interval.test_bad_end_time",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C32aeg2fuzx",
+      "qualified_name": "test_interval.test_end_time",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C142o46ll7bv",
+      "qualified_name": "test_interval.test_repr",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C75xgtxkv4z",
+      "qualified_name": "<framework-entry>::network::fastapi::add_api_route(\"/\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::fastapi::add_api_route(\"/\")`"
+    },
+    {
+      "id": "Cpgz7fvqowz",
+      "qualified_name": "<framework-entry>::network::fastapi::route(\"/\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::fastapi::route(\"/\")`"
+    },
+    {
+      "id": "C1kee8cv9ki",
+      "qualified_name": "<framework-entry>::network::flask::route(\"/\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::flask::route(\"/\")`"
+    },
+    {
+      "id": "Ctfumw6mzmj",
+      "qualified_name": "<framework-entry>::test::pytest",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ca42fg2gv4f",
+      "qualified_name": "<framework-entry>::schedule::apscheduler::test_schedulers.dummy_async_job",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::schedule::apscheduler::test_schedulers.dummy_async_job`"
+    },
+    {
+      "id": "Cepvmfuf2l",
+      "qualified_name": "<framework-entry>::schedule::apscheduler::test_schedulers.dummy_sync_job",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::schedule::apscheduler::test_schedulers.dummy_sync_job`"
+    },
+    {
+      "id": "C170n4cjh1ii",
+      "qualified_name": "<framework-entry>::schedule::apscheduler::task(\"threadpool\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::schedule::apscheduler::task(\"threadpool\")`"
+    },
+    {
+      "id": "Cui80haqzxm",
+      "qualified_name": "<framework-entry>::schedule::apscheduler::task(\"taskfunc\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::schedule::apscheduler::task(\"taskfunc\")`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 25,
+      "members": [
+        "C8oz0rfahyy"
+      ],
+      "anchors": [
+        "C8oz0rfahyy"
+      ],
+      "files": [
+        "Ffhmi092062"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 33,
+      "members": [
+        "C16078jwy3oe"
+      ],
+      "anchors": [
+        "C16078jwy3oe"
+      ],
+      "files": [
+        "Fe6mlbrioxk"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 35,
+      "members": [
+        "Cctpjc0j3qy",
+        "Cct31cvcwje"
+      ],
+      "anchors": [
+        "Cctpjc0j3qy"
+      ],
+      "files": [
+        "Fe6mlbrioxk"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 53,
+      "members": [
+        "Ct6pq336cja"
+      ],
+      "anchors": [
+        "Ct6pq336cja"
+      ],
+      "files": [
+        "Fdh7s351yh4"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 56,
+      "members": [
+        "Cd1cj3ngxc7",
+        "Ceglia6uj1a",
+        "Cjrys0kqevy",
+        "Chkjuy3pz71",
+        "C8c3nhtp7tq",
+        "C4xtviwaur5",
+        "C6y1vem7gsl"
+      ],
+      "anchors": [
+        "Ceglia6uj1a"
+      ],
+      "files": [
+        "Fsypmhlnnbi",
+        "F2d4yam7nqd",
+        "Fkwt1nu42hg",
+        "Fe2fib8qqet",
+        "Fqrvj2xtjmu"
+      ],
+      "total_lines": 39,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 66,
+      "members": [
+        "Ctkhc0aqys0"
+      ],
+      "anchors": [
+        "Ctkhc0aqys0"
+      ],
+      "files": [
+        "F55wq36jgd"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 68,
+      "members": [
+        "Cbh4ej1q8ft"
+      ],
+      "anchors": [
+        "Cbh4ej1q8ft"
+      ],
+      "files": [
+        "F55wq36jgd"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 69,
+      "members": [
+        "Cmh71c3s9x3"
+      ],
+      "anchors": [
+        "Cmh71c3s9x3"
+      ],
+      "files": [
+        "F55wq36jgd"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 70,
+      "members": [
+        "Cl34kajhb4s"
+      ],
+      "anchors": [
+        "Cl34kajhb4s"
+      ],
+      "files": [
+        "F55wq36jgd"
+      ],
+      "total_lines": 31,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 71,
+      "members": [
+        "Csyfgtzw56y"
+      ],
+      "anchors": [
+        "Csyfgtzw56y"
+      ],
+      "files": [
+        "F55wq36jgd"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 72,
+      "members": [
+        "Ctqhwumrpt1"
+      ],
+      "anchors": [
+        "Ctqhwumrpt1"
+      ],
+      "files": [
+        "F55wq36jgd"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 73,
+      "members": [
+        "Cylxhzn4cjo",
+        "C4m763o1eqk"
+      ],
+      "anchors": [
+        "Cylxhzn4cjo"
+      ],
+      "files": [
+        "F55wq36jgd"
+      ],
+      "total_lines": 24,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 76,
+      "members": [
+        "Cw4nf9orqjn"
+      ],
+      "anchors": [
+        "Cw4nf9orqjn"
+      ],
+      "files": [
+        "F55wq36jgd"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 78,
+      "members": [
+        "C548uvdx3gh",
+        "C11mteeqwe3f",
+        "Cawab6zu9yu"
+      ],
+      "anchors": [
+        "C11mteeqwe3f",
+        "Cawab6zu9yu"
+      ],
+      "files": [
+        "F55wq36jgd"
+      ],
+      "total_lines": 64,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 79,
+      "members": [
+        "Cwivl1tpeq9"
+      ],
+      "anchors": [
+        "Cwivl1tpeq9"
+      ],
+      "files": [
+        "F55wq36jgd"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 80,
+      "members": [
+        "C5d00wicfu6"
+      ],
+      "anchors": [
+        "C5d00wicfu6"
+      ],
+      "files": [
+        "F55wq36jgd"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 83,
+      "members": [
+        "Csn7gqyyd7q",
+        "Cs2b4gp0j0m",
+        "Cr7hvgyb6sd"
+      ],
+      "anchors": [
+        "Cr7hvgyb6sd"
+      ],
+      "files": [
+        "F55wq36jgd"
+      ],
+      "total_lines": 159,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 84,
+      "members": [
+        "C96e2rs6goo"
+      ],
+      "anchors": [
+        "C96e2rs6goo"
+      ],
+      "files": [
+        "F55wq36jgd"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 86,
+      "members": [
+        "C3o8ce0537m"
+      ],
+      "anchors": [
+        "C3o8ce0537m"
+      ],
+      "files": [
+        "F55wq36jgd"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 88,
+      "members": [
+        "Cezfmo8z3ta"
+      ],
+      "anchors": [
+        "Cezfmo8z3ta"
+      ],
+      "files": [
+        "F55wq36jgd"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 90,
+      "members": [
+        "Cnprhnasb92"
+      ],
+      "anchors": [
+        "Cnprhnasb92"
+      ],
+      "files": [
+        "F55wq36jgd"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 112,
+      "members": [
+        "C13k17mpezr1"
+      ],
+      "anchors": [
+        "C13k17mpezr1"
+      ],
+      "files": [
+        "Fglzhzq1toh"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 151,
+      "members": [
+        "Cvzqvm6ylbz"
+      ],
+      "anchors": [
+        "Cvzqvm6ylbz"
+      ],
+      "files": [
+        "Fd6ky3vfy35"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 165,
+      "members": [
+        "C556jgzlo2e"
+      ],
+      "anchors": [
+        "C556jgzlo2e"
+      ],
+      "files": [
+        "Fkgmp6ztblq"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 174,
+      "members": [
+        "Cwhopqvayva"
+      ],
+      "anchors": [
+        "Cwhopqvayva"
+      ],
+      "files": [
+        "Fhzbwcyyqkt"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 175,
+      "members": [
+        "Cr1eorm5yxk"
+      ],
+      "anchors": [
+        "Cr1eorm5yxk"
+      ],
+      "files": [
+        "Fhzbwcyyqkt"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 176,
+      "members": [
+        "Cao5kmyjf06"
+      ],
+      "anchors": [
+        "Cao5kmyjf06"
+      ],
+      "files": [
+        "Fhzbwcyyqkt"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 195,
+      "members": [
+        "C3rbgzjdb9n",
+        "C619xrh1fi0",
+        "Cu0f2a0s72l",
+        "Cg2lpz2b4k9"
+      ],
+      "anchors": [
+        "C3rbgzjdb9n"
+      ],
+      "files": [
+        "Fph0nsc5duv",
+        "F9tj7pv38kd",
+        "F2d4yam7nqd",
+        "Fkwt1nu42hg"
+      ],
+      "total_lines": 31,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 213,
+      "members": [
+        "C5lhzio8pqg",
+        "C161k8fqgjl3",
+        "Cfu1z37kgwf",
+        "C17n238nlbgc"
+      ],
+      "anchors": [
+        "C5lhzio8pqg"
+      ],
+      "files": [
+        "Fph0nsc5duv",
+        "F14kklc4wkok",
+        "Fpt2i8anelr",
+        "F110rdbazaaj"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 214,
+      "members": [
+        "Cwgau91dee4",
+        "C3znc2j9twx",
+        "C17ajk2xfpv4",
+        "C130o9inpyuy",
+        "Cgtj2e0b8cp"
+      ],
+      "anchors": [
+        "Cwgau91dee4"
+      ],
+      "files": [
+        "Fph0nsc5duv",
+        "F12om190y7ai",
+        "F14kklc4wkok",
+        "Fpt2i8anelr",
+        "F110rdbazaaj"
+      ],
+      "total_lines": 29,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 239,
+      "members": [
+        "Cx9t0iimet"
+      ],
+      "anchors": [
+        "Cx9t0iimet"
+      ],
+      "files": [
+        "F2d4yam7nqd"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 268,
+      "members": [
+        "C14rb38ymbct"
+      ],
+      "anchors": [
+        "C14rb38ymbct"
+      ],
+      "files": [
+        "Fkwt1nu42hg"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 269,
+      "members": [
+        "C97w58vihho"
+      ],
+      "anchors": [
+        "C97w58vihho"
+      ],
+      "files": [
+        "Fkwt1nu42hg"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 270,
+      "members": [
+        "Car2nejcdbr"
+      ],
+      "anchors": [
+        "Car2nejcdbr"
+      ],
+      "files": [
+        "Fkwt1nu42hg"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 271,
+      "members": [
+        "Ch460b1xhj8"
+      ],
+      "anchors": [
+        "Ch460b1xhj8"
+      ],
+      "files": [
+        "Fkwt1nu42hg"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 322,
+      "members": [
+        "C14ejgtdtb2z"
+      ],
+      "anchors": [
+        "C14ejgtdtb2z"
+      ],
+      "files": [
+        "F17jo9lwbb7n"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 323,
+      "members": [
+        "Cbwbziwh2jo"
+      ],
+      "anchors": [
+        "Cbwbziwh2jo"
+      ],
+      "files": [
+        "F17jo9lwbb7n"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 324,
+      "members": [
+        "Cpskqrr6t9o",
+        "Cckcwhf4f4x",
+        "Cr4pu6entlu"
+      ],
+      "anchors": [
+        "Cckcwhf4f4x",
+        "Cr4pu6entlu"
+      ],
+      "files": [
+        "F17jo9lwbb7n"
+      ],
+      "total_lines": 47,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 522,
+      "members": [
+        "C182t5azel2l"
+      ],
+      "anchors": [
+        "C182t5azel2l"
+      ],
+      "files": [
+        "F28b75jx61d"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 523,
+      "members": [
+        "Cave4kmplii"
+      ],
+      "anchors": [
+        "Cave4kmplii"
+      ],
+      "files": [
+        "F28b75jx61d"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cpskqrr6t9o",
+      "qualified_name": "apscheduler.eventbrokers.base.BaseExternalEventBroker._reconstitute_event",
+      "simple_name": "_reconstitute_event",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17jo9lwbb7n",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/eventbrokers/base.py",
+      "start_line": 119,
+      "end_line": 144,
+      "size_lines": 26,
+      "signature_hint": "def _reconstitute_event(self, event_type: str, serialized: bytes) -> Event | None",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 626,
+      "region": 324,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cckcwhf4f4x"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "C8c3nhtp7tq",
+      "qualified_name": "apscheduler.datastores.sqlalchemy.SQLAlchemyDataStore._temporary_failure_exceptions",
+      "simple_name": "_temporary_failure_exceptions",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "Fkwt1nu42hg",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/datastores/sqlalchemy.py",
+      "start_line": 268,
+      "end_line": 273,
+      "size_lines": 6,
+      "signature_hint": "def _temporary_failure_exceptions(self) -> tuple[type[Exception], ...]",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 306,
+      "region": 56,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cd1cj3ngxc7"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chkjuy3pz71",
+      "qualified_name": "apscheduler.datastores.mongodb.MongoDBDataStore._temporary_failure_exceptions",
+      "simple_name": "_temporary_failure_exceptions",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F2d4yam7nqd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/datastores/mongodb.py",
+      "start_line": 138,
+      "end_line": 139,
+      "size_lines": 2,
+      "signature_hint": "def _temporary_failure_exceptions(self) -> tuple[type[Exception], ...]",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 302,
+      "region": 56,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cd1cj3ngxc7"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4xtviwaur5",
+      "qualified_name": "apscheduler.eventbrokers.asyncpg.AsyncpgEventBroker._temporary_failure_exceptions",
+      "simple_name": "_temporary_failure_exceptions",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "Fe2fib8qqet",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/eventbrokers/asyncpg.py",
+      "start_line": 88,
+      "end_line": 89,
+      "size_lines": 2,
+      "signature_hint": "def _temporary_failure_exceptions(self) -> tuple[type[Exception], ...]",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 302,
+      "region": 56,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cd1cj3ngxc7"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6y1vem7gsl",
+      "qualified_name": "apscheduler.eventbrokers.psycopg.PsycopgEventBroker._temporary_failure_exceptions",
+      "simple_name": "_temporary_failure_exceptions",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "Fqrvj2xtjmu",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/eventbrokers/psycopg.py",
+      "start_line": 99,
+      "end_line": 100,
+      "size_lines": 2,
+      "signature_hint": "def _temporary_failure_exceptions(self) -> tuple[type[Exception], ...]",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 302,
+      "region": 56,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cd1cj3ngxc7"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Csn7gqyyd7q",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.add_job",
+      "simple_name": "add_job",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 653,
+      "end_line": 715,
+      "size_lines": 63,
+      "signature_hint": "async def add_job( self, func_or_task_id: TaskType, *, args: Iterable[Any] | None = None, kwargs: Mapping[str, Any] | None = None, job_executor: str | UnsetValue = unset, metadata: MetadataType | UnsetValue = unset, result_expiration_time: timedelta | float = 0, ) -> UUID",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 163,
+      "region": 83,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cr7hvgyb6sd"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Cawab6zu9yu",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.unpause_schedule",
+      "simple_name": "unpause_schedule",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 609,
+      "end_line": 651,
+      "size_lines": 43,
+      "signature_hint": "async def unpause_schedule( self, id: str, *, resume_from: datetime | Literal[\"now\"] | None = None, ) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 143,
+      "region": 78,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cs2b4gp0j0m",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.get_job_result",
+      "simple_name": "get_job_result",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 722,
+      "end_line": 756,
+      "size_lines": 35,
+      "signature_hint": "async def get_job_result( self, job_id: UUID, *, wait: bool = True ) -> JobResult | None",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 135,
+      "region": 83,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cr7hvgyb6sd"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "C548uvdx3gh",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.get_schedule",
+      "simple_name": "get_schedule",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 566,
+      "end_line": 579,
+      "size_lines": 14,
+      "signature_hint": "async def get_schedule(self, id: str) -> Schedule",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 114,
+      "region": 78,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C11mteeqwe3f"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cnprhnasb92",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.wait_until_stopped",
+      "simple_name": "wait_until_stopped",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 832,
+      "end_line": 843,
+      "size_lines": 12,
+      "signature_hint": "async def wait_until_stopped(self) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 112,
+      "region": 90,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cg2lpz2b4k9",
+      "qualified_name": "apscheduler.datastores.sqlalchemy.SQLAlchemyDataStore.remove_task",
+      "simple_name": "remove_task",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fkwt1nu42hg",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/datastores/sqlalchemy.py",
+      "start_line": 521,
+      "end_line": 530,
+      "size_lines": 10,
+      "signature_hint": "async def remove_task(self, task_id: str) -> None",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 110,
+      "region": 195,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C3rbgzjdb9n"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 9
+    },
+    {
+      "id": "Cw4nf9orqjn",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.get_tasks",
+      "simple_name": "get_tasks",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 458,
+      "end_line": 466,
+      "size_lines": 9,
+      "signature_hint": "async def get_tasks(self) -> Sequence[Task]",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 109,
+      "region": 76,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cwivl1tpeq9",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.get_schedules",
+      "simple_name": "get_schedules",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 581,
+      "end_line": 589,
+      "size_lines": 9,
+      "signature_hint": "async def get_schedules(self) -> list[Schedule]",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 109,
+      "region": 79,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C5d00wicfu6",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.remove_schedule",
+      "simple_name": "remove_schedule",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 591,
+      "end_line": 599,
+      "size_lines": 9,
+      "signature_hint": "async def remove_schedule(self, id: str) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 109,
+      "region": 80,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C8oz0rfahyy",
+      "qualified_name": "wsgi_noframework.application",
+      "simple_name": "application",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ffhmi092062",
+      "path": "/storage/cgg-test_repos/py-apscheduler/examples/web/wsgi_noframework.py",
+      "start_line": 28,
+      "end_line": 35,
+      "size_lines": 8,
+      "signature_hint": "def application(environ, start_response)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 108,
+      "region": 25,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11mteeqwe3f",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.pause_schedule",
+      "simple_name": "pause_schedule",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 601,
+      "end_line": 607,
+      "size_lines": 7,
+      "signature_hint": "async def pause_schedule(self, id: str) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 78,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C3rbgzjdb9n",
+      "qualified_name": "apscheduler.abc.DataStore.remove_task",
+      "simple_name": "remove_task",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fph0nsc5duv",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/abc.py",
+      "start_line": 193,
+      "end_line": 199,
+      "size_lines": 7,
+      "signature_hint": "async def remove_task(self, task_id: str) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 195,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C619xrh1fi0",
+      "qualified_name": "apscheduler.datastores.memory.MemoryDataStore.remove_task",
+      "simple_name": "remove_task",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F9tj7pv38kd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/datastores/memory.py",
+      "start_line": 79,
+      "end_line": 85,
+      "size_lines": 7,
+      "signature_hint": "async def remove_task(self, task_id: str) -> None",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 195,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C3rbgzjdb9n"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "Cu0f2a0s72l",
+      "qualified_name": "apscheduler.datastores.mongodb.MongoDBDataStore.remove_task",
+      "simple_name": "remove_task",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F2d4yam7nqd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/datastores/mongodb.py",
+      "start_line": 219,
+      "end_line": 225,
+      "size_lines": 7,
+      "signature_hint": "async def remove_task(self, task_id: str) -> None",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 195,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C3rbgzjdb9n"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "Cct31cvcwje",
+      "qualified_name": "apscheduler._converters.list_converter.convert",
+      "simple_name": "convert",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fe6mlbrioxk",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_converters.py",
+      "start_line": 79,
+      "end_line": 83,
+      "size_lines": 5,
+      "signature_hint": "def convert(value: Any) -> Any",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 105,
+      "region": 35,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cctpjc0j3qy"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cao5kmyjf06",
+      "qualified_name": "apscheduler._validators.if_not_unset.validate",
+      "simple_name": "validate",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fhzbwcyyqkt",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_validators.py",
+      "start_line": 27,
+      "end_line": 31,
+      "size_lines": 5,
+      "signature_hint": "def validate(instance: Any, attribute: Any, value: Any) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 105,
+      "region": 176,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C96e2rs6goo",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.get_jobs",
+      "simple_name": "get_jobs",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 717,
+      "end_line": 720,
+      "size_lines": 4,
+      "signature_hint": "async def get_jobs(self) -> Sequence[Job]",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 104,
+      "region": 84,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cwhopqvayva",
+      "qualified_name": "apscheduler._validators.aware_datetime",
+      "simple_name": "aware_datetime",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fhzbwcyyqkt",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_validators.py",
+      "start_line": 21,
+      "end_line": 23,
+      "size_lines": 3,
+      "signature_hint": "def aware_datetime(instance: Any, attribute: Attribute, value: Any) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 174,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ct6pq336cja",
+      "qualified_name": "apscheduler._marshalling.unmarshal_timezone",
+      "simple_name": "unmarshal_timezone",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fdh7s351yh4",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_marshalling.py",
+      "start_line": 42,
+      "end_line": 43,
+      "size_lines": 2,
+      "signature_hint": "def unmarshal_timezone(value: str) -> ZoneInfo",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 102,
+      "region": 53,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C556jgzlo2e",
+      "qualified_name": "apscheduler._utils.absolute_datetime_diff",
+      "simple_name": "absolute_datetime_diff",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fkgmp6ztblq",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_utils.py",
+      "start_line": 52,
+      "end_line": 53,
+      "size_lines": 2,
+      "signature_hint": "def absolute_datetime_diff(dateval1: datetime, dateval2: datetime) -> float",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 102,
+      "region": 165,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cd1cj3ngxc7",
+      "qualified_name": "apscheduler._retry.RetryMixin._temporary_failure_exceptions",
+      "simple_name": "_temporary_failure_exceptions",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "Fsypmhlnnbi",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_retry.py",
+      "start_line": 50,
+      "end_line": 55,
+      "size_lines": 6,
+      "signature_hint": "def _temporary_failure_exceptions(self) -> tuple[type[Exception], ...]",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 6,
+      "region": 56,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 1
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ceglia6uj1a"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Ceglia6uj1a",
+      "qualified_name": "apscheduler._retry.RetryMixin._retry",
+      "simple_name": "_retry",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fsypmhlnnbi",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_retry.py",
+      "start_line": 57,
+      "end_line": 71,
+      "size_lines": 15,
+      "signature_hint": "def _retry(self) -> AsyncRetrying",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -185,
+      "region": 56,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "RetryMixin",
+          "impls": 2,
+          "unresolved_sites": 23,
+          "called_impls": 2
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "_retry",
+          "sites": 23,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F2d4yam7nqd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/datastores/mongodb.py",
+            "line": 201,
+            "name": "_retry",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Cjrys0kqevy",
+      "qualified_name": "apscheduler._retry.RetryMixin._retry.after_attempt",
+      "simple_name": "after_attempt",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fsypmhlnnbi",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_retry.py",
+      "start_line": 58,
+      "end_line": 63,
+      "size_lines": 6,
+      "signature_hint": "def after_attempt(retry_state: RetryCallState) -> None",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -194,
+      "region": 56,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ceglia6uj1a"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvzqvm6ylbz",
+      "qualified_name": "apscheduler._structures.Job.original_scheduled_time",
+      "simple_name": "original_scheduled_time",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "Fd6ky3vfy35",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_structures.py",
+      "start_line": 322,
+      "end_line": 327,
+      "size_lines": 6,
+      "signature_hint": "def original_scheduled_time(self) -> datetime | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -194,
+      "region": 151,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4m763o1eqk",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.get_next_event.receive_event",
+      "simple_name": "receive_event",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 302,
+      "end_line": 305,
+      "size_lines": 4,
+      "signature_hint": "def receive_event(ev: Event) -> None",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 73,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cylxhzn4cjo"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14rb38ymbct",
+      "qualified_name": "apscheduler.datastores.sqlalchemy.EmulatedTimestampTZ.process_bind_param",
+      "simple_name": "process_bind_param",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fkwt1nu42hg",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/datastores/sqlalchemy.py",
+      "start_line": 88,
+      "end_line": 91,
+      "size_lines": 4,
+      "signature_hint": "def process_bind_param( self, value: datetime | None, dialect: Dialect ) -> str | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 268,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "TypeDecorator"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C97w58vihho",
+      "qualified_name": "apscheduler.datastores.sqlalchemy.EmulatedTimestampTZ.process_result_value",
+      "simple_name": "process_result_value",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fkwt1nu42hg",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/datastores/sqlalchemy.py",
+      "start_line": 93,
+      "end_line": 96,
+      "size_lines": 4,
+      "signature_hint": "def process_result_value( self, value: str | None, dialect: Dialect ) -> datetime | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 269,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "TypeDecorator"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Car2nejcdbr",
+      "qualified_name": "apscheduler.datastores.sqlalchemy.EmulatedInterval.process_bind_param",
+      "simple_name": "process_bind_param",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fkwt1nu42hg",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/datastores/sqlalchemy.py",
+      "start_line": 103,
+      "end_line": 106,
+      "size_lines": 4,
+      "signature_hint": "def process_bind_param( self, value: timedelta | None, dialect: Dialect ) -> float | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 270,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "TypeDecorator"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ch460b1xhj8",
+      "qualified_name": "apscheduler.datastores.sqlalchemy.EmulatedInterval.process_result_value",
+      "simple_name": "process_result_value",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fkwt1nu42hg",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/datastores/sqlalchemy.py",
+      "start_line": 108,
+      "end_line": 111,
+      "size_lines": 4,
+      "signature_hint": "def process_result_value( self, value: int | None, dialect: Dialect ) -> timedelta | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 271,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "TypeDecorator"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cx9t0iimet",
+      "qualified_name": "apscheduler.datastores.mongodb.CustomEncoder.transform_python",
+      "simple_name": "transform_python",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F2d4yam7nqd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/datastores/mongodb.py",
+      "start_line": 63,
+      "end_line": 64,
+      "size_lines": 2,
+      "signature_hint": "def transform_python(self, value: Any) -> Any",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -198,
+      "region": 239,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "TypeEncoder"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cckcwhf4f4x",
+      "qualified_name": "apscheduler.eventbrokers.base.BaseExternalEventBroker.reconstitute_event",
+      "simple_name": "reconstitute_event",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17jo9lwbb7n",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/eventbrokers/base.py",
+      "start_line": 146,
+      "end_line": 156,
+      "size_lines": 11,
+      "signature_hint": "def reconstitute_event(self, payload: bytes) -> Event | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -389,
+      "region": 324,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "reconstitute_event",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fxq83uqeijk",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/eventbrokers/mqtt.py",
+            "line": 129,
+            "name": "reconstitute_event",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cr4pu6entlu",
+      "qualified_name": "apscheduler.eventbrokers.base.BaseExternalEventBroker.reconstitute_event_str",
+      "simple_name": "reconstitute_event_str",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17jo9lwbb7n",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/eventbrokers/base.py",
+      "start_line": 158,
+      "end_line": 167,
+      "size_lines": 10,
+      "signature_hint": "def reconstitute_event_str(self, payload: str) -> Event | None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -390,
+      "region": 324,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "reconstitute_event_str",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fe2fib8qqet",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/eventbrokers/asyncpg.py",
+            "line": 116,
+            "name": "reconstitute_event_str",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C16078jwy3oe",
+      "qualified_name": "apscheduler._converters.as_enum",
+      "simple_name": "as_enum",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fe6mlbrioxk",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_converters.py",
+      "start_line": 68,
+      "end_line": 75,
+      "size_lines": 8,
+      "signature_hint": "def as_enum(enum_class: Any) -> Callable[[Any], Any]",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -392,
+      "region": 33,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "as_enum",
+          "sites": 4,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fc6csw3mt59",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_events.py",
+            "line": 276,
+            "name": "as_enum"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cctpjc0j3qy",
+      "qualified_name": "apscheduler._converters.list_converter",
+      "simple_name": "list_converter",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fe6mlbrioxk",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_converters.py",
+      "start_line": 78,
+      "end_line": 85,
+      "size_lines": 8,
+      "signature_hint": "def list_converter(converter: Callable[[Any], Any]) -> Callable[[Any], Any]",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -392,
+      "region": 35,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "list_converter",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F11wdv2xuw81",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/triggers/combining.py",
+            "line": 20,
+            "name": "list_converter"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cr1eorm5yxk",
+      "qualified_name": "apscheduler._validators.if_not_unset",
+      "simple_name": "if_not_unset",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fhzbwcyyqkt",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_validators.py",
+      "start_line": 26,
+      "end_line": 31,
+      "size_lines": 6,
+      "signature_hint": "def if_not_unset(validator: Callable[[Any, Any, Any], None]) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 175,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "if_not_unset",
+          "sites": 5,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F447zqpcgn0",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_decorators.py",
+            "line": 24,
+            "name": "if_not_unset"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3znc2j9twx",
+      "qualified_name": "apscheduler.executors.async_.AsyncJobExecutor.run_job",
+      "simple_name": "run_job",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F12om190y7ai",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/executors/async_.py",
+      "start_line": 19,
+      "end_line": 24,
+      "size_lines": 6,
+      "signature_hint": "async def run_job(self, func: Callable[..., Any], job: Job) -> Any",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 214,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "run_job",
+          "sites": 1,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 1196,
+            "name": "run_job",
+            "receiver_hint": "job_executor"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwgau91dee4"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17ajk2xfpv4",
+      "qualified_name": "apscheduler.executors.qt.QtJobExecutor.run_job",
+      "simple_name": "run_job",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F14kklc4wkok",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/executors/qt.py",
+      "start_line": 46,
+      "end_line": 51,
+      "size_lines": 6,
+      "signature_hint": "async def run_job(self, func: Callable[..., T_Retval], job: Job) -> Any",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 214,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "run_job",
+          "sites": 1,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 1196,
+            "name": "run_job",
+            "receiver_hint": "job_executor"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwgau91dee4"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C130o9inpyuy",
+      "qualified_name": "apscheduler.executors.subprocess.ProcessPoolJobExecutor.run_job",
+      "simple_name": "run_job",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fpt2i8anelr",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/executors/subprocess.py",
+      "start_line": 29,
+      "end_line": 33,
+      "size_lines": 5,
+      "signature_hint": "async def run_job(self, func: Callable[..., Any], job: Job) -> Any",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 214,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "run_job",
+          "sites": 1,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 1196,
+            "name": "run_job",
+            "receiver_hint": "job_executor"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwgau91dee4"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14ejgtdtb2z",
+      "qualified_name": "apscheduler.eventbrokers.base.BaseExternalEventBroker.generate_notification",
+      "simple_name": "generate_notification",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17jo9lwbb7n",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/eventbrokers/base.py",
+      "start_line": 111,
+      "end_line": 113,
+      "size_lines": 3,
+      "signature_hint": "def generate_notification(self, event: Event) -> bytes",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 322,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "generate_notification",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fxq83uqeijk",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/eventbrokers/mqtt.py",
+            "line": 134,
+            "name": "generate_notification",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cbwbziwh2jo",
+      "qualified_name": "apscheduler.eventbrokers.base.BaseExternalEventBroker.generate_notification_str",
+      "simple_name": "generate_notification_str",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17jo9lwbb7n",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/eventbrokers/base.py",
+      "start_line": 115,
+      "end_line": 117,
+      "size_lines": 3,
+      "signature_hint": "def generate_notification_str(self, event: Event) -> str",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 323,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "generate_notification_str",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fe2fib8qqet",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/eventbrokers/asyncpg.py",
+            "line": 159,
+            "name": "generate_notification_str",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cgtj2e0b8cp",
+      "qualified_name": "apscheduler.executors.thread.ThreadPoolJobExecutor.run_job",
+      "simple_name": "run_job",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F110rdbazaaj",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/executors/thread.py",
+      "start_line": 29,
+      "end_line": 31,
+      "size_lines": 3,
+      "signature_hint": "async def run_job(self, func: Callable[..., Any], job: Job) -> Any",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 214,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "run_job",
+          "sites": 1,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 1196,
+            "name": "run_job",
+            "receiver_hint": "job_executor"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwgau91dee4"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C161k8fqgjl3",
+      "qualified_name": "apscheduler.executors.qt.QtJobExecutor.start",
+      "simple_name": "start",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F14kklc4wkok",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/executors/qt.py",
+      "start_line": 43,
+      "end_line": 44,
+      "size_lines": 2,
+      "signature_hint": "async def start(self, exit_stack: AsyncExitStack) -> None",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -398,
+      "region": 213,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "start",
+          "sites": 8,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 888,
+            "name": "start",
+            "receiver_hint": "task_group"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C5lhzio8pqg"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cfu1z37kgwf",
+      "qualified_name": "apscheduler.executors.subprocess.ProcessPoolJobExecutor.start",
+      "simple_name": "start",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fpt2i8anelr",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/executors/subprocess.py",
+      "start_line": 26,
+      "end_line": 27,
+      "size_lines": 2,
+      "signature_hint": "async def start(self, exit_stack: AsyncExitStack) -> None",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -398,
+      "region": 213,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "start",
+          "sites": 8,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 888,
+            "name": "start",
+            "receiver_hint": "task_group"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C5lhzio8pqg"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17n238nlbgc",
+      "qualified_name": "apscheduler.executors.thread.ThreadPoolJobExecutor.start",
+      "simple_name": "start",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F110rdbazaaj",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/executors/thread.py",
+      "start_line": 26,
+      "end_line": 27,
+      "size_lines": 2,
+      "signature_hint": "async def start(self, exit_stack: AsyncExitStack) -> None",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -398,
+      "region": 213,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "start",
+          "sites": 8,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 888,
+            "name": "start",
+            "receiver_hint": "task_group"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C5lhzio8pqg"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwgau91dee4",
+      "qualified_name": "apscheduler.abc.JobExecutor.run_job",
+      "simple_name": "run_job",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fph0nsc5duv",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/abc.py",
+      "start_line": 420,
+      "end_line": 428,
+      "size_lines": 9,
+      "signature_hint": "async def run_job(self, func: Callable[..., Any], job: Job) -> Any",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 214,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "JobExecutor",
+          "impls": 4,
+          "unresolved_sites": 1,
+          "called_impls": 0
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "run_job",
+          "sites": 1,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 1196,
+            "name": "run_job",
+            "receiver_hint": "job_executor"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C5lhzio8pqg",
+      "qualified_name": "apscheduler.abc.JobExecutor.start",
+      "simple_name": "start",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "Fph0nsc5duv",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/abc.py",
+      "start_line": 411,
+      "end_line": 417,
+      "size_lines": 7,
+      "signature_hint": "async def start(self, exit_stack: AsyncExitStack) -> None",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -693,
+      "region": 213,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "JobExecutor",
+          "impls": 3,
+          "unresolved_sites": 8,
+          "called_impls": 0
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "start",
+          "sites": 8,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 888,
+            "name": "start",
+            "receiver_hint": "task_group"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Ctkhc0aqys0",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.state",
+      "simple_name": "state",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 224,
+      "end_line": 226,
+      "size_lines": 3,
+      "signature_hint": "def state(self) -> RunState",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 66,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "state",
+          "sites": 11,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fdh7s351yh4",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_marshalling.py",
+            "line": 26,
+            "name": "state"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C13k17mpezr1",
+      "qualified_name": "apscheduler._schedulers.sync.Scheduler.state",
+      "simple_name": "state",
+      "language": "python",
+      "kind": "property",
+      "def_variant": "property",
+      "file": "Fglzhzq1toh",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/sync.py",
+      "start_line": 133,
+      "end_line": 135,
+      "size_lines": 3,
+      "signature_hint": "def state(self) -> RunState",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 112,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "property"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "state",
+          "sites": 11,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fdh7s351yh4",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_marshalling.py",
+            "line": 26,
+            "name": "state"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cr7hvgyb6sd",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.run_job",
+      "simple_name": "run_job",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 758,
+      "end_line": 818,
+      "size_lines": 61,
+      "signature_hint": "async def run_job( self, func_or_task_id: str | Callable[..., Any], *, args: Iterable[Any] | None = None, kwargs: Mapping[str, Any] | None = None, job_executor: str | UnsetValue = unset, metadata: MetadataType | UnsetValue = unset, ) -> Any",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -339,
+      "region": 83,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "run_job",
+          "sites": 1,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 1196,
+            "name": "run_job",
+            "receiver_hint": "job_executor"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Cl34kajhb4s",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.subscribe",
+      "simple_name": "subscribe",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 253,
+      "end_line": 283,
+      "size_lines": 31,
+      "signature_hint": "def subscribe( self, callback: Callable[[T_Event], Any], event_types: type[T_Event] | Iterable[type[T_Event]] | None = None, *, one_shot: bool = False, is_async: bool = True, ) -> Subscription",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -669,
+      "region": 70,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 1,
+          "file_local_candidates": 3,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 308,
+            "name": "subscribe",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "subscribe",
+          "sites": 4,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 308,
+            "name": "subscribe",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cylxhzn4cjo",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.get_next_event",
+      "simple_name": "get_next_event",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 291,
+      "end_line": 310,
+      "size_lines": 20,
+      "signature_hint": "async def get_next_event( self, event_types: type[Event] | Iterable[type[Event]] ) -> Event",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -680,
+      "region": 73,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 3,
+          "file_local_candidates": 3,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 843,
+            "name": "get_next_event",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "get_next_event",
+          "sites": 4,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 3,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 843,
+            "name": "get_next_event",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cbh4ej1q8ft",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.subscribe",
+      "simple_name": "subscribe",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 234,
+      "end_line": 241,
+      "size_lines": 8,
+      "signature_hint": "def subscribe( self, callback: Callable[[T_Event], Any], event_types: type[T_Event], *, one_shot: bool = ..., is_async: bool = ..., ) -> Subscription",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -692,
+      "region": 68,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 1,
+          "file_local_candidates": 3,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 308,
+            "name": "subscribe",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "subscribe",
+          "sites": 4,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 308,
+            "name": "subscribe",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmh71c3s9x3",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.subscribe",
+      "simple_name": "subscribe",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 244,
+      "end_line": 251,
+      "size_lines": 8,
+      "signature_hint": "def subscribe( self, callback: Callable[[Event], Any], event_types: Iterable[type[Event]] | None = None, *, one_shot: bool = False, is_async: bool = True, ) -> Subscription",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -692,
+      "region": 69,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 1,
+          "file_local_candidates": 3,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 308,
+            "name": "subscribe",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "subscribe",
+          "sites": 4,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 308,
+            "name": "subscribe",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Csyfgtzw56y",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.get_next_event",
+      "simple_name": "get_next_event",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 286,
+      "end_line": 286,
+      "size_lines": 1,
+      "signature_hint": "async def get_next_event(self, event_types: type[T_Event]) -> T_Event",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -699,
+      "region": 71,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 3,
+          "file_local_candidates": 3,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 843,
+            "name": "get_next_event",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "get_next_event",
+          "sites": 4,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 3,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 843,
+            "name": "get_next_event",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ctqhwumrpt1",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.get_next_event",
+      "simple_name": "get_next_event",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "async_function",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 289,
+      "end_line": 289,
+      "size_lines": 1,
+      "signature_hint": "async def get_next_event(self, event_types: Iterable[type[Event]]) -> Event",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -699,
+      "region": 72,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 3,
+          "file_local_candidates": 3,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 843,
+            "name": "get_next_event",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "get_next_event",
+          "sites": 4,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 3,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 843,
+            "name": "get_next_event",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3o8ce0537m",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.get_job_result.listener",
+      "simple_name": "listener",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 742,
+      "end_line": 744,
+      "size_lines": 3,
+      "signature_hint": "def listener(event: JobReleased) -> None",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -997,
+      "region": 86,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 2,
+          "file_local_candidates": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 746,
+            "name": "listener"
+          }
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 2
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "listener",
+          "sites": 2,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 746,
+            "name": "listener"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cezfmo8z3ta",
+      "qualified_name": "apscheduler._schedulers.async_.AsyncScheduler.run_job.listener",
+      "simple_name": "listener",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F55wq36jgd",
+      "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+      "start_line": 785,
+      "end_line": 787,
+      "size_lines": 3,
+      "signature_hint": "def listener(event: JobReleased) -> None",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -997,
+      "region": 88,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 2,
+          "file_local_candidates": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 746,
+            "name": "listener"
+          }
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 2
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "listener",
+          "sites": 2,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F55wq36jgd",
+            "path": "/storage/cgg-test_repos/py-apscheduler/src/apscheduler/_schedulers/async_.py",
+            "line": 746,
+            "name": "listener"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

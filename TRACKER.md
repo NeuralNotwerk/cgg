@@ -128,7 +128,7 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 | WS24 | Kotlin↔Java rules, C#/Swift registrars, JS/TS harness | 14,22,30 | DONE (877b3fa) | | |
 | WS25 | stdlib head split, reflection screen, shebang token match, filename detection | 17,18,19,20 | DONE (7eca3a0) | | |
 | WS26 | Function values as references, per plugin | 25 | DONE (list) | 965e15a f5a877c 9df8695 48c4573 26da301 e53e16d 4f3c56d 7248525 7f1338e d17767b a95dc09 7933ffc 6438024 557e265 ebf0d43 fcf986b 73b6ce1 de2b77d 9f3c317 2a28ff8 6f38216 2ba48c9 | JS/TS, .bind, Go, Kotlin, C/C++, Ruby, PHP, Swift, Dart, Scala, Lua, Erlang, Clojure (+meta names, bare-call scope), Zig, Groovy, ObjC done; WS26 language list complete; WS30 Groovy parse recovery next → ObjC |
-| WS27 | Locals specs Go/C#/C/C++… | 27 | IN PROGRESS | 55d7ebb f8a1e02 d867994 22b5749 7262471 | Go, C#, C done; next C++ (+ C type-keyword values) |
+| WS27 | Locals specs Go/C#/C/C++… | 27 | IN PROGRESS | 55d7ebb f8a1e02 d867994 22b5749 7262471 042a062 | Go, C#, C, C++ done; next Groovy → R → Julia → Haskell → Clojure → Nix → Starlark → Solidity → F# → Fortran → Perl |
 | WS28 | Arity narrowing C#/Kotlin/Swift/Groovy/TS | 29 | PLANNED | | |
 | WS29 | Doc corrections + re-score matrix | — | PLANNED | | orchestrator only |
 | WS30 | Groovy methods lost to parse errors (Spock string names) | new | DONE | 3d2a5a3 | Gradle groovy callables 18,952→44,425; spock entries 0→23,836 |
@@ -171,3 +171,4 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 - WS27 Go: Terraform regression and casdoor cron FIXED f8a1e02. Open (MAJOR candidate): Go interface implementations reached only through the interface are dead at medium — Go not in INHERITANCE_LANGS (implicit interfaces); embedded types match by bare base name (WS23); `HandlerFunc(nil).Serve()` unresolved.
 - WS27 C# open: primary-constructor parameters not recorded; typed `join Foo j` would bind the type name.
 - WS27 C: curl `dep` and musl field prune FIXED 7262471; open: 22 wrong cross-file C ref edges from type names read as values (`va_arg(ap, int)`, `DWORD`); C++/ObjC still tree-wide field prune. Old note: curl `dep` (decl with parse error in initializer) unbound → wrong medium ref edge (patch WS27-c-followup-declarator-after-error.patch); WS26 data_members prune is tree-global — musl `start`/`handler` value uses dropped because unrelated structs have such fields.
+- WS27 C++ open: 7 wrong libc++ ref edges (`__res_`, `__tmp`) in _LIBCPP_* macro-mangled bodies; dart-flutter --dead-code at --jobs 1 sits at the 60 s cap (~60.6 s).

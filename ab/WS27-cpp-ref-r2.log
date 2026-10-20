@@ -1,0 +1,12 @@
+repos 283 excluded []
+added 207
+  ('cpp', '{"kind": "direct"}', 'high') 4
+  ('cpp', '{"kind": "reference"}', 'high') 49
+  ('cpp', '{"kind": "reference"}', 'medium') 154
+dropped 949
+  ('c', '{"kind": "reference"}', 'high') 31
+  ('c', '{"kind": "reference"}', 'medium') 259
+  ('cpp', '{"kind": "direct"}', 'high') 100
+  ('cpp', '{"kind": "direct"}', 'medium') 453
+  ('cpp', '{"kind": "reference"}', 'high') 36
+  ('cpp', '{"kind": "reference"}', 'medium') 70

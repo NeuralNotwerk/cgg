@@ -1,0 +1,16 @@
+--- a/crates/cgg-resolve/src/value_refs.rs
++++ b/crates/cgg-resolve/src/value_refs.rs
+@@ -179,8 +179,12 @@
+         // C++: inside a member function it is the class's field, which the
+         // file sees through its own or an included class. Objective-C keeps
+         // the language-wide reading (no locals table yet).
++        // C++ keeps the language-wide reading: where macros defeat the
++        // parse (`_LIBCPP_*`, `ASMJIT_INLINE_*`), neither a class's fields
++        // nor a member function's parameters are recorded, and the
++        // language-wide field set is the better guess (WS27 C++ A/B).
+         let c = f.language == "c";
+-        let scoped_fields = c || f.language == "cpp";
++        let scoped_fields = c;
+         let is_field = |name: &str| match seen {
+             Some((seen_fields, seen_functions, own_functions, seen_types)) => {
+                 seen_types.contains(name)

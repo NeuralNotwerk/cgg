@@ -1,0 +1,19 @@
+old: cgg 0.11.0 (dev g7262471)  sha256=f45f64ae3c451dbbb35b77c1f82134b0dda4f4fbe2718d5f7d78b22ce5d5c633
+new: cgg 0.11.0 (dev g7262471+d5fb5638)  sha256=075b64b7153a06525ec4f297c892cbf5672ba3925b72df0363d1581f1d5bdf80
+old=target/remediation/bins/WS27-cpp-before
+new=target/remediation/bins/WS27-cpp-r3
+repos=283 elapsed=238s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 10
+  app-carvera-firmware-cpp: edges 20095->20094 (-1 +0 ~0) callables 5745->5745 unresolved 2153->2154 files 589->589 deadhigh 0->0 
+  app-kythe-bazel: edges 22136->22135 (-1 +0 ~0) callables 13543->13543 unresolved 8548->8549 files 2006->2006 deadhigh 4->4 
+  app-rn-expensify: edges 183833->183829 (-4 +0 ~0) callables 68752->68752 unresolved 172423->172425 files 8710->8710 deadhigh 0->0 
+  app-waybar-catch2: edges 4101->4095 (-6 +0 ~0) callables 1954->1954 unresolved 1953->1959 files 288->288 deadhigh 0->0 
+  cmake-kitware: edges 131865->131790 (-75 +0 ~0) callables 37480->37480 unresolved 125395->125456 files 17741->17741 deadhigh 0->0 
+  cpp-nlohmann-json: edges 14368->14342 (-26 +0 ~0) callables 5317->5317 unresolved 28133->28159 files 545->545 deadhigh 0->0 
+  cpp-spdlog: edges 5006->4926 (-80 +0 ~0) callables 2321->2321 unresolved 3059->3063 files 161->161 deadhigh 0->0 
+  dart-flutter: edges 577880->577754 (-126 +0 ~0) callables 120107->120107 unresolved 326490->326594 files 10871->10871 deadhigh 19->19 
+  erlang-otp: edges 725275->725263 (-12 +0 ~0) callables 271239->271239 unresolved 220325->220337 files 5652->5652 deadhigh 2->2 
+  zig-zig: edges 274868->274751 (-117 +0 ~0) callables 362991->362991 unresolved 202180->202253 files 17351->17351 deadhigh 1->1 
+by language: see by_language.tsv
+
