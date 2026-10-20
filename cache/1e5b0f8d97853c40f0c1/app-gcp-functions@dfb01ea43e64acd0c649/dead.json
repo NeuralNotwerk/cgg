@@ -1,0 +1,1543 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "bash",
+      "class": "script-driven",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 4,
+      "callables": 1,
+      "roots": 1,
+      "reachable": 1,
+      "reachable_pct": 100,
+      "findings": 0
+    },
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "framework:entry-node",
+        "toplevel:invocation"
+      ],
+      "files": 10,
+      "callables": 11,
+      "roots": 12,
+      "reachable": 10,
+      "reachable_pct": 90,
+      "findings": 1,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    },
+    {
+      "language": "typescript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "framework:entry-node",
+        "framework:test-harness"
+      ],
+      "files": 33,
+      "callables": 85,
+      "roots": 104,
+      "reachable": 52,
+      "reachable_pct": 61,
+      "findings": 8,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 97,
+    "edges": 324,
+    "unresolved_call_sites": 99,
+    "roots": 117,
+    "candidates": 34,
+    "reported": 9,
+    "regions": 10,
+    "withheld": [
+      {
+        "language": "typescript",
+        "category": "only-used-by-tests",
+        "reason": "missing-signal",
+        "would_have_reported": 24
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Cwu2g2bd9m4",
+      "qualified_name": "print_header",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-gcp-functions/run_conformance_tests.sh:57"
+    },
+    {
+      "id": "C18c1vmdx8t9",
+      "qualified_name": "main",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-gcp-functions/src/main.ts:82"
+    },
+    {
+      "id": "C13nljrst8ed",
+      "qualified_name": "handler_at_13",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cza3w05tynj",
+      "qualified_name": "writeHttp",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-gcp-functions/test/conformance/function.js:49"
+    },
+    {
+      "id": "C10sv7o8qxhu",
+      "qualified_name": "writeCloudEvent",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-gcp-functions/test/conformance/function.js:50"
+    },
+    {
+      "id": "C2tk7bddb79",
+      "qualified_name": "writeLegacyEvent",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-gcp-functions/test/conformance/function.js:51"
+    },
+    {
+      "id": "Ciip2n28z2g",
+      "qualified_name": "testFunction",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-gcp-functions/test/data/without_main/function.js:13"
+    },
+    {
+      "id": "C17tngl7e9yl",
+      "qualified_name": "testFunction",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-gcp-functions/test/data/without_main/function.js:13"
+    },
+    {
+      "id": "Cgn9wagyt26",
+      "qualified_name": "testFunction",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-gcp-functions/test/data/without_main/function.js:13"
+    },
+    {
+      "id": "Cm1obadkord",
+      "qualified_name": "testFunction",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-gcp-functions/test/data/without_main/function.js:13"
+    },
+    {
+      "id": "C4kyhw5k3xp",
+      "qualified_name": "testFunction",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-gcp-functions/test/data/without_main/function.js:13"
+    },
+    {
+      "id": "Cd1urisveso",
+      "qualified_name": "handler_at_6",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Csv2mlhmecu",
+      "qualified_name": "handler_at_23",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cpwsab0dgi0",
+      "qualified_name": "handler_at_38",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C16z43307dgc",
+      "qualified_name": "handler_at_50",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cdv2fdae8t3",
+      "qualified_name": "handler_at_17",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ca2unsr38lo",
+      "qualified_name": "handler_at_18",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C1fqi4ceji3",
+      "qualified_name": "handler_at_26",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cmytu9vgvqh",
+      "qualified_name": "handler_at_34",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C130iv2gdhea",
+      "qualified_name": "handler_at_7",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C142mptex0o0",
+      "qualified_name": "handler_at_66",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ctp1hmr49dq",
+      "qualified_name": "handler_at_77",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cgspgq9khak",
+      "qualified_name": "handler_at_90",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C14903r07k4i",
+      "qualified_name": "handler_at_108",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ci4nwvkhxu4",
+      "qualified_name": "handler_at_123",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cgv6n5c6lwb",
+      "qualified_name": "handler_at_39",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ctljwaids5m",
+      "qualified_name": "handler_at_41",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cov4039upj4",
+      "qualified_name": "handler_at_50",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C3ekzb232qw",
+      "qualified_name": "handler_at_56",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cvhmeyd7824",
+      "qualified_name": "handler_at_242",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C9flchr274n",
+      "qualified_name": "handler_at_253",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Coc7zzn2r6e",
+      "qualified_name": "handler_at_294",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C6sw0n23j41",
+      "qualified_name": "handler_at_318",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C135v6gabxzx",
+      "qualified_name": "handler_at_343",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cmlileocj8a",
+      "qualified_name": "handler_at_22",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C17kvqcflf0m",
+      "qualified_name": "handler_at_25",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cli8i1txp8y",
+      "qualified_name": "handler_at_44",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cn9lknsr7tu",
+      "qualified_name": "handler_at_50",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C107e6id10s2",
+      "qualified_name": "handler_at_106",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C9nwfroswqe",
+      "qualified_name": "handler_at_46",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Clxuqtlpps4",
+      "qualified_name": "handler_at_47",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cxzcvbxta7z",
+      "qualified_name": "handler_at_52",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C16ak3wqzgzb",
+      "qualified_name": "handler_at_193",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Csljv2pywf2",
+      "qualified_name": "handler_at_214",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cljjx9ng1ue",
+      "qualified_name": "handler_at_21",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ceqykidgpaz",
+      "qualified_name": "handler_at_42",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cb9ckti4oao",
+      "qualified_name": "handler_at_83",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cyi81ecvsml",
+      "qualified_name": "handler_at_87",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C1047l7dau3",
+      "qualified_name": "handler_at_95",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ct44z5wr4qg",
+      "qualified_name": "handler_at_105",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Crivoesh2gs",
+      "qualified_name": "handler_at_115",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cz48s342p5g",
+      "qualified_name": "handler_at_129",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Caxvr07s9kd",
+      "qualified_name": "handler_at_143",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cerlguyd3ez",
+      "qualified_name": "handler_at_6",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C6mpr21fqaf",
+      "qualified_name": "handler_at_10",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cv14kb7xco7",
+      "qualified_name": "handler_at_16",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cnf6xvkjf4o",
+      "qualified_name": "handler_at_22",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ctnuufq194w",
+      "qualified_name": "handler_at_28",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cw1lrjk63pc",
+      "qualified_name": "handler_at_34",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C12969ndtqo2",
+      "qualified_name": "handler_at_41",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ch5s5mdaqzq",
+      "qualified_name": "handler_at_70",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C10axa9w0iv",
+      "qualified_name": "handler_at_75",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cbv6pgnrkcn",
+      "qualified_name": "handler_at_79",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ct3gpjjm949",
+      "qualified_name": "handler_at_84",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ceoh7mwzf1o",
+      "qualified_name": "handler_at_89",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C2qnkjmrqfg",
+      "qualified_name": "handler_at_109",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C8copinrp1y",
+      "qualified_name": "handler_at_128",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cjw7a3wwi7d",
+      "qualified_name": "handler_at_133",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C14on8lsy6br",
+      "qualified_name": "handler_at_138",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Chkjujnrq7g",
+      "qualified_name": "handler_at_143",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C9y07gj65f0",
+      "qualified_name": "handler_at_150",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cy675syuc55",
+      "qualified_name": "handler_at_162",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Ccso065dcd6",
+      "qualified_name": "handler_at_169",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C6oeu4ytxwn",
+      "qualified_name": "handler_at_178",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C13iv7l7zhyp",
+      "qualified_name": "handler_at_193",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cpw49vxdvke",
+      "qualified_name": "handler_at_12",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C177iv2w35pm",
+      "qualified_name": "handler_at_78",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C1404inasv7t",
+      "qualified_name": "handler_at_84",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cfcduaso72r",
+      "qualified_name": "handler_at_95",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C624yhx7kfl",
+      "qualified_name": "handler_at_109",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cc0u7b6xj6a",
+      "qualified_name": "handler_at_240",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C6y3h3s06n6",
+      "qualified_name": "handler_at_20",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cbnyo9340a9",
+      "qualified_name": "handler_at_45",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cyliilvcsgq",
+      "qualified_name": "handler_at_52",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Czsrz13j2oe",
+      "qualified_name": "handler_at_57",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C4etivw31za",
+      "qualified_name": "handler_at_170",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C2yt6c2y1ah",
+      "qualified_name": "handler_at_8",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cj4f2lcrbcw",
+      "qualified_name": "handler_at_12",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Crmz6o6ljb3",
+      "qualified_name": "handler_at_23",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cq5zbk8at39",
+      "qualified_name": "handler_at_29",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cwtcgiuaxp0",
+      "qualified_name": "handler_at_38",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cax2rmt3oxp",
+      "qualified_name": "handler_at_47",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cqtvm5q9s21",
+      "qualified_name": "handler_at_23",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cr2utnqhwjv",
+      "qualified_name": "handler_at_150",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C572fe68zje",
+      "qualified_name": "handler_at_162",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C8lajckssz0",
+      "qualified_name": "handler_at_167",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C16e6xi2ught",
+      "qualified_name": "handler_at_175",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C10um8nr5hs9",
+      "qualified_name": "handler_at_202",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C71ml2cipl3",
+      "qualified_name": "handler_at_230",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cazsnoqomfb",
+      "qualified_name": "handler_at_54",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Chc24y0lq24",
+      "qualified_name": "handler_at_55",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cncu8v3vssu",
+      "qualified_name": "handler_at_59",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "C14pmz1vdiaz",
+      "qualified_name": "handler_at_92",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cjzgsmxnqb6",
+      "qualified_name": "handler_at_4",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Chqmmeeqgse",
+      "qualified_name": "handler_at_5",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cdw74r5bc1w",
+      "qualified_name": "<framework-entry>::lifecycle::node-event-emitter::on(\"error\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::lifecycle::node-event-emitter::on(\"error\")`"
+    },
+    {
+      "id": "C132ctcx6x2b",
+      "qualified_name": "<framework-entry>::lifecycle::node-event-emitter::on(\"uncaughtException\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::lifecycle::node-event-emitter::on(\"uncaughtException\")`"
+    },
+    {
+      "id": "C3lkbyczq3o",
+      "qualified_name": "<framework-entry>::lifecycle::node-event-emitter::on(\"unhandledRejection\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::lifecycle::node-event-emitter::on(\"unhandledRejection\")`"
+    },
+    {
+      "id": "Cyz21hgxmvj",
+      "qualified_name": "<framework-entry>::lifecycle::node-event-emitter::on(\"exit\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::lifecycle::node-event-emitter::on(\"exit\")`"
+    },
+    {
+      "id": "Cydllu47dtu",
+      "qualified_name": "<framework-entry>::lifecycle::node-event-emitter::on(\"timeout\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::lifecycle::node-event-emitter::on(\"timeout\")`"
+    },
+    {
+      "id": "Ctkqwep6w27",
+      "qualified_name": "<framework-entry>::lifecycle::node-event-emitter::on(\"close\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::lifecycle::node-event-emitter::on(\"close\")`"
+    },
+    {
+      "id": "C12r3p3k4duu",
+      "qualified_name": "<framework-entry>::lifecycle::node-event-emitter::on(\"end\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::lifecycle::node-event-emitter::on(\"end\")`"
+    },
+    {
+      "id": "Cmzgblhbc3f",
+      "qualified_name": "<framework-entry>::network::express::use(\"/{*splat}\")",
+      "language": "typescript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::express::use(\"/{*splat}\")`"
+    },
+    {
+      "id": "C9t0mlo171o",
+      "qualified_name": "<framework-entry>::test::js-test-globals",
+      "language": "typescript",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::js-test-globals`"
+    },
+    {
+      "id": "Cu2d6gut2qp",
+      "qualified_name": "<framework-entry>::network::gcp-functions::http(\"writeHttpDeclarative\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::gcp-functions::http(\"writeHttpDeclarative\")`"
+    },
+    {
+      "id": "C167rlt3d2wc",
+      "qualified_name": "<framework-entry>::network::gcp-functions::cloudevent(\"writeCloudEventDeclarative\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::gcp-functions::cloudevent(\"writeCloudEventDeclarative\")`"
+    },
+    {
+      "id": "Cr998iakb6d",
+      "qualified_name": "<framework-entry>::network::gcp-functions::http(\"concurrentHttp\")",
+      "language": "javascript",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::gcp-functions::http(\"concurrentHttp\")`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "C12izsj05zt0"
+      ],
+      "anchors": [
+        "C12izsj05zt0"
+      ],
+      "files": [
+        "F6kgwulg29y"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 27,
+      "members": [
+        "C16u3c5zc9pn"
+      ],
+      "anchors": [
+        "C16u3c5zc9pn"
+      ],
+      "files": [
+        "Fz4j7j6jfgx"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 29,
+      "members": [
+        "Ctlwue0mqf4"
+      ],
+      "anchors": [
+        "Ctlwue0mqf4"
+      ],
+      "files": [
+        "Fz4j7j6jfgx"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 30,
+      "members": [
+        "C9tg0h1wnvc"
+      ],
+      "anchors": [
+        "C9tg0h1wnvc"
+      ],
+      "files": [
+        "Fz4j7j6jfgx"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 31,
+      "members": [
+        "C14p39uefxij"
+      ],
+      "anchors": [
+        "C14p39uefxij"
+      ],
+      "files": [
+        "Fz4j7j6jfgx"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 67,
+      "members": [
+        "Cl99gqy1tys"
+      ],
+      "anchors": [
+        "Cl99gqy1tys"
+      ],
+      "files": [
+        "Fnzio5t1pqo"
+      ],
+      "total_lines": 20,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 68,
+      "members": [
+        "Cieo15mnm9c"
+      ],
+      "anchors": [
+        "Cieo15mnm9c"
+      ],
+      "files": [
+        "Fnzio5t1pqo"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 80,
+      "members": [
+        "C8nlq2f0ik7"
+      ],
+      "anchors": [
+        "C8nlq2f0ik7"
+      ],
+      "files": [
+        "F143cmsw6leg"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 82,
+      "members": [
+        "Car6pvlb83a"
+      ],
+      "anchors": [
+        "Car6pvlb83a"
+      ],
+      "files": [
+        "Fobu1azesy"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 112,
+      "members": [
+        "C4c6l2vn85e"
+      ],
+      "anchors": [
+        "C4c6l2vn85e"
+      ],
+      "files": [
+        "Fnzhjl6h0ly"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "typescript"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "C8nlq2f0ik7",
+      "qualified_name": "getFunction",
+      "simple_name": "getFunction",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F143cmsw6leg",
+      "path": "/storage/cgg-test_repos/app-gcp-functions/src/testing.ts",
+      "start_line": 29,
+      "end_line": 33,
+      "size_lines": 5,
+      "signature_hint": "getFunction = ( functionName: string, )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 80,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C12izsj05zt0",
+      "qualified_name": "esm",
+      "simple_name": "esm",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6kgwulg29y",
+      "path": "/storage/cgg-test_repos/app-gcp-functions/docs/esm/index.js",
+      "start_line": 18,
+      "end_line": 20,
+      "size_lines": 3,
+      "signature_hint": "esm = (req, res) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 0,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16u3c5zc9pn",
+      "qualified_name": "InvocationRequest.body",
+      "simple_name": "body",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "trait_method",
+      "file": "Fz4j7j6jfgx",
+      "path": "/storage/cgg-test_repos/app-gcp-functions/src/functions.ts",
+      "start_line": 160,
+      "end_line": 160,
+      "size_lines": 1,
+      "signature_hint": "body()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 27,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ctlwue0mqf4",
+      "qualified_name": "InvocationResponse.setHeader",
+      "simple_name": "setHeader",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "trait_method",
+      "file": "Fz4j7j6jfgx",
+      "path": "/storage/cgg-test_repos/app-gcp-functions/src/functions.ts",
+      "start_line": 172,
+      "end_line": 172,
+      "size_lines": 1,
+      "signature_hint": "setHeader(key: string, value: string)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 29,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C9tg0h1wnvc",
+      "qualified_name": "InvocationResponse.write",
+      "simple_name": "write",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "trait_method",
+      "file": "Fz4j7j6jfgx",
+      "path": "/storage/cgg-test_repos/app-gcp-functions/src/functions.ts",
+      "start_line": 174,
+      "end_line": 174,
+      "size_lines": 1,
+      "signature_hint": "write(data: string | Buffer)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 30,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14p39uefxij",
+      "qualified_name": "InvocationResponse.end",
+      "simple_name": "end",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "trait_method",
+      "file": "Fz4j7j6jfgx",
+      "path": "/storage/cgg-test_repos/app-gcp-functions/src/functions.ts",
+      "start_line": 176,
+      "end_line": 176,
+      "size_lines": 1,
+      "signature_hint": "end(data: string | Buffer)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 31,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Car6pvlb83a",
+      "qualified_name": "isValidSignatureType",
+      "simple_name": "isValidSignatureType",
+      "language": "typescript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fobu1azesy",
+      "path": "/storage/cgg-test_repos/app-gcp-functions/src/types.ts",
+      "start_line": 35,
+      "end_line": 37,
+      "size_lines": 3,
+      "signature_hint": "isValidSignatureType = (x: any)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -597,
+      "region": 82,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "isValidSignatureType",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fnzio5t1pqo",
+            "path": "/storage/cgg-test_repos/app-gcp-functions/src/options.ts",
+            "line": 114,
+            "name": "isValidSignatureType"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cl99gqy1tys",
+      "qualified_name": "ConfigurableOption.constructor",
+      "simple_name": "constructor",
+      "language": "typescript",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fnzio5t1pqo",
+      "path": "/storage/cgg-test_repos/app-gcp-functions/src/options.ts",
+      "start_line": 69,
+      "end_line": 88,
+      "size_lines": 20,
+      "signature_hint": "constructor( /** * The CLI flag that can be use to configure this option. */ public readonly cliOption: string, /** * The name of the environment variable used to configure this option. */ private envVar: string, /** * The default value used when this option is not configured via a CLI flag * or environment variable. */ private defaultValue: T, /** * A function used to valid the user provided value. */ // eslint-disable-next-line @typescript-eslint/no-explicit-any private validator: (x: any) => T = x => x as T, )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -680,
+      "region": 67,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cieo15mnm9c",
+      "qualified_name": "ConfigurableOption.parse",
+      "simple_name": "parse",
+      "language": "typescript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fnzio5t1pqo",
+      "path": "/storage/cgg-test_repos/app-gcp-functions/src/options.ts",
+      "start_line": 90,
+      "end_line": 94,
+      "size_lines": 5,
+      "signature_hint": "parse(cliArgs: minimist.ParsedArgs, envVars: NodeJS.ProcessEnv)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -895,
+      "region": 68,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "parse",
+          "sites": 15,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 7,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fj3b353zw84",
+            "path": "/storage/cgg-test_repos/app-gcp-functions/src/logger.ts",
+            "line": 187,
+            "name": "parse",
+            "receiver_hint": "JSON"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

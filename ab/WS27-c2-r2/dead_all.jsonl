@@ -1,0 +1,242 @@
+{"repo": "app-carvera-firmware-cpp", "change": "moved", "key": ["c", "uint32_t", "/storage/cgg-test_repos/app-carvera-firmware-cpp/mri/cmsis/cmsis_gcc.h", 1988], "from": "medium", "to": "low"}
+{"repo": "app-carvera-firmware-cpp", "change": "moved", "key": ["c", "uint32_t", "/storage/cgg-test_repos/app-carvera-firmware-cpp/mri/cmsis/cmsis_gcc.h", 1922], "from": "medium", "to": "low"}
+{"repo": "app-carvera-firmware-cpp", "change": "moved", "key": ["c", "uint32_t", "/storage/cgg-test_repos/app-carvera-firmware-cpp/mri/cmsis/cmsis_gcc.h", 2038], "from": "medium", "to": "low"}
+{"repo": "app-carvera-firmware-cpp", "change": "moved", "key": ["c", "uint32_t", "/storage/cgg-test_repos/app-carvera-firmware-cpp/mri/cmsis/cmsis_gcc.h", 1972], "from": "medium", "to": "low"}
+{"repo": "app-carvera-firmware-cpp", "change": "moved", "key": ["c", "uint32_t", "/storage/cgg-test_repos/app-carvera-firmware-cpp/mri/cmsis/cmsis_gcc.h", 1906], "from": "medium", "to": "low"}
+{"repo": "app-kythe-bazel", "change": "left", "key": ["cpp", "kythe::VNameRef::path", "/storage/cgg-test_repos/app-kythe-bazel/kythe/cxx/common/indexing/KytheOutputStream.h", 36], "conf": "low"}
+{"repo": "app-waybar-catch2", "change": "left", "key": ["cpp", "waybar::modules::dwl::title", "/storage/cgg-test_repos/app-waybar-catch2/src/modules/dwl/window.cpp", 34], "conf": "medium"}
+{"repo": "app-waybar-catch2", "change": "left", "key": ["cpp", "waybar::modules::dwl::Window::handle_title", "/storage/cgg-test_repos/app-waybar-catch2/src/modules/dwl/window.cpp", 111], "conf": "medium"}
+{"repo": "app-waybar-catch2", "change": "left", "key": ["cpp", "waybar::modules::dwl::title", "/storage/cgg-test_repos/app-waybar-catch2/src/modules/dwl/tags.cpp", 44], "conf": "medium"}
+{"repo": "c-jq", "change": "left", "key": ["c", "stderr_cb", "/storage/cgg-test_repos/c-jq/src/main.c", 259], "conf": "medium"}
+{"repo": "c-jq", "change": "left", "key": ["c", "debug_cb", "/storage/cgg-test_repos/c-jq/src/main.c", 253], "conf": "medium"}
+{"repo": "c-redis", "change": "left", "key": ["c", "int", "/storage/cgg-test_repos/c-redis/deps/lua/src/lua.h", 239], "conf": "medium"}
+{"repo": "c-redis", "change": "left", "key": ["c", "print", "/storage/cgg-test_repos/c-redis/deps/lua/etc/min.c", 12], "conf": "medium"}
+{"repo": "c-redis", "change": "left", "key": ["c", "writer", "/storage/cgg-test_repos/c-redis/deps/lua/src/lstrlib.c", 140], "conf": "medium"}
+{"repo": "c-redis", "change": "left", "key": ["c", "writer", "/storage/cgg-test_repos/c-redis/deps/lua/src/luac.c", 147], "conf": "medium"}
+{"repo": "c-redis", "change": "left", "key": ["c", "str_byte", "/storage/cgg-test_repos/c-redis/deps/lua/src/lstrlib.c", 106], "conf": "medium"}
+{"repo": "c-redis", "change": "left", "key": ["c", "hints", "/storage/cgg-test_repos/c-redis/deps/linenoise/example.c", 14], "conf": "medium"}
+{"repo": "cmake-kitware", "change": "left", "key": ["cpp", "(anonymous)::TypeInfos::NullTI::alignment", "/storage/cgg-test_repos/cmake-kitware/Utilities/cmcppdap/src/typeof.cpp", 47], "conf": "medium"}
+{"repo": "cmake-kitware", "change": "left", "key": ["cpp", "dap::any::alloc", "/storage/cgg-test_repos/cmake-kitware/Utilities/cmcppdap/include/dap/any.h", 184], "conf": "medium"}
+{"repo": "cmake-kitware", "change": "left", "key": ["cpp", "dap::any::alignUp", "/storage/cgg-test_repos/cmake-kitware/Utilities/cmcppdap/include/dap/any.h", 178], "conf": "medium"}
+{"repo": "cmake-kitware", "change": "left", "key": ["cpp", "(anonymous)::TypeInfos::NullTI::copyConstruct", "/storage/cgg-test_repos/cmake-kitware/Utilities/cmcppdap/src/typeof.cpp", 49], "conf": "medium"}
+{"repo": "cmake-kitware", "change": "left", "key": ["cpp", "dap::any::any", "/storage/cgg-test_repos/cmake-kitware/Utilities/cmcppdap/include/dap/any.h", 95], "conf": "medium"}
+{"repo": "cmake-kitware", "change": "left", "key": ["cpp", "dap::BasicTypeInfo::alignment", "/storage/cgg-test_repos/cmake-kitware/Utilities/cmcppdap/include/dap/typeof.h", 34], "conf": "medium"}
+{"repo": "cmake-kitware", "change": "left", "key": ["cpp", "dap::any::isInBuffer", "/storage/cgg-test_repos/cmake-kitware/Utilities/cmcppdap/include/dap/any.h", 203], "conf": "medium"}
+{"repo": "cmake-kitware", "change": "left", "key": ["cpp", "dap::BasicTypeInfo::copyConstruct", "/storage/cgg-test_repos/cmake-kitware/Utilities/cmcppdap/include/dap/typeof.h", 36], "conf": "medium"}
+{"repo": "dart-flutter", "change": "left", "key": ["cpp", "flutter::KeyDataPacket::data", "/storage/cgg-test_repos/dart-flutter/engine/src/flutter/lib/ui/window/key_data_packet.h", 32], "conf": "low"}
+{"repo": "dart-flutter", "change": "left", "key": ["cpp", "flutter::DispatchSemanticsAction", "/storage/cgg-test_repos/dart-flutter/engine/src/flutter/shell/platform/android/platform_view_android_jni_impl.cc", 526], "conf": "low"}
+{"repo": "dart-flutter", "change": "left", "key": ["cpp", "txt::TypefaceFontStyleSet::count", "/storage/cgg-test_repos/dart-flutter/engine/src/flutter/txt/src/txt/typeface_font_asset_provider.cc", 78], "conf": "medium"}
+{"repo": "dart-flutter", "change": "left", "key": ["cpp", "flutter::DartServiceIsolate::Shutdown", "/storage/cgg-test_repos/dart-flutter/engine/src/flutter/runtime/dart_service_isolate.cc", 125], "conf": "medium"}
+{"repo": "dart-flutter", "change": "left", "key": ["cpp", "flutter::ScheduleFrame", "/storage/cgg-test_repos/dart-flutter/engine/src/flutter/shell/platform/android/platform_view_android_jni_impl.cc", 604], "conf": "low"}
+{"repo": "dart-flutter", "change": "left", "key": ["cpp", "dart_runner::(anonymous)::Shutdown", "/storage/cgg-test_repos/dart-flutter/engine/src/flutter/shell/platform/fuchsia/dart_runner/service_isolate.cc", 52], "conf": "medium"}
+{"repo": "dart-flutter", "change": "left", "key": ["cpp", "flutter::NotifyLowMemoryWarning", "/storage/cgg-test_repos/dart-flutter/engine/src/flutter/shell/platform/android/platform_view_android_jni_impl.cc", 631], "conf": "low"}
+{"repo": "dart-flutter", "change": "left", "key": ["cpp", "tonic::TypedList::data", "/storage/cgg-test_repos/dart-flutter/engine/src/flutter/third_party/tonic/typed_data/typed_list.h", 40], "conf": "medium"}
+{"repo": "dart-flutter", "change": "left", "key": ["cpp", "ui::AXPlatformNodeWin::AXPlatformNodeWin", "/storage/cgg-test_repos/dart-flutter/engine/src/flutter/third_party/accessibility/ax/platform/ax_platform_node_win.cc", 281], "conf": "medium"}
+{"repo": "dart-flutter", "change": "entered", "key": ["cpp", "shutdown", "/storage/cgg-test_repos/dart-flutter/engine/src/flutter/shell/platform/linux/fl_texture_registrar.cc", 152], "conf": "medium", "evidence": ["language-lacks-visibility", "no-incoming-edges", "no-unresolved-site-with-name"]}
+{"repo": "dart-flutter", "change": "entered", "key": ["cpp", "send_response", "/storage/cgg-test_repos/dart-flutter/engine/src/flutter/shell/platform/linux/fl_binary_messenger.cc", 210], "conf": "medium", "evidence": ["language-lacks-visibility", "no-incoming-edges", "no-unresolved-site-with-name"]}
+{"repo": "dart-flutter", "change": "entered", "key": ["cpp", "send_on_channel", "/storage/cgg-test_repos/dart-flutter/engine/src/flutter/shell/platform/linux/fl_binary_messenger.cc", 255], "conf": "medium", "evidence": ["language-lacks-visibility", "no-incoming-edges", "no-unresolved-site-with-name"]}
+{"repo": "dart-flutter", "change": "entered", "key": ["cpp", "set_message_handler_on_channel", "/storage/cgg-test_repos/dart-flutter/engine/src/flutter/shell/platform/linux/fl_binary_messenger.cc", 173], "conf": "medium", "evidence": ["language-lacks-visibility", "no-incoming-edges", "no-unresolved-site-with-name"]}
+{"repo": "dart-flutter", "change": "entered", "key": ["cpp", "shutdown", "/storage/cgg-test_repos/dart-flutter/engine/src/flutter/shell/platform/linux/fl_binary_messenger.cc", 359], "conf": "medium", "evidence": ["language-lacks-visibility", "no-incoming-edges", "no-unresolved-site-with-name"]}
+{"repo": "dart-flutter", "change": "entered", "key": ["cpp", "resize_channel", "/storage/cgg-test_repos/dart-flutter/engine/src/flutter/shell/platform/linux/fl_binary_messenger.cc", 320], "conf": "medium", "evidence": ["language-lacks-visibility", "no-incoming-edges", "no-unresolved-site-with-name"]}
+{"repo": "dart-flutter", "change": "entered", "key": ["cpp", "set_warns_on_channel_overflow", "/storage/cgg-test_repos/dart-flutter/engine/src/flutter/shell/platform/linux/fl_binary_messenger.cc", 345], "conf": "medium", "evidence": ["language-lacks-visibility", "no-incoming-edges", "no-unresolved-site-with-name"]}
+{"repo": "dart-flutter", "change": "entered", "key": ["cpp", "send_on_channel_finish", "/storage/cgg-test_repos/dart-flutter/engine/src/flutter/shell/platform/linux/fl_binary_messenger.cc", 275], "conf": "medium", "evidence": ["language-lacks-visibility", "no-incoming-edges", "no-unresolved-site-with-name"]}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "available", "/storage/cgg-test_repos/erlang-otp/lib/runtime_tools/c_src/dyntrace.c", 256], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "start_trace", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/erl_bif_trace.c", 823], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "free_s", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_async2.c", 244], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "get_s", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_async2.c", 234], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "do_connect", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_async.c", 129], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "control", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_sync.c", 121], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "erl_drv_cond_destroy", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/erl_drv_thread.c", 273], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "control", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_async2.c", 129], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "do_select", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_async.c", 165], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "do_disconnect", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_sync.c", 155], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "get_number", "/storage/cgg-test_repos/erlang-otp/erts/example/matrix_nif.c", 195], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "create", "/storage/cgg-test_repos/erlang-otp/erts/example/matrix_nif.c", 74], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "encode_error", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_encode2.h", 23], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "start", "/storage/cgg-test_repos/erlang-otp/erts/etc/win32/win_erlexec.c", 45], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "do_select", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_sync.c", 166], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "reader", "/storage/cgg-test_repos/erlang-otp/erts/etc/common/heart.c", 1012], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "trace", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/erl_bif_trace.c", 921], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "erts_id2port_sflgs", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/erl_port.h", 568], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "start", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_async.c", 100], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "trace", "/storage/cgg-test_repos/erlang-otp/lib/runtime_tools/c_src/dyntrace.c", 301], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "enabled", "/storage/cgg-test_repos/erlang-otp/erts/emulator/nifs/common/erl_tracer_nif.c", 121], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "enif_free_iovec", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/erl_nif.c", 4064], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "ei_x_to_new_binary", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_sync.c", 106], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "start", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_sync.c", 89], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "erts_change_new_p_tracing", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/erl_trace.c", 542], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "enif_cond_broadcast", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/erl_nif.c", 2413], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "encode_ok", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_encode2.h", 22], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "do_disconnect", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_async.c", 151], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "erts_change_new_ports_tracing", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/erl_trace.c", 584], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "do_connect", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_async2.c", 154], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "reader", "/storage/cgg-test_repos/erlang-otp/erts/etc/common/inet_gethost.c", 2416], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "control", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_async.c", 113], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "erl_drv_cond_broadcast", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/erl_drv_thread.c", 296], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "start", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_async2.c", 104], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "erts_change_new_procs_tracing", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/erl_trace.c", 558], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "do_disconnect", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_async2.c", 175], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "erts_start_now_cpu", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/erl_time.h", 113], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "enabled", "/storage/cgg-test_repos/erlang-otp/lib/runtime_tools/c_src/dyntrace.c", 292], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "pos", "/storage/cgg-test_repos/erlang-otp/erts/example/matrix_nif.c", 120], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "erts_stop_now_cpu", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/erl_time.h", 114], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "do_select", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_async2.c", 192], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "do_connect", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_sync.c", 141], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "trace", "/storage/cgg-test_repos/erlang-otp/erts/emulator/nifs/common/erl_tracer_nif.c", 161], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "get_s", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_sync.c", 175], "conf": "medium"}
+{"repo": "erlang-otp", "change": "left", "key": ["c", "get_s", "/storage/cgg-test_repos/erlang-otp/erts/example/pg_async.c", 219], "conf": "medium"}
+{"repo": "erlang-otp", "change": "entered", "key": ["cpp", "output", "/storage/cgg-test_repos/erlang-otp/erts/example/next_perm.cc", 104], "conf": "medium", "evidence": ["language-lacks-visibility", "no-incoming-edges", "no-unresolved-site-with-name"]}
+{"repo": "erlang-otp", "change": "entered", "key": ["cpp", "ready_async", "/storage/cgg-test_repos/erlang-otp/erts/example/next_perm.cc", 121], "conf": "medium", "evidence": ["language-lacks-visibility", "no-incoming-edges", "no-unresolved-site-with-name"]}
+{"repo": "erlang-otp", "change": "moved", "key": ["c", "void", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/code_ix.h", 362], "from": "medium", "to": "low"}
+{"repo": "erlang-otp", "change": "moved", "key": ["c", "void", "/storage/cgg-test_repos/erlang-otp/erts/emulator/sys/win32/erl_win_sys.h", 214], "from": "medium", "to": "low"}
+{"repo": "erlang-otp", "change": "moved", "key": ["c", "void", "/storage/cgg-test_repos/erlang-otp/erts/emulator/sys/win32/erl_win_sys.h", 232], "from": "medium", "to": "low"}
+{"repo": "erlang-otp", "change": "moved", "key": ["c", "void", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/beam_bp.h", 235], "from": "medium", "to": "low"}
+{"repo": "erlang-otp", "change": "moved", "key": ["c", "void", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/erl_thr_progress.h", 205], "from": "medium", "to": "low"}
+{"repo": "erlang-otp", "change": "moved", "key": ["c", "void", "/storage/cgg-test_repos/erlang-otp/erts/emulator/sys/win32/erl_win_sys.h", 226], "from": "medium", "to": "low"}
+{"repo": "erlang-otp", "change": "moved", "key": ["c", "void", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/code_ix.h", 366], "from": "medium", "to": "low"}
+{"repo": "erlang-otp", "change": "moved", "key": ["c", "void", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/beam_bp.h", 230], "from": "medium", "to": "low"}
+{"repo": "erlang-otp", "change": "moved", "key": ["c", "void", "/storage/cgg-test_repos/erlang-otp/erts/emulator/sys/unix/erl_unix_sys.h", 292], "from": "medium", "to": "low"}
+{"repo": "erlang-otp", "change": "moved", "key": ["c", "void", "/storage/cgg-test_repos/erlang-otp/erts/emulator/beam/erl_thr_progress.h", 266], "from": "medium", "to": "low"}
+{"repo": "erlang-otp", "change": "moved", "key": ["c", "void", "/storage/cgg-test_repos/erlang-otp/erts/emulator/sys/unix/erl_unix_sys.h", 261], "from": "medium", "to": "low"}
+{"repo": "erlang-otp", "change": "moved", "key": ["c", "void", "/storage/cgg-test_repos/erlang-otp/erts/emulator/sys/win32/erl_win_sys.h", 238], "from": "medium", "to": "low"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "handler", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/thread/synccall.c", 20], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "printf", "/storage/cgg-test_repos/zig-zig/lib/libc/include/wasm-wasi-musl/stdio.h", 126], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "current", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__iterator/reverse_iterator.h", 114], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "printf", "/storage/cgg-test_repos/zig-zig/lib/libc/include/hexagon-linux-musl/stdio.h", 109], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/extreme_value_distribution.h", 62], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "basename", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-glibc/string.h", 546], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "basename", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-freebsd/libgen.h", 37], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "printf", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-freebsd/stdio.h", 275], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/env/clearenv.c", 5], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "start", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/thread/pthread_create.c", 194], "conf": "low"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/piecewise_linear_distribution.h", 96], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/piecewise_linear_distribution.h", 105], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/cauchy_distribution.h", 68], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/mman/mremap.c", 9], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/thread/synccall.c", 16], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "basename", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-glibc/string.h", 541], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "basename", "/storage/cgg-test_repos/zig-zig/lib/libc/mingw/misc/dirname.c", 241], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "printf", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-glibc/bits/stdio2.h", 134], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "putc", "/storage/cgg-test_repos/zig-zig/lib/libc/include/any-windows-any/stdio.h", 641], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/chi_squared_distribution.h", 59], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/mman/munmap.c", 4], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "basename", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-glibc/string.h", 543], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/gamma_distribution.h", 70], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/extreme_value_distribution.h", 68], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "putc", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-netbsd/sys/tty.h", 272], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "putc", "/storage/cgg-test_repos/zig-zig/lib/libc/wasi/libc-top-half/musl/include/stdio.h", 111], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/chi_squared_distribution.h", 61], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/exit/quick_exit.c", 4], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/cauchy_distribution.h", 65], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/process/_Fork.c", 10], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "putc", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/stdio/putc.c", 4], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/poisson_distribution.h", 75], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "signal", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/signal/signal.c", 4], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/env/unsetenv.c", 6], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/student_t_distribution.h", 62], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/env/putenv.c", 5], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "undo", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/thread/pthread_once.c", 3], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/chi_squared_distribution.h", 63], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "putc", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-musl/stdio.h", 98], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/poisson_distribution.h", 77], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/student_t_distribution.h", 64], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "printf", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/include/stdio.h", 109], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/gamma_distribution.h", 67], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "cleanup", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/aio/aio.c", 161], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/extreme_value_distribution.h", 65], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "cleanup", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/passwd/getspnam_r.c", 56], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "signal", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-freebsd/sys/signal.h", 501], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/student_t_distribution.h", 66], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "basename", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-musl/libgen.h", 9], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "signal", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-musl/signal.h", 289], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "printf", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-glibc/stdio.h", 366], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__sanitizer::InternalMmapVectorNoCtor::end", "/storage/cgg-test_repos/zig-zig/lib/libtsan/sanitizer_common/sanitizer_common.h", 592], "conf": "low"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "putc", "/storage/cgg-test_repos/zig-zig/lib/libc/include/any-windows-any/pthread.h", 628], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "basename", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/include/libgen.h", 9], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/env/__libc_start_main.c", 10], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__sanitizer::ListOfModules::end", "/storage/cgg-test_repos/zig-zig/lib/libtsan/sanitizer_common/sanitizer_common.h", 902], "conf": "low"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/stdio/fclose.c", 4], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/process/fork.c", 36], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "putc", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-freebsd/stdio.h", 276], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "printf", "/storage/cgg-test_repos/zig-zig/lib/libc/wasi/libc-top-half/musl/src/stdio/printf.c", 4], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "cleanup", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/thread/sem_timedwait.c", 5], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/gamma_distribution.h", 64], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "signal", "/storage/cgg-test_repos/zig-zig/lib/libc/wasi/libc-bottom-half/signal/signal.c", 121], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/weibull_distribution.h", 62], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "axis", "/storage/cgg-test_repos/zig-zig/lib/libc/include/any-darwin-any/simd/quaternion.h", 221], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/stdio/__stdio_close.c", 4], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/wasi/libc-top-half/musl/src/stdio/__stdio_close.c", 9], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "cleanup", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/network/res_msend.c", 18], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "putc", "/storage/cgg-test_repos/zig-zig/lib/libc/include/hexagon-linux-musl/stdio.h", 98], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy1", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/env/__libc_start_main.c", 15], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "putc", "/storage/cgg-test_repos/zig-zig/lib/libc/include/any-darwin-any/_stdio.h", 265], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "putc", "/storage/cgg-test_repos/zig-zig/lib/libc/include/wasm-wasi-musl/stdio.h", 111], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/mman/mmap.c", 8], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/uniform_real_distribution.h", 67], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "axis", "/storage/cgg-test_repos/zig-zig/lib/libc/include/any-darwin-any/simd/quaternion.h", 1393], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "printf", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/stdio/printf.c", 4], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "signal", "/storage/cgg-test_repos/zig-zig/lib/libc/include/wasm-wasi-musl/signal.h", 321], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/weibull_distribution.h", 68], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "basename", "/storage/cgg-test_repos/zig-zig/lib/libc/include/any-windows-any/libgen.h", 16], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/poisson_distribution.h", 73], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/unistd/close.c", 6], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "bind", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/network/bind.c", 4], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "socket", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/network/socket.c", 6], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "basename", "/storage/cgg-test_repos/zig-zig/lib/libc/include/any-darwin-any/libgen.h", 43], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "accept", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/network/accept.c", 4], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "printf", "/storage/cgg-test_repos/zig-zig/lib/libc/wasi/libc-top-half/musl/include/stdio.h", 126], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "angle", "/storage/cgg-test_repos/zig-zig/lib/libc/include/any-darwin-any/simd/quaternion.h", 804], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "signal", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/include/signal.h", 289], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "void", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-netbsd/i386/cpu.h", 49], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/piecewise_constant_distribution.h", 100], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/uniform_real_distribution.h", 64], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/fisher_f_distribution.h", 67], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/weibull_distribution.h", 65], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "putc", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/include/stdio.h", 98], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/thread/pthread_testcancel.c", 3], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "first", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__utility/pair.h", 400], "conf": "low"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "printf", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-musl/stdio.h", 109], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "putc", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-netbsd/stdio.h", 249], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/piecewise_constant_distribution.h", 95], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/piecewise_constant_distribution.h", 104], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/wasi/libc-top-half/musl/src/env/clearenv.c", 5], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "first", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__utility/pair.h", 393], "conf": "low"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/exit/exit.c", 5], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "signal", "/storage/cgg-test_repos/zig-zig/lib/libc/wasi/libc-top-half/musl/include/signal.h", 321], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "putc", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-freebsd/stdio.h", 505], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/uniform_real_distribution.h", 61], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/fisher_f_distribution.h", 64], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "void", "/storage/cgg-test_repos/zig-zig/lib/libc/include/x86-netbsd-none/machine/cpu.h", 49], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "printf", "/storage/cgg-test_repos/zig-zig/lib/libc/mingw/stdio/ucrt_printf.c", 11], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "connect", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/network/connect.c", 4], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "axis", "/storage/cgg-test_repos/zig-zig/lib/libc/include/any-darwin-any/simd/quaternion.h", 807], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "basename", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/misc/basename.c", 4], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/exponential_distribution.h", 61], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dirname", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-freebsd/libgen.h", 61], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "signal", "/storage/cgg-test_repos/zig-zig/lib/libc/include/any-windows-any/signal.h", 60], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/exponential_distribution.h", 63], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "basename", "/storage/cgg-test_repos/zig-zig/lib/libc/include/any-darwin-any/libgen.h", 48], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "putc", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-netbsd/stdio.h", 495], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy1", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/thread/pthread_join.c", 5], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "angle", "/storage/cgg-test_repos/zig-zig/lib/libc/include/any-darwin-any/simd/quaternion.h", 218], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/fisher_f_distribution.h", 61], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/exponential_distribution.h", 65], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/wasi/libc-top-half/musl/src/exit/exit.c", 5], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/thread/pthread_cleanup_push.c", 3], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/locale/__lctrans.c", 4], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "basename", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-netbsd/libgen.h", 37], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/piecewise_linear_distribution.h", 90], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/piecewise_constant_distribution.h", 89], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/cauchy_distribution.h", 62], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "shutdown", "/storage/cgg-test_repos/zig-zig/lib/libc/musl/src/network/shutdown.c", 4], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/wasi/libc-top-half/musl/src/env/putenv.c", 5], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "basename", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-freebsd/libgen.h", 60], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "putc", "/storage/cgg-test_repos/zig-zig/lib/libc/wasi/libc-top-half/musl/src/stdio/putc.c", 4], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "current", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__iterator/reverse_iterator.h", 112], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "angle", "/storage/cgg-test_repos/zig-zig/lib/libc/include/any-darwin-any/simd/quaternion.h", 1390], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__p_", "/storage/cgg-test_repos/zig-zig/lib/libcxx/include/__random/piecewise_linear_distribution.h", 101], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["c", "dummy", "/storage/cgg-test_repos/zig-zig/lib/libc/wasi/libc-top-half/musl/src/env/unsetenv.c", 6], "conf": "medium"}
+{"repo": "zig-zig", "change": "left", "key": ["cpp", "__sanitizer::IntrusiveList::end", "/storage/cgg-test_repos/zig-zig/lib/libtsan/sanitizer_common/sanitizer_list.h", 156], "conf": "medium"}
+{"repo": "zig-zig", "change": "moved", "key": ["c", "dirname", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-freebsd/libgen.h", 39], "from": "medium", "to": "low"}
+{"repo": "zig-zig", "change": "moved", "key": ["c", "__x", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-glibc/stdbit.h", 743], "from": "medium", "to": "low"}
+{"repo": "zig-zig", "change": "moved", "key": ["c", "__x", "/storage/cgg-test_repos/zig-zig/lib/libc/include/generic-glibc/stdbit.h", 799], "from": "medium", "to": "low"}

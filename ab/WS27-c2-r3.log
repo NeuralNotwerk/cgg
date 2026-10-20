@@ -1,0 +1,9 @@
+old: cgg 0.11.0 (dev g22b5749)  sha256=5fea3fb49f0296fa12084be0054a096f25853b57b3109643048ae570270b3681
+new: cgg 0.11.0 (dev g22b5749+d5823373)  sha256=92297f9152ca377413678938ca25a6e78dee18ad4d8c0c80b1f4e7d3cc45464b
+old=target/remediation/bins/WS27-c2-before
+new=target/remediation/bins/WS27-c2-r3
+repos=283 elapsed=236s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 0
+by language: see by_language.tsv
+
