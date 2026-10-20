@@ -3733,6 +3733,60 @@ struct IncludeClosure {
     visited: HashMap<FileId, u8>,
     /// Files reached only through a path suffix several files share.
     uncertain: std::collections::HashSet<FileId>,
+    /// Only the files are wanted ([`c_include_closures`]): no definition
+    /// is collected.
+    files_only: bool,
+}
+
+/// Per C-family file (C, C++, Objective-C) that `want` selects: the files
+/// its `#include`/`#import` closure reaches (depth 8, the walk
+/// [`collect_include_defs`] makes for resolution), itself excluded.
+pub(crate) fn c_include_closures(
+    facts: &[FileFacts],
+    want: &dyn Fn(&FileFacts) -> bool,
+) -> HashMap<FileId, Vec<FileId>> {
+    let mut include_by_exact: HashMap<&std::path::Path, &FileFacts> = HashMap::new();
+    let mut include_by_last: HashMap<&std::ffi::OsStr, Vec<&FileFacts>> = HashMap::new();
+    for f in facts {
+        include_by_exact.entry(f.path.as_path()).or_insert(f);
+        if let Some(name) = f.path.file_name() {
+            include_by_last.entry(name).or_default().push(f);
+        }
+    }
+    let mut out = HashMap::new();
+    let mut scratch: HashMap<String, Vec<String>> = HashMap::new();
+    for f in facts {
+        if !matches!(f.language.as_str(), "c" | "cpp" | "objc") || !want(f) {
+            continue;
+        }
+        let mut closure = IncludeClosure {
+            files_only: true,
+            ..Default::default()
+        };
+        for imp in &f.imports {
+            if imp.kind == "include"
+                || (imp.kind == "system-include" && !is_platform_header(imp.path.trim()))
+            {
+                collect_include_defs(
+                    imp.path.trim(),
+                    f,
+                    &include_by_exact,
+                    &include_by_last,
+                    &mut scratch,
+                    8,
+                    &mut closure,
+                );
+            }
+        }
+        let mut files: Vec<FileId> = closure
+            .visited
+            .into_keys()
+            .filter(|id| *id != f.file)
+            .collect();
+        files.sort_unstable_by_key(|id| id.as_u32());
+        out.insert(f.file, files);
+    }
+    out
 }
 
 /// [`collect_include_defs`] for one file the include resolved to.
@@ -3755,7 +3809,17 @@ fn expand_include(
     // Import all definitions from the target, plus the C++ declarations
     // it made whose prototypes were merged into a body elsewhere — the
     // header still declares them, so an includer still sees them.
-    for d in &target.definitions {
+    let defs: &[cgg_core::DefRecord] = if closure.files_only {
+        &[]
+    } else {
+        &target.definitions
+    };
+    let unified: &[(String, String)] = if closure.files_only {
+        &[]
+    } else {
+        &target.unified_decls
+    };
+    for d in defs {
         // Lua: a `local function` is private to its file; requiring the
         // file never puts it in the caller's scope (WS19 — a caller's own
         // `local log = ngx.log` was bound to a required module's private
@@ -3769,7 +3833,7 @@ fn expand_include(
             .or_default()
             .push(d.qualified_name.clone());
     }
-    for (simple, qualified) in &target.unified_decls {
+    for (simple, qualified) in unified {
         direct_imports
             .entry(simple.clone())
             .or_default()

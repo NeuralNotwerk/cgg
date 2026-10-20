@@ -66,13 +66,56 @@ pub fn prune(all_facts: &mut [FileFacts]) {
     // Objective-C++ (`.mm`) shares the C and C++ headers' classes: a field
     // a `.h` declares (`__weak FlutterViewController* view_controller_;`) is
     // data in the `.m`/`.mm` files that use it too.
-    let c_family: HashSet<&str> = ["c", "cpp"]
+    let c_cpp: HashSet<&str> = ["c", "cpp"]
         .iter()
         .filter_map(|l| members.get(l))
         .flat_map(|m| m.iter().copied())
         .collect();
-    if !c_family.is_empty() {
-        members.entry("objc").or_default().extend(c_family);
+    if !c_cpp.is_empty() {
+        members.entry("objc").or_default().extend(c_cpp);
+    }
+    // C (WS27): what each file with a bare value can see through its
+    // `#include` closure — the fields its own and those headers' structs
+    // declare, and the functions they define or declare. A field the file
+    // sees makes a bare name data, unless the file itself defines a
+    // function of that name (GObject's `iface->shutdown = shutdown;`: C
+    // has no member functions, where a bare name could be a field). A
+    // field only some unrelated struct of the tree declares (musl's
+    // `start`) does so only when no function of that name is visible:
+    // `__clone(…, start, …)` beside a `static int start(void *)` names the
+    // function. C++ and Objective-C keep the language-wide reading until
+    // their locals are in the table: a member function's bare name is
+    // its class's field, and their locals still read as values.
+    let closures = crate::cross_file::c_include_closures(all_facts, &|f| {
+        f.language == "c"
+            && f.references
+                .iter()
+                .any(|r| r.value_ref && r.receiver_hint.is_empty())
+    });
+    let by_file: HashMap<cgg_core::FileId, &FileFacts> =
+        all_facts.iter().map(|f| (f.file, f)).collect();
+    // File → (fields it sees, functions it sees, functions it defines).
+    type Seen = (HashSet<String>, HashSet<String>, HashSet<String>);
+    let mut visible: HashMap<cgg_core::FileId, Seen> = HashMap::new();
+    for (file, seen) in &closures {
+        let mut fields = HashSet::new();
+        let mut functions = HashSet::new();
+        for id in std::iter::once(file).chain(seen.iter()) {
+            let Some(f) = by_file.get(id) else { continue };
+            fields.extend(f.data_members.iter().cloned());
+            functions.extend(f.definitions.iter().map(|d| d.simple_name.clone()));
+            functions.extend(f.unified_decls.iter().map(|(simple, _)| simple.clone()));
+        }
+        let own = by_file
+            .get(file)
+            .map(|f| {
+                f.definitions
+                    .iter()
+                    .map(|d| d.simple_name.clone())
+                    .collect()
+            })
+            .unwrap_or_default();
+        visible.insert(*file, (fields, functions, own));
     }
     // Owned so the facts can be borrowed mutably below.
     let own = |m: HashMap<&str, HashSet<&str>>| -> HashMap<String, HashSet<String>> {
@@ -119,6 +162,14 @@ pub fn prune(all_facts: &mut [FileFacts]) {
         // data member is, inside a member function, that field far more
         // often than a function (`result.height = height`).
         let fields = members.get(&f.language).unwrap_or(&empty);
+        let seen = (f.language == "c").then(|| visible.get(&f.file)).flatten();
+        let is_field = |name: &str| match seen {
+            Some((seen_fields, seen_functions, own_functions)) => {
+                (seen_fields.contains(name) && !own_functions.contains(name))
+                    || (fields.contains(name) && !seen_functions.contains(name))
+            }
+            None => fields.contains(name),
+        };
         // Where a member read through a receiver is a field or getter read
         // (`tester.view`, `game.paused`), a member some class declares as
         // data is not a tear-off either.
@@ -153,7 +204,7 @@ pub fn prune(all_facts: &mut [FileFacts]) {
                         erlang_value_names_a_clause(r, own, &erlang_clauses)
                     })
                     && !((r.receiver_hint.is_empty() || member_reads)
-                        && fields.contains(&r.name))
+                        && is_field(&r.name))
                     && !shadowed(&locals, &defs, r))
         });
         f.definitions = defs;
@@ -639,6 +690,54 @@ mod tests {
             .map(|r| (r.receiver_hint.as_str(), r.name.as_str()))
             .collect();
         assert_eq!(kept, vec![("", "cmp"), ("Img", "height")]);
+    }
+
+    /// WS27: a C bare value is a field when a struct the file can see
+    /// declares it (its own, or one in its `#include` closure). A field of
+    /// that name only in an unrelated file hides it unless a function of
+    /// that name is visible.
+    #[test]
+    fn a_c_field_hides_a_value_only_where_the_file_sees_it() {
+        let mk = |id: u32, path: &str, defs: &[&str], refs: Vec<RefRecord>| {
+            let mut f = facts("c", id, defs, refs);
+            f.path = path.into();
+            f
+        };
+        let mut a = mk(
+            1,
+            "src/a.c",
+            &["shutdown"],
+            vec![vref("start", ""), vref("shutdown", "")],
+        );
+        a.imports.push(cgg_core::ImportRecord {
+            kind: "include".into(),
+            path: "b.h".into(),
+            alias: String::new(),
+            site_line: 1,
+            site_byte: 0,
+        });
+        let mut b = mk(2, "src/b.h", &[], vec![]);
+        b.data_members = vec!["start".into(), "shutdown".into()];
+        let c = mk(
+            3,
+            "src/c.c",
+            &["handler"],
+            vec![vref("handler", ""), vref("reader", "")],
+        );
+        let mut d = mk(4, "other/d.h", &["reader"], vec![]);
+        d.data_members = vec!["handler".into(), "reader".into()];
+        let mut all = vec![a, b, c, d];
+        prune(&mut all);
+        // The included field hides `start`; `shutdown`, also a field of the
+        // included struct, is the function a.c itself defines
+        // (`iface->shutdown = shutdown;`).
+        let kept: Vec<&str> = all[0].references.iter().map(|r| r.name.as_str()).collect();
+        assert_eq!(kept, vec!["shutdown"]);
+        // `handler` is a field of a struct c.c never includes, and c.c
+        // defines a `handler`: the function. `reader` is such a field too,
+        // but no function c.c can see carries the name: still data.
+        let kept: Vec<&str> = all[2].references.iter().map(|r| r.name.as_str()).collect();
+        assert_eq!(kept, vec!["handler"]);
     }
 
     /// WS26: in Dart a member read through a receiver that names a field

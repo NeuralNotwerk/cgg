@@ -6404,3 +6404,82 @@ int helper(void) { return 0; }
         );
     }
 }
+
+/// WS27: a C function named as a value is hidden as a field read only
+/// when a struct the file can see (itself or its `#include` closure) has a
+/// field of that name and the file does not define the function itself.
+/// `start` and `handler`, fields of a struct in a header the file never
+/// includes, are references; so is `width`, a field of an included struct
+/// that the file also defines as a function; `height`, a field of an
+/// included struct defined as a function only elsewhere, is data.
+#[test]
+fn c_fields_hide_values_only_through_the_include_closure() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "main.c",
+        r#"#include "local.h"
+
+static int start(void *p) { (void)p; return 0; }
+static void handler(int sig) { (void)sig; }
+static int width(void) { return 0; }
+
+int spawn(int (*fn)(void *), void *arg);
+int on_signal(void (*fn)(int));
+
+int main(void)
+{
+    spawn(start, 0);
+    on_signal(handler);
+    struct shape s;
+    s.width = 1;
+    s.height = 2;
+    spawn((int (*)(void *))width, 0);
+    return spawn((int (*)(void *))height, 0);
+}
+"#
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "local.h",
+        r#"/* A struct main.c sees: a bare `height` is its field there. */
+struct shape { int width; int height; };
+"#
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "util.c",
+        r#"/* A function named like the field; main.c does not see it. */
+int height(void) { return 0; }
+"#
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "other/unrelated.h",
+        r#"/* A struct main.c does not include: its fields hide nothing there. */
+struct thread { void *start; void (*handler)(int); };
+"#
+        .as_bytes(),
+    );
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in ["start", "handler", "width"] {
+        assert!(!dead.iter().any(|q| q == live), "{live}: {dead:?}");
+    }
+    assert!(dead.iter().any(|q| q == "height"), "{dead:?}");
+}

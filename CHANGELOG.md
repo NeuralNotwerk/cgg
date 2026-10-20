@@ -626,6 +626,22 @@ otherwise change the default graph.
   to and file-scope variables are still skipped there. C++ and
   Objective-C keep the old filter.
 
+- **A C function named as a value was dropped whenever any struct of the
+  tree had a field of that name (WS27 follow-up).** The WS26 rule that
+  a bare C name declared as a field is data was tree-wide: musl's
+  `__clone(…, start, …)` and `.sa_handler = handler` did not count
+  because some other struct of the tree has `start` and `handler`
+  fields, and GObject-style tables (`iface->shutdown = shutdown;`,
+  `allctr->check_block = check_block;`) never counted. In C a bare value
+  is now data only when a struct the file can see (the file itself or
+  its `#include` closure) declares that field and the file does not
+  define the function itself, or when only an unrelated struct declares
+  it and no function of that name is visible to the file. C++ and
+  Objective-C keep the tree-wide reading until their locals are in the
+  table. A local declared after a parse error in its initializer
+  (`struct Curl_easy *dep = va_arg(param, struct Curl_easy *);`) binds
+  again; only a declarator after the error is distrusted.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -1137,6 +1153,22 @@ WS27 C (full corpus, 283 repositories, none excluded):
   and what it calls), and musl's `start` and `handler`, whose value
   uses are dropped because other structs of the tree declare fields of
   those names.
+
+WS27 C follow-up (full corpus, 283 repositories, none excluded):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 195 C reference edges are added (173
+  `high`) and 1 is removed (curl's `dep`, the WS27 C regression). The
+  173 that name a function of the value's own file are callbacks and
+  operation tables (erts allocators, libuv, libarchive, Redis modules,
+  neovim's vterm); the 22 that name another file's function are wrong:
+  a type name read as a value (`va_arg(ap, int)`, `DWORD flags` in a
+  misparsed prototype) binds a misparsed definition named after the
+  type.
+- Under `--dead-code`, 527 C findings leave the report (cmake 254,
+  erlang-otp 141, zig 93, neovim 31, Redis 6, jq 2), including musl's
+  `start` and `handler`; 88 move `medium` → `low`; none enter, and no
+  `high` finding changes.
 
 ## [0.11.0] - 2026-10-16
 
