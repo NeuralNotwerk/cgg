@@ -1,0 +1,12 @@
+{
+ "old": {
+  "sha256": "a7837d7f219f738154ed3ff0d5d6e4172defd88c69af5b3e9f118fe7b75f0834",
+  "version": "cgg 0.11.0 (dev g6f38216)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-objc2-before"
+ },
+ "new": {
+  "sha256": "d351442e712f6c34c8e886e8cfb36cacf0168fab202aa768434fce6986899a15",
+  "version": "cgg 0.11.0 (dev g6f38216+d5c2f9f6)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-objc2-r1"
+ }
+}
