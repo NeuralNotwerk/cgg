@@ -3789,6 +3789,84 @@ fn objc_values_see_c_header_fields() {
     assert_eq!(g.matches("ref|").count(), 0, "{g}");
 }
 
+/// WS30: a Spock feature method named by a string (`def "builds the
+/// project"()`) is a callable under that name, its calls are its own, and
+/// the `spock` harness enters it (and `setup`) as a test case.
+#[test]
+fn groovy_string_named_spock_features_are_recovered() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/main/groovy/p/Builder.groovy",
+        b"package p\n\
+\n\
+class Builder {\n\
+    def build() { compile() }\n\
+    def compile() { 1 }\n\
+    def unused() { 2 }\n\
+}\n\
+",
+    );
+    write(
+        tmp.path(),
+        "src/test/groovy/p/BuilderSpec.groovy",
+        b"package p\n\
+\n\
+import spock.lang.Specification\n\
+\n\
+class BuilderSpec extends Specification {\n\
+    def builder = new Builder()\n\
+\n\
+    def setup() { }\n\
+\n\
+    def \"builds the project\"() {\n\
+        when:\n\
+        builder.build()\n\
+\n\
+        then:\n\
+        noExceptionThrown()\n\
+    }\n\
+\n\
+    def 'reports a failure'() {\n\
+        expect:\n\
+        builder.compile() == 1\n\
+    }\n\
+}\n\
+",
+    );
+    let g = graph_of(tmp.path());
+    let id = |qn: &str| {
+        g.lines()
+            .find(|l| l.contains(&format!("[\"{qn}\"]")))
+            .and_then(|l| l.trim().split('[').next())
+            .map(str::to_string)
+            .unwrap_or_else(|| panic!("{qn} missing:\n{g}"))
+    };
+    let feature = id("p.BuilderSpec.builds the project");
+    let single = id("p.BuilderSpec.reports a failure");
+    let build = id("p.Builder.build");
+    assert!(
+        g.lines()
+            .any(|l| l.trim().starts_with(&format!("{feature} -->"))
+                && l.trim().ends_with(&format!(" {build}"))),
+        "the feature's call is its own:\n{g}"
+    );
+    let entry = g
+        .lines()
+        .find(|l| l.contains("test::spock"))
+        .and_then(|l| l.trim().split('[').next())
+        .map(str::to_string)
+        .unwrap_or_else(|| panic!("no spock harness node:\n{g}"));
+    for case in [&feature, &single, &id("p.BuilderSpec.setup")] {
+        assert!(
+            g.lines()
+                .any(|l| l.trim() == format!("{entry} -->|entry| {case}")),
+            "{case} is a spock case:\n{g}"
+        );
+    }
+    assert!(!g.contains("BuilderSpec.def\""), "{g}");
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------

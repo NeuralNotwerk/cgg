@@ -491,6 +491,16 @@ pub trait LanguagePlugin: Send + Sync + fmt::Debug {
         None
     }
 
+    /// A same-length copy of `source` for the grammar to parse in its
+    /// place — byte offsets and lines unchanged — when the language has a
+    /// construct the grammar cannot read but a local rewrite can (Groovy's
+    /// string method names, WS30). Extraction still reads the original
+    /// bytes, so a node's text is what the file says. `None` (the default)
+    /// parses the source as is.
+    fn parse_source(&self, _source: &[u8]) -> Option<Vec<u8>> {
+        None
+    }
+
     fn ts_language(&self) -> tree_sitter::Language;
 
     /// The grammar to parse one file with. Defaults to [`Self::ts_language`];

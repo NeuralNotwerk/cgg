@@ -19,6 +19,15 @@ impl LanguagePlugin for GroovyPlugin {
         tree_sitter_groovy::LANGUAGE.into()
     }
 
+    /// A method named by a string (Spock's `def "stops when …"() {}`) is
+    /// beyond the grammar, which drops the method — and often the rest of
+    /// the class — into an ERROR node. The grammar reads a copy with each
+    /// such name an identifier of the same length (WS30); extraction reads
+    /// the name as written.
+    fn parse_source(&self, source: &[u8]) -> Option<Vec<u8>> {
+        mask_string_method_names(source)
+    }
+
     fn extract(
         &self,
         ctx: &crate::ExtractCtx<'_>,
@@ -38,6 +47,99 @@ impl LanguagePlugin for GroovyPlugin {
         w.walk(tree.root_node());
         facts
     }
+}
+
+/// Attribute of a method declared with a string name (`def "…"()`), which
+/// the `spock` rule reads as a feature method.
+const STRING_NAMED: &str = "string-named";
+
+/// The name of a method declared with a string (`"stops when …"` /
+/// `'…'`, as the source writes it once the grammar has read it as an
+/// identifier): its content.
+fn string_name(text: &str) -> Option<String> {
+    let q = text.chars().next()?;
+    (matches!(q, '"' | '\'') && text.len() >= 2 && text.ends_with(q))
+        .then(|| text[1..text.len() - 1].to_string())
+}
+
+const METHOD_MODIFIERS: &[&str] = &[
+    "def",
+    "void",
+    "public",
+    "private",
+    "protected",
+    "static",
+    "final",
+    "synchronized",
+    "abstract",
+];
+
+/// A copy of `source` in which each string method name — a line
+/// `[modifiers] "name"(` or `'name'(` — is an identifier of the same byte
+/// length; `None` when there is none.
+fn mask_string_method_names(source: &[u8]) -> Option<Vec<u8>> {
+    let mut out = source.to_vec();
+    let mut masked = false;
+    let mut start = 0usize;
+    while start < source.len() {
+        let end = source[start..]
+            .iter()
+            .position(|&b| b == b'\n')
+            .map_or(source.len(), |i| start + i);
+        let line = &source[start..end];
+        if let Some((open, close)) = string_method_name(line) {
+            let (a, b) = (start + open, start + close);
+            if std::str::from_utf8(&source[a + 1..b]).is_ok() {
+                masked = true;
+                for byte in &mut out[a..=b] {
+                    if !(byte.is_ascii_alphanumeric() || *byte == b'_') {
+                        *byte = b'_';
+                    }
+                }
+            }
+        }
+        start = end + 1;
+    }
+    masked.then_some(out)
+}
+
+/// In one line, the offsets of the opening and closing quote of a string
+/// method name: one or more modifiers, then `"…"` or `'…'` (no escape, no
+/// interpolation brace), then `(`.
+fn string_method_name(line: &[u8]) -> Option<(usize, usize)> {
+    let mut i = line.iter().position(|b| !b.is_ascii_whitespace())?;
+    let mut modifiers = 0;
+    loop {
+        let word_end = line[i..]
+            .iter()
+            .position(|b| !(b.is_ascii_alphanumeric() || *b == b'_'))
+            .map_or(line.len(), |p| i + p);
+        let word = std::str::from_utf8(&line[i..word_end]).ok()?;
+        if !METHOD_MODIFIERS.contains(&word) {
+            break;
+        }
+        modifiers += 1;
+        i = word_end;
+        i += line[i..].iter().position(|b| !b.is_ascii_whitespace())?;
+    }
+    if modifiers == 0 {
+        return None;
+    }
+    let quote = *line.get(i)?;
+    if quote != b'"' && quote != b'\'' {
+        return None;
+    }
+    let close = i + 1 + line[i + 1..].iter().position(|&b| b == quote)?;
+    let content = &line[i + 1..close];
+    if content.is_empty() || content.contains(&b'\\') || content.contains(&b'$') {
+        return None;
+    }
+    let after = close + 1;
+    let paren = after
+        + line[after..]
+            .iter()
+            .position(|b| !b.is_ascii_whitespace())?;
+    (line[paren] == b'(').then_some((i, close))
 }
 
 struct GroovyWalker<'a> {
@@ -137,12 +239,21 @@ impl<'a> GroovyWalker<'a> {
                 return;
             }
             "function_definition" => {
-                let name = node
-                    .child_by_field_name("name")
-                    .map(|n| self.text(n).to_string())
-                    .unwrap_or_default();
+                let name_node = node.child_by_field_name("name");
+                let string_named = name_node.and_then(|n| string_name(self.text(n)));
+                let name = match &string_named {
+                    Some(n) => n.clone(),
+                    None => name_node
+                        .map(|n| self.text(n).to_string())
+                        .unwrap_or_default(),
+                };
                 if !name.is_empty() {
                     self.record_def(node, &name, DefVariant::FreeFunction);
+                    if string_named.is_some()
+                        && let Some(d) = self.facts.definitions.last_mut()
+                    {
+                        d.attributes.push(STRING_NAMED.to_string());
+                    }
                 }
                 self.walk_children(node);
                 return;
@@ -240,7 +351,10 @@ impl<'a> GroovyWalker<'a> {
         let Some(name_node) = node.child_by_field_name("name") else {
             return;
         };
-        let simple = self.text(name_node).to_string();
+        let string_named = string_name(self.text(name_node));
+        let simple = string_named
+            .clone()
+            .unwrap_or_else(|| self.text(name_node).to_string());
         if simple.is_empty() {
             return;
         }
@@ -254,6 +368,12 @@ impl<'a> GroovyWalker<'a> {
         };
         let from = self.facts.definitions.len();
         self.record_def(node, &simple, variant);
+        // `def "…"()`: a Spock feature method (`spock` rule).
+        if string_named.is_some()
+            && let Some(d) = self.facts.definitions.get_mut(from)
+        {
+            d.attributes.push(STRING_NAMED.to_string());
+        }
         // An interface or `abstract` method: a declaration.
         let native = node
             .children(&mut node.walk())
@@ -532,7 +652,10 @@ mod tests {
         let mut p = Parser::new();
         p.set_language(&tree_sitter_groovy::LANGUAGE.into())
             .unwrap();
-        let tree = p.parse(src, None).unwrap();
+        let rewritten = GroovyPlugin.parse_source(src.as_bytes());
+        let tree = p
+            .parse(rewritten.as_deref().unwrap_or(src.as_bytes()), None)
+            .unwrap();
         GroovyPlugin.extract(
             &crate::ExtractCtx::plain(),
             FileId::new(0),
@@ -546,7 +669,10 @@ mod tests {
         let mut p = Parser::new();
         p.set_language(&tree_sitter_groovy::LANGUAGE.into())
             .unwrap();
-        let tree = p.parse(src, None).unwrap();
+        let rewritten = GroovyPlugin.parse_source(src.as_bytes());
+        let tree = p
+            .parse(rewritten.as_deref().unwrap_or(src.as_bytes()), None)
+            .unwrap();
         GroovyPlugin.extract(
             &crate::ExtractCtx::plain().with_reference_sites(true),
             FileId::new(0),
@@ -606,6 +732,59 @@ mod tests {
         assert_eq!(got, vec![("onFailure", "this"), ("bar", "Util")]);
         let plain = extract("class A { def run() { def f = this.&m } }\n");
         assert!(plain.references.iter().all(|r| !r.value_ref));
+    }
+
+    /// WS30: a Spock feature method named by a string, which the grammar
+    /// cannot parse, is recovered under its string name, marked
+    /// `string-named`, with the rest of the class and its calls intact.
+    #[test]
+    fn string_named_methods_are_recovered() {
+        let src = "package p\n\
+                   import spock.lang.Specification\n\
+                   class BuildSpec extends Specification {\n\
+                   \x20 def setup() { prepare() }\n\
+                   \x20 def \"stops when the build fails\"() {\n\
+                   \x20   when:\n\
+                   \x20   run()\n\
+                   \x20   then:\n\
+                   \x20   check()\n\
+                   \x20 }\n\
+                   \x20 void 'handles a single-quoted name'() { other() }\n\
+                   \x20 def helper() { 1 }\n\
+                   }\n";
+        let f = extract(src);
+        let got: Vec<(&str, bool)> = f
+            .definitions
+            .iter()
+            .map(|d| {
+                (
+                    d.qualified_name.as_str(),
+                    d.attributes.iter().any(|a| a == STRING_NAMED),
+                )
+            })
+            .collect();
+        assert_eq!(
+            got,
+            vec![
+                ("p.BuildSpec.setup", false),
+                ("p.BuildSpec.stops when the build fails", true),
+                ("p.BuildSpec.handles a single-quoted name", true),
+                ("p.BuildSpec.helper", false),
+            ]
+        );
+        let calls: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
+        for c in ["prepare", "run", "check", "other"] {
+            assert!(calls.contains(&c), "{c}: {calls:?}");
+        }
+        // A file with no string-named method is parsed as is; the copy
+        // keeps every byte offset.
+        assert!(
+            GroovyPlugin
+                .parse_source(b"class A { def f() { 1 } }\n")
+                .is_none()
+        );
+        let copy = GroovyPlugin.parse_source(src.as_bytes()).unwrap();
+        assert_eq!(copy.len(), src.len());
     }
 
     #[test]

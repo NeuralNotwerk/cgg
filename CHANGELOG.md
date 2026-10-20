@@ -11,109 +11,19 @@ otherwise change the default graph.
 
 ### Fixed
 
-- **Clojure `#_` discarded forms were extracted.** A `#_(defn …)` or
-  `#_(def …)` is commented-out code; it produced callables, calls and
-  values. It now produces nothing.
-- **Clojure method lists were calls.** In `deftype`, `defrecord`,
-  `reify`, `proxy`, `extend-type` and `extend-protocol`, each
-  `(m [this …] body)` is a method definition (`ns/Type.m`, or `ns/P.m`
-  for `reify`/`proxy`) owning the calls in its body, not a call to `m`;
-  each `defprotocol`/`definterface` signature is an abstract declaration
-  (`ns/m`, a var of the namespace). Both name their protocol, and
-  `--dynamic-dispatch` (forced on by `--dead-code`) links a declaration
-  to its implementations.
-- **Clojure schema-style `defn`s were not definitions.** `(s/defn f :- T
-  [x :- T] …)`, `(mu/defn- …)`, `(mu/defmethod …)` and `(core/defn …)`
-  are definitions when the head's namespace (through the file's aliases)
-  is a schema library listed in
-  `cgg_core::frameworks::rules::CLOJURE_DEFN_MACRO_NAMESPACES`
-  (`clojure.core`, `schema.core`, `malli.experimental`) or a namespace of
-  the tree that defines — or re-exports through potemkin's
-  `import-vars` — a `defn`-style macro; `:-` annotations are not part of
-  the name or parameters. Requires inside reader conditionals
-  (`#?@(:clj ([a.b :as x]))`) are now read, so their aliases resolve.
-- **Clojure calls inside `#(…)` were not calls.** An anonymous function
-  literal's body is now read like any list: `(map #(f %) xs)` calls `f`.
-- **Clojure multimethods were not linked.** A `defmethod` was a callable
-  named like its `defmulti`, so a call to the multimethod bound to an
-  arbitrary one of them and the others looked dead. Each `defmethod` is
-  now `ns/m[dispatch]`, carrying the multimethod it implements
-  (`multimethod:a.b/m`, through the file's aliases); the dispatch
-  fan-out links the `defmulti` to every `defmethod`, and a call to `m`
-  reaches the `defmulti` only. A type's protocol method is likewise
-  named `Type.m`, so a call to the protocol's var `m` never binds an
-  implementation directly.
-- **Clojure `import-vars` re-exports did not resolve.** `(p/import-vars
-  [a.b f])` in `x` makes `x/f` the var `a.b/f`; calls and `#'x/f` values
-  through `x` now reach it.
-- **Clojure dead code missed outside contracts and top-level qualified
-  calls.** A method implementing a protocol or interface the tree does
-  not declare (`(reify Runnable (run [_] …))`), and a `defmethod` of a
-  multimethod the tree does not declare (`print-method`), are roots
-  (`clojure:external-contract`); a top-level `(alias/f)` or `#'alias/f`
-  roots exactly `f` of the aliased namespace, through re-exports.
-- **A Clojure definition with name metadata was named after its
-  metadata.** `(defn ^:private f …)` was the callable `ns/^:private f`
-  (likewise `^{…}`, `#^Tag`, stacked metadata, and every def form:
-  `defn-`, `defmacro`, `defmulti`, `defmethod`, `defprotocol`,
-  `definterface`, `defrecord`, `deftype`, `defstruct`, `def`, `defonce`),
-  so no call or reference to `f` ever reached it and it was reported dead:
-  4,941 of Metabase's 28,974 Clojure callables, 164 of LIPAS's. Metadata
-  on a whole form is skipped too: `^:x (defn k …)` is a definition and a
-  hinted call `^String (f x)` is a call. A template's unquoted name
-  (`(defmulti ^:private ~n …)`) is not a definition.
-- **A bare Clojure call reached any namespace's same-named var.** Only a
-  var of the caller's namespace, one it `:refer`s, or one of a namespace
-  it refers whole (`:refer :all`, `:use`) is in scope bare; a
-  `:require`d namespace is reached through its alias (`sql/helper`). A
-  bare call to anything else is `clojure.core`'s or a local's, and was
-  bound by name to an unrelated namespace's var: `(for …)`, `(fn …)`,
-  `(format …)`, `(isa? …)` and clojure.test's `(is …)` to Metabase's
-  same-named macros and clj-kondo hooks, and — once the names above were
-  fixed — `(- a b)` to a SQL helper's `-`. A `:refer`'d name now binds
-  to its namespace's var at `high` (`refer` / `refer-all` import
-  records).
-- **`(get table k)` was a Compojure route.** A registrar verb that is
-  also a `clojure.core` function, written without a route string, no
-  longer captures its symbol arguments as handlers (107 false Metabase
-  entry points).
-- **`high` no longer reports a guess as certain, nor a certainty as a
-  guess (WS19).** Seven ways the `?` marker was wrong:
-  - *A guessed receiver type bound its same-file candidate at `high`*
-    (19 languages). `service = mk(); service.run()` was typed `Service`
-    only because the file declares a `Service`, and intra-file resolution
-    ignored the `weak_receiver_type` flag cross-file already honoured. The
-    single-candidate, arity-narrowed overload and clause arms now bind at
-    `medium` through such a receiver. The same flag now also gates the
-    cross-file module-alias arm.
-  - *A lone nested function was bound from any function at `high`*
-    (Python, JS, TS, Lua, OCaml, F#, Scala, Kotlin, Swift, Rust, Haskell,
-    Julia). Lexical narrowing ran only with two or more candidates; a
-    single function nested in another that does not enclose the call is
-    now kept (a returned closure may be called through a same-named local)
-    but at `medium`.
-  - *Lambda and closure parameters did not shadow* (`(go) => go()`,
-    `lambda go: go()`, `|go| go()`, `fun go -> go ()`, Kotlin
-    `{ go: T -> }`). `FileFacts::locals` now marks parameters
-    (`LocalBinding::param`); a call through one is never a function nested
-    in some other function, and is recorded `shadowed-by-local`.
-  - *The return-type map was keyed by bare name, first definition wins.*
-    A Swift `make() -> Service` typed a Python `service = make()`, and of
-    two Python `make`s the first read decided for both. It is now keyed by
-    `(language, name)`, a name is typed only when every definition of it
-    in the language declares the same type, and a name the calling file
-    defines is read from that definition.
-  - *Include-style imports bound an arbitrary same-named copy at `high`*
-    (Bash `source`, Ruby `require`, R `source()`, PowerShell dot-source,
-    Solidity `import`, Starlark `load`, CMake `include`, Lua `require`): the
-    last copy indexed won, whatever the include named. A call now binds the
-    copy in the file the include names (as `c_include_copies` does for C).
-    An include written as a path suffix several files share (`require
-    'helper'` with two `helper.rb`) expands each and binds at `medium`; a
-    bare imported name whose qualified name another file also carries
-    (vendored copies, `.pyi` stubs) is `medium` unless the copy is in the
-    caller's include closure. A Lua `local function` is no longer put in
-    a requiring file's scope.
+- **Groovy methods named by a string were lost, with most of their class
+  (WS30).** A Spock feature method — `def "stops when the build fails"() {
+  … }` — is beyond the Groovy grammar, which read it (and usually the rest
+  of the class) as an ERROR node: no callable, and its calls attributed to
+  nothing or to a bogus `def`. The grammar now reads a copy of each Groovy
+  file in which every such name (`def`/`void`/modifiers, a `"…"` or `'…'`
+  name without `$` or escapes, then `(`) is an identifier of the same
+  length — offsets and lines unchanged, through the new
+  `LanguagePlugin::parse_source` hook — while extraction reads the file as
+  written. The method is named by its string, marked `string-named`, and
+  the `spock` rule enters every string-named method and the fixtures
+  `setup`, `cleanup`, `setupSpec`, `cleanupSpec` of a `Specification` as
+  test cases.
 
   - *A Kotlin property's declared type read as a guess.* A class is
     recorded as a constructor spanning its body, so `lateinit var vm: Vm`,
@@ -953,6 +863,19 @@ WS26 Erlang `{M, F}` follow-up (full corpus, none excluded):
 - Under `--dead-code` (Erlang/OTP only), 12 findings leave the report
   (`{M, F, N}` trace and lint targets) and 9 return (functions named only
   by a bare pair in a list or an event tuple). None are `high`.
+
+WS30 Groovy string-named methods (full corpus, none excluded):
+
+- The default graph changes in three repositories. Gradle: 18,952 →
+  44,425 Groovy callables (23,264 string-named methods recovered; 1,513
+  bogus `def` callables → 3), 176,664 → 313,837 edges (12,788 removed —
+  most the same call now made by the method containing it, or a call of a
+  bogus `def`), and 23,836 Spock test entries where there were none.
+  Grails Streama: 23 recovered, 27 Spock entries; Jenkins saplib: 10
+  recovered.
+- Under `--dead-code`, 1,782 findings leave the report (Gradle 1,780) and
+  166 Gradle findings enter it: methods credited before only by a name a
+  misparsed top-level call carried, now attributed to its method.
 
 WS26 Objective-C (full corpus, none excluded):
 

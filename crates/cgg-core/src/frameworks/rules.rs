@@ -6024,13 +6024,16 @@ pub const SPECS: &[RuleSpec] = &[
         detect: &["spock.lang", "spock.util", "spock.mock"],
         detect_paths: NONE,
         detect_calls: NONE,
-        attributes: NONE,
+        // A feature method is declared with a string name
+        // (`def "stops when the build fails"() { … }`); the Groovy plugin
+        // marks such a method `string-named` (WS30).
+        attributes: &["string-named"],
         registrars: NONE,
-        base_types: NONE,
-        methods: NONE,
+        base_types: &["Specification", "spock.lang.Specification"],
+        methods: &["setup", "cleanup", "setupSpec", "cleanupSpec"],
         string_targets: false,
         node: true,
-        gap: "cgg has no entry rules for Spock. A feature method is declared with a STRING name -- `def \"stops when the build fails\"() { given: ... when: ... then: ... }` -- and the JUnit runner, not project code, invokes it, so it has no caller and every production function the spec exercises loses its only incoming edge. Even where a callable is minted, its simple name is the whole sentence, so no method-name matcher can be written for it; and the Groovy plugin records no base types, so `extends Specification` is invisible, and no annotations, so `@Unroll`, `@Shared`, `@Stepwise`, `@Requires({ ... })` and `@IgnoreIf({ ... })` are unmatchable too. The fixture methods `setup`, `cleanup`, `setupSpec` and `cleanupSpec` are runner-invoked, and the `where:` block's data-provider expressions are evaluated by Spock's AST transform rather than called. Treat every class extending `Specification` as a root and read its `def \"...\"` methods.",
+        gap: "A Spock feature method (`def \"…\"()`) is a test case, as are the fixture methods `setup`, `cleanup`, `setupSpec` and `cleanupSpec` of a `Specification`. Not covered: a feature method whose name interpolates (`def \"#a + #b\"()` with `$`) or escapes a quote, and the `where:` block's data-provider expressions, which Spock's AST transform evaluates rather than any call site.",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
