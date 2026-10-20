@@ -1,0 +1,12 @@
+old: cgg 0.11.0 (dev g2ba48c9)  sha256=50a18e6534218098480c646ae1ad038897ab801cd868856599376bfc1bbaff61
+new: cgg 0.11.0 (dev g2ba48c9+d55d1e61)  sha256=3d775cfb4416c262dfa1d8d9fad402eec780a69d92a3a8de8797cae1f40fe298
+old=target/remediation/bins/WS30-before
+new=target/remediation/bins/WS30-r1
+repos=282 elapsed=383s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 3
+  app-saplib-jenkins: edges 26386->26390 (-15 +19 ~0) callables 8226->8254 unresolved 5630->5631 files 1535->1535 deadhigh 0->0 
+  app-streama-grails: edges 6608->6645 (-5 +42 ~0) callables 3682->3704 unresolved 8486->8482 files 207->207 deadhigh 0->0 
+  groovy-gradle: edges 176664->303002 (-12245 +138583 ~6) callables 109194->132734 unresolved 260568->232231 files 24272->24272 deadhigh 43->43 
+by language: see by_language.tsv
+

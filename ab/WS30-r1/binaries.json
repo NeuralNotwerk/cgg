@@ -1,0 +1,12 @@
+{
+ "old": {
+  "sha256": "50a18e6534218098480c646ae1ad038897ab801cd868856599376bfc1bbaff61",
+  "version": "cgg 0.11.0 (dev g2ba48c9)",
+  "path": "/storage/cgg/target/remediation/bins/WS30-before"
+ },
+ "new": {
+  "sha256": "3d775cfb4416c262dfa1d8d9fad402eec780a69d92a3a8de8797cae1f40fe298",
+  "version": "cgg 0.11.0 (dev g2ba48c9+d55d1e61)",
+  "path": "/storage/cgg/target/remediation/bins/WS30-r1"
+ }
+}
