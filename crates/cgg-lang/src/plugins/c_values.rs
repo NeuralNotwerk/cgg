@@ -104,6 +104,7 @@ enum Role {
     Assign,
     Return,
     Decl,
+    MethodParam,
 }
 
 /// The [`Role`] of every kind id of a grammar (C and C++ name these kinds
@@ -117,7 +118,13 @@ impl Kinds {
         let n = lang.node_kind_count();
         let role = (0..n)
             .map(|id| match lang.node_kind_for_id(id as u16).unwrap_or("") {
-                "function_definition" | "lambda_expression" => Role::Frame,
+                // An Objective-C method is a function frame too (`.m`/`.mm`
+                // files share this walk).
+                "function_definition" | "lambda_expression" | "method_definition" => {
+                    Role::Frame
+                }
+                // `- (void)write:(int)size`: `size` is a parameter.
+                "method_parameter" => Role::MethodParam,
                 "field_declaration" => Role::Field,
                 "argument_list" => Role::Args,
                 "call_expression" => Role::Call,
@@ -215,6 +222,19 @@ impl Walk<'_, '_> {
             }
             Role::Return => self.values_of_children(node, false),
             Role::Decl => self.bind_declared(node),
+            Role::MethodParam => {
+                let mut c = node.walk();
+                let name = node
+                    .named_children(&mut c)
+                    .filter(|n| n.kind() == "identifier")
+                    .last()
+                    .map(|n| text(n, self.src).to_string());
+                if let Some(name) = name
+                    && !self.stack.is_empty()
+                {
+                    self.bind(name);
+                }
+            }
             _ => {}
         }
         if role == Role::Field {

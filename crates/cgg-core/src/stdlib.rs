@@ -221,6 +221,10 @@ pub const SCALA_IMPLICIT_PACKAGES: &[&str] = &[
 /// bare calls, and a crate's own `err!` macro is a bare call.
 pub const RUST_UNTYPED_ADAPTER_METHODS: &[&str] = &["ok", "err", "as_deref"];
 
+/// Objective-C functions that make a selector from a string
+/// (`NSSelectorFromString(@"tap:")`): a literal argument names a method.
+pub const OBJC_SELECTOR_FROM_STRING: &[&str] = &["NSSelectorFromString"];
+
 /// Clojure forms whose first argument is a binding vector of
 /// `pattern init` pairs (`(let [x (f)] …)`): each pattern binds a local
 /// over the form, and each init is a value.

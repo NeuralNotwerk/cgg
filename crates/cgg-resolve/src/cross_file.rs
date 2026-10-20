@@ -5882,6 +5882,34 @@ fn try_resolve_ref(
             crate::modules::Scoped::NoCtor => return None,
         }
     }
+    // Objective-C `@selector(tap:)`: the method of that selector on every
+    // class declaring one — the receiver is chosen at run time. One class
+    // is certain; several are a fan-out, refused over the cap.
+    if lang == "objc" && r.receiver_hint == cgg_core::OBJC_SELECTOR_RECEIVER {
+        let cands: Vec<CallableId> = by_simple
+            .get(&(lang.to_string(), r.name.clone()))
+            .map(|v| {
+                v.iter()
+                    .copied()
+                    .filter(|c| {
+                        graph
+                            .callables
+                            .get(c)
+                            .is_some_and(|n| n.qualified_name.contains("::"))
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        if cands.is_empty() {
+            return None;
+        }
+        if cands.len() > fanout_cap {
+            *capped = cands.len() as u32;
+            return None;
+        }
+        *module_certain = cands.len() == 1;
+        return Some(cands);
+    }
     // Clojure `alias/f` / `a.b.ns/f`: the function `f` of the namespace
     // the file's `(:require [a.b.ns :as alias])` names — its exact
     // qualified name, `a.b.ns/f` — never a same-named function of another

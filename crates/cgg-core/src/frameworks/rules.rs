@@ -5716,7 +5716,7 @@ pub const SPECS: &[RuleSpec] = &[
         methods: NONE,
         string_targets: false,
         node: false,
-        gap: "cgg records no reference for an `@selector(...)` expression, so any Objective-C method reached only by selector has no caller anywhere in the graph and reads as dead. The concrete constructs to inspect: `[center addObserver:self selector:@selector(handleNote:) name:… object:nil]`, `[button addTarget:self action:@selector(tap:) forControlEvents:…]`, `[NSTimer scheduledTimerWithTimeInterval:target:selector:userInfo:repeats:]`, `[obj performSelector:@selector(x) withObject:nil]`, `-respondsToSelector:` dispatch, `NSInvocation`, and every `IBAction` wired only in a .xib/.storyboard. Grep for `@selector(` and `IBAction` and treat each named method as a root.",
+        gap: "Under `--dead-code` and `--reference-edges` cgg records `@selector(name:…)` and `NSSelectorFromString(@\"name:\")` with a literal as references to every class's method of that selector (`addTarget:action:`, `addObserver:selector:`, `performSelector:`, `NSTimer … selector:`). It cannot see a selector built at run time (`NSSelectorFromString(variable)`, `NSInvocation`) or an `IBAction` wired only in a .xib/.storyboard: grep for `IBAction` and for non-literal selector construction and treat each method named there as a root.",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },

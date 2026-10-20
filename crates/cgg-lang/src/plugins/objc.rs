@@ -21,7 +21,7 @@ impl LanguagePlugin for ObjcPlugin {
 
     fn extract(
         &self,
-        _ctx: &crate::ExtractCtx<'_>,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -32,8 +32,16 @@ impl LanguagePlugin for ObjcPlugin {
             source,
             facts: &mut facts,
             scope: Vec::new(),
+            reference_sites: ctx.reference_sites,
         };
         w.walk(tree.root_node());
+        // C function names in value positions (`sort_with(xs, compare)`), read
+        // as the C plugin reads them (WS26).
+        if ctx.reference_sites {
+            let (refs, members) = super::c_values::collect(ctx, tree, source);
+            facts.references.extend(refs);
+            facts.data_members = members;
+        }
         facts
     }
 }
@@ -42,6 +50,8 @@ struct ObjcWalker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// Record selector values (WS26); see `crate::ExtractCtx`.
+    reference_sites: bool,
 }
 
 impl<'a> ObjcWalker<'a> {
@@ -119,6 +129,19 @@ impl<'a> ObjcWalker<'a> {
                 if let Some(r) = super::c::call_ref(node, self.source)
                     .filter(|r| r.receiver_hint.is_empty())
                 {
+                    // `NSSelectorFromString(@"tap:")`: the selector named.
+                    if self.reference_sites
+                        && cgg_core::stdlib::OBJC_SELECTOR_FROM_STRING
+                            .contains(&r.name.as_str())
+                        && let Some(lit) = node
+                            .child_by_field_name("arguments")
+                            .and_then(|a| a.named_child(0))
+                            .filter(|a| a.kind() == "string_literal")
+                    {
+                        let sel =
+                            self.text(lit).trim_start_matches('@').trim_matches('"');
+                        self.push_selector(lit, sel.to_string());
+                    }
                     self.facts.references.push(r);
                 }
                 self.walk_children(node);
@@ -158,6 +181,18 @@ impl<'a> ObjcWalker<'a> {
                     });
                 }
                 self.walk_children(node);
+                return;
+            }
+            // `@selector(tap:)`: the method with that selector.
+            "selector_expression" if self.reference_sites => {
+                let t = self.text(node);
+                let inner = t
+                    .trim_start_matches("@selector")
+                    .trim()
+                    .trim_start_matches('(')
+                    .trim_end_matches(')')
+                    .to_string();
+                self.push_selector(node, inner);
                 return;
             }
             "preproc_include" | "preproc_import" => {
@@ -201,6 +236,29 @@ impl<'a> ObjcWalker<'a> {
                 }
             }
         }
+    }
+
+    /// A selector (`handle:with:`) as the plugin names methods: its first
+    /// keyword (`handle`).
+    fn push_selector(&mut self, site: Node, selector: String) {
+        let name: String = selector
+            .split(':')
+            .next()
+            .unwrap_or("")
+            .chars()
+            .filter(|c| !c.is_whitespace())
+            .collect();
+        if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: cgg_core::OBJC_SELECTOR_RECEIVER.to_string(),
+            site_line: (site.start_position().row as u32) + 1,
+            site_byte: site.start_byte() as u32,
+            value_ref: true,
+            ..Default::default()
+        });
     }
 
     fn record_method(&mut self, node: Node) {
@@ -289,6 +347,70 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    fn extract_with_refs(src: &str) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_objc::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        ObjcPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(true),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.m"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    /// WS26: `@selector(…)` and `NSSelectorFromString(@"…")` with a literal
+    /// name a method (by its first keyword, as methods are named); a C
+    /// function passed by name is a value; a non-literal selector is not.
+    #[test]
+    fn selectors_and_function_values_are_value_references() {
+        let f = extract_with_refs(
+            "@implementation A\n\
+             - (void)go {\n\
+             \x20 [b addTarget:self action:@selector(tap:) forControlEvents:1];\n\
+             \x20 SEL s = @selector(handle:with:);\n\
+             \x20 SEL t = NSSelectorFromString(@\"viaString:\");\n\
+             \x20 SEL u = NSSelectorFromString(name);\n\
+             \x20 sort_with(x, n, 4, compare);\n\
+             }\n\
+             @end\n",
+        );
+        let selectors: Vec<&str> = f
+            .references
+            .iter()
+            .filter(|r| {
+                r.value_ref && r.receiver_hint == cgg_core::OBJC_SELECTOR_RECEIVER
+            })
+            .map(|r| r.name.as_str())
+            .collect();
+        assert_eq!(selectors, vec!["tap", "handle", "viaString"]);
+        assert!(
+            f.references.iter().any(|r| r.value_ref
+                && r.receiver_hint.is_empty()
+                && r.name == "compare"),
+            "{:?}",
+            f.references
+        );
+        // A method's parameter is a variable, not a function of its name.
+        let f = extract_with_refs(
+            "@implementation A\n- (void)writeSize:(int)size { report(size); }\n@end\n",
+        );
+        assert!(
+            f.references
+                .iter()
+                .all(|r| !(r.value_ref && r.name == "size")),
+            "{:?}",
+            f.references
+        );
+        assert!(
+            extract("@implementation A\n- (void)go { SEL s = @selector(tap:); }\n@end\n")
+                .references
+                .iter()
+                .all(|r| !r.value_ref)
+        );
     }
 
     #[test]

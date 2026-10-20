@@ -557,6 +557,20 @@ otherwise change the default graph.
   A value outside any function (a `-record` default) credits only its own
   module's functions, as Ruby's, Swift's, Dart's, Scala's and Lua's do.
 
+- **Objective-C selectors and function values were not references (WS26,
+  gap 25).** `@selector(tap:)` — `addTarget:action:`,
+  `addObserver:selector:`, `performSelector:`, `respondsToSelector:`,
+  `NSTimer … selector:` — and `NSSelectorFromString(@"tap:")` with a
+  literal left the method with no caller, and a C function passed by name
+  in a `.m`/`.mm` file (`CFDictionaryApplyFunction(d, WriteKeyValues, …)`)
+  likewise, so they were reported dead. Under `--dead-code` and
+  `--reference-edges` a selector now names the method of that selector on
+  every class declaring one (the receiver is chosen at run time): `high`
+  when one class does, `medium` for several, refused over `--fanout-cap`.
+  A C function value is read as the C plugin reads one, and a bare name in
+  an Objective-C file is kept only when it names a C function, never a
+  method; an Objective-C method's parameters are variables.
+
 - **Groovy method pointers were not references (WS26, gap 25).**
   `this.&m`, `Util.&helper`, `obj.&go` (also inside an argument, as a
   command-expression argument `owner.onFailure this.&onFailure`, and
@@ -936,6 +950,17 @@ WS26 Erlang `{M, F}` follow-up (full corpus, none excluded):
 - Under `--dead-code` (Erlang/OTP only), 12 findings leave the report
   (`{M, F, N}` trace and lint targets) and 9 return (functions named only
   by a bare pair in a list or an event tuple). None are `high`.
+
+WS26 Objective-C (full corpus, none excluded):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 369 Objective-C reference edges are added
+  (113 `high`); none are removed.
+- Under `--dead-code`, 77 findings leave the report (Flutter 57,
+  AFNetworking 18, Orleans samples 2; none `high`) and 263 Flutter
+  findings enter it: candidates fell 75,229 → 75,126, and the extra roots
+  lifted Objective-C's reachable-only-from-dead-code findings over the
+  root-coverage threshold, so the ones withheld before are now reported.
 
 WS26 Groovy (full corpus, none excluded):
 

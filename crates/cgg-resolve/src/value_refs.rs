@@ -73,6 +73,19 @@ pub fn prune(all_facts: &mut [FileFacts]) {
     let members = own(members);
     // Erlang: the arities of every clause by qualified name (`m:f`), for
     // the strict arity check below.
+    // Objective-C: the C functions of the tree (no `Class::` owner). A
+    // bare value in a `.m` file names one of them, never a method — a
+    // variable, a property or an ivar shares a method's name far more
+    // often than it is the method.
+    let objc_functions: HashSet<&str> = all_facts
+        .iter()
+        .filter(|f| f.language == "objc")
+        .flat_map(|f| f.definitions.iter())
+        .filter(|d| !d.qualified_name.contains("::"))
+        .map(|d| d.simple_name.as_str())
+        .collect();
+    let objc_functions: HashSet<String> =
+        objc_functions.into_iter().map(str::to_string).collect();
     let mut erlang_clauses: HashMap<String, Vec<Option<u32>>> = HashMap::new();
     for f in all_facts.iter().filter(|f| f.language == "erlang") {
         for d in &f.definitions {
@@ -116,11 +129,15 @@ pub fn prune(all_facts: &mut [FileFacts]) {
                 m
             });
         let zig = f.language == "zig";
+        let objc = f.language == "objc";
         let imports = std::mem::take(&mut f.imports);
         f.references.retain(|r| {
             !r.value_ref
                 || (known.contains(leaf(r))
                     && (!zig || zig_value_in_scope(r, &defs, &imports))
+                    && (!objc
+                        || !r.receiver_hint.is_empty()
+                        || objc_functions.contains(&r.name))
                     && own_clauses.as_ref().is_none_or(|own| {
                         erlang_value_names_a_clause(r, own, &erlang_clauses)
                     })

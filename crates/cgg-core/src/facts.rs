@@ -42,6 +42,12 @@ pub const CLOJURE_REEXPORT_KIND: &str = "reexport";
 /// implements. `dispatch::fanout` links the one to the others.
 pub const CLOJURE_MULTIMETHOD_ATTR: &str = "multimethod:";
 
+/// `RefRecord::receiver_hint` of an Objective-C selector value
+/// (`@selector(tap:)`, `NSSelectorFromString(@"tap:")`): the method of
+/// that selector on whichever class receives the message — resolved
+/// against every class declaring it, never as a bare function name.
+pub const OBJC_SELECTOR_RECEIVER: &str = "\u{1}selector";
+
 /// Sentinel `RefRecord::receiver_hint` value marking a *string literal*
 /// argument of a registration call — `Route::get('/x', 'C@method')`,
 /// `get 'photos', to: 'photos#index'`. `name` holds the literal

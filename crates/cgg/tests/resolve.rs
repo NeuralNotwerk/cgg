@@ -3686,6 +3686,83 @@ class A {\n\
     );
 }
 
+/// WS26 Objective-C: `@selector(tap:)` reaches every class's `tap:` (two
+/// here, `medium`), `@selector(handle:with:)` and
+/// `NSSelectorFromString(@"viaString:")` the one class declaring them, and
+/// a C function passed by name is referenced — a variable passed by name
+/// (`report(orphan)`) is not the method `orphan`.
+#[test]
+fn objc_selectors_and_function_values_are_references() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "A.m",
+        b"#import \"A.h\"\n\
+static int compare(const void *a, const void *b) { return 0; }\n\
+static void unusedFn(void) {}\n\
+@implementation A\n\
+- (void)tap:(id)sender { }\n\
+- (void)orphan { }\n\
+- (void)go {\n\
+  [button addTarget:self action:@selector(tap:) forControlEvents:1];\n\
+  SEL s = @selector(handle:with:);\n\
+  SEL t = NSSelectorFromString(@\"viaString:\");\n\
+  sort_with(x, n, 4, compare);\n\
+  report(orphan);\n\
+}\n\
+@end\n\
+",
+    );
+    write(
+        tmp.path(),
+        "B.m",
+        b"@implementation B\n\
+- (void)tap:(id)sender { }\n\
+- (void)handle:(id)a with:(id)b { }\n\
+- (void)viaString:(id)a { }\n\
+- (void)lonely { }\n\
+@end\n\
+",
+    );
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in ["A::tap", "B::tap", "B::handle", "B::viaString", "compare"] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} is referenced, findings: {dead:?}"
+        );
+    }
+    for gone in ["A::orphan", "B::lonely", "unusedFn"] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone} has no reference, findings: {dead:?}"
+        );
+    }
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .arg("-o")
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain).unwrap().matches("ref|").count(),
+        0
+    );
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------
