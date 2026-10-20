@@ -1,0 +1,9 @@
+old: cgg 0.11.0 (dev g9f3c317)  sha256=053a58ffe2321677dbd07054bd2fc849ec26a6b47e41037b456d072bd5a635ae
+new: cgg 0.11.0 (dev g9f3c317+d2d0bb7f)  sha256=77c36b2f400254926fea98b1e24662505af1f0a8a07ed00457ae8d2ca8df3de1
+old=target/remediation/bins/WS26-groovy-before
+new=target/remediation/bins/WS26-groovy-r3
+repos=282 elapsed=236s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 0
+by language: see by_language.tsv
+

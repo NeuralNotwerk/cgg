@@ -1,0 +1,12 @@
+{
+ "old": {
+  "sha256": "053a58ffe2321677dbd07054bd2fc849ec26a6b47e41037b456d072bd5a635ae",
+  "version": "cgg 0.11.0 (dev g9f3c317)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-groovy-before"
+ },
+ "new": {
+  "sha256": "49a774777aea75a20ff06693a6fef8053f573b040f09b620c89530950d5e139f",
+  "version": "cgg 0.11.0 (dev g9f3c317+d468d101)",
+  "path": "/storage/cgg/target/remediation/bins/WS26-groovy-r2"
+ }
+}
