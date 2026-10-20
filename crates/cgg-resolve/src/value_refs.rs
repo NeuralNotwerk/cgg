@@ -83,26 +83,35 @@ pub fn prune(all_facts: &mut [FileFacts]) {
     // field only some unrelated struct of the tree declares (musl's
     // `start`) does so only when no function of that name is visible:
     // `__clone(…, start, …)` beside a `static int start(void *)` names the
-    // function. C++ and Objective-C keep the language-wide reading until
-    // their locals are in the table: a member function's bare name is
-    // its class's field, and their locals still read as values.
+    // function. C++ and Objective-C keep the language-wide field reading
+    // (see below); the type names the file sees apply to all three.
+    // A name a `typedef` or a struct, union, enum or class tag of the
+    // file or its closure declares is a type there, never a value
+    // (`va_arg(ap, DWORD)`), in all three.
     let closures = crate::cross_file::c_include_closures(all_facts, &|f| {
-        f.language == "c"
-            && f.references
-                .iter()
-                .any(|r| r.value_ref && r.receiver_hint.is_empty())
+        f.references
+            .iter()
+            .any(|r| r.value_ref && r.receiver_hint.is_empty())
     });
     let by_file: HashMap<cgg_core::FileId, &FileFacts> =
         all_facts.iter().map(|f| (f.file, f)).collect();
-    // File → (fields it sees, functions it sees, functions it defines).
-    type Seen = (HashSet<String>, HashSet<String>, HashSet<String>);
+    // File → (fields it sees, functions it sees, functions it defines,
+    // type names it sees).
+    type Seen = (
+        HashSet<String>,
+        HashSet<String>,
+        HashSet<String>,
+        HashSet<String>,
+    );
     let mut visible: HashMap<cgg_core::FileId, Seen> = HashMap::new();
     for (file, seen) in &closures {
         let mut fields = HashSet::new();
         let mut functions = HashSet::new();
+        let mut types = HashSet::new();
         for id in std::iter::once(file).chain(seen.iter()) {
             let Some(f) = by_file.get(id) else { continue };
             fields.extend(f.data_members.iter().cloned());
+            types.extend(f.type_names.iter().cloned());
             functions.extend(f.definitions.iter().map(|d| d.simple_name.clone()));
             functions.extend(f.unified_decls.iter().map(|(simple, _)| simple.clone()));
         }
@@ -115,7 +124,7 @@ pub fn prune(all_facts: &mut [FileFacts]) {
                     .collect()
             })
             .unwrap_or_default();
-        visible.insert(*file, (fields, functions, own));
+        visible.insert(*file, (fields, functions, own, types));
     }
     // Owned so the facts can be borrowed mutably below.
     let own = |m: HashMap<&str, HashSet<&str>>| -> HashMap<String, HashSet<String>> {
@@ -162,11 +171,26 @@ pub fn prune(all_facts: &mut [FileFacts]) {
         // data member is, inside a member function, that field far more
         // often than a function (`result.height = height`).
         let fields = members.get(&f.language).unwrap_or(&empty);
-        let seen = (f.language == "c").then(|| visible.get(&f.file)).flatten();
+        let seen = visible.get(&f.file);
+        // C: a bare name is never a field (no member functions), so the
+        // file's own function of that name wins over a field it sees.
+        // C++ and Objective-C keep the language-wide reading: where macros
+        // defeat the parse (`_LIBCPP_*`, `ASMJIT_INLINE_*`), neither a
+        // class's fields nor a member function's parameters are recorded,
+        // and the language-wide field set is the better guess (WS27 C++
+        // A/B: scoping it added ~200 wrong references).
+        let c = f.language == "c";
+        let scoped_fields = c;
         let is_field = |name: &str| match seen {
-            Some((seen_fields, seen_functions, own_functions)) => {
-                (seen_fields.contains(name) && !own_functions.contains(name))
-                    || (fields.contains(name) && !seen_functions.contains(name))
+            Some((seen_fields, seen_functions, own_functions, seen_types)) => {
+                seen_types.contains(name)
+                    || if scoped_fields {
+                        (seen_fields.contains(name)
+                            && !(c && own_functions.contains(name)))
+                            || (fields.contains(name) && !seen_functions.contains(name))
+                    } else {
+                        fields.contains(name)
+                    }
             }
             None => fields.contains(name),
         };
@@ -738,6 +762,37 @@ mod tests {
         // but no function c.c can see carries the name: still data.
         let kept: Vec<&str> = all[2].references.iter().map(|r| r.name.as_str()).collect();
         assert_eq!(kept, vec!["handler"]);
+    }
+
+    /// WS27: a C-family bare value named like a `typedef` or tag the file
+    /// or its `#include` closure declares is a type; one only an unrelated
+    /// file declares is not hidden by it.
+    #[test]
+    fn a_c_type_name_the_file_sees_is_not_a_value() {
+        for lang in ["c", "cpp"] {
+            let mk = |id: u32, path: &str, defs: &[&str], refs: Vec<RefRecord>| {
+                let mut f = facts(lang, id, defs, refs);
+                f.path = path.into();
+                f
+            };
+            let mut a = mk(1, "src/a.c", &[], vec![vref("Handle", "")]);
+            a.imports.push(cgg_core::ImportRecord {
+                kind: "include".into(),
+                path: "types.h".into(),
+                alias: String::new(),
+                site_line: 1,
+                site_byte: 0,
+            });
+            let mut t = mk(2, "src/types.h", &[], vec![]);
+            t.type_names = vec!["Handle".into()];
+            let mut c = mk(3, "src/c.c", &[], vec![vref("Handle", "")]);
+            c.type_names = vec![];
+            let fns = mk(4, "src/fns.c", &["Handle"], vec![]);
+            let mut all = vec![a, t, c, fns];
+            prune(&mut all);
+            assert!(all[0].references.is_empty(), "{lang}: the included typedef");
+            assert_eq!(all[2].references.len(), 1, "{lang}: c.c sees no typedef");
+        }
     }
 
     /// WS26: in Dart a member read through a receiver that names a field

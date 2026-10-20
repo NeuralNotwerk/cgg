@@ -517,8 +517,8 @@ fn spec(lang: &str) -> Option<&'static Spec> {
 /// Every value binding of the file, in source order. Empty for a
 /// language with no table.
 pub fn collect(lang: &str, tree: &Tree, source: &[u8]) -> Vec<LocalBinding> {
-    if lang == "c" {
-        return collect_c(tree, source);
+    if lang == "c" || lang == "cpp" {
+        return collect_c(tree, source, lang == "cpp");
     }
     let Some(spec) = spec(lang) else {
         return Vec::new();
@@ -588,6 +588,11 @@ enum CRole {
     Function,
     Declaration,
     Block,
+    /// C++ `for (auto& x : xs)`: a block whose declarator binds after the
+    /// range.
+    ForRange,
+    /// C++ `catch (const E& e)`: a block whose parameter binds over it.
+    Catch,
 }
 
 /// C (WS27): a function's parameters (a K&R identifier when a K&R
@@ -603,13 +608,16 @@ enum CRole {
 /// C's declarators do not fit the table-driven walk (a
 /// `function_declarator` holds a variable only around a parenthesized
 /// declarator), so this is its own single cursor walk, by kind id.
-fn collect_c(tree: &Tree, src: &[u8]) -> Vec<LocalBinding> {
+fn collect_c(tree: &Tree, src: &[u8], cpp: bool) -> Vec<LocalBinding> {
     let lang = tree.language();
     let roles: Vec<CRole> = (0..lang.node_kind_count())
         .map(|id| match lang.node_kind_for_id(id as u16).unwrap_or("") {
-            "function_definition" => CRole::Function,
-            "declaration" => CRole::Declaration,
-            "compound_statement" | "for_statement" => CRole::Block,
+            "function_definition" | "lambda_expression" => CRole::Function,
+            "declaration" | "condition_declaration" => CRole::Declaration,
+            "compound_statement" | "for_statement" | "if_statement"
+            | "switch_statement" | "while_statement" => CRole::Block,
+            "for_range_loop" => CRole::ForRange,
+            "catch_clause" => CRole::Catch,
             _ => CRole::Other,
         })
         .collect();
@@ -619,6 +627,7 @@ fn collect_c(tree: &Tree, src: &[u8]) -> Vec<LocalBinding> {
         out: Vec::new(),
         blocks: Vec::new(),
         in_function: 0,
+        cpp,
     };
     let mut cursor = tree.walk();
     w.visit(&mut cursor);
@@ -636,6 +645,8 @@ struct CWalk<'s> {
     /// enclosing the node being walked, innermost last.
     blocks: Vec<u32>,
     in_function: u32,
+    /// C++ (`cgg_lang` calls this walk for C and C++).
+    cpp: bool,
 }
 
 impl CWalk<'_> {
@@ -662,6 +673,39 @@ impl CWalk<'_> {
             CRole::Block if self.in_function > 0 => {
                 self.blocks.push(node.end_byte() as u32)
             }
+            CRole::ForRange if self.in_function > 0 => {
+                let end = node.end_byte() as u32;
+                self.blocks.push(end);
+                let from = node
+                    .child_by_field_name("right")
+                    .map_or(node.start_byte(), |r| r.end_byte())
+                    as u32;
+                if let Some(d) = node.child_by_field_name("declarator") {
+                    for name in c_variables(d) {
+                        self.push(name, from, end, node.start_byte() as u32, false);
+                    }
+                }
+            }
+            CRole::Catch if self.in_function > 0 => {
+                let end = node.end_byte() as u32;
+                self.blocks.push(end);
+                if let Some(list) = node.child_by_field_name("parameters") {
+                    let mut c = list.walk();
+                    for p in list.named_children(&mut c) {
+                        if let Some(name) =
+                            p.child_by_field_name("declarator").and_then(c_variable)
+                        {
+                            self.push(
+                                name,
+                                list.start_byte() as u32,
+                                end,
+                                list.start_byte() as u32,
+                                false,
+                            );
+                        }
+                    }
+                }
+            }
             _ => {}
         }
         if cursor.goto_first_child() {
@@ -675,7 +719,7 @@ impl CWalk<'_> {
         }
         match role {
             CRole::Function => self.in_function -= 1,
-            CRole::Block if self.in_function > 0 => {
+            CRole::Block | CRole::ForRange | CRole::Catch if self.in_function > 0 => {
                 self.blocks.pop();
             }
             _ => {}
@@ -703,14 +747,32 @@ impl CWalk<'_> {
     fn parameters(&mut self, def: Node<'_>) {
         let mut d = def.child_by_field_name("declarator");
         let mut list = None;
+        // A C++ lambda: its parameters, and its init-captures (`[x =
+        // std::move(y)]`), which bind over its body; a plain capture names
+        // the enclosing variable.
+        if def.kind() == "lambda_expression" {
+            let (start, end) = (def.start_byte() as u32, def.end_byte() as u32);
+            if let Some(caps) = def.child_by_field_name("captures") {
+                let mut c = caps.walk();
+                for cap in caps.named_children(&mut c) {
+                    if cap.kind() == "lambda_capture_initializer"
+                        && let Some(left) = cap.child_by_field_name("left")
+                        && left.kind() == "identifier"
+                    {
+                        self.push(left, start, end, start, true);
+                    }
+                }
+            }
+        }
         for _ in 0..8 {
             let Some(n) = d else { break };
             match n.kind() {
-                "function_declarator" => {
+                "function_declarator" | "abstract_function_declarator" => {
                     list = n.child_by_field_name("parameters");
                     break;
                 }
                 "pointer_declarator"
+                | "reference_declarator"
                 | "attributed_declarator"
                 | "parenthesized_declarator" => {
                     d = n.child_by_field_name("declarator").or_else(|| {
@@ -750,7 +812,10 @@ impl CWalk<'_> {
                 {
                     Some(p)
                 }
-                "parameter_declaration" => {
+                // C++ `int n = 0` and `Args&&... args` too.
+                "parameter_declaration"
+                | "optional_parameter_declaration"
+                | "variadic_parameter_declaration" => {
                     p.child_by_field_name("declarator").and_then(c_variable)
                 }
                 _ => None,
@@ -780,11 +845,45 @@ impl CWalk<'_> {
         let mut c = decl.walk();
         let declarators: Vec<Node<'_>> =
             decl.children_by_field_name("declarator", &mut c).collect();
+        // C++: an object-like macro alone on the line before a statement
+        // (`_LIBCPP_SUPPRESS_DEPRECATED_PUSH` then `install(new F(n));`)
+        // parses as that statement's type, making the call a declaration
+        // of a variable. An ALL-CAPS type name with the declarator on a
+        // later line is that macro, not a declaration.
+        if self.cpp
+            && let (Some(ty), Some(first)) =
+                (decl.child_by_field_name("type"), declarators.first())
+            && ty.kind() == "type_identifier"
+            && ty.end_position().row < first.start_position().row
+            && ty.utf8_text(self.src).is_ok_and(|t| {
+                t.chars()
+                    .all(|ch| ch.is_ascii_uppercase() || ch.is_ascii_digit() || ch == '_')
+                    && t.chars().any(|ch| ch.is_ascii_uppercase())
+            })
+        {
+            return;
+        }
         for d in declarators {
             if first_error.is_some_and(|e| e < d.start_byte()) {
                 continue;
             }
-            if let Some(name) = c_variable(d) {
+            let names = c_variables(d);
+            // C++'s most vexing parse: `AXTree tree(state);` in a body reads
+            // as a function declaration; a block-scope function declaration
+            // is rare, a variable constructed with arguments is not.
+            let names = if names.is_empty()
+                && self.cpp
+                && d.kind() == "function_declarator"
+                && vexing_parse(decl, d)
+            {
+                d.child_by_field_name("declarator")
+                    .filter(|n| n.kind() == "identifier")
+                    .into_iter()
+                    .collect()
+            } else {
+                names
+            };
+            for name in names {
                 self.push(name, d.end_byte() as u32, end, at, false);
             }
         }
@@ -817,7 +916,9 @@ fn c_variable(mut d: Node<'_>) -> Option<Node<'_>> {
             | "array_declarator"
             | "init_declarator"
             | "parenthesized_declarator"
-            | "attributed_declarator" => {
+            | "attributed_declarator"
+            | "reference_declarator"
+            | "variadic_declarator" => {
                 d = d.child_by_field_name("declarator").or_else(|| {
                     d.named_child(d.named_child_count().checked_sub(1)? as u32)
                 })?;
@@ -826,6 +927,63 @@ fn c_variable(mut d: Node<'_>) -> Option<Node<'_>> {
         }
     }
     None
+}
+
+/// C++'s most vexing parse in a function body: `AXTree tree(state);`
+/// read as a function declaration. Only that shape: no `auto` return or
+/// storage class (`static auto map(T) -> int;` is a declaration), and
+/// every "parameter" a bare type name with no declarator, as an argument
+/// expression would parse.
+fn vexing_parse(decl: Node<'_>, d: Node<'_>) -> bool {
+    let mut c = decl.walk();
+    let plain_type = decl.children(&mut c).all(|n| {
+        !matches!(
+            n.kind(),
+            "storage_class_specifier" | "placeholder_type_specifier" | "auto"
+        )
+    });
+    let Some(params) = d.child_by_field_name("parameters") else {
+        return false;
+    };
+    let mut pc = params.walk();
+    let args: Vec<Node<'_>> = params.named_children(&mut pc).collect();
+    plain_type
+        && !args.is_empty()
+        && args.iter().all(|p| {
+            p.kind() == "parameter_declaration"
+                && p.child_by_field_name("declarator").is_none()
+                && p.child_by_field_name("type").is_some_and(|t| {
+                    matches!(t.kind(), "type_identifier" | "qualified_identifier")
+                })
+                && p.named_child_count() == 1
+        })
+        && d.child_by_field_name("declarator")
+            .is_some_and(|n| n.kind() == "identifier")
+        && d.next_named_sibling()
+            .is_none_or(|n| n.kind() != "trailing_return_type")
+}
+
+/// [`c_variable`], and each name of a C++ structured binding (`auto [a,
+/// b] = …`).
+fn c_variables(d: Node<'_>) -> Vec<Node<'_>> {
+    let inner = if d.kind() == "init_declarator" {
+        d.child_by_field_name("declarator").unwrap_or(d)
+    } else {
+        d
+    };
+    let inner = if inner.kind() == "reference_declarator" {
+        inner.named_child(0).unwrap_or(inner)
+    } else {
+        inner
+    };
+    if inner.kind() == "structured_binding_declarator" {
+        let mut c = inner.walk();
+        return inner
+            .named_children(&mut c)
+            .filter(|n| n.kind() == "identifier")
+            .collect();
+    }
+    c_variable(d).into_iter().collect()
 }
 
 /// Lua `local` declarations at file scope (WS19): in scope from the end of
@@ -1756,5 +1914,99 @@ mod tests {
         assert!(!at("k", "k()", 0), "the for initializer");
         assert!(at("k", "k()", 1));
         assert!(!at("k", "k()", 2), "after the for");
+    }
+
+    fn cpp_locals(src: &str) -> Vec<LocalBinding> {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_cpp::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        collect("cpp", &tree, src.as_bytes())
+    }
+
+    /// WS27: C++ parameters (references, lambdas, init-captures),
+    /// structured bindings, range-for, `if`/`switch` initializers and
+    /// `catch` bind; template parameters, a `std::function<void(int y)>`
+    /// type's names, plain captures and class fields do not.
+    #[test]
+    fn cpp_binding_forms() {
+        let src = "template <typename T, int N>\n\
+                   int A::f(const T& a, std::function<void(int y)> cb, int* p) {\n\
+                   auto [k, v] = pair();\n for (auto& it : xs) { }\n\
+                   if (auto r = g(); r) { }\n switch (int s = h(); s) { }\n\
+                   try { } catch (const std::exception& e) { }\n\
+                   auto lam = [x = std::move(z), &w, n = 1](int lp) { int inner = lp; return inner; };\n\
+                   static int st; int arr[3], *q; int& ref = st;\n}\n\
+                   struct S { int field; void m(int mp) { int ml = mp; } };\n";
+        let got = cpp_locals(src);
+        let names: Vec<&str> = got.iter().map(|b| b.name.as_str()).collect();
+        for want in [
+            "a", "cb", "p", "k", "v", "it", "r", "s", "e", "lam", "x", "n", "lp",
+            "inner", "st", "arr", "q", "ref", "mp", "ml",
+        ] {
+            assert!(names.contains(&want), "{want} in {names:?}");
+        }
+        let more = cpp_locals(
+            "void g(int n = 0, Args&&... rest) { AXTree tree(state); use(tree, n);\n\
+             static auto map(T) -> int; int proto(int); auto make(T) -> int; }\n",
+        );
+        for want in ["n", "rest", "tree"] {
+            assert!(more.iter().any(|b| b.name == want), "{want}: {more:?}");
+        }
+        for not in ["map", "proto", "make"] {
+            assert!(!more.iter().any(|b| b.name == not), "{not}: {more:?}");
+        }
+        // An object-like macro alone on the line before a call statement.
+        let macro_line = cpp_locals(
+            "void g() {\n  _LIBCPP_SUPPRESS_DEPRECATED_PUSH\n  install(new F(name_));\n\
+             Widget w(1); HANDLE h = open();\n}\n",
+        );
+        assert!(
+            !macro_line.iter().any(|b| b.name == "install"),
+            "{macro_line:?}"
+        );
+        for want in ["w", "h"] {
+            assert!(
+                macro_line.iter().any(|b| b.name == want),
+                "{want}: {macro_line:?}"
+            );
+        }
+        for not in ["T", "N", "y", "w", "z", "field", "f", "pair", "xs"] {
+            assert!(!names.contains(&not), "{not} in {names:?}");
+        }
+        let param = |n: &str| got.iter().find(|b| b.name == n).unwrap().param;
+        for p in ["a", "cb", "x", "lp", "mp"] {
+            assert!(param(p), "{p} is a parameter");
+        }
+        for l in ["k", "it", "r", "e", "inner"] {
+            assert!(!param(l), "{l} is a local");
+        }
+    }
+
+    /// C++ scopes: a range-for variable is not in scope in its range; an
+    /// `if` initializer is in scope over the whole `if`; a `catch`
+    /// variable over its clause; a lambda parameter over its lambda only.
+    #[test]
+    fn cpp_scopes() {
+        let src = "void f() {\n for (auto it : it()) { it(); }\n it();\n\
+                   if (auto r = r(); r) { r(); } else { r(); }\n r();\n\
+                   try { } catch (E e) { e(); }\n e();\n\
+                   auto l = [](int cb) { cb(); };\n cb();\n}\n";
+        let got = cpp_locals(src);
+        let at = |name: &str, needle: &str, nth: usize| {
+            let site = src.match_indices(needle).nth(nth).expect(needle).0 as u32;
+            got.iter()
+                .any(|b| b.name == name && b.start_byte <= site && site < b.end_byte)
+        };
+        assert!(!at("it", "it()", 0), "the range");
+        assert!(at("it", "it()", 1));
+        assert!(!at("it", "it()", 2));
+        assert!(!at("r", "r()", 0), "the initializer");
+        assert!(at("r", "r()", 1));
+        assert!(at("r", "r()", 2), "else sees it");
+        assert!(!at("r", "r()", 3));
+        assert!(at("e", "e()", 0));
+        assert!(!at("e", "e()", 1));
+        assert!(at("cb", "cb()", 0));
+        assert!(!at("cb", "cb()", 1));
     }
 }

@@ -6483,3 +6483,158 @@ struct thread { void *start; void (*handler)(int); };
     }
     assert!(dead.iter().any(|q| q == "height"), "{dead:?}");
 }
+
+/// WS27: a C++ parameter, lambda parameter or init-capture, structured
+/// binding of a range-for, `if` initializer and `catch` parameter shadow a
+/// same-named function: a call through one is `shadowed-by-local`, never
+/// a (wrong, `high`) edge. An initializer and a call after the declaring
+/// block reach the function.
+#[test]
+fn cpp_parameters_and_locals_shadow_functions() {
+    let tmp = TempDir::new().unwrap();
+    write(tmp.path(), "main.cc", r#"#include <functional>
+#include <map>
+#include <vector>
+
+int cb(int x);
+int handler(int x);
+int item(int x);
+int first(int x);
+int ok(int x);
+int err(int x);
+int fn(int x);
+int later(int x);
+int now();
+
+struct Result {
+  int (*ok)(int);
+};
+std::map<int, std::function<int(int)>> table();
+Result make();
+std::function<int(int)> pick();
+void pass(std::function<int(int)> f);
+
+// Parameter.
+int with_param(std::function<int(int)> cb) { return cb(1); }
+
+// Lambda parameter and init-capture.
+int with_lambda() {
+  auto l = [handler = pick()](std::function<int(int)> item) { return handler(item(2)); };
+  return l(nullptr);
+}
+
+// Range-for over structured bindings.
+int with_range() {
+  int t = 0;
+  for (auto& [first, fn] : table()) t += fn(first);
+  return t;
+}
+
+// if initializer.
+int with_if() {
+  if (auto ok = pick(); ok) return ok(3);
+  return 0;
+}
+
+// catch parameter.
+int with_catch() {
+  try { return 0; } catch (std::function<int(int)> err) { return err(4); }
+}
+
+// Value position through a parameter: no reference.
+void pass_param(std::function<int(int)> later) { pass(later); }
+
+// Positive controls: the initializer sees the function; a call after the
+// block reaches it again.
+int controls() {
+  int n = now();
+  { auto later = pick(); later(5); }
+  return n + later(6);
+}
+
+int main() {
+  return with_param(nullptr) + with_lambda() + with_range() + with_if() + with_catch() + controls();
+}
+"#.as_bytes());
+    write(
+        tmp.path(),
+        "funcs.cc",
+        r#"// Functions whose names the locals in main.cc reuse.
+int cb(int x) { return x; }
+int handler(int x) { return x; }
+int item(int x) { return x; }
+int first(int x) { return x; }
+int ok(int x) { return x; }
+int err(int x) { return x; }
+int fn(int x) { return x; }
+int later(int x) { return x; }
+int now() { return 0; }
+"#
+        .as_bytes(),
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let edges: Vec<(String, String, u64)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                qn(&e["src"]),
+                qn(&e["dst"]),
+                e["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    let shadowed: Vec<(String, String)> = g["unresolved"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|u| u["reason"]["stage"] == "shadowed-by-local")
+        .map(|u| (qn(&u["src"]), u["name"].as_str().unwrap().to_string()))
+        .collect();
+    for (caller, name) in [
+        ("with_param", "cb"),
+        ("with_lambda", "handler"),
+        ("with_lambda", "item"),
+        ("with_range", "fn"),
+        ("with_if", "ok"),
+        ("with_catch", "err"),
+    ] {
+        assert!(
+            !edges.iter().any(|(s, d, _)| s == caller && d == name),
+            "{caller} -> {name}: {edges:?}"
+        );
+        assert!(
+            shadowed.iter().any(|(s, n)| s == caller && n == name),
+            "{caller} {name}(): {shadowed:?}"
+        );
+    }
+    assert!(edges.iter().any(|(s, d, _)| s == "controls" && d == "now"));
+    // `later(6)`, after the block that declares a local `later`, line 58.
+    assert!(
+        edges
+            .iter()
+            .any(|(s, d, l)| s == "controls" && d == "later" && *l == 58),
+        "{edges:?}"
+    );
+    assert!(
+        !edges
+            .iter()
+            .any(|(s, d, l)| s == "controls" && d == "later" && *l == 57),
+        "{edges:?}"
+    );
+}

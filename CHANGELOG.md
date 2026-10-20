@@ -642,6 +642,35 @@ otherwise change the default graph.
   (`struct Curl_easy *dep = va_arg(param, struct Curl_easy *);`) binds
   again; only a declarator after the error is distrusted.
 
+- **C++ parameters and locals did not shadow function names, and C/C++
+  type names were read as function values (WS27).** A call through a
+  C++ parameter (`F write` then `write(…)`, a comparator `cmp`), a
+  lambda held in a local (`auto usage = [&] {…}; usage();`), a lambda
+  parameter or init-capture, a structured binding, a range-for variable,
+  an `if`/`switch` initializer or a `catch` parameter bound a same-named
+  function or method of the tree. C++ now has a locals table, read by
+  the C walk: parameters (default-valued and parameter packs included),
+  lambda parameters and init-captures (a plain capture names the
+  enclosing variable), block declarations with structured bindings and
+  references, range-for, `if`/`switch` initializers, `while` conditions
+  and `catch`; template parameters are not locals. In a function body
+  `AXTree tree(state);` (the most vexing parse) is a variable, and an
+  ALL-CAPS object-like macro alone on the line before a statement
+  (`_LIBCPP_SUPPRESS_DEPRECATED_PUSH` then `install(…);`) does not make
+  the statement a declaration. The C++ part of the WS26 whole-function
+  filter in `c_values.rs` is replaced by the table for declarations;
+  parameters still bind there over their whole function as well, since
+  where macros defeat the parse (`ASMJIT_INLINE_*`, `_LIBCPP_*`) a
+  constructor's parameter list survives while the declarator chain the
+  table follows does not. C++ fields stay the
+  language-wide reading: scoping them by the include closure, as C does,
+  measured ~200 wrong references where macros defeat the parse of
+  fields and parameters. In C, C++ and Objective-C a
+  type keyword or standard type (`va_arg(ap, int)`, `size_t`), a name
+  followed by another (`DWORD flags` in a misparsed prototype) and a
+  `typedef` or struct/union/enum/class tag the file or its `#include`
+  closure declares are types, never function values.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -1169,6 +1198,27 @@ WS27 C follow-up (full corpus, 283 repositories, none excluded):
   erlang-otp 141, zig 93, neovim 31, Redis 6, jq 2), including musl's
   `start` and `handler`; 88 move `medium` → `low`; none enter, and no
   `high` finding changes.
+
+WS27 C++ (full corpus, 283 repositories, none excluded):
+
+- The default graph changes in ten repositories, all in C++ files: 407
+  edges removed (56 `high`), none added. They are calls through a
+  parameter, a lambda held in a local, or an init-capture, bound to a
+  same-named function or method: fmt's `F write` parameter (80),
+  libc++'s comparator `__c` (33), Flutter's lambda locals (`offset`,
+  `draw`, `send_key_event`), nlohmann's `get_value`, cmake's `usage`.
+- Under `--reference-edges`, 290 C reference edges are removed (type
+  names: `size_t` 245, `void` 22, `DWORD` 10, `int` 8, a tag 5). In C++,
+  89 are removed (locals and parameters read as functions, `#define`
+  constants, enumerators) and 7 added, all wrong: libc++'s `__res_` (6)
+  and `__tmp` (1), declarations inside regions `_LIBCPP_*` macros turn
+  into misparsed function bodies, which the old whole-function filter
+  caught by name and the locals table does not reach.
+- Under `--dead-code`, 3 findings leave, 66 enter (C++ 55, C 11:
+  functions credited until now only by the removed edges or by a
+  same-named parameter read as a function, such as spdlog's
+  `filename()` methods, and misparsed C "functions" named `void` and
+  `int`) and 30 change band; no `high` finding changes.
 
 ## [0.11.0] - 2026-10-16
 

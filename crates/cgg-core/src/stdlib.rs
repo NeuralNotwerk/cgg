@@ -643,3 +643,47 @@ pub fn stdlib_names(lang: &str) -> Option<&'static HashSet<&'static str>> {
     });
     all.iter().find(|(id, _)| *id == lang).map(|(_, set)| set)
 }
+
+/// C and C++ type keywords and the standard library's type names: never a
+/// value, though a macro argument (`va_arg(ap, int)`, `luaM_newvector(L,
+/// n, int)`) puts one where a value stands (WS27).
+pub const C_TYPE_NAMES: &[&str] = &[
+    "auto",
+    "bool",
+    "char",
+    "char8_t",
+    "char16_t",
+    "char32_t",
+    "const",
+    "double",
+    "float",
+    "int",
+    "long",
+    "short",
+    "signed",
+    "unsigned",
+    "void",
+    "volatile",
+    "wchar_t",
+    "_Bool",
+    "_Complex",
+    "size_t",
+    "ssize_t",
+    "ptrdiff_t",
+    "intptr_t",
+    "uintptr_t",
+    "intmax_t",
+    "uintmax_t",
+    "off_t",
+    "int8_t",
+    "int16_t",
+    "int32_t",
+    "int64_t",
+    "uint8_t",
+    "uint16_t",
+    "uint32_t",
+    "uint64_t",
+    "va_list",
+    "FILE",
+    "nullptr_t",
+];

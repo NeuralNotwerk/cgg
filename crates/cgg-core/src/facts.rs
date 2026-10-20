@@ -597,6 +597,14 @@ pub struct FileFacts {
     /// (`cgg_resolve::value_refs::prune`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub data_members: Vec<String>,
+
+    /// Type names the file declares, recorded with value-position sites
+    /// (C, C++, Objective-C): `typedef` names and struct, union, enum and
+    /// class tags. A bare value-position name one of them carries, in the
+    /// file or its `#include` closure, is a type (`va_arg(ap, DWORD)`), not
+    /// a function (`cgg_resolve::value_refs::prune`, WS27).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub type_names: Vec<String>,
     /// Locals whose recorded type (`LocalType`) was read off a call
     /// through a module (`x = mod.Cls(…)`, recorded as the bare `Cls`): the
     /// module the type came from is lost, so a receiver typed through one
@@ -955,6 +963,7 @@ impl FileFacts {
             type_aliases: Vec::new(),
             untyped_receivers: Vec::new(),
             data_members: Vec::new(),
+            type_names: Vec::new(),
             module_typed_locals: Vec::new(),
             packages: Vec::new(),
             locals: Vec::new(),

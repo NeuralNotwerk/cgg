@@ -9,11 +9,11 @@
 //! scope a qualified name writes behind `&` (`&ns::f`, `&Class::m`). The
 //! arguments of a macro-style call (`EXPECT_CALL(x, M)`) are not read.
 //!
-//! C has a scope table (`cgg_lang::locals`, WS27): its parameters and
-//! block-scope declarators are pruned there (`value_refs::prune`), where
-//! they are in scope. C++ and Objective-C have none yet, so a bare name
-//! any parameter or declarator of an enclosing function declares is a
-//! variable here and is not recorded: a binding counts over the whole
+//! C and C++ have a scope table (`cgg_lang::locals`, WS27): their
+//! parameters and block-scope declarators are pruned there
+//! (`value_refs::prune`), where they are in scope. Objective-C has none
+//! yet, so a bare name any parameter or declarator of an enclosing
+//! function declares is a variable here and is not recorded: a binding counts over the whole
 //! function, which can only drop a reference, never invent one. In every
 //! one of them a name an enclosing function assigns to (`err = NULL` after
 //! a declaration that parsed as a call, `g_autoptr(T) err`) and a
@@ -37,14 +37,19 @@ use tree_sitter::{Node, Tree};
 /// when the walk is done, since a binding counts over its whole function.
 ///
 /// `scoped` says the language's parameters and declarations are in the
-/// locals table (C), so only assignments and file variables are checked
-/// here.
+/// locals table (C, C++), so only assignments and file variables are
+/// checked here. `params` keeps the parameters binding over their whole
+/// function anyway (C++, WS27): where macros defeat the parse
+/// (`ASMJIT_INLINE_*`, `_LIBCPP_*`), a constructor's parameter list is
+/// still parsed as one while the declarator chain the table follows is
+/// not, and its parameters (`: _begin(buffer)`) are not functions.
 pub(super) fn collect(
     ctx: &crate::ExtractCtx<'_>,
     tree: &Tree,
     src: &[u8],
     scoped: bool,
-) -> (Vec<RefRecord>, Vec<String>) {
+    params: bool,
+) -> Collected {
     let _s = cgg_core::profile::span("extract::c-values");
     let root = tree.root_node();
     let mut w = Walk {
@@ -56,8 +61,10 @@ pub(super) fn collect(
         stack: Vec::new(),
         cands: Vec::new(),
         members: HashSet::new(),
+        types: HashSet::new(),
         in_field: 0,
         scoped,
+        params,
     };
     let mut cursor = root.walk();
     w.visit(&mut cursor, None);
@@ -67,6 +74,7 @@ pub(super) fn collect(
         frame_parent,
         cands,
         members,
+        types,
         ..
     } = w;
     let out = cands
@@ -95,7 +103,37 @@ pub(super) fn collect(
         .collect();
     let mut members: Vec<String> = members.into_iter().collect();
     members.sort_unstable();
-    (out, members)
+    let mut types: Vec<String> = types.into_iter().collect();
+    types.sort_unstable();
+    Collected {
+        refs: out,
+        members,
+        types,
+    }
+}
+
+/// What [`collect`] gathers: the value sites, the data member names the
+/// file's structs and classes declare ([`data_members`]), and the type
+/// names it declares (`typedef` names, struct/union/enum/class tags, C++
+/// `using` aliases), each sorted.
+pub(super) struct Collected {
+    pub refs: Vec<RefRecord>,
+    pub members: Vec<String>,
+    pub types: Vec<String>,
+}
+
+/// The source right after `n`, past spaces, starts with another
+/// identifier: `DWORD flags` in a prototype an error-recovering parse
+/// read as call arguments. No expression puts two names side by side, so
+/// the first is a type, never a value.
+fn continues_as_identifier(n: Node, src: &[u8]) -> bool {
+    let rest = src.get(n.end_byte()..).unwrap_or(&[]);
+    let i = rest
+        .iter()
+        .position(|b| *b != b' ' && *b != b'\t')
+        .unwrap_or(rest.len());
+    rest.get(i)
+        .is_some_and(|b| b.is_ascii_alphabetic() || *b == b'_')
 }
 
 /// The source right after `n`, past spaces, starts with `::` or `(`.
@@ -126,7 +164,10 @@ enum Role {
     Assign,
     Return,
     Decl,
+    Param,
     MethodParam,
+    TypeDef,
+    Tag,
 }
 
 /// The [`Role`] of every kind id of a grammar (C and C++ name these kinds
@@ -148,6 +189,9 @@ impl Kinds {
                 // `- (void)write:(int)size`: `size` is a parameter.
                 "method_parameter" => Role::MethodParam,
                 "field_declaration" => Role::Field,
+                "type_definition" => Role::TypeDef,
+                "struct_specifier" | "union_specifier" | "enum_specifier"
+                | "class_specifier" | "alias_declaration" => Role::Tag,
                 "argument_list" => Role::Args,
                 "call_expression" => Role::Call,
                 "initializer_list" => Role::InitList,
@@ -156,10 +200,8 @@ impl Kinds {
                 "return_statement" => Role::Return,
                 "parameter_declaration"
                 | "optional_parameter_declaration"
-                | "variadic_parameter_declaration"
-                | "declaration"
-                | "for_range_loop"
-                | "condition_declaration" => Role::Decl,
+                | "variadic_parameter_declaration" => Role::Param,
+                "declaration" | "for_range_loop" | "condition_declaration" => Role::Decl,
                 _ => Role::None,
             })
             .collect();
@@ -191,8 +233,13 @@ struct Walk<'c, 's> {
     members: HashSet<String>,
     /// How many field declarations enclose the node being walked.
     in_field: u32,
-    /// Parameters and declarations are the locals table's (C).
+    /// Type names the file declares (see [`Collected`]).
+    types: HashSet<String>,
+    /// Parameters and declarations are the locals table's (C, C++).
     scoped: bool,
+    /// With `scoped`: parameters still bind over their whole function
+    /// (C++), see [`collect`].
+    params: bool,
 }
 
 impl Walk<'_, '_> {
@@ -209,6 +256,21 @@ impl Walk<'_, '_> {
             // (`struct { int a; } inner;`) declares fields of that type.
             Role::Field if self.in_field == 0 => {
                 field_names(node, self.src, &mut self.members)
+            }
+            Role::TypeDef => {
+                let mut c = node.walk();
+                for d in node.children_by_field_name("declarator", &mut c) {
+                    if let Some(t) = declared_type_name(d) {
+                        self.types.insert(text(t, self.src).to_string());
+                    }
+                }
+            }
+            Role::Tag => {
+                if let Some(n) = node.child_by_field_name("name")
+                    && matches!(n.kind(), "type_identifier" | "identifier")
+                {
+                    self.types.insert(text(n, self.src).to_string());
+                }
             }
             Role::Args => {
                 if let Some(call) = parent.filter(|p| self.kinds.role(*p) == Role::Call) {
@@ -248,6 +310,7 @@ impl Walk<'_, '_> {
             }
             Role::Return => self.values_of_children(node, false),
             Role::Decl if !self.scoped => self.bind_declared(node),
+            Role::Param if !self.scoped || self.params => self.bind_declared(node),
             Role::MethodParam => {
                 let mut c = node.walk();
                 let name = node
@@ -342,6 +405,11 @@ impl Walk<'_, '_> {
             // (Objective-C++'s `ShaderFunctionMTL::Cast(x)` read as
             // `… = ShaderFunctionMTL`), never a value.
             "identifier" if continues_as_path_or_call(v, self.src) => {}
+            // `DWORD flags`, and `int`/`size_t` in a macro's arguments
+            // (`va_arg(ap, int)`): a type, not a value (WS27).
+            "identifier"
+                if continues_as_identifier(v, self.src)
+                    || cgg_core::stdlib::C_TYPE_NAMES.contains(&text(v, self.src)) => {}
             "identifier" => {
                 let frame = self.stack.last().copied();
                 if let Some(r) = record(v, String::new(), false, self.src) {
@@ -472,6 +540,28 @@ fn declared_variable<'t>(mut d: Node<'t>) -> Option<Node<'t>> {
     None
 }
 
+/// The name a `typedef` declarator gives its type: through pointer, array,
+/// function and parenthesized layers (`typedef int (*cb_t)(int);`).
+fn declared_type_name(mut d: Node<'_>) -> Option<Node<'_>> {
+    for _ in 0..16 {
+        match d.kind() {
+            "type_identifier" | "primitive_type" => return Some(d),
+            "pointer_declarator"
+            | "array_declarator"
+            | "function_declarator"
+            | "parenthesized_declarator"
+            | "attributed_declarator"
+            | "reference_declarator" => {
+                d = d.child_by_field_name("declarator").or_else(|| {
+                    d.named_child(d.named_child_count().checked_sub(1)? as u32)
+                })?;
+            }
+            _ => return None,
+        }
+    }
+    None
+}
+
 /// The variable names `decl` (a declaration or parameter) declares.
 fn declared_names(decl: Node, src: &[u8], out: &mut HashSet<String>) {
     let mut c = decl.walk();
@@ -497,7 +587,7 @@ fn declared_names(decl: Node, src: &[u8], out: &mut HashSet<String>) {
 #[cfg(test)]
 fn data_members(tree: &Tree, src: &[u8]) -> Vec<String> {
     let ctx = crate::ExtractCtx::plain().with_reference_sites(true);
-    collect(&ctx, tree, src, false).1
+    collect(&ctx, tree, src, false, false).members
 }
 
 /// The names one `field_declaration` declares (not a member function).
@@ -553,8 +643,8 @@ mod tests {
         p.set_language(&lang).unwrap();
         let tree = p.parse(src, None).unwrap();
         let ctx = crate::ExtractCtx::plain().with_reference_sites(true);
-        collect(&ctx, &tree, src.as_bytes(), scoped)
-            .0
+        collect(&ctx, &tree, src.as_bytes(), scoped, false)
+            .refs
             .into_iter()
             .map(|r| (r.receiver_hint, r.name, r.site_byte))
             .collect()
@@ -662,6 +752,50 @@ mod tests {
         let got = refs(tree_sitter_c::LANGUAGE.into(), src);
         assert!(!has(&got, "", "handler"), "{got:?}");
         assert!(has(&got, "", "on_done"), "{got:?}");
+    }
+
+    /// WS27: a type keyword or standard type in a macro's arguments
+    /// (`va_arg(ap, int)`) and a name followed by another (`DWORD flags`
+    /// in a misparsed prototype) are types, not values; `typedef` names,
+    /// tags and `using` aliases are collected as the file's type names.
+    #[test]
+    fn type_names_are_not_values() {
+        let src = "typedef unsigned long DWORD;\ntypedef int (*cb_t)(int);\n\
+                   struct point { int x; };\nenum color { RED };\n\
+                   void f(void) { int n = va_arg(ap, int); size_t z = va_arg(ap, size_t);\n\
+                   g(h, DWORD flags); pass(on_done); }\n";
+        let got = refs(tree_sitter_c::LANGUAGE.into(), src);
+        for n in ["int", "size_t", "DWORD"] {
+            assert!(!has(&got, "", n), "{n}: {got:?}");
+        }
+        assert!(has(&got, "", "on_done"), "{got:?}");
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_c::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        let ctx = crate::ExtractCtx::plain().with_reference_sites(true);
+        let types = collect(&ctx, &tree, src.as_bytes(), true, false).types;
+        assert_eq!(types, vec!["DWORD", "cb_t", "color", "point"]);
+    }
+
+    /// WS27: C++ keeps parameters bound over their whole function (a
+    /// macro-mangled constructor's `: _begin(buffer)`), while a block
+    /// declaration is left to the locals table: `pass(helper)` before a
+    /// sibling block's `helper` is still a value here.
+    #[test]
+    fn cpp_parameters_stay_variables_declarations_go_to_the_table() {
+        let src = "struct Q { Q(char* buffer) : _begin(buffer) {} char* _begin; };\n\
+                   void f() { pass(helper); { int helper = 1; (void)helper; } }\n";
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_cpp::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        let ctx = crate::ExtractCtx::plain().with_reference_sites(true);
+        let names: Vec<String> = collect(&ctx, &tree, src.as_bytes(), true, true)
+            .refs
+            .into_iter()
+            .map(|r| r.name)
+            .collect();
+        assert!(!names.iter().any(|n| n == "buffer"), "{names:?}");
+        assert!(names.iter().any(|n| n == "helper"), "{names:?}");
     }
 
     /// An ordinary run records nothing: the plugins call [`collect`] only
