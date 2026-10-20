@@ -1,0 +1,26 @@
+old: cgg 0.11.0 (dev g3d2a5a3)  sha256=54657e16eb2039710077fd6f3b986f18b3ade98aad448cdcec0289fac93852cb
+new: cgg 0.11.0 (dev g3d2a5a3+d6cdcbcf)  sha256=5477400b4e90b283c1376fa3ad91ade1c41c178fd2b6e60197979d3fcd320ee8
+old=target/remediation/bins/WS27-go-before
+new=target/remediation/bins/WS27-go-r1
+repos=283 elapsed=372s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 18
+  app-awslambda-go: edges 878->877 (-1 +0 ~0) callables 617->617 unresolved 328->329 files 168->168 deadhigh 0->0 
+  app-casdoor-beego: edges 30992->30997 (-0 +5 ~0) callables 14588->14588 unresolved 42199->42200 files 1156->1156 deadhigh 0->0 
+  app-fiber-recipes: edges 1942->1942 (-0 +0 ~0) callables 1964->1964 unresolved 1163->1167 files 414->414 deadhigh 0->0 
+  app-ghcli-cobra: edges 36127->36174 (-106 +153 ~14) callables 6599->6599 unresolved 4313->4409 files 969->969 deadhigh 0->0 
+  app-gin-photoprism: edges 63770->63494 (-276 +0 ~0) callables 14189->14189 unresolved 26726->26815 files 2763->2763 deadhigh 0->0 
+  app-hertz-examples: edges 3757->3758 (-0 +1 ~0) callables 5958->5958 unresolved 3459->3470 files 400->400 deadhigh 0->0 
+  app-homebox-chi: edges 11271->11142 (-132 +3 ~1) callables 10330->10330 unresolved 6303->6343 files 482->482 deadhigh 0->0 
+  app-kythe-bazel: edges 22135->22114 (-25 +4 ~0) callables 13543->13543 unresolved 8627->8641 files 2006->2006 deadhigh 4->4 
+  app-memos-echo: edges 12701->12686 (-15 +0 ~4) callables 7555->7555 unresolved 4628->4635 files 876->876 deadhigh 0->0 
+  app-micromdm-gokit: edges 1800->1800 (-4 +4 ~0) callables 1926->1926 unresolved 189->189 files 274->274 deadhigh 0->0 
+  app-moon-kratos: edges 21237->21242 (-3 +8 ~9) callables 17466->17466 unresolved 11359->11355 files 866->866 deadhigh 0->0 
+  app-saplib-jenkins: edges 26390->26275 (-137 +22 ~126) callables 8254->8254 unresolved 5631->5707 files 1535->1535 deadhigh 0->0 
+  app-temporal-samples: edges 733->741 (-0 +8 ~0) callables 1029->1029 unresolved 480->481 files 436->436 deadhigh 0->0 
+  app-tigerbeetle-zig: edges 24435->24431 (-4 +0 ~0) callables 6324->6324 unresolved 10826->10828 files 412->412 deadhigh 14->14 
+  go-caddy: edges 9433->9380 (-55 +2 ~0) callables 3166->3166 unresolved 2658->2687 files 327->327 deadhigh 0->0 
+  go-fzf: edges 10922->9953 (-969 +0 ~0) callables 1617->1617 unresolved 790->1002 files 101->101 deadhigh 0->0 
+  go-hertz: edges 17033->17024 (-31 +22 ~0) callables 4322->4322 unresolved 4496->4514 files 404->404 deadhigh 0->0 
+  hcl-terraform-aws: edges 414045->413920 (-129 +4 ~6) callables 108389->108389 unresolved 26426->26801 files 12825->12825 deadhigh 0->0 
+by language: see by_language.tsv

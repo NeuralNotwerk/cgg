@@ -1,0 +1,5254 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "go",
+      "class": "degraded",
+      "visibility": "full",
+      "attributes": "none",
+      "value_references": "full",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "full",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "builtin:main",
+        "framework:entry-node",
+        "framework:test-harness"
+      ],
+      "files": 70,
+      "callables": 345,
+      "roots": 28,
+      "reachable": 260,
+      "reachable_pct": 75,
+      "findings": 84
+    },
+    {
+      "language": "objc",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [],
+      "files": 1,
+      "callables": 6,
+      "roots": 0,
+      "reachable": 0,
+      "reachable_pct": 0,
+      "findings": 5
+    },
+    {
+      "language": "openapi",
+      "class": "descriptor",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [],
+      "files": 4,
+      "callables": 42,
+      "roots": 0,
+      "reachable": 0,
+      "reachable_pct": 0,
+      "findings": 0
+    },
+    {
+      "language": "python",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "full",
+      "test_tagging": "full",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "framework:entry-node",
+        "framework:test-harness"
+      ],
+      "files": 5,
+      "callables": 29,
+      "roots": 22,
+      "reachable": 28,
+      "reachable_pct": 96,
+      "findings": 0,
+      "blind_spots": [
+        "getattr/setattr and other string-dispatched calls"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 422,
+    "edges": 673,
+    "unresolved_call_sites": 111,
+    "roots": 50,
+    "candidates": 148,
+    "reported": 89,
+    "regions": 57,
+    "withheld": [
+      {
+        "language": "go",
+        "category": "only-used-by-tests",
+        "reason": "missing-signal",
+        "would_have_reported": 7
+      },
+      {
+        "language": "objc",
+        "category": "reachable-only-from-dead-code",
+        "reason": "no-roots-found",
+        "would_have_reported": 1
+      },
+      {
+        "language": "openapi",
+        "category": "never-referenced",
+        "reason": "descriptor-language",
+        "would_have_reported": 20
+      },
+      {
+        "language": "openapi",
+        "category": "reachable-only-from-dead-code",
+        "reason": "descriptor-language",
+        "would_have_reported": 22
+      },
+      {
+        "language": "python",
+        "category": "only-used-by-tests",
+        "reason": "missing-signal",
+        "would_have_reported": 7
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Ci9czob0zcv",
+      "qualified_name": "index.TestInit",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C11wo04z0co0",
+      "qualified_name": "main.main",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "C3xeqy9aya2",
+      "qualified_name": "main.TestValidSignatureKey",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C164jz1j4rf2",
+      "qualified_name": "main.TestUploadHandlerAgainstEvilFileNames",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cjs7k1sbewb",
+      "qualified_name": "main.TestUploadHandlerAgainstBase64WithoutPaddingMustFail",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C2kgoqtah5a",
+      "qualified_name": "main.TestInstallToolV2",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cc0ctfky4re",
+      "qualified_name": "main.TestInstalledHead",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cy5h7is60tf",
+      "qualified_name": "conftest.agent",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cnvl60v54wh",
+      "qualified_name": "conftest.base_url",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cohc3uf65ui",
+      "qualified_name": "conftest.socketio",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ci2arsnwyfq",
+      "qualified_name": "conftest.serial_port",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cvx0bjtxhal",
+      "qualified_name": "conftest.baudrate",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cdg6iym21on",
+      "qualified_name": "conftest.close_port",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C3t2twxvkue",
+      "qualified_name": "conftest.message",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ccur8zo5p1r",
+      "qualified_name": "test_info.test_version",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cnlehiq4ibo",
+      "qualified_name": "test_v2.test_get_tools",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cvw96pxtxb7",
+      "qualified_name": "test_ws.test_ws_connection",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cnbg683d9ik",
+      "qualified_name": "test_ws.test_list",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C91gvzbq7j3",
+      "qualified_name": "test_ws.test_open_serial_default",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Ctdwogdukhi",
+      "qualified_name": "test_ws.test_open_serial_timed",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cdk2a1i7d4h",
+      "qualified_name": "test_ws.test_open_serial_timedraw",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cqpr7cavqo0",
+      "qualified_name": "test_ws.test_send_serial_default",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C14h1p98yny1",
+      "qualified_name": "test_ws.test_send_serial_timed",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cij6beyy56w",
+      "qualified_name": "test_ws.test_send_serial_timedraw",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cutbk41i90y",
+      "qualified_name": "test_ws.test_send_emoji_serial_default",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cxvk1lxdvop",
+      "qualified_name": "test_ws.test_send_emoji_serial_timed",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cydnp0mg0d1",
+      "qualified_name": "test_ws.test_send_emoji_serial_timedraw",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Caasnif0j14",
+      "qualified_name": "test_ws.test_sendraw_serial",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "Cf46f2k2e7w",
+      "qualified_name": "tools.TestDownloadCorrectPlatform",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C4pqel8k3sy",
+      "qualified_name": "tools.TestDownloadFallbackPlatform",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ci52fq90ax7",
+      "qualified_name": "tools.TestDownload",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cro9lftxywu",
+      "qualified_name": "tools.TestCorruptedInstalled",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cwhuc340pqd",
+      "qualified_name": "upload.TestSerial",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cyhefqqmc6e",
+      "qualified_name": "upload.TestResolve",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C6xhma8yu9g",
+      "qualified_name": "upload.TestFixupPort",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cwah867qrht",
+      "qualified_name": "upload.TestDiffer",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Co166cw9wbg",
+      "qualified_name": "utilities.TestSaveFileonTemp",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cz9fp45bzs6",
+      "qualified_name": "utilities.TestSaveFileonTempDirWithEvilName",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Czkwtu0hd8w",
+      "qualified_name": "pkgs_test.TestTools",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cjb0fkl87dr",
+      "qualified_name": "pkgs_test.TestEvilFilename",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C916st99wnb",
+      "qualified_name": "pkgs_test.TestInstalledHead",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C17uol092wk0",
+      "qualified_name": "pkgs_test.TestInstall",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C25il7zwa6p",
+      "qualified_name": "<framework-entry>::network::net-http::main.WsServer.ServeHTTP",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::net-http::main.WsServer.ServeHTTP`"
+    },
+    {
+      "id": "Ck7icwh1kmt",
+      "qualified_name": "<framework-entry>::test::go-testing",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Chl6hvgpusl",
+      "qualified_name": "<framework-entry>::network::gin::get(\"/info\")",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::gin::get(\"/info\")`"
+    },
+    {
+      "id": "Cnbbw0rubsa",
+      "qualified_name": "<framework-entry>::network::gin::post(\"/pause\")",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::gin::post(\"/pause\")`"
+    },
+    {
+      "id": "Cr48l04lxlx",
+      "qualified_name": "<framework-entry>::network::gin::get(\"/\")",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::gin::get(\"/\")`"
+    },
+    {
+      "id": "Ctfumw6mzmj",
+      "qualified_name": "<framework-entry>::test::pytest",
+      "language": "python",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::pytest`"
+    },
+    {
+      "id": "C11xmj61glwj",
+      "qualified_name": "<framework-entry>::network::gin::post(\"/update\")",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::gin::post(\"/update\")`"
+    },
+    {
+      "id": "Caa6590ycnj",
+      "qualified_name": "<framework-entry>::network::gin::post(\"/\")",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::gin::post(\"/\")`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 1,
+      "members": [
+        "C10pcfqqfr99"
+      ],
+      "anchors": [
+        "C10pcfqqfr99"
+      ],
+      "files": [
+        "Fmbv96ry762"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 2,
+      "members": [
+        "C1yi9ord1ai"
+      ],
+      "anchors": [
+        "C1yi9ord1ai"
+      ],
+      "files": [
+        "Fmbv96ry762"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 4,
+      "members": [
+        "C17ib5l5b8x8",
+        "Cykyfba0e1u"
+      ],
+      "anchors": [
+        "C17ib5l5b8x8"
+      ],
+      "files": [
+        "F4q6sdvwj2j"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 7,
+      "members": [
+        "C13zjpn4w44q"
+      ],
+      "anchors": [
+        "C13zjpn4w44q"
+      ],
+      "files": [
+        "F4q6sdvwj2j"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 9,
+      "members": [
+        "Chpn5aatc2o",
+        "C3arigm6e8e"
+      ],
+      "anchors": [
+        "Chpn5aatc2o"
+      ],
+      "files": [
+        "Foe9pqiffi"
+      ],
+      "total_lines": 26,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 12,
+      "members": [
+        "C15a5pxl5969"
+      ],
+      "anchors": [
+        "C15a5pxl5969"
+      ],
+      "files": [
+        "Foe9pqiffi"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 14,
+      "members": [
+        "C15znsg9zbg3",
+        "Cgr3kla0jf2"
+      ],
+      "anchors": [
+        "C15znsg9zbg3"
+      ],
+      "files": [
+        "F7ktszanmua"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 17,
+      "members": [
+        "Cqj6wpjupmb"
+      ],
+      "anchors": [
+        "Cqj6wpjupmb"
+      ],
+      "files": [
+        "F7ktszanmua"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 27,
+      "members": [
+        "C11utm4kjvh9",
+        "Cp7l2nnm5pv"
+      ],
+      "anchors": [
+        "Cp7l2nnm5pv"
+      ],
+      "files": [
+        "Fea0lhpn3yg"
+      ],
+      "total_lines": 37,
+      "languages": [
+        "objc"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 28,
+      "members": [
+        "Cp1l14s3sno"
+      ],
+      "anchors": [
+        "Cp1l14s3sno"
+      ],
+      "files": [
+        "Fea0lhpn3yg"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "objc"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 29,
+      "members": [
+        "Chc5yokekw9"
+      ],
+      "anchors": [
+        "Chc5yokekw9"
+      ],
+      "files": [
+        "Fea0lhpn3yg"
+      ],
+      "total_lines": 38,
+      "languages": [
+        "objc"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 30,
+      "members": [
+        "C7thzw75ivm"
+      ],
+      "anchors": [
+        "C7thzw75ivm"
+      ],
+      "files": [
+        "Fea0lhpn3yg"
+      ],
+      "total_lines": 26,
+      "languages": [
+        "objc"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 31,
+      "members": [
+        "C14l4u5wx4un"
+      ],
+      "anchors": [
+        "C14l4u5wx4un"
+      ],
+      "files": [
+        "Fea0lhpn3yg"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "objc"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 64,
+      "members": [
+        "Cm3tobo8qca",
+        "Ck2z84egsyp"
+      ],
+      "anchors": [
+        "Cm3tobo8qca"
+      ],
+      "files": [
+        "Ft8td5rzkb7"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 80,
+      "members": [
+        "Ckbhv8f7m8"
+      ],
+      "anchors": [
+        "Ckbhv8f7m8"
+      ],
+      "files": [
+        "Fcdlczdu1d6"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 81,
+      "members": [
+        "Cic84axquis"
+      ],
+      "anchors": [
+        "Cic84axquis"
+      ],
+      "files": [
+        "Fcdlczdu1d6"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 82,
+      "members": [
+        "Cwtov29kjxs",
+        "C13ivc0t9vym",
+        "C5ki0h1rfxo",
+        "C8qo6d29g46",
+        "Ciso6tkbffd",
+        "Cdodatlpi7j",
+        "C5yicefm0yp",
+        "Ccvjx6z39t9",
+        "Cvbcgfvdwif",
+        "Ctghj5jqb8e",
+        "Cobw0jp2bng",
+        "Ci3ikl17ldg",
+        "C4r7nrpfdql",
+        "Coudk7h1g3x",
+        "Csc92wm9ksw",
+        "Cn4b72xyexv",
+        "Ctnysm93lvl",
+        "Cpva80uv2br",
+        "C10v3makt400",
+        "C49g49zwj8a",
+        "Co7qb3y9ci7",
+        "Caw5c00ohlc",
+        "C16k4klp2vu4",
+        "Cf2xto6dsam",
+        "C1unwzlkdm6",
+        "Cvaliapxptl",
+        "Ckyes5g7r2p",
+        "Cwfo6kcyl07",
+        "Cmuxk1bxa69",
+        "C17ge5xsm3ex",
+        "Cq8m1kev0y9",
+        "C4oy3i7etlx",
+        "Ca97qb4zomr",
+        "C6eqjj4nczi",
+        "C172ju6n2elc",
+        "Cgdp3nke847",
+        "Cxgcuagojrd",
+        "C15ygu2tv5rr"
+      ],
+      "anchors": [
+        "Cwtov29kjxs"
+      ],
+      "files": [
+        "Fcdlczdu1d6",
+        "Fs1ztq946wy",
+        "F59hogsn6p7",
+        "F13xdgapk2c5",
+        "Fbp2clag0kr",
+        "F7j90v98myy",
+        "F6hww34cy7d",
+        "Fo24d7ex2dl"
+      ],
+      "total_lines": 665,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 89,
+      "members": [
+        "C13sjii2le5y",
+        "Czranaz3rkt",
+        "Ceqtecpnuuu",
+        "Cybwm0rxx1y"
+      ],
+      "anchors": [
+        "Ceqtecpnuuu",
+        "Cybwm0rxx1y"
+      ],
+      "files": [
+        "Fpm8fjzm9v8"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 90,
+      "members": [
+        "Cyatug4ddxf",
+        "C1824nsfzhk5",
+        "C40ejzs2b5g"
+      ],
+      "anchors": [
+        "C40ejzs2b5g"
+      ],
+      "files": [
+        "Fpm8fjzm9v8"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 92,
+      "members": [
+        "Cyw0yzpdtu4",
+        "Cbjbsfl9l40",
+        "C2ynaad04jv"
+      ],
+      "anchors": [
+        "C2ynaad04jv"
+      ],
+      "files": [
+        "Fpm8fjzm9v8"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 98,
+      "members": [
+        "C9xqyanmfyc"
+      ],
+      "anchors": [
+        "C9xqyanmfyc"
+      ],
+      "files": [
+        "Fpm8fjzm9v8"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 100,
+      "members": [
+        "Cjy8l7dut93",
+        "Cebwivfktcq",
+        "Cin7j0tod74",
+        "C7g2s2c7c30"
+      ],
+      "anchors": [
+        "Cin7j0tod74",
+        "C7g2s2c7c30"
+      ],
+      "files": [
+        "F11f1g4fbtfr"
+      ],
+      "total_lines": 65,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 101,
+      "members": [
+        "C71k5lt97la",
+        "C4diuvyai0n",
+        "C158ufc2krrf"
+      ],
+      "anchors": [
+        "C158ufc2krrf"
+      ],
+      "files": [
+        "F11f1g4fbtfr"
+      ],
+      "total_lines": 73,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 103,
+      "members": [
+        "Ctjuzhbein2",
+        "Cyifakj35x0",
+        "C3dc2hoi6rn"
+      ],
+      "anchors": [
+        "C3dc2hoi6rn"
+      ],
+      "files": [
+        "F11f1g4fbtfr"
+      ],
+      "total_lines": 65,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 109,
+      "members": [
+        "Cy1yzn0a5rc"
+      ],
+      "anchors": [
+        "Cy1yzn0a5rc"
+      ],
+      "files": [
+        "F11f1g4fbtfr"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 111,
+      "members": [
+        "C16wzcd4ypi",
+        "Ct8u5yl6mnx",
+        "Cy5uintsail",
+        "C10mg243qak9"
+      ],
+      "anchors": [
+        "Cy5uintsail",
+        "C10mg243qak9"
+      ],
+      "files": [
+        "Fnglrfsljyu"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 112,
+      "members": [
+        "C8z4esvxfy5",
+        "C12mxj7bycw7",
+        "C13aa0z3umea",
+        "Cmfo7tn1eov",
+        "C16t2a1h40z3"
+      ],
+      "anchors": [
+        "Cmfo7tn1eov",
+        "C16t2a1h40z3"
+      ],
+      "files": [
+        "Fnglrfsljyu"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 118,
+      "members": [
+        "Cdydy57scl7"
+      ],
+      "anchors": [
+        "Cdydy57scl7"
+      ],
+      "files": [
+        "Fnglrfsljyu"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 121,
+      "members": [
+        "C14ustvalwfb",
+        "Cu36tebekql",
+        "Cbfe49si4oq",
+        "C12jn8p91ree"
+      ],
+      "anchors": [
+        "Cbfe49si4oq",
+        "C12jn8p91ree"
+      ],
+      "files": [
+        "Fymyovknh1u"
+      ],
+      "total_lines": 81,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 122,
+      "members": [
+        "Cu66r3w5oz6",
+        "C16jpegj1h8i",
+        "C12i3ejwvjwf",
+        "C3qkvhhtlzw",
+        "Cu6l7y1ieys"
+      ],
+      "anchors": [
+        "C3qkvhhtlzw",
+        "Cu6l7y1ieys"
+      ],
+      "files": [
+        "Fymyovknh1u"
+      ],
+      "total_lines": 146,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 128,
+      "members": [
+        "C114aq3dchif"
+      ],
+      "anchors": [
+        "C114aq3dchif"
+      ],
+      "files": [
+        "Fymyovknh1u"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 163,
+      "members": [
+        "C6j9db18lyn"
+      ],
+      "anchors": [
+        "C6j9db18lyn"
+      ],
+      "files": [
+        "F7j90v98myy"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 172,
+      "members": [
+        "C2dze3p1xhv"
+      ],
+      "anchors": [
+        "C2dze3p1xhv"
+      ],
+      "files": [
+        "F75kme6vbou"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 173,
+      "members": [
+        "C9xgqs6qwoq"
+      ],
+      "anchors": [
+        "C9xgqs6qwoq"
+      ],
+      "files": [
+        "F75kme6vbou"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 174,
+      "members": [
+        "C3f63zdicx0"
+      ],
+      "anchors": [
+        "C3f63zdicx0"
+      ],
+      "files": [
+        "F75kme6vbou"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 175,
+      "members": [
+        "Cybyttl6htd"
+      ],
+      "anchors": [
+        "Cybyttl6htd"
+      ],
+      "files": [
+        "F75kme6vbou"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 176,
+      "members": [
+        "Ctwdc8i78nw"
+      ],
+      "anchors": [
+        "Ctwdc8i78nw"
+      ],
+      "files": [
+        "F75kme6vbou"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 178,
+      "members": [
+        "Cleqc52jl0y"
+      ],
+      "anchors": [
+        "Cleqc52jl0y"
+      ],
+      "files": [
+        "F8fyv0x6dpw"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 179,
+      "members": [
+        "Cq4befxuj5w"
+      ],
+      "anchors": [
+        "Cq4befxuj5w"
+      ],
+      "files": [
+        "F8fyv0x6dpw"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 180,
+      "members": [
+        "Ccpuvs4fnih"
+      ],
+      "anchors": [
+        "Ccpuvs4fnih"
+      ],
+      "files": [
+        "F8fyv0x6dpw"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 182,
+      "members": [
+        "Cnxozdn3z1y"
+      ],
+      "anchors": [
+        "Cnxozdn3z1y"
+      ],
+      "files": [
+        "F8fyv0x6dpw"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 199,
+      "members": [
+        "C4njicz8bjg"
+      ],
+      "anchors": [
+        "C4njicz8bjg"
+      ],
+      "files": [
+        "F38mr5usqlg"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 200,
+      "members": [
+        "C18c8tlmh4yi"
+      ],
+      "anchors": [
+        "C18c8tlmh4yi"
+      ],
+      "files": [
+        "F38mr5usqlg"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 201,
+      "members": [
+        "Cynsgospffd"
+      ],
+      "anchors": [
+        "Cynsgospffd"
+      ],
+      "files": [
+        "F38mr5usqlg"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 202,
+      "members": [
+        "Csi6g3c2k1r"
+      ],
+      "anchors": [
+        "Csi6g3c2k1r"
+      ],
+      "files": [
+        "F38mr5usqlg"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 204,
+      "members": [
+        "Crxm41aa06j"
+      ],
+      "anchors": [
+        "Crxm41aa06j"
+      ],
+      "files": [
+        "F38mr5usqlg"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 206,
+      "members": [
+        "Cc2oisrg0p5"
+      ],
+      "anchors": [
+        "Cc2oisrg0p5"
+      ],
+      "files": [
+        "Frwae0js7jm"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 217,
+      "members": [
+        "Cfvwlp0yls0"
+      ],
+      "anchors": [
+        "Cfvwlp0yls0"
+      ],
+      "files": [
+        "F6hww34cy7d"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 253,
+      "members": [
+        "Cwlna7fdnyz"
+      ],
+      "anchors": [
+        "Cwlna7fdnyz"
+      ],
+      "files": [
+        "Fttc1aj3os9"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 257,
+      "members": [
+        "Cluedpkxizv"
+      ],
+      "anchors": [
+        "Cluedpkxizv"
+      ],
+      "files": [
+        "Fdkpi3xgvca"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 279,
+      "members": [
+        "Ca962ipta1c",
+        "Chm729yeeaw",
+        "Cu3ytxm0ara",
+        "C39ohhq27xa",
+        "C8xefo3ry60",
+        "Cqzv5c6756h"
+      ],
+      "anchors": [
+        "Ca962ipta1c"
+      ],
+      "files": [
+        "Fce5k2p7a8e",
+        "Fj6au38d4bk"
+      ],
+      "total_lines": 136,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 291,
+      "members": [
+        "Cd3v0blrjmi"
+      ],
+      "anchors": [
+        "Cd3v0blrjmi"
+      ],
+      "files": [
+        "F7ek0478wpu"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 315,
+      "members": [
+        "Clddz6b55vj"
+      ],
+      "anchors": [
+        "Clddz6b55vj"
+      ],
+      "files": [
+        "Ftoepsygemo"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 383,
+      "members": [
+        "Csdn969cbix"
+      ],
+      "anchors": [
+        "Csdn969cbix"
+      ],
+      "files": [
+        "Fdznu19b25u"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 387,
+      "members": [
+        "Cd3uguowqsl",
+        "C4ezxzoxkbz"
+      ],
+      "anchors": [
+        "C4ezxzoxkbz"
+      ],
+      "files": [
+        "F147iysxmykb"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 396,
+      "members": [
+        "C16cd8hizt29",
+        "Cw6dy9822tu"
+      ],
+      "anchors": [
+        "C16cd8hizt29"
+      ],
+      "files": [
+        "Fys94l32zzl"
+      ],
+      "total_lines": 37,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 411,
+      "members": [
+        "C7es25e5mv1"
+      ],
+      "anchors": [
+        "C7es25e5mv1"
+      ],
+      "files": [
+        "F14gvuaxut6i"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Chm729yeeaw",
+      "qualified_name": "main.SerialPortList.runSerialDiscovery",
+      "simple_name": "runSerialDiscovery",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fce5k2p7a8e",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/serial.go",
+      "start_line": 119,
+      "end_line": 161,
+      "size_lines": 43,
+      "signature_hint": "func (sp *SerialPortList) runSerialDiscovery()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -157,
+      "region": 279,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ca962ipta1c"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "C39ohhq27xa",
+      "qualified_name": "main.SerialPortList.add",
+      "simple_name": "add",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fce5k2p7a8e",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/serial.go",
+      "start_line": 169,
+      "end_line": 210,
+      "size_lines": 42,
+      "signature_hint": "func (sp *SerialPortList) add(addedPort *discovery.Port)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -158,
+      "region": 279,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Chm729yeeaw"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cgr3kla0jf2",
+      "qualified_name": "main.BufferflowTimedRaw.consumeInput",
+      "simple_name": "consumeInput",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F7ktszanmua",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/bufferflow_timedraw.go",
+      "start_line": 55,
+      "end_line": 77,
+      "size_lines": 23,
+      "signature_hint": "func (b *BufferflowTimedRaw) consumeInput()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -177,
+      "region": 14,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C15znsg9zbg3"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3arigm6e8e",
+      "qualified_name": "main.BufferflowTimed.consumeInput",
+      "simple_name": "consumeInput",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Foe9pqiffi",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/bufferflow_timed.go",
+      "start_line": 55,
+      "end_line": 76,
+      "size_lines": 22,
+      "signature_hint": "func (b *BufferflowTimed) consumeInput()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -178,
+      "region": 9,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Chpn5aatc2o"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdodatlpi7j",
+      "qualified_name": "cli.toolsInstallUsage",
+      "simple_name": "toolsInstallUsage",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcdlczdu1d6",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/cli/arduino_create_agent/cli.go",
+      "start_line": 215,
+      "end_line": 231,
+      "size_lines": 17,
+      "signature_hint": "func toolsInstallUsage()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -183,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwtov29kjxs"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5yicefm0yp",
+      "qualified_name": "cli.toolsRemoveUsage",
+      "simple_name": "toolsRemoveUsage",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcdlczdu1d6",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/cli/arduino_create_agent/cli.go",
+      "start_line": 233,
+      "end_line": 249,
+      "size_lines": 17,
+      "signature_hint": "func toolsRemoveUsage()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -183,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwtov29kjxs"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cw6dy9822tu",
+      "qualified_name": "utilities.call",
+      "simple_name": "call",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fys94l32zzl",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/utilities/utilities.go",
+      "start_line": 101,
+      "end_line": 117,
+      "size_lines": 17,
+      "signature_hint": "func call(stack []*exec.Cmd, pipes []*io.PipeWriter) (err error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -183,
+      "region": 396,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C16cd8hizt29"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "C13ivc0t9vym",
+      "qualified_name": "cli.toolsUsage",
+      "simple_name": "toolsUsage",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcdlczdu1d6",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/cli/arduino_create_agent/cli.go",
+      "start_line": 169,
+      "end_line": 184,
+      "size_lines": 16,
+      "signature_hint": "func toolsUsage()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -184,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwtov29kjxs"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cykyfba0e1u",
+      "qualified_name": "main.BufferflowDefault.consumeInput",
+      "simple_name": "consumeInput",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F4q6sdvwj2j",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/bufferflow_default.go",
+      "start_line": 48,
+      "end_line": 61,
+      "size_lines": 14,
+      "signature_hint": "func (b *BufferflowDefault) consumeInput()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -186,
+      "region": 4,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C17ib5l5b8x8"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C172ju6n2elc",
+      "qualified_name": "tools.newTool",
+      "simple_name": "newTool",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6hww34cy7d",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/tools/service.go",
+      "start_line": 137,
+      "end_line": 149,
+      "size_lines": 13,
+      "signature_hint": "func newTool(vres *toolsviews.ToolView) *Tool",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -187,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C6eqjj4nczi"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5ki0h1rfxo",
+      "qualified_name": "cli.toolsAvailableUsage",
+      "simple_name": "toolsAvailableUsage",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcdlczdu1d6",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/cli/arduino_create_agent/cli.go",
+      "start_line": 185,
+      "end_line": 193,
+      "size_lines": 9,
+      "signature_hint": "func toolsAvailableUsage()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -191,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwtov29kjxs"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8qo6d29g46",
+      "qualified_name": "cli.toolsInstalledheadUsage",
+      "simple_name": "toolsInstalledheadUsage",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcdlczdu1d6",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/cli/arduino_create_agent/cli.go",
+      "start_line": 195,
+      "end_line": 203,
+      "size_lines": 9,
+      "signature_hint": "func toolsInstalledheadUsage()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -191,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwtov29kjxs"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ciso6tkbffd",
+      "qualified_name": "cli.toolsInstalledUsage",
+      "simple_name": "toolsInstalledUsage",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcdlczdu1d6",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/cli/arduino_create_agent/cli.go",
+      "start_line": 205,
+      "end_line": 213,
+      "size_lines": 9,
+      "signature_hint": "func toolsInstalledUsage()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -191,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwtov29kjxs"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cf2xto6dsam",
+      "qualified_name": "client.unmarshalToolResponseToToolsviewsToolView",
+      "simple_name": "unmarshalToolResponseToToolsviewsToolView",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13xdgapk2c5",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/encode_decode.go",
+      "start_line": 340,
+      "end_line": 348,
+      "size_lines": 9,
+      "signature_hint": "func unmarshalToolResponseToToolsviewsToolView(v *ToolResponse) *toolsviews.ToolView",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -191,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C17ge5xsm3ex"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8xefo3ry60",
+      "qualified_name": "main.SerialPortList.remove",
+      "simple_name": "remove",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fce5k2p7a8e",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/serial.go",
+      "start_line": 212,
+      "end_line": 220,
+      "size_lines": 9,
+      "signature_hint": "func (sp *SerialPortList) remove(removedPort *discovery.Port)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -191,
+      "region": 279,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Chm729yeeaw"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6eqjj4nczi",
+      "qualified_name": "tools.newToolCollection",
+      "simple_name": "newToolCollection",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6hww34cy7d",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/tools/service.go",
+      "start_line": 118,
+      "end_line": 124,
+      "size_lines": 7,
+      "signature_hint": "func newToolCollection(vres toolsviews.ToolCollectionView) ToolCollection",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -193,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ca97qb4zomr"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cu3ytxm0ara",
+      "qualified_name": "main.SerialPortList.reset",
+      "simple_name": "reset",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fce5k2p7a8e",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/serial.go",
+      "start_line": 163,
+      "end_line": 167,
+      "size_lines": 5,
+      "signature_hint": "func (sp *SerialPortList) reset()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 279,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Chm729yeeaw"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4ezxzoxkbz",
+      "qualified_name": "upload.debug",
+      "simple_name": "debug",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F147iysxmykb",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/upload/utils.go",
+      "start_line": 24,
+      "end_line": 28,
+      "size_lines": 5,
+      "signature_hint": "func debug(l Logger, args ...interface{})",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 387,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cwtov29kjxs",
+      "qualified_name": "cli.ParseEndpoint",
+      "simple_name": "ParseEndpoint",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcdlczdu1d6",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/cli/arduino_create_agent/cli.go",
+      "start_line": 37,
+      "end_line": 166,
+      "size_lines": 130,
+      "signature_hint": "func ParseEndpoint( scheme, host string, doer goahttp.Doer, enc func(*http.Request) goahttp.Encoder, dec func(*http.Response) goahttp.Decoder, restore bool, ) (goa.Endpoint, any, error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -570,
+      "region": 82,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 14
+    },
+    {
+      "id": "Cn4b72xyexv",
+      "qualified_name": "client.DecodeAvailableResponse",
+      "simple_name": "DecodeAvailableResponse",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13xdgapk2c5",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/encode_decode.go",
+      "start_line": 40,
+      "end_line": 77,
+      "size_lines": 38,
+      "signature_hint": "func DecodeAvailableResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -662,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cobw0jp2bng"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C49g49zwj8a",
+      "qualified_name": "client.DecodeInstalledResponse",
+      "simple_name": "DecodeInstalledResponse",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13xdgapk2c5",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/encode_decode.go",
+      "start_line": 139,
+      "end_line": 176,
+      "size_lines": 38,
+      "signature_hint": "func DecodeInstalledResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -662,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C4r7nrpfdql"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C16k4klp2vu4",
+      "qualified_name": "client.DecodeRemoveResponse",
+      "simple_name": "DecodeRemoveResponse",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13xdgapk2c5",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/encode_decode.go",
+      "start_line": 299,
+      "end_line": 336,
+      "size_lines": 38,
+      "signature_hint": "func DecodeRemoveResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -662,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Coudk7h1g3x"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cvbcgfvdwif",
+      "qualified_name": "client.BuildRemovePayload",
+      "simple_name": "BuildRemovePayload",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fs1ztq946wy",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/cli.go",
+      "start_line": 42,
+      "end_line": 73,
+      "size_lines": 32,
+      "signature_hint": "func BuildRemovePayload(toolsRemoveBody string, toolsRemovePackager string, toolsRemoveName string, toolsRemoveVersion string) (*tools.ToolPayload, error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -668,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwtov29kjxs"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cqzv5c6756h",
+      "qualified_name": "tools.Tools.GetLocation",
+      "simple_name": "GetLocation",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fj6au38d4bk",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/tools/tools.go",
+      "start_line": 98,
+      "end_line": 125,
+      "size_lines": 28,
+      "signature_hint": "func (t *Tools) GetLocation(command string) (string, error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -672,
+      "region": 279,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Chm729yeeaw"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Co7qb3y9ci7",
+      "qualified_name": "client.Client.BuildRemoveRequest",
+      "simple_name": "BuildRemoveRequest",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F13xdgapk2c5",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/encode_decode.go",
+      "start_line": 253,
+      "end_line": 278,
+      "size_lines": 26,
+      "signature_hint": "func (c *Client) BuildRemoveRequest(ctx context.Context, v any) (*http.Request, error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -674,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Coudk7h1g3x"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cpva80uv2br",
+      "qualified_name": "client.DecodeInstalledheadResponse",
+      "simple_name": "DecodeInstalledheadResponse",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13xdgapk2c5",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/encode_decode.go",
+      "start_line": 97,
+      "end_line": 119,
+      "size_lines": 23,
+      "signature_hint": "func DecodeInstalledheadResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -677,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ci3ikl17ldg"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccvjx6z39t9",
+      "qualified_name": "client.BuildInstallPayload",
+      "simple_name": "BuildInstallPayload",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fs1ztq946wy",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/cli.go",
+      "start_line": 19,
+      "end_line": 38,
+      "size_lines": 20,
+      "signature_hint": "func BuildInstallPayload(toolsInstallBody string) (*tools.ToolPayload, error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -680,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwtov29kjxs"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16cd8hizt29",
+      "qualified_name": "utilities.PipeCommands",
+      "simple_name": "PipeCommands",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fys94l32zzl",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/utilities/utilities.go",
+      "start_line": 80,
+      "end_line": 99,
+      "size_lines": 20,
+      "signature_hint": "func PipeCommands(commands ...*exec.Cmd) ([]byte, error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -680,
+      "region": 396,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cobw0jp2bng",
+      "qualified_name": "client.Client.Available",
+      "simple_name": "Available",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F59hogsn6p7",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/client.go",
+      "start_line": 74,
+      "end_line": 89,
+      "size_lines": 16,
+      "signature_hint": "func (c *Client) Available() goa.Endpoint",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -684,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwtov29kjxs"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Ci3ikl17ldg",
+      "qualified_name": "client.Client.Installedhead",
+      "simple_name": "Installedhead",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F59hogsn6p7",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/client.go",
+      "start_line": 93,
+      "end_line": 108,
+      "size_lines": 16,
+      "signature_hint": "func (c *Client) Installedhead() goa.Endpoint",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -684,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwtov29kjxs"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C4r7nrpfdql",
+      "qualified_name": "client.Client.Installed",
+      "simple_name": "Installed",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F59hogsn6p7",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/client.go",
+      "start_line": 112,
+      "end_line": 127,
+      "size_lines": 16,
+      "signature_hint": "func (c *Client) Installed() goa.Endpoint",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -684,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwtov29kjxs"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Caw5c00ohlc",
+      "qualified_name": "client.EncodeRemoveRequest",
+      "simple_name": "EncodeRemoveRequest",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13xdgapk2c5",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/encode_decode.go",
+      "start_line": 282,
+      "end_line": 294,
+      "size_lines": 13,
+      "signature_hint": "func EncodeRemoveRequest(encoder func(*http.Request) goahttp.Encoder) func(*http.Request, any) error",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -687,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Coudk7h1g3x"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Csc92wm9ksw",
+      "qualified_name": "client.Client.BuildAvailableRequest",
+      "simple_name": "BuildAvailableRequest",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F13xdgapk2c5",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/encode_decode.go",
+      "start_line": 24,
+      "end_line": 35,
+      "size_lines": 12,
+      "signature_hint": "func (c *Client) BuildAvailableRequest(ctx context.Context, v any) (*http.Request, error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -688,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cobw0jp2bng"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ctnysm93lvl",
+      "qualified_name": "client.Client.BuildInstalledheadRequest",
+      "simple_name": "BuildInstalledheadRequest",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F13xdgapk2c5",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/encode_decode.go",
+      "start_line": 81,
+      "end_line": 92,
+      "size_lines": 12,
+      "signature_hint": "func (c *Client) BuildInstalledheadRequest(ctx context.Context, v any) (*http.Request, error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -688,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ci3ikl17ldg"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C10v3makt400",
+      "qualified_name": "client.Client.BuildInstalledRequest",
+      "simple_name": "BuildInstalledRequest",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F13xdgapk2c5",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/encode_decode.go",
+      "start_line": 123,
+      "end_line": 134,
+      "size_lines": 12,
+      "signature_hint": "func (c *Client) BuildInstalledRequest(ctx context.Context, v any) (*http.Request, error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -688,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C4r7nrpfdql"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C6j9db18lyn",
+      "qualified_name": "client.ValidateToolResponse",
+      "simple_name": "ValidateToolResponse",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F7j90v98myy",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/types.go",
+      "start_line": 150,
+      "end_line": 161,
+      "size_lines": 12,
+      "signature_hint": "func ValidateToolResponse(body *ToolResponse) (err error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -688,
+      "region": 163,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C15ygu2tv5rr",
+      "qualified_name": "views.ValidateToolView",
+      "simple_name": "ValidateToolView",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fo24d7ex2dl",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/tools/views/view.go",
+      "start_line": 112,
+      "end_line": 123,
+      "size_lines": 12,
+      "signature_hint": "func ValidateToolView(result *ToolView) (err error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -688,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cxgcuagojrd"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cgdp3nke847",
+      "qualified_name": "views.ValidateToolCollection",
+      "simple_name": "ValidateToolCollection",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fo24d7ex2dl",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/tools/views/view.go",
+      "start_line": 77,
+      "end_line": 85,
+      "size_lines": 9,
+      "signature_hint": "func ValidateToolCollection(result ToolCollection) (err error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -691,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cn4b72xyexv"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cmuxk1bxa69",
+      "qualified_name": "client.NewRemoveRequestBody",
+      "simple_name": "NewRemoveRequestBody",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F7j90v98myy",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/types.go",
+      "start_line": 98,
+      "end_line": 105,
+      "size_lines": 8,
+      "signature_hint": "func NewRemoveRequestBody(p *tools.ToolPayload) *RemoveRequestBody",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Caw5c00ohlc"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17ge5xsm3ex",
+      "qualified_name": "client.NewAvailableToolCollectionOK",
+      "simple_name": "NewAvailableToolCollectionOK",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F7j90v98myy",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/types.go",
+      "start_line": 109,
+      "end_line": 116,
+      "size_lines": 8,
+      "signature_hint": "func NewAvailableToolCollectionOK(body AvailableResponseBody) toolsviews.ToolCollectionView",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cn4b72xyexv"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cq8m1kev0y9",
+      "qualified_name": "client.NewInstalledToolCollectionOK",
+      "simple_name": "NewInstalledToolCollectionOK",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F7j90v98myy",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/types.go",
+      "start_line": 120,
+      "end_line": 127,
+      "size_lines": 8,
+      "signature_hint": "func NewInstalledToolCollectionOK(body InstalledResponseBody) toolsviews.ToolCollectionView",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C49g49zwj8a"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C18c8tlmh4yi",
+      "qualified_name": "tools.Client.Available",
+      "simple_name": "Available",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F38mr5usqlg",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/tools/client.go",
+      "start_line": 37,
+      "end_line": 44,
+      "size_lines": 8,
+      "signature_hint": "func (c *Client) Available(ctx context.Context) (res ToolCollection, err error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 200,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Csi6g3c2k1r",
+      "qualified_name": "tools.Client.Installed",
+      "simple_name": "Installed",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F38mr5usqlg",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/tools/client.go",
+      "start_line": 53,
+      "end_line": 60,
+      "size_lines": 8,
+      "signature_hint": "func (c *Client) Installed(ctx context.Context) (res ToolCollection, err error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 202,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxgcuagojrd",
+      "qualified_name": "views.ValidateToolCollectionView",
+      "simple_name": "ValidateToolCollectionView",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fo24d7ex2dl",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/tools/views/view.go",
+      "start_line": 101,
+      "end_line": 108,
+      "size_lines": 8,
+      "signature_hint": "func ValidateToolCollectionView(result ToolCollectionView) (err error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -692,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cgdp3nke847"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C4oy3i7etlx",
+      "qualified_name": "client.NewRemoveOperationOK",
+      "simple_name": "NewRemoveOperationOK",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F7j90v98myy",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/types.go",
+      "start_line": 141,
+      "end_line": 147,
+      "size_lines": 7,
+      "signature_hint": "func NewRemoveOperationOK(body *RemoveResponseBody) *toolsviews.OperationView",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -693,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C16k4klp2vu4"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cm3tobo8qca",
+      "qualified_name": "main.PLogger.Debug",
+      "simple_name": "Debug",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ft8td5rzkb7",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/conn.go",
+      "start_line": 199,
+      "end_line": 203,
+      "size_lines": 5,
+      "signature_hint": "func (l PLogger) Debug(args ...interface{})",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 64,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C17ib5l5b8x8",
+      "qualified_name": "main.BufferflowDefault.Init",
+      "simple_name": "Init",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F4q6sdvwj2j",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/bufferflow_default.go",
+      "start_line": 43,
+      "end_line": 46,
+      "size_lines": 4,
+      "signature_hint": "func (b *BufferflowDefault) Init()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Chpn5aatc2o",
+      "qualified_name": "main.BufferflowTimed.Init",
+      "simple_name": "Init",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Foe9pqiffi",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/bufferflow_timed.go",
+      "start_line": 50,
+      "end_line": 53,
+      "size_lines": 4,
+      "signature_hint": "func (b *BufferflowTimed) Init()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 9,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C15znsg9zbg3",
+      "qualified_name": "main.BufferflowTimedRaw.Init",
+      "simple_name": "Init",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F7ktszanmua",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/bufferflow_timedraw.go",
+      "start_line": 50,
+      "end_line": 53,
+      "size_lines": 4,
+      "signature_hint": "func (b *BufferflowTimedRaw) Init()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 14,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ckbhv8f7m8",
+      "qualified_name": "cli.UsageCommands",
+      "simple_name": "UsageCommands",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcdlczdu1d6",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/cli/arduino_create_agent/cli.go",
+      "start_line": 24,
+      "end_line": 27,
+      "size_lines": 4,
+      "signature_hint": "func UsageCommands() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 80,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cic84axquis",
+      "qualified_name": "cli.UsageExamples",
+      "simple_name": "UsageExamples",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcdlczdu1d6",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/cli/arduino_create_agent/cli.go",
+      "start_line": 30,
+      "end_line": 33,
+      "size_lines": 4,
+      "signature_hint": "func UsageExamples() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 81,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cynsgospffd",
+      "qualified_name": "tools.Client.Installedhead",
+      "simple_name": "Installedhead",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F38mr5usqlg",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/tools/client.go",
+      "start_line": 47,
+      "end_line": 50,
+      "size_lines": 4,
+      "signature_hint": "func (c *Client) Installedhead(ctx context.Context) (err error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 201,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1unwzlkdm6",
+      "qualified_name": "client.AvailableToolsPath",
+      "simple_name": "AvailableToolsPath",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fbp2clag0kr",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/paths.go",
+      "start_line": 15,
+      "end_line": 17,
+      "size_lines": 3,
+      "signature_hint": "func AvailableToolsPath() string",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Csc92wm9ksw"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvaliapxptl",
+      "qualified_name": "client.InstalledheadToolsPath",
+      "simple_name": "InstalledheadToolsPath",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fbp2clag0kr",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/paths.go",
+      "start_line": 20,
+      "end_line": 22,
+      "size_lines": 3,
+      "signature_hint": "func InstalledheadToolsPath() string",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ctnysm93lvl"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckyes5g7r2p",
+      "qualified_name": "client.InstalledToolsPath",
+      "simple_name": "InstalledToolsPath",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fbp2clag0kr",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/paths.go",
+      "start_line": 25,
+      "end_line": 27,
+      "size_lines": 3,
+      "signature_hint": "func InstalledToolsPath() string",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C10v3makt400"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwfo6kcyl07",
+      "qualified_name": "client.RemoveToolsPath",
+      "simple_name": "RemoveToolsPath",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fbp2clag0kr",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/paths.go",
+      "start_line": 35,
+      "end_line": 37,
+      "size_lines": 3,
+      "signature_hint": "func RemoveToolsPath(packager string, name string, version string) string",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Co7qb3y9ci7"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2dze3p1xhv",
+      "qualified_name": "server.AvailableToolsPath",
+      "simple_name": "AvailableToolsPath",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F75kme6vbou",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/server/paths.go",
+      "start_line": 15,
+      "end_line": 17,
+      "size_lines": 3,
+      "signature_hint": "func AvailableToolsPath() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 172,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C9xgqs6qwoq",
+      "qualified_name": "server.InstalledheadToolsPath",
+      "simple_name": "InstalledheadToolsPath",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F75kme6vbou",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/server/paths.go",
+      "start_line": 20,
+      "end_line": 22,
+      "size_lines": 3,
+      "signature_hint": "func InstalledheadToolsPath() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 173,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3f63zdicx0",
+      "qualified_name": "server.InstalledToolsPath",
+      "simple_name": "InstalledToolsPath",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F75kme6vbou",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/server/paths.go",
+      "start_line": 25,
+      "end_line": 27,
+      "size_lines": 3,
+      "signature_hint": "func InstalledToolsPath() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 174,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cybyttl6htd",
+      "qualified_name": "server.InstallToolsPath",
+      "simple_name": "InstallToolsPath",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F75kme6vbou",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/server/paths.go",
+      "start_line": 30,
+      "end_line": 32,
+      "size_lines": 3,
+      "signature_hint": "func InstallToolsPath() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 175,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ctwdc8i78nw",
+      "qualified_name": "server.RemoveToolsPath",
+      "simple_name": "RemoveToolsPath",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F75kme6vbou",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/server/paths.go",
+      "start_line": 35,
+      "end_line": 37,
+      "size_lines": 3,
+      "signature_hint": "func RemoveToolsPath(packager string, name string, version string) string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 176,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnxozdn3z1y",
+      "qualified_name": "server.Server.Mount",
+      "simple_name": "Mount",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F8fyv0x6dpw",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/server/server.go",
+      "start_line": 95,
+      "end_line": 97,
+      "size_lines": 3,
+      "signature_hint": "func (s *Server) Mount(mux goahttp.Muxer)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 182,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cfvwlp0yls0",
+      "qualified_name": "tools.MakeNotFound",
+      "simple_name": "MakeNotFound",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6hww34cy7d",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/tools/service.go",
+      "start_line": 86,
+      "end_line": 88,
+      "size_lines": 3,
+      "signature_hint": "func MakeNotFound(err error) *goa.ServiceError",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 217,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ca97qb4zomr",
+      "qualified_name": "tools.NewToolCollection",
+      "simple_name": "NewToolCollection",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6hww34cy7d",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/tools/service.go",
+      "start_line": 92,
+      "end_line": 94,
+      "size_lines": 3,
+      "signature_hint": "func NewToolCollection(vres toolsviews.ToolCollection) ToolCollection",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cn4b72xyexv"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C10pcfqqfr99",
+      "qualified_name": "main.Bufferflow.OnIncomingData",
+      "simple_name": "OnIncomingData",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fmbv96ry762",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/bufferflow.go",
+      "start_line": 21,
+      "end_line": 21,
+      "size_lines": 1,
+      "signature_hint": "OnIncomingData(data string)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 1,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccpuvs4fnih",
+      "qualified_name": "server.Server.MethodNames",
+      "simple_name": "MethodNames",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F8fyv0x6dpw",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/server/server.go",
+      "start_line": 83,
+      "end_line": 83,
+      "size_lines": 1,
+      "signature_hint": "func (s *Server) MethodNames() []string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 180,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cd3uguowqsl",
+      "qualified_name": "upload.Logger.Debug",
+      "simple_name": "Debug",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F147iysxmykb",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/upload/utils.go",
+      "start_line": 20,
+      "end_line": 20,
+      "size_lines": 1,
+      "signature_hint": "Debug(args ...interface{})",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 387,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C4ezxzoxkbz"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chc5yokekw9",
+      "qualified_name": "installCert",
+      "simple_name": "installCert",
+      "language": "objc",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fea0lhpn3yg",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/certificates/certificates_darwin.m",
+      "start_line": 25,
+      "end_line": 62,
+      "size_lines": 38,
+      "signature_hint": "const char *installCert(const char *path)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -962,
+      "region": 29,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cp7l2nnm5pv",
+      "qualified_name": "getExpirationDate",
+      "simple_name": "getExpirationDate",
+      "language": "objc",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fea0lhpn3yg",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/certificates/certificates_darwin.m",
+      "start_line": 105,
+      "end_line": 137,
+      "size_lines": 33,
+      "signature_hint": "const char *getExpirationDate(long *expirationDate)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -967,
+      "region": 27,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C7thzw75ivm",
+      "qualified_name": "uninstallCert",
+      "simple_name": "uninstallCert",
+      "language": "objc",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fea0lhpn3yg",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/certificates/certificates_darwin.m",
+      "start_line": 64,
+      "end_line": 89,
+      "size_lines": 26,
+      "signature_hint": "const char *uninstallCert()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -974,
+      "region": 30,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ctghj5jqb8e",
+      "qualified_name": "client.NewClient",
+      "simple_name": "NewClient",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F59hogsn6p7",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/client.go",
+      "start_line": 50,
+      "end_line": 70,
+      "size_lines": 21,
+      "signature_hint": "func NewClient( scheme string, host string, doer goahttp.Doer, enc func(*http.Request) goahttp.Encoder, dec func(*http.Response) goahttp.Decoder, restoreBody bool, ) *Client",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -979,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwtov29kjxs"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7es25e5mv1",
+      "qualified_name": "v2.LogAdapter.Log",
+      "simple_name": "Log",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F14gvuaxut6i",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/v2/log.go",
+      "start_line": 31,
+      "end_line": 46,
+      "size_lines": 16,
+      "signature_hint": "func (a LogAdapter) Log(keyvals ...interface{}) error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -984,
+      "region": 411,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cp1l14s3sno",
+      "qualified_name": "getDefaultBrowserName",
+      "simple_name": "getDefaultBrowserName",
+      "language": "objc",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fea0lhpn3yg",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/certificates/certificates_darwin.m",
+      "start_line": 12,
+      "end_line": 22,
+      "size_lines": 11,
+      "signature_hint": "const char *getDefaultBrowserName()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -989,
+      "region": 28,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14l4u5wx4un",
+      "qualified_name": "certInKeychain",
+      "simple_name": "certInKeychain",
+      "language": "objc",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fea0lhpn3yg",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/certificates/certificates_darwin.m",
+      "start_line": 91,
+      "end_line": 101,
+      "size_lines": 11,
+      "signature_hint": "const bool certInKeychain()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -989,
+      "region": 31,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4njicz8bjg",
+      "qualified_name": "tools.NewClient",
+      "simple_name": "NewClient",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F38mr5usqlg",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/tools/client.go",
+      "start_line": 26,
+      "end_line": 34,
+      "size_lines": 9,
+      "signature_hint": "func NewClient(available, installedhead, installed, install, remove goa.Endpoint) *Client",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -991,
+      "region": 199,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cq4befxuj5w",
+      "qualified_name": "server.Server.Use",
+      "simple_name": "Use",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F8fyv0x6dpw",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/server/server.go",
+      "start_line": 74,
+      "end_line": 80,
+      "size_lines": 7,
+      "signature_hint": "func (s *Server) Use(m func(http.Handler) http.Handler)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -993,
+      "region": 179,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cc2oisrg0p5",
+      "qualified_name": "tools.Endpoints.Use",
+      "simple_name": "Use",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Frwae0js7jm",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/tools/endpoints.go",
+      "start_line": 37,
+      "end_line": 43,
+      "size_lines": 7,
+      "signature_hint": "func (e *Endpoints) Use(m func(goa.Endpoint) goa.Endpoint)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -993,
+      "region": 206,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ck2z84egsyp",
+      "qualified_name": "main.PLogger.Info",
+      "simple_name": "Info",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ft8td5rzkb7",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/conn.go",
+      "start_line": 206,
+      "end_line": 210,
+      "size_lines": 5,
+      "signature_hint": "func (l PLogger) Info(args ...interface{})",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -995,
+      "region": 64,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 8
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cm3tobo8qca"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Coudk7h1g3x",
+      "qualified_name": "client.Client.Remove",
+      "simple_name": "Remove",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F59hogsn6p7",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/client/client.go",
+      "start_line": 155,
+      "end_line": 175,
+      "size_lines": 21,
+      "signature_hint": "func (c *Client) Remove() goa.Endpoint",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -1179,
+      "region": 82,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Remove",
+          "sites": 7,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F6on5r5p3zt",
+            "path": "/storage/cgg-test_repos/app-arduinoagent-goa/certificates/certificates.go",
+            "line": 263,
+            "name": "Remove",
+            "receiver_hint": "certDir.Join(\"ca.key.pem\")"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwtov29kjxs"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cwlna7fdnyz",
+      "qualified_name": "index.Resource.Read",
+      "simple_name": "Read",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fttc1aj3os9",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/index/index.go",
+      "start_line": 138,
+      "end_line": 146,
+      "size_lines": 9,
+      "signature_hint": "func (ir *Resource) Read() ([]byte, error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1191,
+      "region": 253,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Read",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F7ek0478wpu",
+            "path": "/storage/cgg-test_repos/app-arduinoagent-goa/serialport.go",
+            "line": 86,
+            "name": "Read",
+            "receiver_hint": "p.portIo"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ca962ipta1c",
+      "qualified_name": "main.SerialPortList.Run",
+      "simple_name": "Run",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fce5k2p7a8e",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/serial.go",
+      "start_line": 109,
+      "end_line": 117,
+      "size_lines": 9,
+      "signature_hint": "func (sp *SerialPortList) Run()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1191,
+      "region": 279,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Run",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fdkpi3xgvca",
+            "path": "/storage/cgg-test_repos/app-arduinoagent-goa/main.go",
+            "line": 418,
+            "name": "Run",
+            "receiver_hint": "serialPorts"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Crxm41aa06j",
+      "qualified_name": "tools.Client.Remove",
+      "simple_name": "Remove",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F38mr5usqlg",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/tools/client.go",
+      "start_line": 76,
+      "end_line": 83,
+      "size_lines": 8,
+      "signature_hint": "func (c *Client) Remove(ctx context.Context, p *ToolPayload) (res *Operation, err error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1192,
+      "region": 204,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Remove",
+          "sites": 7,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F6on5r5p3zt",
+            "path": "/storage/cgg-test_repos/app-arduinoagent-goa/certificates/certificates.go",
+            "line": 263,
+            "name": "Remove",
+            "receiver_hint": "certDir.Join(\"ca.key.pem\")"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C15a5pxl5969",
+      "qualified_name": "main.BufferflowTimed.Close",
+      "simple_name": "Close",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Foe9pqiffi",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/bufferflow_timed.go",
+      "start_line": 84,
+      "end_line": 88,
+      "size_lines": 5,
+      "signature_hint": "func (b *BufferflowTimed) Close()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1195,
+      "region": 12,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Close",
+          "sites": 22,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F6on5r5p3zt",
+            "path": "/storage/cgg-test_repos/app-arduinoagent-goa/certificates/certificates.go",
+            "line": 204,
+            "name": "Close",
+            "receiver_hint": "caCertOut"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cqj6wpjupmb",
+      "qualified_name": "main.BufferflowTimedRaw.Close",
+      "simple_name": "Close",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F7ktszanmua",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/bufferflow_timedraw.go",
+      "start_line": 85,
+      "end_line": 89,
+      "size_lines": 5,
+      "signature_hint": "func (b *BufferflowTimedRaw) Close()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1195,
+      "region": 17,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Close",
+          "sites": 22,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F6on5r5p3zt",
+            "path": "/storage/cgg-test_repos/app-arduinoagent-goa/certificates/certificates.go",
+            "line": 204,
+            "name": "Close",
+            "receiver_hint": "caCertOut"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C13zjpn4w44q",
+      "qualified_name": "main.BufferflowDefault.Close",
+      "simple_name": "Close",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F4q6sdvwj2j",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/bufferflow_default.go",
+      "start_line": 69,
+      "end_line": 72,
+      "size_lines": 4,
+      "signature_hint": "func (b *BufferflowDefault) Close()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 7,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Close",
+          "sites": 22,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F6on5r5p3zt",
+            "path": "/storage/cgg-test_repos/app-arduinoagent-goa/certificates/certificates.go",
+            "line": 204,
+            "name": "Close",
+            "receiver_hint": "caCertOut"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cluedpkxizv",
+      "qualified_name": "main.logWriter.Write",
+      "simple_name": "Write",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fdkpi3xgvca",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/main.go",
+      "start_line": 112,
+      "end_line": 115,
+      "size_lines": 4,
+      "signature_hint": "func (u *logWriter) Write(p []byte) (n int, err error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 257,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Write",
+          "sites": 5,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fce5k2p7a8e",
+            "path": "/storage/cgg-test_repos/app-arduinoagent-goa/serial.go",
+            "line": 303,
+            "name": "Write",
+            "receiver_hint": "port"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1yi9ord1ai",
+      "qualified_name": "main.Bufferflow.Close",
+      "simple_name": "Close",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fmbv96ry762",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/bufferflow.go",
+      "start_line": 22,
+      "end_line": 22,
+      "size_lines": 1,
+      "signature_hint": "Close()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1199,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Close",
+          "sites": 22,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F6on5r5p3zt",
+            "path": "/storage/cgg-test_repos/app-arduinoagent-goa/certificates/certificates.go",
+            "line": 204,
+            "name": "Close",
+            "receiver_hint": "caCertOut"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cleqc52jl0y",
+      "qualified_name": "server.Server.Service",
+      "simple_name": "Service",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F8fyv0x6dpw",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/gen/http/tools/server/server.go",
+      "start_line": 71,
+      "end_line": 71,
+      "size_lines": 1,
+      "signature_hint": "func (s *Server) Service() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1199,
+      "region": 178,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Service",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Faqjw566iye",
+            "path": "/storage/cgg-test_repos/app-arduinoagent-goa/design/pkgs.go",
+            "line": 20,
+            "name": "Service"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cd3v0blrjmi",
+      "qualified_name": "main.serport.Write",
+      "simple_name": "Write",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F7ek0478wpu",
+      "path": "/storage/cgg-test_repos/app-arduinoagent-goa/serialport.go",
+      "start_line": 177,
+      "end_line": 187,
+      "size_lines": 11,
+      "signature_hint": "func (p *serport) Write(data string, sendMode string)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1189,
+      "region": 291,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Write",
+          "sites": 5,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fce5k2p7a8e",
+            "path": "/storage/cgg-test_repos/app-arduinoagent-goa/serial.go",
+            "line": 303,
+            "name": "Write",
+            "receiver_hint": "port"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

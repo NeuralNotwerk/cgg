@@ -1,0 +1,6065 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "bash",
+      "class": "script-driven",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 2,
+      "callables": 2,
+      "roots": 2,
+      "reachable": 2,
+      "reachable_pct": 100,
+      "findings": 0
+    },
+    {
+      "language": "go",
+      "class": "degraded",
+      "visibility": "full",
+      "attributes": "none",
+      "value_references": "full",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "full",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "builtin:main",
+        "builtin:test-name",
+        "framework:entry-node",
+        "framework:rule",
+        "framework:test-harness"
+      ],
+      "files": 166,
+      "callables": 530,
+      "roots": 367,
+      "reachable": 460,
+      "reachable_pct": 86,
+      "findings": 44
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 532,
+    "edges": 898,
+    "unresolved_call_sites": 339,
+    "roots": 369,
+    "candidates": 157,
+    "reported": 44,
+    "regions": 55,
+    "withheld": [
+      {
+        "language": "go",
+        "category": "only-used-by-tests",
+        "reason": "missing-signal",
+        "would_have_reported": 87
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Csxl0gty0mr",
+      "qualified_name": "cfn.TestCloudFormationEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cjbmycu1gl2",
+      "qualified_name": "cfn.TestCloudFormationMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C14h1rewucnu",
+      "qualified_name": "cfn_test.Example",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "builtin:test-name",
+      "detail": "name `Example` matches a test convention"
+    },
+    {
+      "id": "Cdipftehv3i",
+      "qualified_name": "cfn.TestDataCopiedFromRequest",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ch97y8sv6q6",
+      "qualified_name": "cfn.TestRequestSentCorrectly",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C5zlss7k5tl",
+      "qualified_name": "cfn.TestRequestForbidden",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cligjuii1tp",
+      "qualified_name": "cfn.TestLambdaPhysicalResourceId",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cqnck2ctwq1",
+      "qualified_name": "cfn.TestPanicSendsFailure",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C8rq89zbq6c",
+      "qualified_name": "cfn.TestDontCopyLogicalResourceId",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cpnvwnr9oc2",
+      "qualified_name": "cfn.TestWrappedError",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cakpbq7lisl",
+      "qualified_name": "cfn.TestWrappedSendFailure",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Causf0wlvnr",
+      "qualified_name": "main.main",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "C1341pb0coor",
+      "qualified_name": "main.TestSizes",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cpmgmq9uzv7",
+      "qualified_name": "main.TestCompressExeAndArgs",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cgxk0uosg06",
+      "qualified_name": "main.main",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Crxzz307lh5",
+      "qualified_name": "main.main",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "C17bf8msq9o5",
+      "qualified_name": "events.TestActiveMQEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cacs103hv0s",
+      "qualified_name": "events.TestActiveMQMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C13t15wu0s68",
+      "qualified_name": "events.TestALBTargetRequestMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cs3fp5jn34y",
+      "qualified_name": "events.TestALBTargetRequestMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cct0wbahr88",
+      "qualified_name": "events.TestALBTargetResponseMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cruhnr0dhtr",
+      "qualified_name": "events.APIGatewayProxyStreamingResponse.MarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "Cw6996talze",
+      "qualified_name": "events.TestApiGatewayRequestMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cvzwn5rryju",
+      "qualified_name": "events.TestApiGatewayRequestMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cmu2kb30otu",
+      "qualified_name": "events.TestApiGatewayResponseMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Czcqwf35qpm",
+      "qualified_name": "events.TestApiGatewayResponseMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ccsvk1ufhib",
+      "qualified_name": "events.TestAPIGatewayProxyStreamingResponseMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ccz8esh5e49",
+      "qualified_name": "events.TestAPIGatewayProxyStreamingResponsePropogatesInnerClose",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C71evxlspej",
+      "qualified_name": "events.TestApiGatewayCustomAuthorizerRequestMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C107l0216jff",
+      "qualified_name": "events.TestApiGatewayCustomAuthorizerRequestTypeRequestMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cfki211hxh2",
+      "qualified_name": "events.TestApiGatewayCustomAuthorizerRequestMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ck82s384yb0",
+      "qualified_name": "events.TestApiGatewayCustomAuthorizerRequestTypeRequestMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C5b7t3blljz",
+      "qualified_name": "events.TestApiGatewayWebsocketRequestMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ciaxqjip0t5",
+      "qualified_name": "events.TestApiGatewayWebsocketRequestSendMessageMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cqqgsartttq",
+      "qualified_name": "events.TestApiGatewayWebsocketRequestDisconnectMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cxsc40oou4r",
+      "qualified_name": "events.TestApiGatewayWebsocketRequestMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cq8pqtg7dei",
+      "qualified_name": "events.TestApiGatewayCustomAuthorizerResponseMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cpn0qug51vg",
+      "qualified_name": "events.TestAPIGatewayV2CustomAuthorizerSimpleResponseMarshalling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cbe2fchruwf",
+      "qualified_name": "events.TestApiGatewayCustomAuthorizerResponseMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Copf949gafl",
+      "qualified_name": "events.TestApiGatewayRestApiOpenApiRequestMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ctyczqkc8hc",
+      "qualified_name": "events.TestApiGatewayV2HTTPRequestJWTAuthorizerMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cmtcaccicge",
+      "qualified_name": "events.TestApiGatewayV2HTTPRequestLambdaAuthorizerMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ce1zgvn6n2l",
+      "qualified_name": "events.TestApiGatewayV2HTTPRequestIAMMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C1za68xoncv",
+      "qualified_name": "events.TestApiGatewayV2HTTPRequestNoAuthorizerMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C130cb48rldz",
+      "qualified_name": "events.TestApiGatewayV2CustomAuthorizerV1RequestMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Caw4ue74uwv",
+      "qualified_name": "events.TestApiGatewayV2CustomAuthorizerV2RequestMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cv9knuo5qpx",
+      "qualified_name": "events.TestAppSyncIdentity_IAM",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cuw69ratsbj",
+      "qualified_name": "events.TestAppSyncIdentity_Cognito",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ce4ygm0byz7",
+      "qualified_name": "events.TestAppSyncLambdaAuthorizerRequestMarshalling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Clee8e46lju",
+      "qualified_name": "events.TestAppSyncLambdaAuthorizerRequestMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C16wtiqq8pki",
+      "qualified_name": "events.TestAppSyncLambdaAuthorizerResponseMarshalling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C11arixydhp4",
+      "qualified_name": "events.TestAppSyncLambdaAuthorizerResponseMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cm0njnk08ct",
+      "qualified_name": "events.DynamoDBAttributeValue.MarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "Cz6j630xrqi",
+      "qualified_name": "events.unmarshalBinary",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "Clxunumkw85",
+      "qualified_name": "events.DynamoDBAttributeValue.UnmarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "Cwf7twoals7",
+      "qualified_name": "events.TestUnmarshalBinary",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cyrscyx6gq0",
+      "qualified_name": "events.TestUnmarshalBoolean",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cxwndszjgwa",
+      "qualified_name": "events.TestUnmarshalBinarySet",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C1293mmcronj",
+      "qualified_name": "events.TestUnmarshalList",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Csdsrla19zd",
+      "qualified_name": "events.TestUnmarshalMap",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C16eqagm87zf",
+      "qualified_name": "events.TestUnmarshalNumber",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Clcl810p96m",
+      "qualified_name": "events.TestUnmarshalInteger",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cjuw027u9j8",
+      "qualified_name": "events.TestUnmarshalFloat",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C103z9uhm31v",
+      "qualified_name": "events.TestUnmarshalIntContainingAFloatString",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Crm8m0q5lji",
+      "qualified_name": "events.TestUnmarshalNumberSet",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C134c3savaom",
+      "qualified_name": "events.TestUnmarshalNull",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Chrzbekygk3",
+      "qualified_name": "events.TestUnmarshalString",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C113tejg7x9e",
+      "qualified_name": "events.TestUnmarshalStringSet",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C12m8kv0er7d",
+      "qualified_name": "events.TestUnmarshalEmptyStringSet",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C8oy42gjevi",
+      "qualified_name": "events.TestAccessWithWrongTypePanics",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cyauzj6xrzo",
+      "qualified_name": "events.TestMarshalAndUnmarshalString",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cu8knhq40rg",
+      "qualified_name": "events.Test_DynamoDBAttributeValue_NewAttribute",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ckbyfvvhj0v",
+      "qualified_name": "events.TestAutoScalingEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C211ltd1oc6",
+      "qualified_name": "events.TestAutoScalingMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C65c2vt0btk",
+      "qualified_name": "events.TestChimeBotEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C11t9ln4aab1",
+      "qualified_name": "events.TestChimeBotMarshalingMalformedJSON",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cij8rvud43c",
+      "qualified_name": "events.TestClientVPNConnectionHandlerRequestMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cbt59pqpiqk",
+      "qualified_name": "events.TestClientVPNConnectionHandlerRequestMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cgky44a4esy",
+      "qualified_name": "events.TestCloudwatchScheduledEventIdempotency",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ctjb00tnv2y",
+      "qualified_name": "events.TestCloudwatchScheduledEventRequestMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C13w6a9f2sfy",
+      "qualified_name": "events.TestCloudwatchLogs",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cor5dpmfczb",
+      "qualified_name": "events.TestCloudwatchLogsParse",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ctrui1s4d4e",
+      "qualified_name": "events.CodeCommitEventTime.MarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "C911kifherz",
+      "qualified_name": "events.CodeCommitEventTime.UnmarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "C18afnjlpqir",
+      "qualified_name": "events.TestCodeCommitReference",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cunq80tgiin",
+      "qualified_name": "events.TestCodeCommitCodeCommit",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Czrr88ql1g2",
+      "qualified_name": "events.TestCodeCommitRecord",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C1204hrm7upv",
+      "qualified_name": "events.TestCodeCommitEventFile",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C8nnrhkqcju",
+      "qualified_name": "events.TestCodeCommitEvent",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C2z6wcgsjzb",
+      "qualified_name": "events.CodeBuildTime.MarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "Cgu2gm4s8bw",
+      "qualified_name": "events.CodeBuildTime.UnmarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "Ct1ggso9bgh",
+      "qualified_name": "events.CodeBuildNumber.MarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "Cu4nyp2j0yn",
+      "qualified_name": "events.CodeBuildNumber.UnmarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "Ccv0f81tzir",
+      "qualified_name": "events.TestUnmarshalCodeBuildEvent",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cdvjv83epix",
+      "qualified_name": "events.TestUnmarshalCodeDeployEvent",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C3gw5g5owg",
+      "qualified_name": "events.TestUnmarshalCodePipelineEvent",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C39fh40f3at",
+      "qualified_name": "events.TestCodePipeLineJobEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C1eg8jui8rw",
+      "qualified_name": "events.TestCodePipelineJobEventMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Clnbr9qlxoa",
+      "qualified_name": "events.TestCodePipeLineEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ckort4y2o9u",
+      "qualified_name": "events.TestCodePipelineEventMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ciopk448364",
+      "qualified_name": "events.TestCognitoEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C12zi4rc7ab",
+      "qualified_name": "events.TestCognitoMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C9s3lj8h2z0",
+      "qualified_name": "events.TestCognitoEventUserPoolsPreSignupMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Comh9c900h0",
+      "qualified_name": "events.TestCognitoUserPoolsPreSignupMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C11ppdmfmrhb",
+      "qualified_name": "events.TestCognitoEventUserPoolsPreAuthenticationMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C2hf43x9vzl",
+      "qualified_name": "events.TestCognitoUserPoolsPreAuthenticationMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C2q3yzzad89",
+      "qualified_name": "events.TestCognitoEventUserPoolsPostConfirmationMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C10diov28jha",
+      "qualified_name": "events.TestCognitoEventUserPoolsPreTokenGenMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cbp5uelads4",
+      "qualified_name": "events.TestCognitoEventUserPoolsPreTokenGenMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cy08wxdyh2x",
+      "qualified_name": "events.TestCognitoEventUserPoolsPreTokenGenV2Marshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C13hxjy8rd2b",
+      "qualified_name": "events.TestCognitoEventUserPoolsPreTokenGenV2_0Marshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cjxr066e2ag",
+      "qualified_name": "events.TestCognitoEventUserPoolsDefineAuthChallengeMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ct8kg05x8pk",
+      "qualified_name": "events.TestCognitoEventUserPoolsDefineAuthChallengeMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C2lixp3n9kc",
+      "qualified_name": "events.TestCognitoEventUserPoolsCreateAuthChallengeMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cysnuep6ks",
+      "qualified_name": "events.TestCognitoEventUserPoolsCreateAuthChallengeMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C3hfgh15k5q",
+      "qualified_name": "events.TestCognitoEventUserPoolsVerifyAuthChallengeMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C6tsyjisidq",
+      "qualified_name": "events.TestCognitoEventUserPoolsVerifyAuthChallengeMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ct96uce7qrq",
+      "qualified_name": "events.TestCognitoEventUserPoolsPostAuthenticationMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ccc0wncq5qc",
+      "qualified_name": "events.TestCognitoEventUserPoolsMigrateUserMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cqtob0f7ykb",
+      "qualified_name": "events.TestCognitoEventUserPoolsMigrateUserMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cvndplkt7xd",
+      "qualified_name": "events.TestCognitoEventUserPoolsCustomMessageMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C16a6wkli0ce",
+      "qualified_name": "events.TestCognitoUserPoolsCustomMessageMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cfi1ac9l5um",
+      "qualified_name": "events.TestCognitoEventUserPoolsInboundFederationOIDCMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C15nmwpihkrv",
+      "qualified_name": "events.TestCognitoEventUserPoolsInboundFederationSAMLMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cutlqpx73h8",
+      "qualified_name": "events.TestCognitoEventUserPoolsInboundFederationMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ca9e81n6x0r",
+      "qualified_name": "events.TestConfigEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cnwi6dmbmxg",
+      "qualified_name": "events.TestConfigMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C14fd0440u93",
+      "qualified_name": "events.TestConnectMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cg0p9yev7qd",
+      "qualified_name": "events.TestConnectMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C12r2b06gvst",
+      "qualified_name": "events.DurationSeconds.UnmarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "C1ovq1tdthp",
+      "qualified_name": "events.DurationSeconds.MarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "Ckat02oq7s9",
+      "qualified_name": "events.DurationMinutes.UnmarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "Cs87ipherlp",
+      "qualified_name": "events.DurationMinutes.MarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "C11ihx9mkjbd",
+      "qualified_name": "events.TestDynamoDBEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cpl1v361jd6",
+      "qualified_name": "events.TestDynamoDBEventMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C4wjegouogq",
+      "qualified_name": "events.TestDynamoDBTimeWindowEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cravw3owawj",
+      "qualified_name": "events.TestDynamoDBTimeWindowEventMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C7lkg3fhf8p",
+      "qualified_name": "events.TestECRImageActionEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C3uwblk39gz",
+      "qualified_name": "events.TestECRPushMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ch55kqgcokl",
+      "qualified_name": "events.TestECRScanEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C17g8rhjp8ke",
+      "qualified_name": "events.TestECRScanMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C15lvkm5mic6",
+      "qualified_name": "events.ECSContainerInstanceEventResource.MarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "Ciqnbz142dt",
+      "qualified_name": "events.TestECSContainerInstanceEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cknqyzpukzg",
+      "qualified_name": "events.TestECSContainerInstanceMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C4qhut5oesg",
+      "qualified_name": "events.SecondsEpochTime.MarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "Cqz7ozaeel7",
+      "qualified_name": "events.SecondsEpochTime.UnmarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "Cmnjm3oc7me",
+      "qualified_name": "events.MilliSecondsEpochTime.MarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "C9pfznepn7x",
+      "qualified_name": "events.MilliSecondsEpochTime.UnmarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "Cfpa549tlf2",
+      "qualified_name": "events.RFC3339EpochTime.MarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "C16afv51vd7a",
+      "qualified_name": "events.RFC3339EpochTime.UnmarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "Cyzn9lmg3jn",
+      "qualified_name": "events.TestUnmarshalSecondsEpochTime",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cy477kvp1o9",
+      "qualified_name": "events.TestMarshalSecondsEpochTime",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C15m1jfb37cg",
+      "qualified_name": "events.TestUnmarshalMilliSecondsEpochTime",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C137fg53uplv",
+      "qualified_name": "events.TestMarshalMilliSecondsEpochTime",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C1749w9vky9e",
+      "qualified_name": "events_test.ExampleALBTargetGroupRequest",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cl6wrsadu4u",
+      "qualified_name": "events_test.ExampleAPIGatewayCustomAuthorizerRequest",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C12fkvxsmjcd",
+      "qualified_name": "events_test.ExampleAPIGatewayProxyRequest",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C5vscihzkmv",
+      "qualified_name": "events_test.ExampleAPIGatewayProxyStreamingResponse",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cqfa59tyfqx",
+      "qualified_name": "events_test.ExampleChimeBotEvent",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cenburtb945",
+      "qualified_name": "events_test.ExampleCognitoEvent",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cavnppotzg1",
+      "qualified_name": "events_test.ExampleCognitoEventUserPoolsPreSignup",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cs15zmgtrmt",
+      "qualified_name": "events_test.ExampleCognitoEventUserPoolsPostConfirmation",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cjrkur9qhbx",
+      "qualified_name": "events_test.ExampleCognitoEventUserPoolsPreAuthentication",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cbo25qivc0x",
+      "qualified_name": "events_test.ExampleCognitoEventUserPoolsPreTokenGen",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cds65corgck",
+      "qualified_name": "events_test.ExampleCognitoEventUserPoolsDefineAuthChallenge",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ce7k8n8pdz9",
+      "qualified_name": "events_test.ExampleConnectEvent",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Caki4tcyfp7",
+      "qualified_name": "events_test.ExampleDynamoDBEvent",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C35b4dq98v1",
+      "qualified_name": "events_test.ExampleECSContainerInstanceEvent",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C10gvw7pcuva",
+      "qualified_name": "events_test.ExampleKinesisEvent",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Czxm40iho4c",
+      "qualified_name": "events_test.ExampleKinesisFirehoseEvent",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cmnwpzrps3t",
+      "qualified_name": "events_test.ExampleKinesisAnalyticsOutputDeliveryEvent",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Clxll3s3mon",
+      "qualified_name": "events_test.ExampleLambdaFunctionURLRequest",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C1uvh6jjhbo",
+      "qualified_name": "events_test.ExampleLambdaFunctionURLStreamingResponse",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cwh0hdzhg20",
+      "qualified_name": "events_test.ExampleS3Event",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Co4ez6z3idf",
+      "qualified_name": "events_test.ExampleS3ObjectLambdaEvent",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C14duugptqqf",
+      "qualified_name": "events_test.ExampleSecretsManagerSecretRotationEvent",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ckkrd5wac5v",
+      "qualified_name": "events_test.ExampleSimpleEmailEvent",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ckpmcmr6q1",
+      "qualified_name": "events_test.ExampleSQSEvent",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Czu19y0zxcj",
+      "qualified_name": "events.TestFirehoseEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cnmbubswiuo",
+      "qualified_name": "events.TestFirehoseResponseMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C951kn7tfvj",
+      "qualified_name": "events.TestSampleTransformation",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C16w902k0v73",
+      "qualified_name": "events.TestKinesisFirehoseMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ccwpd7onbq1",
+      "qualified_name": "events.TestIoTOneClickEventMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cws4po8hqev",
+      "qualified_name": "events.TestIoTOneClickEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Clhunu0new4",
+      "qualified_name": "events.TestIoTButtonMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C2hmiqkm4qb",
+      "qualified_name": "events.TestIoTButtonEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cnitf4i97kr",
+      "qualified_name": "events.TestIoTPreProvisionHookRequest",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C44lxkptcly",
+      "qualified_name": "events.TestIoTPreProvisionHookRequestMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C8vmtwvc8tp",
+      "qualified_name": "events.TestIoTPreProvisionHookResponseMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C17ij7aubjzb",
+      "qualified_name": "events.TestIoTPreProvisionHookResponseMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C3aht422xof",
+      "qualified_name": "events.TestIoTCoreCustomAuthorizerRequestMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cmff8u77b14",
+      "qualified_name": "events.TestIoTCoreCustomAuthorizerRequestMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ca1l837pgzt",
+      "qualified_name": "events.TestIoTCoreCustomAuthorizerResponseMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cju3zh5lvvb",
+      "qualified_name": "events.TestIoTCoreCustomAuthorizerResponseMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cz9nz03gskc",
+      "qualified_name": "events.JSONNumberBytes.MarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "C167jguq1j61",
+      "qualified_name": "events.JSONNumberBytes.UnmarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "C16v42j00g1l",
+      "qualified_name": "events.TestKafkaEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C122rs7ivfyn",
+      "qualified_name": "events.TestKafkaMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Chrywkhwxyl",
+      "qualified_name": "events.TestKinesisAnalyticsOutputDeliveryEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cl1cj19gv5h",
+      "qualified_name": "events.TestKinesisAnalyticsOutputDeliveryResponseMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C5ng5wfwi9i",
+      "qualified_name": "events.TestKinesisOutputDeliveryEventMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C13bg5kv1v7l",
+      "qualified_name": "events.TestKinesisEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Clb9jlgxcdx",
+      "qualified_name": "events.TestKinesisMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cmjcc69ci50",
+      "qualified_name": "events.TestKinesisTimeWindowEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C1n1682d43p",
+      "qualified_name": "events.TestKinesisTimeWindowEventMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cpmbvn8n2kc",
+      "qualified_name": "events.LambdaFunctionURLStreamingResponse.MarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "C2j9nodfjq8",
+      "qualified_name": "events.TestLambdaFunctionURLResponseMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cnzttgsyjxm",
+      "qualified_name": "events.TestLambdaFunctionURLRequestMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cjn52i3kg8x",
+      "qualified_name": "events.TestLambdaFunctionURLStreamingResponseMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C1764vl2lwkh",
+      "qualified_name": "events.TestLambdaFunctionURLStreamingResponsePropogatesInnerClose",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ca86elw69ir",
+      "qualified_name": "events.TestLexEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Csk18z58z9y",
+      "qualified_name": "events.TestLexResponseMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Czeb2x5mhui",
+      "qualified_name": "events.TestLexMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C4edn3e1tpn",
+      "qualified_name": "events.TestLexResponseMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C16hrk78jghy",
+      "qualified_name": "events.TestRabbitMQEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C28u89py2u2",
+      "qualified_name": "events.TestRabbitMQMarshalingMalformedJSON",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cdd1k0ybmse",
+      "qualified_name": "events.S3Object.UnmarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "C5l8qs06yxo",
+      "qualified_name": "events.TestS3BatchJobEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C1htyw6s5up",
+      "qualified_name": "events.TestS3BatchJobEventV2Marshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cxyvzbnxdjn",
+      "qualified_name": "events.TestS3BatchJobResponseMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ctk2e9kf9xv",
+      "qualified_name": "events.TestS3ObjectLambdaEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C107unqmv3wl",
+      "qualified_name": "events.TestS3ObjectLambdaMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cs2dywgq2i9",
+      "qualified_name": "events.TestS3EventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C1l18pi1c1h",
+      "qualified_name": "events.TestS3TestEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ck6nm1qyviw",
+      "qualified_name": "events.TestS3MarshalingMalformedJSON",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C159uajgyi2q",
+      "qualified_name": "events.TestS3GlacierEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cjel3a33s0z",
+      "qualified_name": "events.TestS3RestoreEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C132wej971ar",
+      "qualified_name": "events.TestS3IntelligentTieringEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C9ao4on15h",
+      "qualified_name": "events.TestS3LifecycleEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ctwl9p65ba4",
+      "qualified_name": "events.TestS3ReplicationEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cdo44gd4gx3",
+      "qualified_name": "events.TestSecretsManagerSecretRotationEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cel7a4c7tq4",
+      "qualified_name": "events.TestSESEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cr8616kcj07",
+      "qualified_name": "events.TestSESMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C13wipeo6q3y",
+      "qualified_name": "events.TestSnsEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C3i8aydnkj5",
+      "qualified_name": "events.TestSnsMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C9qk9fzlsg5",
+      "qualified_name": "events.TestCloudWatchAlarmSNSPayloadMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cryjuwq0cqs",
+      "qualified_name": "events.TestSqsEventMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C84t9b6y6ix",
+      "qualified_name": "events.TestSqsMarshalingMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cjtsyls5iqy",
+      "qualified_name": "test.TestMalformedJson",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cy6sxhhemi8",
+      "qualified_name": "lambda.TestStartHandlerFunc",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cx1ec2y9xmj",
+      "qualified_name": "lambda.TestStartRuntimeAPIWithContext",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ccyskra8tdw",
+      "qualified_name": "lambda.TestStartNotInLambda",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C5e7lysd8ni",
+      "qualified_name": "lambda.TestStartRPCWithContext",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Csg0lsnxf0e",
+      "qualified_name": "lambda.TestStartNotInLambda",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C2suy3dsh19",
+      "qualified_name": "lambda_test.Example",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "builtin:test-name",
+      "detail": "name `Example` matches a test convention"
+    },
+    {
+      "id": "Cu8vttuswan",
+      "qualified_name": "lambda_test.Example_ioReader",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cwwcwtebziw",
+      "qualified_name": "lambda_test.ExampleWithContext",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C3h0umcyfi9",
+      "qualified_name": "lambda_test.ExampleWithContextValue",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cgsnfqcd7m1",
+      "qualified_name": "lambda_test.ExampleWithSetEscapeHTML",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C5chtb8t51b",
+      "qualified_name": "lambda_test.ExampleWithSetIndent",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cr6otvsg8gl",
+      "qualified_name": "lambda_test.ExampleWithUseNumber",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cwvkawwes7q",
+      "qualified_name": "lambda_test.ExampleWithDisallowUnknownFields",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C13ozigwwp8f",
+      "qualified_name": "lambda_test.ExampleWithEnableSIGTERM",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ch9wlu7piw",
+      "qualified_name": "lambda.TestInvalidHandlers",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Czqba4f9lrl",
+      "qualified_name": "lambda.arbitraryJSON.MarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "C15vzn0zzj3y",
+      "qualified_name": "lambda.TestInvokes",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cx5zduemi8p",
+      "qualified_name": "lambda.TestInvalidJsonInput",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C14a91wubdjb",
+      "qualified_name": "lambda.TestHandlerTrace",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cui5u4fnai4",
+      "qualified_name": "handlertrace.TestTrace",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cbpu5vh09db",
+      "qualified_name": "lambda.TestRuntimeAPILoopWithConcurrency",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cxvww57ycth",
+      "qualified_name": "lambda.TestRuntimeAPILoopSingleConcurrency",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C6w8d6w3hg7",
+      "qualified_name": "lambda.TestRuntimeAPILoopWithConcurrencyPanic",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cy3yfztlp7r",
+      "qualified_name": "lambda.TestConcurrencyWithRIE",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cvfhl7xhbgc",
+      "qualified_name": "lambda.TestFatalErrors",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C13ajx7t173k",
+      "qualified_name": "lambda.TestRuntimeAPILoop",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cuoxnghibhh",
+      "qualified_name": "lambda.TestCustomErrorMarshaling",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cywd42z6kjy",
+      "qualified_name": "lambda.TestXRayCausePlumbing",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C100ggifzh9f",
+      "qualified_name": "lambda.TestRuntimeAPIContextPlumbing",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Clddb1dxqje",
+      "qualified_name": "lambda.TestReadPayload",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ck8mg38euf9",
+      "qualified_name": "lambda.TestBinaryResponseDefaultContentType",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Clc4mxiw2ze",
+      "qualified_name": "lambda.TestBinaryResponseDoesNotLeakResources",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C3oizowmzr6",
+      "qualified_name": "lambda.TestContextDeserializationErrors",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C122hqyb5rbt",
+      "qualified_name": "lambda.TestClientContextWithNestedCustomValues",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ck95jbseaor",
+      "qualified_name": "lambda.invalidPayload.MarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "Cgrzdhqaarz",
+      "qualified_name": "lambda.TestSafeMarshal_SerializationError",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C10hvcflq4x6",
+      "qualified_name": "lambda.TestPanicFormattingStringValue",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C69qy4kyyvm",
+      "qualified_name": "lambda.TestPanicFormattingIntValue",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C14jzc3haxel",
+      "qualified_name": "lambda.TestPanicFormattingCustomError",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ckkdesms9ga",
+      "qualified_name": "lambda.TestPanicFormattingInvokeResponse_Error",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cqi38p6qi26",
+      "qualified_name": "lambda.TestFormatFrame",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ckipw4gvpky",
+      "qualified_name": "lambda.TestRuntimeStackTrace",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cbrxgvopluv",
+      "qualified_name": "lambda.init",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `init`"
+    },
+    {
+      "id": "C1qmp7riiz2",
+      "qualified_name": "lambda.TestInvoke",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ccedv2jjhso",
+      "qualified_name": "lambda.TestInvokeWithContext",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cqeurz2alic",
+      "qualified_name": "lambda.TestCustomError",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cqatnid2c1f",
+      "qualified_name": "lambda.TestCustomErrorRef",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C4nf8vy9w51",
+      "qualified_name": "lambda.TestContextPlumbing",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C1lm1w7kjh8",
+      "qualified_name": "lambda.TestXAmznTraceID",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cwj42lwj9f3",
+      "qualified_name": "lambda.TestRPCModeInvokeClosesCloserIfResponseIsCloser",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C15ergho2nu9",
+      "qualified_name": "lambda.TestRPCModeInvokeReaderErrorPropogated",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ceho9gmmuuy",
+      "qualified_name": "lambda.TestClientNext",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cakrcqxq6a9",
+      "qualified_name": "lambda.TestClientDoneAndError",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cfu5pvgx7lv",
+      "qualified_name": "lambda.TestInvalidRequestsForMalformedEndpoint",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cssyzlpzo8c",
+      "qualified_name": "lambda.TestStatusCodes",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cwgwc4oii86",
+      "qualified_name": "lambda.TestEnableSigterm",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cpoynh9hok6",
+      "qualified_name": "bench",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-awslambda-go/lambda/testdata/bench.sh:31"
+    },
+    {
+      "id": "Che32y6kz5t",
+      "qualified_name": "main.main",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cfpo5vwbuhs",
+      "qualified_name": "main.init",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `init`"
+    },
+    {
+      "id": "Cv3c57iab51",
+      "qualified_name": "main.main",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "C13s6ites0e6",
+      "qualified_name": "main.main",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cogzmz9yvw0",
+      "qualified_name": "lambdacontext.init",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `init`"
+    },
+    {
+      "id": "Csqof7zokzl",
+      "qualified_name": "lambdacontext.ClientContext.UnmarshalJSON",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `go-encoding:base-type`"
+    },
+    {
+      "id": "C3ngsn17wjp",
+      "qualified_name": "lambdacontext.TestClientContextUnmarshalJSON",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ci7iszzlbm7",
+      "qualified_name": "lambdacontext_test.ExampleNewLogger",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Chlk67b4q27",
+      "qualified_name": "lambdacontext_test.ExampleNewLogHandler",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C6nf17pfhr6",
+      "qualified_name": "lambdacontext_test.ExampleNewLogHandler_withOptions",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cxaehf040f3",
+      "qualified_name": "lambdacontext_test.ExampleWithFunctionARN",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cwrwqn0ng30",
+      "qualified_name": "lambdacontext_test.ExampleFromContext",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Czj5zkt7ups",
+      "qualified_name": "lambdacontext.TestReplaceAttr",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ckabp9xglf4",
+      "qualified_name": "lambdacontext.TestParseLogLevel",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ce8slmgun7m",
+      "qualified_name": "lambdacontext.TestLogHandler_JSONFormat",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ctei5dlha5v",
+      "qualified_name": "lambdacontext.TestLogHandler_NoLambdaContext",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Czew2ix4up4",
+      "qualified_name": "lambdacontext.TestLogHandler_ConcurrencySafe",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C145753ehc6e",
+      "qualified_name": "lambdacontext.TestLogHandler_SharedHandlerConcurrencySafe",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C10n4p9h51ac",
+      "qualified_name": "lambdacontext.TestLogHandler_WithAttrs",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cmv21h2irot",
+      "qualified_name": "lambdacontext.TestLogHandler_WithGroup",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ckz49co3j8t",
+      "qualified_name": "lambdacontext.TestLogHandler_WithFields",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cw9rtfg27vr",
+      "qualified_name": "lambdacontext.TestLogHandler_WithFieldFunctionARNOnly",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cx85n2izbme",
+      "qualified_name": "lambdacontext.TestLogHandler_FieldsEmpty",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cux1glv9alu",
+      "qualified_name": "lambdacontext.TestWithFunctionARN",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C10w18z7z928",
+      "qualified_name": "lambdacontext.TestWithTenantID",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ci9uhhk6ofm",
+      "qualified_name": "lambdacontext.TestNewLogger",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C133ydqq21nx",
+      "qualified_name": "lambdacontext.TestNewLogHandler",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C14rysb3xl81",
+      "qualified_name": "lambdaurl.TestWrap",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Clwmf9lyr3a",
+      "qualified_name": "lambdaurl.TestRequestContext",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Chvrehzw5y0",
+      "qualified_name": "lambdaurl.TestStartViaEmulator",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C12lzo4vuo64",
+      "qualified_name": "redact",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-awslambda-go/lambdaurl/testdata/gen-events.sh:51"
+    },
+    {
+      "id": "Ce2cm84xl8f",
+      "qualified_name": "main.main",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "C108tdwrxkih",
+      "qualified_name": "main.main",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "C8nkmma7q0f",
+      "qualified_name": "main.main",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Ck7icwh1kmt",
+      "qualified_name": "<framework-entry>::test::go-testing",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cemc2u55fqx",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::main.handler_at_13",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::main.handler_at_13`"
+    },
+    {
+      "id": "Cuipsmfizao",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::events_test.handler_at_15",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::events_test.handler_at_15`"
+    },
+    {
+      "id": "C4lp4jsvvtq",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::events_test.handler_at_19",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::events_test.handler_at_19`"
+    },
+    {
+      "id": "Cne76m65d1h",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::events_test.handler_at_14",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::events_test.handler_at_14`"
+    },
+    {
+      "id": "Cqc0p9wnvzq",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::events_test.handler_at_11",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::events_test.handler_at_11`"
+    },
+    {
+      "id": "Chrlwyuuss5",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::events_test.handler_at_12",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::events_test.handler_at_12`"
+    },
+    {
+      "id": "Czn84vwsgmg",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::events_test.handler_at_27",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::events_test.handler_at_27`"
+    },
+    {
+      "id": "C6ug1r46r2h",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::events_test.handler_at_35",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::events_test.handler_at_35`"
+    },
+    {
+      "id": "C3fdmd70dmu",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::events_test.handler_at_42",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::events_test.handler_at_42`"
+    },
+    {
+      "id": "Cx6m4zjf0p6",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::events_test.handler_at_49",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::events_test.handler_at_49`"
+    },
+    {
+      "id": "Cbedmdrry2x",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::events_test.handler_at_60",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::events_test.handler_at_60`"
+    },
+    {
+      "id": "Cu7ud172rb",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::events_test.handler_at_17",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::events_test.handler_at_17`"
+    },
+    {
+      "id": "Cn0v8iko3rw",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::events_test.handler_at_13",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::events_test.handler_at_13`"
+    },
+    {
+      "id": "C3zah6euooo",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::events_test.handler_at_28",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::events_test.handler_at_28`"
+    },
+    {
+      "id": "Cxz20v1s6fz",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::events_test.handler_at_52",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::events_test.handler_at_52`"
+    },
+    {
+      "id": "Cq7xt82vozo",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambda.f",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambda.f`"
+    },
+    {
+      "id": "Cs6m7rklkie",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambda.handler_at_27",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambda.handler_at_27`"
+    },
+    {
+      "id": "C4iqpf98htq",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambda.handler_at_21",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambda.handler_at_21`"
+    },
+    {
+      "id": "Cx03em8aj1s",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambda.handler_at_72",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambda.handler_at_72`"
+    },
+    {
+      "id": "Cpchbkoka30",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_13",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_13`"
+    },
+    {
+      "id": "Chtwx45h48s",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_23",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_23`"
+    },
+    {
+      "id": "Ckydjp9753t",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_41",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_41`"
+    },
+    {
+      "id": "Ctn4qlaz27h",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_50",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_50`"
+    },
+    {
+      "id": "C98i5opfxo9",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_59",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_59`"
+    },
+    {
+      "id": "C8u295qs65e",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_68",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_68`"
+    },
+    {
+      "id": "Cwxg2ou9ero",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_77",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_77`"
+    },
+    {
+      "id": "Cx40c1slad4",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_86",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_86`"
+    },
+    {
+      "id": "C86wjew86gq",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_95",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambda_test.handler_at_95`"
+    },
+    {
+      "id": "C184kkvq1ru7",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::main.handler_at_35",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::main.handler_at_35`"
+    },
+    {
+      "id": "Cwztr8yqa8m",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::main.handler",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::main.handler`"
+    },
+    {
+      "id": "Cztiaea09gn",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambdacontext_test.handler_at_20",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambdacontext_test.handler_at_20`"
+    },
+    {
+      "id": "C16uhrerka90",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambdacontext_test.handler_at_32",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambdacontext_test.handler_at_32`"
+    },
+    {
+      "id": "C641ageqg1",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambdacontext_test.handler_at_47",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambdacontext_test.handler_at_47`"
+    },
+    {
+      "id": "Cqfimgdqz59",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambdacontext_test.handler_at_60",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambdacontext_test.handler_at_60`"
+    },
+    {
+      "id": "Ckqbzapyfjv",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::lambdacontext_test.handler_at_12",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::lambdacontext_test.handler_at_12`"
+    },
+    {
+      "id": "Couhef5yvpn",
+      "qualified_name": "<framework-entry>::network::net-http::handlefunc(\"/hello\")",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::net-http::handlefunc(\"/hello\")`"
+    },
+    {
+      "id": "Ci0ruzicwkg",
+      "qualified_name": "<framework-entry>::network::aws-lambda-go::main.handler_at_8",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::aws-lambda-go::main.handler_at_8`"
+    },
+    {
+      "id": "Cpq848ebe5l",
+      "qualified_name": "<framework-entry>::network::net-http::handlefunc(\"/\")",
+      "language": "go",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::net-http::handlefunc(\"/\")`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 6,
+      "members": [
+        "Cnvf94x8wh7"
+      ],
+      "anchors": [
+        "Cnvf94x8wh7"
+      ],
+      "files": [
+        "Fhv46d7owms"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 8,
+      "members": [
+        "Cntttslbpcf"
+      ],
+      "anchors": [
+        "Cntttslbpcf"
+      ],
+      "files": [
+        "F123g1jtwr7p"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 9,
+      "members": [
+        "Cv1spmqzyzs"
+      ],
+      "anchors": [
+        "Cv1spmqzyzs"
+      ],
+      "files": [
+        "F123g1jtwr7p"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 14,
+      "members": [
+        "C1367zoxu2hf"
+      ],
+      "anchors": [
+        "C1367zoxu2hf"
+      ],
+      "files": [
+        "F8bbd1rd1wm"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 16,
+      "members": [
+        "C115bppkdx9b"
+      ],
+      "anchors": [
+        "C115bppkdx9b"
+      ],
+      "files": [
+        "F8p6nn3wvof"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 18,
+      "members": [
+        "C16by7s32afy"
+      ],
+      "anchors": [
+        "C16by7s32afy"
+      ],
+      "files": [
+        "F8p6nn3wvof"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 20,
+      "members": [
+        "Co9szh5u6i0"
+      ],
+      "anchors": [
+        "Co9szh5u6i0"
+      ],
+      "files": [
+        "F8p6nn3wvof"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 22,
+      "members": [
+        "C9govvcetc4"
+      ],
+      "anchors": [
+        "C9govvcetc4"
+      ],
+      "files": [
+        "F8p6nn3wvof"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 24,
+      "members": [
+        "C10qnlglx34j"
+      ],
+      "anchors": [
+        "C10qnlglx34j"
+      ],
+      "files": [
+        "F8p6nn3wvof"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 33,
+      "members": [
+        "C168i3lfkmzs"
+      ],
+      "anchors": [
+        "C168i3lfkmzs"
+      ],
+      "files": [
+        "Fcsjyqlzw1c"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 41,
+      "members": [
+        "C4me210m9s6"
+      ],
+      "anchors": [
+        "C4me210m9s6"
+      ],
+      "files": [
+        "Fiu3iyqy3mo"
+      ],
+      "total_lines": 26,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 42,
+      "members": [
+        "Ca0fbfw79q8"
+      ],
+      "anchors": [
+        "Ca0fbfw79q8"
+      ],
+      "files": [
+        "Fiu3iyqy3mo"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 75,
+      "members": [
+        "Captrmrfe41",
+        "Cti035h6c15",
+        "Ci86wk7lhcy",
+        "C15qmifdyksj",
+        "C36r88832dv",
+        "C9ic9o4lfv8",
+        "Claibd2eh98",
+        "Cxbw1at4r3q",
+        "Crjd781ad5q",
+        "Cv70gjkwk5t",
+        "Cw0ydcf6yh3",
+        "C1443qt1vi3j"
+      ],
+      "anchors": [
+        "Captrmrfe41",
+        "Cti035h6c15",
+        "Ci86wk7lhcy",
+        "C15qmifdyksj",
+        "C36r88832dv",
+        "Cxbw1at4r3q",
+        "Crjd781ad5q",
+        "Cv70gjkwk5t",
+        "Cw0ydcf6yh3"
+      ],
+      "files": [
+        "F70dzgr31y0"
+      ],
+      "total_lines": 54,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 85,
+      "members": [
+        "C9e9ty3u6j3"
+      ],
+      "anchors": [
+        "C9e9ty3u6j3"
+      ],
+      "files": [
+        "F70dzgr31y0"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 87,
+      "members": [
+        "C101mwsczvet"
+      ],
+      "anchors": [
+        "C101mwsczvet"
+      ],
+      "files": [
+        "F70dzgr31y0"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 99,
+      "members": [
+        "Caz3ad19b8p"
+      ],
+      "anchors": [
+        "Caz3ad19b8p"
+      ],
+      "files": [
+        "F70dzgr31y0"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 100,
+      "members": [
+        "Ccmd6idis44"
+      ],
+      "anchors": [
+        "Ccmd6idis44"
+      ],
+      "files": [
+        "F70dzgr31y0"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 141,
+      "members": [
+        "Cogvorz8hrx"
+      ],
+      "anchors": [
+        "Cogvorz8hrx"
+      ],
+      "files": [
+        "F166mqqwo53r"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 144,
+      "members": [
+        "C120zyypisg5"
+      ],
+      "anchors": [
+        "C120zyypisg5"
+      ],
+      "files": [
+        "F325tkr0yh1"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 147,
+      "members": [
+        "C6vij6i0a4b"
+      ],
+      "anchors": [
+        "C6vij6i0a4b"
+      ],
+      "files": [
+        "F325tkr0yh1"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 148,
+      "members": [
+        "C12en2tl6ea7"
+      ],
+      "anchors": [
+        "C12en2tl6ea7"
+      ],
+      "files": [
+        "F325tkr0yh1"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 149,
+      "members": [
+        "Cgmaj1xeiy4"
+      ],
+      "anchors": [
+        "Cgmaj1xeiy4"
+      ],
+      "files": [
+        "F325tkr0yh1"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 301,
+      "members": [
+        "Ckj4a13ig43"
+      ],
+      "anchors": [
+        "Ckj4a13ig43"
+      ],
+      "files": [
+        "Fpk8kmqgpaf"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 302,
+      "members": [
+        "Cxyfzs36tsa"
+      ],
+      "anchors": [
+        "Cxyfzs36tsa"
+      ],
+      "files": [
+        "Fpk8kmqgpaf"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 308,
+      "members": [
+        "Cgverveejdc"
+      ],
+      "anchors": [
+        "Cgverveejdc"
+      ],
+      "files": [
+        "Fefa30o1be3"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 309,
+      "members": [
+        "Cxo3cqef3ir"
+      ],
+      "anchors": [
+        "Cxo3cqef3ir"
+      ],
+      "files": [
+        "Fefa30o1be3"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 311,
+      "members": [
+        "Cheqkj8kl2u"
+      ],
+      "anchors": [
+        "Cheqkj8kl2u"
+      ],
+      "files": [
+        "Fkjyhlfgf5x"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 350,
+      "members": [
+        "Caerioa20zy"
+      ],
+      "anchors": [
+        "Caerioa20zy"
+      ],
+      "files": [
+        "Fz2jqgyoo8y"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 386,
+      "members": [
+        "C7rtp2umk2b"
+      ],
+      "anchors": [
+        "C7rtp2umk2b"
+      ],
+      "files": [
+        "Fn7r4imhpud"
+      ],
+      "total_lines": 23,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 401,
+      "members": [
+        "Cxrcov77bag"
+      ],
+      "anchors": [
+        "Cxrcov77bag"
+      ],
+      "files": [
+        "Fwhc92pmyda"
+      ],
+      "total_lines": 22,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 404,
+      "members": [
+        "C7ckp3k174i"
+      ],
+      "anchors": [
+        "C7ckp3k174i"
+      ],
+      "files": [
+        "Fwhc92pmyda"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 407,
+      "members": [
+        "Cfxw8z4mlcz"
+      ],
+      "anchors": [
+        "Cfxw8z4mlcz"
+      ],
+      "files": [
+        "Fs9re01ki8w"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 408,
+      "members": [
+        "C8gup4fp1a4"
+      ],
+      "anchors": [
+        "C8gup4fp1a4"
+      ],
+      "files": [
+        "Fs9re01ki8w"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 409,
+      "members": [
+        "Caebg2irtis"
+      ],
+      "anchors": [
+        "Caebg2irtis"
+      ],
+      "files": [
+        "Fs9re01ki8w"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 410,
+      "members": [
+        "Ck0rvk4nmo9"
+      ],
+      "anchors": [
+        "Ck0rvk4nmo9"
+      ],
+      "files": [
+        "Fs9re01ki8w"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 411,
+      "members": [
+        "Cu5z9ph4qzj"
+      ],
+      "anchors": [
+        "Cu5z9ph4qzj"
+      ],
+      "files": [
+        "Fs9re01ki8w"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 412,
+      "members": [
+        "C13kn5rkp3sx"
+      ],
+      "anchors": [
+        "C13kn5rkp3sx"
+      ],
+      "files": [
+        "Fs9re01ki8w"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 414,
+      "members": [
+        "Ckydysabf8v"
+      ],
+      "anchors": [
+        "Ckydysabf8v"
+      ],
+      "files": [
+        "Fs9re01ki8w"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 428,
+      "members": [
+        "C83wjnpe8ny"
+      ],
+      "anchors": [
+        "C83wjnpe8ny"
+      ],
+      "files": [
+        "F1f8auy7jol"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 449,
+      "members": [
+        "Cmshp2w2pro"
+      ],
+      "anchors": [
+        "Cmshp2w2pro"
+      ],
+      "files": [
+        "Fj76djdzzy7"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 450,
+      "members": [
+        "C5kipwff0zn"
+      ],
+      "anchors": [
+        "C5kipwff0zn"
+      ],
+      "files": [
+        "Fj76djdzzy7"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 477,
+      "members": [
+        "Chuvxev8kw5"
+      ],
+      "anchors": [
+        "Chuvxev8kw5"
+      ],
+      "files": [
+        "Fcms3gdkn1e"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 480,
+      "members": [
+        "C94hxopqk7u"
+      ],
+      "anchors": [
+        "C94hxopqk7u"
+      ],
+      "files": [
+        "Fp28dinkqyw"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 483,
+      "members": [
+        "Cm0venh5hm0"
+      ],
+      "anchors": [
+        "Cm0venh5hm0"
+      ],
+      "files": [
+        "Fp28dinkqyw"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 485,
+      "members": [
+        "Cdamqxs9nbo"
+      ],
+      "anchors": [
+        "Cdamqxs9nbo"
+      ],
+      "files": [
+        "Fp28dinkqyw"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 489,
+      "members": [
+        "C47pwnrlmrb"
+      ],
+      "anchors": [
+        "C47pwnrlmrb"
+      ],
+      "files": [
+        "Fp28dinkqyw"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 490,
+      "members": [
+        "Cw58eorigym"
+      ],
+      "anchors": [
+        "Cw58eorigym"
+      ],
+      "files": [
+        "Fp28dinkqyw"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 491,
+      "members": [
+        "Csbbr1hjcwz"
+      ],
+      "anchors": [
+        "Csbbr1hjcwz"
+      ],
+      "files": [
+        "Fp28dinkqyw"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 500,
+      "members": [
+        "Czy4vbp39fr"
+      ],
+      "anchors": [
+        "Czy4vbp39fr"
+      ],
+      "files": [
+        "Fmkhg22mxiu"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 509,
+      "members": [
+        "C997xtsuma"
+      ],
+      "anchors": [
+        "C997xtsuma"
+      ],
+      "files": [
+        "F17fodratzuw"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 537,
+      "members": [
+        "Cuccj8zcycg"
+      ],
+      "anchors": [
+        "Cuccj8zcycg"
+      ],
+      "files": [
+        "F750fz7h7l1"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 538,
+      "members": [
+        "Cemkraaew07"
+      ],
+      "anchors": [
+        "Cemkraaew07"
+      ],
+      "files": [
+        "F750fz7h7l1"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 539,
+      "members": [
+        "Cru27nv5zka"
+      ],
+      "anchors": [
+        "Cru27nv5zka"
+      ],
+      "files": [
+        "F750fz7h7l1"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 540,
+      "members": [
+        "C7jlpmc7s3t"
+      ],
+      "anchors": [
+        "C7jlpmc7s3t"
+      ],
+      "files": [
+        "F750fz7h7l1"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 558,
+      "members": [
+        "C16qws99eri8",
+        "C8urewlhs5a",
+        "Cv2akx6pnld",
+        "Cbf2xuf42bo",
+        "C5r8lm03js2"
+      ],
+      "anchors": [
+        "C8urewlhs5a",
+        "Cv2akx6pnld"
+      ],
+      "files": [
+        "Ftb3bia4t78"
+      ],
+      "total_lines": 32,
+      "languages": [
+        "go"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cbf2xuf42bo",
+      "qualified_name": "lambdaurl.httpResponseWriter.writeHeader",
+      "simple_name": "writeHeader",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ftb3bia4t78",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/lambdaurl/http_handler.go",
+      "start_line": 72,
+      "end_line": 81,
+      "size_lines": 10,
+      "signature_hint": "func (w *httpResponseWriter) writeHeader(statusCode int, initialPayload []byte)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -190,
+      "region": 558,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C8urewlhs5a"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C5r8lm03js2",
+      "qualified_name": "lambdaurl.detectContentType",
+      "simple_name": "detectContentType",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftb3bia4t78",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/lambdaurl/http_handler.go",
+      "start_line": 83,
+      "end_line": 91,
+      "size_lines": 9,
+      "signature_hint": "func detectContentType(p []byte) string",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -191,
+      "region": 558,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cbf2xuf42bo"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1443qt1vi3j",
+      "qualified_name": "events.DynamoDBAttributeValue.ensureType",
+      "simple_name": "ensureType",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F70dzgr31y0",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue.go",
+      "start_line": 261,
+      "end_line": 265,
+      "size_lines": 5,
+      "signature_hint": "func (av *DynamoDBAttributeValue) ensureType(expectedType DynamoDBDataType)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 75,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 8,
+          "example": "Captrmrfe41"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7rtp2umk2b",
+      "qualified_name": "lambda.extensionAPIClient.register",
+      "simple_name": "register",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fn7r4imhpud",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/lambda/extensions_api_client.go",
+      "start_line": 41,
+      "end_line": 63,
+      "size_lines": 23,
+      "signature_hint": "func (c *extensionAPIClient) register(name string, events ...extensionAPIEventType) (string, error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -677,
+      "region": 386,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "register",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fnzj0in2crt",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/lambda/sigterm.go",
+            "line": 40,
+            "name": "register",
+            "receiver_hint": "ExtensionAPIClient"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "internal"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1367zoxu2hf",
+      "qualified_name": "cfn.LambdaWrapSNS",
+      "simple_name": "LambdaWrapSNS",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8bbd1rd1wm",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/cfn/wrap.go",
+      "start_line": 95,
+      "end_line": 112,
+      "size_lines": 18,
+      "signature_hint": "func LambdaWrapSNS(lambdaFunction CustomResourceFunction) SNSCustomResourceLambdaFunction",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -682,
+      "region": 14,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Claibd2eh98",
+      "qualified_name": "events.DynamoDBAttributeValue.Int64",
+      "simple_name": "Int64",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F70dzgr31y0",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue.go",
+      "start_line": 75,
+      "end_line": 78,
+      "size_lines": 4,
+      "signature_hint": "func (av DynamoDBAttributeValue) Int64() (int64, error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 75,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cxbw1at4r3q"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cheqkj8kl2u",
+      "qualified_name": "events.LexEvent.Clear",
+      "simple_name": "Clear",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fkjyhlfgf5x",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/lex.go",
+      "start_line": 78,
+      "end_line": 81,
+      "size_lines": 4,
+      "signature_hint": "func (h *LexEvent) Clear()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 311,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chuvxev8kw5",
+      "qualified_name": "lambda.Function.Ping",
+      "simple_name": "Ping",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fcms3gdkn1e",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/lambda/rpc_function.go",
+      "start_line": 63,
+      "end_line": 66,
+      "size_lines": 4,
+      "signature_hint": "func (fn *Function) Ping(req *messages.PingRequest, response *messages.PingResponse) error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 477,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnvf94x8wh7",
+      "qualified_name": "cfn.Response.Send",
+      "simple_name": "Send",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fhv46d7owms",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/cfn/response.go",
+      "start_line": 87,
+      "end_line": 89,
+      "size_lines": 3,
+      "signature_hint": "func (r *Response) Send() error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 6,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Caerioa20zy",
+      "qualified_name": "lambda.StartHandlerWithContext",
+      "simple_name": "StartHandlerWithContext",
+      "language": "go",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fz2jqgyoo8y",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/lambda/entry.go",
+      "start_line": 98,
+      "end_line": 100,
+      "size_lines": 3,
+      "signature_hint": "func StartHandlerWithContext(ctx context.Context, handler Handler)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 350,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C83wjnpe8ny",
+      "qualified_name": "lambda.ContentType.ContentType",
+      "simple_name": "ContentType",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1f8auy7jol",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/lambda/invoke_loop.go",
+      "start_line": 92,
+      "end_line": 92,
+      "size_lines": 1,
+      "signature_hint": "ContentType() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 428,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cru27nv5zka",
+      "qualified_name": "lambdacontext.lambdaHandler.WithAttrs",
+      "simple_name": "WithAttrs",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F750fz7h7l1",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/lambdacontext/logger.go",
+      "start_line": 123,
+      "end_line": 128,
+      "size_lines": 6,
+      "signature_hint": "func (h *lambdaHandler) WithAttrs(attrs []slog.Attr) slog.Handler",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -994,
+      "region": 539,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7jlpmc7s3t",
+      "qualified_name": "lambdacontext.lambdaHandler.WithGroup",
+      "simple_name": "WithGroup",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F750fz7h7l1",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/lambdacontext/logger.go",
+      "start_line": 131,
+      "end_line": 136,
+      "size_lines": 6,
+      "signature_hint": "func (h *lambdaHandler) WithGroup(name string) slog.Handler",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -994,
+      "region": 540,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cuccj8zcycg",
+      "qualified_name": "lambdacontext.lambdaHandler.Enabled",
+      "simple_name": "Enabled",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F750fz7h7l1",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/lambdacontext/logger.go",
+      "start_line": 104,
+      "end_line": 106,
+      "size_lines": 3,
+      "signature_hint": "func (h *lambdaHandler) Enabled(ctx context.Context, level slog.Level) bool",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -997,
+      "region": 537,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxrcov77bag",
+      "qualified_name": "lambda.handlerFunc.Invoke",
+      "simple_name": "Invoke",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fwhc92pmyda",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/lambda/handler.go",
+      "start_line": 195,
+      "end_line": 216,
+      "size_lines": 22,
+      "signature_hint": "func (h handlerFunc) Invoke(ctx context.Context, payload []byte) ([]byte, error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1178,
+      "region": 401,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Invoke",
+          "sites": 1,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fcms3gdkn1e",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/lambda/rpc_function.go",
+            "line": 100,
+            "name": "Invoke",
+            "receiver_hint": "fn.handler"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cogvorz8hrx",
+      "qualified_name": "events.CloudwatchLogsRawData.Parse",
+      "simple_name": "Parse",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F166mqqwo53r",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/cloudwatch_logs.go",
+      "start_line": 22,
+      "end_line": 38,
+      "size_lines": 17,
+      "signature_hint": "func (c CloudwatchLogsRawData) Parse() (d CloudwatchLogsData, err error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1183,
+      "region": 141,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Parse",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fsisf2mygwm",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/cloudwatch_logs_test.go",
+            "line": 84,
+            "name": "Parse",
+            "receiver_hint": "inputEvent.AWSLogs"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6vij6i0a4b",
+      "qualified_name": "events.CodeCommitRecord.String",
+      "simple_name": "String",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F325tkr0yh1",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/code_commit.go",
+      "start_line": 66,
+      "end_line": 76,
+      "size_lines": 11,
+      "signature_hint": "func (r CodeCommitRecord) String() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1189,
+      "region": 147,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "String",
+          "sites": 16,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd5mta10v6h",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue_test.go",
+            "line": 60,
+            "name": "String",
+            "receiver_hint": "av.List()[0]"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxbw1at4r3q",
+      "qualified_name": "events.DynamoDBAttributeValue.Integer",
+      "simple_name": "Integer",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F70dzgr31y0",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue.go",
+      "start_line": 86,
+      "end_line": 94,
+      "size_lines": 9,
+      "signature_hint": "func (av DynamoDBAttributeValue) Integer() (int64, error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1191,
+      "region": 75,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Integer",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd5mta10v6h",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue_test.go",
+            "line": 103,
+            "name": "Integer",
+            "receiver_hint": "StringSetAttribute"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C9e9ty3u6j3",
+      "qualified_name": "events.DynamoDBAttributeValue.String",
+      "simple_name": "String",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F70dzgr31y0",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue.go",
+      "start_line": 118,
+      "end_line": 126,
+      "size_lines": 9,
+      "signature_hint": "func (av DynamoDBAttributeValue) String() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1191,
+      "region": 85,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "String",
+          "sites": 16,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd5mta10v6h",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue_test.go",
+            "line": 60,
+            "name": "String",
+            "receiver_hint": "av.List()[0]"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16qws99eri8",
+      "qualified_name": "lambdaurl.httpResponseWriter.Header",
+      "simple_name": "Header",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ftb3bia4t78",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/lambdaurl/http_handler.go",
+      "start_line": 56,
+      "end_line": 61,
+      "size_lines": 6,
+      "signature_hint": "func (w *httpResponseWriter) Header() http.Header",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -1194,
+      "region": 558,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Header",
+          "sites": 14,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F123g1jtwr7p",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/cfn/response_test.go",
+            "line": 55,
+            "name": "Header",
+            "receiver_hint": "req"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cbf2xuf42bo"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Captrmrfe41",
+      "qualified_name": "events.DynamoDBAttributeValue.Binary",
+      "simple_name": "Binary",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F70dzgr31y0",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue.go",
+      "start_line": 27,
+      "end_line": 30,
+      "size_lines": 4,
+      "signature_hint": "func (av DynamoDBAttributeValue) Binary() []byte",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 75,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Binary",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd5mta10v6h",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue_test.go",
+            "line": 21,
+            "name": "Binary",
+            "receiver_hint": "StringSetAttribute"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cti035h6c15",
+      "qualified_name": "events.DynamoDBAttributeValue.Boolean",
+      "simple_name": "Boolean",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F70dzgr31y0",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue.go",
+      "start_line": 34,
+      "end_line": 37,
+      "size_lines": 4,
+      "signature_hint": "func (av DynamoDBAttributeValue) Boolean() bool",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 75,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Boolean",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd5mta10v6h",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue_test.go",
+            "line": 32,
+            "name": "Boolean",
+            "receiver_hint": "StringSetAttribute"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ci86wk7lhcy",
+      "qualified_name": "events.DynamoDBAttributeValue.BinarySet",
+      "simple_name": "BinarySet",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F70dzgr31y0",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue.go",
+      "start_line": 41,
+      "end_line": 44,
+      "size_lines": 4,
+      "signature_hint": "func (av DynamoDBAttributeValue) BinarySet() [][]byte",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 75,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "BinarySet",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd5mta10v6h",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue_test.go",
+            "line": 43,
+            "name": "BinarySet",
+            "receiver_hint": "StringSetAttribute"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C15qmifdyksj",
+      "qualified_name": "events.DynamoDBAttributeValue.List",
+      "simple_name": "List",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F70dzgr31y0",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue.go",
+      "start_line": 49,
+      "end_line": 52,
+      "size_lines": 4,
+      "signature_hint": "func (av DynamoDBAttributeValue) List() []DynamoDBAttributeValue",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 75,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "List",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd5mta10v6h",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue_test.go",
+            "line": 59,
+            "name": "List",
+            "receiver_hint": "StringSetAttribute"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C36r88832dv",
+      "qualified_name": "events.DynamoDBAttributeValue.Map",
+      "simple_name": "Map",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F70dzgr31y0",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue.go",
+      "start_line": 57,
+      "end_line": 60,
+      "size_lines": 4,
+      "signature_hint": "func (av DynamoDBAttributeValue) Map() map[string]DynamoDBAttributeValue",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 75,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Map",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd5mta10v6h",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue_test.go",
+            "line": 78,
+            "name": "Map",
+            "receiver_hint": "StringSetAttribute"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C9ic9o4lfv8",
+      "qualified_name": "events.DynamoDBAttributeValue.Number",
+      "simple_name": "Number",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F70dzgr31y0",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue.go",
+      "start_line": 66,
+      "end_line": 69,
+      "size_lines": 4,
+      "signature_hint": "func (av DynamoDBAttributeValue) Number() string",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 75,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Number",
+          "sites": 13,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd5mta10v6h",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue_test.go",
+            "line": 61,
+            "name": "Number",
+            "receiver_hint": "av.List()[2]"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 3,
+          "example": "Claibd2eh98"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Crjd781ad5q",
+      "qualified_name": "events.DynamoDBAttributeValue.Float",
+      "simple_name": "Float",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F70dzgr31y0",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue.go",
+      "start_line": 103,
+      "end_line": 106,
+      "size_lines": 4,
+      "signature_hint": "func (av DynamoDBAttributeValue) Float() (float64, error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 75,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Float",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd5mta10v6h",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue_test.go",
+            "line": 116,
+            "name": "Float",
+            "receiver_hint": "StringSetAttribute"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cv70gjkwk5t",
+      "qualified_name": "events.DynamoDBAttributeValue.NumberSet",
+      "simple_name": "NumberSet",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F70dzgr31y0",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue.go",
+      "start_line": 111,
+      "end_line": 114,
+      "size_lines": 4,
+      "signature_hint": "func (av DynamoDBAttributeValue) NumberSet() []string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 75,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "NumberSet",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd5mta10v6h",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue_test.go",
+            "line": 144,
+            "name": "NumberSet",
+            "receiver_hint": "StringSetAttribute"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cw0ydcf6yh3",
+      "qualified_name": "events.DynamoDBAttributeValue.StringSet",
+      "simple_name": "StringSet",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F70dzgr31y0",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue.go",
+      "start_line": 130,
+      "end_line": 133,
+      "size_lines": 4,
+      "signature_hint": "func (av DynamoDBAttributeValue) StringSet() []string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 75,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "StringSet",
+          "sites": 5,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd5mta10v6h",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue_test.go",
+            "line": 178,
+            "name": "StringSet",
+            "receiver_hint": "StringSetAttribute"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cgmaj1xeiy4",
+      "qualified_name": "events.CodeCommitReference.String",
+      "simple_name": "String",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F325tkr0yh1",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/code_commit.go",
+      "start_line": 99,
+      "end_line": 102,
+      "size_lines": 4,
+      "signature_hint": "func (r CodeCommitReference) String() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 149,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "String",
+          "sites": 16,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd5mta10v6h",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue_test.go",
+            "line": 60,
+            "name": "String",
+            "receiver_hint": "av.List()[0]"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C101mwsczvet",
+      "qualified_name": "events.DynamoDBAttributeValue.IsNull",
+      "simple_name": "IsNull",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F70dzgr31y0",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue.go",
+      "start_line": 136,
+      "end_line": 138,
+      "size_lines": 3,
+      "signature_hint": "func (av DynamoDBAttributeValue) IsNull() bool",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1197,
+      "region": 87,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "IsNull",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd5mta10v6h",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue_test.go",
+            "line": 157,
+            "name": "IsNull",
+            "receiver_hint": "StringSetAttribute"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Caz3ad19b8p",
+      "qualified_name": "events.UnsupportedDynamoDBTypeError.Error",
+      "simple_name": "Error",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F70dzgr31y0",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue.go",
+      "start_line": 247,
+      "end_line": 249,
+      "size_lines": 3,
+      "signature_hint": "func (e UnsupportedDynamoDBTypeError) Error() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1197,
+      "region": 99,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Error",
+          "sites": 17,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F8bbd1rd1wm",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/cfn/wrap.go",
+            "line": 59,
+            "name": "Error",
+            "receiver_hint": "err"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccmd6idis44",
+      "qualified_name": "events.IncompatibleDynamoDBTypeError.Error",
+      "simple_name": "Error",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F70dzgr31y0",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue.go",
+      "start_line": 257,
+      "end_line": 259,
+      "size_lines": 3,
+      "signature_hint": "func (e IncompatibleDynamoDBTypeError) Error() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1197,
+      "region": 100,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Error",
+          "sites": 17,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F8bbd1rd1wm",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/cfn/wrap.go",
+            "line": 59,
+            "name": "Error",
+            "receiver_hint": "err"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C120zyypisg5",
+      "qualified_name": "events.CodeCommitEvent.String",
+      "simple_name": "String",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F325tkr0yh1",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/code_commit.go",
+      "start_line": 16,
+      "end_line": 18,
+      "size_lines": 3,
+      "signature_hint": "func (e CodeCommitEvent) String() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1197,
+      "region": 144,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "String",
+          "sites": 16,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd5mta10v6h",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue_test.go",
+            "line": 60,
+            "name": "String",
+            "receiver_hint": "av.List()[0]"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C12en2tl6ea7",
+      "qualified_name": "events.CodeCommitCodeCommit.String",
+      "simple_name": "String",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F325tkr0yh1",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/code_commit.go",
+      "start_line": 85,
+      "end_line": 87,
+      "size_lines": 3,
+      "signature_hint": "func (c CodeCommitCodeCommit) String() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1197,
+      "region": 148,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "String",
+          "sites": 16,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd5mta10v6h",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/attributevalue_test.go",
+            "line": 60,
+            "name": "String",
+            "receiver_hint": "av.List()[0]"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cv2akx6pnld",
+      "qualified_name": "lambdaurl.httpResponseWriter.WriteHeader",
+      "simple_name": "WriteHeader",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ftb3bia4t78",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/lambdaurl/http_handler.go",
+      "start_line": 68,
+      "end_line": 70,
+      "size_lines": 3,
+      "signature_hint": "func (w *httpResponseWriter) WriteHeader(statusCode int)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1197,
+      "region": 558,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "WriteHeader",
+          "sites": 15,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fj76djdzzy7",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/lambda/invoke_loop_test.go",
+            "line": 506,
+            "name": "WriteHeader",
+            "receiver_hint": "w"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ckj4a13ig43",
+      "qualified_name": "events.LambdaFunctionURLStreamingResponse.Read",
+      "simple_name": "Read",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fpk8kmqgpaf",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/lambda_function_urls.go",
+      "start_line": 84,
+      "end_line": 110,
+      "size_lines": 27,
+      "signature_hint": "func (r *LambdaFunctionURLStreamingResponse) Read(p []byte) (n int, err error)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1173,
+      "region": 301,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Read",
+          "sites": 8,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fiu3iyqy3mo",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/apigw.go",
+            "line": 72,
+            "name": "Read",
+            "receiver_hint": "r.prelude"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4me210m9s6",
+      "qualified_name": "events.APIGatewayProxyStreamingResponse.Read",
+      "simple_name": "Read",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fiu3iyqy3mo",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/apigw.go",
+      "start_line": 53,
+      "end_line": 78,
+      "size_lines": 26,
+      "signature_hint": "func (r *APIGatewayProxyStreamingResponse) Read(p []byte) (n int, err error)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1174,
+      "region": 41,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Read",
+          "sites": 8,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fiu3iyqy3mo",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/apigw.go",
+            "line": 72,
+            "name": "Read",
+            "receiver_hint": "r.prelude"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czy4vbp39fr",
+      "qualified_name": "lambda.errorCapturingReader.Read",
+      "simple_name": "Read",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fmkhg22mxiu",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/lambda/runtime_api_client.go",
+      "start_line": 177,
+      "end_line": 189,
+      "size_lines": 13,
+      "signature_hint": "func (r *errorCapturingReader) Read(p []byte) (int, error)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1187,
+      "region": 500,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Read",
+          "sites": 8,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fiu3iyqy3mo",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/events/apigw.go",
+            "line": 72,
+            "name": "Read",
+            "receiver_hint": "r.prelude"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cemkraaew07",
+      "qualified_name": "lambdacontext.lambdaHandler.Handle",
+      "simple_name": "Handle",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F750fz7h7l1",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/lambdacontext/logger.go",
+      "start_line": 109,
+      "end_line": 120,
+      "size_lines": 12,
+      "signature_hint": "func (h *lambdaHandler) Handle(ctx context.Context, r slog.Record) error",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1188,
+      "region": 538,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Handle",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F750fz7h7l1",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/lambdacontext/logger.go",
+            "line": 119,
+            "name": "Handle",
+            "receiver_hint": "h.handler"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ca0fbfw79q8",
+      "qualified_name": "events.APIGatewayProxyStreamingResponse.Close",
+      "simple_name": "Close",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fiu3iyqy3mo",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/apigw.go",
+      "start_line": 80,
+      "end_line": 85,
+      "size_lines": 6,
+      "signature_hint": "func (r *APIGatewayProxyStreamingResponse) Close() error",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1194,
+      "region": 42,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Close",
+          "sites": 36,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fhv46d7owms",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/cfn/response.go",
+            "line": 74,
+            "name": "Close",
+            "receiver_hint": "res.Body"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxyfzs36tsa",
+      "qualified_name": "events.LambdaFunctionURLStreamingResponse.Close",
+      "simple_name": "Close",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fpk8kmqgpaf",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/events/lambda_function_urls.go",
+      "start_line": 112,
+      "end_line": 117,
+      "size_lines": 6,
+      "signature_hint": "func (r *LambdaFunctionURLStreamingResponse) Close() error",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1194,
+      "region": 302,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Close",
+          "sites": 36,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fhv46d7owms",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/cfn/response.go",
+            "line": 74,
+            "name": "Close",
+            "receiver_hint": "res.Body"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7ckp3k174i",
+      "qualified_name": "lambda.jsonOutBuffer.Close",
+      "simple_name": "Close",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fwhc92pmyda",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/lambda/handler.go",
+      "start_line": 233,
+      "end_line": 237,
+      "size_lines": 5,
+      "signature_hint": "func (j *jsonOutBuffer) Close() error",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1195,
+      "region": 404,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Close",
+          "sites": 36,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fhv46d7owms",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/cfn/response.go",
+            "line": 74,
+            "name": "Close",
+            "receiver_hint": "res.Body"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8urewlhs5a",
+      "qualified_name": "lambdaurl.httpResponseWriter.Write",
+      "simple_name": "Write",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ftb3bia4t78",
+      "path": "/storage/cgg-test_repos/app-awslambda-go/lambdaurl/http_handler.go",
+      "start_line": 63,
+      "end_line": 66,
+      "size_lines": 4,
+      "signature_hint": "func (w *httpResponseWriter) Write(p []byte) (int, error)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1196,
+      "region": 558,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Write",
+          "sites": 24,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F8l9mcnim4d",
+            "path": "/storage/cgg-test_repos/app-awslambda-go/cmd/build-lambda-zip/main.go",
+            "line": 52,
+            "name": "Write",
+            "receiver_hint": "link"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    }
+  ]
+}

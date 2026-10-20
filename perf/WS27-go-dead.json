@@ -1,0 +1,1377 @@
+[
+ {
+  "repo": "app-4minitz-meteor",
+  "old_ms": 765.6245639664121,
+  "new_ms": 765.6601640046574
+ },
+ {
+  "repo": "app-actix-examples",
+  "old_ms": 314.79179102461785,
+  "new_ms": 314.8042210377753
+ },
+ {
+  "repo": "app-adocasts-adonisjs",
+  "old_ms": 665.4608949902467,
+  "new_ms": 665.4435449745506
+ },
+ {
+  "repo": "app-aiproxy-hangfire",
+  "old_ms": 7029.30125099374,
+  "new_ms": 7078.000963025261
+ },
+ {
+  "repo": "app-akka-samples",
+  "old_ms": 264.5890209823847,
+  "new_ms": 264.3756430479698
+ },
+ {
+  "repo": "app-alarik-vapor",
+  "old_ms": 1317.0574170071632,
+  "new_ms": 1266.8550169910304
+ },
+ {
+  "repo": "app-alphapem-genie",
+  "old_ms": 314.6452609798871,
+  "new_ms": 314.8274290142581
+ },
+ {
+  "repo": "app-amurex-robyn",
+  "old_ms": 63.961057050619274,
+  "new_ms": 63.86172701604664
+ },
+ {
+  "repo": "app-annif-connexion",
+  "old_ms": 615.2052630204707,
+  "new_ms": 565.4182030120865
+ },
+ {
+  "repo": "app-apisix-openresty",
+  "old_ms": 1768.041894014459,
+  "new_ms": 1767.7585550118238
+ },
+ {
+  "repo": "app-arcos-plumber",
+  "old_ms": 64.2663849866949,
+  "new_ms": 64.10328601486981
+ },
+ {
+  "repo": "app-arduinoagent-goa",
+  "old_ms": 214.4529020297341,
+  "new_ms": 214.59757100092247
+ },
+ {
+  "repo": "app-avalonia-samples",
+  "old_ms": 966.1132129840553,
+  "new_ms": 916.0362040274777
+ },
+ {
+  "repo": "app-awslambda-go",
+  "old_ms": 264.7744790301658,
+  "new_ms": 314.8484079865739
+ },
+ {
+  "repo": "app-axum-cratesio",
+  "old_ms": 2218.936350021977,
+  "new_ms": 2218.7761290115304
+ },
+ {
+  "repo": "app-azure-functions-dotnet",
+  "old_ms": 64.26939502125606,
+  "new_ms": 64.17703500483185
+ },
+ {
+  "repo": "app-azure-functions-js",
+  "old_ms": 32.009032962378114,
+  "new_ms": 32.00249298242852
+ },
+ {
+  "repo": "app-bamboobsc-struts",
+  "old_ms": 19073.05239595007,
+  "new_ms": 18804.06876304187
+ },
+ {
+  "repo": "app-bambufarm-vaadin",
+  "old_ms": 164.1330019920133,
+  "new_ms": 164.10823300248012
+ },
+ {
+  "repo": "app-barong-grape",
+  "old_ms": 565.4544349526986,
+  "new_ms": 565.6165450345725
+ },
+ {
+  "repo": "app-basedosdados-prefect",
+  "old_ms": 6980.317063978873,
+  "new_ms": 6977.584047010168
+ },
+ {
+  "repo": "app-betting-expressgateway",
+  "old_ms": 264.4946080399677,
+  "new_ms": 264.1432890086435
+ },
+ {
+  "repo": "app-bewcloud-deno",
+  "old_ms": 1265.695562993642,
+  "new_ms": 1265.704713005107
+ },
+ {
+  "repo": "app-black-click",
+  "old_ms": 2617.9841309785843,
+  "new_ms": 2617.6832310156897
+ },
+ {
+  "repo": "app-blazor-samples",
+  "old_ms": 915.9280899912119,
+  "new_ms": 865.4854240012355
+ },
+ {
+  "repo": "app-brightsky-huey",
+  "old_ms": 2918.0829969700426,
+  "new_ms": 2970.537831017282
+ },
+ {
+  "repo": "app-bugbug-gcpfunctions",
+  "old_ms": 1768.022300035227,
+  "new_ms": 1768.1102200294845
+ },
+ {
+  "repo": "app-calcom-nextjs",
+  "old_ms": 15342.763587017544,
+  "new_ms": 15594.735077989753
+ },
+ {
+  "repo": "app-caninclude-polka",
+  "old_ms": 64.1862929915078,
+  "new_ms": 64.06091497046873
+ },
+ {
+  "repo": "app-cardmgmt-giraffe",
+  "old_ms": 114.28392201196402,
+  "new_ms": 114.32803201023489
+ },
+ {
+  "repo": "app-carvera-firmware-cpp",
+  "old_ms": 1817.9940349655226,
+  "new_ms": 1767.9412269499153
+ },
+ {
+  "repo": "app-casdoor-beego",
+  "old_ms": 8627.019560022745,
+  "new_ms": 8729.354088020045
+ },
+ {
+  "repo": "app-cdk-examples",
+  "old_ms": 1065.5287230038084,
+  "new_ms": 1065.6144820386544
+ },
+ {
+  "repo": "app-circuitbreaker-kong",
+  "old_ms": 63.943843997549266,
+  "new_ms": 31.95249300915748
+ },
+ {
+  "repo": "app-clashverge-tauri",
+  "old_ms": 1666.071532992646,
+  "new_ms": 1666.1515629966743
+ },
+ {
+  "repo": "app-cljdoc-pedestal",
+  "old_ms": 564.8085180437192,
+  "new_ms": 564.7327380138449
+ },
+ {
+  "repo": "app-cloudflare-workers",
+  "old_ms": 514.6465909783728,
+  "new_ms": 514.6775009925477
+ },
+ {
+  "repo": "app-codeedit-combine",
+  "old_ms": 965.0634489953518,
+  "new_ms": 965.2982570114546
+ },
+ {
+  "repo": "app-codeigniter-starter",
+  "old_ms": 64.06298401998356,
+  "new_ms": 113.9553029788658
+ },
+ {
+  "repo": "app-concordium-gotham",
+  "old_ms": 2617.5333210267127,
+  "new_ms": 2668.2217129855417
+ },
+ {
+  "repo": "app-crnn-flux",
+  "old_ms": 114.46670902660117,
+  "new_ms": 114.27890101913363
+ },
+ {
+  "repo": "app-cuda-samples",
+  "old_ms": 3371.5040420065634,
+  "new_ms": 3270.31877002446
+ },
+ {
+  "repo": "app-dailynotes-quart",
+  "old_ms": 164.33521697763354,
+  "new_ms": 164.08048901939765
+ },
+ {
+  "repo": "app-darkness-flame",
+  "old_ms": 113.98326203925535,
+  "new_ms": 113.99286199593917
+ },
+ {
+  "repo": "app-dartpad-shelf",
+  "old_ms": 2467.5991710391827,
+  "new_ms": 2569.3976359907538
+ },
+ {
+  "repo": "app-dash-sample-apps",
+  "old_ms": 1517.093786969781,
+  "new_ms": 1467.0959200011566
+ },
+ {
+  "repo": "app-dataverse-jsf",
+  "old_ms": 6476.282151998021,
+  "new_ms": 6473.546669003554
+ },
+ {
+  "repo": "app-deno-std",
+  "old_ms": 3018.227160035167,
+  "new_ms": 3018.1797679979354
+ },
+ {
+  "repo": "app-diaspora-sidekiq",
+  "old_ms": 2017.8564809611998,
+  "new_ms": 2018.446677015163
+ },
+ {
+  "repo": "app-django-netbox",
+  "old_ms": 10637.27739098249,
+  "new_ms": 10584.473088034429
+ },
+ {
+  "repo": "app-domainwatchdog-symfony",
+  "old_ms": 314.34561702189967,
+  "new_ms": 314.384957018774
+ },
+ {
+  "repo": "app-druid-jaxrs",
+  "old_ms": 27911.13599704113,
+  "new_ms": 28019.260761968326
+ },
+ {
+  "repo": "app-edrys-oak",
+  "old_ms": 114.27609797101468,
+  "new_ms": 63.93519300036132
+ },
+ {
+  "repo": "app-elasticsuite-magento",
+  "old_ms": 1466.8011250323616,
+  "new_ms": 1467.0233539654873
+ },
+ {
+  "repo": "app-eshop-aspnet",
+  "old_ms": 565.3293420327827,
+  "new_ms": 565.2893629739992
+ },
+ {
+  "repo": "app-facto-specs2",
+  "old_ms": 916.0692149889655,
+  "new_ms": 865.9334689727984
+ },
+ {
+  "repo": "app-fastapi-dispatch",
+  "old_ms": 2068.5037650400773,
+  "new_ms": 2018.1294389767572
+ },
+ {
+  "repo": "app-ferry-machinery",
+  "old_ms": 18903.849827009253,
+  "new_ms": 18855.271261010785
+ },
+ {
+  "repo": "app-fiber-recipes",
+  "old_ms": 665.4104909976013,
+  "new_ms": 715.3228080132976
+ },
+ {
+  "repo": "app-firebase-samples",
+  "old_ms": 365.74144096812233,
+  "new_ms": 314.6933810203336
+ },
+ {
+  "repo": "app-flaskbb-flask",
+  "old_ms": 1016.3895100122318,
+  "new_ms": 1016.25307102222
+ },
+ {
+  "repo": "app-flinkplatform-flink",
+  "old_ms": 5475.227484013885,
+  "new_ms": 5325.845427985769
+ },
+ {
+  "repo": "app-fpm-fortran",
+  "old_ms": 515.3075020061806,
+  "new_ms": 515.2727619861253
+ },
+ {
+  "repo": "app-fsautocomplete-expecto",
+  "old_ms": 1617.6802659756504,
+  "new_ms": 1567.3076219973154
+ },
+ {
+  "repo": "app-fssnip-suave",
+  "old_ms": 264.7151140263304,
+  "new_ms": 264.41689499188215
+ },
+ {
+  "repo": "app-gcp-functions",
+  "old_ms": 114.25120697822422,
+  "new_ms": 114.31446700589731
+ },
+ {
+  "repo": "app-ghcli-cobra",
+  "old_ms": 5074.637105979491,
+  "new_ms": 5074.599852960091
+ },
+ {
+  "repo": "app-ghost-express",
+  "old_ms": 17452.95270998031,
+  "new_ms": 17203.404030005913
+ },
+ {
+  "repo": "app-ghostfolio-nestjs",
+  "old_ms": 1367.0652590226382,
+  "new_ms": 1366.823210963048
+ },
+ {
+  "repo": "app-ghostty-zig",
+  "old_ms": 10236.04848003015,
+  "new_ms": 10232.528975000605
+ },
+ {
+  "repo": "app-gin-photoprism",
+  "old_ms": 9887.01653899625,
+  "new_ms": 10086.328763980418
+ },
+ {
+  "repo": "app-godot-demos",
+  "old_ms": 264.64091101661325,
+  "new_ms": 264.4810519996099
+ },
+ {
+  "repo": "app-golangflow-buffalo",
+  "old_ms": 665.55445198901,
+  "new_ms": 665.6807910185307
+ },
+ {
+  "repo": "app-grape-swagger",
+  "old_ms": 314.75466600386426,
+  "new_ms": 314.6760059753433
+ },
+ {
+  "repo": "app-grocy-slim",
+  "old_ms": 665.4447820037603,
+  "new_ms": 615.3383569908328
+ },
+ {
+  "repo": "app-gs-batch-processing",
+  "old_ms": 64.19255101354793,
+  "new_ms": 64.26571001065895
+ },
+ {
+  "repo": "app-hadolint-hspec",
+  "old_ms": 264.523032004945,
+  "new_ms": 264.5457510370761
+ },
+ {
+  "repo": "app-hertz-examples",
+  "old_ms": 2018.2568290038034,
+  "new_ms": 2068.520032975357
+ },
+ {
+  "repo": "app-homebox-chi",
+  "old_ms": 2719.548909983132,
+  "new_ms": 2769.7467139805667
+ },
+ {
+  "repo": "app-hono-examples",
+  "old_ms": 164.51780998613685,
+  "new_ms": 164.385070966091
+ },
+ {
+  "repo": "app-html2rss-roda",
+  "old_ms": 414.6917969919741,
+  "new_ms": 414.9134060135111
+ },
+ {
+  "repo": "app-humhub-yii",
+  "old_ms": 4173.857036978006,
+  "new_ms": 4073.238337005023
+ },
+ {
+  "repo": "app-hypothesis-pyramid",
+  "old_ms": 4875.795350002591,
+  "new_ms": 4774.3770239758305
+ },
+ {
+  "repo": "app-immich-nestjs",
+  "old_ms": 6178.500482987147,
+  "new_ms": 6177.475864998996
+ },
+ {
+  "repo": "app-importexcel-pester",
+  "old_ms": 314.8297239677049,
+  "new_ms": 314.58434503292665
+ },
+ {
+  "repo": "app-insights-feathers",
+  "old_ms": 314.88623400218785,
+  "new_ms": 264.658348984085
+ },
+ {
+  "repo": "app-itunesweb-padrino",
+  "old_ms": 314.73377405200154,
+  "new_ms": 264.50515998294577
+ },
+ {
+  "repo": "app-jabref-javafx",
+  "old_ms": 5976.799061987549,
+  "new_ms": 5928.332294046413
+ },
+ {
+  "repo": "app-jobserver-spark",
+  "old_ms": 966.5105449967086,
+  "new_ms": 966.0831559449434
+ },
+ {
+  "repo": "app-jupyterhub-tornado",
+  "old_ms": 1066.12110696733,
+  "new_ms": 1066.3716060225852
+ },
+ {
+  "repo": "app-kapua-camel",
+  "old_ms": 6025.786163052544,
+  "new_ms": 6028.941951983143
+ },
+ {
+  "repo": "app-katrain-kivy",
+  "old_ms": 414.98635296011344,
+  "new_ms": 414.77688401937485
+ },
+ {
+  "repo": "app-kori-ktorclient",
+  "old_ms": 14743.48711001221,
+  "new_ms": 14594.294950016774
+ },
+ {
+  "repo": "app-kotlinconf-ktor",
+  "old_ms": 414.8131830152124,
+  "new_ms": 414.93550199083984
+ },
+ {
+  "repo": "app-ksql-kafkastreams",
+  "old_ms": 9232.922566006891,
+  "new_ms": 9433.915423986036
+ },
+ {
+  "repo": "app-kubepi-iris",
+  "old_ms": 1417.0152010046877,
+  "new_ms": 1417.0306710293517
+ },
+ {
+  "repo": "app-kythe-bazel",
+  "old_ms": 3621.465149044525,
+  "new_ms": 3821.550895983819
+ },
+ {
+  "repo": "app-lemmy-actix",
+  "old_ms": 1616.9725399813615,
+  "new_ms": 1617.4466279917397
+ },
+ {
+  "repo": "app-libchecker-gradle",
+  "old_ms": 2018.4727709856816,
+  "new_ms": 1968.083698011469
+ },
+ {
+  "repo": "app-libxev-zig",
+  "old_ms": 264.48042795527726,
+  "new_ms": 264.64495703112334
+ },
+ {
+  "repo": "app-lipas-reitit",
+  "old_ms": 2019.1909470013343,
+  "new_ms": 2018.0174120469019
+ },
+ {
+  "repo": "app-litestar-fullstack",
+  "old_ms": 865.9354789997451,
+  "new_ms": 866.0810089786537
+ },
+ {
+  "repo": "app-lobsters-puma",
+  "old_ms": 615.584235987626,
+  "new_ms": 615.5281069804914
+ },
+ {
+  "repo": "app-marktext-electron",
+  "old_ms": 3522.1355489920825,
+  "new_ms": 3472.081661981065
+ },
+ {
+  "repo": "app-marquez-dropwizard",
+  "old_ms": 1167.1381019987166,
+  "new_ms": 1166.8232540250756
+ },
+ {
+  "repo": "app-masstransit-sample",
+  "old_ms": 64.28503902861848,
+  "new_ms": 64.21739998040721
+ },
+ {
+  "repo": "app-mediom-revel",
+  "old_ms": 314.63077099760994,
+  "new_ms": 314.6472619846463
+ },
+ {
+  "repo": "app-memos-echo",
+  "old_ms": 2970.4357309965417,
+  "new_ms": 3069.9067219975404
+ },
+ {
+  "repo": "app-metabase-compojure",
+  "old_ms": 45860.56863202248,
+  "new_ms": 45712.1462529758
+ },
+ {
+  "repo": "app-metacpan-catalyst",
+  "old_ms": 264.6590039948933,
+  "new_ms": 264.5511460141279
+ },
+ {
+  "repo": "app-micromdm-gokit",
+  "old_ms": 615.2705140411854,
+  "new_ms": 665.5233560013585
+ },
+ {
+  "repo": "app-micronaut-graalapp",
+  "old_ms": 32.274448953103274,
+  "new_ms": 32.082849997095764
+ },
+ {
+  "repo": "app-mimic-kivy",
+  "old_ms": 615.1578339631669,
+  "new_ms": 565.4714280390181
+ },
+ {
+  "repo": "app-mineadmin-swoole",
+  "old_ms": 264.54442500835285,
+  "new_ms": 264.51758603798226
+ },
+ {
+  "repo": "app-monica-laravel",
+  "old_ms": 6427.3414929630235,
+  "new_ms": 6327.468108967878
+ },
+ {
+  "repo": "app-monogame-samples",
+  "old_ms": 915.6104479916394,
+  "new_ms": 865.653203043621
+ },
+ {
+  "repo": "app-moon-kratos",
+  "old_ms": 5374.678045976907,
+  "new_ms": 5525.881242007017
+ },
+ {
+  "repo": "app-mtgnode-sails",
+  "old_ms": 114.27252303110436,
+  "new_ms": 114.30012300843373
+ },
+ {
+  "repo": "app-nanocl-ntex",
+  "old_ms": 264.5477849873714,
+  "new_ms": 264.6990949870087
+ },
+ {
+  "repo": "app-neorv32-vhdl",
+  "old_ms": 565.2033679652959,
+  "new_ms": 514.8175460053608
+ },
+ {
+  "repo": "app-networkingdsc-dsc",
+  "old_ms": 415.01754499040544,
+  "new_ms": 414.9410870159045
+ },
+ {
+  "repo": "app-newscrawl-storm",
+  "old_ms": 64.1555490437895,
+  "new_ms": 64.12865000311285
+ },
+ {
+  "repo": "app-nextcloud-android",
+  "old_ms": 2769.9889370123856,
+  "new_ms": 2869.7220970061608
+ },
+ {
+  "repo": "app-ocamlci-alcotest",
+  "old_ms": 565.2101479936391,
+  "new_ms": 564.920128963422
+ },
+ {
+  "repo": "app-ocamlorg-dream",
+  "old_ms": 21509.15704201907,
+  "new_ms": 21559.25944802584
+ },
+ {
+  "repo": "app-oldata-dagster",
+  "old_ms": 1467.1082129934803,
+  "new_ms": 1467.5827500177547
+ },
+ {
+  "repo": "app-ombi-quartz",
+  "old_ms": 4122.866038000211,
+  "new_ms": 4072.996082017198
+ },
+ {
+  "repo": "app-oncall-falcon",
+  "old_ms": 865.9962479723617,
+  "new_ms": 865.8773379866034
+ },
+ {
+  "repo": "app-opam-cmdliner",
+  "old_ms": 1417.2383469995111,
+  "new_ms": 1367.4364109756425
+ },
+ {
+  "repo": "app-opensocial-drupal",
+  "old_ms": 2770.1043249689974,
+  "new_ms": 2720.2717600157484
+ },
+ {
+  "repo": "app-ora-swifttesting",
+  "old_ms": 565.311205049511,
+  "new_ms": 515.1774120167829
+ },
+ {
+  "repo": "app-orleans-samples",
+  "old_ms": 5726.239230018109,
+  "new_ms": 5675.834195979405
+ },
+ {
+  "repo": "app-owllook-sanic",
+  "old_ms": 214.53471999848261,
+  "new_ms": 214.46848998311907
+ },
+ {
+  "repo": "app-pa11y-hapi",
+  "old_ms": 364.92736998479813,
+  "new_ms": 364.8303599911742
+ },
+ {
+  "repo": "app-papercups-phoenix",
+  "old_ms": 2368.9844849868678,
+  "new_ms": 2369.245884998236
+ },
+ {
+  "repo": "app-passbolt-cakephp",
+  "old_ms": 7430.238954024389,
+  "new_ms": 7431.987442017999
+ },
+ {
+  "repo": "app-perlmaven-dancer2",
+  "old_ms": 1066.3523889961652,
+  "new_ms": 1066.359820018988
+ },
+ {
+  "repo": "app-pfr-lean",
+  "old_ms": 1617.8762770141475,
+  "new_ms": 1617.4255390069447
+ },
+ {
+  "repo": "app-pixlserv-martini",
+  "old_ms": 64.1670489567332,
+  "new_ms": 64.1609889571555
+ },
+ {
+  "repo": "app-plausible-phoenix",
+  "old_ms": 2970.5542740412056,
+  "new_ms": 2920.6087980419397
+ },
+ {
+  "repo": "app-powertools-lambda",
+  "old_ms": 4324.1092640091665,
+  "new_ms": 4274.058808980044
+ },
+ {
+  "repo": "app-pydantic-core",
+  "old_ms": 1817.934360995423,
+  "new_ms": 1818.088308966253
+ },
+ {
+  "repo": "app-pywallet-kivy",
+  "old_ms": 114.36269199475646,
+  "new_ms": 114.37038099393249
+ },
+ {
+  "repo": "app-quack-oak",
+  "old_ms": 715.707827010192,
+  "new_ms": 665.4521959717385
+ },
+ {
+  "repo": "app-quotesbot-scrapy",
+  "old_ms": 32.09285100456327,
+  "new_ms": 32.0934199844487
+ },
+ {
+  "repo": "app-rails-mastodon",
+  "old_ms": 6077.252057031728,
+  "new_ms": 6029.200678982306
+ },
+ {
+  "repo": "app-ravada-mojolicious",
+  "old_ms": 2218.9810409909114,
+  "new_ms": 2169.0414879703894
+ },
+ {
+  "repo": "app-realworld-scotty",
+  "old_ms": 114.23702497268096,
+  "new_ms": 114.26163499709219
+ },
+ {
+  "repo": "app-realworld-tide",
+  "old_ms": 164.3341809976846,
+  "new_ms": 164.36649201205
+ },
+ {
+  "repo": "app-rebar3-eunit",
+  "old_ms": 816.0371260019019,
+  "new_ms": 815.7230750075541
+ },
+ {
+  "repo": "app-reggie-restify",
+  "old_ms": 64.12403797730803,
+  "new_ms": 64.28372696973383
+ },
+ {
+  "repo": "app-resque-sinatra",
+  "old_ms": 314.74208895815536,
+  "new_ms": 314.7006789804436
+ },
+ {
+  "repo": "app-riemann-httpkit",
+  "old_ms": 414.98447000049055,
+  "new_ms": 415.07905104663223
+ },
+ {
+  "repo": "app-riffraff-play",
+  "old_ms": 1016.0822630277835,
+  "new_ms": 1015.8886290155351
+ },
+ {
+  "repo": "app-rn-expensify",
+  "old_ms": 36139.60930501344,
+  "new_ms": 36289.961547998246
+ },
+ {
+  "repo": "app-saleor-celery",
+  "old_ms": 13844.248613051604,
+  "new_ms": 13792.974483978469
+ },
+ {
+  "repo": "app-salvo-examples",
+  "old_ms": 6828.745312988758,
+  "new_ms": 6778.973951004446
+ },
+ {
+  "repo": "app-saplib-jenkins",
+  "old_ms": 5726.444323954638,
+  "new_ms": 5776.526728994213
+ },
+ {
+  "repo": "app-sdwebui-gradio",
+  "old_ms": 1266.6634299675934,
+  "new_ms": 1266.5324870031327
+ },
+ {
+  "repo": "app-serverless-examples",
+  "old_ms": 414.97925599105656,
+  "new_ms": 414.9589649750851
+ },
+ {
+  "repo": "app-shlink-roadrunner",
+  "old_ms": 715.489208989311,
+  "new_ms": 665.4836700181477
+ },
+ {
+  "repo": "app-shopping-loopback",
+  "old_ms": 214.64561397442594,
+  "new_ms": 164.49768701568246
+ },
+ {
+  "repo": "app-shuttle-examples",
+  "old_ms": 264.6263019996695,
+  "new_ms": 264.47095203911886
+ },
+ {
+  "repo": "app-smoothie-kivy",
+  "old_ms": 364.84134499914944,
+  "new_ms": 364.96341502061114
+ },
+ {
+  "repo": "app-smoothieware-cpp",
+  "old_ms": 1166.5305260103196,
+  "new_ms": 1166.5256230044179
+ },
+ {
+  "repo": "app-snlquest-kivy",
+  "old_ms": 7930.848102958407,
+  "new_ms": 7881.31051097298
+ },
+ {
+  "repo": "app-socialhome-dramatiq",
+  "old_ms": 515.156801964622,
+  "new_ms": 515.0984729989432
+ },
+ {
+  "repo": "app-spring-mall",
+  "old_ms": 1316.9918839703314,
+  "new_ms": 1266.871236031875
+ },
+ {
+  "repo": "app-stackage-yesod",
+  "old_ms": 464.9484649999067,
+  "new_ms": 414.9756190017797
+ },
+ {
+  "repo": "app-storm-starter",
+  "old_ms": 8382.701819995418,
+  "new_ms": 8381.119520985521
+ },
+ {
+  "repo": "app-streama-grails",
+  "old_ms": 1968.2733090012334,
+  "new_ms": 2068.6081029707566
+ },
+ {
+  "repo": "app-swate-saturn",
+  "old_ms": 3271.0343099897727,
+  "new_ms": 3221.289264038205
+ },
+ {
+  "repo": "app-symfony-demo",
+  "old_ms": 114.22722600400448,
+  "new_ms": 114.34946698136628
+ },
+ {
+  "repo": "app-symfony-messenger",
+  "old_ms": 26671.357432031073,
+  "new_ms": 26418.845164997038
+ },
+ {
+  "repo": "app-temporal-samples",
+  "old_ms": 515.1455050217919,
+  "new_ms": 565.26717095403
+ },
+ {
+  "repo": "app-terminus-hanami",
+  "old_ms": 715.8768140361644,
+  "new_ms": 715.7002330059186
+ },
+ {
+  "repo": "app-thingsboard-concurrent",
+  "old_ms": 19055.73355400702,
+  "new_ms": 18954.433595994487
+ },
+ {
+  "repo": "app-tigerbeetle-zig",
+  "old_ms": 2469.3934420356527,
+  "new_ms": 2419.3698079907335
+ },
+ {
+  "repo": "app-toiletmap-yoga",
+  "old_ms": 314.8206460173242,
+  "new_ms": 314.6906570182182
+ },
+ {
+  "repo": "app-torch-ultralytics",
+  "old_ms": 1968.2862699846737,
+  "new_ms": 1918.1434229831211
+ },
+ {
+  "repo": "app-tweetconf-shiny",
+  "old_ms": 64.1096219769679,
+  "new_ms": 64.25583100644872
+ },
+ {
+  "repo": "app-unity-boat",
+  "old_ms": 314.6941030281596,
+  "new_ms": 264.45611397502944
+ },
+ {
+  "repo": "app-unity-gamekit",
+  "old_ms": 314.7766529582441,
+  "new_ms": 314.60444402182475
+ },
+ {
+  "repo": "app-vaultwarden-rocket",
+  "old_ms": 1166.3974490365945,
+  "new_ms": 1166.6568740038201
+ },
+ {
+  "repo": "app-vernemq-cowboy",
+  "old_ms": 1015.808833995834,
+  "new_ms": 1015.6980130122975
+ },
+ {
+  "repo": "app-watchlistarr-http4s",
+  "old_ms": 114.32933999458328,
+  "new_ms": 114.1961719840765
+ },
+ {
+  "repo": "app-waybar-catch2",
+  "old_ms": 815.2772019966505,
+  "new_ms": 865.6896890024655
+ },
+ {
+  "repo": "app-wificonnect-iron",
+  "old_ms": 64.3402099958621,
+  "new_ms": 64.10968099953607
+ },
+ {
+  "repo": "app-wiregui-nicegui",
+  "old_ms": 364.62777003180236,
+  "new_ms": 364.7335789864883
+ },
+ {
+  "repo": "app-wishlist-remix",
+  "old_ms": 64.09361102851108,
+  "new_ms": 64.10765100736171
+ },
+ {
+  "repo": "app-wordpress",
+  "old_ms": 14191.856630030088,
+  "new_ms": 14092.69087499706
+ },
+ {
+  "repo": "app-wordpress-android",
+  "old_ms": 10486.4255359862,
+  "new_ms": 10486.586398968939
+ },
+ {
+  "repo": "app-workerstunnel-cloudflare",
+  "old_ms": 64.18395496439189,
+  "new_ms": 64.07716596731916
+ },
+ {
+  "repo": "app-xrviz-panel",
+  "old_ms": 114.39048004103824,
+  "new_ms": 114.33219001628458
+ },
+ {
+  "repo": "app-yapi-koa",
+  "old_ms": 8731.840674008708,
+  "new_ms": 8679.746596026234
+ },
+ {
+  "repo": "app-zenplayer-kivy",
+  "old_ms": 114.35255705146119,
+  "new_ms": 114.3659669905901
+ },
+ {
+  "repo": "app-zls-zig",
+  "old_ms": 665.2686209999956,
+  "new_ms": 665.3066700091586
+ },
+ {
+  "repo": "app-zpool-opium",
+  "old_ms": 1968.0381470243447,
+  "new_ms": 2018.4633919852786
+ },
+ {
+  "repo": "asm-xv6",
+  "old_ms": 164.46222900412977,
+  "new_ms": 164.29508000146598
+ },
+ {
+  "repo": "asyncapi-spec",
+  "old_ms": 64.13485296070576,
+  "new_ms": 63.98142402758822
+ },
+ {
+  "repo": "bash-acme",
+  "old_ms": 414.69140799017623,
+  "new_ms": 414.88917695824057
+ },
+ {
+  "repo": "c-jq",
+  "old_ms": 415.0558260153048,
+  "new_ms": 414.9079659837298
+ },
+ {
+  "repo": "c-redis",
+  "old_ms": 4873.384310049005,
+  "new_ms": 4874.697546998505
+ },
+ {
+  "repo": "clojure-compojure",
+  "old_ms": 114.20057399664074,
+  "new_ms": 65.15942700207233
+ },
+ {
+  "repo": "clojure-ring",
+  "old_ms": 214.17688101064414,
+  "new_ms": 214.34712898917496
+ },
+ {
+  "repo": "cloudflare-worker-examples",
+  "old_ms": 32.07242098869756,
+  "new_ms": 31.99036099249497
+ },
+ {
+  "repo": "cmake-kitware",
+  "old_ms": 20903.14546704758,
+  "new_ms": 20605.342982977163
+ },
+ {
+  "repo": "cpp-nlohmann-json",
+  "old_ms": 3170.314249000512,
+  "new_ms": 3169.4988080416806
+ },
+ {
+  "repo": "cpp-spdlog",
+  "old_ms": 765.2206749771722,
+  "new_ms": 765.6718720099889
+ },
+ {
+  "repo": "csharp-mediatr",
+  "old_ms": 264.6641420433298,
+  "new_ms": 264.67191195115447
+ },
+ {
+  "repo": "csharp-newtonsoft",
+  "old_ms": 3171.5983859612606,
+  "new_ms": 3170.778015977703
+ },
+ {
+  "repo": "csharp-serilog",
+  "old_ms": 465.10288305580616,
+  "new_ms": 465.0243630167097
+ },
+ {
+  "repo": "dart-flame",
+  "old_ms": 3020.0455249869265,
+  "new_ms": 2969.7193449828774
+ },
+ {
+  "repo": "dart-flutter",
+  "old_ms": 59033.43505598605,
+  "new_ms": 58362.13477503043
+ },
+ {
+  "repo": "elixir-phoenix",
+  "old_ms": 767.7633980056271,
+  "new_ms": 767.7848669700325
+ },
+ {
+  "repo": "erlang-otp",
+  "old_ms": 42783.639429020695,
+  "new_ms": 43636.865274980664
+ },
+ {
+  "repo": "fortran-stdlib",
+  "old_ms": 514.8968590074219,
+  "new_ms": 515.1403989875689
+ },
+ {
+  "repo": "fsharp-paket",
+  "old_ms": 1967.552543967031,
+  "new_ms": 1917.7190629998222
+ },
+ {
+  "repo": "go-caddy",
+  "old_ms": 1617.4497910542414,
+  "new_ms": 1667.7210750058293
+ },
+ {
+  "repo": "go-fzf",
+  "old_ms": 815.7560210092925,
+  "new_ms": 815.8150989911519
+ },
+ {
+  "repo": "go-hertz",
+  "old_ms": 1567.2603489947505,
+  "new_ms": 1666.99153999798
+ },
+ {
+  "repo": "go-martini",
+  "old_ms": 114.40122500061989,
+  "new_ms": 114.25702599808574
+ },
+ {
+  "repo": "graphql-github",
+  "old_ms": 464.98423599405214,
+  "new_ms": 465.0162369944155
+ },
+ {
+  "repo": "groovy-gradle",
+  "old_ms": 32478.764685976785,
+  "new_ms": 32281.414641009178
+ },
+ {
+  "repo": "haskell-hspec",
+  "old_ms": 264.5909390412271,
+  "new_ms": 264.4822800066322
+ },
+ {
+  "repo": "haskell-pandoc",
+  "old_ms": 2669.6145629975945,
+  "new_ms": 2619.672563043423
+ },
+ {
+  "repo": "hcl-terraform-aws",
+  "old_ms": null,
+  "new_ms": null
+ },
+ {
+  "repo": "hcl-vpc",
+  "old_ms": 214.62885703658685,
+  "new_ms": 214.57191603258252
+ },
+ {
+  "repo": "java-gson",
+  "old_ms": 815.696190984454,
+  "new_ms": 815.880210022442
+ },
+ {
+  "repo": "java-okhttp",
+  "old_ms": 1968.3407970005646,
+  "new_ms": 1968.1263069505803
+ },
+ {
+  "repo": "java-spring-batch",
+  "old_ms": 2368.925372022204,
+  "new_ms": 2319.309797952883
+ },
+ {
+  "repo": "js-express",
+  "old_ms": 515.1930560241453,
+  "new_ms": 515.1354449917562
+ },
+ {
+  "repo": "js-lodash",
+  "old_ms": 966.3608190021478,
+  "new_ms": 966.4879380143248
+ },
+ {
+  "repo": "js-loopback",
+  "old_ms": 3421.8026400194503,
+  "new_ms": 3421.2542249588296
+ },
+ {
+  "repo": "js-polka",
+  "old_ms": 114.21975796110928,
+  "new_ms": 165.76299001462758
+ },
+ {
+  "repo": "js-restify",
+  "old_ms": 465.0007550371811,
+  "new_ms": 465.02236498054117
+ },
+ {
+  "repo": "julia-flux",
+  "old_ms": 214.47840402834117,
+  "new_ms": 214.54563399311155
+ },
+ {
+  "repo": "julia-genie",
+  "old_ms": 364.8568179924041,
+  "new_ms": 364.8257479653694
+ },
+ {
+  "repo": "kivy-carvera",
+  "old_ms": 1266.7373819858767,
+  "new_ms": 1266.4610329666175
+ },
+ {
+  "repo": "kivy-kivymd",
+  "old_ms": 815.8214690047316,
+  "new_ms": 815.785237995442
+ },
+ {
+  "repo": "kotlin-okio",
+  "old_ms": 916.1913730204105,
+  "new_ms": 916.0871530184522
+ },
+ {
+  "repo": "lean-batteries",
+  "old_ms": 765.8135779784061,
+  "new_ms": 765.6371599878184
+ },
+ {
+  "repo": "lua-kong",
+  "old_ms": 3571.6390819870867,
+  "new_ms": 3571.702314016875
+ },
+ {
+  "repo": "lua-neovim",
+  "old_ms": 7830.617070023436,
+  "new_ms": 7880.405374045949
+ },
+ {
+  "repo": "nix-home-manager",
+  "old_ms": 1266.5511409868486,
+  "new_ms": 1216.2075450178236
+ },
+ {
+  "repo": "objc-afnetworking",
+  "old_ms": 264.5132080069743,
+  "new_ms": 264.3900780240074
+ },
+ {
+  "repo": "ocaml-dune",
+  "old_ms": 7981.198028021026,
+  "new_ms": 8081.899325014092
+ },
+ {
+  "repo": "openapi-spec",
+  "skipped": "budget"
+ },
+ {
+  "repo": "perl-dancer2",
+  "skipped": "budget"
+ },
+ {
+  "repo": "perl-mojolicious",
+  "skipped": "budget"
+ },
+ {
+  "repo": "php-laravel",
+  "skipped": "budget"
+ },
+ {
+  "repo": "powershell-psget",
+  "skipped": "budget"
+ },
+ {
+  "repo": "proto-grpc",
+  "skipped": "budget"
+ },
+ {
+  "repo": "py-apscheduler",
+  "skipped": "budget"
+ },
+ {
+  "repo": "py-dash",
+  "skipped": "budget"
+ },
+ {
+  "repo": "py-dramatiq",
+  "skipped": "budget"
+ },
+ {
+  "repo": "py-falcon",
+  "skipped": "budget"
+ },
+ {
+  "repo": "py-huey",
+  "skipped": "budget"
+ },
+ {
+  "repo": "py-litestar",
+  "skipped": "budget"
+ },
+ {
+  "repo": "py-quart",
+  "skipped": "budget"
+ },
+ {
+  "repo": "py-robyn",
+  "skipped": "budget"
+ },
+ {
+  "repo": "py-scrapy",
+  "skipped": "budget"
+ },
+ {
+  "repo": "python-flask",
+  "skipped": "budget"
+ },
+ {
+  "repo": "python-httpie",
+  "skipped": "budget"
+ },
+ {
+  "repo": "r-ggplot2",
+  "skipped": "budget"
+ },
+ {
+  "repo": "ruby-jekyll",
+  "skipped": "budget"
+ },
+ {
+  "repo": "rust-bat",
+  "skipped": "budget"
+ },
+ {
+  "repo": "rust-ntex",
+  "skipped": "budget"
+ },
+ {
+  "repo": "rust-ripgrep",
+  "skipped": "budget"
+ },
+ {
+  "repo": "rust-rtic",
+  "skipped": "budget"
+ },
+ {
+  "repo": "scala-play",
+  "skipped": "budget"
+ },
+ {
+  "repo": "scala-spark",
+  "skipped": "budget"
+ },
+ {
+  "repo": "smithy-protocol-tests",
+  "skipped": "budget"
+ },
+ {
+  "repo": "solidity-openzeppelin",
+  "skipped": "budget"
+ },
+ {
+  "repo": "starlark-skylib",
+  "skipped": "budget"
+ },
+ {
+  "repo": "swift-alamofire",
+  "skipped": "budget"
+ },
+ {
+  "repo": "ts-typeorm",
+  "skipped": "budget"
+ },
+ {
+  "repo": "ts-zod",
+  "skipped": "budget"
+ },
+ {
+  "repo": "verilog-picorv32",
+  "skipped": "budget"
+ },
+ {
+  "repo": "vhdl-uvvm",
+  "skipped": "budget"
+ },
+ {
+  "repo": "zig-http",
+  "skipped": "budget"
+ },
+ {
+  "repo": "zig-zig",
+  "skipped": "budget"
+ }
+]

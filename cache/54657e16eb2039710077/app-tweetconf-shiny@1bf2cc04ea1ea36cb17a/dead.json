@@ -1,0 +1,1502 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [],
+      "files": 1,
+      "callables": 1,
+      "roots": 0,
+      "reachable": 0,
+      "reachable_pct": 0,
+      "findings": 1,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    },
+    {
+      "language": "r",
+      "class": "script-driven",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 8,
+      "callables": 30,
+      "roots": 1,
+      "reachable": 1,
+      "reachable_pct": 3,
+      "findings": 21
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 31,
+    "edges": 24,
+    "unresolved_call_sites": 53,
+    "roots": 1,
+    "candidates": 30,
+    "reported": 22,
+    "regions": 19,
+    "withheld": [
+      {
+        "language": "r",
+        "category": "reachable-only-from-dead-code",
+        "reason": "script-driven",
+        "would_have_reported": 8
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Cfzu6h4ndho",
+      "qualified_name": "today_tz",
+      "language": "r",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-tweetconf-shiny/00_settings.R:190"
+    }
+  ],
+  "regions": [
+    {
+      "id": 1,
+      "members": [
+        "C95j29euyjk"
+      ],
+      "anchors": [
+        "C95j29euyjk"
+      ],
+      "files": [
+        "F26i44pinga"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 2,
+      "members": [
+        "Cy1te2gnch9"
+      ],
+      "anchors": [
+        "Cy1te2gnch9"
+      ],
+      "files": [
+        "F168vykyxemq"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 3,
+      "members": [
+        "Clrlqfnyrcn",
+        "Cwe5bqcw2pb",
+        "Cqqnqx9zw9",
+        "Cv4xth6igj6",
+        "Cosvlgoebkk",
+        "C2hzk06p6sc",
+        "C12euhh7ijk1"
+      ],
+      "anchors": [
+        "Clrlqfnyrcn",
+        "Cv4xth6igj6"
+      ],
+      "files": [
+        "F168vykyxemq"
+      ],
+      "total_lines": 54,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 5,
+      "members": [
+        "C12t5461mibc"
+      ],
+      "anchors": [
+        "C12t5461mibc"
+      ],
+      "files": [
+        "F168vykyxemq"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 6,
+      "members": [
+        "C16o7i4lg5qr",
+        "C7rxz16q2z3"
+      ],
+      "anchors": [
+        "C7rxz16q2z3"
+      ],
+      "files": [
+        "F168vykyxemq"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 8,
+      "members": [
+        "Com9uyj79gj"
+      ],
+      "anchors": [
+        "Com9uyj79gj"
+      ],
+      "files": [
+        "F168vykyxemq"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 13,
+      "members": [
+        "Cpj3icuqbrj"
+      ],
+      "anchors": [
+        "Cpj3icuqbrj"
+      ],
+      "files": [
+        "F168vykyxemq"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 14,
+      "members": [
+        "Clfexwz5fcf"
+      ],
+      "anchors": [
+        "Clfexwz5fcf"
+      ],
+      "files": [
+        "F168vykyxemq"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 15,
+      "members": [
+        "Chj4e1gdljs"
+      ],
+      "anchors": [
+        "Chj4e1gdljs"
+      ],
+      "files": [
+        "F168vykyxemq"
+      ],
+      "total_lines": 22,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 17,
+      "members": [
+        "Ci5x9dn3voi"
+      ],
+      "anchors": [
+        "Ci5x9dn3voi"
+      ],
+      "files": [
+        "F168vykyxemq"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 18,
+      "members": [
+        "Cqw773m3743"
+      ],
+      "anchors": [
+        "Cqw773m3743"
+      ],
+      "files": [
+        "F168vykyxemq"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 19,
+      "members": [
+        "C1010tuccfgz"
+      ],
+      "anchors": [
+        "C1010tuccfgz"
+      ],
+      "files": [
+        "F168vykyxemq"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 20,
+      "members": [
+        "Cco3en21cot"
+      ],
+      "anchors": [
+        "Cco3en21cot"
+      ],
+      "files": [
+        "F168vykyxemq"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 21,
+      "members": [
+        "Csnicabb516"
+      ],
+      "anchors": [
+        "Csnicabb516"
+      ],
+      "files": [
+        "F168vykyxemq"
+      ],
+      "total_lines": 28,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 22,
+      "members": [
+        "C1adk0o33kt"
+      ],
+      "anchors": [
+        "C1adk0o33kt"
+      ],
+      "files": [
+        "Fc6b5y6yd0u"
+      ],
+      "total_lines": 41,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 23,
+      "members": [
+        "Cwlv1u1l7lp"
+      ],
+      "anchors": [
+        "Cwlv1u1l7lp"
+      ],
+      "files": [
+        "Fc6b5y6yd0u"
+      ],
+      "total_lines": 130,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 24,
+      "members": [
+        "Cfiddpg1jj7",
+        "Cc531v3mamc",
+        "C14l5brr019u"
+      ],
+      "anchors": [
+        "Cc531v3mamc",
+        "C14l5brr019u"
+      ],
+      "files": [
+        "F98apg2w8sj"
+      ],
+      "total_lines": 58,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 27,
+      "members": [
+        "Czt9m5cttj5",
+        "C3rxum7ud4y",
+        "Cdjs8gvi3dm"
+      ],
+      "anchors": [
+        "C3rxum7ud4y",
+        "Cdjs8gvi3dm"
+      ],
+      "files": [
+        "F9xsof3omox"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "r"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 30,
+      "members": [
+        "Cdcm80nw1sg"
+      ],
+      "anchors": [
+        "Cdcm80nw1sg"
+      ],
+      "files": [
+        "F5e34gall17"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cdcm80nw1sg",
+      "qualified_name": "ready",
+      "simple_name": "ready",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F5e34gall17",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/www/twitter.js",
+      "start_line": 11,
+      "end_line": 13,
+      "size_lines": 3,
+      "signature_hint": "t.ready = function(f)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 30,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwlv1u1l7lp",
+      "qualified_name": "tweetExplorer",
+      "simple_name": "tweetExplorer",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fc6b5y6yd0u",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/module/tweetExplorer.R",
+      "start_line": 43,
+      "end_line": 172,
+      "size_lines": 130,
+      "signature_hint": "tweetExplorer <- function(input, output, session, all_tweets, tzone = \"America/New_York\") { ns <- session$ns top_hashtags <- reactive({ all_tweets() %>% select(hashtags) %>% unnest() %>% count(hashtags, sort = TRUE) %>% slice(1:25) %>% pull(hashtags) }) tweets <- reactive({ tip_words <- \"(TIL|DYK|[Tt]ip|[Ll]earned|[Uu]seful|[Kk]now|[Tt]rick)\" session_words <- \"([Aa]vailable|[Oo]nline|[Ll]ink|[Ss]lide|[Ss]ession)\" all_tweets <- all_tweets() %>% mutate( relates_tip = str_detect(text, tip_words), relates_session = str_detect(text, session_words), relates_github = str_detect(text, \"[Gg]it[Hh]ub\") | str_detect(urls_expanded_url, 'github.com'), hashtags = map(hashtags, tolower) ) x <- switch( input$view, 'Popular' = all_tweets %>% arrange(desc(retweet_count + favorite_count), -map_int(mentions_screen_name, length)), 'Tips' = all_tweets %>% filter(relates_tip, !is_retweet), 'Talks' = all_tweets %>% filter(relates_session, !is_retweet), 'Pictures' = all_tweets %>% filter(!is_retweet, !is.na(media_url)), all_tweets ) if (input$view %in% c('All', 'Popular')) { if (length(input$filter_binary)) { for (filter_binary in input$filter_binary) { x <- switch( filter_binary, # 'Not Retweet' = filter(x, !is_retweet), 'Not Quote' = filter(x, !is_quote), 'Has Media' = filter(x, !is.na(media_url)), 'Has Link' = filter(x, !is.na(urls_url)), 'Has Github Link' = filter(x, str_detect(urls_url, \"github\")), \"Retweeted\" = filter(x, retweet_count > 0), \"Favorited\" = filter(x, favorite_count > 0), x ) } } if (length(input$filter_hashtag))",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1170,
+      "region": 23,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chj4e1gdljs",
+      "qualified_name": "simplify_tweets",
+      "simple_name": "simplify_tweets",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F168vykyxemq",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/functions.R",
+      "start_line": 112,
+      "end_line": 133,
+      "size_lines": 22,
+      "signature_hint": "simplify_tweets <- function(tweets, collapse_list = NULL) { library(dplyr) tweets <- tweets %>% select( 1:5, starts_with(\"reply_\"), starts_with(\"is_\"), favorite_count, retweet_count, hashtags, ends_with(\"expanded_url\"), quoted_status_id, retweet_status_id, mentions_user_id, mentions_screen_name, starts_with(\"place\") ) if (is.null(collapse_list)) return(tweets) tweets %>% mutate_if(is.list, ~ sapply(., paste0, collapse = collapse_list)) }",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1278,
+      "region": 15,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cqw773m3743",
+      "qualified_name": "cache_profile_image",
+      "simple_name": "cache_profile_image",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F168vykyxemq",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/functions.R",
+      "start_line": 154,
+      "end_line": 166,
+      "size_lines": 13,
+      "signature_hint": "cache_profile_image <- function(profile_image_url, location = \"www\", default = \"twitter-default-profile.jpg\") { file_serve <- str_replace(profile_image_url, \".+/profile\", \"profile\") file_local <- fs::path(location, file_serve) if (fs::file_exists(file_local)) { x <- list(result = file_serve) } else { fs::dir_create(fs::path_dir(file_local)) x <- safely(download.file)(profile_image_url, file_local) # On fist download, the image won't be ready for the UI, so show default if (is.null(x$error)) x$result <- default } if (is.null(x$error)) x$result else default }",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1287,
+      "region": 18,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ci5x9dn3voi",
+      "qualified_name": "get_tweet_blockquote",
+      "simple_name": "get_tweet_blockquote",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F168vykyxemq",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/functions.R",
+      "start_line": 141,
+      "end_line": 152,
+      "size_lines": 12,
+      "signature_hint": "get_tweet_blockquote <- function(screen_name, status_id, ..., null_on_error = TRUE, theme = \"light\") { oembed <- list(...)$oembed if (!is.null(oembed) && !is.na(oembed)) return(unlist(oembed)) oembed_url <- glue::glue(\"https://publish.twitter.com/oembed?url=https://twitter.com/{screen_name}/status/{status_id}&omit_script=1&dnt=1&theme={theme}\") bq <- possibly(httr::GET, list(status_code = 999))(URLencode(oembed_url)) if (bq$status_code >= 400) { if (null_on_error) return(NULL) '<blockquote style=\"font-size: 90%\">Sorry, unable to get tweet ¯\\\\_(ツ)_/¯</blockquote>' } else { httr::content(bq, \"parsed\")$html } }",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1288,
+      "region": 17,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cpj3icuqbrj",
+      "qualified_name": "top_tweets",
+      "simple_name": "top_tweets",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F168vykyxemq",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/functions.R",
+      "start_line": 94,
+      "end_line": 103,
+      "size_lines": 10,
+      "signature_hint": "top_tweets <- function(tweets, top_n = 10, ..., descending = TRUE) { top_by <- rlang::enquos(...) x <- tweets %>% arrange(!!!top_by) if (descending) { x %>% tail(top_n) %>% slice(top_n:1) } else",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1290,
+      "region": 13,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3rxum7ud4y",
+      "qualified_name": "scale_color_adminlte",
+      "simple_name": "scale_color_adminlte",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F9xsof3omox",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/global.R",
+      "start_line": 38,
+      "end_line": 40,
+      "size_lines": 3,
+      "signature_hint": "scale_color_adminlte <- function(direction = 1, color_other = \"grey\", ...) { ggplot2::discrete_scale(\"colour\", \"adminlte\", adminlte_pal(direction, color_other)) }",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1297,
+      "region": 27,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cdjs8gvi3dm",
+      "qualified_name": "scale_fill_adminlte",
+      "simple_name": "scale_fill_adminlte",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F9xsof3omox",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/global.R",
+      "start_line": 42,
+      "end_line": 44,
+      "size_lines": 3,
+      "signature_hint": "scale_fill_adminlte <- function(direction = 1, color_other = \"grey\", ...) { ggplot2::discrete_scale(\"fill\", \"adminlte\", adminlte_pal(direction, color_other)) }",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1297,
+      "region": 27,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cy1te2gnch9",
+      "qualified_name": "`%||%`",
+      "simple_name": "`%||%`",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F168vykyxemq",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/functions.R",
+      "start_line": 1,
+      "end_line": 1,
+      "size_lines": 1,
+      "signature_hint": "`%||%` <- function(x,y) if (is.null(x)) y else x",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1299,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1adk0o33kt",
+      "qualified_name": "tweetExplorerUI",
+      "simple_name": "tweetExplorerUI",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fc6b5y6yd0u",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/module/tweetExplorer.R",
+      "start_line": 1,
+      "end_line": 41,
+      "size_lines": 41,
+      "signature_hint": "tweetExplorerUI <- function(id, tweet_div_id = \"tweetExplorer-tweet\", collapsed = FALSE, status = \"info\") { ns <- NS(id) fluidRow( column( 12, column( 12, class = \"col-md-push-9 col-md-3\", box( width = \"6 col-md-12\", status = status, solidHeader = TRUE, title = \"Options\", collapsible = TRUE, collapsed = collapsed, selectInput( ns('view'), 'Tweet Group', c('Popular', 'Tips', \"Talks\", \"Pictures\", \"All\") ), uiOutput(ns('help_text')), uiOutput(ns('filters')) ), column( width = 6, class = \"col-md-12\", id = tweet_div_id, uiOutput(ns(\"tweet\")) ) ), box( width = \"12 col-md-pull-3 col-md-9\", status = \"primary\", DT::dataTableOutput(ns('tweets'))) ) ) }",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1759,
+      "region": 22,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "tweetExplorerUI",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fkdgtq7nnzc",
+            "path": "/storage/cgg-test_repos/app-tweetconf-shiny/ui.R",
+            "line": 280,
+            "name": "tweetExplorerUI"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Csnicabb516",
+      "qualified_name": "tweet_cache_oembed",
+      "simple_name": "tweet_cache_oembed",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F168vykyxemq",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/functions.R",
+      "start_line": 194,
+      "end_line": 221,
+      "size_lines": 28,
+      "signature_hint": "tweet_cache_oembed <- function(tweets, cache = \"data/tweets_oembed.rds\") { if (fs::file_exists(cache)) { oembed <- readRDS(cache) tweets <- left_join(tweets, oembed, by = \"status_id\") } else { oembed <- tibble(status_id = character(), oembed = character()) } if (!\"oembed\" %in% names(tweets)) tweets$oembed <- map(seq_len(nrow(tweets)), ~ NULL) is_needed <- map_lgl(tweets$oembed, is.null) if (any(is_needed)) { tweets$oembed[is_needed] <- if (requireNamespace(\"furrr\", quietly = TRUE)) { furrr::future_pmap(tweets[is_needed, ], get_tweet_blockquote, null_on_error = FALSE, .progress = TRUE) } else { pmap(tweets[is_needed, ], get_tweet_blockquote, null_on_error = FALSE) } oembed_new <- tweets %>% select(status_id, oembed) # oembed may be a superset of the oembed we got from these tweets # so the following keeps the old oembed not contained in oembed_new oembed <- bind_rows( semi_join(oembed_new, oembed, by = \"status_id\"), anti_join(oembed_new, oembed, by = \"status_id\") ) saveRDS(oembed, cache) } return(tweets) }",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1772,
+      "region": 21,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "tweet_cache_oembed",
+          "sites": 2,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9xsof3omox",
+            "path": "/storage/cgg-test_repos/app-tweetconf-shiny/global.R",
+            "line": 65,
+            "name": "tweet_cache_oembed"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Clrlqfnyrcn",
+      "qualified_name": "import_tweets",
+      "simple_name": "import_tweets",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F168vykyxemq",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/functions.R",
+      "start_line": 3,
+      "end_line": 22,
+      "size_lines": 20,
+      "signature_hint": "import_tweets <- function( file, tz_global = tz_global(), topic_terms = NULL, start_date = NULL, blocklist = NULL ) { tweets <- readRDS(file) %>% mutate(created_at = lubridate::with_tz(created_at, tz_global())) %>% tweets_since(TWEETS_START_DATE) %>% tweets_not_hashdump() %>% tweets_block(blocklist$status_id, blocklist$screen_name) %>% arrange(desc(created_at)) %>% is_topic_tweet(topic_terms) if (!\"is_quote\" %in% names(tweets)) tweets$is_quote <- FALSE if (!\"is_retweet\" %in% names(tweets)) tweets$is_retweet <- FALSE tweets }",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1780,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "import_tweets",
+          "sites": 2,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9xsof3omox",
+            "path": "/storage/cgg-test_repos/app-tweetconf-shiny/global.R",
+            "line": 57,
+            "name": "import_tweets"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "C1010tuccfgz",
+      "qualified_name": "masonify_tweets",
+      "simple_name": "masonify_tweets",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F168vykyxemq",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/functions.R",
+      "start_line": 168,
+      "end_line": 183,
+      "size_lines": 16,
+      "signature_hint": "masonify_tweets <- function(tweets, id = NULL, class = NULL) { stopifnot(\"status_id\" %in% names(tweets)) t_embed <- tweets %>% pmap(get_tweet_blockquote) %>% map(HTML) %>% map(tags$div, class = \"tweet-item\") tagList( tags$div(id = id, class = paste(\"masonry text-left\", class), t_embed ) ) }",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1784,
+      "region": 19,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "masonify_tweets",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9g8m6dmbwz",
+            "path": "/storage/cgg-test_repos/app-tweetconf-shiny/server.R",
+            "line": 415,
+            "name": "masonify_tweets"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C95j29euyjk",
+      "qualified_name": "TWEET_WALL_DATE_RANGE",
+      "simple_name": "TWEET_WALL_DATE_RANGE",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F26i44pinga",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/00_settings.R",
+      "start_line": 104,
+      "end_line": 116,
+      "size_lines": 13,
+      "signature_hint": "TWEET_WALL_DATE_RANGE <- function(inputId) { switch( inputId, \"today\" = c(start = today_tz(), end = today_tz()), \"yesterday\" = c(start = today_tz() - 1, end = today_tz() - 1), \"past_week\" = c(start = today_tz() - 7, end = today_tz()), \"in_2019\" = c(start = ymd(\"2019-01-01\"), end = today_tz()), \"since_workshop\" = c(start = .workshop_start, end = today_tz()), \"conf_prop\" = c(start = .conference_start, end = today_tz()), \"conf_and_after\" = c(start = .workshop_start, end = today_tz()), NA ) }",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1787,
+      "region": 1,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "TWEET_WALL_DATE_RANGE",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9g8m6dmbwz",
+            "path": "/storage/cgg-test_repos/app-tweetconf-shiny/server.R",
+            "line": 423,
+            "name": "TWEET_WALL_DATE_RANGE"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 10
+    },
+    {
+      "id": "C7rxz16q2z3",
+      "qualified_name": "tweets_volume",
+      "simple_name": "tweets_volume",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F168vykyxemq",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/functions.R",
+      "start_line": 46,
+      "end_line": 58,
+      "size_lines": 13,
+      "signature_hint": "tweets_volume <- function(tweets, by = \"1 hour\") { tweets %>% tweets_by_time(by) %>% count() %>% # drop by_time group",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1787,
+      "region": 6,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "tweets_volume",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9g8m6dmbwz",
+            "path": "/storage/cgg-test_repos/app-tweetconf-shiny/server.R",
+            "line": 109,
+            "name": "tweets_volume"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cc531v3mamc",
+      "qualified_name": "progressGroup",
+      "simple_name": "progressGroup",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F98apg2w8sj",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/progress_bar.R",
+      "start_line": 45,
+      "end_line": 56,
+      "size_lines": 12,
+      "signature_hint": "progressGroup <- function(text, value, min = 0, max = value, color = \"aqua\") { stopifnot(is.character(text)) stopifnot(is.numeric(value)) if (value < min || value > max) stop(sprintf(\"'value' should be in the range from %d to %d.\", min, max), call. = FALSE) tags$div( class = \"progress-group\", tags$span(class = \"progress-text\", text), tags$span(class = \"progress-number\", sprintf(\"%d / %d\", value, max)), progressBar(round(value / max * 100), color = color, size = \"sm\") ) }",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1788,
+      "region": 24,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "progressGroup",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9g8m6dmbwz",
+            "path": "/storage/cgg-test_repos/app-tweetconf-shiny/server.R",
+            "line": 313,
+            "name": "progressGroup"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C12t5461mibc",
+      "qualified_name": "tweets_just",
+      "simple_name": "tweets_just",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F168vykyxemq",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/functions.R",
+      "start_line": 30,
+      "end_line": 38,
+      "size_lines": 9,
+      "signature_hint": "tweets_just <- function(tweets, ...) { vars <- rlang::enquos(...) if (!length(vars)) { tweets %>% select(user_id, status_id, created_at, screen_name, text) } else { tweets %>% select(!!!vars) } }",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1791,
+      "region": 5,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "tweets_just",
+          "sites": 5,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9g8m6dmbwz",
+            "path": "/storage/cgg-test_repos/app-tweetconf-shiny/server.R",
+            "line": 78,
+            "name": "tweets_just"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cco3en21cot",
+      "qualified_name": "twemoji",
+      "simple_name": "twemoji",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F168vykyxemq",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/functions.R",
+      "start_line": 185,
+      "end_line": 192,
+      "size_lines": 8,
+      "signature_hint": "twemoji <- function(runes, width = \"20px\") { runes <- tolower(runes) runes <- gsub(\" \", \"-\", runes) runes <- sub(\"-fe0f$\", \"\", runes) # seems to cause problems with twemoji :shrug: emojis <- glue::glue(\"https://cdnjs.cloudflare.com/ajax/libs/twemoji/11.2.0/2/svg/{runes}.svg\") emojis <- glue::glue('<img src=\"{emojis}\" width = \"{width}\">') paste(emojis) }",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1792,
+      "region": 20,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "twemoji",
+          "sites": 6,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fkdgtq7nnzc",
+            "path": "/storage/cgg-test_repos/app-tweetconf-shiny/ui.R",
+            "line": 152,
+            "name": "twemoji"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14l5brr019u",
+      "qualified_name": "progressBar_v",
+      "simple_name": "progressBar_v",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F98apg2w8sj",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/progress_bar.R",
+      "start_line": 58,
+      "end_line": 64,
+      "size_lines": 7,
+      "signature_hint": "progressBar_v <- function(x, colors) { if (length(colors) > length(x))",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1793,
+      "region": 24,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "progressBar_v",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9g8m6dmbwz",
+            "path": "/storage/cgg-test_repos/app-tweetconf-shiny/server.R",
+            "line": 351,
+            "name": "progressBar_v"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Clfexwz5fcf",
+      "qualified_name": "tweets_by_engaged_users",
+      "simple_name": "tweets_by_engaged_users",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F168vykyxemq",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/functions.R",
+      "start_line": 105,
+      "end_line": 110,
+      "size_lines": 6,
+      "signature_hint": "tweets_by_engaged_users <- function(tweets, ...) { # Currently just a dummy function. If you want to apply filters to discard # tweets by spam or unrelated users when using a noisy search term, this # is the place to add those filters. tweets }",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1794,
+      "region": 14,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "tweets_by_engaged_users",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9g8m6dmbwz",
+            "path": "/storage/cgg-test_repos/app-tweetconf-shiny/server.R",
+            "line": 57,
+            "name": "tweets_by_engaged_users"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Com9uyj79gj",
+      "qualified_name": "tweets_in_last",
+      "simple_name": "tweets_in_last",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F168vykyxemq",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/functions.R",
+      "start_line": 60,
+      "end_line": 64,
+      "size_lines": 5,
+      "signature_hint": "tweets_in_last <- function(tweets, d = 0, h = 0, m = 15, s = 0) { tweets %>% filter(created_at >= lubridate::now() - lubridate::hours(h + d * 24) - lubridate::minutes(m) - lubridate::seconds(s)) }",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1795,
+      "region": 8,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "tweets_in_last",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9g8m6dmbwz",
+            "path": "/storage/cgg-test_repos/app-tweetconf-shiny/server.R",
+            "line": 100,
+            "name": "tweets_in_last"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cv4xth6igj6",
+      "qualified_name": "tweets_today",
+      "simple_name": "tweets_today",
+      "language": "r",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F168vykyxemq",
+      "path": "/storage/cgg-test_repos/app-tweetconf-shiny/R/functions.R",
+      "start_line": 73,
+      "end_line": 75,
+      "size_lines": 3,
+      "signature_hint": "tweets_today <- function(tweets, tz = NULL) { tweets_since(tweets, lubridate::today(tz_global(tz))) }",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1797,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "tweets_today",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9g8m6dmbwz",
+            "path": "/storage/cgg-test_repos/app-tweetconf-shiny/server.R",
+            "line": 93,
+            "name": "tweets_today"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 2
+    }
+  ]
+}
