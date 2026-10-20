@@ -3587,6 +3587,105 @@ pub fn contains() void { assert(constants.verify); const c = &constants.check; _
     assert!(g.contains("[\"check\"]"), "{g}");
 }
 
+/// WS26 Groovy: `this.&m`, `Util.&helper` (every overload) and `obj.&go`
+/// through a typed receiver are method pointers; `C.go`, same-named but
+/// of another type, is not reached.
+#[test]
+fn groovy_method_pointers_are_references() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/p/Util.groovy",
+        b"package p\n\
+\n\
+class Util {\n\
+    static def helper(x) { x }\n\
+    static def helper(x, y) { x }\n\
+    static def unused() { 1 }\n\
+}\n\
+",
+    );
+    write(
+        tmp.path(),
+        "src/p/B.groovy",
+        b"package p\n\
+\n\
+class B {\n\
+    def go(x) { x }\n\
+    def stay() { 1 }\n\
+    def fieldHandler() { 2 }\n\
+}\n\
+\n\
+class C {\n\
+    def go(x) { x }\n\
+}\n\
+",
+    );
+    write(
+        tmp.path(),
+        "src/p/A.groovy",
+        b"package p\n\
+\n\
+class A {\n\
+    def handler = this.&fieldHandler\n\
+    private def fieldHandler() { 1 }\n\
+    private def m(x) { x }\n\
+    private def orphan() { 1 }\n\
+    def run(List xs, B obj) {\n\
+        def f = this.&m\n\
+        xs.each(Util.&helper)\n\
+        def g = obj.&go\n\
+        return f\n\
+    }\n\
+    static void main(String[] args) { new A().run([], new B()) }\n\
+}\n\
+",
+    );
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in ["p.A.m", "p.B.go", "p.Util.helper", "p.A.fieldHandler"] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} is referenced, findings: {dead:?}"
+        );
+    }
+    for gone in [
+        "p.A.orphan",
+        "p.B.stay",
+        "p.C.go",
+        "p.Util.unused",
+        "p.B.fieldHandler",
+    ] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone} has no reference, findings: {dead:?}"
+        );
+    }
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .arg("-o")
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain).unwrap().matches("ref|").count(),
+        0
+    );
+}
+
 // ---------------------------------------------------------------------
 // Resolution gaps reported from a large Python service (0.6.5 audit)
 // ---------------------------------------------------------------------

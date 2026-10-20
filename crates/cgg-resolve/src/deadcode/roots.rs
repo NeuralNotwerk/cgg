@@ -1339,7 +1339,7 @@ fn clojure_qualified_toplevel(
 /// declaring file's own callables (see the top-level rule in
 /// [`discover`]).
 const FILE_SCOPED_VALUE_REF_LANGS: &[&str] = &[
-    "ruby", "swift", "dart", "scala", "lua", "erlang", "clojure", "zig",
+    "ruby", "swift", "dart", "scala", "lua", "erlang", "clojure", "zig", "groovy",
 ];
 
 /// `(file, site byte, name)` of the value-reference records of the
@@ -1353,8 +1353,14 @@ fn own_file_value_sites(facts: &[FileFacts]) -> HashSet<(cgg_core::FileId, u32, 
                 .iter()
                 // A Zig value through a module or type (`mod.f`) names
                 // that module's declaration, not this file's.
+                // A Groovy `this.&m` in a field initializer is this class's.
                 .filter(|r| {
-                    r.value_ref && (f.language != "zig" || r.receiver_hint.is_empty())
+                    r.value_ref
+                        && match f.language.as_str() {
+                            "zig" => r.receiver_hint.is_empty(),
+                            "groovy" => r.receiver_hint == "this",
+                            _ => true,
+                        }
                 })
                 .map(move |r| (f.file, r.site_byte, r.name.as_str()))
         })

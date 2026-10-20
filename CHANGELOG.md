@@ -557,6 +557,20 @@ otherwise change the default graph.
   A value outside any function (a `-record` default) credits only its own
   module's functions, as Ruby's, Swift's, Dart's, Scala's and Lua's do.
 
+- **Groovy method pointers were not references (WS26, gap 25).**
+  `this.&m`, `Util.&helper`, `obj.&go` (also inside an argument, as a
+  command-expression argument `owner.onFailure this.&onFailure`, and
+  curried, `this.&f.curry(x)`) and Groovy 3 `this::m` / `Util::m` left the
+  method with no reference, so it was reported dead. The grammar has no
+  `.&` operator — it reads `a.&m` as a bitwise `&` or a field access with
+  an ERROR node — so a pointer is recognized only where the source
+  between receiver and name is exactly `.&`. Under `--dead-code` and
+  `--reference-edges` each is now a value reference: through `this` the
+  caller's class chain, through a type that class, through a variable only
+  its declared type, never fanned out by name; a pointer has no arity, so
+  every overload is bound. A `this.&m` in a field initializer credits its
+  own file's methods.
+
 - **Zig function values were not references (WS26, gap 25).** A
   function passed (`std.sort.block(T, xs, {}, lessThan)`,
   `std.Thread.spawn(.{}, worker, .{})`), stored (`const h = f`,
@@ -922,6 +936,16 @@ WS26 Erlang `{M, F}` follow-up (full corpus, none excluded):
 - Under `--dead-code` (Erlang/OTP only), 12 findings leave the report
   (`{M, F, N}` trace and lint targets) and 9 return (functions named only
   by a bare pair in a list or an event tuple). None are `high`.
+
+WS26 Groovy (full corpus, none excluded):
+
+- The default graph is unchanged in every repository.
+- Under `--reference-edges`, 11 Groovy reference edges are added, all
+  `high`; none are removed.
+- Under `--dead-code`, 4 Gradle findings leave the report, none are added,
+  and 1 moves `medium` → `low`. Most of Gradle's 66 `.&` and 610 `::`
+  sites name methods the Groovy grammar does not extract (parse errors in
+  Spock specifications and GStrings), so there is nothing to credit.
 
 WS26 Zig (full corpus, none excluded):
 

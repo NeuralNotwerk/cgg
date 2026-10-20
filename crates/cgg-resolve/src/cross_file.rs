@@ -7346,7 +7346,10 @@ fn try_resolve_ref(
             // often a property: each binds only through a typed receiver
             // (WS26).
             && (!r.value_ref
-                || !matches!(lang, "go" | "kotlin" | "swift" | "dart" | "scala" | "lua" | "zig"))
+                || !matches!(
+                    lang,
+                    "go" | "kotlin" | "swift" | "dart" | "scala" | "lua" | "zig" | "groovy"
+                ))
             // A typed receiver is never fanned out by name: its type's
             // own lookup (step 4) was the answer, hit or miss.
             && !r.typed_receiver

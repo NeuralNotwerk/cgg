@@ -21,7 +21,7 @@ impl LanguagePlugin for GroovyPlugin {
 
     fn extract(
         &self,
-        _ctx: &crate::ExtractCtx<'_>,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -33,6 +33,7 @@ impl LanguagePlugin for GroovyPlugin {
             source,
             facts: &mut facts,
             scope: Vec::new(),
+            reference_sites: ctx.reference_sites,
         };
         w.walk(tree.root_node());
         facts
@@ -49,6 +50,9 @@ struct GroovyWalker<'a> {
     /// language was inert — the contract is identical to Java's and
     /// matched nothing.
     bases: Vec<Vec<String>>,
+    /// Record method pointers as value references (WS26); see
+    /// `crate::ExtractCtx`.
+    reference_sites: bool,
 }
 
 impl<'a> GroovyWalker<'a> {
@@ -177,6 +181,38 @@ impl<'a> GroovyWalker<'a> {
                 }
                 self.walk_children(node);
                 return;
+            }
+            // `this.&m`, `obj.&m`, `Util.&m`: a method pointer. The grammar
+            // has no `.&` operator; it reads `a.&m` as `a & m` with the dot
+            // in an ERROR node (`method_pointer`).
+            "binary_expression" if self.reference_sites => {
+                if let Some((recv, name)) = self.method_pointer(node, "left", "right") {
+                    self.push_pointer(recv, name);
+                }
+            }
+            // `this.&platform.curry(x)`: read as a field access whose dot is
+            // followed by the ERROR `&`.
+            "field_access" if self.reference_sites => {
+                if let Some((recv, name)) = self.method_pointer(node, "object", "field") {
+                    self.push_pointer(recv, name);
+                }
+            }
+            // A method pointer the parser could not place (a command
+            // expression, `owner.onFailure this.&onFailure`): an ERROR node
+            // that is exactly `recv.&` before the method's name, or exactly
+            // `.&name` after the receiver.
+            "ERROR" if self.reference_sites => {
+                self.method_pointer_in_error(node);
+            }
+            // Groovy 3 `this::m` / `Util::m`.
+            "method_reference" if self.reference_sites => {
+                let named: Vec<Node> = node.named_children(&mut node.walk()).collect();
+                if let [recv, .., name] = named.as_slice()
+                    && name.kind() == "identifier"
+                    && recv.id() != name.id()
+                {
+                    self.push_pointer(*recv, *name);
+                }
             }
             "closure_expression" => {
                 // Closures are callable but typically anonymous; skip for now
@@ -364,6 +400,109 @@ impl<'a> GroovyWalker<'a> {
         });
     }
 
+    /// `left.&right`: the receiver and method of a method pointer, read
+    /// off `binary_expression(left, ERROR("."), "&", right)` or
+    /// `field_access(object, ".", ERROR("&"), field)` — only when the source
+    /// between them is exactly `.&`.
+    fn method_pointer<'t>(
+        &self,
+        node: Node<'t>,
+        recv_field: &str,
+        name_field: &str,
+    ) -> Option<(Node<'t>, Node<'t>)> {
+        let left = node.child_by_field_name(recv_field)?;
+        let right = node.child_by_field_name(name_field)?;
+        if right.kind() != "identifier" {
+            return None;
+        }
+        let between = self
+            .source
+            .get(left.end_byte()..right.start_byte())
+            .and_then(|b| std::str::from_utf8(b).ok())?;
+        let op: String = between.chars().filter(|c| !c.is_whitespace()).collect();
+        (op == ".&").then_some((left, right))
+    }
+
+    fn method_pointer_in_error(&mut self, node: Node) {
+        let text = self.text(node).trim().to_string();
+        let ident = |t: &str| {
+            !t.is_empty()
+                && t.split('.').all(|seg| {
+                    !seg.is_empty()
+                        && seg.chars().all(|c| c.is_alphanumeric() || c == '_')
+                })
+        };
+        if let Some(recv) = text.strip_suffix(".&").map(str::trim_end)
+            && ident(recv)
+            && let Some(name) = node.next_named_sibling().and_then(|n| {
+                // `this.&m` read as a declaration: `m` is its declarator.
+                if n.kind() == "variable_declarator" {
+                    n.child_by_field_name("name")
+                } else {
+                    Some(n)
+                }
+            })
+            && name.kind() == "identifier"
+        {
+            let name_text = self.text(name).to_string();
+            self.push_pointer_text(recv.to_string(), name_text, name);
+            return;
+        }
+        if let Some(name) = text.strip_prefix(".&").map(str::trim_start)
+            && ident(name)
+            && !name.contains('.')
+            && let Some(recv) = node.prev_named_sibling().and_then(|n| {
+                if n.kind() == "variable_declarator" {
+                    n.child_by_field_name("name")
+                } else {
+                    Some(n)
+                }
+            })
+            && matches!(recv.kind(), "identifier" | "this" | "field_access")
+        {
+            let recv_text = self.text(recv).to_string();
+            self.push_pointer_text(recv_text, name.to_string(), node);
+        }
+    }
+
+    fn push_pointer_text(&mut self, receiver_hint: String, name: String, site: Node) {
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint,
+            site_line: (site.start_position().row as u32) + 1,
+            site_byte: site.start_byte() as u32,
+            value_ref: true,
+            ..Default::default()
+        });
+    }
+
+    /// A method pointer: a value reference to `name` through `recv` —
+    /// `this`, a type (`Util`), or a value bound only through its type.
+    fn push_pointer(&mut self, recv: Node, name: Node) {
+        let p = crate::receiver::peel("groovy", recv, self.source);
+        let (receiver_hint, typed_receiver) = match p.type_name() {
+            Some(t) => (t, true),
+            None => (self.text(p.node).to_string(), false),
+        };
+        let (site_line, site_byte) = (
+            (name.start_position().row as u32) + 1,
+            name.start_byte() as u32,
+        );
+        let name = self.text(name).to_string();
+        if name.is_empty() || receiver_hint.is_empty() {
+            return;
+        }
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint,
+            site_line,
+            site_byte,
+            typed_receiver,
+            value_ref: true,
+            ..Default::default()
+        });
+    }
+
     fn record_function_call(&mut self, node: Node) {
         let name = node
             .child_by_field_name("function")
@@ -401,6 +540,72 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    fn extract_with_refs(src: &str) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_groovy::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        GroovyPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(true),
+            FileId::new(0),
+            &PathBuf::from("/tmp/x.groovy"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    /// WS26: `this.&m`, `obj.&m`, `Util.&m` (also inside arguments) and
+    /// `this::m` are method pointers; a bitwise `a & b` is not.
+    #[test]
+    fn method_pointers_are_value_references() {
+        let f = extract_with_refs(
+            "class A {\n\
+             \x20 def m(x) { x }\n\
+             \x20 def run(List xs, B obj, int a, int b) {\n\
+             \x20   def f = this.&m\n\
+             \x20   xs.each(this.&m)\n\
+             \x20   def g = obj.&go\n\
+             \x20   def h = Util.&helper\n\
+             \x20   def k = this::m\n\
+             \x20   def bits = a & b\n\
+             \x20   def c = this.&curried.curry(1)\n\
+             \x20   def fa = obj.field\n\
+             \x20   return f\n\
+             \x20 }\n\
+             }\n",
+        );
+        let got: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert_eq!(
+            got,
+            vec![
+                ("m", "this"),
+                ("m", "this"),
+                ("go", "obj"),
+                ("helper", "Util"),
+                ("m", "this"),
+                ("curried", "this"),
+            ]
+        );
+        // The parser's ERROR shapes for a command expression.
+        let f = extract_with_refs(
+            "class A {\n  def b() { owner.onFailure this.&onFailure }\n  def c() { foo Util.&bar, 1 }\n}\n",
+        );
+        let got: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert_eq!(got, vec![("onFailure", "this"), ("bar", "Util")]);
+        let plain = extract("class A { def run() { def f = this.&m } }\n");
+        assert!(plain.references.iter().all(|r| !r.value_ref));
     }
 
     #[test]
