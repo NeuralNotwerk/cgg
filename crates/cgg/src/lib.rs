@@ -739,7 +739,8 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // lowercasing Strategy 4 needs depends only on this map, and doing
     // it inline cost 817,607,605 iterations with two allocations each on
     // `erlang-otp`.
-    let return_types = cgg_resolve::type_hints::ReturnTypeIndex::build(&return_types);
+    let return_types = cgg_resolve::type_hints::ReturnTypeIndex::build(&return_types)
+        .with_go_results(cgg_resolve::type_hints::go_result_functions(&all_facts));
     // Owned copies: the parallel rewrite borrows each file mutably and
     // cannot also borrow the field declarations out of those files.
     let field_types = cgg_resolve::type_hints::field_index(&all_facts);

@@ -145,9 +145,9 @@ impl FileLocals {
 
     /// Whether the leading identifier of the call's receiver is a value
     /// binding at the site — then it is not a module or import of that
-    /// name. A receiver type propagation rewrote to a type headed by
-    /// the same name (`pubsub.PublishSubscriber`, the type of a parameter
-    /// `pubsub`) is headed by the type's package, not the local.
+    /// name. A Go receiver type propagation rewrote to a declared type
+    /// (`pubsub.PublishSubscriber`, the type of a parameter `pubsub`) is
+    /// headed by the type's package, not a local.
     pub(crate) fn shadows_receiver_head(&self, r: &RefRecord) -> bool {
         if r.retyped_receiver {
             return false;

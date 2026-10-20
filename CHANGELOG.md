@@ -563,6 +563,25 @@ otherwise change the default graph.
   local's declared type, headed by that type's package (`pubsub
   pubsub.PublishSubscriber`).
 
+- **Go values made by a call of the calling package were untyped, and a
+  receiver typed from the signature could be read as a parameter (WS27
+  follow-up).** `cron := getCronMap(…); cron.Start()` and
+  `getCronMap(…).Start()` were matched by name against every workspace
+  `Start`, though `getCronMap` declares it returns a dependency's
+  `*cron.Cron`. A value made by a bare call of a function of the calling
+  package (`x := f(…)`, `x, err := f(…)`, `f(…).M()`) now has the type
+  that function declares it returns: a method of the package's own type
+  (`r, _ := NewClient(); r.Do()` binds `Client.Do`, not a mock's `Do`), a
+  type of another workspace package through the function's imports, or
+  outside the tree (`external-module`). Only when some Go function of
+  that name declares a result; never for a predeclared function
+  (`make`, `new`), a parameter or local called as a function value, or a
+  `v := NewFoo()` of one name, which keeps its `Foo` reading. And every
+  Go receiver type propagation rewrote from a declaration now heads with
+  the type's package: `g *common.Generator` in a function with a
+  parameter `common` is the package's `Generator` again (a parameter is
+  not in scope in the signature its type is written in).
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -1016,6 +1035,31 @@ WS27 Go (full corpus, 283 repositories, none excluded):
   themselves candidates, until now credited by calls through parameters
   named `f` or `filter`), and 14 move `medium` → `low`. No `high`
   finding changes.
+
+WS27 Go follow-up (full corpus, 283 repositories, none excluded):
+
+- The default graph changes in 22 repositories, all in Go files: 2,380
+  edges removed (19 `high`), 1,608 added (1,535 `high`), and 3,054 move
+  `medium` → `high`; none move `high` → `medium`, and unresolved sites
+  fall by 2,940. Of the removed, 1,444 were extra candidates of a by-name
+  fan-out that now binds only the method of the receiver's declared
+  type (the 19 `high` among them bound a test mock's `Do`/`Get` where
+  `NewClient` returns `*Client`); 934 went to workspace methods from a
+  receiver whose type is a dependency's (`*casbin.Enforcer`,
+  `image.Image`, `time.Time`, gorm's `*DB`), now `external-module`. The
+  4 Terraform generator calls the WS27 change moved to `medium` are
+  `high` again.
+- Under `--reference-edges`, 1 Go reference edge is removed (`result.Abs`
+  reads a field of `fs.FileInfo`, not the `FileInfos.Abs` method); none
+  are added.
+- Under `--dead-code`, 282 Go findings leave the report (235 `medium`,
+  47 `low`), 119 enter it (`medium`) and 74 move `low` → `medium`. No
+  `high` finding changes. Those entering were credited only by the
+  removed by-name edges. 48 of them share their name with an interface
+  method: mostly implementations whose callers now reach the interface's
+  declaration (`rpc.CreateInvoker` returns the `Invoker` interface),
+  which Go's dead-code pass, having no dispatch model, does not connect
+  to an implementation.
 
 ## [0.11.0] - 2026-10-16
 

@@ -5888,6 +5888,22 @@ type Store interface {
         );
     }
 
+    // `g.Put()` with `g store.Store` beside a parameter `store`: the type
+    // was written in the signature, where no parameter is in scope, so the
+    // call goes through the package — certain, never `other.Store.Put`.
+    let put: Vec<(String, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| qn(&e["src"]) == "main.useStoreBeside")
+        .map(|e| (qn(&e["dst"]), e["confidence"].as_str().unwrap().to_string()))
+        .collect();
+    assert_eq!(
+        put,
+        vec![("store.Store.Put".to_string(), "high".to_string())],
+        "{put:?}"
+    );
+
     // Value positions: `pass(cb)` with a parameter `cb` names no function;
     // `pass(helper)` before a sibling block's `helper := 2` names the
     // package's `helper` (the old whole-function filter dropped it).
@@ -5920,4 +5936,95 @@ type Store interface {
         vec![("main.controls".to_string(), "main.helper".to_string())],
         "{ref_edges:?}"
     );
+}
+
+/// WS27: a Go value made by a bare call (`cron := getCronMap()`,
+/// `getCronMap().Start()`) has the type the calling package's function
+/// declares it returns: through a dependency's type it is external, never
+/// a by-name match on a workspace `Start`; through the package's own type
+/// it binds that method. A function value called through a local keeps
+/// its old reading.
+#[test]
+fn go_bare_call_results_type_their_values() {
+    let tmp = TempDir::new().unwrap();
+    write(tmp.path(), "go.mod", b"module example.com/fx\n\ngo 1.22\n");
+    write(
+        tmp.path(),
+        "main.go",
+        r#"package main
+
+import "github.com/robfig/cron/v3"
+
+type Runner struct{}
+
+func (r *Runner) Start() {}
+
+func getCronMap(name string) *cron.Cron { return nil }
+func newRunner() (*Runner, error)       { return nil, nil }
+func pick() func() *Runner              { return nil }
+
+func add() {
+	cron := getCronMap("x")
+	cron.Start()
+	getCronMap("y").Start()
+	r, _ := newRunner()
+	r.Start()
+	f := pick()
+	v := f()
+	v.Start()
+	m := make(map[string]int)
+	_ = m
+}
+"#
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "svc/svc.go",
+        r#"package svc
+
+type S struct{}
+
+func (s *S) Start() {}
+"#
+        .as_bytes(),
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let start: Vec<(u64, String, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| qn(&e["dst"]).ends_with(".Start"))
+        .map(|e| {
+            (
+                e["site_line"].as_u64().unwrap(),
+                qn(&e["dst"]),
+                e["confidence"].as_str().unwrap().to_string(),
+            )
+        })
+        .collect();
+    // Lines 15 and 16 call the dependency's `Cron.Start`: no edge.
+    assert!(
+        !start.iter().any(|(l, _, _)| *l == 15 || *l == 16),
+        "{start:?}"
+    );
+    assert!(
+        start.contains(&(18, "main.Runner.Start".into(), "high".into())),
+        "{start:?}"
+    );
+    assert!(start.iter().any(|(l, _, _)| *l == 21), "{start:?}");
 }

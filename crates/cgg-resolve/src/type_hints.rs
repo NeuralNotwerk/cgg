@@ -41,6 +41,10 @@ pub struct ReturnTypeIndex<'a> {
     /// `(language, function)` → the return type its definitions agree on.
     by_name: HashMap<(&'a str, &'a str), &'a str>,
     empty: bool,
+    /// Go functions (any package) that declare a result type
+    /// ([`go_result_functions`]): a local `x := f()` is read as `f()`
+    /// only when `f` is one of them (WS27).
+    go_result_fns: std::collections::HashSet<String>,
 }
 
 impl<'a> ReturnTypeIndex<'a> {
@@ -68,7 +72,14 @@ impl<'a> ReturnTypeIndex<'a> {
             empty: return_types.is_empty(),
             by_lower_ret,
             by_name: return_types.clone(),
+            go_result_fns: Default::default(),
         }
+    }
+
+    /// With the names of the Go functions that declare a result type.
+    pub fn with_go_results(mut self, names: std::collections::HashSet<String>) -> Self {
+        self.go_result_fns = names;
+        self
     }
 
     /// The return type every definition of `name` in `lang` declares.
@@ -441,6 +452,9 @@ pub fn propagate_types_with_fields(
     }
     if facts.language == "rust" {
         settle_unwrapped_bindings(facts);
+    }
+    if facts.language == "go" {
+        drop_go_calls_through_locals(facts, &|f| return_types.go_result_fns.contains(f));
     }
     // Pass 1: Extract type hints from definition signatures.
     //
@@ -957,17 +971,32 @@ pub fn propagate_types_with_fields(
             )
         } else if go {
             // Go's own reading stays file-wide, as before; only a value
-            // made through a package is looked up where it is in scope.
-            local_type_map.get(rh).copied().or_else(|| {
-                rust_lets
-                    .visible(
-                        rh,
-                        rref.site_byte,
-                        enclosing.map(|d| (d.start_byte, d.end_byte)),
-                    )
-                    .filter(|ty| go_package_made(ty))
-                    .inspect(|_| scoped_reading = true)
-            })
+            // made through a package is looked up where it is in scope. A
+            // value made by a bare call of the calling package (`x :=
+            // f()`, WS27) is a declaration in scope, which a file-wide
+            // reading of the name elsewhere does not override.
+            let scoped = rust_lets
+                .visible(
+                    rh,
+                    rref.site_byte,
+                    enclosing.map(|d| (d.start_byte, d.end_byte)),
+                )
+                .filter(|ty| go_package_made(ty));
+            let bare_call = scoped.filter(|ty| !ty.contains('.'));
+            let read = if bare_call.is_some() {
+                bare_call
+            } else {
+                local_type_map.get(rh).copied().or(scoped)
+            };
+            if read.is_some() && read == scoped {
+                scoped_reading = true;
+                // When the calling package has no `f` with a declared
+                // result, the receiver is read as written.
+                if bare_call.is_some() {
+                    fallback.insert(i);
+                }
+            }
+            read
         } else if matches!(facts.language.as_str(), "csharp" | "kotlin") {
             // A declaration in the calling function, before the site, is
             // the one in scope there; only without one does the file-wide
@@ -1017,7 +1046,12 @@ pub fn propagate_types_with_fields(
         };
         if let Some(ty) = local_ty {
             if !scoped_reading
-                && (rust || lookup_local_type(facts, rref.site_byte, rh) != Some(ty))
+                && (rust
+                    || if go {
+                        go_declared_local(facts, rref.site_byte, rh) != Some(ty)
+                    } else {
+                        lookup_local_type(facts, rref.site_byte, rh) != Some(ty)
+                    })
                 || facts.module_typed_locals.iter().any(|v| v == rh)
             {
                 weak.insert(i);
@@ -1196,19 +1230,13 @@ pub fn propagate_types_with_fields(
             facts.references[i].typed_receiver = true;
         }
         facts.references[i].weak_receiver_type = weak.contains(&i);
-        // `pubsub` typed `pubsub.PublishSubscriber`: the new receiver's
-        // head is the type's package, spelled like the local the site
-        // wrote; a local-head check must not read it as that local.
-        let head = |t: &str| -> String {
-            t.trim_start_matches(['*', '&'])
-                .split(['.', ':', '(', '<', '['])
-                .next()
-                .unwrap_or("")
-                .to_string()
-        };
-        if facts.references[i].receiver_hint != ty
-            && head(&ty) == head(&facts.references[i].receiver_hint)
-        {
+        // Go: the new receiver is a type read from a declaration
+        // (`pubsub.PublishSubscriber` for a parameter `pubsub`,
+        // `common.Generator` beside a parameter `common`). A parameter is
+        // in scope only in the body, never in the signature the type was
+        // written in, so a local-head check must not read the type's
+        // package as a local of that name (WS27).
+        if go && facts.references[i].receiver_hint != ty {
             facts.references[i].retyped_receiver = true;
         }
         facts.references[i].receiver_hint = ty;
@@ -2888,6 +2916,48 @@ fn go_package_made(ty: &str) -> bool {
     ty.ends_with(')') || ty.contains('.')
 }
 
+/// The simple names of the Go functions of the run that declare a result
+/// type (WS27; see [`ReturnTypeIndex::with_go_results`]).
+pub fn go_result_functions(all_facts: &[FileFacts]) -> std::collections::HashSet<String> {
+    all_facts
+        .iter()
+        .filter(|f| f.language == "go")
+        .flat_map(|f| f.definitions.iter())
+        .filter(|d| crate::modules::go_result_type(&d.signature_hint).is_some())
+        .map(|d| d.simple_name.clone())
+        .collect()
+}
+
+/// A Go local recorded as a bare call's result (`x := f()`, type `f()`)
+/// is kept only when some Go function `f` declares a result type, and
+/// `f` is not itself a parameter or local in scope there (a function
+/// value, not the package function the type would name) (WS27). The
+/// receiver keeps its other readings otherwise (the receiver-name guess).
+fn drop_go_calls_through_locals(
+    facts: &mut FileFacts,
+    has_result: &dyn Fn(&str) -> bool,
+) {
+    let bare_callee = |ty: &str| {
+        ty.strip_suffix("()")
+            .filter(|f| {
+                !f.is_empty() && f.chars().all(|c| c.is_alphanumeric() || c == '_')
+            })
+            .map(str::to_string)
+    };
+    if !facts
+        .local_types
+        .iter()
+        .any(|lt| bare_callee(&lt.type_name).is_some())
+    {
+        return;
+    }
+    let locals = crate::scope::FileLocals::build(facts);
+    facts.local_types.retain(|lt| {
+        bare_callee(&lt.type_name)
+            .is_none_or(|f| has_result(&f) && !locals.binds(&f, lt.scope_byte))
+    });
+}
+
 /// Rust `let` bindings by name, each with the span of the innermost
 /// callable it was declared in, sorted by position. Built once per file.
 #[derive(Default)]
@@ -3212,11 +3282,38 @@ fn lookup_local_type_at<'a>(
     site_byte: u32,
     name: &str,
 ) -> Option<(u32, &'a str)> {
+    lookup_local_type_where(facts, site_byte, name, &|_| true)
+}
+
+/// [`lookup_local_type`] for Go's file-wide reading: a value made by a
+/// bare call (`x := f()`, type `f()`) and the untyped entry closing its
+/// scope are scoped readings of their own (WS27), not the declaration the
+/// file-wide type is checked against.
+fn go_declared_local<'a>(
+    facts: &'a FileFacts,
+    site_byte: u32,
+    name: &str,
+) -> Option<&'a str> {
+    let scoped_bare_call =
+        |ty: &str| ty.is_empty() || (go_package_made(ty) && !ty.contains('.'));
+    lookup_local_type_where(facts, site_byte, name, &|lt| {
+        !scoped_bare_call(&lt.type_name)
+    })
+    .map(|(_, ty)| ty)
+}
+
+/// [`lookup_local_type_at`] over the entries `keep` accepts.
+fn lookup_local_type_where<'a>(
+    facts: &'a FileFacts,
+    site_byte: u32,
+    name: &str,
+    keep: &dyn Fn(&cgg_core::LocalType) -> bool,
+) -> Option<(u32, &'a str)> {
     let enclosing = enclosing_def(facts, site_byte);
     let mut best_fn: Option<(u32, &'a str)> = None;
     let mut best_file: Option<(u32, &'a str)> = None;
     for lt in &facts.local_types {
-        if lt.var_name != name || lt.scope_byte > site_byte {
+        if lt.var_name != name || lt.scope_byte > site_byte || !keep(lt) {
             continue;
         }
         let inside_enclosing = enclosing
@@ -3910,9 +4007,38 @@ mod tests {
         assert_eq!(got, vec!["jobs.NewRunner()", "other.Open()", "r"]);
     }
 
-    /// WS27: a receiver retyped to a type headed by its own name (a
-    /// parameter `pubsub pubsub.PS`) is marked, so the local of that name
-    /// does not hide the package; one retyped under another head is not.
+    /// WS27: `v := f()` with `f` a local in scope calls a function
+    /// value: its `f()` reading is dropped; `c := g()` with no local `g`
+    /// keeps its own.
+    #[test]
+    fn go_call_result_through_a_local_is_dropped() {
+        let mut facts = mk_facts(vec![mk_def("main.h", "func h()", 0, 200)], vec![]);
+        facts.language = "go".into();
+        let lt = |v: &str, ty: &str, at: u32| LocalType {
+            var_name: v.into(),
+            type_name: ty.into(),
+            scope_byte: at,
+        };
+        facts.local_types = vec![lt("v", "f()", 60), lt("c", "g()", 80)];
+        facts.locals = vec![cgg_core::LocalBinding {
+            name: "f".into(),
+            start_byte: 40,
+            end_byte: 200,
+            decl_byte: 20,
+            param: false,
+        }];
+        drop_go_calls_through_locals(&mut facts, &|_| true);
+        let got: Vec<&str> = facts
+            .local_types
+            .iter()
+            .map(|l| l.var_name.as_str())
+            .collect();
+        assert_eq!(got, vec!["c"]);
+    }
+
+    /// WS27: a Go receiver retyped from a declaration is marked, so a
+    /// local named like the type's package (the parameter `pubsub
+    /// pubsub.PS` itself, or another one) does not hide the package.
     #[test]
     fn go_receiver_retyped_under_its_own_name_is_marked() {
         let defs = vec![mk_def(
@@ -3936,7 +4062,7 @@ mod tests {
             .iter()
             .map(|r| (r.receiver_hint.as_str(), r.retyped_receiver))
             .collect();
-        assert_eq!(got, vec![("pubsub.PS", true), ("Server", false)]);
+        assert_eq!(got, vec![("pubsub.PS", true), ("Server", true)]);
     }
 
     /// R1: a Go value made through a package is typed from the end of its

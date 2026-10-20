@@ -502,6 +502,13 @@ pub const GO_PREDECLARED_TYPES: &[&str] = &[
     "uintptr",
 ];
 
+/// Go's predeclared functions: `x := make(…)`, `p := new(T)` call no
+/// function of the calling package (WS27).
+pub const GO_BUILTIN_FUNCS: &[&str] = &[
+    "append", "cap", "clear", "close", "complex", "copy", "delete", "imag", "len",
+    "make", "max", "min", "new", "panic", "print", "println", "real", "recover",
+];
+
 /// Types a function returns when it is asynchronous: a call on the
 /// result reaches the awaitable itself, or (awaited) the type it wraps,
 /// so a declared `Task<Foo>` says nothing certain about the receiver.

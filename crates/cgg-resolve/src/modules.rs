@@ -2029,7 +2029,22 @@ impl FileModules {
             });
         }
         let head = leading_ident(rh);
-        let path = self.go.get(head)?;
+        let Some(path) = self.go.get(head) else {
+            // `getCronMap().Start()`, or a local made by that call: a bare
+            // call names a function of the calling package, and its value
+            // has the type that function declares it returns (WS27).
+            let (segs, _) = parse_receiver(rh)?;
+            let [f] = segs.as_slice() else {
+                return None;
+            };
+            if !f.called {
+                return None;
+            }
+            let callee = ix.go_same_package(file, f.ident);
+            return Self::go_call_result(ix, &callee, r, bases, &|tail| {
+                ix.go_same_package(file, tail)
+            });
+        };
         // A parameter or local named like the import (`c *app.Ctx` in a
         // file importing `c ".../client"`) is the receiver here.
         if self.go_shadow.get(head).is_some_and(|spans| {
@@ -2077,36 +2092,54 @@ impl FileModules {
             // declares it returns.
             [f] => {
                 let callee = ix.go_lookup(&files, f.ident);
-                let (cid, ty) = callee.iter().find_map(|c| {
-                    ix.go_sig
-                        .get(c)
-                        .and_then(|s| go_result_type(s))
-                        .map(|t| (*c, t))
-                })?;
-                match ty.split_once('.') {
-                    // The function's own package.
-                    None => {
-                        let ids = ix.go_lookup(&files, &format!("{ty}.{}", r.name));
-                        found(ids, true)
-                            .or_else(|| bases(&ty, &r.name).and_then(|b| found(b, false)))
-                    }
-                    // Another package, read through the callee's imports.
-                    Some((q, t)) => {
-                        let callee_file = ix.file_of.get(&cid)?;
-                        let (_, qpath, external) = ix
-                            .go_imports
-                            .get(callee_file)?
-                            .iter()
-                            .find(|(n, _, _)| n == q)?;
-                        if *external {
-                            return Some(Scoped::External(qpath.clone()));
-                        }
-                        let qfiles = ix.go_files(qpath);
-                        found(ix.go_lookup(&qfiles, &format!("{t}.{}", r.name)), true)
-                    }
-                }
+                Self::go_call_result(ix, &callee, r, bases, &|tail| {
+                    ix.go_lookup(&files, tail)
+                })
             }
             _ => None,
+        }
+    }
+
+    /// The method `r` names on the type `callee` declares it returns:
+    /// a type of the callee's own package (looked up through `own`), or
+    /// one of another package, read through the callee's imports.
+    fn go_call_result(
+        ix: &ModuleIndex<'_>,
+        callee: &[CallableId],
+        r: &RefRecord,
+        bases: &dyn Fn(&str, &str) -> Option<Vec<CallableId>>,
+        own: &dyn Fn(&str) -> Vec<CallableId>,
+    ) -> Option<Scoped> {
+        let found = |ids: Vec<CallableId>, certain: bool| {
+            (!ids.is_empty()).then_some(Scoped::Bound { cids: ids, certain })
+        };
+        let (cid, ty) = callee.iter().find_map(|c| {
+            ix.go_sig
+                .get(c)
+                .and_then(|s| go_result_type(s))
+                .map(|t| (*c, t))
+        })?;
+        match ty.split_once('.') {
+            // The function's own package.
+            None => {
+                let ids = own(&format!("{ty}.{}", r.name));
+                found(ids, true)
+                    .or_else(|| bases(&ty, &r.name).and_then(|b| found(b, false)))
+            }
+            // Another package, read through the callee's imports.
+            Some((q, t)) => {
+                let callee_file = ix.file_of.get(&cid)?;
+                let (_, qpath, external) = ix
+                    .go_imports
+                    .get(callee_file)?
+                    .iter()
+                    .find(|(n, _, _)| n == q)?;
+                if *external {
+                    return Some(Scoped::External(qpath.clone()));
+                }
+                let qfiles = ix.go_files(qpath);
+                found(ix.go_lookup(&qfiles, &format!("{t}.{}", r.name)), true)
+            }
         }
     }
 }
@@ -2274,7 +2307,7 @@ fn parse_receiver(rh: &str) -> Option<(Vec<Seg<'_>>, bool)> {
 /// The type a Go function declares it returns, unwrapped to a nominal
 /// name: `func NewRunner() *Runner` → `Runner`, `func Open(p string)
 /// (*DB, error)` → `DB`, `func New() *pkg.T[K]` → `pkg.T`.
-fn go_result_type(sig: &str) -> Option<String> {
+pub(crate) fn go_result_type(sig: &str) -> Option<String> {
     let s = sig.trim();
     let s = s.strip_prefix("func")?.trim_start();
     // Skip a method receiver.

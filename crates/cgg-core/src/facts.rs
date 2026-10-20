@@ -485,11 +485,12 @@ pub struct RefRecord {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub weak_receiver_type: bool,
 
-    /// Set by type propagation when it rewrote `receiver_hint` to a type
-    /// whose head is spelled like the receiver the site wrote: `pubsub` →
-    /// `pubsub.PublishSubscriber` for a Go parameter `pubsub
-    /// pubsub.PublishSubscriber`. The new head is the type's package,
-    /// not the local of the same name (WS27). In-memory only.
+    /// Set by type propagation when it rewrote a Go `receiver_hint` to the
+    /// type a declaration gives it: `pubsub` → `pubsub.PublishSubscriber`
+    /// for a parameter `pubsub pubsub.PublishSubscriber`. The new head is
+    /// the type's package, never a local of the same name (a parameter is
+    /// not in scope in the signature its type is written in) (WS27).
+    /// In-memory only.
     #[serde(skip)]
     pub retyped_receiver: bool,
 

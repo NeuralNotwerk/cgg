@@ -898,7 +898,9 @@ impl<'a> Walker<'a> {
         // the type takes effect from the statement's end.
         if let Some(first) = Self::first_assigned(left)
             && let Some(rhs) = Self::first_value(right)
-            && let Some(ty) = self.package_made_type(rhs)
+            && let Some(ty) = self
+                .package_made_type(rhs)
+                .or_else(|| self.same_package_call(rhs, left.named_child_count() <= 1))
         {
             let var_name = self.text(first).to_string();
             self.facts.local_types.push(cgg_core::LocalType {
@@ -1098,6 +1100,41 @@ impl<'a> Walker<'a> {
         } else {
             Some(right)
         }
+    }
+
+    /// `f(…)` → `f()`: a value made by a bare call, which in Go names a
+    /// function of the calling package. The resolver reads that
+    /// function's declared result (WS27). Not a predeclared function
+    /// (`make`, `new`), nor a parameter of an enclosing function (a
+    /// function value; the resolver drops other locals the same way), nor
+    /// a `v := NewFoo()`/`newFoo()` of one name, which keeps its older
+    /// reading (`Foo`; that reading names no variable when the left side
+    /// is a list).
+    fn same_package_call(&self, rhs: Node, single: bool) -> Option<String> {
+        if rhs.kind() != "call_expression" {
+            return None;
+        }
+        let func = rhs.child_by_field_name("function")?;
+        if func.kind() != "identifier" {
+            return None;
+        }
+        let name = self.text(func);
+        if name.is_empty()
+            || name == "_"
+            || cgg_core::stdlib::GO_BUILTIN_FUNCS.contains(&name)
+            || self
+                .param_frames
+                .iter()
+                .any(|(ps, _)| ps.iter().any(|p| p == name))
+            || single
+                && name
+                    .strip_prefix("New")
+                    .or_else(|| name.strip_prefix("new"))
+                    .is_some_and(|rest| rest.starts_with(char::is_uppercase))
+        {
+            return None;
+        }
+        Some(format!("{name}()"))
     }
 
     /// `pkg.F(…)` → `pkg.F()`, `pkg.T{…}` / `&pkg.T{…}` → `pkg.T`, where
@@ -1459,6 +1496,30 @@ mod tests {
                 ("v", "Thing"),
             ]
         );
+    }
+
+    /// WS27: a value made by a bare call is typed as the call (`f()`), for
+    /// the resolver to read the calling package's function; a predeclared
+    /// function, a parameter called as a function and a `NewFoo()` are not.
+    #[test]
+    fn values_made_by_a_bare_call_are_typed_as_the_call() {
+        let f = extract(
+            "package main\n\n\
+             func use(fn func() int) {\n\
+             \tc, err := getCronMap(\"x\")\n\
+             \tm := make(map[string]int)\n\
+             \tv := fn()\n\
+             \tt := NewThing()\n\
+             \t_, _, _, _, _ = c, err, m, v, t\n\
+             }\n",
+        );
+        let got: Vec<(&str, &str)> = f
+            .local_types
+            .iter()
+            .filter(|t| !t.type_name.is_empty())
+            .map(|t| (t.var_name.as_str(), t.type_name.as_str()))
+            .collect();
+        assert_eq!(got, vec![("c", "getCronMap()"), ("t", "Thing")]);
     }
 
     #[test]
