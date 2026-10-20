@@ -1,0 +1,142 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "powershell",
+      "class": "script-driven",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "framework:entry-node"
+      ],
+      "files": 232,
+      "callables": 119,
+      "roots": 3,
+      "reachable": 115,
+      "reachable_pct": 96,
+      "findings": 0
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 119,
+    "edges": 169,
+    "unresolved_call_sites": 666,
+    "roots": 3,
+    "candidates": 4,
+    "reported": 0,
+    "regions": 4
+  },
+  "roots": [
+    {
+      "id": "Ce87ylnrg1",
+      "qualified_name": "<framework-entry>::lifecycle::powershell-dsc::Get-TargetResource",
+      "language": "powershell",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::lifecycle::powershell-dsc::Get-TargetResource`"
+    },
+    {
+      "id": "Cwoxygmjadp",
+      "qualified_name": "<framework-entry>::lifecycle::powershell-dsc::Set-TargetResource",
+      "language": "powershell",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::lifecycle::powershell-dsc::Set-TargetResource`"
+    },
+    {
+      "id": "C14deebfzsy0",
+      "qualified_name": "<framework-entry>::lifecycle::powershell-dsc::Test-TargetResource",
+      "language": "powershell",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::lifecycle::powershell-dsc::Test-TargetResource`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 115,
+      "members": [
+        "Ckf465rhtdl"
+      ],
+      "anchors": [
+        "Ckf465rhtdl"
+      ],
+      "files": [
+        "F14g2tdwtduc"
+      ],
+      "total_lines": 42,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 116,
+      "members": [
+        "Cpr58q9vsoh"
+      ],
+      "anchors": [
+        "Cpr58q9vsoh"
+      ],
+      "files": [
+        "F14g2tdwtduc"
+      ],
+      "total_lines": 25,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 117,
+      "members": [
+        "Cwukz3mrxo"
+      ],
+      "anchors": [
+        "Cwukz3mrxo"
+      ],
+      "files": [
+        "F14g2tdwtduc"
+      ],
+      "total_lines": 28,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 118,
+      "members": [
+        "Cfn2rsb4psz"
+      ],
+      "anchors": [
+        "Cfn2rsb4psz"
+      ],
+      "files": [
+        "Fwqkxxhw6gs"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": []
+}

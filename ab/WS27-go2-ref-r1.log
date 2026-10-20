@@ -1,0 +1,7 @@
+repos 283 excluded []
+added 4108
+  ('go', '{"kind": "direct"}', 'high') 4020
+  ('go', '{"kind": "direct"}', 'medium') 88
+dropped 4939
+  ('go', '{"kind": "direct"}', 'high') 49
+  ('go', '{"kind": "direct"}', 'medium') 4890
