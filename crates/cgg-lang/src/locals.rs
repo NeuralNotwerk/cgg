@@ -417,6 +417,73 @@ const GO_SPEC: Spec = Spec {
     patterns: &["expression_list"],
 };
 
+/// C# (WS27): parameters of methods, constructors, operators, indexers,
+/// local functions, lambdas (`x => …` too) and anonymous methods,
+/// `params` arrays included; locals (`var x`, typed, `using var`,
+/// deconstruction); `foreach`, `for`, `using (…)`, `fixed` and `catch`
+/// variables; pattern variables (`is T t`, `case T t`, property and
+/// positional designations, `var (a, b)`) and `out var x`; query range
+/// variables (`from`, `let`, `join`, `into`). A pattern or `out`
+/// variable follows C#'s rule: in an `if` condition or an expression
+/// statement it is in scope to the end of the enclosing block (`if (!(o
+/// is Foo f)) return; f.M();`); in a loop, `using`, switch section or
+/// arm, the statement. A local function's name is a binding of its
+/// block. Fields and primary-constructor parameters are members, not
+/// locals.
+const CSHARP_SPEC: Spec = Spec {
+    idents: &["identifier", "implicit_parameter"],
+    binders: &[
+        b("parameter", &["name"], Scope::Param),
+        // A `params T[] rest` names its parameter in the list itself.
+        b("parameter_list", &["name"], Scope::Param),
+        b("lambda_expression", &["parameters"], Scope::Param),
+        b("variable_declarator", &["name"], Scope::Decl),
+        after(
+            b("tuple_pattern", &["name"], Scope::Decl),
+            &["variable_declarator"],
+        ),
+        after_value(b("foreach_statement", &["left"], Scope::Own), "right", &[]),
+        b("catch_declaration", &["name"], Scope::Decl),
+        b("declaration_pattern", &["name", ""], Scope::Decl),
+        b("recursive_pattern", &["name"], Scope::Decl),
+        b("declaration_expression", &["name"], Scope::Decl),
+        b("from_clause", &["name"], Scope::Decl),
+        b1("let_clause", Scope::Decl),
+        b1("join_clause", Scope::Decl),
+        b1("join_into_clause", Scope::Decl),
+        // `… into grp select grp`: the continuation's name.
+        b("query_expression", &[""], Scope::Own),
+        b("local_function_statement", &["name"], Scope::Decl),
+    ],
+    functions: &[
+        "method_declaration",
+        "constructor_declaration",
+        "destructor_declaration",
+        "operator_declaration",
+        "conversion_operator_declaration",
+        "indexer_declaration",
+        "accessor_declaration",
+        "local_function_statement",
+        "lambda_expression",
+        "anonymous_method_expression",
+    ],
+    blocks: &[
+        "block",
+        "switch_section",
+        "switch_expression_arm",
+        "for_statement",
+        "foreach_statement",
+        "while_statement",
+        "do_statement",
+        "using_statement",
+        "fixed_statement",
+        "lock_statement",
+        "catch_clause",
+        "query_expression",
+    ],
+    patterns: &["parenthesized_variable_designation", "tuple_pattern"],
+};
+
 const ZIG_SPEC: Spec = Spec {
     idents: &["identifier"],
     binders: &[
@@ -442,6 +509,7 @@ fn spec(lang: &str) -> Option<&'static Spec> {
         "ocaml" => &OCAML_SPEC,
         "zig" => &ZIG_SPEC,
         "go" => &GO_SPEC,
+        "csharp" => &CSHARP_SPEC,
         _ => return None,
     })
 }
@@ -1280,5 +1348,93 @@ mod tests {
         assert!(!go_bound_at(&got, src, "e", "e()", 3));
         assert!(go_bound_at(&got, src, "r", ": r()", 0));
         assert!(!go_bound_at(&got, src, "r", "\nr()", 0));
+    }
+
+    fn cs(src: &str) -> Vec<LocalBinding> {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_c_sharp::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        collect("csharp", &tree, src.as_bytes())
+    }
+
+    /// WS27: every C# binding form inside a member is a local; fields,
+    /// the method's own name, types and a discard are not.
+    #[test]
+    fn csharp_binding_forms() {
+        let src = "class C { int field; C(int ctor) { }
+          void M(int a, ref int b, out int c, in int d, params int[] rest, int _) {
+            var x = 1; int y = 2, z; using var u = Open();
+            using (var w = Open()) { }
+            foreach (var it in xs) { } foreach (var (k, v) in dict) { }
+            for (int i = 0; i < 3; i++) { }
+            try { } catch (Exception e) { }
+            if (o is Foo foo) { } if (o is Foo { P: var pp } rec) { }
+            if (o is (int q1, var (pa, pb))) { }
+            switch (o) { case Bar bar: break; }
+            var r = o switch { Baz baz => 1, _ => 0 };
+            Parse(s, out var parsed);
+            var (t1, t2) = Tup();
+            var q = from a1 in xs let l1 = a1 join j1 in ys on a1 equals j1 into g1 select l1;
+            int Local(int lp) => lp;
+            Func<int, int> lam = n => n; Func<int, int, int> lam2 = (m1, m2) => m1;
+            Action del = delegate (int dp) { };
+          } }";
+        let got = cs(src);
+        let names: Vec<&str> = got.iter().map(|b| b.name.as_str()).collect();
+        for want in [
+            "ctor", "a", "b", "c", "d", "rest", "x", "y", "z", "u", "w", "it", "k", "v",
+            "i", "e", "foo", "pp", "rec", "q1", "pa", "pb", "bar", "baz", "parsed", "t1",
+            "t2", "a1", "l1", "j1", "g1", "Local", "lp", "n", "m1", "m2", "dp", "lam",
+            "del",
+        ] {
+            assert!(names.contains(&want), "{want} in {names:?}");
+        }
+        for not in [
+            "field", "M", "C", "Foo", "Bar", "Open", "xs", "Tup", "P", "_", "o",
+        ] {
+            assert!(!names.contains(&not), "{not} in {names:?}");
+        }
+        let param = |n: &str| got.iter().find(|b| b.name == n).unwrap().param;
+        for p in ["a", "rest", "lp", "n", "m1", "dp", "ctor"] {
+            assert!(param(p), "{p} is a parameter");
+        }
+        for l in ["x", "it", "e", "foo", "parsed", "a1"] {
+            assert!(!param(l), "{l} is a local");
+        }
+    }
+
+    /// C# scopes: a declaration is in scope after its declarator (`var
+    /// now = now();` calls the method); a pattern variable in an `if`
+    /// condition is in scope in the enclosing block after the `if`, one
+    /// in a `while` condition only in the loop; a `foreach` variable not
+    /// in its collection expression; a `catch` variable in its clause.
+    #[test]
+    fn csharp_scopes() {
+        let src = "class C { void M() {
+            var now = now(); now();
+            if (!(o is Foo f)) return; f();
+            while (o is Foo w) { w(); } w();
+            foreach (var it in it()) { it(); } it();
+            try { } catch (Exception e) { e(); } e();
+          }
+          void Other() { now(); } }";
+        let got = cs(src);
+        let at = |name: &str, needle: &str, nth: usize| {
+            let site = src.match_indices(needle).nth(nth).expect(needle).0 as u32;
+            got.iter()
+                .any(|b| b.name == name && b.start_byte <= site && site < b.end_byte)
+        };
+        assert!(!at("now", "now()", 0), "initializer: {got:?}");
+        assert!(at("now", "now()", 1));
+        assert!(!at("now", "now()", 2), "another method");
+        assert!(at("f", "f()", 0), "after the if, in the block");
+        assert!(at("w", "{ w()", 0));
+        assert!(!at("w", " w();\n", 0), "after the loop");
+        assert!(!at("it", "it()", 0), "the collection");
+        assert!(at("it", "it()", 1));
+        assert!(!at("it", "it()", 2));
+        assert!(at("e", "e()", 0));
+        assert!(!at("e", "e()", 1));
     }
 }

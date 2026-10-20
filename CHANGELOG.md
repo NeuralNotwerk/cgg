@@ -582,6 +582,28 @@ otherwise change the default graph.
   parameter `common` is the package's `Generator` again (a parameter is
   not in scope in the signature its type is written in).
 
+- **C# parameters and locals did not shadow method names (WS27, gap
+  27).** A call through a C# parameter (`Action next` then `next()`), a
+  `foreach` variable, a pattern variable, an `out var` or a lambda
+  parameter bound the calling class's method of that name at `high`,
+  and a local or parameter named in a value position was read as a
+  method group (`return SchemasCollection;` with a local
+  `SchemasCollection`). C# now has a locals table: parameters of
+  methods, constructors, operators, indexers, accessors, local
+  functions, lambdas (`x => …` too) and anonymous methods, `params`
+  arrays included; `var`, typed and `using var` locals and
+  deconstructions; `foreach`, `for`, `using (…)`, `fixed` and `catch`
+  variables; pattern variables (`is T t`, `case T t`, property and
+  positional designations) and `out var`; query range variables
+  (`from`, `let`, `join`, `into`). A declaration is in scope after its
+  declarator; a pattern or `out` variable in an `if` condition or an
+  expression statement is in scope to the end of the enclosing block
+  (`if (!(o is Foo f)) return; f.M();`), one in a loop, `using` or
+  switch section only there. A local function's name binds in its
+  block, so a call or method group through it is that local function
+  (two methods each declaring a local `T` no longer fan out to both).
+  Locals typed from a call's declared return type keep their types.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -1060,6 +1082,21 @@ WS27 Go follow-up (full corpus, 283 repositories, none excluded):
   declaration (`rpc.CreateInvoker` returns the `Invoker` interface),
   which Go's dead-code pass, having no dispatch model, does not connect
   to an implementation.
+
+WS27 C# (full corpus, 283 repositories, none excluded):
+
+- The default graph changes in one repository (Serilog): 49 calls to two
+  same-named local functions `T`, each bound to both at `medium`, now
+  bind their own at `high` (49 edges removed, 49 `medium` → `high`).
+  C# bare calls never reached another class's method, so the
+  calling-class decoys a local hides are rare in the corpus.
+- Under `--reference-edges`, 13 C# reference edges are removed and 2
+  added (`high`): 9 were values that are locals or parameters (`return
+  SchemasCollection;`, `this.SendData = SendData;`) read as a method
+  group or constructor; in MediatR, a local function `Handler` passed as
+  a method group bound both same-named local functions of its file at
+  `medium` (4 edges) and now binds its own at `high` (2).
+- Under `--dead-code`, no finding changes.
 
 ## [0.11.0] - 2026-10-16
 

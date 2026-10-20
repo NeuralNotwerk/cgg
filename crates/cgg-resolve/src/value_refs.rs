@@ -197,8 +197,8 @@ fn zig_value_in_scope(
 
 /// A local binding shadows the site's bare name — unless the binding's own
 /// declaration defines a function of that name (`f = lambda: …`, `const
-/// f = () => …`): then the local *is* that function, and naming it names
-/// the function.
+/// f = () => …`, a C# local function): then the local *is* that
+/// function, and naming it names the function.
 fn shadowed(
     locals: &crate::scope::FileLocals,
     defs: &[cgg_core::DefRecord],
@@ -207,14 +207,22 @@ fn shadowed(
     if !locals.shadows_bare_call(r) {
         return false;
     }
-    let Some(crate::scope::Binding { start, decl, .. }) =
-        locals.binding_decl_at(&r.name, r.site_byte)
+    let Some(crate::scope::Binding {
+        start, end, decl, ..
+    }) = locals.binding_decl_at(&r.name, r.site_byte)
     else {
         return true;
     };
-    !defs
-        .iter()
-        .any(|d| d.simple_name == r.name && decl <= d.start_byte && d.start_byte < start)
+    // A local function's binding starts where its definition does and
+    // runs on to the end of its block (C# `void Handler() {…}` passed as
+    // `Run(Handler)`, WS27). A parameter named like its own function
+    // (`function a(a)`) spans exactly that function: it is not the
+    // function.
+    !defs.iter().any(|d| {
+        d.simple_name == r.name
+            && decl <= d.start_byte
+            && (d.start_byte < start || (d.start_byte == start && d.end_byte < end))
+    })
 }
 
 /// An Erlang function value names one function of one arity: `fun f/N`
@@ -528,6 +536,38 @@ mod tests {
         assert_eq!(all[0].references.len(), 1);
         // Near-miss: a local bound to something else still shadows.
         all[0].definitions[1].start_byte = 5;
+        prune(&mut all);
+        assert!(all[0].references.is_empty());
+    }
+
+    /// WS27: a C# local function's name is bound from its own start; the
+    /// method group `Run(Handler)` names that function.
+    #[test]
+    fn a_local_function_named_as_a_value_is_kept() {
+        let mut a = facts(
+            "csharp",
+            1,
+            &["Main", "Handler"],
+            vec![RefRecord {
+                site_byte: 80,
+                ..vref("Handler", "")
+            }],
+        );
+        a.definitions[1].start_byte = 30;
+        a.definitions[1].end_byte = 60;
+        a.locals = vec![cgg_core::LocalBinding {
+            name: "Handler".into(),
+            start_byte: 30,
+            end_byte: 100,
+            decl_byte: 30,
+            param: true,
+        }];
+        let mut all = vec![a];
+        prune(&mut all);
+        assert_eq!(all[0].references.len(), 1);
+        // Near miss: a parameter named like its own function
+        // (`function a(a) { g(a) }`) spans the function exactly.
+        all[0].definitions[1].end_byte = 100;
         prune(&mut all);
         assert!(all[0].references.is_empty());
     }

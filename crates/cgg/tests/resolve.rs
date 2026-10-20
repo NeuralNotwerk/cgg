@@ -6028,3 +6028,211 @@ func (s *S) Start() {}
     );
     assert!(start.iter().any(|(l, _, _)| *l == 21), "{start:?}");
 }
+/// WS27: a C# parameter, `foreach` variable, pattern variable (in scope
+/// after its `if`), `out var` or lambda parameter shadows a same-named
+/// method of the calling class: a call through one is `shadowed-by-local`,
+/// never a (wrong, `high`) edge to the method. A local function is the
+/// callee of a call through its name. Locals typed from a call's declared
+/// return type (plain, `using var`, in a block) keep their edges.
+#[test]
+fn csharp_parameters_and_locals_shadow_methods() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "Program.cs",
+        r#"using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace App
+{
+    public class Tool : IDisposable
+    {
+        public void Work() { }
+        public void Dispose() { }
+    }
+
+    public class Program
+    {
+        // Parameter.
+        static void Use(Action next) { next(); }
+
+        // foreach variable.
+        static void Each(List<Action<int>> hs) { foreach (var handler in hs) handler(1); }
+
+        // Pattern variable, in scope after the if.
+        static void Pattern(object o)
+        {
+            if (!(o is Action callback)) return;
+            callback();
+        }
+
+        // out var.
+        static void Out()
+        {
+            Try(out Action step);
+            step();
+        }
+
+        // Lambda parameter.
+        static void Lambda(List<Func<int>> fs)
+        {
+            var total = fs.Sum(factory => factory());
+        }
+
+        // Local function: the call is the local function.
+        static int Local(int x)
+        {
+            int twice(int v) => v * 2;
+            return twice(x);
+        }
+
+        static void Try(out Action a) { a = null; }
+
+        // Same-class methods named like the locals above.
+        static void next() { }
+        static void handler(int x) { }
+        static void callback() { }
+        static void step() { }
+        static int factory() { return 0; }
+        static int twice(int v) { return v; }
+
+        static Tool Make() { return null; }
+
+        // Positive controls: a typed parameter, and locals typed from a
+        // call's declared return type (plain, `using var`, in a block).
+        static void Control(Other other)
+        {
+            other.Done();
+            var tool = Make();
+            tool.Work();
+            using var held = Make();
+            held.Work();
+            {
+                var inner = Make();
+                inner.Work();
+            }
+        }
+
+        public static void Main()
+        {
+            Use(null);
+            Each(null);
+            Pattern(null);
+            Out();
+            Lambda(null);
+            Local(1);
+            Control(null);
+        }
+    }
+}
+"#
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "Other.cs",
+        r#"using System;
+
+namespace App
+{
+    // Methods whose names the locals in Program.cs reuse.
+    public class Other
+    {
+        public void next() { }
+        public void handler(int x) { }
+        public void callback() { }
+        public void step() { }
+        public void factory() { }
+        public int twice(int v) { return v; }
+        public void Done() { }
+    }
+}
+"#
+        .as_bytes(),
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let edges: Vec<(String, String, u64, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                qn(&e["src"]),
+                qn(&e["dst"]),
+                e["site_line"].as_u64().unwrap(),
+                e["confidence"].as_str().unwrap().to_string(),
+            )
+        })
+        .collect();
+    let shadowed: Vec<(String, String)> = g["unresolved"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|u| u["reason"]["stage"] == "shadowed-by-local")
+        .map(|u| (qn(&u["src"]), u["name"].as_str().unwrap().to_string()))
+        .collect();
+    for (caller, name) in [
+        ("App.Program.Use", "next"),
+        ("App.Program.Each", "handler"),
+        ("App.Program.Pattern", "callback"),
+        ("App.Program.Out", "step"),
+        ("App.Program.Lambda", "factory"),
+    ] {
+        let callee = format!("App.Program.{name}");
+        assert!(
+            !edges.iter().any(|(s, d, _, _)| s == caller && *d == callee),
+            "{caller} -> {callee}: {edges:?}"
+        );
+        assert!(
+            shadowed.iter().any(|(s, n)| s == caller && n == name),
+            "{caller} {name}(): {shadowed:?}"
+        );
+    }
+    // `twice(x)` is the local function (declared on line 44), once.
+    let twice: Vec<_> = edges
+        .iter()
+        .filter(|(s, d, _, _)| s == "App.Program.Local" && d == "App.Program.twice")
+        .collect();
+    assert_eq!(twice.len(), 1, "{twice:?}");
+    let local_fn = g["callables"]
+        .as_object()
+        .unwrap()
+        .values()
+        .filter(|c| c["qualified_name"] == "App.Program.twice")
+        .map(|c| c["start_line"].as_u64().unwrap())
+        .min()
+        .unwrap();
+    let bound = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|e| {
+            qn(&e["src"]) == "App.Program.Local" && qn(&e["dst"]) == "App.Program.twice"
+        })
+        .unwrap();
+    assert_eq!(
+        g["callables"][bound["dst"].as_str().unwrap()]["start_line"].as_u64(),
+        Some(local_fn)
+    );
+    let works: Vec<&String> = edges
+        .iter()
+        .filter(|(s, d, _, _)| s == "App.Program.Control" && d == "App.Tool.Work")
+        .map(|(_, _, _, c)| c)
+        .collect();
+    assert_eq!(works, vec!["high", "high", "high"], "{edges:?}");
+}
