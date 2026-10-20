@@ -9,11 +9,16 @@
 //! scope a qualified name writes behind `&` (`&ns::f`, `&Class::m`). The
 //! arguments of a macro-style call (`EXPECT_CALL(x, M)`) are not read.
 //!
-//! C and C++ have no scope table yet (`cgg_lang::locals`), so a bare name
-//! any parameter or declarator of an enclosing function declares, or a
-//! file-scope (or namespace-scope) variable of the file, is a variable and
-//! is not recorded: a binding counts over the whole function, which can
-//! only drop a reference, never invent one. Names no callable of the
+//! C has a scope table (`cgg_lang::locals`, WS27): its parameters and
+//! block-scope declarators are pruned there (`value_refs::prune`), where
+//! they are in scope. C++ and Objective-C have none yet, so a bare name
+//! any parameter or declarator of an enclosing function declares is a
+//! variable here and is not recorded: a binding counts over the whole
+//! function, which can only drop a reference, never invent one. In every
+//! one of them a name an enclosing function assigns to (`err = NULL` after
+//! a declaration that parsed as a call, `g_autoptr(T) err`) and a
+//! file-scope (or namespace-scope) variable of the file are variables, not
+//! recorded: neither is a local the table holds. Names no callable of the
 //! language carries are dropped before resolution (`value_refs::prune`).
 //! A registrar verb's arguments were captured by `registrar::capture`.
 
@@ -30,10 +35,15 @@ use tree_sitter::{Node, Tree};
 /// more than the rest of the C extraction on large generated sources.
 /// Bindings are gathered on the way and candidates checked against them
 /// when the walk is done, since a binding counts over its whole function.
+///
+/// `scoped` says the language's parameters and declarations are in the
+/// locals table (C), so only assignments and file variables are checked
+/// here.
 pub(super) fn collect(
     ctx: &crate::ExtractCtx<'_>,
     tree: &Tree,
     src: &[u8],
+    scoped: bool,
 ) -> (Vec<RefRecord>, Vec<String>) {
     let _s = cgg_core::profile::span("extract::c-values");
     let root = tree.root_node();
@@ -47,6 +57,7 @@ pub(super) fn collect(
         cands: Vec::new(),
         members: HashSet::new(),
         in_field: 0,
+        scoped,
     };
     let mut cursor = root.walk();
     w.visit(&mut cursor, None);
@@ -180,6 +191,8 @@ struct Walk<'c, 's> {
     members: HashSet<String>,
     /// How many field declarations enclose the node being walked.
     in_field: u32,
+    /// Parameters and declarations are the locals table's (C).
+    scoped: bool,
 }
 
 impl Walk<'_, '_> {
@@ -212,7 +225,9 @@ impl Walk<'_, '_> {
             }
             Role::InitList => self.values_of_children(node, true),
             Role::InitDecl => {
-                self.bind_declared(node);
+                if !self.scoped {
+                    self.bind_declared(node);
+                }
                 if let Some(v) = node.child_by_field_name("value") {
                     self.value_ref_in(v, 0, false);
                 }
@@ -232,7 +247,7 @@ impl Walk<'_, '_> {
                 }
             }
             Role::Return => self.values_of_children(node, false),
-            Role::Decl => self.bind_declared(node),
+            Role::Decl if !self.scoped => self.bind_declared(node),
             Role::MethodParam => {
                 let mut c = node.walk();
                 let name = node
@@ -482,7 +497,7 @@ fn declared_names(decl: Node, src: &[u8], out: &mut HashSet<String>) {
 #[cfg(test)]
 fn data_members(tree: &Tree, src: &[u8]) -> Vec<String> {
     let ctx = crate::ExtractCtx::plain().with_reference_sites(true);
-    collect(&ctx, tree, src).1
+    collect(&ctx, tree, src, false).1
 }
 
 /// The names one `field_declaration` declares (not a member function).
@@ -525,14 +540,23 @@ mod tests {
     use super::*;
 
     fn refs(lang: tree_sitter::Language, src: &str) -> Vec<(String, String)> {
+        refs_at(lang, src)
+            .into_iter()
+            .map(|(r, n, _)| (r, n))
+            .collect()
+    }
+
+    /// Value sites with their byte, C read with its locals table.
+    fn refs_at(lang: tree_sitter::Language, src: &str) -> Vec<(String, String, u32)> {
+        let scoped = lang == tree_sitter_c::LANGUAGE.into();
         let mut p = tree_sitter::Parser::new();
         p.set_language(&lang).unwrap();
         let tree = p.parse(src, None).unwrap();
         let ctx = crate::ExtractCtx::plain().with_reference_sites(true);
-        collect(&ctx, &tree, src.as_bytes())
+        collect(&ctx, &tree, src.as_bytes(), scoped)
             .0
             .into_iter()
-            .map(|r| (r.receiver_hint, r.name))
+            .map(|r| (r.receiver_hint, r.name, r.site_byte))
             .collect()
     }
 
@@ -564,9 +588,11 @@ mod tests {
         }
     }
 
-    /// The near misses: a parameter (a function pointer too), a local, a
-    /// file-scope variable, a string, a field designator and a member
-    /// read are not references.
+    /// The near misses: a file-scope variable, a string, a field
+    /// designator and a member read are not references. A parameter (a
+    /// function pointer too) or a local (`g_autoptr(GError) err` too) is
+    /// recorded here and pruned where the C locals table binds it
+    /// (`crate::locals`, WS27).
     #[test]
     fn c_variables_strings_and_designators_are_not_reference_sites() {
         let src = "static int limit = 3;\n\
@@ -581,19 +607,21 @@ mod tests {
                    }\n";
         let got = refs(tree_sitter_c::LANGUAGE.into(), src);
         let names: Vec<&str> = got.iter().map(|(_, n)| n.as_str()).collect();
-        for n in [
-            "cb",
-            "n",
-            "local",
-            "fp",
-            "limit",
-            "in_string",
-            "open",
-            "field",
-            "mock",
-            "Method",
-            "err",
-        ] {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_c::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        let locals = crate::locals::collect("c", &tree, src.as_bytes());
+        for (_, n, site) in refs_at(tree_sitter_c::LANGUAGE.into(), src) {
+            if ["cb", "n", "local", "fp", "err"].contains(&n.as_str()) {
+                assert!(
+                    locals.iter().any(|b| b.name == n
+                        && b.start_byte <= site
+                        && site < b.end_byte),
+                    "{n} at {site} not bound: {locals:?}"
+                );
+            }
+        }
+        for n in ["limit", "in_string", "open", "field", "mock", "Method"] {
             assert!(!names.contains(&n), "{n} recorded: {got:?}");
         }
     }
@@ -625,6 +653,17 @@ mod tests {
         );
     }
 
+    /// WS27: with C's locals in the table, a name the function assigns
+    /// to (a global declared elsewhere) is still a variable here, and a
+    /// function named as a value still a reference.
+    #[test]
+    fn c_assigned_names_stay_variables_with_the_locals_table() {
+        let src = "void f(void) { handler = 0; pass(handler); pass(on_done); }\n";
+        let got = refs(tree_sitter_c::LANGUAGE.into(), src);
+        assert!(!has(&got, "", "handler"), "{got:?}");
+        assert!(has(&got, "", "on_done"), "{got:?}");
+    }
+
     /// An ordinary run records nothing: the plugins call [`collect`] only
     /// when the run asks for reference sites.
     #[test]
@@ -649,6 +688,7 @@ mod tests {
                 .count()
         };
         assert_eq!(run(false), 0);
-        assert_eq!(run(true), 1);
+        // `cmp`, and the local `xs`, which the C locals table prunes.
+        assert_eq!(run(true), 2);
     }
 }

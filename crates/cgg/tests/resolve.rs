@@ -6236,3 +6236,171 @@ namespace App
         .collect();
     assert_eq!(works, vec!["high", "high", "high"], "{edges:?}");
 }
+
+/// WS27: a C parameter (a function pointer, K&R too), a block-scope
+/// function-pointer variable, a `for` init declaration and a `static`
+/// local shadow a same-named function: a call through one is
+/// `shadowed-by-local`, never a (wrong, `high`) edge. An initializer,
+/// a call after the declaring block and a value outside it reach the
+/// function.
+#[test]
+fn c_parameters_and_locals_shadow_functions() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "main.c",
+        r#"#include <stddef.h>
+#include "macros.h"
+
+int cb(int x);
+int handler(int x);
+int step(void);
+int fn(void);
+int now(void);
+int later(void);
+int helper(void);
+
+static void pass(int (*f)(void)) { (void)f; }
+
+/* Parameter (a function pointer). */
+static int with_param(int (*cb)(int)) { return cb(1); }
+
+/* K&R parameter. */
+static int with_kr(handler) int (*handler)(int); { return handler(2); }
+
+/* Block-scope function-pointer variable. */
+static int with_local(void)
+{
+    int (*step)(void) = 0;
+    return step();
+}
+
+/* for init declaration. */
+static int with_for(void)
+{
+    int t = 0;
+    for (int (*fn)(void) = 0; t < 1; t++) {
+        t += fn();
+    }
+    return t;
+}
+
+/* static local. */
+static int with_static(void)
+{
+    static int (*handler)(int);
+    return handler(3);
+}
+
+/* Value position through a parameter: no reference. */
+static void pass_param(int (*helper)(void)) { pass(helper); }
+
+/* A function-like macro expands whatever local shares its name. */
+static int with_macro(int pick) { return pick(pick); }
+
+/* Positive controls: an initializer sees the function; after the block
+ * ends the function is visible again; a value named outside a block that
+ * declares the name is the function. */
+static int controls(void)
+{
+    int n = now();
+    {
+        int later = 1;
+        (void)later;
+    }
+    pass(helper);
+    return n + later();
+}
+
+int main(void)
+{
+    with_param(0);
+    with_kr(0);
+    with_local();
+    with_for();
+    with_static();
+    pass_param(0);
+    with_macro(0);
+    return controls();
+}
+"#
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "macros.h",
+        r#"/* A function-like macro a parameter of main.c shares its name with. */
+#define pick(x) ((x) + 1)
+"#
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "funcs.c",
+        r#"/* Functions whose names the locals in main.c reuse. */
+int cb(int x) { return x; }
+int handler(int x) { return x; }
+int step(void) { return 0; }
+int fn(void) { return 0; }
+int now(void) { return 0; }
+int later(void) { return 0; }
+int helper(void) { return 0; }
+"#
+        .as_bytes(),
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let edges: Vec<(String, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| (qn(&e["src"]), qn(&e["dst"])))
+        .collect();
+    let shadowed: Vec<(String, String)> = g["unresolved"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|u| u["reason"]["stage"] == "shadowed-by-local")
+        .map(|u| (qn(&u["src"]), u["name"].as_str().unwrap().to_string()))
+        .collect();
+    for (caller, name) in [
+        ("with_param", "cb"),
+        ("with_kr", "handler"),
+        ("with_local", "step"),
+        ("with_for", "fn"),
+        ("with_static", "handler"),
+    ] {
+        assert!(
+            !edges.iter().any(|(s, d)| s == caller && d == name),
+            "{caller} -> {name}: {edges:?}"
+        );
+        assert!(
+            shadowed.iter().any(|(s, n)| s == caller && n == name),
+            "{caller} {name}(): {shadowed:?}"
+        );
+    }
+    // A function-like macro expands whatever parameter shares its name.
+    assert!(
+        edges.iter().any(|(s, d)| s == "with_macro" && d == "pick"),
+        "with_macro -> pick: {edges:?}"
+    );
+    for callee in ["now", "later"] {
+        assert!(
+            edges.iter().any(|(s, d)| s == "controls" && d == callee),
+            "controls -> {callee}: {edges:?}"
+        );
+    }
+}

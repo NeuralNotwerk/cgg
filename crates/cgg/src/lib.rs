@@ -490,11 +490,19 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                         // Not in a minified bundle (one enormous line): its
                         // reused short names make scope evidence noise, and
                         // the file keeps the reading it always had.
-                        if f.locals.is_empty()
-                            && cgg_lang::longest_line_bytes(&bytes) <= MINIFIED_LINE_BYTES
-                        {
-                            f.locals =
+                        // The plugin may already hold some: the C family's
+                        // function-defining macro expansions record theirs
+                        // (`c_macro::expand`), which the file's own join.
+                        if cgg_lang::longest_line_bytes(&bytes) <= MINIFIED_LINE_BYTES {
+                            let own =
                                 cgg_lang::locals::collect(&f.language, &out.tree, &bytes);
+                            if f.locals.is_empty() {
+                                f.locals = own;
+                            } else if !own.is_empty() {
+                                f.locals.extend(own);
+                                f.locals.sort_by_key(|b| (b.start_byte, b.end_byte));
+                                f.locals.dedup();
+                            }
                         }
                         f
                     });

@@ -2443,7 +2443,20 @@ pub fn resolve(
                 // `debug("x")` after `const debug = makeDebug()`) calls
                 // the value the name holds. No other file's function is
                 // the callee, whatever shares its name (WS14).
-                if locals.shadows_bare_call(r) {
+                // A C-family function-like macro of that name expands
+                // before any scope applies (`binary_strings(state)` beside a
+                // local `binary_strings`): the call is resolved as written
+                // (WS27).
+                let names_a_macro = matches!(lang.as_str(), "c" | "cpp" | "objc")
+                    && by_simple.get(&(lang.clone(), r.name.clone())).is_some_and(|ids| {
+                        ids.iter().any(|id| {
+                            graph
+                                .callables
+                                .get(id)
+                                .is_some_and(|c| c.attributes.iter().any(|a| a == "macro"))
+                        })
+                    });
+                if locals.shadows_bare_call(r) && !names_a_macro {
                     // A local whose type is known is an instance: calling
                     // it enters its type's call operator (step 7's
                     // `agent("x")` → `Agent.__call__`), the one reading a

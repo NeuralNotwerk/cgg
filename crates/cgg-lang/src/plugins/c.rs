@@ -54,7 +54,7 @@ impl LanguagePlugin for CPlugin {
         w.walk(tree.root_node());
         let mut out = facts;
         if ctx.reference_sites {
-            let (refs, members) = super::c_values::collect(ctx, tree, source);
+            let (refs, members) = super::c_values::collect(ctx, tree, source, true);
             out.references.extend(refs);
             out.data_members = members;
         }

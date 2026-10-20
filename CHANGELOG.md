@@ -604,6 +604,28 @@ otherwise change the default graph.
   (two methods each declaring a local `T` no longer fan out to both).
   Locals typed from a call's declared return type keep their types.
 
+- **C parameters and locals did not shadow function names (WS27, gap
+  27).** A call through a C function-pointer parameter (`int
+  (*compare)(…)` then `compare(a, b)`), a block-scope or `static`
+  function-pointer variable or a `for` init declaration bound a
+  same-named function of the tree, at `high` where the name was unique.
+  C now has a locals table: a function's parameters (a K&R identifier
+  when a K&R declaration types it), in scope over the definition, and
+  each declarator of a block-scope declaration (arrays, pointers,
+  function-pointer variables, `static` locals, `for` init
+  declarations), in scope from the end of its declarator to the end of
+  its block or `for`. The parameter names inside a function-pointer
+  declarator, a block-scope prototype and a parenthesized name with no
+  `*` (`int (f)(int);`, `STDMETHOD(Name)(…)`) bind nothing, nor does a
+  declaration the parser recovered from an error; file-scope
+  declarations are not locals. A function-like macro expands before
+  any scope applies, so `pick(x)` beside a parameter `pick` still calls
+  the macro. The WS26 value-reference filter in `c_values.rs` no longer
+  binds C parameters and declarations over their whole function (the
+  table prunes them where they are in scope); names a function assigns
+  to and file-scope variables are still skipped there. C++ and
+  Objective-C keep the old filter.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -1097,6 +1119,24 @@ WS27 C# (full corpus, 283 repositories, none excluded):
   a method group bound both same-named local functions of its file at
   `medium` (4 edges) and now binds its own at `high` (2).
 - Under `--dead-code`, no finding changes.
+
+WS27 C (full corpus, 283 repositories, none excluded):
+
+- The default graph changes in four repositories, all in C files: 71
+  edges removed (1 `high`), none added. Every one was a call through a
+  function-pointer parameter or local (`compare`, `cmp`, `hash`,
+  `write_cb`, `start_routine`, `filter`, zlib's `init`) bound to a
+  same-named function: erlang-otp 19, cmake 22, zig 29, Redis 1.
+- Under `--reference-edges`, 1 C reference edge is added (`medium`, a
+  regression): `struct Curl_easy *dep = va_arg(param, struct Curl_easy
+  *);` parses with an error in its initializer, so `dep` is no longer
+  bound and the value `dep` binds a test file's function `dep`.
+- Under `--dead-code`, 6 findings enter the report (5 `medium`, 1
+  `low`), credited until now only by those wrong call edges: four in
+  erlang-otp (a NIF `init` that zlib's `init()` parameter call reached,
+  and what it calls), and musl's `start` and `handler`, whose value
+  uses are dropped because other structs of the tree declare fields of
+  those names.
 
 ## [0.11.0] - 2026-10-16
 

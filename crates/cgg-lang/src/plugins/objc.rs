@@ -38,7 +38,7 @@ impl LanguagePlugin for ObjcPlugin {
         // C function names in value positions (`sort_with(xs, compare)`), read
         // as the C plugin reads them (WS26).
         if ctx.reference_sites {
-            let (refs, members) = super::c_values::collect(ctx, tree, source);
+            let (refs, members) = super::c_values::collect(ctx, tree, source, false);
             facts.references.extend(refs);
             facts.data_members = members;
         }

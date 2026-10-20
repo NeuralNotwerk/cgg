@@ -277,6 +277,7 @@ pub fn link_file_with_cap(
         // function `const cb = () => …` the binding names, a nested
         // function — still is (WS14).
         let mut shadowed_by_local = false;
+        let c_family = matches!(facts.language.as_str(), "c" | "cpp" | "objc");
         if locals.shadows_bare_call(rref)
             && let Some(binding) = locals.binding_decl_at(&rref.name, rref.site_byte)
         {
@@ -314,6 +315,10 @@ pub fn link_file_with_cap(
                     // (`const lim = (v) => …`).
                     || (decl <= d.start_byte && d.start_byte < ls)
                     || (!is_param && nesting.parent[*i as usize].is_some())
+                    // A C-family function-like macro expands before any
+                    // scope applies: `data(ctx)` beside a parameter `data`
+                    // is the macro (WS27).
+                    || (c_family && d.attributes.iter().any(|a| a == "macro"))
             });
             shadowed_by_local = before > 0 && candidates.is_empty();
             // Go: `name := func(…) {…}` is the closure its own
@@ -1458,6 +1463,28 @@ mod tests {
             .map(|e| (e.site_byte, e.dst.as_u32()))
             .collect();
         assert_eq!(got, vec![(150, 3), (450, 4)], "{:?}", out.unresolved);
+    }
+
+    /// WS27: a C function-like macro expands before any scope applies,
+    /// so `pick(x)` beside a parameter `pick` is the macro; a function of
+    /// that name is shadowed.
+    #[test]
+    fn a_c_macro_is_not_shadowed_by_a_local() {
+        let mut defs = vec![
+            mk_def("pick", "pick", DefVariant::FreeFunction, (0, 10)),
+            mk_def("f", "f", DefVariant::FreeFunction, (20, 100)),
+        ];
+        defs[0].attributes = vec!["macro".into()];
+        let mut facts = facts_with_lang("c", defs.clone(), vec![mk_ref("pick", 50)]);
+        facts.locals = vec![param("pick", 20, 100)];
+        let out = link_file(&facts, &mk_map(&facts));
+        assert_eq!(out.edges.len(), 1, "{:?}", out.unresolved);
+        // Near miss: the same name as a function is shadowed.
+        defs[0].attributes.clear();
+        let mut facts = facts_with_lang("c", defs, vec![mk_ref("pick", 50)]);
+        facts.locals = vec![param("pick", 20, 100)];
+        let out = link_file(&facts, &mk_map(&facts));
+        assert!(out.edges.is_empty(), "{:?}", out.edges);
     }
 
     /// WS27: two `stubs := func…` in sibling closures of one Go test

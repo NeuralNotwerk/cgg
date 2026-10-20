@@ -66,7 +66,7 @@ impl LanguagePlugin for CppPlugin {
         w.walk(tree.root_node());
         let mut out = facts;
         if ctx.reference_sites {
-            let (refs, members) = super::c_values::collect(ctx, tree, source);
+            let (refs, members) = super::c_values::collect(ctx, tree, source, false);
             out.references.extend(refs);
             out.data_members = members;
         }

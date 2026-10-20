@@ -517,6 +517,9 @@ fn spec(lang: &str) -> Option<&'static Spec> {
 /// Every value binding of the file, in source order. Empty for a
 /// language with no table.
 pub fn collect(lang: &str, tree: &Tree, source: &[u8]) -> Vec<LocalBinding> {
+    if lang == "c" {
+        return collect_c(tree, source);
+    }
     let Some(spec) = spec(lang) else {
         return Vec::new();
     };
@@ -576,6 +579,244 @@ pub fn collect(lang: &str, tree: &Tree, source: &[u8]) -> Vec<LocalBinding> {
             }
         }
     }
+}
+
+/// What the C walk does at a node, by kind id.
+#[derive(Clone, Copy, PartialEq)]
+enum CRole {
+    Other,
+    Function,
+    Declaration,
+    Block,
+}
+
+/// C (WS27): a function's parameters (a K&R identifier when a K&R
+/// declaration types it),
+/// in scope over the whole definition; each declarator of a declaration
+/// in a function body (arrays, pointers, function-pointer variables,
+/// `static` locals, `for` init declarations), in scope from the end of
+/// that declarator, its initializer included, to the end of its block or
+/// `for`. The parameter names of a function-pointer declarator (`int
+/// (*cb)(int y)`) and a block-scope prototype (`int proto(int);`) bind
+/// nothing; file-scope declarations are not locals.
+///
+/// C's declarators do not fit the table-driven walk (a
+/// `function_declarator` holds a variable only around a parenthesized
+/// declarator), so this is its own single cursor walk, by kind id.
+fn collect_c(tree: &Tree, src: &[u8]) -> Vec<LocalBinding> {
+    let lang = tree.language();
+    let roles: Vec<CRole> = (0..lang.node_kind_count())
+        .map(|id| match lang.node_kind_for_id(id as u16).unwrap_or("") {
+            "function_definition" => CRole::Function,
+            "declaration" => CRole::Declaration,
+            "compound_statement" | "for_statement" => CRole::Block,
+            _ => CRole::Other,
+        })
+        .collect();
+    let mut w = CWalk {
+        roles,
+        src,
+        out: Vec::new(),
+        blocks: Vec::new(),
+        in_function: 0,
+    };
+    let mut cursor = tree.walk();
+    w.visit(&mut cursor);
+    let mut out = w.out;
+    out.sort_by_key(|b| (b.start_byte, b.end_byte));
+    out.dedup();
+    out
+}
+
+struct CWalk<'s> {
+    roles: Vec<CRole>,
+    src: &'s [u8],
+    out: Vec<LocalBinding>,
+    /// End bytes of the blocks (and `for`s) of the current function
+    /// enclosing the node being walked, innermost last.
+    blocks: Vec<u32>,
+    in_function: u32,
+}
+
+impl CWalk<'_> {
+    fn role(&self, n: Node<'_>) -> CRole {
+        self.roles
+            .get(n.kind_id() as usize)
+            .copied()
+            .unwrap_or(CRole::Other)
+    }
+
+    fn visit(&mut self, cursor: &mut tree_sitter::TreeCursor<'_>) {
+        let node = cursor.node();
+        let role = self.role(node);
+        match role {
+            CRole::Function => {
+                self.parameters(node);
+                self.in_function += 1;
+            }
+            CRole::Declaration if self.in_function > 0 => {
+                if let Some(&end) = self.blocks.last() {
+                    self.declaration(node, end);
+                }
+            }
+            CRole::Block if self.in_function > 0 => {
+                self.blocks.push(node.end_byte() as u32)
+            }
+            _ => {}
+        }
+        if cursor.goto_first_child() {
+            loop {
+                self.visit(cursor);
+                if !cursor.goto_next_sibling() {
+                    break;
+                }
+            }
+            cursor.goto_parent();
+        }
+        match role {
+            CRole::Function => self.in_function -= 1,
+            CRole::Block if self.in_function > 0 => {
+                self.blocks.pop();
+            }
+            _ => {}
+        }
+    }
+
+    fn push(&mut self, name: Node<'_>, start: u32, end: u32, decl: u32, param: bool) {
+        let name = name.utf8_text(self.src).unwrap_or("").trim();
+        if name.is_empty() || start >= end {
+            return;
+        }
+        self.out.push(LocalBinding {
+            name: name.to_string(),
+            start_byte: start,
+            end_byte: end,
+            decl_byte: decl.min(start),
+            param,
+        });
+    }
+
+    /// The parameters of a function definition: its own declarator
+    /// chain's `function_declarator` (through pointers and attributes, as
+    /// in `int *f(int x)`), each `parameter_declaration`'s variable or a
+    /// K&R identifier.
+    fn parameters(&mut self, def: Node<'_>) {
+        let mut d = def.child_by_field_name("declarator");
+        let mut list = None;
+        for _ in 0..8 {
+            let Some(n) = d else { break };
+            match n.kind() {
+                "function_declarator" => {
+                    list = n.child_by_field_name("parameters");
+                    break;
+                }
+                "pointer_declarator"
+                | "attributed_declarator"
+                | "parenthesized_declarator" => {
+                    d = n.child_by_field_name("declarator").or_else(|| {
+                        n.named_child(n.named_child_count().saturating_sub(1) as u32)
+                    });
+                }
+                _ => break,
+            }
+        }
+        let Some(list) = list else { return };
+        let (start, end) = (def.start_byte() as u32, def.end_byte() as u32);
+        // A K&R identifier is a parameter only when a declaration between
+        // the declarator and the body types it (`int kr(a) int a; {…}`):
+        // a macro header misparsed as a definition (`STDMETHOD_(HRESULT,
+        // CreateBitmap)(…)`, which swallows the methods after it as
+        // "declarations") names no parameters.
+        let mut kr_declared: Vec<&str> = Vec::new();
+        {
+            let mut c = def.walk();
+            for n in def.named_children(&mut c) {
+                if self.role(n) != CRole::Declaration {
+                    continue;
+                }
+                let mut dc = n.walk();
+                for d in n.children_by_field_name("declarator", &mut dc) {
+                    if let Some(id) = c_variable(d) {
+                        kr_declared.push(id.utf8_text(self.src).unwrap_or(""));
+                    }
+                }
+            }
+        }
+        let mut c = list.walk();
+        for p in list.named_children(&mut c) {
+            let name = match p.kind() {
+                "identifier"
+                    if kr_declared.contains(&p.utf8_text(self.src).unwrap_or("")) =>
+                {
+                    Some(p)
+                }
+                "parameter_declaration" => {
+                    p.child_by_field_name("declarator").and_then(c_variable)
+                }
+                _ => None,
+            };
+            if let Some(name) = name {
+                self.push(name, start, end, start, true);
+            }
+        }
+    }
+
+    /// Each variable a block-scope declaration declares, from the end of
+    /// its declarator to `end`; none from one with a parse error.
+    fn declaration(&mut self, decl: Node<'_>, end: u32) {
+        // One the parser recovered from an error is not trusted: C++ read
+        // as C (`STDMETHOD(F)(…) PURE; using Base::F;`) leaves `F` as a
+        // declarator.
+        if decl.has_error() {
+            return;
+        }
+        let at = decl.start_byte() as u32;
+        let mut c = decl.walk();
+        let declarators: Vec<Node<'_>> =
+            decl.children_by_field_name("declarator", &mut c).collect();
+        for d in declarators {
+            if let Some(name) = c_variable(d) {
+                self.push(name, d.end_byte() as u32, end, at, false);
+            }
+        }
+    }
+}
+
+/// The identifier a C declarator declares as a variable: through pointer,
+/// array, init, parenthesized and attributed layers, and a function
+/// declarator only around a parenthesized one (`(*cb)(int)` is a
+/// variable, `proto(int)` a function).
+fn c_variable(mut d: Node<'_>) -> Option<Node<'_>> {
+    for _ in 0..16 {
+        match d.kind() {
+            "identifier" => return Some(d),
+            // A pointer to a function: `(*cb)(int)`. A parenthesized name
+            // alone (`(f)(int)`, `STDMETHOD(Name)(…)`) declares a function.
+            "function_declarator" => {
+                d = d
+                    .child_by_field_name("declarator")
+                    .filter(|inner| inner.kind() == "parenthesized_declarator")?;
+                let mut c = d.walk();
+                if !d
+                    .named_children(&mut c)
+                    .any(|n| n.kind() == "pointer_declarator")
+                {
+                    return None;
+                }
+            }
+            "pointer_declarator"
+            | "array_declarator"
+            | "init_declarator"
+            | "parenthesized_declarator"
+            | "attributed_declarator" => {
+                d = d.child_by_field_name("declarator").or_else(|| {
+                    d.named_child(d.named_child_count().checked_sub(1)? as u32)
+                })?;
+            }
+            _ => return None,
+        }
+    }
+    None
 }
 
 /// Lua `local` declarations at file scope (WS19): in scope from the end of
@@ -1436,5 +1677,71 @@ mod tests {
         assert!(!at("it", "it()", 2));
         assert!(at("e", "e()", 0));
         assert!(!at("e", "e()", 1));
+    }
+
+    fn c_locals(src: &str) -> Vec<LocalBinding> {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_c::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        collect("c", &tree, src.as_bytes())
+    }
+
+    /// WS27: C parameters (K&R too) and block-scope declarators bind;
+    /// file-scope variables, a function-pointer declarator's parameter
+    /// names and a block-scope prototype do not.
+    #[test]
+    fn c_binding_forms() {
+        let src = "int g;\nint kr(a, b) int a; char *b; { return a; }\n\
+                   int *f(int x, int (*cb)(int y), int arr[], ...) {\n\
+                   int i = 0, *p, a2[3]; static int s; void (*fp)(int z) = 0;\n\
+                   for (int k = 0; k < 3; k++) { }\n\
+                   int proto(int q);\n return 0; }\n";
+        let got = c_locals(src);
+        let names: Vec<&str> = got.iter().map(|b| b.name.as_str()).collect();
+        for want in ["a", "b", "x", "cb", "arr", "i", "p", "a2", "s", "fp", "k"] {
+            assert!(names.contains(&want), "{want} in {names:?}");
+        }
+        for not in ["g", "kr", "f", "y", "z", "proto", "q"] {
+            assert!(!names.contains(&not), "{not} in {names:?}");
+        }
+        // A parenthesized name with no `*` declares a function.
+        let paren = c_locals("void f(void) { int (g)(int); STDMETHOD(Name)(int a); }\n");
+        assert!(paren.is_empty(), "{paren:?}");
+        let broken =
+            c_locals("void f(void) { STDMETHOD(N)(int a) PURE; using B::N; N(1); }\n");
+        assert!(!broken.iter().any(|b| b.name == "N"), "{broken:?}");
+        // A macro header misparsed as a K&R definition names nothing.
+        let misparsed = c_locals(
+            "STDMETHOD_(HRESULT, CreateBitmap)(int w) { return CreateBitmap(w); }\n",
+        );
+        assert!(
+            !misparsed.iter().any(|b| b.name == "CreateBitmap"),
+            "{misparsed:?}"
+        );
+        let param = |n: &str| got.iter().find(|b| b.name == n).unwrap().param;
+        assert!(param("a") && param("cb") && param("x"));
+        assert!(!param("i") && !param("fp") && !param("k"));
+    }
+
+    /// A C local is in scope after its declarator, to the end of its
+    /// block or `for`; a parameter over its function only.
+    #[test]
+    fn c_scopes() {
+        let src = "void f(void (*cb)(void)) {\n cb();\n { int now = now(); now(); }\n now();\n\
+                   for (int k = k(); ; ) { k(); }\n k();\n}\nvoid g(void) { cb(); }\n";
+        let got = c_locals(src);
+        let at = |name: &str, needle: &str, nth: usize| {
+            let site = src.match_indices(needle).nth(nth).expect(needle).0 as u32;
+            got.iter()
+                .any(|b| b.name == name && b.start_byte <= site && site < b.end_byte)
+        };
+        assert!(at("cb", "cb()", 0));
+        assert!(!at("cb", "cb()", 1), "another function");
+        assert!(!at("now", "now()", 0), "the initializer");
+        assert!(at("now", "now()", 1));
+        assert!(!at("now", "now()", 2), "after the block");
+        assert!(!at("k", "k()", 0), "the for initializer");
+        assert!(at("k", "k()", 1));
+        assert!(!at("k", "k()", 2), "after the for");
     }
 }
