@@ -92,7 +92,6 @@ impl LanguagePlugin for GoPlugin {
             facts: &mut facts,
             pkg,
             param_frames: Vec::new(),
-            bound_frames: Vec::new(),
         };
         w.walk(root);
         let mut out = facts;
@@ -144,12 +143,6 @@ struct Walker<'a> {
     /// function literal around the node being walked, innermost last,
     /// with its body's start byte (see [`Self::shadow_params`]).
     param_frames: Vec<(Vec<String>, u32)>,
-    /// When the run records reference sites: every name each enclosing
-    /// function binds anywhere in it (receiver, parameters, results,
-    /// `:=`, `var`, `const`, `range`, type-switch and `case` bindings),
-    /// innermost last. A bare value-position name one of them binds is
-    /// a variable, not a function (see [`Self::capture_value_positions`]).
-    bound_frames: Vec<std::collections::HashSet<String>>,
 }
 
 impl<'a> Walker<'a> {
@@ -353,58 +346,8 @@ impl<'a> Walker<'a> {
         }
         let start = body.map_or(node.start_byte(), |b| b.start_byte()) as u32;
         self.param_frames.push((names, start));
-        let frame = self.ctx.reference_sites;
-        if frame {
-            let bound = self.bound_in(node);
-            self.bound_frames.push(bound);
-        }
         self.walk_children(node);
-        if frame {
-            self.bound_frames.pop();
-        }
         self.param_frames.pop();
-    }
-
-    /// Every name `func` binds anywhere inside it: receiver, parameters
-    /// and named results, `:=`, `var`, `const`, `range`, type-switch and
-    /// `case v := <-ch` bindings — a `name := func(…) {…}` too: without
-    /// scope evidence its name cannot be told from a package function of
-    /// the same name. Over-approximates scope (a binding counts over the
-    /// whole function), which can only drop a reference, never invent
-    /// one.
-    fn bound_in(&self, func: Node) -> std::collections::HashSet<String> {
-        let mut out = std::collections::HashSet::new();
-        let mut stack = vec![func];
-        while let Some(n) = stack.pop() {
-            match n.kind() {
-                "parameter_declaration" | "variadic_parameter_declaration" => {
-                    let mut c = n.walk();
-                    for name in n.children_by_field_name("name", &mut c) {
-                        out.insert(self.text(name).to_string());
-                    }
-                }
-                "var_spec" | "const_spec" => {
-                    let mut c = n.walk();
-                    for name in n.children_by_field_name("name", &mut c) {
-                        out.insert(self.text(name).to_string());
-                    }
-                }
-                "short_var_declaration" | "range_clause" | "receive_statement" => {
-                    if let Some(left) = n.child_by_field_name("left") {
-                        out.extend(self.bound_names(left));
-                    }
-                }
-                "type_switch_statement" => {
-                    if let Some(alias) = n.child_by_field_name("alias") {
-                        out.extend(self.bound_names(alias));
-                    }
-                }
-                _ => {}
-            }
-            let mut c = n.walk();
-            stack.extend(n.named_children(&mut c));
-        }
-        out
     }
 
     /// Value positions, when the run records reference sites: a function
@@ -417,9 +360,9 @@ impl<'a> Walker<'a> {
     ///
     /// Each is recorded the way the call it would be is: `f` bare,
     /// `pkg.F` through the package, `s.m` (a method value) through `s`,
-    /// marked `value_ref`. A bare name a local or parameter of an
-    /// enclosing function binds is a variable and is not recorded; names
-    /// no Go callable carries are dropped before resolution
+    /// marked `value_ref`. A bare name a parameter or local in scope
+    /// binds (`FileFacts::locals`, `crate::locals`), or that no Go
+    /// callable carries, is dropped before resolution
     /// (`value_refs::prune`). A registrar verb's arguments were captured
     /// by `registrar::capture` on the call's own turn.
     fn capture_value_positions(&mut self, node: Node) {
@@ -488,10 +431,6 @@ impl<'a> Walker<'a> {
         }
         match v.kind() {
             "identifier" => {
-                let name = self.text(v);
-                if self.bound_frames.iter().any(|f| f.contains(name)) {
-                    return;
-                }
                 self.push_value_ref(v, String::new());
             }
             "selector_expression" => {
@@ -1746,9 +1685,11 @@ func Helper() {}
         assert!(value_refs(&extract_with_refs(src, false)).is_empty());
     }
 
-    /// The near misses: a parameter, a local (a `:=` of a function
-    /// literal too), a string, a struct literal's field key and a
-    /// composite literal's type are not references.
+    /// The near misses: a string, a struct literal's field key and a
+    /// composite literal's type are not references. A parameter or local
+    /// named as a value is recorded here and dropped by
+    /// `value_refs::prune`, because `crate::locals` binds it at the site
+    /// (WS27: the plugin's own whole-function filter is gone).
     #[test]
     fn locals_strings_and_field_keys_are_not_reference_sites() {
         let src = "package p\n\
@@ -1756,16 +1697,33 @@ func Helper() {}
                      pass(param)\n\
                      loc := 1\n\
                      pass(loc)\n\
-                     lit := func() {}\n\
-                     pass(lit)\n\
                      for _, it := range xs { pass(it) }\n\
                      pass(\"inString\")\n\
                      _ = T{Key: 1}\n\
                    }\n";
         let got = value_refs(&extract_with_refs(src, true));
         let names: Vec<&str> = got.iter().map(|(_, n)| n.as_str()).collect();
-        for n in ["param", "loc", "lit", "it", "inString", "Key", "T"] {
+        for n in ["inString", "Key", "T"] {
             assert!(!names.contains(&n), "{n} recorded: {got:?}");
+        }
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_go::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        let locals = crate::locals::collect("go", &tree, src.as_bytes());
+        let facts = extract_with_refs(src, true);
+        for n in ["param", "loc", "it"] {
+            let site = facts
+                .references
+                .iter()
+                .find(|r| r.value_ref && r.name == n)
+                .unwrap_or_else(|| panic!("{n} not recorded"))
+                .site_byte;
+            assert!(
+                locals
+                    .iter()
+                    .any(|b| b.name == n && b.start_byte <= site && site < b.end_byte),
+                "{n} at {site} not bound: {locals:?}"
+            );
         }
     }
 }

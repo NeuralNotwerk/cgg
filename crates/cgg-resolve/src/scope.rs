@@ -145,8 +145,13 @@ impl FileLocals {
 
     /// Whether the leading identifier of the call's receiver is a value
     /// binding at the site — then it is not a module or import of that
-    /// name.
+    /// name. A receiver type propagation rewrote to a type headed by
+    /// the same name (`pubsub.PublishSubscriber`, the type of a parameter
+    /// `pubsub`) is headed by the type's package, not the local.
     pub(crate) fn shadows_receiver_head(&self, r: &RefRecord) -> bool {
+        if r.retyped_receiver {
+            return false;
+        }
         let rh = r.receiver_hint.trim();
         let rh = rh.strip_prefix("new ").unwrap_or(rh);
         let end = rh
@@ -203,6 +208,18 @@ mod tests {
         assert!(l.shadows_receiver_head(&call("json", "c", 20)));
         assert!(l.shadows_receiver_head(&call("json", "c.res", 20)));
         assert!(!l.shadows_receiver_head(&call("json", "cx", 20)));
+    }
+
+    /// WS27: a receiver type propagation rewrote (`c` → `c.Client`, the
+    /// type of a parameter `c c.Client`) heads with the type's package,
+    /// not the parameter.
+    #[test]
+    fn a_retyped_receiver_head_is_not_the_local() {
+        let l = FileLocals::build(&facts());
+        let mut r = call("Get", "c.Client", 20);
+        assert!(l.shadows_receiver_head(&r));
+        r.retyped_receiver = true;
+        assert!(!l.shadows_receiver_head(&r));
     }
 
     /// `Err(cb) => cb!(…)`: a macro is not a value, so a binding of the

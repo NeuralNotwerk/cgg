@@ -1196,6 +1196,21 @@ pub fn propagate_types_with_fields(
             facts.references[i].typed_receiver = true;
         }
         facts.references[i].weak_receiver_type = weak.contains(&i);
+        // `pubsub` typed `pubsub.PublishSubscriber`: the new receiver's
+        // head is the type's package, spelled like the local the site
+        // wrote; a local-head check must not read it as that local.
+        let head = |t: &str| -> String {
+            t.trim_start_matches(['*', '&'])
+                .split(['.', ':', '(', '<', '['])
+                .next()
+                .unwrap_or("")
+                .to_string()
+        };
+        if facts.references[i].receiver_hint != ty
+            && head(&ty) == head(&facts.references[i].receiver_hint)
+        {
+            facts.references[i].retyped_receiver = true;
+        }
         facts.references[i].receiver_hint = ty;
     }
 }
@@ -3893,6 +3908,35 @@ mod tests {
             .map(|r| r.receiver_hint.as_str())
             .collect();
         assert_eq!(got, vec!["jobs.NewRunner()", "other.Open()", "r"]);
+    }
+
+    /// WS27: a receiver retyped to a type headed by its own name (a
+    /// parameter `pubsub pubsub.PS`) is marked, so the local of that name
+    /// does not hide the package; one retyped under another head is not.
+    #[test]
+    fn go_receiver_retyped_under_its_own_name_is_marked() {
+        let defs = vec![mk_def(
+            "main.f",
+            "func f(pubsub pubsub.PS, s *Server)",
+            0,
+            100,
+        )];
+        let call = |recv: &str, byte: u32| RefRecord {
+            name: "M".into(),
+            receiver_hint: recv.into(),
+            site_line: 1,
+            site_byte: byte,
+            ..Default::default()
+        };
+        let mut facts = mk_facts(defs, vec![call("pubsub", 50), call("s", 60)]);
+        facts.language = "go".into();
+        propagate_types(&mut facts);
+        let got: Vec<(&str, bool)> = facts
+            .references
+            .iter()
+            .map(|r| (r.receiver_hint.as_str(), r.retyped_receiver))
+            .collect();
+        assert_eq!(got, vec![("pubsub.PS", true), ("Server", false)]);
     }
 
     /// R1: a Go value made through a package is typed from the end of its

@@ -542,6 +542,7 @@ pub(crate) fn capture(
                 context: context.to_string(),
                 route: route.clone(),
                 kwargs: Vec::new(),
+                retyped_receiver: false,
             });
             continue;
         }
@@ -711,6 +712,7 @@ fn collect_value_refs(
                 context: context.to_string(),
                 route: route.to_string(),
                 kwargs: Vec::new(),
+                retyped_receiver: false,
             });
             return;
         }
@@ -739,6 +741,7 @@ fn collect_value_refs(
                     context: context.to_string(),
                     route: route.to_string(),
                     kwargs: Vec::new(),
+                    retyped_receiver: false,
                 });
             } else {
                 collect_value_refs(ctx, child, source, context, route, line, out, depth);
@@ -789,6 +792,7 @@ fn collect_value_refs(
                     context: context.to_string(),
                     route: route.to_string(),
                     kwargs: Vec::new(),
+                    retyped_receiver: false,
                 });
             } else {
                 collect_value_refs(ctx, child, source, context, route, line, out, depth);
@@ -865,6 +869,7 @@ fn collect_value_refs(
                 context: context.to_string(),
                 route: route.to_string(),
                 kwargs: Vec::new(),
+                retyped_receiver: false,
             });
             // `SiteView.as_view()` is a class adapter: the callable the
             // framework ends up invoking is a *method of the qualifier*,
@@ -904,6 +909,7 @@ fn collect_value_refs(
                     context: context.to_string(),
                     route: route.to_string(),
                     kwargs: Vec::new(),
+                    retyped_receiver: false,
                 });
             }
         }
@@ -960,6 +966,7 @@ fn collect_value_refs(
         context: context.to_string(),
         route: route.to_string(),
         kwargs: Vec::new(),
+        retyped_receiver: false,
     });
 }
 

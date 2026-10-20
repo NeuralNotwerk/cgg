@@ -605,6 +605,7 @@ impl<'a> RubyWalker<'a> {
                 context: context.to_string(),
                 route: route.clone(),
                 kwargs: Vec::new(),
+                retyped_receiver: false,
             });
         }
     }

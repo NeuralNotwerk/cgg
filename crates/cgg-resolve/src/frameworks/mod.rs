@@ -2848,6 +2848,7 @@ mod tests {
             context: "app.get".into(),
             route: "/users".into(),
             kwargs: Vec::new(),
+            retyped_receiver: false,
         });
         let out = detect(&g, &f_vec(f), &[]);
         assert_eq!(out.entries.len(), 1, "{:?}", out.entries);
@@ -2890,6 +2891,7 @@ mod tests {
             context: "crate_ids.get".into(),
             route: String::new(),
             kwargs: Vec::new(),
+            retyped_receiver: false,
         });
         assert!(detect(&g, &f_vec(bare), &[]).entries.is_empty());
 
@@ -2918,6 +2920,7 @@ mod tests {
             context: "get".into(),
             route: "/api/x".into(),
             kwargs: Vec::new(),
+            retyped_receiver: false,
         });
         assert_eq!(detect(&g, &f_vec(free), &[]).entries.len(), 1);
     }
@@ -2953,6 +2956,7 @@ mod tests {
             context: "session.get".into(),
             route: "user_id".into(),
             kwargs: Vec::new(),
+            retyped_receiver: false,
         });
         assert!(detect(&g, &f_vec(f), &[]).entries.is_empty());
         // Rails, which does route by string, keeps the behaviour.
@@ -3013,6 +3017,7 @@ mod tests {
             context: "app.get".into(),
             route: "/users".into(),
             kwargs: Vec::new(),
+            retyped_receiver: false,
         });
         let out = detect(&g, &f_vec(f), &[]);
         assert!(out.entries.is_empty());
@@ -3057,6 +3062,7 @@ mod tests {
             context: "self.bind".into(),
             route: String::new(),
             kwargs: Vec::new(),
+            retyped_receiver: false,
         });
         let out = detect(&g, &f_vec(f), &[]);
         let names: Vec<&str> =

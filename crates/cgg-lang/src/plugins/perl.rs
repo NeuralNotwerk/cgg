@@ -576,6 +576,7 @@ impl<'a> PerlWalker<'a> {
                     context: context.to_string(),
                     route: route.clone(),
                     kwargs: Vec::new(),
+                    retyped_receiver: false,
                 });
                 continue;
             }
@@ -603,6 +604,7 @@ impl<'a> PerlWalker<'a> {
                     context: context.to_string(),
                     route: route.clone(),
                     kwargs: Vec::new(),
+                    retyped_receiver: false,
                 });
             }
         }
@@ -698,6 +700,7 @@ impl<'a> PerlWalker<'a> {
                 context: context.to_string(),
                 route: route.to_string(),
                 kwargs: Vec::new(),
+                retyped_receiver: false,
             });
         }
     }

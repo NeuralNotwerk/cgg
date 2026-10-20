@@ -2389,7 +2389,10 @@ func main() {\n\
         .assert()
         .success();
     let g = fs::read_to_string(&refs).unwrap();
-    assert_eq!(g.matches("ref|").count(), 4, "{g}");
+    // less, inTable, returned, s.handle, and (WS27) `pass(local)`: the
+    // value is the `local := func() {}` closure the local holds, never
+    // the package's `local`, which stays dead above.
+    assert_eq!(g.matches("ref|").count(), 5, "{g}");
 }
 
 /// WS26 (gap 25): a Kotlin callable reference (`::f`, `T::m`, `this::m`)
@@ -5630,5 +5633,291 @@ fn cmake_builtin_command_override_is_not_matched_by_name() {
     assert!(
         edges.contains(&("other".into(), "shared".into())),
         "{edges:?}"
+    );
+}
+
+/// WS27 (gap 27): a Go parameter, receiver, named result, `:=`, `var`,
+/// `range`, `if` initializer, type-switch or `select` binding shadows a
+/// same-named package function: a bare call through one is
+/// `shadowed-by-local`, never a (wrong, `high`) edge to the function. A
+/// declaration's own initializer, a call after its block ends and a value
+/// named before a sibling block's local still reach the function.
+/// A parameter named like the package of its own type (`store
+/// store.Store`) still reaches the type's methods through the package.
+#[test]
+fn go_parameters_and_locals_shadow_package_functions() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "go.mod",
+        b"module example.com/ws27\n\ngo 1.22\n",
+    );
+    write(
+        tmp.path(),
+        "funcs.go",
+        r#"package main
+
+// Package functions whose names the locals in main.go reuse.
+func cb()     {}
+func next()   {}
+func h()      {}
+func f()      {}
+func fn()     {}
+func run()    {}
+func step()   {}
+func build()  {}
+func work()   {}
+func now() int { return 0 }
+func later()  {}
+func helper() {}
+func pick() func() { return nil }
+"#
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "main.go",
+        r#"package main
+
+import "example.com/ws27/store"
+
+type HandlerFunc func()
+
+func pass(fs ...interface{}) {}
+
+// Parameter.
+func withParam(cb func()) { cb() }
+
+// := local.
+func withShort(chain []func()) {
+	next := chain[0]
+	next()
+}
+
+// range variable.
+func withRange(hs []func()) {
+	for _, h := range hs {
+		h()
+	}
+}
+
+// type-switch binding.
+func withTypeSwitch(v interface{}) {
+	switch f := v.(type) {
+	case func():
+		f()
+	}
+}
+
+// select case binding.
+func withSelect(ch chan func()) {
+	select {
+	case fn := <-ch:
+		fn()
+	}
+}
+
+// if initializer.
+func withIf() {
+	if run := pick(); run != nil {
+		run()
+	}
+}
+
+// var in a body.
+func withVar() {
+	var step func() = pick()
+	step()
+}
+
+// named result.
+func withResult() (build func()) {
+	build = pick()
+	build()
+	return
+}
+
+// receiver.
+func (work HandlerFunc) Serve() { work() }
+
+// func literal parameter.
+func withLiteral() {
+	go func(work func()) { work() }(nil)
+}
+
+// Value positions through a parameter: no reference.
+func passParam(cb func()) { pass(cb) }
+
+// A parameter named like its type's package: `store.Get()` is a call
+// through the value, typed `store.Store`, reached through the package.
+func useStore(store store.Store) string { return store.Get() }
+
+// Another parameter named like that package: `g`'s type was written in
+// the signature, where no parameter is in scope.
+func useStoreBeside(g store.Store, store int) { _ = store; g.Put("x") }
+
+// Positive controls: the initializer sees the package function; after
+// an inner block ends the package function is visible again; a local in
+// a sibling block does not hide a value named before it.
+func controls() {
+	n := now()
+	_ = n
+	{
+		later := 1
+		_ = later
+	}
+	later()
+	pass(helper)
+	{
+		helper := 2
+		_ = helper
+	}
+}
+
+func main() {
+	withParam(nil)
+	withShort(nil)
+	withRange(nil)
+	withTypeSwitch(nil)
+	withSelect(nil)
+	withIf()
+	withVar()
+	withResult()
+	HandlerFunc(nil).Serve()
+	withLiteral()
+	passParam(nil)
+	controls()
+	useStore(nil)
+	useStoreBeside(nil, 0)
+}
+"#
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "other/other.go",
+        r#"package other
+
+// Store shares its name and method with store.Store.
+type Store struct{}
+
+func (s *Store) Put(string) {}
+"#
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "store/store.go",
+        r#"package store
+
+// Getter declares the method; Store embeds it.
+type Getter interface {
+	Get() string
+}
+
+// Store is what a parameter named like this package holds.
+type Store interface {
+	Getter
+	Put(string)
+}
+"#
+        .as_bytes(),
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let edges: Vec<(String, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| (qn(&e["src"]), qn(&e["dst"])))
+        .collect();
+    let shadowed: Vec<(String, String)> = g["unresolved"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|u| u["reason"]["stage"] == "shadowed-by-local")
+        .map(|u| (qn(&u["src"]), u["name"].as_str().unwrap().to_string()))
+        .collect();
+    for (caller, name) in [
+        ("main.withParam", "cb"),
+        ("main.withShort", "next"),
+        ("main.withRange", "h"),
+        ("main.withTypeSwitch", "f"),
+        ("main.withSelect", "fn"),
+        ("main.withIf", "run"),
+        ("main.withVar", "step"),
+        ("main.withResult", "build"),
+        ("main.HandlerFunc.Serve", "work"),
+        ("main.withLiteral", "work"),
+    ] {
+        let callee = format!("main.{name}");
+        assert!(
+            !edges.iter().any(|(s, d)| s == caller && *d == callee),
+            "{caller} -> {callee} goes through a local: {edges:?}"
+        );
+        assert!(
+            shadowed.iter().any(|(s, n)| s == caller && n == name),
+            "{caller} {name}() is not recorded shadowed: {shadowed:?}"
+        );
+    }
+    for (caller, callee) in [
+        ("main.controls", "main.now"),
+        ("main.controls", "main.later"),
+        ("main.withIf", "main.pick"),
+        ("main.withVar", "main.pick"),
+        // `store.Get()` through a parameter `store store.Store`: the
+        // receiver's type names the package, not the parameter.
+        ("main.useStore", "store.Getter.Get"),
+    ] {
+        assert!(
+            edges.iter().any(|(s, d)| s == caller && d == callee),
+            "{caller} -> {callee} lost: {edges:?}"
+        );
+    }
+
+    // Value positions: `pass(cb)` with a parameter `cb` names no function;
+    // `pass(helper)` before a sibling block's `helper := 2` names the
+    // package's `helper` (the old whole-function filter dropped it).
+    let refs = tmp.path().join("r.json");
+    cgg()
+        .args(["--reference-edges", "-t", "json", "-o"])
+        .arg(&refs)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let r: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&refs).unwrap()).unwrap();
+    let ref_edges: Vec<(String, String)> = r["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| e["via"]["kind"] == "reference")
+        .map(|e| {
+            let q = |id: &serde_json::Value| {
+                r["callables"][id.as_str().unwrap()]["qualified_name"]
+                    .as_str()
+                    .unwrap()
+                    .to_string()
+            };
+            (q(&e["src"]), q(&e["dst"]))
+        })
+        .collect();
+    assert_eq!(
+        ref_edges,
+        vec![("main.controls".to_string(), "main.helper".to_string())],
+        "{ref_edges:?}"
     );
 }

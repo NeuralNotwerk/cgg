@@ -62,6 +62,11 @@ struct Binder {
     /// `consequence` or `body`) the binding is in scope over. One wrapper
     /// between the two (a `let_chain`) is climbed through.
     extends_to: &'static [&'static str],
+    /// The binder counts only when the node this many levels above it is
+    /// a callable (`spec.functions`): a Go `parameter_declaration` names a
+    /// parameter in a function's own list, never in a `func(x int)` type
+    /// written inside one.
+    owner_up: usize,
 }
 
 const fn b(kind: &'static str, fields: &'static [&'static str], scope: Scope) -> Binder {
@@ -75,6 +80,7 @@ const fn b(kind: &'static str, fields: &'static [&'static str], scope: Scope) ->
         from_child: "",
         after_field: "",
         extends_to: &[],
+        owner_up: 0,
     }
 }
 
@@ -89,6 +95,7 @@ const fn b1(kind: &'static str, scope: Scope) -> Binder {
         from_child: "",
         after_field: "",
         extends_to: &[],
+        owner_up: 0,
     }
 }
 
@@ -107,6 +114,7 @@ const fn bp(
         from_child: "",
         after_field: "",
         extends_to: &[],
+        owner_up: 0,
     }
 }
 
@@ -127,6 +135,11 @@ const fn after_value(
 
 const fn after(mut b: Binder, parents: &'static [&'static str]) -> Binder {
     b.after = parents;
+    b
+}
+
+const fn owned(mut b: Binder, up: usize) -> Binder {
+    b.owner_up = up;
     b
 }
 
@@ -365,6 +378,45 @@ const OCAML_SPEC: Spec = Spec {
     ],
 };
 
+/// Go (WS27): parameters, receivers and named results of a function,
+/// method or function literal; `:=` (each name on the left), `var` and
+/// `const` in a body; `range` and `for` clause variables; `if`/`switch`
+/// initializers; the type-switch binding (after its value: `switch v :=
+/// v.(type)`); `select` `case v := <-ch`. Package-level declarations are
+/// outside every function and are not recorded.
+const GO_SPEC: Spec = Spec {
+    idents: &["identifier"],
+    binders: &[
+        // `parameter_declaration` → `parameter_list` → the callable.
+        owned(b("parameter_declaration", &["name"], Scope::Param), 2),
+        owned(
+            b("variadic_parameter_declaration", &["name"], Scope::Param),
+            2,
+        ),
+        b("short_var_declaration", &["left"], Scope::Decl),
+        b("var_spec", &["name"], Scope::Decl),
+        b("const_spec", &["name"], Scope::Decl),
+        b("range_clause", &["left"], Scope::Decl),
+        b("receive_statement", &["left"], Scope::Decl),
+        after_value(
+            b("type_switch_statement", &["alias"], Scope::Own),
+            "value",
+            &[],
+        ),
+    ],
+    functions: &["function_declaration", "method_declaration", "func_literal"],
+    blocks: &[
+        "block",
+        "statement_list",
+        "if_statement",
+        "for_statement",
+        "expression_switch_statement",
+        "type_switch_statement",
+        "communication_case",
+    ],
+    patterns: &["expression_list"],
+};
+
 const ZIG_SPEC: Spec = Spec {
     idents: &["identifier"],
     binders: &[
@@ -389,6 +441,7 @@ fn spec(lang: &str) -> Option<&'static Spec> {
         "dart" => &DART_SPEC,
         "ocaml" => &OCAML_SPEC,
         "zig" => &ZIG_SPEC,
+        "go" => &GO_SPEC,
         _ => return None,
     })
 }
@@ -571,6 +624,11 @@ fn binding(
                 && b.fields.contains(&field)
                 && (!b.first_only || first_ident_child(spec, parent) == Some(cur.id()))
                 && (b.parent.is_empty() || grand.is_some_and(|g| g.kind() == b.parent))
+                && (b.owner_up == 0
+                    || level
+                        .checked_sub(1 + b.owner_up)
+                        .and_then(|i| chain.get(i))
+                        .is_some_and(|(o, _)| spec.functions.contains(&o.kind())))
         });
         if let Some(binder) = binder {
             // `var pick = H.pick`, `const Range = require("./range").Range`,
@@ -1101,5 +1159,126 @@ mod tests {
         assert_eq!(log.start_byte as usize, src.find("\nlocal eq").unwrap());
         assert_eq!(log.end_byte as usize, src.len());
         assert!(!log.param);
+    }
+
+    fn go(src: &str) -> Vec<LocalBinding> {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_go::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        collect("go", &tree, src.as_bytes())
+    }
+
+    /// The binding of `name` whose scope holds the `nth` occurrence of
+    /// `at` in `src`.
+    fn go_bound_at(
+        got: &[LocalBinding],
+        src: &str,
+        name: &str,
+        at: &str,
+        nth: usize,
+    ) -> bool {
+        let site = src.match_indices(at).nth(nth).expect(at).0 as u32;
+        got.iter()
+            .any(|b| b.name == name && b.start_byte <= site && site < b.end_byte)
+    }
+
+    /// WS27: every Go binding form inside a function is a local; the
+    /// package's own `var`/`const`, function names and a `func(x T)`
+    /// type's parameter names are not.
+    #[test]
+    fn go_binding_forms() {
+        let src = "package p\n\
+                   var top = 1\n\
+                   const k0 = 2\n\
+                   func (r *R) m(a, b int, rest ...string) (n int, err error) {\n\
+                     var cb func(typeParam int)\n\
+                     s := 1\n\
+                     x, y := f()\n\
+                     var v1, v2 = 1, 2\n\
+                     const c1 = 3\n\
+                     for i := 0; i < 3; i++ {}\n\
+                     for key, val := range xs {}\n\
+                     if e := g(); e != nil {}\n\
+                     switch w := h(); w {}\n\
+                     switch t := q.(type) { case int: _ = t }\n\
+                     select { case got := <-ch: _ = got }\n\
+                     fn := func(lp int) {}\n\
+                   }\n\
+                   func run(fn2 func(ctx int) error) {}\n";
+        let got = go(src);
+        let names: Vec<&str> = got.iter().map(|b| b.name.as_str()).collect();
+        for want in [
+            "r", "a", "b", "rest", "n", "err", "cb", "s", "x", "y", "v1", "v2", "c1",
+            "i", "key", "val", "e", "w", "t", "got", "fn", "lp", "fn2",
+        ] {
+            assert!(names.contains(&want), "{want} in {got:?}");
+        }
+        for not in [
+            "top",
+            "k0",
+            "m",
+            "run",
+            "typeParam",
+            "ctx",
+            "f",
+            "g",
+            "xs",
+            "q",
+            "ch",
+        ] {
+            assert!(!names.contains(&not), "{not} in {got:?}");
+        }
+        let param = |n: &str| got.iter().find(|b| b.name == n).unwrap().param;
+        for p in ["r", "a", "rest", "n", "lp", "fn2"] {
+            assert!(param(p), "{p} is a parameter");
+        }
+        for l in ["s", "x", "key", "e", "t", "got", "fn"] {
+            assert!(!param(l), "{l} is a local");
+        }
+    }
+
+    /// A Go declaration is in scope after its own statement and to the
+    /// end of its block, clause or `if`/`for`/`switch`: `x := x()` calls
+    /// the outer `x`, a type switch's value still sees the outer name, and
+    /// a sibling block or a later function does not see the local.
+    #[test]
+    fn go_scopes() {
+        let src = "package p\n\
+                   func f() {\n\
+                     now := now()\n\
+                     now()\n\
+                     { inner := 1; _ = inner }\n\
+                     inner()\n\
+                     for v := range v() { v() }\n\
+                     v()\n\
+                     switch q := q.(type) { case int: q() }\n\
+                     if e := e(); e != nil { e() } else { e() }\n\
+                     e()\n\
+                     select { case r := <-ch: r() }\n\
+                     r()\n\
+                   }\n\
+                   func later() { now() }\n";
+        let got = go(src);
+        assert!(!go_bound_at(&got, src, "now", "now(", 0), "{got:?}");
+        assert!(go_bound_at(&got, src, "now", "now(", 1));
+        assert!(
+            !go_bound_at(&got, src, "now", "now(", 2),
+            "later() sees no local"
+        );
+        assert!(!go_bound_at(&got, src, "inner", "inner()", 0));
+        assert!(
+            !go_bound_at(&got, src, "v", "v()", 0),
+            "the range expression"
+        );
+        assert!(go_bound_at(&got, src, "v", "v()", 1));
+        assert!(!go_bound_at(&got, src, "v", "v()", 2));
+        assert!(!go_bound_at(&got, src, "q", "q.(type)", 0));
+        assert!(go_bound_at(&got, src, "q", "q()", 0));
+        assert!(!go_bound_at(&got, src, "e", "e()", 0), "the initializer");
+        assert!(go_bound_at(&got, src, "e", "e()", 1));
+        assert!(go_bound_at(&got, src, "e", "e()", 2), "else sees it in Go");
+        assert!(!go_bound_at(&got, src, "e", "e()", 3));
+        assert!(go_bound_at(&got, src, "r", ": r()", 0));
+        assert!(!go_bound_at(&got, src, "r", "\nr()", 0));
     }
 }

@@ -1694,6 +1694,7 @@ impl<'a> JsWalker<'a> {
                 context: context.clone(),
                 route: route.clone(),
                 kwargs: Vec::new(),
+                retyped_receiver: false,
             });
         }
     }

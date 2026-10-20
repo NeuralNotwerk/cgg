@@ -321,8 +321,8 @@ otherwise change the default graph.
   method value). A method value through a variable binds only through
   the variable's declared type, never by name fan-out: through an
   untyped variable it is a field read far more often than a method. A
-  name a parameter or local of an enclosing function binds (Go has no
-  scope table yet, so any binding anywhere in the function counts), a
+  name a parameter or local in scope binds (through the Go locals table
+  since WS27; until then any binding anywhere in the function counted), a
   string, a struct literal's field key and a registrar verb's arguments
   (already captured) are not recorded. Two fixes ride along, both only
   in `--dead-code`/`--reference-edges` runs: the return-type heuristic no
@@ -536,6 +536,32 @@ otherwise change the default graph.
   `ns` form refers (`:refer [f]`, `:refer :all` or `:use` of a namespace
   outside the standard library), and a value outside any definition
   credits only its own file's functions.
+
+- **Go parameters and locals did not shadow function names (WS27, gap
+  27).** A bare call through a Go parameter, receiver, named result,
+  `:=`, `var`/`const`, `for`/`range` variable, `if`/`switch` initializer,
+  type-switch binding or `select` `case v := <-ch` was matched by name
+  against the package's functions: `filter(&v)` with a parameter
+  `filter` bound the package's `filter` at `high`, and `init(node)` with
+  a parameter `init` reached the package's `init`. Go now has a locals
+  table (`cgg_lang::locals`): a binding is in scope from the end of its
+  own statement to the end of its block, case clause or
+  `if`/`for`/`switch` (a type-switch binding from after its value), so
+  `x := x()` still calls the function, and the parameters of a
+  `func(x T)` type are not bindings. Such a call is now
+  `shadowed-by-local`. A `name := func(…) {…}` closure is visible by name
+  only inside its function, and a call through the local binds the
+  closure its own declaration defines: tests that each declare
+  `check := func…` no longer fan out to every test's `check`. The WS26
+  Go value-reference filter, which dropped any name bound anywhere in the
+  enclosing function, is replaced by the same table, so a closure named
+  as a value (`handler := func…; return interceptor(…, handler)`) or a
+  function named before a sibling block's local of that name is a
+  reference. A receiver headed by a local is no longer read as the import
+  of the same name (`http := initFakeHTTP(); http.Register(…)` beside an
+  import of `net/http`), except where type propagation rewrote it to the
+  local's declared type, headed by that type's package (`pubsub
+  pubsub.PublishSubscriber`).
 
 ### Compatibility
 
@@ -960,6 +986,36 @@ before either):
   Metabase's 220 and Ring's 18 are mostly library entry points cgg has
   no root for (ClojureScript `^:export` functions, Leiningen tasks,
   namespaces re-exported by a macro other than `import-vars`).
+
+WS27 Go (full corpus, 283 repositories, none excluded):
+
+- The default graph changes in 17 repositories, all in Go files: 1,436
+  edges removed (77 `high`), 203 added (19 `high`), and 446 change
+  confidence (432 `medium` → `high`, 14 `high` → `medium`). Of the
+  removed, 231 were calls through a parameter or local, now
+  `shadowed-by-local`; 1,205 were `medium` fan-outs from a call through
+  a `name := func…` local to the same-named closures of other functions
+  (fzf 762, PhotoPrism 191, Homebox 122, Terraform AWS 113), which now
+  bind the one closure in scope, at `high` (the 432). The added edges
+  are calls whose receiver is a local named like an imported package:
+  typed from the local's declaration (19 `high`, `log.fields()` with a
+  receiver `log *ZapAdapter`), or untyped and fanned out by name (184
+  `medium`). Of the 14 `high` → `medium`, 9 are calls through a local
+  holding a value made elsewhere (`store, teardown := setupDB(t)` then
+  `teardown()`, a range variable), bound to a lone same-named closure of
+  another function; 4 are Terraform generator calls on
+  `g *common.Generator` in a function with a parameter `common`, whose
+  receiver type now misses the package lookup and binds by type name;
+  1 is `attachment.Type.String()` through a parameter `attachment`,
+  no longer read as the package.
+- Under `--reference-edges`, 888 Go reference edges are added, all
+  `high`; none are removed.
+- Under `--dead-code`, 365 Go findings leave the report (364 `medium`;
+  249 of them generated gRPC `handler := func…` closures handed to an
+  interceptor), 6 enter it (`medium`: closures inside methods that are
+  themselves candidates, until now credited by calls through parameters
+  named `f` or `filter`), and 14 move `medium` → `low`. No `high`
+  finding changes.
 
 ## [0.11.0] - 2026-10-16
 

@@ -116,10 +116,14 @@ impl Nesting {
 /// another is visible by bare name only within it, and the innermost
 /// declaration shadows outer ones (an OCaml `let rec go` in each of three
 /// functions of one file; a JavaScript helper nested in a component).
+/// Go (WS27): a `name := func(…) {…}` closure is a definition nested in
+/// its function, visible by name only there; six tests of one file each
+/// declaring `httpStubs := func…` are six scopes, not one ambiguous name.
 fn lexically_scoped(language: &str) -> bool {
     matches!(
         language,
         "python"
+            | "go"
             | "javascript"
             | "typescript"
             | "lua"
@@ -312,6 +316,20 @@ pub fn link_file_with_cap(
                     || (!is_param && nesting.parent[*i as usize].is_some())
             });
             shadowed_by_local = before > 0 && candidates.is_empty();
+            // Go: `name := func(…) {…}` is the closure its own
+            // declaration defines. Two such locals in sibling `t.Run`
+            // literals of one test share an enclosing definition; the
+            // binding in scope at the call names its own (WS27).
+            if facts.language == "go" {
+                let own: Vec<(u32, &DefRecord)> = candidates
+                    .iter()
+                    .filter(|(_, d)| decl <= d.start_byte && d.start_byte < ls)
+                    .copied()
+                    .collect();
+                if !own.is_empty() {
+                    candidates = own;
+                }
+            }
         }
 
         // A bare identifier is not a method call in these languages:
@@ -1415,6 +1433,50 @@ mod tests {
                 .collect();
             assert_eq!(got, vec![(1, Confidence::Medium)], "{lang}");
         }
+    }
+
+    /// WS27: two Go tests each declare `stubs := func…`; `stubs()` in the
+    /// second, through its local, is that test's closure only. A call in a
+    /// function declaring no such local is the package's `stubs`.
+    #[test]
+    fn go_named_closures_are_scoped_to_their_function() {
+        let defs = vec![
+            mk_def("t1", "p.t1", DefVariant::FreeFunction, (0, 100)),
+            mk_def("stubs", "p.stubs", DefVariant::FreeFunction, (10, 30)),
+            mk_def("t2", "p.t2", DefVariant::FreeFunction, (100, 200)),
+            mk_def("stubs", "p.stubs", DefVariant::FreeFunction, (110, 130)),
+            mk_def("stubs", "p.stubs", DefVariant::FreeFunction, (300, 320)),
+            mk_def("t3", "p.t3", DefVariant::FreeFunction, (400, 500)),
+        ];
+        let mut facts =
+            facts_with_lang("go", defs, vec![mk_ref("stubs", 150), mk_ref("stubs", 450)]);
+        facts.locals = vec![local("stubs", 30, 100), local("stubs", 130, 200)];
+        let out = link_file(&facts, &mk_map(&facts));
+        let got: Vec<(u32, u32)> = out
+            .edges
+            .iter()
+            .map(|e| (e.site_byte, e.dst.as_u32()))
+            .collect();
+        assert_eq!(got, vec![(150, 3), (450, 4)], "{:?}", out.unresolved);
+    }
+
+    /// WS27: two `stubs := func…` in sibling closures of one Go test
+    /// share the test as their enclosing definition; a call through the
+    /// second local is the closure its own declaration defines.
+    #[test]
+    fn go_local_closure_is_the_one_its_declaration_defines() {
+        let defs = vec![
+            mk_def("t", "p.t", DefVariant::FreeFunction, (0, 200)),
+            mk_def("stubs", "p.stubs", DefVariant::FreeFunction, (10, 30)),
+            mk_def("stubs", "p.stubs", DefVariant::FreeFunction, (110, 130)),
+        ];
+        let mut facts = facts_with_lang("go", defs, vec![mk_ref("stubs", 150)]);
+        let mut b = local("stubs", 130, 190);
+        b.decl_byte = 110;
+        facts.locals = vec![local("stubs", 30, 90), b];
+        let out = link_file(&facts, &mk_map(&facts));
+        let got: Vec<u32> = out.edges.iter().map(|e| e.dst.as_u32()).collect();
+        assert_eq!(got, vec![2], "{:?}", out.unresolved);
     }
 
     /// WS14: lexical scope beyond Python. Three OCaml functions each
