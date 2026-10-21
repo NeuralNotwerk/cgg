@@ -277,7 +277,7 @@ impl<'a> JuliaWalker<'a> {
 /// The signature of a short-form method under its type parameters or
 /// return type: `f(x::T) where {T} = …` and `f(x)::Int = …` are the
 /// methods `f(x::T)` and `f(x)`. Anything else is returned unchanged.
-fn short_form_head(lhs: Node) -> Node {
+pub(crate) fn short_form_head(lhs: Node) -> Node {
     let mut n = lhs;
     for _ in 0..4 {
         match n.kind() {

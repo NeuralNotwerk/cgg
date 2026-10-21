@@ -6936,3 +6936,148 @@ with_flag <- function(num = TRUE, now = now()) {
     assert!(has("with_flag", "num", 8, 54), "{edges:?}");
     assert!(has("with_flag", "now", 9, 55), "{edges:?}");
 }
+
+/// WS27: a Julia parameter (positional, keyword, short-form, lambda, `do`
+/// block), a local holding a function or a literal, and a `for` variable
+/// shadow a same-named function: a call through one is
+/// `shadowed-by-local`, never a (wrong, `high`) edge. A `global`
+/// assignment, a call after the loop and the assignment's own value reach
+/// the file's function.
+#[test]
+fn julia_parameters_and_locals_shadow_functions() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "main.jl",
+        r#"# Functions whose names the parameters and locals below reuse.
+cb(x) = x
+handler(x) = x
+helper(x) = x
+item(x) = x
+step(x) = x
+err(x) = x
+num(x) = x
+later(x) = x
+now() = 0
+
+# Parameters: positional, keyword, short form, lambda, do block.
+function with_param(cb; handler = identity)
+    cb(1)
+    handler(2)
+end
+with_short(item) = item(3)
+with_lambda(xs) = map(step -> step(4), xs)
+function with_do(xs)
+    map(xs) do err
+        err(5)
+    end
+end
+
+# Locals: a function, a local function, a literal, a `for` variable.
+function with_local()
+    helper = x -> x * 2
+    helper(6)
+end
+function with_literal()
+    num = 1
+    num(7)
+end
+function with_for(fs)
+    for later in fs
+        later(8)
+    end
+    later(9)
+end
+
+# A `global` assignment is not a local.
+function with_global()
+    global step = 1
+    step(10)
+end
+
+# Positive control: the value sees the function.
+function controls()
+    now = now()
+    now(11)
+end
+
+# A parameter's own default still sees the function.
+function with_default(handler = handler(12))
+    handler
+end
+"#
+        .as_bytes(),
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let edges: Vec<(String, String, u64)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                qn(&e["src"]),
+                qn(&e["dst"]),
+                e["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    let shadowed: Vec<(String, u64)> = g["unresolved"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|u| u["reason"]["stage"] == "shadowed-by-local")
+        .map(|u| {
+            (
+                u["name"].as_str().unwrap().to_string(),
+                u["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    for (name, site) in [
+        ("cb", 14),
+        ("handler", 15),
+        ("item", 17),
+        ("step", 18),
+        ("err", 21),
+        ("helper", 28),
+        ("num", 32),
+        ("later", 36),
+        ("now", 50),
+    ] {
+        assert!(
+            !edges.iter().any(|(_, d, l)| d == name && *l == site),
+            "{name}() line {site}: {edges:?}"
+        );
+        assert!(
+            shadowed.contains(&(name.to_string(), site)),
+            "{name}() line {site}: {shadowed:?}"
+        );
+    }
+    for (src, dst, site) in [
+        ("with_for", "later", 38),
+        ("with_global", "step", 44),
+        ("controls", "now", 49),
+        ("with_default", "handler", 54),
+    ] {
+        assert!(
+            edges
+                .iter()
+                .any(|(s, d, l)| s == src && d == dst && *l == site),
+            "{src} -> {dst} line {site}: {edges:?}"
+        );
+    }
+}

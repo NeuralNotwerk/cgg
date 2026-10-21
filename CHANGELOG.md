@@ -722,6 +722,29 @@ otherwise change the default graph.
   local function (`g <- function…` inside a function) binds its own
   definition.
 
+- **Julia parameters and locals did not shadow function names (WS27,
+  gap 27).** A call through a Julia parameter (`template::Function` then
+  `template(item)`, `f` handed to a router or renderer), a lambda or
+  `do`-block parameter or a local holding a function bound a same-named
+  function of the module at `high` or by name. Julia now has a locals
+  table: parameters of `function …`, macros, short-form methods (`f(x) =
+  …`), lambdas (`x -> …`, `(x, y) -> …`) and `do x … end` blocks
+  (positional, optional, keyword after `;`, varargs `xs...`, typed
+  `x::T`, destructured `(a, b)`), each from the end of its own
+  declaration, so its default still sees the module's function
+  (`params::Dict = params()`); `where T` type parameters are not
+  values. Inside a function, a variable assigned with `=` (`x`, `x::T`,
+  a tuple) or declared `local`, and a local function, are in scope from
+  the end of the statement (a local function from its start) to the end
+  of the innermost `for`, `while`, `let`, `try`, `catch`, comprehension,
+  lambda or function (`if` and `begin` open no scope), unless the
+  function declares the name `global`; `for` variables after their
+  iterable, comprehension and generator variables, `let` bindings and a
+  `catch e` variable are bound anywhere. A module-level assignment is a
+  global, not a local. A local holding a literal number or string
+  shadows too: Julia has no function-only lookup, so a call through it is
+  an error, never the function.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -1317,6 +1340,25 @@ WS27 R (full corpus, 283 repositories, none excluded):
   parameter and a `tz_global = tz_global()` parameter, both passed by in
   R's lookup); the parameter-default rule above keeps them.
 - Under `--reference-edges`, the same edges change; R records no
+  reference edges.
+- Under `--dead-code`, no finding changes.
+
+WS27 Julia (full corpus, 283 repositories, none excluded):
+
+- The default graph changes in two repositories, all in Julia files: 17
+  edges removed (2 `high`), none added. Each was a call through a
+  parameter or local holding a function, bound to a module function of
+  the same name: Genie's `template(item)` with `template::Function` and
+  `doctype(doctype)` with `doctype::Symbol` (the 2 `high`), 14 calls
+  through an `f` parameter or local (router hooks, renderers, `[f(x) for
+  x in v]`), and Flux's `m(x)` in `outputsize`.
+- Whether a local holding a literal shadows a call changes nothing in
+  the corpus either way. A first cut bound a parameter over its whole
+  definition and also removed 4 correct edges, calls in a parameter's
+  own default (`params::Dict{Symbol,Any} = params()`, `handlers =
+  handlers()`); a parameter is now bound from the end of its own
+  declaration.
+- Under `--reference-edges`, the same edges change; Julia records no
   reference edges.
 - Under `--dead-code`, no finding changes.
 

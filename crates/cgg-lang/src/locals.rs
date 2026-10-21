@@ -527,6 +527,9 @@ pub fn collect(lang: &str, tree: &Tree, source: &[u8]) -> Vec<LocalBinding> {
     if lang == "r" {
         return collect_r(tree, source);
     }
+    if lang == "julia" {
+        return collect_julia(tree, source);
+    }
     let Some(spec) = spec(lang) else {
         return Vec::new();
     };
@@ -1993,6 +1996,407 @@ fn r_literal(v: Node<'_>) -> bool {
     }
 }
 
+/// Whether a Julia local assigned a literal number or string is recorded.
+/// Julia has no function-only lookup (unlike R): a call through such a
+/// local is an error, never the global function of that name.
+const JULIA_LITERAL_LOCALS_SHADOW: bool = true;
+
+/// Julia nodes that open a new local scope for the assignments inside
+/// them (`if` and `begin` do not).
+const JULIA_SCOPES: &[&str] = &[
+    "function_definition",
+    "macro_definition",
+    "arrow_function_expression",
+    "do_clause",
+    "for_statement",
+    "while_statement",
+    "let_statement",
+    "try_statement",
+    "catch_clause",
+    "finally_clause",
+    "comprehension_expression",
+    "generator",
+];
+
+/// Julia (WS27): parameters of `function …`, macros, short-form methods
+/// (`f(x) = …`), lambdas (`x -> …`, `(x, y) -> …`) and `do x … end`
+/// blocks, in scope over the definition: positional, optional, keyword
+/// (after `;`), varargs (`xs...`), typed (`x::T`) and destructured
+/// (`(a, b)`), each from the end of its own declaration (its default
+/// still sees the outer name: `params = params()`); never a `where T`
+/// type parameter. Inside a function, a
+/// variable assigned with `=` (a name, `x::T` or a tuple) or declared
+/// `local`, and a local function (`f(x) = …`, `function f … end`), each
+/// in scope from the end of its statement (a local function from its
+/// start) to the end of the innermost scope block (`for`, `while`,
+/// `let`, `try`, `catch`, a comprehension, a lambda or the function;
+/// `if` and `begin` open none), unless the function declares the name
+/// `global`. Anywhere, `for` variables (`for x in …`, `for (i, x) in …`,
+/// `for i in a, j in b`) after their iterable, comprehension and
+/// generator variables over the comprehension, `let` bindings over the
+/// `let`, and a `catch e` variable over its clause. A module-level
+/// assignment is a global, not a local.
+fn collect_julia(tree: &Tree, src: &[u8]) -> Vec<LocalBinding> {
+    let mut out: Vec<LocalBinding> = Vec::new();
+    let text = |n: Node<'_>| n.utf8_text(src).unwrap_or("");
+    let mut chain: Vec<Node<'_>> = Vec::new();
+    // Per enclosing function: the names it declares `global`.
+    let mut globals: Vec<(usize, Vec<String>)> = Vec::new();
+    let mut cursor = tree.walk();
+    loop {
+        let node = cursor.node();
+        let kind = node.kind();
+        let in_function = chain.iter().any(|n| julia_function(*n));
+        let push = |out: &mut Vec<LocalBinding>,
+                    name: Node<'_>,
+                    start: usize,
+                    end: usize,
+                    decl: usize,
+                    param: bool| {
+            let t = text(name);
+            if t.is_empty() || t == "_" || start >= end {
+                return;
+            }
+            out.push(LocalBinding {
+                name: t.to_string(),
+                start_byte: start as u32,
+                end_byte: end as u32,
+                decl_byte: decl.min(start) as u32,
+                param,
+            });
+        };
+        // The scope block a statement under `chain` assigns in.
+        let scope_end = |chain: &[Node<'_>]| {
+            chain
+                .iter()
+                .rev()
+                .find(|n| JULIA_SCOPES.contains(&n.kind()) || julia_short_function(**n))
+                .map_or(0, |n| n.end_byte())
+        };
+        match kind {
+            _ if julia_function(node) => {
+                if let Some(params) = julia_params(node) {
+                    // A parameter is bound from the end of its own
+                    // declaration: its default (`params = params()`) still
+                    // sees the module's function, a later default sees it.
+                    for (n, from) in julia_param_names(params) {
+                        push(&mut out, n, from, node.end_byte(), node.start_byte(), true);
+                    }
+                }
+                // A local function names a local of the enclosing scope.
+                if in_function && let Some(name) = julia_function_name(node) {
+                    let end = scope_end(&chain);
+                    push(
+                        &mut out,
+                        name,
+                        node.start_byte(),
+                        end,
+                        node.start_byte(),
+                        false,
+                    );
+                }
+            }
+            "global_statement" => {
+                if let Some(g) = globals.last_mut() {
+                    let mut c = node.walk();
+                    for ch in node.named_children(&mut c) {
+                        let target = if ch.kind() == "assignment" {
+                            ch.named_child(0)
+                        } else {
+                            Some(ch)
+                        };
+                        if let Some(t) = target {
+                            for n in julia_targets(t) {
+                                g.1.push(text(n).to_string());
+                            }
+                        }
+                    }
+                }
+            }
+            "assignment" if in_function => {
+                let declared_global =
+                    chain.last().is_some_and(|p| p.kind() == "global_statement");
+                let op = node.child(1).map(text).unwrap_or("");
+                if !declared_global
+                    && op == "="
+                    && let Some(lhs) = node.named_child(0)
+                    && let Some(rhs) = node
+                        .named_child(node.named_child_count().saturating_sub(1) as u32)
+                    && (JULIA_LITERAL_LOCALS_SHADOW || !julia_literal(rhs))
+                {
+                    let end = scope_end(&chain);
+                    let global = globals.last().map(|g| g.1.clone()).unwrap_or_default();
+                    for n in julia_targets(lhs) {
+                        if !global.iter().any(|g| g == text(n)) {
+                            push(
+                                &mut out,
+                                n,
+                                node.end_byte(),
+                                end,
+                                node.start_byte(),
+                                false,
+                            );
+                        }
+                    }
+                }
+            }
+            "local_statement" if in_function => {
+                let end = scope_end(&chain);
+                let mut c = node.walk();
+                for ch in node.named_children(&mut c) {
+                    let target = if ch.kind() == "assignment" {
+                        ch.named_child(0)
+                    } else {
+                        Some(ch)
+                    };
+                    if let Some(t) = target {
+                        for n in julia_targets(t) {
+                            push(
+                                &mut out,
+                                n,
+                                node.end_byte(),
+                                end,
+                                node.start_byte(),
+                                false,
+                            );
+                        }
+                    }
+                }
+            }
+            "for_binding" => {
+                if let Some(target) = node.named_child(0) {
+                    // A comprehension's variables are in scope over the
+                    // whole comprehension (its body comes first); a loop's
+                    // after its iterable, over the loop.
+                    let owner = chain.iter().rev().find(|n| {
+                        matches!(
+                            n.kind(),
+                            "for_statement" | "comprehension_expression" | "generator"
+                        )
+                    });
+                    if let Some(owner) = owner {
+                        let start = if owner.kind() == "for_statement" {
+                            node.end_byte()
+                        } else {
+                            owner.start_byte()
+                        };
+                        for n in julia_targets(target) {
+                            push(
+                                &mut out,
+                                n,
+                                start,
+                                owner.end_byte(),
+                                owner.start_byte(),
+                                false,
+                            );
+                        }
+                    }
+                }
+            }
+            "let_statement" => {
+                let row = node.start_position().row;
+                let mut c = node.walk();
+                for ch in node.named_children(&mut c) {
+                    let target = match ch.kind() {
+                        "let_binding" => ch.named_child(0),
+                        "identifier" if ch.start_position().row == row => Some(ch),
+                        _ => None,
+                    };
+                    if let Some(t) = target {
+                        for n in julia_targets(t) {
+                            push(
+                                &mut out,
+                                n,
+                                ch.end_byte(),
+                                node.end_byte(),
+                                node.start_byte(),
+                                false,
+                            );
+                        }
+                    }
+                }
+            }
+            "catch_clause" => {
+                let row = node.start_position().row;
+                if let Some(e) = node.named_child(0)
+                    && e.kind() == "identifier"
+                    && e.start_position().row == row
+                {
+                    push(
+                        &mut out,
+                        e,
+                        e.end_byte(),
+                        node.end_byte(),
+                        node.start_byte(),
+                        false,
+                    );
+                }
+            }
+            _ => {}
+        }
+        if cursor.goto_first_child() {
+            if julia_function(node) {
+                globals.push((node.id(), Vec::new()));
+            }
+            chain.push(node);
+            continue;
+        }
+        loop {
+            if cursor.goto_next_sibling() {
+                break;
+            }
+            if !cursor.goto_parent() {
+                out.sort_by_key(|b| (b.start_byte, b.end_byte));
+                out.dedup();
+                return out;
+            }
+            if let Some(n) = chain.pop()
+                && globals.last().is_some_and(|g| g.0 == n.id())
+            {
+                globals.pop();
+            }
+        }
+    }
+}
+
+/// A short-form method: `f(x) = …` (under `where` or a return type too).
+fn julia_short_function(n: Node<'_>) -> bool {
+    n.kind() == "assignment"
+        && n.named_child(0)
+            .map(crate::plugins::julia::short_form_head)
+            .is_some_and(|h| h.kind() == "call_expression")
+}
+
+/// A Julia callable whose parameters are locals.
+fn julia_function(n: Node<'_>) -> bool {
+    matches!(
+        n.kind(),
+        "function_definition"
+            | "macro_definition"
+            | "arrow_function_expression"
+            | "do_clause"
+    ) || julia_short_function(n)
+}
+
+/// The node holding a Julia callable's parameters.
+fn julia_params(n: Node<'_>) -> Option<Node<'_>> {
+    match n.kind() {
+        "function_definition" | "macro_definition" => {
+            let sig = n.child_by_field_name("signature").or_else(|| {
+                let mut c = n.walk();
+                n.named_children(&mut c).find(|k| k.kind() == "signature")
+            })?;
+            let head = crate::plugins::julia::short_form_head(sig.named_child(0)?);
+            match head.kind() {
+                "call_expression" | "macrocall_expression" => {
+                    let mut c = head.walk();
+                    head.named_children(&mut c)
+                        .find(|k| k.kind() == "argument_list")
+                }
+                // `function (x) … end`, `function (x, y) … end`.
+                "argument_list" | "tuple_expression" | "parenthesized_expression" => {
+                    Some(head)
+                }
+                "identifier" if head.id() != sig.named_child(0)?.id() => None,
+                _ => None,
+            }
+        }
+        "assignment" => {
+            let head = crate::plugins::julia::short_form_head(n.named_child(0)?);
+            let mut c = head.walk();
+            head.named_children(&mut c)
+                .find(|k| k.kind() == "argument_list")
+        }
+        // `x -> …`, `(x, y) -> …`, `(x::T) -> …`.
+        "arrow_function_expression" => n.named_child(0),
+        // `do x … end`, `do (a, b) … end`.
+        "do_clause" => n.named_child(0).filter(|k| {
+            k.kind() == "argument_list"
+                && k.start_position().row == n.start_position().row
+        }),
+        _ => None,
+    }
+}
+
+/// The name a local function declares (`f(x) = …`, `function f … end`).
+fn julia_function_name(n: Node<'_>) -> Option<Node<'_>> {
+    let head = match n.kind() {
+        "function_definition" => {
+            let mut c = n.walk();
+            let sig = n.named_children(&mut c).find(|k| k.kind() == "signature")?;
+            crate::plugins::julia::short_form_head(sig.named_child(0)?)
+        }
+        "assignment" => crate::plugins::julia::short_form_head(n.named_child(0)?),
+        _ => return None,
+    };
+    let name = if head.kind() == "call_expression" {
+        head.named_child(0)?
+    } else {
+        head
+    };
+    (name.kind() == "identifier").then_some(name)
+}
+
+/// The names a parameter list binds, each with the end of its own
+/// declaration.
+fn julia_param_names(list: Node<'_>) -> Vec<(Node<'_>, usize)> {
+    let mut out = Vec::new();
+    let items: Vec<Node<'_>> = if matches!(
+        list.kind(),
+        "argument_list" | "tuple_expression" | "parenthesized_expression"
+    ) {
+        let mut c = list.walk();
+        list.named_children(&mut c).collect()
+    } else {
+        vec![list]
+    };
+    for item in items {
+        let target = match item.kind() {
+            // `c = 1`, `k::Int = 3`.
+            "named_argument" | "assignment" => item.named_child(0),
+            // `xs...`.
+            "splat_expression" => item.named_child(0),
+            _ => Some(item),
+        };
+        if let Some(t) = target {
+            out.extend(julia_targets(t).into_iter().map(|n| (n, item.end_byte())));
+        }
+    }
+    out
+}
+
+/// The names an assignment target or a parameter binds: `x`, `x::T`,
+/// `(a, b)`, `a, b`; nothing for an index, a field or a call.
+fn julia_targets(t: Node<'_>) -> Vec<Node<'_>> {
+    match t.kind() {
+        "identifier" => vec![t],
+        // `x::T`; an anonymous `::T` names nothing.
+        "typed_expression" if t.named_child_count() > 1 => {
+            t.named_child(0).map(julia_targets).unwrap_or_default()
+        }
+        "tuple_expression" | "parenthesized_expression" | "open_tuple" | "bare_tuple" => {
+            let mut c = t.walk();
+            t.named_children(&mut c).flat_map(julia_targets).collect()
+        }
+        "splat_expression" => t.named_child(0).map(julia_targets).unwrap_or_default(),
+        _ => Vec::new(),
+    }
+}
+
+/// A Julia literal number, string or constant.
+fn julia_literal(v: Node<'_>) -> bool {
+    matches!(
+        v.kind(),
+        "integer_literal"
+            | "float_literal"
+            | "string_literal"
+            | "character_literal"
+            | "boolean_literal"
+    ) || (v.kind() == "unary_expression"
+        && v.named_child(v.named_child_count().saturating_sub(1) as u32)
+            .is_some_and(julia_literal))
+}
+
 /// Lua `local` declarations at file scope (WS19): in scope from the end of
 /// the statement to the end of the file. `local log = ngx.log` is a value
 /// the file holds, so a bare `log(…)` is never some required module's
@@ -3302,5 +3706,115 @@ mod tests {
         assert!(!at("h", "h()", 4), "a sibling function");
         assert!(!at("b", "b()", 1));
         assert!(!at("v", "v()", 2));
+    }
+
+    fn julia_locals(src: &str) -> Vec<LocalBinding> {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_julia::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        collect("julia", &tree, src.as_bytes())
+    }
+
+    /// Julia (WS27): every parameter form (positional, typed, optional,
+    /// varargs, keyword, destructured; short-form methods, lambdas, `do`
+    /// blocks), function-body assignments and `local`, `for`,
+    /// comprehension, `let` and `catch` variables; never a `where` type
+    /// parameter, a module-level assignment, a `global`, an index or a
+    /// field assignment.
+    #[test]
+    fn julia_binding_forms() {
+        let src = "top = 1\n\
+                   function g(a, b::Int, c=1, xs...; k=2, kw::Int=3) where T\n\
+                   local loc\n\
+                   x = a()\n\
+                   y::Int = 2\n\
+                   (p, q) = pair()\n\
+                   v[1] = 3; o.f = 4\n\
+                   for i in 1:3, j in 1:2 end\n\
+                   for (u, w) in zs end\n\
+                   [cv for cv in fs]\n\
+                   let lt = 1\n lt end\n\
+                   try\n go()\n catch e\n e\n end\n\
+                   map(fs) do h\n h end\n\
+                   f1 = z -> z\n\
+                   f2 = (m, n) -> m\n\
+                   inner(r) = r\n\
+                   global gl = 3\n\
+                   global gd\n\
+                   gd = 4\n\
+                   end\n\
+                   short(s, (d1, d2)) = s\n";
+        let got = julia_locals(src);
+        let names: Vec<&str> = got.iter().map(|b| b.name.as_str()).collect();
+        for want in [
+            "a", "b", "c", "xs", "k", "kw", "loc", "x", "y", "p", "q", "i", "j", "u",
+            "w", "cv", "lt", "e", "h", "z", "f1", "m", "n", "f2", "inner", "r", "s",
+            "d1", "d2",
+        ] {
+            assert!(names.contains(&want), "{want} in {names:?}");
+        }
+        for not in [
+            "top", "T", "Int", "v", "o", "gl", "gd", "g", "short", "pair",
+        ] {
+            assert!(!names.contains(&not), "{not} in {names:?}");
+        }
+        let param = |n: &str| got.iter().find(|b| b.name == n).unwrap().param;
+        for p in ["a", "kw", "xs", "h", "z", "m", "r", "d1"] {
+            assert!(param(p), "{p} is a parameter");
+        }
+        for l in ["x", "i", "lt", "e", "f1", "inner"] {
+            assert!(!param(l), "{l} is a local");
+        }
+    }
+
+    /// A Julia parameter's own default is evaluated before it is bound:
+    /// `params = params()` calls the module's `params`; a later
+    /// parameter's default and the body see the parameter.
+    #[test]
+    fn julia_parameter_defaults_see_the_outer_name() {
+        let src = "function f(params = params(), b = params())\n params()\nend\n";
+        let got = julia_locals(src);
+        let at = |nth: usize| {
+            let site = src.match_indices("params()").nth(nth).unwrap().0 as u32;
+            got.iter()
+                .any(|b| b.name == "params" && b.start_byte <= site && site < b.end_byte)
+        };
+        assert!(!at(0), "its own default");
+        assert!(at(1), "a later default");
+        assert!(at(2), "the body");
+    }
+
+    /// Julia scopes: a body local after its assignment to the end of its
+    /// scope block (`if` opens none); a loop variable over its loop,
+    /// not its iterable; a comprehension variable over the comprehension.
+    #[test]
+    fn julia_scopes() {
+        let src = "function f()\n\
+                   h()\n\
+                   h = h()\n\
+                   if true\n b = g()\n end\n\
+                   h(); b()\n\
+                   for v in v()\n w = 1\n v(); w()\n end\n\
+                   v(); w()\n\
+                   [c() for c in c()]\n\
+                   end\n\
+                   other() = h()\n";
+        let got = julia_locals(src);
+        let at = |name: &str, needle: &str, nth: usize| {
+            let site = src.match_indices(needle).nth(nth).expect(needle).0 as u32;
+            got.iter()
+                .any(|b| b.name == name && b.start_byte <= site && site < b.end_byte)
+        };
+        assert!(!at("h", "h()", 0), "before the assignment");
+        assert!(!at("h", "h()", 1), "its own value");
+        assert!(at("h", "h()", 2));
+        assert!(at("b", "b()", 0), "`if` opens no scope");
+        assert!(!at("v", "v()", 0), "the iterable");
+        assert!(at("v", "v()", 1));
+        assert!(at("w", "w()", 0));
+        assert!(!at("v", "v()", 2), "after the loop");
+        assert!(!at("w", "w()", 1), "a loop body's local");
+        assert!(at("c", "c()", 0));
+        assert!(!at("h", "h()", 3), "another function");
     }
 }
