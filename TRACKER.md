@@ -128,7 +128,7 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 | WS24 | Kotlin↔Java rules, C#/Swift registrars, JS/TS harness | 14,22,30 | DONE (877b3fa) | | |
 | WS25 | stdlib head split, reflection screen, shebang token match, filename detection | 17,18,19,20 | DONE (7eca3a0) | | |
 | WS26 | Function values as references, per plugin | 25 | DONE (list) | 965e15a f5a877c 9df8695 48c4573 26da301 e53e16d 4f3c56d 7248525 7f1338e d17767b a95dc09 7933ffc 6438024 557e265 ebf0d43 fcf986b 73b6ce1 de2b77d 9f3c317 2a28ff8 6f38216 2ba48c9 | JS/TS, .bind, Go, Kotlin, C/C++, Ruby, PHP, Swift, Dart, Scala, Lua, Erlang, Clojure (+meta names, bare-call scope), Zig, Groovy, ObjC done; WS26 language list complete; WS30 Groovy parse recovery next → ObjC |
-| WS27 | Locals specs Go/C#/C/C++… | 27 | IN PROGRESS | 55d7ebb f8a1e02 d867994 22b5749 7262471 042a062 752d05c e8d94af 9c44e55 c799a63 | Go, C#, C, C++, Groovy, R, Julia, Haskell done; next Clojure → Nix → Starlark → Solidity → F# → Fortran → Perl |
+| WS27 | Locals specs Go/C#/C/C++… | 27 | IN PROGRESS | 55d7ebb f8a1e02 d867994 22b5749 7262471 042a062 752d05c e8d94af 9c44e55 c799a63 51a05c0 | Go, C#, C, C++, Groovy, R, Julia, Haskell, Clojure done; next Nix → Starlark → Solidity → F# → Fortran → Perl |
 | WS28 | Arity narrowing C#/Kotlin/Swift/Groovy/TS | 29 | PLANNED | | |
 | WS29 | Doc corrections + re-score matrix | — | PLANNED | | orchestrator only |
 | WS30 | Groovy methods lost to parse errors (Spock string names) | new | DONE | 3d2a5a3 | Gradle groovy callables 18,952→44,425; spock entries 0→23,836 |
@@ -174,3 +174,4 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 - WS27 C++ open: 7 wrong libc++ ref edges (`__res_`, `__tmp`) in _LIBCPP_* macro-mangled bodies; dart-flutter --dead-code at --jobs 1 sits at the 60 s cap (~60.6 s).
 - WS27 Groovy open: 20 wrong medium ProviderSpec fan-outs (merged Spock features); typed decl without value no longer binds; typed fields record no call-result type.
 - (WS27) Haskell: a `do` bind's pattern variable is extracted as a callable definition (phantom node); calls through it bind it instead of shadowed-by-local. `{..}` binds nothing.
+- (WS27) Clojure: binding table built twice per file under --dead-code (Metabase dead-code +5.9 s, in runway); letfn fns not extracted; unknown `with-…` vectors bind every symbol.
