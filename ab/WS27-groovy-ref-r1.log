@@ -1,0 +1,6 @@
+repos 283 excluded []
+added 63
+  ('groovy', '{"kind": "direct"}', 'medium') 63
+dropped 235
+  ('groovy', '{"kind": "direct"}', 'high') 6
+  ('groovy', '{"kind": "direct"}', 'medium') 229

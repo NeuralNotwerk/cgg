@@ -1,0 +1,6512 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "bash",
+      "class": "script-driven",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 3,
+      "callables": 5,
+      "roots": 5,
+      "reachable": 5,
+      "reachable_pct": 100,
+      "findings": 0
+    },
+    {
+      "language": "java",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "builtin:lifecycle",
+        "framework:entry-node",
+        "framework:rule",
+        "toplevel:invocation"
+      ],
+      "files": 54,
+      "callables": 552,
+      "roots": 41,
+      "reachable": 105,
+      "reachable_pct": 19,
+      "findings": 108
+    },
+    {
+      "language": "proto",
+      "class": "descriptor",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [],
+      "files": 1,
+      "callables": 20,
+      "roots": 0,
+      "reachable": 0,
+      "reachable_pct": 0,
+      "findings": 0
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 577,
+    "edges": 1116,
+    "unresolved_call_sites": 288,
+    "roots": 46,
+    "candidates": 467,
+    "reported": 108,
+    "regions": 69,
+    "withheld": [
+      {
+        "language": "java",
+        "category": "reachable-only-from-dead-code",
+        "reason": "low-root-coverage",
+        "would_have_reported": 336
+      },
+      {
+        "language": "java",
+        "category": "dead-cycle",
+        "reason": "low-root-coverage",
+        "would_have_reported": 3
+      },
+      {
+        "language": "proto",
+        "category": "never-referenced",
+        "reason": "descriptor-language",
+        "would_have_reported": 2
+      },
+      {
+        "language": "proto",
+        "category": "reachable-only-from-dead-code",
+        "reason": "descriptor-language",
+        "would_have_reported": 18
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Cus0xg4ili",
+      "qualified_name": "com.tfyre.bambu.MainLayout.makeEntries",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/MainLayout.java:51"
+    },
+    {
+      "id": "C22hcg11l9e",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.newTemperature",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java:33"
+    },
+    {
+      "id": "C5krgyuvx1p",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.Move.getValue",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java:325"
+    },
+    {
+      "id": "C8xi2dh38jo",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.Fan.getValue",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java:325"
+    },
+    {
+      "id": "Cnaos8h6ey0",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.FanSpeed.getValue",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java:325"
+    },
+    {
+      "id": "C182eg6mshgl",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.LightMode.getValue",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java:325"
+    },
+    {
+      "id": "Cgvzdwaykcb",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.CommandControl.getValue",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java:325"
+    },
+    {
+      "id": "C10yyn0bqcgn",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.Speed.getSpeed",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java:216"
+    },
+    {
+      "id": "C15js8baoxle",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.Speed.getDescription",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/FilamentType.java:31"
+    },
+    {
+      "id": "Cr86yxg4h6f",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.PrinterModel.getModel",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java:290"
+    },
+    {
+      "id": "C135zm4wph7v",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.GCodeState.getValue",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java:325"
+    },
+    {
+      "id": "Cas0flvm9j9",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.GCodeState.getDescription",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/FilamentType.java:31"
+    },
+    {
+      "id": "Cco02f2bno2",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinter.getModel",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java:290"
+    },
+    {
+      "id": "Cjvfmjx9j2s",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinterImpl.getModel",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java:290"
+    },
+    {
+      "id": "C9e8orurtpa",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinterImpl.postConstruct",
+      "language": "java",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `jsr250-lifecycle:attribute`"
+    },
+    {
+      "id": "C6aq3nowlmt",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinterStream.BambuPrinterStream",
+      "language": "java",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `jsr330-inject:attribute`"
+    },
+    {
+      "id": "Ca3td0fm282",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrintersImpl.preDestroy",
+      "language": "java",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `jsr250-lifecycle:attribute`"
+    },
+    {
+      "id": "Cmdhuzev2tb",
+      "qualified_name": "com.tfyre.bambu.printer.Filament.getCode",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/Filament.java:75"
+    },
+    {
+      "id": "Cbowgkeljil",
+      "qualified_name": "com.tfyre.bambu.printer.Filament.getDescription",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/FilamentType.java:31"
+    },
+    {
+      "id": "C14r5o48gm3a",
+      "qualified_name": "com.tfyre.bambu.printer.Filament.getType",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/Filament.java:77"
+    },
+    {
+      "id": "Chxkymm8jdy",
+      "qualified_name": "com.tfyre.bambu.printer.FilamentType.getDescription",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/FilamentType.java:31"
+    },
+    {
+      "id": "Cukxut23h16",
+      "qualified_name": "com.tfyre.bambu.view.FilamentView.ColorField.ColorField",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/FilamentView.java:29"
+    },
+    {
+      "id": "C142v0u8b7kt",
+      "qualified_name": "com.tfyre.bambu.view.SdCardView.runCallable",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/SdCardView.java:103"
+    },
+    {
+      "id": "C13m1pfiw66t",
+      "qualified_name": "com.tfyre.bambu.view.SdCardView.doConnect",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/SdCardView.java:100"
+    },
+    {
+      "id": "Ccmf7lvp3",
+      "qualified_name": "com.tfyre.bambu.view.SdCardView.doDisconnect",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/SdCardView.java:101"
+    },
+    {
+      "id": "C9easbz3k32",
+      "qualified_name": "com.tfyre.bambu.view.SdCardView.doPath",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/SdCardView.java:99"
+    },
+    {
+      "id": "C106lxp1srrc",
+      "qualified_name": "com.tfyre.bambu.view.SdCardView.doCDUP",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/SdCardView.java:102"
+    },
+    {
+      "id": "C13xzcbar6ll",
+      "qualified_name": "com.tfyre.bambu.view.SdCardView.doRefresh",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/SdCardView.java:103"
+    },
+    {
+      "id": "C10z5esx4z1n",
+      "qualified_name": "com.tfyre.bambu.view.SdCardView.Callable.run",
+      "language": "java",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`run` is invoked by the runtime"
+    },
+    {
+      "id": "Cbe6p4trxpq",
+      "qualified_name": "com.tfyre.bambu.view.ViewHelper.newSpan",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/dashboard/DashboardPrinter.java:103"
+    },
+    {
+      "id": "Cn3make1ia7",
+      "qualified_name": "com.tfyre.bambu.view.batchprint.BatchPrintView.refresh",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/batchprint/BatchPrintView.java:99"
+    },
+    {
+      "id": "C140m29lnhas",
+      "qualified_name": "com.tfyre.bambu.view.batchprint.PrinterMapping.refresh",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/batchprint/BatchPrintView.java:99"
+    },
+    {
+      "id": "Czex6xjxu85",
+      "qualified_name": "com.tfyre.bambu.view.batchprint.PrinterMapping.PrinterState.getDescription",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/FilamentType.java:31"
+    },
+    {
+      "id": "Cd6mugl0a3w",
+      "qualified_name": "com.tfyre.bambu.view.batchprint.ProjectFile.preDestroy",
+      "language": "java",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `jsr250-lifecycle:attribute`"
+    },
+    {
+      "id": "Cr0t7mo320l",
+      "qualified_name": "com.tfyre.bambu.view.dashboard.DashboardPrinter.newSpan",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/dashboard/DashboardPrinter.java:103"
+    },
+    {
+      "id": "Cn4suaq3g4f",
+      "qualified_name": "com.tfyre.ftp.BambuFtp.doConnect",
+      "language": "java",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/SdCardView.java:100"
+    },
+    {
+      "id": "Cjby30y5t5p",
+      "qualified_name": "com.tfyre.ftp.FTPSClientProvider.postConstruct",
+      "language": "java",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `jsr250-lifecycle:attribute`"
+    },
+    {
+      "id": "Cch6r9arptb",
+      "qualified_name": "com.tfyre.servlet.TFyreIdentityProvider.postConstruct",
+      "language": "java",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `jsr250-lifecycle:attribute`"
+    },
+    {
+      "id": "C10cjqw83u3m",
+      "qualified_name": "fetch",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/resources/META-INF/resources/bambu/fetchAll.sh:25"
+    },
+    {
+      "id": "C1015cl5loxy",
+      "qualified_name": "com.tfyre.bambu.ssl.NoopTrustSocketFactory.postConstruct",
+      "language": "java",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `jsr250-lifecycle:attribute`"
+    },
+    {
+      "id": "Ch49yjjo3x6",
+      "qualified_name": "find_maven_basedir",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/mvnw:195"
+    },
+    {
+      "id": "C26og9g83gu",
+      "qualified_name": "concat_lines",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/mvnw:313"
+    },
+    {
+      "id": "C61swyubcao",
+      "qualified_name": "log",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/mvnw:271"
+    },
+    {
+      "id": "C1iym0ypwlx",
+      "qualified_name": "trim",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-bambufarm-vaadin/mvnw:285"
+    },
+    {
+      "id": "C13v1ccqj4az",
+      "qualified_name": "<framework-entry>::network::jakarta-rs::com.tfyre.bambu.CloudApi.login",
+      "language": "java",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::jakarta-rs::com.tfyre.bambu.CloudApi.login`"
+    },
+    {
+      "id": "C3jb2kw1seh",
+      "qualified_name": "<framework-entry>::network::jakarta-rs::Path(\"api/sign-in/form\")",
+      "language": "java",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::jakarta-rs::Path(\"api/sign-in/form\")`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "Capxtt46zjb"
+      ],
+      "anchors": [
+        "Capxtt46zjb"
+      ],
+      "files": [
+        "F7h3c3ecet6"
+      ],
+      "total_lines": 15,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 3,
+      "members": [
+        "Cqveb2pqnqk",
+        "C8bw1w7q9rf",
+        "Cojh29zv0dg",
+        "Coj5ld5h7ew",
+        "C1a58vk9gpk",
+        "C10cgjb4obrl",
+        "Cqvu0mb80qf",
+        "Cmpp7hbeob6",
+        "Cg8t1p4nqbs",
+        "Ca3wo0zs765",
+        "Cqyvwugrykp",
+        "Chg2r2w3z5i",
+        "Cjpmi7vq00a",
+        "Ctr3bvx3j0s",
+        "Ck8av6ie2qz",
+        "C5ky26puhdu",
+        "C71vjnmq1kg",
+        "C9b2u9zdtyj",
+        "Cg89qkhhmgg",
+        "Cgccrqzq2wn",
+        "C168n6ugfkpj",
+        "Cbr9uvpdit3",
+        "Cpdbsd7zl2l",
+        "Cvbhkowwpgn",
+        "Cij8mv48ajd",
+        "Chqjpsyrvae",
+        "Cpqk1a21iw4",
+        "C11n7ko5w07m",
+        "C1tfoywfa86",
+        "Ctcdkcdf4fx",
+        "C144smw1uzwg",
+        "Coz1fx6f17l",
+        "Cyomykyc6u6",
+        "C9pzids0bww",
+        "Cotutlrwqdh",
+        "C79g0dw5rm4",
+        "Cg1hqqi7xj8",
+        "Cxvicvp25rb",
+        "Cfruse7c5n5",
+        "C110vzbxjvb8",
+        "Cl8fh9ju1og",
+        "Cdutyn58l6u",
+        "Cla94bqus8f",
+        "Cm3m7tp5io5",
+        "Chyylrq4jlx",
+        "C13mw3pdi9pr",
+        "Ceejr1e8rln",
+        "Cn41dsk66ir",
+        "C8hnuyjbwom",
+        "C14pda0nxfpq",
+        "C1832alm28k2",
+        "Cyj7vvon3do",
+        "C72dlxsboga",
+        "C13q7cnxxd8r",
+        "Cdatowhsqas",
+        "Cabezx4qa7v",
+        "C1377b1nr2jo",
+        "Cbr6ttwpbbs",
+        "Colfojt2vk0",
+        "C35wrsolmc1",
+        "Cgf67n90zkl",
+        "Clhr6k6ioxn",
+        "Chve77dee1f",
+        "Ciwbx44iqj5",
+        "C188ciw6rmv7",
+        "Cxyh8puzuch",
+        "C9nac6mes9h",
+        "Cgmo5y6nxje",
+        "Cziqzm1085v",
+        "C89q9uygcit",
+        "C14u1o1hqdv3",
+        "Capqptycepa",
+        "C17exok0vr5v",
+        "Cg6zpwgz75d",
+        "Cnav6kg2lpc",
+        "Ct38nqkc96m",
+        "Cug62qgfujx",
+        "Cbbm8t0q4zv",
+        "Cqz99kyzqwz",
+        "C5zdphnowgz",
+        "Cvlvjea1pb7",
+        "Clcaf3kw1hw",
+        "Ckxbw6dwagy",
+        "C17qxnzcwk58",
+        "Cvkbqhuytxg",
+        "Ck21nf7nrrb",
+        "Cry4e5ixfhw",
+        "Czb4cosmvui",
+        "C94z1awcad6",
+        "C207oi3762p",
+        "C9mxromjxmx",
+        "Ci9tkj47iwh",
+        "Czf4951pnz7",
+        "Cs6rxnr6zmj",
+        "Cyfe74xk9ju",
+        "Chj28q3c2sw",
+        "Ccdd96ar2rm",
+        "Ckpklu21abi",
+        "Cp85ckusl1",
+        "Cxfyovmripq",
+        "C6zmroi6r6d",
+        "Ck8mj4ps3cw",
+        "C17qk8fv0hc2",
+        "C9h6b7q1y",
+        "C288n9ddz0e",
+        "C11t4fk05br3",
+        "Cizgnwp8c9c",
+        "C171x329nzgs",
+        "Cyicgiqodas",
+        "Cc9x4u1273h",
+        "Cur9mr2z6gh",
+        "C11wa6m7svg8",
+        "Cm9lemwxxi4",
+        "Cnn6swpzuyn",
+        "C9xw1qmgt66",
+        "C12r00n54si",
+        "C8gfqescodl",
+        "Cefph83iarx",
+        "C15k48yuoso7",
+        "C13fj92imknj",
+        "Cx5g9q4rekc",
+        "Cdq4usif2rv",
+        "C11yda1o5mpt",
+        "C17h0vrhfj7g",
+        "Clix4r2hre9",
+        "C6599e23lxk",
+        "C16ftzkntkvd",
+        "C8w6tfuvjnx",
+        "Cqxmmcidnwd",
+        "Cotyer4iiac",
+        "Chsfjzadihk",
+        "Ccmj70un7qk",
+        "Cjpkjatt5a2",
+        "Cancmtemi4y",
+        "Cxjmppjbq2o",
+        "C3817db292z",
+        "C13yynabhdy0",
+        "Ck8hpovyhwz",
+        "C16w9t74isn3",
+        "Cjghoegsszx",
+        "Cjb7178fdr3",
+        "C9fkdidxiay",
+        "C15stilovkwn",
+        "C14vz3vzzsrj",
+        "C6cwykcx200",
+        "C11e0c47musy",
+        "Ck9c7vq53g",
+        "C7nc2anq2un",
+        "Cht4vgl30us",
+        "Ckrbj8emkta",
+        "Cerhq2cp6e0",
+        "C11cf4esn4lp",
+        "Ci1tk72htxy",
+        "C9egi7wwtkp",
+        "Ckcqon5lm0r",
+        "Ceecdl0vn5c",
+        "Cqohj2fdziq",
+        "Cizxm4fapa4",
+        "C2totnfbaog",
+        "C10350e2lips",
+        "Crxuiwzooez",
+        "Ctxcruh82jx",
+        "Cmof393wpvp",
+        "Ct2t7y0am47",
+        "Cm2smqubtkg",
+        "C2popc1djev",
+        "Cfwp0lpphpz",
+        "C25sfn7c6bc",
+        "Cu511ufhgzs",
+        "C11w4wb4vuvt",
+        "Cfj1twvpno2",
+        "Coeopefu2xi",
+        "C8ee64x586h",
+        "Cftdalpw2z",
+        "C5avwcu75at",
+        "Ccil83ro0n2",
+        "Cghjh5bhiiu",
+        "Couwl80ppn8",
+        "C9uru9jfnd8",
+        "Cuo0n9go2kr",
+        "Ca0gdzupkmt",
+        "Can770c88os",
+        "C37rzoibwvw",
+        "C5qhg0vsoha",
+        "C11mgx01w8r3",
+        "Cyeqksjkv8m",
+        "C6bqq62erdb",
+        "Cogj69jmizy",
+        "Cv35nspvvww",
+        "Cc7mrmhze8a",
+        "Cfwj5xq1hsf",
+        "C10rhwu51b8z",
+        "Cmcjqr4m54k",
+        "Ci5yh4wr6ez",
+        "C48onnpaddl",
+        "Cq2ggidijts",
+        "Cf2gxwvrizw",
+        "C13e0essdvtf",
+        "C13z7ge5rb3h",
+        "Cmzug7k2x0g",
+        "Clk7erqdrkc",
+        "Czmddjffyhx",
+        "C12j0xohf5ld",
+        "C9szeysj3bx",
+        "C7i0ut2rp34",
+        "C17gpti9gegg",
+        "C14t2nbroyq4",
+        "Cutozr41po",
+        "C6i1xc4ol18",
+        "C373i0bwi9j",
+        "Cgiqeo6z94t",
+        "C12t0v0zrthy",
+        "Cnapirskpja",
+        "Cmnjh8lkinr",
+        "C12542skaizi",
+        "Ctcltj3injs",
+        "C17qcpnx3ucn",
+        "C5nqmdy37wl",
+        "C6dlu6hvwfn",
+        "Cqv2xcv73kf",
+        "C17iqw66x2yy",
+        "Ckhvxmzl3ll",
+        "Cvaxd1y2iy2",
+        "C3ljohecrwk",
+        "Cd2kglh1fuq",
+        "Cylcwrop5f3",
+        "C7jdm3gh1yd",
+        "C2mykzh93w4",
+        "Cfpq5qs0yfd",
+        "Cwzc0mvqo1s",
+        "Csxtfpfatna",
+        "Cdi24lojv31",
+        "C1061q4q1j9y",
+        "Cotmv6e3cbo",
+        "Ckmaoiy9o14",
+        "Cd2z3t7oxs",
+        "Ca1iymct3na",
+        "Cv4vgqisrat",
+        "Cqr7qi4z0dw",
+        "C3mtn2q9f9q",
+        "C6vpc5v1wqd",
+        "C2tkqb5147m",
+        "C70y4vbx0e",
+        "Cp6jmsq8kaa",
+        "Cg2qj140npa",
+        "C5w1vqff26g",
+        "Cn8s397vlvk",
+        "Cv0o5zkihll",
+        "C116a820r2gs",
+        "C3ph3mmubhy",
+        "Cqp1gkejl5k",
+        "C5x88a8vp98",
+        "C79jsrhfk81",
+        "Cqb4lj6zium",
+        "Cywxei8tlcs",
+        "Cby2uy040hd",
+        "C144mx47dab5",
+        "C6um2gaviv3",
+        "C13e82g6diab",
+        "Czz3w15ix5z",
+        "Ca4injq3iqt",
+        "C12f6gwvz59h",
+        "C24gj9dqf1m",
+        "Cg3dw0zqabq",
+        "Cfkju57mk8m",
+        "C13k781v9vb8",
+        "C934d2yh2qv",
+        "C15lybpmidy8",
+        "C6wiirr5osl",
+        "Cgtobpufcmj",
+        "C77p4ictwqn",
+        "Cqvvax3w78z",
+        "C12bhzusc0ca",
+        "C148y3okzkul",
+        "Cuibx19iv7b",
+        "Cdx5asuiopg",
+        "C6oo07fe916",
+        "Cyj9p6j23p0",
+        "Cllro4vp2hc",
+        "Crbs4nibk68",
+        "C3n3ec4kd5t",
+        "C12mqbfh27jd",
+        "C10naknx3ejm",
+        "Ce5h92ucozz",
+        "Cix9ugpiuk2",
+        "Cteqt6uaye3",
+        "Cb9ia8wzl00",
+        "C14p3jmu3s0e",
+        "C448wwsrq13",
+        "Cnwclqup4zu",
+        "C173d3gr30ar",
+        "Canboyvn6ip",
+        "C17f4p9xtscu",
+        "Czf4mjo6t55",
+        "Cydkgnyq1tl",
+        "Cirycvjyr8p",
+        "C392unhvk5j",
+        "Cr9o2wkh4u",
+        "Ct5dh3ukamb",
+        "Cuaymd2a13m",
+        "Cb33vuvactz",
+        "C17kdpxxyqvy",
+        "Cw4atxilstt",
+        "Cr8enjzitwy",
+        "Cj07gy64sde",
+        "Che59un9un4",
+        "C11xe15uxvs6",
+        "C1ybw7jtiu6",
+        "C6kg60llif1",
+        "C12l2zfbmys7",
+        "Cy6gri4fwfb",
+        "Cd9q3s53si7",
+        "C174rjco3mgq",
+        "C9277b3az3f",
+        "Ctvmp46vmpy",
+        "Cqqa1dlk0cs",
+        "C6aw5szas1",
+        "Cfwfj018qy4",
+        "Cqudev7ecoh",
+        "Ccp2fgmu1q1",
+        "Ci5cj0q7e9t",
+        "C5v0yzx9w04",
+        "Crpeijjtb88",
+        "Cc9cso43xv7",
+        "C182a9qynuiu",
+        "Cctd8cxsnd9",
+        "Cv2v0sg76wq",
+        "Cquczwhaam2",
+        "Cew6j4mn34y",
+        "C3yiho87f6j",
+        "C5xxakjrb3n",
+        "Cpyut98yolp",
+        "Cdlhpf29nb1",
+        "C946u6uejyv",
+        "C15atrwjni1",
+        "C11a6jy981f2",
+        "C8wnhe9q1pw",
+        "Cbfby43xufh",
+        "C1nv6yxi9n8",
+        "C16141ntpedr",
+        "C9089fdlymf",
+        "Cmeazjbfhzs",
+        "Cevoeb3llnj",
+        "Cyti2blj4oz",
+        "Cgr1bor4d3u",
+        "Culu8m0gqdm",
+        "Cbs8ls1101c",
+        "Ce15mlswfku",
+        "C12993gkx84p",
+        "C1pj7u4hn0i",
+        "C14b0c2x3urq",
+        "Cy3pl7i6jhn",
+        "C10igno45y93",
+        "Cm5ugpx2mze",
+        "C10znt1o9o7r",
+        "Csqezb68e45",
+        "Cmzhxmhtud9",
+        "C9dwz8xo4de",
+        "C8hvpqnoj7i",
+        "Czx0bx9hpms",
+        "C4nh23r0cqx",
+        "C13kj11vvpmp",
+        "Clgdz4vgv8j",
+        "Csb850co09i",
+        "Cyurlusrvnd",
+        "Cz7e9wdglj",
+        "C14s8g32j834"
+      ],
+      "anchors": [
+        "Cn41dsk66ir",
+        "C8hnuyjbwom",
+        "C72dlxsboga",
+        "C35wrsolmc1",
+        "Capqptycepa",
+        "Cg6zpwgz75d",
+        "Cxfyovmripq",
+        "C6zmroi6r6d",
+        "Ck8mj4ps3cw",
+        "C9h6b7q1y",
+        "Cizgnwp8c9c",
+        "C171x329nzgs",
+        "Cc9x4u1273h",
+        "Cur9mr2z6gh",
+        "C11wa6m7svg8",
+        "Cm9lemwxxi4",
+        "C12r00n54si",
+        "C8gfqescodl",
+        "Cefph83iarx",
+        "C15k48yuoso7",
+        "Cx5g9q4rekc",
+        "C11e0c47musy",
+        "Cm2smqubtkg",
+        "C2popc1djev",
+        "Cfwp0lpphpz",
+        "C25sfn7c6bc",
+        "Cu511ufhgzs",
+        "C11w4wb4vuvt",
+        "Cq2ggidijts",
+        "Cf2gxwvrizw",
+        "C14t2nbroyq4",
+        "C373i0bwi9j",
+        "C17iqw66x2yy",
+        "Cdi24lojv31",
+        "Cp6jmsq8kaa",
+        "C6um2gaviv3",
+        "Cg3dw0zqabq",
+        "Canboyvn6ip",
+        "Clgdz4vgv8j",
+        "Cyurlusrvnd"
+      ],
+      "cycles": [
+        [
+          "C3ljohecrwk",
+          "C1061q4q1j9y",
+          "Cfkju57mk8m"
+        ]
+      ],
+      "files": [
+        "Fsjabppkum3",
+        "Fgbewa3pg4z",
+        "F2d4d5w40cb",
+        "F10ap48qhhqk",
+        "Fvf9w20475q",
+        "Fc59uecklob",
+        "Fr89ulsl0td",
+        "F16kxnzs1q4k",
+        "Fd7v6he3svn",
+        "Fq9bcg41sg8",
+        "F1801swezlus",
+        "F4cns86afij",
+        "Fbomxm0ydeb",
+        "Fovklgova90",
+        "F10tm15clst5",
+        "F2852mrf43p",
+        "Fhweszvhlpu",
+        "F883c7nv8gq",
+        "F115sq6sutdv",
+        "Fe33mf4ffl9",
+        "F4z93rzc8ye",
+        "Fbzn6zv83no",
+        "Fli82in1gl9",
+        "Fuuxhz9vzw9",
+        "F17rdjcwc8mr",
+        "F3udk40gflb",
+        "Fnf1in6hdv9",
+        "Fdjnp3sxxs8",
+        "F6gdwn39j7e",
+        "Fx4jkqf6p5w",
+        "Fa02my4yvno",
+        "Fcoyx4ytotb",
+        "Fqfwo1fg5li",
+        "F183d2s2otrj",
+        "Fd5xhtqy9mu",
+        "Fsbobrmi31f",
+        "Ff6em29ecqx",
+        "F6jpg0g1tlk"
+      ],
+      "total_lines": 2811,
+      "languages": [
+        "java"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 59,
+      "members": [
+        "Cc23xbg0vbg"
+      ],
+      "anchors": [
+        "Cc23xbg0vbg"
+      ],
+      "files": [
+        "Fsjabppkum3"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 64,
+      "members": [
+        "Cg32oveyeas"
+      ],
+      "anchors": [
+        "Cg32oveyeas"
+      ],
+      "files": [
+        "F2d4d5w40cb"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 76,
+      "members": [
+        "C6e4u8poygr"
+      ],
+      "anchors": [
+        "C6e4u8poygr"
+      ],
+      "files": [
+        "F2d4d5w40cb"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 77,
+      "members": [
+        "C6qrr7cwt7g",
+        "Coq8i4cjqh9"
+      ],
+      "anchors": [
+        "C6qrr7cwt7g"
+      ],
+      "files": [
+        "Fw19oy5ksyl",
+        "Fc59uecklob"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 89,
+      "members": [
+        "Cfc4vopxd0h"
+      ],
+      "anchors": [
+        "Cfc4vopxd0h"
+      ],
+      "files": [
+        "F10ap48qhhqk"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 90,
+      "members": [
+        "C17xe60hojt4"
+      ],
+      "anchors": [
+        "C17xe60hojt4"
+      ],
+      "files": [
+        "F10ap48qhhqk"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 91,
+      "members": [
+        "Cspf9g5a9pd"
+      ],
+      "anchors": [
+        "Cspf9g5a9pd"
+      ],
+      "files": [
+        "Fvf9w20475q"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 111,
+      "members": [
+        "Chd8lb60enw"
+      ],
+      "anchors": [
+        "Chd8lb60enw"
+      ],
+      "files": [
+        "Fc59uecklob"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 112,
+      "members": [
+        "C8rfcfm2kb9"
+      ],
+      "anchors": [
+        "C8rfcfm2kb9"
+      ],
+      "files": [
+        "Fc59uecklob"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 114,
+      "members": [
+        "Cixe33l2vu3"
+      ],
+      "anchors": [
+        "Cixe33l2vu3"
+      ],
+      "files": [
+        "Fc59uecklob"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 115,
+      "members": [
+        "C11u9kj039mi"
+      ],
+      "anchors": [
+        "C11u9kj039mi"
+      ],
+      "files": [
+        "Fc59uecklob"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 117,
+      "members": [
+        "Chj89ulz844"
+      ],
+      "anchors": [
+        "Chj89ulz844"
+      ],
+      "files": [
+        "Fc59uecklob"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 118,
+      "members": [
+        "C5tmlr0nspm"
+      ],
+      "anchors": [
+        "C5tmlr0nspm"
+      ],
+      "files": [
+        "Fc59uecklob"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 120,
+      "members": [
+        "Cvmuw5m1lk6"
+      ],
+      "anchors": [
+        "Cvmuw5m1lk6"
+      ],
+      "files": [
+        "Fc59uecklob"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 122,
+      "members": [
+        "C146l4h205sx"
+      ],
+      "anchors": [
+        "C146l4h205sx"
+      ],
+      "files": [
+        "Fc59uecklob"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 124,
+      "members": [
+        "C15tdyhnb73w"
+      ],
+      "anchors": [
+        "C15tdyhnb73w"
+      ],
+      "files": [
+        "Fc59uecklob"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 128,
+      "members": [
+        "Cef3zfnzke6"
+      ],
+      "anchors": [
+        "Cef3zfnzke6"
+      ],
+      "files": [
+        "Fc59uecklob"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 130,
+      "members": [
+        "Cujcpbo0brz"
+      ],
+      "anchors": [
+        "Cujcpbo0brz"
+      ],
+      "files": [
+        "Fc59uecklob"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 131,
+      "members": [
+        "C3h1h1t6pm7"
+      ],
+      "anchors": [
+        "C3h1h1t6pm7"
+      ],
+      "files": [
+        "Fc59uecklob"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 135,
+      "members": [
+        "Ce0oywo7oh9"
+      ],
+      "anchors": [
+        "Ce0oywo7oh9"
+      ],
+      "files": [
+        "Fc59uecklob"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 172,
+      "members": [
+        "C6uo1uqfz7p"
+      ],
+      "anchors": [
+        "C6uo1uqfz7p"
+      ],
+      "files": [
+        "Fh8f7jm7d00"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 176,
+      "members": [
+        "Cklqhhh8ipw"
+      ],
+      "anchors": [
+        "Cklqhhh8ipw"
+      ],
+      "files": [
+        "Fd7v6he3svn"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 231,
+      "members": [
+        "Cwmwciab934",
+        "C16j9gkeszkn",
+        "Cyk93fyz2b2",
+        "C17xlrie9kva"
+      ],
+      "anchors": [
+        "Cwmwciab934",
+        "Cyk93fyz2b2",
+        "C17xlrie9kva"
+      ],
+      "files": [
+        "F1801swezlus",
+        "F4cns86afij",
+        "Fe33mf4ffl9",
+        "Fli82in1gl9"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 232,
+      "members": [
+        "Cw6493z2hz2"
+      ],
+      "anchors": [
+        "Cw6493z2hz2"
+      ],
+      "files": [
+        "F1801swezlus"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 235,
+      "members": [
+        "Cb3mm8p1z17"
+      ],
+      "anchors": [
+        "Cb3mm8p1z17"
+      ],
+      "files": [
+        "F1801swezlus"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 237,
+      "members": [
+        "Cfbk0rehg4i"
+      ],
+      "anchors": [
+        "Cfbk0rehg4i"
+      ],
+      "files": [
+        "F1801swezlus"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 239,
+      "members": [
+        "Cd050qvm4qg"
+      ],
+      "anchors": [
+        "Cd050qvm4qg"
+      ],
+      "files": [
+        "F4cns86afij"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 256,
+      "members": [
+        "C3vcd7hkd49"
+      ],
+      "anchors": [
+        "C3vcd7hkd49"
+      ],
+      "files": [
+        "Fbomxm0ydeb"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 262,
+      "members": [
+        "Czb3dh20ui4"
+      ],
+      "anchors": [
+        "Czb3dh20ui4"
+      ],
+      "files": [
+        "Fovklgova90"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 265,
+      "members": [
+        "Cvmtx37irzj"
+      ],
+      "anchors": [
+        "Cvmtx37irzj"
+      ],
+      "files": [
+        "F7euh7wtipz"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 266,
+      "members": [
+        "Cxgln2uuse6",
+        "C3xjpduuy0o"
+      ],
+      "anchors": [
+        "Cxgln2uuse6"
+      ],
+      "files": [
+        "F7euh7wtipz",
+        "F17rdjcwc8mr"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 269,
+      "members": [
+        "Cfgatg76cr2",
+        "Cc7ilbni1lb",
+        "Cktrbvidgcv"
+      ],
+      "anchors": [
+        "Cktrbvidgcv"
+      ],
+      "files": [
+        "F10tm15clst5",
+        "Fnf1in6hdv9",
+        "Fqfwo1fg5li"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 270,
+      "members": [
+        "Caoi0fgq7z1"
+      ],
+      "anchors": [
+        "Caoi0fgq7z1"
+      ],
+      "files": [
+        "F10tm15clst5"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 281,
+      "members": [
+        "C6y034fiwr"
+      ],
+      "anchors": [
+        "C6y034fiwr"
+      ],
+      "files": [
+        "F2852mrf43p"
+      ],
+      "total_lines": 19,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 282,
+      "members": [
+        "Cdjw1joay8s"
+      ],
+      "anchors": [
+        "Cdjw1joay8s"
+      ],
+      "files": [
+        "F2852mrf43p"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 283,
+      "members": [
+        "Cbjhswdoxxb"
+      ],
+      "anchors": [
+        "Cbjhswdoxxb"
+      ],
+      "files": [
+        "F2852mrf43p"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 319,
+      "members": [
+        "Co0ie5idu2i"
+      ],
+      "anchors": [
+        "Co0ie5idu2i"
+      ],
+      "files": [
+        "Fbzn6zv83no"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 320,
+      "members": [
+        "Ctyyrm5kc20"
+      ],
+      "anchors": [
+        "Ctyyrm5kc20"
+      ],
+      "files": [
+        "Fbzn6zv83no"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 331,
+      "members": [
+        "C16ueixb4m5f"
+      ],
+      "anchors": [
+        "C16ueixb4m5f"
+      ],
+      "files": [
+        "F17rdjcwc8mr"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 358,
+      "members": [
+        "Cpmj437ugos"
+      ],
+      "anchors": [
+        "Cpmj437ugos"
+      ],
+      "files": [
+        "F17rdjcwc8mr"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 395,
+      "members": [
+        "C2urqjo46vp"
+      ],
+      "anchors": [
+        "C2urqjo46vp"
+      ],
+      "files": [
+        "F6gdwn39j7e"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 415,
+      "members": [
+        "C183mf1n01x7"
+      ],
+      "anchors": [
+        "C183mf1n01x7"
+      ],
+      "files": [
+        "F6gdwn39j7e"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 420,
+      "members": [
+        "C1i4u6y2o81"
+      ],
+      "anchors": [
+        "C1i4u6y2o81"
+      ],
+      "files": [
+        "F6gdwn39j7e"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 424,
+      "members": [
+        "Cdsp7yp6xak"
+      ],
+      "anchors": [
+        "Cdsp7yp6xak"
+      ],
+      "files": [
+        "Fa02my4yvno"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 486,
+      "members": [
+        "C8mm452iihd"
+      ],
+      "anchors": [
+        "C8mm452iihd"
+      ],
+      "files": [
+        "Fqfwo1fg5li"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 488,
+      "members": [
+        "Clqip3sppkh",
+        "Cqkou1uswia",
+        "Cgsfhsllxa2",
+        "C17ag66hu31w"
+      ],
+      "anchors": [
+        "C17ag66hu31w"
+      ],
+      "files": [
+        "F183d2s2otrj",
+        "Fadgzqje7fk"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 491,
+      "members": [
+        "Cooyiobzvtr"
+      ],
+      "anchors": [
+        "Cooyiobzvtr"
+      ],
+      "files": [
+        "F183d2s2otrj"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 493,
+      "members": [
+        "Chk70nwtxok",
+        "C2ev6q7u58v",
+        "Cce2chtjws"
+      ],
+      "anchors": [
+        "C2ev6q7u58v",
+        "Cce2chtjws"
+      ],
+      "files": [
+        "F183d2s2otrj"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 502,
+      "members": [
+        "C13qtbikaal5"
+      ],
+      "anchors": [],
+      "files": [
+        "Fn1rdxdu28m"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 505,
+      "members": [
+        "Caf02rep3t6"
+      ],
+      "anchors": [
+        "Caf02rep3t6"
+      ],
+      "files": [
+        "Fx2u4jlnxez"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 506,
+      "members": [
+        "Cutkwflpo0k",
+        "Crp2kr9aqa0"
+      ],
+      "anchors": [
+        "Crp2kr9aqa0"
+      ],
+      "files": [
+        "Fx2u4jlnxez"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 508,
+      "members": [
+        "C184ig92brpk"
+      ],
+      "anchors": [
+        "C184ig92brpk"
+      ],
+      "files": [
+        "Fx2u4jlnxez"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 510,
+      "members": [
+        "Cbr65g66bho"
+      ],
+      "anchors": [
+        "Cbr65g66bho"
+      ],
+      "files": [
+        "F11c2fpykrda"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 511,
+      "members": [
+        "C159dt4ajm0v",
+        "Cv7qp8xullh"
+      ],
+      "anchors": [
+        "C159dt4ajm0v"
+      ],
+      "files": [
+        "F11c2fpykrda"
+      ],
+      "total_lines": 22,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 513,
+      "members": [
+        "C14662jk1s0g"
+      ],
+      "anchors": [
+        "C14662jk1s0g"
+      ],
+      "files": [
+        "Fphnvaokf9r"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 520,
+      "members": [
+        "C136ef8kldlj"
+      ],
+      "anchors": [
+        "C136ef8kldlj"
+      ],
+      "files": [
+        "Fwnpa97ioft"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 521,
+      "members": [
+        "Cyxnjubt5ir"
+      ],
+      "anchors": [
+        "Cyxnjubt5ir"
+      ],
+      "files": [
+        "Fwnpa97ioft"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 522,
+      "members": [
+        "Ccgtuivngfi"
+      ],
+      "anchors": [
+        "Ccgtuivngfi"
+      ],
+      "files": [
+        "Fwnpa97ioft"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 523,
+      "members": [
+        "Cyxtobb677w"
+      ],
+      "anchors": [
+        "Cyxtobb677w"
+      ],
+      "files": [
+        "Fwnpa97ioft"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 524,
+      "members": [
+        "Cho77rmcm5g"
+      ],
+      "anchors": [
+        "Cho77rmcm5g"
+      ],
+      "files": [
+        "Fwnpa97ioft"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 525,
+      "members": [
+        "Czwj04wb5km"
+      ],
+      "anchors": [
+        "Czwj04wb5km"
+      ],
+      "files": [
+        "Fwnpa97ioft"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 526,
+      "members": [
+        "Clf6j6dv4kj"
+      ],
+      "anchors": [
+        "Clf6j6dv4kj"
+      ],
+      "files": [
+        "Fwnpa97ioft"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 527,
+      "members": [
+        "Cs33bpy6pfr"
+      ],
+      "anchors": [
+        "Cs33bpy6pfr"
+      ],
+      "files": [
+        "Fwnpa97ioft"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 529,
+      "members": [
+        "Cognqfhbxrf",
+        "C11lwbt3liwh",
+        "C5goyidaaky",
+        "Ct52cmp23jq",
+        "Cuidg8z7dkj",
+        "C8qvif508ar",
+        "Cm18domf16q",
+        "Ckh6yrrjr39",
+        "C33gwg7xzh9",
+        "Coxet815a9y",
+        "Ckg5o41u7gk",
+        "C17wmidvdx1v",
+        "C4aka6ltbm",
+        "Cx1wcvjsjdy",
+        "C6dgdweii3l",
+        "Cvd98ip98r2",
+        "C1yu3gajtqn",
+        "Ch5dflufs4r",
+        "Ca1yrnok6b3"
+      ],
+      "anchors": [
+        "Ca1yrnok6b3"
+      ],
+      "files": [
+        "Fyndrj4ku4x"
+      ],
+      "total_lines": 257,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 540,
+      "members": [
+        "Cckg1urkkwj"
+      ],
+      "anchors": [
+        "Cckg1urkkwj"
+      ],
+      "files": [
+        "Fyndrj4ku4x"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "proto"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 572,
+      "members": [
+        "Cs0gwp2ibia"
+      ],
+      "anchors": [
+        "Cs0gwp2ibia"
+      ],
+      "files": [
+        "F6jpg0g1tlk"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 573,
+      "members": [
+        "Cq7opsvkoz1"
+      ],
+      "anchors": [
+        "Cq7opsvkoz1"
+      ],
+      "files": [
+        "F6jpg0g1tlk"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "C3vcd7hkd49",
+      "qualified_name": "com.tfyre.bambu.printer.Filament.Filament",
+      "simple_name": "Filament",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fbomxm0ydeb",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/Filament.java",
+      "start_line": 83,
+      "end_line": 87,
+      "size_lines": 5,
+      "signature_hint": "private Filament(final String code, final String description, final FilamentType type)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 305,
+      "region": 256,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cixe33l2vu3",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.Fan.Fan",
+      "simple_name": "Fan",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fc59uecklob",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java",
+      "start_line": 132,
+      "end_line": 135,
+      "size_lines": 4,
+      "signature_hint": "private Fan(final String name, final int value)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 304,
+      "region": 114,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chj89ulz844",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.FanSpeed.FanSpeed",
+      "simple_name": "FanSpeed",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fc59uecklob",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java",
+      "start_line": 157,
+      "end_line": 160,
+      "size_lines": 4,
+      "signature_hint": "private FanSpeed(final String name, final int value)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 304,
+      "region": 117,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C15tdyhnb73w",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.Speed.Speed",
+      "simple_name": "Speed",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fc59uecklob",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java",
+      "start_line": 218,
+      "end_line": 221,
+      "size_lines": 4,
+      "signature_hint": "private Speed(final int speed, final String description)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 304,
+      "region": 124,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cef3zfnzke6",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.Color.Color",
+      "simple_name": "Color",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fc59uecklob",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java",
+      "start_line": 266,
+      "end_line": 269,
+      "size_lines": 4,
+      "signature_hint": "private Color(final long color)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 304,
+      "region": 128,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3h1h1t6pm7",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.PrinterModel.PrinterModel",
+      "simple_name": "PrinterModel",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fc59uecklob",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java",
+      "start_line": 295,
+      "end_line": 298,
+      "size_lines": 4,
+      "signature_hint": "private PrinterModel(final String model, final boolean temperature)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 304,
+      "region": 131,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ce0oywo7oh9",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.GCodeState.GCodeState",
+      "simple_name": "GCodeState",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fc59uecklob",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java",
+      "start_line": 333,
+      "end_line": 336,
+      "size_lines": 4,
+      "signature_hint": "private GCodeState(final String value, final String description)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 304,
+      "region": 135,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8rfcfm2kb9",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.Move.Move",
+      "simple_name": "Move",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fc59uecklob",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java",
+      "start_line": 114,
+      "end_line": 116,
+      "size_lines": 3,
+      "signature_hint": "private Move(final String value)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 303,
+      "region": 112,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvmuw5m1lk6",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.LightMode.LightMode",
+      "simple_name": "LightMode",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fc59uecklob",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java",
+      "start_line": 180,
+      "end_line": 182,
+      "size_lines": 3,
+      "signature_hint": "private LightMode(final String value)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 303,
+      "region": 120,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C146l4h205sx",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.CommandControl.CommandControl",
+      "simple_name": "CommandControl",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fc59uecklob",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java",
+      "start_line": 197,
+      "end_line": 199,
+      "size_lines": 3,
+      "signature_hint": "private CommandControl(final String value)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 303,
+      "region": 122,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czb3dh20ui4",
+      "qualified_name": "com.tfyre.bambu.printer.FilamentType.FilamentType",
+      "simple_name": "FilamentType",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fovklgova90",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/FilamentType.java",
+      "start_line": 35,
+      "end_line": 37,
+      "size_lines": 3,
+      "signature_hint": "private FilamentType(final String description)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 303,
+      "region": 262,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1i4u6y2o81",
+      "qualified_name": "com.tfyre.bambu.view.batchprint.PrinterMapping.PrinterState.PrinterState",
+      "simple_name": "PrinterState",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F6gdwn39j7e",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/batchprint/PrinterMapping.java",
+      "start_line": 356,
+      "end_line": 358,
+      "size_lines": 3,
+      "signature_hint": "private PrinterState(final String description)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 303,
+      "region": 420,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8mm452iihd",
+      "qualified_name": "com.tfyre.bambu.view.dashboard.DashboardPrinter.Images.Images",
+      "simple_name": "Images",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fqfwo1fg5li",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/dashboard/DashboardPrinter.java",
+      "start_line": 812,
+      "end_line": 814,
+      "size_lines": 3,
+      "signature_hint": "private Images(final String image)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 303,
+      "region": 486,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chd8lb60enw",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.BambuConst",
+      "simple_name": "BambuConst",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fc59uecklob",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java",
+      "start_line": 103,
+      "end_line": 104,
+      "size_lines": 2,
+      "signature_hint": "private BambuConst()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 302,
+      "region": 111,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17ag66hu31w",
+      "qualified_name": "com.tfyre.ftp.FTPSClientProvider.provide",
+      "simple_name": "provide",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fadgzqje7fk",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/ftp/FTPSClientProvider.java",
+      "start_line": 49,
+      "end_line": 56,
+      "size_lines": 8,
+      "signature_hint": "@Produces @Dependent public BambuFtp provide()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 108,
+      "region": 488,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Ctyyrm5kc20",
+      "qualified_name": "com.tfyre.bambu.view.NotificationHelper.showWarning",
+      "simple_name": "showWarning",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fbzn6zv83no",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/NotificationHelper.java",
+      "start_line": 68,
+      "end_line": 74,
+      "size_lines": 7,
+      "signature_hint": "default void showWarning(final String warning)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 320,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cs33bpy6pfr",
+      "qualified_name": "com.tfyre.bambu.ssl.NoopTrustSocketFactory.createSocketFactory",
+      "simple_name": "createSocketFactory",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fwnpa97ioft",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/common/src/main/java/com/tfyre/bambu/ssl/NoopTrustSocketFactory.java",
+      "start_line": 70,
+      "end_line": 76,
+      "size_lines": 7,
+      "signature_hint": "@Produces @Named(FACTORY) public SocketFactory createSocketFactory() throws NoSuchAlgorithmException, KeyManagementException",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 527,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Caoi0fgq7z1",
+      "qualified_name": "com.tfyre.bambu.security.SecurityUtils.userHasRole",
+      "simple_name": "userHasRole",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "static_method",
+      "file": "F10tm15clst5",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/security/SecurityUtils.java",
+      "start_line": 33,
+      "end_line": 37,
+      "size_lines": 5,
+      "signature_hint": "public static boolean userHasRole(final String roleName)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 105,
+      "region": 270,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Co0ie5idu2i",
+      "qualified_name": "com.tfyre.bambu.view.NotificationHelper.showErrorLog",
+      "simple_name": "showErrorLog",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fbzn6zv83no",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/NotificationHelper.java",
+      "start_line": 63,
+      "end_line": 66,
+      "size_lines": 4,
+      "signature_hint": "default void showErrorLog(final Throwable ex)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 104,
+      "region": 319,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cfc4vopxd0h",
+      "qualified_name": "com.tfyre.bambu.YesNoCancelDialog.isRejected",
+      "simple_name": "isRejected",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10ap48qhhqk",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/YesNoCancelDialog.java",
+      "start_line": 98,
+      "end_line": 100,
+      "size_lines": 3,
+      "signature_hint": "public boolean isRejected()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 89,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17xe60hojt4",
+      "qualified_name": "com.tfyre.bambu.YesNoCancelDialog.isCanceled",
+      "simple_name": "isCanceled",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F10ap48qhhqk",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/YesNoCancelDialog.java",
+      "start_line": 102,
+      "end_line": 104,
+      "size_lines": 3,
+      "signature_hint": "public boolean isCanceled()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 90,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2urqjo46vp",
+      "qualified_name": "com.tfyre.bambu.view.batchprint.PrinterMapping.getPrinterState",
+      "simple_name": "getPrinterState",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F6gdwn39j7e",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/batchprint/PrinterMapping.java",
+      "start_line": 86,
+      "end_line": 88,
+      "size_lines": 3,
+      "signature_hint": "public PrinterState getPrinterState()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 395,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C183mf1n01x7",
+      "qualified_name": "com.tfyre.bambu.view.batchprint.PrinterMapping.getAmsMapping",
+      "simple_name": "getAmsMapping",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F6gdwn39j7e",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/batchprint/PrinterMapping.java",
+      "start_line": 320,
+      "end_line": 322,
+      "size_lines": 3,
+      "signature_hint": "public Map<Integer, Integer> getAmsMapping()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 415,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cn41dsk66ir",
+      "qualified_name": "com.tfyre.bambu.BambuConfig.Temperature.bed",
+      "simple_name": "bed",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fsjabppkum3",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/BambuConfig.java",
+      "start_line": 204,
+      "end_line": 204,
+      "size_lines": 1,
+      "signature_hint": "int bed();",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 101,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C8hnuyjbwom",
+      "qualified_name": "com.tfyre.bambu.BambuConfig.Temperature.nozzle",
+      "simple_name": "nozzle",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fsjabppkum3",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/BambuConfig.java",
+      "start_line": 206,
+      "end_line": 206,
+      "size_lines": 1,
+      "signature_hint": "int nozzle();",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 101,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C6y034fiwr",
+      "qualified_name": "com.tfyre.bambu.view.FilamentView.ColorField.onAttach",
+      "simple_name": "onAttach",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F2852mrf43p",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/FilamentView.java",
+      "start_line": 144,
+      "end_line": 162,
+      "size_lines": 19,
+      "signature_hint": "@Override protected void onAttach(final AttachEvent attachEvent)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -181,
+      "region": 281,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "CustomField"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "protected"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cq2ggidijts",
+      "qualified_name": "com.tfyre.bambu.view.LoginView.onAttach",
+      "simple_name": "onAttach",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F115sq6sutdv",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/LoginView.java",
+      "start_line": 40,
+      "end_line": 56,
+      "size_lines": 17,
+      "signature_hint": "@Override protected void onAttach(final AttachEvent attachEvent)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -183,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "BeforeEnterObserver"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "protected"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "Capxtt46zjb",
+      "qualified_name": "com.tfyre.bambu.AppConfig.configurePage",
+      "simple_name": "configurePage",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F7h3c3ecet6",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/AppConfig.java",
+      "start_line": 24,
+      "end_line": 38,
+      "size_lines": 15,
+      "signature_hint": "@Override public void configurePage(final AppShellSettings settings)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -185,
+      "region": 0,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "AppShellConfigurator"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cg3dw0zqabq",
+      "qualified_name": "com.tfyre.bambu.view.batchprint.BatchPrintView.onAttach",
+      "simple_name": "onAttach",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fdjnp3sxxs8",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/batchprint/BatchPrintView.java",
+      "start_line": 257,
+      "end_line": 270,
+      "size_lines": 14,
+      "signature_hint": "@Override protected void onAttach(final AttachEvent attachEvent)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -186,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Div"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "protected"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 11
+    },
+    {
+      "id": "C159dt4ajm0v",
+      "qualified_name": "com.tfyre.servlet.TFyreIdentityProvider.authenticate",
+      "simple_name": "authenticate",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11c2fpykrda",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/servlet/TFyreIdentityProvider.java",
+      "start_line": 68,
+      "end_line": 81,
+      "size_lines": 14,
+      "signature_hint": "@Override public Uni<SecurityIdentity> authenticate(final UsernamePasswordAuthenticationRequest request, final AuthenticationRequestContext context)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -186,
+      "region": 511,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "IdentityProvider"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C35wrsolmc1",
+      "qualified_name": "com.tfyre.bambu.MainLayout.showRouterLayoutContent",
+      "simple_name": "showRouterLayoutContent",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F2d4d5w40cb",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/MainLayout.java",
+      "start_line": 182,
+      "end_line": 194,
+      "size_lines": 13,
+      "signature_hint": "@Override public void showRouterLayoutContent(final HasElement content)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -187,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "AppLayout"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Canboyvn6ip",
+      "qualified_name": "com.tfyre.bambu.view.dashboard.Dashboard.onAttach",
+      "simple_name": "onAttach",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fcoyx4ytotb",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/dashboard/Dashboard.java",
+      "start_line": 38,
+      "end_line": 50,
+      "size_lines": 13,
+      "signature_hint": "@Override protected void onAttach(final AttachEvent attachEvent)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -187,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Div"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "protected"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "Cooyiobzvtr",
+      "qualified_name": "com.tfyre.ftp.BambuFtp._prepareDataSocket_",
+      "simple_name": "_prepareDataSocket_",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F183d2s2otrj",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/ftp/BambuFtp.java",
+      "start_line": 41,
+      "end_line": 53,
+      "size_lines": 13,
+      "signature_hint": "@Override protected void _prepareDataSocket_(Socket dataSocket)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -187,
+      "region": 491,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "FTPSClient"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "protected"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cf2gxwvrizw",
+      "qualified_name": "com.tfyre.bambu.view.LoginView.beforeEnter",
+      "simple_name": "beforeEnter",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F115sq6sutdv",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/LoginView.java",
+      "start_line": 58,
+      "end_line": 69,
+      "size_lines": 12,
+      "signature_hint": "@Override public void beforeEnter(BeforeEnterEvent beforeEnterEvent)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -188,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "BeforeEnterObserver"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C72dlxsboga",
+      "qualified_name": "com.tfyre.bambu.MainLayout.onAttach",
+      "simple_name": "onAttach",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F2d4d5w40cb",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/MainLayout.java",
+      "start_line": 86,
+      "end_line": 96,
+      "size_lines": 11,
+      "signature_hint": "@Override protected void onAttach(AttachEvent attachEvent)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -189,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "AppLayout"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "protected"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Cdi24lojv31",
+      "qualified_name": "com.tfyre.bambu.view.SdCardView.onAttach",
+      "simple_name": "onAttach",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17rdjcwc8mr",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/SdCardView.java",
+      "start_line": 258,
+      "end_line": 268,
+      "size_lines": 11,
+      "signature_hint": "@Override protected void onAttach(final AttachEvent attachEvent)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -189,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "HasUrlParameter"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "protected"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "Capqptycepa",
+      "qualified_name": "com.tfyre.bambu.camel.CamelController.onCamelContextFullyStarted",
+      "simple_name": "onCamelContextFullyStarted",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fvf9w20475q",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/camel/CamelController.java",
+      "start_line": 48,
+      "end_line": 57,
+      "size_lines": 10,
+      "signature_hint": "@Override public void onCamelContextFullyStarted(final CamelContext context, final boolean alreadyStarted) throws Exception",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -190,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "StartupListener"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C17iqw66x2yy",
+      "qualified_name": "com.tfyre.bambu.view.PrinterView.onAttach",
+      "simple_name": "onAttach",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fli82in1gl9",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/PrinterView.java",
+      "start_line": 65,
+      "end_line": 74,
+      "size_lines": 10,
+      "signature_hint": "@Override protected void onAttach(final AttachEvent attachEvent)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -190,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "HasUrlParameter"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "protected"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "C14t2nbroyq4",
+      "qualified_name": "com.tfyre.bambu.view.LogsView.onAttach",
+      "simple_name": "onAttach",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fe33mf4ffl9",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/LogsView.java",
+      "start_line": 152,
+      "end_line": 160,
+      "size_lines": 9,
+      "signature_hint": "@Override protected void onAttach(final AttachEvent attachEvent)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -191,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "HasUrlParameter"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "protected"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C373i0bwi9j",
+      "qualified_name": "com.tfyre.bambu.view.MaintenanceView.onAttach",
+      "simple_name": "onAttach",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F4z93rzc8ye",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/MaintenanceView.java",
+      "start_line": 67,
+      "end_line": 75,
+      "size_lines": 9,
+      "signature_hint": "@Override protected void onAttach(final AttachEvent attachEvent)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -191,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "VerticalLayout"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "protected"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cg6zpwgz75d",
+      "qualified_name": "com.tfyre.bambu.camel.CamelController.configure",
+      "simple_name": "configure",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fvf9w20475q",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/camel/CamelController.java",
+      "start_line": 71,
+      "end_line": 78,
+      "size_lines": 8,
+      "signature_hint": "@Override public void configure() throws Exception",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -192,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "StartupListener"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "Cdsp7yp6xak",
+      "qualified_name": "com.tfyre.bambu.view.batchprint.ProjectFile.ProjectFile",
+      "simple_name": "ProjectFile",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fa02my4yvno",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/batchprint/ProjectFile.java",
+      "start_line": 49,
+      "end_line": 56,
+      "size_lines": 8,
+      "signature_hint": "public ProjectFile()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -192,
+      "region": 424,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxgln2uuse6",
+      "qualified_name": "com.tfyre.bambu.security.NavigationAccessCheckerInitializer.serviceInit",
+      "simple_name": "serviceInit",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F7euh7wtipz",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/security/NavigationAccessCheckerInitializer.java",
+      "start_line": 21,
+      "end_line": 26,
+      "size_lines": 6,
+      "signature_hint": "@Override public void serviceInit(final ServiceInitEvent serviceInitEvent)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -194,
+      "region": 266,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "VaadinServiceInitListener"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cyurlusrvnd",
+      "qualified_name": "com.tfyre.bambu.server.CamelController.configure",
+      "simple_name": "configure",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F6jpg0g1tlk",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/server/src/main/java/com/tfyre/bambu/server/CamelController.java",
+      "start_line": 42,
+      "end_line": 47,
+      "size_lines": 6,
+      "signature_hint": "@Override public void configure() throws Exception",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -194,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "StartupListener"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C6e4u8poygr",
+      "qualified_name": "com.tfyre.bambu.MainLayout.removeRouterLayoutContent",
+      "simple_name": "removeRouterLayoutContent",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F2d4d5w40cb",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/MainLayout.java",
+      "start_line": 196,
+      "end_line": 200,
+      "size_lines": 5,
+      "signature_hint": "@Override public void removeRouterLayoutContent(final HasElement oldContent)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 76,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "AppLayout"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6qrr7cwt7g",
+      "qualified_name": "com.tfyre.bambu.PrinterModelConverter.convert",
+      "simple_name": "convert",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fw19oy5ksyl",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/PrinterModelConverter.java",
+      "start_line": 12,
+      "end_line": 16,
+      "size_lines": 5,
+      "signature_hint": "@Override public BambuConst.PrinterModel convert(final String value) throws IllegalArgumentException, NullPointerException",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 77,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Converter"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cpmj437ugos",
+      "qualified_name": "com.tfyre.bambu.view.SdCardView.MyGrid.onAttach",
+      "simple_name": "onAttach",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17rdjcwc8mr",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/SdCardView.java",
+      "start_line": 474,
+      "end_line": 478,
+      "size_lines": 5,
+      "signature_hint": "@Override protected void onAttach(final AttachEvent attachEvent)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 358,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Grid"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "protected"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C136ef8kldlj",
+      "qualified_name": "com.tfyre.bambu.ssl.NoopTrustSocketFactory.getAcceptedIssuers",
+      "simple_name": "getAcceptedIssuers",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fwnpa97ioft",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/common/src/main/java/com/tfyre/bambu/ssl/NoopTrustSocketFactory.java",
+      "start_line": 32,
+      "end_line": 36,
+      "size_lines": 5,
+      "signature_hint": "@Override public X509Certificate[] getAcceptedIssuers()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 520,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": ""
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cq7opsvkoz1",
+      "qualified_name": "com.tfyre.bambu.server.CamelController.onCamelContextFullyStarted",
+      "simple_name": "onCamelContextFullyStarted",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F6jpg0g1tlk",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/server/src/main/java/com/tfyre/bambu/server/CamelController.java",
+      "start_line": 36,
+      "end_line": 40,
+      "size_lines": 5,
+      "signature_hint": "@Override public void onCamelContextFullyStarted(final CamelContext context, final boolean alreadyStarted) throws Exception",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 573,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "StartupListener"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cspf9g5a9pd",
+      "qualified_name": "com.tfyre.bambu.camel.CamelController.onCamelContextStarted",
+      "simple_name": "onCamelContextStarted",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fvf9w20475q",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/camel/CamelController.java",
+      "start_line": 43,
+      "end_line": 46,
+      "size_lines": 4,
+      "signature_hint": "@Override public void onCamelContextStarted(final CamelContext context, final boolean alreadyStarted) throws Exception",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 91,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "StartupListener"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvmtx37irzj",
+      "qualified_name": "com.tfyre.bambu.security.NavigationAccessCheckerInitializer.NavigationAccessCheckerInitializer",
+      "simple_name": "NavigationAccessCheckerInitializer",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F7euh7wtipz",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/security/NavigationAccessCheckerInitializer.java",
+      "start_line": 16,
+      "end_line": 19,
+      "size_lines": 4,
+      "signature_hint": "public NavigationAccessCheckerInitializer()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 265,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdjw1joay8s",
+      "qualified_name": "com.tfyre.bambu.view.FilamentView.ColorField.generateModelValue",
+      "simple_name": "generateModelValue",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F2852mrf43p",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/FilamentView.java",
+      "start_line": 164,
+      "end_line": 167,
+      "size_lines": 4,
+      "signature_hint": "@Override protected String generateModelValue()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 282,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "CustomField"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "protected"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cbjhswdoxxb",
+      "qualified_name": "com.tfyre.bambu.view.FilamentView.ColorField.setPresentationValue",
+      "simple_name": "setPresentationValue",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F2852mrf43p",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/FilamentView.java",
+      "start_line": 169,
+      "end_line": 172,
+      "size_lines": 4,
+      "signature_hint": "@Override protected void setPresentationValue(final String color)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 283,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "CustomField"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "protected"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cyk93fyz2b2",
+      "qualified_name": "com.tfyre.bambu.view.LogsView.setParameter",
+      "simple_name": "setParameter",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fe33mf4ffl9",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/LogsView.java",
+      "start_line": 81,
+      "end_line": 84,
+      "size_lines": 4,
+      "signature_hint": "@Override public void setParameter(final BeforeEvent event, @OptionalParameter final String printerName)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 231,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "HasUrlParameter"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C17xlrie9kva",
+      "qualified_name": "com.tfyre.bambu.view.PrinterView.setParameter",
+      "simple_name": "setParameter",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fli82in1gl9",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/PrinterView.java",
+      "start_line": 47,
+      "end_line": 50,
+      "size_lines": 4,
+      "signature_hint": "@Override public void setParameter(final BeforeEvent event, @OptionalParameter final String printerName)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 231,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "HasUrlParameter"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C16ueixb4m5f",
+      "qualified_name": "com.tfyre.bambu.view.SdCardView.setParameter",
+      "simple_name": "setParameter",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F17rdjcwc8mr",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/SdCardView.java",
+      "start_line": 126,
+      "end_line": 129,
+      "size_lines": 4,
+      "signature_hint": "@Override public void setParameter(final BeforeEvent event, @OptionalParameter final String printerName)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 331,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "HasUrlParameter"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cktrbvidgcv",
+      "qualified_name": "com.tfyre.bambu.view.dashboard.DashboardPrinter.DashboardPrinter",
+      "simple_name": "DashboardPrinter",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fqfwo1fg5li",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/dashboard/DashboardPrinter.java",
+      "start_line": 125,
+      "end_line": 128,
+      "size_lines": 4,
+      "signature_hint": "public DashboardPrinter()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 269,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C2ev6q7u58v",
+      "qualified_name": "com.tfyre.ftp.BambuFtp.protocolCommandSent",
+      "simple_name": "protocolCommandSent",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F183d2s2otrj",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/ftp/BambuFtp.java",
+      "start_line": 62,
+      "end_line": 65,
+      "size_lines": 4,
+      "signature_hint": "@Override public void protocolCommandSent(ProtocolCommandEvent event)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 493,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "FTPSClient"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cce2chtjws",
+      "qualified_name": "com.tfyre.ftp.BambuFtp.protocolReplyReceived",
+      "simple_name": "protocolReplyReceived",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F183d2s2otrj",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/ftp/BambuFtp.java",
+      "start_line": 67,
+      "end_line": 70,
+      "size_lines": 4,
+      "signature_hint": "@Override public void protocolReplyReceived(ProtocolCommandEvent event)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 493,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "FTPSClient"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cbr65g66bho",
+      "qualified_name": "com.tfyre.servlet.TFyreIdentityProvider.getRequestType",
+      "simple_name": "getRequestType",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11c2fpykrda",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/servlet/TFyreIdentityProvider.java",
+      "start_line": 63,
+      "end_line": 66,
+      "size_lines": 4,
+      "signature_hint": "@Override public Class<UsernamePasswordAuthenticationRequest> getRequestType()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 510,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "IdentityProvider"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14662jk1s0g",
+      "qualified_name": "com.tfyre.servlet.TFyreServletExtension.handleDeployment",
+      "simple_name": "handleDeployment",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fphnvaokf9r",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/servlet/TFyreServletExtension.java",
+      "start_line": 14,
+      "end_line": 17,
+      "size_lines": 4,
+      "signature_hint": "@Override public void handleDeployment(final DeploymentInfo deploymentInfo, final ServletContext servletContext)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 513,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "ServletExtension"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cyxnjubt5ir",
+      "qualified_name": "com.tfyre.bambu.ssl.NoopTrustSocketFactory.checkClientTrusted",
+      "simple_name": "checkClientTrusted",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fwnpa97ioft",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/common/src/main/java/com/tfyre/bambu/ssl/NoopTrustSocketFactory.java",
+      "start_line": 38,
+      "end_line": 41,
+      "size_lines": 4,
+      "signature_hint": "@Override public void checkClientTrusted(X509Certificate[] certs, String authType)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 521,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": ""
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccgtuivngfi",
+      "qualified_name": "com.tfyre.bambu.ssl.NoopTrustSocketFactory.checkServerTrusted",
+      "simple_name": "checkServerTrusted",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fwnpa97ioft",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/common/src/main/java/com/tfyre/bambu/ssl/NoopTrustSocketFactory.java",
+      "start_line": 43,
+      "end_line": 46,
+      "size_lines": 4,
+      "signature_hint": "@Override public void checkServerTrusted(X509Certificate[] certs, String authType)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 522,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": ""
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cyxtobb677w",
+      "qualified_name": "com.tfyre.bambu.ssl.NoopTrustSocketFactory.checkClientTrusted",
+      "simple_name": "checkClientTrusted",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fwnpa97ioft",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/common/src/main/java/com/tfyre/bambu/ssl/NoopTrustSocketFactory.java",
+      "start_line": 48,
+      "end_line": 51,
+      "size_lines": 4,
+      "signature_hint": "@Override public void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket) throws CertificateException",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 523,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": ""
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cho77rmcm5g",
+      "qualified_name": "com.tfyre.bambu.ssl.NoopTrustSocketFactory.checkServerTrusted",
+      "simple_name": "checkServerTrusted",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fwnpa97ioft",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/common/src/main/java/com/tfyre/bambu/ssl/NoopTrustSocketFactory.java",
+      "start_line": 53,
+      "end_line": 56,
+      "size_lines": 4,
+      "signature_hint": "@Override public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket) throws CertificateException",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 524,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": ""
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czwj04wb5km",
+      "qualified_name": "com.tfyre.bambu.ssl.NoopTrustSocketFactory.checkClientTrusted",
+      "simple_name": "checkClientTrusted",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fwnpa97ioft",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/common/src/main/java/com/tfyre/bambu/ssl/NoopTrustSocketFactory.java",
+      "start_line": 58,
+      "end_line": 61,
+      "size_lines": 4,
+      "signature_hint": "@Override public void checkClientTrusted(X509Certificate[] chain, String authType, SSLEngine engine) throws CertificateException",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 525,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": ""
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Clf6j6dv4kj",
+      "qualified_name": "com.tfyre.bambu.ssl.NoopTrustSocketFactory.checkServerTrusted",
+      "simple_name": "checkServerTrusted",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fwnpa97ioft",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/common/src/main/java/com/tfyre/bambu/ssl/NoopTrustSocketFactory.java",
+      "start_line": 63,
+      "end_line": 66,
+      "size_lines": 4,
+      "signature_hint": "@Override public void checkServerTrusted(X509Certificate[] chain, String authType, SSLEngine engine) throws CertificateException",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 526,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": ""
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cs0gwp2ibia",
+      "qualified_name": "com.tfyre.bambu.server.CamelController.onCamelContextStarted",
+      "simple_name": "onCamelContextStarted",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F6jpg0g1tlk",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/server/src/main/java/com/tfyre/bambu/server/CamelController.java",
+      "start_line": 31,
+      "end_line": 34,
+      "size_lines": 4,
+      "signature_hint": "@Override public void onCamelContextStarted(final CamelContext context, final boolean alreadyStarted) throws Exception",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 572,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "StartupListener"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cg32oveyeas",
+      "qualified_name": "com.tfyre.bambu.MainLayout.MainLayout",
+      "simple_name": "MainLayout",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F2d4d5w40cb",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/MainLayout.java",
+      "start_line": 67,
+      "end_line": 68,
+      "size_lines": 2,
+      "signature_hint": "public MainLayout()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -198,
+      "region": 64,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6uo1uqfz7p",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinterException.BambuPrinterException",
+      "simple_name": "BambuPrinterException",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fh8f7jm7d00",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinterException.java",
+      "start_line": 9,
+      "end_line": 10,
+      "size_lines": 2,
+      "signature_hint": "public BambuPrinterException()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -198,
+      "region": 172,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cklqhhh8ipw",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinterImpl.BambuPrinterImpl",
+      "simple_name": "BambuPrinterImpl",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fd7v6he3svn",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinterImpl.java",
+      "start_line": 71,
+      "end_line": 72,
+      "size_lines": 2,
+      "signature_hint": "public BambuPrinterImpl()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -198,
+      "region": 176,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cd050qvm4qg",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrintersImpl.BambuPrintersImpl",
+      "simple_name": "BambuPrintersImpl",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F4cns86afij",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrintersImpl.java",
+      "start_line": 44,
+      "end_line": 45,
+      "size_lines": 2,
+      "signature_hint": "public BambuPrintersImpl()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -198,
+      "region": 239,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ck8mj4ps3cw",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinter.getGCodeState",
+      "simple_name": "getGCodeState",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16kxnzs1q4k",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinter.java",
+      "start_line": 25,
+      "end_line": 25,
+      "size_lines": 1,
+      "signature_hint": "BambuConst.GCodeState getGCodeState();",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinter",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C9h6b7q1y",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinter.getIFrame",
+      "simple_name": "getIFrame",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16kxnzs1q4k",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinter.java",
+      "start_line": 31,
+      "end_line": 31,
+      "size_lines": 1,
+      "signature_hint": "Optional<String> getIFrame();",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinter",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cizgnwp8c9c",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinter.isBlocked",
+      "simple_name": "isBlocked",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16kxnzs1q4k",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinter.java",
+      "start_line": 37,
+      "end_line": 37,
+      "size_lines": 1,
+      "signature_hint": "boolean isBlocked();",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinter",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C171x329nzgs",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinter.setBlocked",
+      "simple_name": "setBlocked",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16kxnzs1q4k",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinter.java",
+      "start_line": 39,
+      "end_line": 39,
+      "size_lines": 1,
+      "signature_hint": "void setBlocked(final boolean blocked);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinter",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cc9x4u1273h",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinter.commandClearPrinterError",
+      "simple_name": "commandClearPrinterError",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16kxnzs1q4k",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinter.java",
+      "start_line": 43,
+      "end_line": 43,
+      "size_lines": 1,
+      "signature_hint": "void commandClearPrinterError();",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinter",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cur9mr2z6gh",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinter.commandLight",
+      "simple_name": "commandLight",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16kxnzs1q4k",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinter.java",
+      "start_line": 45,
+      "end_line": 45,
+      "size_lines": 1,
+      "signature_hint": "void commandLight(BambuConst.LightMode lightMode);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinter",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C11wa6m7svg8",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinter.commandControl",
+      "simple_name": "commandControl",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16kxnzs1q4k",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinter.java",
+      "start_line": 47,
+      "end_line": 47,
+      "size_lines": 1,
+      "signature_hint": "void commandControl(BambuConst.CommandControl control);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinter",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cm9lemwxxi4",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinter.commandSpeed",
+      "simple_name": "commandSpeed",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16kxnzs1q4k",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinter.java",
+      "start_line": 49,
+      "end_line": 49,
+      "size_lines": 1,
+      "signature_hint": "void commandSpeed(BambuConst.Speed speed);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinter",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C12r00n54si",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinter.commandPrintGCodeFile",
+      "simple_name": "commandPrintGCodeFile",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16kxnzs1q4k",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinter.java",
+      "start_line": 55,
+      "end_line": 55,
+      "size_lines": 1,
+      "signature_hint": "void commandPrintGCodeFile(final String filename);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinter",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C8gfqescodl",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinter.commandPrintProjectFile",
+      "simple_name": "commandPrintProjectFile",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16kxnzs1q4k",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinter.java",
+      "start_line": 57,
+      "end_line": 57,
+      "size_lines": 1,
+      "signature_hint": "void commandPrintProjectFile(final CommandPPF command);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinter",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cefph83iarx",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinter.commandFilamentLoad",
+      "simple_name": "commandFilamentLoad",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16kxnzs1q4k",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinter.java",
+      "start_line": 59,
+      "end_line": 59,
+      "size_lines": 1,
+      "signature_hint": "void commandFilamentLoad(final int amsTrayId);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinter",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C15k48yuoso7",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinter.commandFilamentUnload",
+      "simple_name": "commandFilamentUnload",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16kxnzs1q4k",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinter.java",
+      "start_line": 61,
+      "end_line": 61,
+      "size_lines": 1,
+      "signature_hint": "void commandFilamentUnload();",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinter",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cx5g9q4rekc",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinter.commandSystemReboot",
+      "simple_name": "commandSystemReboot",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16kxnzs1q4k",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinter.java",
+      "start_line": 65,
+      "end_line": 65,
+      "size_lines": 1,
+      "signature_hint": "void commandSystemReboot();",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinter",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C2popc1djev",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinters.getPrinters",
+      "simple_name": "getPrinters",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1801swezlus",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinters.java",
+      "start_line": 16,
+      "end_line": 16,
+      "size_lines": 1,
+      "signature_hint": "Collection<BambuPrinter> getPrinters();",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinters",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cfwp0lpphpz",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinters.getPrintersDetail",
+      "simple_name": "getPrintersDetail",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1801swezlus",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinters.java",
+      "start_line": 18,
+      "end_line": 18,
+      "size_lines": 1,
+      "signature_hint": "Collection<PrinterDetail> getPrintersDetail();",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinters",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cwmwciab934",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinters.getPrinter",
+      "simple_name": "getPrinter",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1801swezlus",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinters.java",
+      "start_line": 20,
+      "end_line": 20,
+      "size_lines": 1,
+      "signature_hint": "Optional<BambuPrinter> getPrinter(final String name);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 231,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinters",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cw6493z2hz2",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinters.getPrinterDetail",
+      "simple_name": "getPrinterDetail",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1801swezlus",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinters.java",
+      "start_line": 22,
+      "end_line": 22,
+      "size_lines": 1,
+      "signature_hint": "Optional<PrinterDetail> getPrinterDetail(final String name);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 232,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinters",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C25sfn7c6bc",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinters.newPrinter",
+      "simple_name": "newPrinter",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1801swezlus",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinters.java",
+      "start_line": 24,
+      "end_line": 24,
+      "size_lines": 1,
+      "signature_hint": "PrinterDetail newPrinter(final String id, final String name, final BambuConfig.Printer config, final Endpoint endpoint);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinters",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cu511ufhgzs",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinters.startPrinter",
+      "simple_name": "startPrinter",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1801swezlus",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinters.java",
+      "start_line": 26,
+      "end_line": 26,
+      "size_lines": 1,
+      "signature_hint": "void startPrinter(final String name) throws BambuPrinterException;",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinters",
+          "impls": 2,
+          "unresolved_sites": 0,
+          "called_impls": 2
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cb3mm8p1z17",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinters.stopPrinter",
+      "simple_name": "stopPrinter",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1801swezlus",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinters.java",
+      "start_line": 28,
+      "end_line": 28,
+      "size_lines": 1,
+      "signature_hint": "void stopPrinter(final String name) throws BambuPrinterException;",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 235,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinters",
+          "impls": 2,
+          "unresolved_sites": 0,
+          "called_impls": 2
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C11w4wb4vuvt",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinters.startPrinters",
+      "simple_name": "startPrinters",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1801swezlus",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinters.java",
+      "start_line": 30,
+      "end_line": 30,
+      "size_lines": 1,
+      "signature_hint": "void startPrinters() throws BambuPrinterException;",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinters",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cfbk0rehg4i",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinters.stopPrinters",
+      "simple_name": "stopPrinters",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F1801swezlus",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinters.java",
+      "start_line": 32,
+      "end_line": 32,
+      "size_lines": 1,
+      "signature_hint": "void stopPrinters() throws BambuPrinterException;",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 237,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinters",
+          "impls": 1,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cp6jmsq8kaa",
+      "qualified_name": "com.tfyre.bambu.view.UpdateHeader.updateHeader",
+      "simple_name": "updateHeader",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F3udk40gflb",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/UpdateHeader.java",
+      "start_line": 11,
+      "end_line": 11,
+      "size_lines": 1,
+      "signature_hint": "void updateHeader(final HasComponents component);",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "UpdateHeader",
+          "impls": 3,
+          "unresolved_sites": 0,
+          "called_impls": 3
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cm2smqubtkg",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinterStream.start",
+      "simple_name": "start",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fq9bcg41sg8",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinterStream.java",
+      "start_line": 147,
+      "end_line": 154,
+      "size_lines": 8,
+      "signature_hint": "public void start()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -392,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "start",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F4cns86afij",
+            "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrintersImpl.java",
+            "line": 109,
+            "name": "start",
+            "receiver_hint": "impl"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Clgdz4vgv8j",
+      "qualified_name": "com.tfyre.bambu.server.BambuPrinterProcessor.start",
+      "simple_name": "start",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ff6em29ecqx",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/server/src/main/java/com/tfyre/bambu/server/BambuPrinterProcessor.java",
+      "start_line": 133,
+      "end_line": 140,
+      "size_lines": 8,
+      "signature_hint": "public void start(final CamelContext context, final Scheduler scheduler)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -392,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "start",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F4cns86afij",
+            "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrintersImpl.java",
+            "line": 109,
+            "name": "start",
+            "receiver_hint": "impl"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C11e0c47musy",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinterImpl.start",
+      "simple_name": "start",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fd7v6he3svn",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinterImpl.java",
+      "start_line": 291,
+      "end_line": 295,
+      "size_lines": 5,
+      "signature_hint": "public void start()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "start",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F4cns86afij",
+            "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrintersImpl.java",
+            "line": 109,
+            "name": "start",
+            "receiver_hint": "impl"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C11u9kj039mi",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.Fan.getName",
+      "simple_name": "getName",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fc59uecklob",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java",
+      "start_line": 137,
+      "end_line": 139,
+      "size_lines": 3,
+      "signature_hint": "public String getName()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 115,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "getName",
+          "sites": 31,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F2d4d5w40cb",
+            "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/MainLayout.java",
+            "line": 78,
+            "name": "getName",
+            "receiver_hint": "p"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5tmlr0nspm",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.FanSpeed.getName",
+      "simple_name": "getName",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fc59uecklob",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java",
+      "start_line": 162,
+      "end_line": 164,
+      "size_lines": 3,
+      "signature_hint": "public String getName()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 118,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "getName",
+          "sites": 31,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F2d4d5w40cb",
+            "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/MainLayout.java",
+            "line": 78,
+            "name": "getName",
+            "receiver_hint": "p"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cujcpbo0brz",
+      "qualified_name": "com.tfyre.bambu.printer.BambuConst.Color.getHtmlColor",
+      "simple_name": "getHtmlColor",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fc59uecklob",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuConst.java",
+      "start_line": 275,
+      "end_line": 277,
+      "size_lines": 3,
+      "signature_hint": "public String getHtmlColor()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 130,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "getHtmlColor",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F2852mrf43p",
+            "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/FilamentView.java",
+            "line": 155,
+            "name": "getHtmlColor",
+            "receiver_hint": "String"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Crp2kr9aqa0",
+      "qualified_name": "com.tfyre.servlet.TFyreIdentityManager.verify",
+      "simple_name": "verify",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fx2u4jlnxez",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/servlet/TFyreIdentityManager.java",
+      "start_line": 43,
+      "end_line": 52,
+      "size_lines": 10,
+      "signature_hint": "@Override public Account verify(final String id, final Credential credential)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -490,
+      "region": 506,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "IdentityManager"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Caf02rep3t6",
+      "qualified_name": "com.tfyre.servlet.TFyreIdentityManager.verify",
+      "simple_name": "verify",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fx2u4jlnxez",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/servlet/TFyreIdentityManager.java",
+      "start_line": 32,
+      "end_line": 36,
+      "size_lines": 5,
+      "signature_hint": "@Override public Account verify(final Account account)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -495,
+      "region": 505,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "IdentityManager"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C184ig92brpk",
+      "qualified_name": "com.tfyre.servlet.TFyreIdentityManager.verify",
+      "simple_name": "verify",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fx2u4jlnxez",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/servlet/TFyreIdentityManager.java",
+      "start_line": 54,
+      "end_line": 58,
+      "size_lines": 5,
+      "signature_hint": "@Override public Account verify(final Credential credential)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -495,
+      "region": 508,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "IdentityManager"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cc23xbg0vbg",
+      "qualified_name": "com.tfyre.bambu.BambuConfig.Temperature.name",
+      "simple_name": "name",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fsjabppkum3",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/BambuConfig.java",
+      "start_line": 202,
+      "end_line": 202,
+      "size_lines": 1,
+      "signature_hint": "String name();",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 59,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "Temperature",
+          "impls": 1,
+          "unresolved_sites": 15,
+          "called_impls": 1
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "name",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F2d4d5w40cb",
+            "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/MainLayout.java",
+            "line": 160,
+            "name": "name",
+            "receiver_hint": "MAP.get(clazz)"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cxfyovmripq",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinter.getPrintError",
+      "simple_name": "getPrintError",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16kxnzs1q4k",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinter.java",
+      "start_line": 21,
+      "end_line": 21,
+      "size_lines": 1,
+      "signature_hint": "int getPrintError();",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinter",
+          "impls": 1,
+          "unresolved_sites": 1,
+          "called_impls": 1
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "getPrintError",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd7v6he3svn",
+            "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinterImpl.java",
+            "line": 86,
+            "name": "getPrintError",
+            "receiver_hint": "Print"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C6zmroi6r6d",
+      "qualified_name": "com.tfyre.bambu.printer.BambuPrinter.getTotalLayerNum",
+      "simple_name": "getTotalLayerNum",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16kxnzs1q4k",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinter.java",
+      "start_line": 23,
+      "end_line": 23,
+      "size_lines": 1,
+      "signature_hint": "int getTotalLayerNum();",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "BambuPrinter",
+          "impls": 1,
+          "unresolved_sites": 1,
+          "called_impls": 1
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "getTotalLayerNum",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd7v6he3svn",
+            "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/printer/BambuPrinterImpl.java",
+            "line": 89,
+            "name": "getTotalLayerNum",
+            "receiver_hint": "Print"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C6um2gaviv3",
+      "qualified_name": "com.tfyre.bambu.view.batchprint.BatchPrintView.printAll",
+      "simple_name": "printAll",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fdjnp3sxxs8",
+      "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/batchprint/BatchPrintView.java",
+      "start_line": 205,
+      "end_line": 217,
+      "size_lines": 13,
+      "signature_hint": "private void printAll()",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -187,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "ambiguous-site-in-same-file",
+          "sites": 1,
+          "file_local_candidates": 2,
+          "example": {
+            "file": "Fdjnp3sxxs8",
+            "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/batchprint/BatchPrintView.java",
+            "line": 98,
+            "name": "printAll"
+          }
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "printAll",
+          "sites": 1,
+          "reason": "ambiguous-in-file",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fdjnp3sxxs8",
+            "path": "/storage/cgg-test_repos/app-bambufarm-vaadin/bambu/src/main/java/com/tfyre/bambu/view/batchprint/BatchPrintView.java",
+            "line": 98,
+            "name": "printAll"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 7
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "python",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "full",
+      "test_tagging": "full",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "framework:rule"
+      ],
+      "files": 7,
+      "callables": 3,
+      "roots": 2,
+      "reachable": 2,
+      "reachable_pct": 66,
+      "findings": 1,
+      "blind_spots": [
+        "getattr/setattr and other string-dispatched calls"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 3,
+    "edges": 0,
+    "unresolved_call_sites": 0,
+    "roots": 2,
+    "candidates": 1,
+    "reported": 1,
+    "regions": 1
+  },
+  "roots": [
+    {
+      "id": "C4j93i4ys8q",
+      "qualified_name": "quotesbot.spiders.toscrape-css.ToScrapeCSSSpider.parse",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `scrapy:base-type`"
+    },
+    {
+      "id": "C1674cgjf5g6",
+      "qualified_name": "quotesbot.spiders.toscrape-xpath.ToScrapeSpiderXPath.parse",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `scrapy:base-type`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "Cze27hj5psq"
+      ],
+      "anchors": [
+        "Cze27hj5psq"
+      ],
+      "files": [
+        "Fuifctn3sva"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cze27hj5psq",
+      "qualified_name": "quotesbot.pipelines.QuotesbotPipeline.process_item",
+      "simple_name": "process_item",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fuifctn3sva",
+      "path": "/storage/cgg-test_repos/app-quotesbot-scrapy/quotesbot/pipelines.py",
+      "start_line": 10,
+      "end_line": 11,
+      "size_lines": 2,
+      "signature_hint": "def process_item(self, item, spider)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 102,
+      "region": 0,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

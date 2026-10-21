@@ -1,0 +1,10 @@
+old: cgg 0.11.0 (dev g042a062)  sha256=0bb92593a9169011d4e1d25d6a40a268dccb2a6fbb1b3bd91da1c79cfce4161e
+new: cgg 0.11.0 (dev g042a062+d81da74e)  sha256=71caa626b0fb7f36cc14ee956d5c1f84902eea3d69a6ede69d3837ae20ad979e
+old=target/remediation/bins/WS27-groovy-before
+new=target/remediation/bins/WS27-groovy-r3
+repos=283 elapsed=255s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 1
+  groovy-gradle: edges 313837->313841 (-215 +219 ~0) callables 134667->134667 unresolved 228766->228741 files 24272->24272 deadhigh 43->43 
+by language: see by_language.tsv
+

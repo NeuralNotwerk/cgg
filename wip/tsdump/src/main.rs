@@ -16,6 +16,7 @@ fn main() {
     let src = std::fs::read(&a[2]).unwrap();
     let mut parser = tree_sitter::Parser::new();
     parser.set_language(&p.ts_language_for(std::path::Path::new(&a[2]))).unwrap();
-    let tree = parser.parse(&src, None).unwrap();
+    let masked = p.parse_source(&src);
+    let tree = parser.parse(masked.as_deref().unwrap_or(&src), None).unwrap();
     dump(tree.root_node(), &src, 0, None);
 }
