@@ -524,6 +524,9 @@ pub fn collect(lang: &str, tree: &Tree, source: &[u8]) -> Vec<LocalBinding> {
     if lang == "groovy" {
         return collect_groovy(tree, source);
     }
+    if lang == "r" {
+        return collect_r(tree, source);
+    }
     let Some(spec) = spec(lang) else {
         return Vec::new();
     };
@@ -1751,6 +1754,245 @@ fn groovy_param_name(piece: &str) -> Option<String> {
     (groovy_ident(name) && !GROOVY_NOT_NAMES.contains(&name)).then(|| name.to_string())
 }
 
+/// Whether an R local assigned a literal (`f <- 1`, `f <- "x"`) is
+/// recorded: a call `f()` looks only for a function binding, so a local
+/// holding a number or a string does not hide the function `f`.
+const R_LITERAL_LOCALS_SHADOW: bool = false;
+
+/// R (WS27): a function's parameters (`function(x, y = 1, ...)`, `\(x)`),
+/// in scope over the function; inside a function body, a variable
+/// assigned with `<-`, `=` or `->` or by `assign("x", …)` with a literal
+/// name and no environment argument, and a `for` variable (after its
+/// sequence), each in scope to the end of the function: R scopes a local
+/// by function, not by block, and a nested function sees it. `<<-` and
+/// `->>` assign an enclosing or global binding, never a local; a
+/// top-level assignment is the file's, not a local. A call `f()` looks
+/// only for a function, so a binding known to hold something else does
+/// not shadow one: a local assigned a literal number or string
+/// (`R_LITERAL_LOCALS_SHADOW`), a parameter whose default is a number,
+/// string or logical, and a binding of a call of its own name (`x <-
+/// x()`, `tz = tz()`), which holds that function's result. One assigned
+/// a function or any other value (whose kind is unknown) does.
+fn collect_r(tree: &Tree, src: &[u8]) -> Vec<LocalBinding> {
+    let mut out = Vec::new();
+    // The enclosing function definitions of the current node.
+    let mut funcs: Vec<Node<'_>> = Vec::new();
+    let mut chain: Vec<Node<'_>> = Vec::new();
+    let mut cursor = tree.walk();
+    let text = |n: Node<'_>| n.utf8_text(src).unwrap_or("");
+    let push = |out: &mut Vec<LocalBinding>,
+                name: &str,
+                start: usize,
+                end: usize,
+                decl: usize,
+                param: bool| {
+        let name = name.trim_matches('`');
+        if name.is_empty() || name == "..." || start >= end {
+            return;
+        }
+        out.push(LocalBinding {
+            name: name.to_string(),
+            start_byte: start as u32,
+            end_byte: end as u32,
+            decl_byte: decl.min(start) as u32,
+            param,
+        });
+    };
+    loop {
+        let node = cursor.node();
+        match node.kind() {
+            "function_definition" => {
+                if let Some(ps) = node.child_by_field_name("parameters") {
+                    let mut c = ps.walk();
+                    for p in ps.children_by_field_name("parameter", &mut c) {
+                        if let Some(n) = p.child_by_field_name("name")
+                            && n.kind() == "identifier"
+                            && !p.child_by_field_name("default").is_some_and(|d| {
+                                r_holds_no_function(d, text(n), src, true)
+                            })
+                        {
+                            push(
+                                &mut out,
+                                text(n),
+                                node.start_byte(),
+                                node.end_byte(),
+                                node.start_byte(),
+                                true,
+                            );
+                        }
+                    }
+                }
+            }
+            "binary_operator" if !funcs.is_empty() => {
+                let op = node.child_by_field_name("operator").map(text).unwrap_or("");
+                let (target, value) = match op {
+                    "<-" | "=" => (
+                        node.child_by_field_name("lhs"),
+                        node.child_by_field_name("rhs"),
+                    ),
+                    "->" => (
+                        node.child_by_field_name("rhs"),
+                        node.child_by_field_name("lhs"),
+                    ),
+                    _ => (None, None),
+                };
+                if let (Some(t), Some(v)) = (target, value)
+                    && matches!(t.kind(), "identifier" | "string")
+                    && !r_holds_no_function(v, r_target_name(t, src), src, false)
+                {
+                    let name = if t.kind() == "string" {
+                        t.child_by_field_name("content").map(text).unwrap_or("")
+                    } else {
+                        text(t)
+                    };
+                    let f = funcs[funcs.len() - 1];
+                    push(
+                        &mut out,
+                        name,
+                        node.end_byte(),
+                        f.end_byte(),
+                        node.start_byte(),
+                        false,
+                    );
+                }
+            }
+            "call" if !funcs.is_empty() => {
+                if let Some(f) = node.child_by_field_name("function")
+                    && f.kind() == "identifier"
+                    && cgg_core::stdlib::R_ASSIGN_FUNCTIONS.contains(&text(f))
+                    && let Some(args) = node.child_by_field_name("arguments")
+                {
+                    let mut c = args.walk();
+                    let args: Vec<Node<'_>> =
+                        args.children_by_field_name("argument", &mut c).collect();
+                    let elsewhere = args.iter().any(|a| {
+                        a.child_by_field_name("name").is_some_and(|n| {
+                            cgg_core::stdlib::R_ASSIGN_ELSEWHERE_ARGS.contains(&text(n))
+                        })
+                    });
+                    let positional: Vec<&Node<'_>> = args
+                        .iter()
+                        .filter(|a| a.child_by_field_name("name").is_none())
+                        .collect();
+                    if !elsewhere
+                        && positional.len() == 2
+                        && let Some(name) = positional[0].child_by_field_name("value")
+                        && name.kind() == "string"
+                        && let Some(value) = positional[1].child_by_field_name("value")
+                        && !r_holds_no_function(
+                            value,
+                            name.child_by_field_name("content").map(text).unwrap_or(""),
+                            src,
+                            false,
+                        )
+                    {
+                        let n =
+                            name.child_by_field_name("content").map(text).unwrap_or("");
+                        let f = funcs[funcs.len() - 1];
+                        push(
+                            &mut out,
+                            n,
+                            node.end_byte(),
+                            f.end_byte(),
+                            node.start_byte(),
+                            false,
+                        );
+                    }
+                }
+            }
+            "for_statement" if !funcs.is_empty() => {
+                if let Some(v) = node.child_by_field_name("variable")
+                    && v.kind() == "identifier"
+                {
+                    let from = node
+                        .child_by_field_name("sequence")
+                        .map_or(v.end_byte(), |s| s.end_byte());
+                    let f = funcs[funcs.len() - 1];
+                    push(
+                        &mut out,
+                        text(v),
+                        from,
+                        f.end_byte(),
+                        node.start_byte(),
+                        false,
+                    );
+                }
+            }
+            _ => {}
+        }
+        if cursor.goto_first_child() {
+            if node.kind() == "function_definition" {
+                funcs.push(node);
+            }
+            chain.push(node);
+            continue;
+        }
+        loop {
+            if cursor.goto_next_sibling() {
+                break;
+            }
+            if !cursor.goto_parent() {
+                out.sort_by_key(|b| (b.start_byte, b.end_byte));
+                out.dedup();
+                return out;
+            }
+            if chain
+                .pop()
+                .is_some_and(|n| n.kind() == "function_definition")
+            {
+                funcs.pop();
+            }
+        }
+    }
+}
+
+/// The name an R assignment target binds (`x`, `` `x` ``, `"x"`).
+fn r_target_name<'s>(t: Node<'_>, src: &'s [u8]) -> &'s str {
+    let n = if t.kind() == "string" {
+        t.child_by_field_name("content")
+    } else {
+        Some(t)
+    };
+    n.and_then(|n| n.utf8_text(src).ok())
+        .unwrap_or("")
+        .trim_matches('`')
+}
+
+/// Whether the value an R binding of `name` holds is known not to be a
+/// function, so a call `name()` (which R resolves to a function binding
+/// only, skipping any other) passes it by: a literal (for a local, under
+/// `R_LITERAL_LOCALS_SHADOW`; for a parameter's default, a number,
+/// string or logical, since `NULL` is how an optional function is
+/// written), or a call of the function of that very name (`x <- x()`,
+/// `tz = tz()`), whose result the binding holds.
+fn r_holds_no_function(v: Node<'_>, name: &str, src: &[u8], param: bool) -> bool {
+    let own_call = v.kind() == "call"
+        && v.child_by_field_name("function").is_some_and(|f| {
+            f.kind() == "identifier"
+                && f.utf8_text(src).unwrap_or("").trim_matches('`') == name
+        });
+    let literal = if param {
+        r_literal(v) && !matches!(v.kind(), "null" | "na")
+    } else {
+        !R_LITERAL_LOCALS_SHADOW && r_literal(v)
+    };
+    own_call || literal
+}
+
+/// An R literal number, string or constant, negated or not: a value no
+/// call can reach.
+fn r_literal(v: Node<'_>) -> bool {
+    match v.kind() {
+        "float" | "integer" | "complex" | "string" | "na" | "true" | "false" | "null"
+        | "inf" | "nan" => true,
+        "unary_operator" => v.child_by_field_name("rhs").is_some_and(r_literal),
+        "parenthesized_expression" => {
+            v.child_by_field_name("body").is_some_and(r_literal)
+        }
+        _ => false,
+    }
+}
+
 /// Lua `local` declarations at file scope (WS19): in scope from the end of
 /// the statement to the end of the file. `local log = ngx.log` is a value
 /// the file holds, so a bare `log(…)` is never some required module's
@@ -2960,5 +3202,105 @@ mod tests {
         );
         assert!(groovy_param_names(" ").is_empty());
         assert!(groovy_param_names("int").is_empty());
+    }
+
+    fn r_locals(src: &str) -> Vec<LocalBinding> {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_r::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        collect("r", &tree, src.as_bytes())
+    }
+
+    /// R (WS27): parameters (`\(x)` lambdas too), `<-`, `=`, `->` and
+    /// `assign("x", …)` locals and `for` variables inside a function;
+    /// never `<<-`/`->>`, an `assign` into another environment, a
+    /// top-level assignment, a replacement (`names(x) <- …`), or a local
+    /// holding a literal number or string.
+    #[test]
+    fn r_binding_forms() {
+        let src = "top <- function() 1\n\
+                   glob <- 2\n\
+                   g <- function(p1, p2 = 1, ...) {\n\
+                   fun <- function(a) a\n\
+                   un = p1()\n\
+                   (function(x) x) -> arrow\n\
+                   assign(\"named\", p1)\n\
+                   assign(\"away\", p1, envir = e)\n\
+                   for (i in p1) i\n\
+                   l <- \\(k) k\n\
+                   up <<- function() 1\n\
+                   p1 ->> up2\n\
+                   names(p1) <- 'n'\n\
+                   lit <- 1; lit2 <- \"s\"; lit3 <- -2L; lit4 <- NULL\n\
+                   }\n";
+        let got = r_locals(src);
+        let names: Vec<&str> = got.iter().map(|b| b.name.as_str()).collect();
+        for want in ["p1", "fun", "a", "un", "arrow", "named", "i", "l", "k"] {
+            assert!(names.contains(&want), "{want} in {names:?}");
+        }
+        for not in [
+            "top", "glob", "g", "p2", "away", "up", "up2", "names", "lit", "lit2",
+            "lit3", "lit4", "...",
+        ] {
+            assert!(!names.contains(&not), "{not} in {names:?}");
+        }
+        let param = |n: &str| got.iter().find(|b| b.name == n).unwrap().param;
+        for p in ["p1", "a", "k"] {
+            assert!(param(p), "{p} is a parameter");
+        }
+        for l in ["fun", "un", "i"] {
+            assert!(!param(l), "{l} is a local");
+        }
+    }
+
+    /// R resolves a call to a function binding only: a parameter whose
+    /// default is a number, string or logical, or a binding of a call of
+    /// its own name, holds no function and shadows nothing; a `NULL`
+    /// default (an optional function) or a call of another name does.
+    #[test]
+    fn r_bindings_that_hold_no_function() {
+        let src = "g <- function(flag = TRUE, n = 3, s = 'x', tz = tz(), fun = NULL, h = make()) {\n\
+                   own <- own(1)\n\
+                   other <- make(1)\n\
+                   }\n";
+        let names: Vec<String> = r_locals(src).into_iter().map(|b| b.name).collect();
+        for not in ["flag", "n", "s", "tz", "own"] {
+            assert!(!names.iter().any(|n| n == not), "{not} in {names:?}");
+        }
+        for want in ["fun", "h", "other"] {
+            assert!(names.iter().any(|n| n == want), "{want} in {names:?}");
+        }
+    }
+
+    /// R scopes a local by function: in scope after its assignment (not
+    /// in its own value), across blocks to the end of the function, and
+    /// in nested functions; never in a sibling function.
+    #[test]
+    fn r_scopes() {
+        let src = "f <- function() {\n\
+                   h()\n\
+                   h <- k(h())\n\
+                   if (TRUE) { b <- g() }\n\
+                   h(); b()\n\
+                   inner <- function() h()\n\
+                   for (v in v()) v()\n\
+                   }\n\
+                   other <- function() { h(); b(); v() }\n";
+        let got = r_locals(src);
+        let at = |name: &str, needle: &str, nth: usize| {
+            let site = src.match_indices(needle).nth(nth).expect(needle).0 as u32;
+            got.iter()
+                .any(|b| b.name == name && b.start_byte <= site && site < b.end_byte)
+        };
+        assert!(!at("h", "h()", 0), "before the assignment");
+        assert!(!at("h", "h()", 1), "its own value");
+        assert!(at("h", "h()", 2));
+        assert!(at("b", "b()", 0), "a block's local is the function's");
+        assert!(at("h", "h()", 3), "a nested function");
+        assert!(!at("v", "v()", 0), "the sequence");
+        assert!(at("v", "v()", 1));
+        assert!(!at("h", "h()", 4), "a sibling function");
+        assert!(!at("b", "b()", 1));
+        assert!(!at("v", "v()", 2));
     }
 }

@@ -372,6 +372,13 @@ pub const ERLANG_MFA_CALLS: &[(&str, usize, usize)] = &[
     ("erpc:cast", 4, 1),
 ];
 
+/// R functions that bind a variable named by a string literal in the
+/// calling function's environment (`assign("x", value)`), and the
+/// arguments that send the binding elsewhere instead (WS27): with one of
+/// those, it is not a local.
+pub const R_ASSIGN_FUNCTIONS: &[&str] = &["assign"];
+pub const R_ASSIGN_ELSEWHERE_ARGS: &[&str] = &["envir", "pos", "inherits"];
+
 /// PHP core functions that take a callable, with the callable argument's
 /// position: `array_map('f', $xs)`, `usort($xs, [$this, 'cmp'])`,
 /// `spl_autoload_register([self::class, 'load'])`,

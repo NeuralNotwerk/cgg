@@ -700,6 +700,28 @@ otherwise change the default graph.
   chain continued on a new line (`builder\n  .commandLine(x)`), which
   the parser reads as a bare call, is recorded as a method call.
 
+- **R parameters and locals did not shadow function names (WS27, gap
+  27).** A call through an R parameter (`function(fun) … fun(x)`, a
+  labeller passed in), a local holding a function or an unknown value,
+  or a `for` variable bound a same-named function of the tree at `high`.
+  R now has a locals table: parameters of `function(…)` and `\(…)`
+  lambdas, in scope over the function, and inside a function body a
+  variable assigned with `<-`, `=` or `->` or by `assign("x", …)` with a
+  literal name and no environment argument, and a `for` variable, each
+  in scope from the end of its assignment (a `for` variable from the
+  end of its sequence) to the end of the function: R scopes locals by
+  function, not block, and a nested function sees them. `<<-` and `->>`
+  assign an enclosing or global binding and a top-level assignment is
+  the file's, so none is a local. R resolves a call `f()` to a function
+  binding only, skipping any other, so a binding known to hold something
+  else shadows nothing: a local assigned a literal number or string, a
+  parameter whose default is a number, string or logical (`writeType =
+  TRUE`; a `NULL` default, how an optional function is written, still
+  shadows), and a binding of a call of its own name (`tz_global =
+  tz_global()`, `x <- x()`), which holds that function's result. A
+  local function (`g <- function…` inside a function) binds its own
+  definition.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -1277,6 +1299,26 @@ WS27 Groovy (full corpus, 283 repositories, none excluded):
   script-level call through one, now `shadowed-by-local`; 3 before the
   rule that a file declaring a type has none): a call outside any method
   has no caller in the graph, and no dead-code finding moves.
+
+WS27 R (full corpus, 283 repositories, none excluded):
+
+- The default graph changes in two repositories, all in R files: 4
+  edges removed and 1 added, all `high`. The removed are calls through a
+  parameter or local holding a function, bound to an unrelated function
+  of the same name: ggplot2's `fun(x, …)` (twice, `fun <-
+  as_function(fun)` and `fun <- getExportedValue(…)`), `labeller(…)`
+  after `labeller <- match.fun(labeller)`, and `bins(x)` under
+  `is.function(bins)`. The added edge is SparkR's `g(x)`, which now
+  binds the local `g <- function…` declared beside it.
+- Whether a local holding a literal number or string shadows a call
+  changes nothing in the corpus either way; it does not, as R resolves
+  `f()` to a function binding only. A first cut that let every
+  parameter shadow also removed 2 correct edges (a logical `writeType`
+  parameter and a `tz_global = tz_global()` parameter, both passed by in
+  R's lookup); the parameter-default rule above keeps them.
+- Under `--reference-edges`, the same edges change; R records no
+  reference edges.
+- Under `--dead-code`, no finding changes.
 
 ## [0.11.0] - 2026-10-16
 

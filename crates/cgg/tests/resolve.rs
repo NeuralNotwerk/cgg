@@ -6785,3 +6785,154 @@ fn groovy_parameters_and_locals_shadow_methods() {
     assert!(later(51), "{edges:?}");
     assert!(!later(49), "{edges:?}");
 }
+
+/// WS27: an R parameter (a `\(x)` lambda's too), a local assigned a
+/// function or an unknown value, a `->` local and a `for` variable shadow
+/// a same-named function: a call through one is `shadowed-by-local`,
+/// never a (wrong, `high`) edge. A local function binds its own
+/// definition; `<<-`, a local holding a literal number, a parameter
+/// holding a logical or its own function's result, a call before the
+/// assignment and the assignment's own value reach the file's function.
+#[test]
+fn r_parameters_and_locals_shadow_functions() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "main.R",
+        r#"# Functions whose names the parameters and locals below reuse.
+cb <- function(x) x
+handler <- function(x) x
+helper <- function(x) x
+step <- function(x) x
+made <- function(x) x
+later <- function(x) x
+num <- function(x) x
+now <- function() 0
+
+# Parameter, and a `\(x)` lambda parameter.
+with_param <- function(cb) cb(1)
+with_lambda <- function(xs) lapply(xs, \(handler) handler(2))
+
+# Locals: a function, an unknown value, `->`, assign() with a literal name.
+with_local <- function() {
+  helper <- function(x) x * 2
+  helper(3)
+}
+with_unknown <- function(make) {
+  made <- make()
+  made(4)
+}
+with_arrow <- function() {
+  (function(x) x) -> step
+  step(5)
+}
+with_for <- function(fs) {
+  for (later in fs) later(6)
+}
+
+# Not locals: `<<-`, a literal value, a top-level assignment.
+with_global <- function() {
+  cb <<- function(x) x
+  cb(7)
+}
+with_literal <- function() {
+  num <- 1
+  num(8)
+}
+
+# Positive controls: the initializer sees the function, and a call before
+# the assignment reaches it.
+controls <- function() {
+  now()
+  handler(9)
+  handler <- now()
+  handler(10)
+}
+
+# A parameter holding a logical, or its own function's result, is passed
+# by: R resolves a call to a function binding only.
+with_flag <- function(num = TRUE, now = now()) {
+  if (num) num(11)
+  now()
+}
+"#
+        .as_bytes(),
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let line = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["start_line"]
+            .as_u64()
+            .unwrap()
+    };
+    let edges: Vec<(String, String, u64, u64)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                qn(&e["src"]),
+                qn(&e["dst"]),
+                line(&e["dst"]),
+                e["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    let shadowed: Vec<(String, u64)> = g["unresolved"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|u| u["reason"]["stage"] == "shadowed-by-local")
+        .map(|u| {
+            (
+                u["name"].as_str().unwrap().to_string(),
+                u["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    for (name, site) in [
+        ("cb", 12),
+        ("handler", 13),
+        ("made", 22),
+        ("step", 26),
+        ("later", 29),
+        ("handler", 48),
+    ] {
+        assert!(
+            !edges.iter().any(|(_, d, _, l)| d == name && *l == site),
+            "{name}() line {site}: {edges:?}"
+        );
+        assert!(
+            shadowed.contains(&(name.to_string(), site)),
+            "{name}() line {site}: {shadowed:?}"
+        );
+    }
+    let has = |src: &str, dst: &str, def: u64, site: u64| {
+        edges
+            .iter()
+            .any(|(s, d, dl, l)| s == src && d == dst && *dl == def && *l == site)
+    };
+    // The local function, not the file's `helper` on line 4.
+    assert!(has("with_local", "helper", 17, 18), "{edges:?}");
+    // A literal number does not hide the function.
+    assert!(has("with_literal", "num", 8, 39), "{edges:?}");
+    // Before the assignment, and its own value.
+    assert!(has("controls", "handler", 3, 46), "{edges:?}");
+    assert!(has("controls", "now", 9, 47), "{edges:?}");
+    // Parameters holding a logical, or `now()`'s own result.
+    assert!(has("with_flag", "num", 8, 54), "{edges:?}");
+    assert!(has("with_flag", "now", 9, 55), "{edges:?}");
+}
