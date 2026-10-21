@@ -533,6 +533,11 @@ pub fn collect(lang: &str, tree: &Tree, source: &[u8]) -> Vec<LocalBinding> {
     if lang == "haskell" {
         return collect_haskell(tree, source);
     }
+    if lang == "clojure" {
+        // One record of Clojure's bindings, shared with the plugin's WS26
+        // value filter.
+        return crate::plugins::clojure::binding_spans(tree, source);
+    }
     let Some(spec) = spec(lang) else {
         return Vec::new();
     };
@@ -4213,5 +4218,86 @@ mod tests {
         assert!(at("b", "b 6"));
         assert!(at("e", "e 7"), "the head expression");
         assert!(!at("e", "e 8"), "its own source list");
+    }
+
+    fn clojure_locals(src: &str) -> Vec<LocalBinding> {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_clojure_orchard::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        collect("clojure", &tree, src.as_bytes())
+    }
+
+    /// Clojure (WS27): parameters (arities, `&`, destructuring), `let`/
+    /// `for` (`:let`) bindings, `letfn` names, `catch`, the `fn`
+    /// self-name, method parameters and type fields; never a `:or`
+    /// default, an init's symbols, a `binding`/`with-redefs` var, a
+    /// namespace-level `def` or a `defn` name.
+    #[test]
+    fn clojure_binding_forms() {
+        let src = "(ns p)\n(def top 1)\n\
+                   (defn f [x {:keys [a] :or {a (dflt)} :as m} & more]\n\
+                   (let [y (x 1) [p q] y]\n\
+                   (for [i xs :let [j i] :when (j)] (i j))\n\
+                   (binding [rb 1] (rb))\n\
+                   (with-redefs [wr stub] (wr))\n\
+                   (with-open [r (open-it fl)] (r))\n\
+                   (try (go) (catch Exception e (e)))\n\
+                   (letfn [(h1 [z] (h2 z)) (h2 [w] w)] (h1 1))\n\
+                   (fn self [k] (self k))))\n\
+                   (defn g ([u] (u)) ([u v] (v u)))\n\
+                   (deftype T [fld] P (meth [this arg] (fld arg)))\n";
+        let got = clojure_locals(src);
+        let names: Vec<&str> = got.iter().map(|b| b.name.as_str()).collect();
+        for want in [
+            "x", "a", "m", "more", "y", "p", "q", "i", "j", "r", "e", "h1", "h2", "z",
+            "w", "self", "k", "u", "v", "fld", "this", "arg",
+        ] {
+            assert!(names.contains(&want), "{want} in {names:?}");
+        }
+        for not in [
+            "top", "f", "g", "dflt", "rb", "wr", "stub", "open-it", "fl", "xs", "T", "P",
+            "meth", "&",
+        ] {
+            assert!(!names.contains(&not), "{not} in {names:?}");
+        }
+        // `::keys` and `:ns/keys`; a schema after `:-`; a `…-redefs`
+        // macro rebinds vars; a `let` directly in `#(…)`.
+        let more = clojure_locals(
+            "(defn h [{::keys [nk] :x/keys [xk]} c :- [:fn pred?]]\n\
+             (t/with-fn-redefs [rd stub2] (rd))\n\
+             (map #(let [an %] (an)) []))\n",
+        );
+        let more: Vec<&str> = more.iter().map(|b| b.name.as_str()).collect();
+        for want in ["nk", "xk", "c", "an"] {
+            assert!(more.contains(&want), "{want} in {more:?}");
+        }
+        for not in ["pred?", "rd", "stub2"] {
+            assert!(!more.contains(&not), "{not} in {more:?}");
+        }
+    }
+
+    /// Clojure scopes: a `let` binding from the end of its init; each
+    /// arity's parameters over that arity only; a macro's parameter not
+    /// in the code its syntax-quote generates, except under `~`.
+    #[test]
+    fn clojure_scopes() {
+        let src = "(defn f [] (let [h (h 1) k (h 2)] (h 3)) (h 4))\n\
+                   (defn g ([u] (u 5)) ([v] (u 6)))\n\
+                   (defmacro mac [mp] `(do (mp 7) (~mp 8)))\n";
+        let got = clojure_locals(src);
+        let at = |name: &str, needle: &str| {
+            let site = src.find(needle).expect(needle) as u32;
+            got.iter()
+                .any(|b| b.name == name && b.start_byte <= site && site < b.end_byte)
+        };
+        assert!(!at("h", "(h 1)"), "its own init");
+        assert!(at("h", "(h 2)"), "a later init");
+        assert!(at("h", "(h 3)"));
+        assert!(!at("h", "(h 4)"), "after the let");
+        assert!(at("u", "(u 5)"));
+        assert!(!at("u", "(u 6)"), "another arity");
+        assert!(!at("mp", "(mp 7)"), "generated code");
+        assert!(at("mp", "mp 8)"), "under an unquote");
     }
 }

@@ -7201,3 +7201,120 @@ otherClause = go 9
     assert!(has("Main.otherClause", 5, 40), "{edges:?}");
     assert!(has("Main.controls", 12, 39), "{edges:?}");
 }
+
+/// WS27: a Clojure parameter, destructured key, `let` and `for` binding,
+/// `catch` binding and `letfn` name shadow a same-named function of the
+/// namespace: a call through one is `shadowed-by-local`, never a (wrong,
+/// `high`) edge. A `binding` var, a `let` init, a qualified call and the
+/// code a syntax-quote generates still reach the function.
+#[test]
+fn clojure_parameters_and_locals_shadow_functions() {
+    let tmp = TempDir::new().unwrap();
+    let dir = tmp.path().join("src/app");
+    fs::create_dir_all(&dir).unwrap();
+    write(
+        &dir,
+        "core.clj",
+        r#"(ns app.core)
+
+;; Functions whose names the bindings below reuse.
+(defn cb [x] x)
+(defn handler [x] x)
+(defn item [x] x)
+(defn step [x] x)
+(defn err [x] x)
+(defn helper [x] x)
+(defn later [x] x)
+(defn stub [x] x)
+(defn now [] 0)
+
+;; A parameter, a destructured key, a `let`, a `for`, a `catch`, a `letfn`.
+(defn with-param [cb] (cb 1))
+(defn with-keys [{:keys [handler]}] (handler 2))
+(defn with-let [] (let [item (now)] (item 3)))
+(defn with-for [fs] (for [step fs] (step 4)))
+(defn with-catch [] (try (now) (catch Exception err (err 5))))
+(defn with-letfn [] (letfn [(helper [x] x)] (helper 6)))
+
+;; Not locals: `binding` rebinds the var; the init sees the function; a
+;; qualified call; generated code in a syntax-quote.
+;; (`later` is rebound below; `binding` does not make it a local.)
+(defn with-binding [] (binding [later inc] (later 7)))
+(defn with-init [] (let [now (now)] now))
+(defn with-qualified [stub] (app.core/stub stub))
+(defmacro with-template [cb] `(cb ~cb))
+"#
+        .as_bytes(),
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let edges: Vec<(String, String, u64)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                qn(&e["src"]),
+                qn(&e["dst"]),
+                e["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    let shadowed: Vec<(String, u64)> = g["unresolved"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|u| u["reason"]["stage"] == "shadowed-by-local")
+        .map(|u| {
+            (
+                u["name"].as_str().unwrap().to_string(),
+                u["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    for (name, site) in [
+        ("cb", 15),
+        ("handler", 16),
+        ("item", 17),
+        ("step", 18),
+        ("err", 19),
+        ("helper", 20),
+    ] {
+        let dst = format!("app.core/{name}");
+        assert!(
+            !edges.iter().any(|(_, d, l)| *d == dst && *l == site),
+            "{name} line {site}: {edges:?}"
+        );
+        assert!(
+            shadowed.contains(&(name.to_string(), site)),
+            "{name} line {site}: {shadowed:?}"
+        );
+    }
+    for (src, dst, site) in [
+        ("with-binding", "later", 25),
+        ("with-init", "now", 26),
+        ("with-qualified", "stub", 27),
+        ("with-template", "cb", 28),
+    ] {
+        let (src, dst) = (format!("app.core/{src}"), format!("app.core/{dst}"));
+        assert!(
+            edges
+                .iter()
+                .any(|(s, d, l)| *s == src && *d == dst && *l == site),
+            "{src} -> {dst} line {site}: {edges:?}"
+        );
+    }
+}

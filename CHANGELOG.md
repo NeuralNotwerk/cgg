@@ -764,6 +764,29 @@ otherwise change the default graph.
   never do. A `where` function with a top-level twin keeps binding the
   `where` one.
 
+- **Clojure parameters and locals did not shadow function names (WS27,
+  gap 27).** A call through a Clojure parameter (`(defn test-fold [fold
+  op] … (fold es))`), a destructured key, a `let`, `for`, `catch` or
+  `letfn` binding bound a same-named function of the namespace at
+  `high`. Clojure now has a locals table (`binding_spans` in the Clojure
+  plugin), the one record of its bindings: the WS26 value filter now
+  reads it instead of keeping its own list. `fn`/`defn`/`defn-`/
+  `defmacro`/`defmethod` parameters bind over their arity's body (every
+  arity, `&` rest, vector and map destructuring: `:keys`/`:strs`/`:syms`,
+  `::keys` and `:ns/keys` too, `:as`; never an `:or` default or a schema
+  after `:-`); the `fn` self-name, method parameters of `deftype`/
+  `defrecord`/`reify`/`proxy`/`extend-*` and `letfn` specs, and type
+  fields bind over their method; `letfn` names over the whole `letfn`;
+  `let`/`loop`/`doseq`/`for` (`:let`)/`when-let`/… bindings from the end
+  of their init; another `with-…` vector's own symbols over the form; and
+  a `catch` binding over its clause. `binding`, `with-redefs` and any
+  `…-redefs` macro rebind vars and bind no local, so `(binding [f g]
+  (f))` still calls the var `f` and their inits are function values
+  (until now a `with-…` vector hid every symbol in it, inits included).
+  Inside a syntax-quote the code a macro generates names vars: a macro's
+  parameter is in scope there only under `~`. A qualified call (`ns/f`)
+  is never shadowed.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -1397,6 +1420,26 @@ WS27 Haskell (full corpus, 283 repositories, none excluded):
   recorded.
 - Under `--reference-edges`, the same edges change; Haskell records no
   reference edges.
+- Under `--dead-code`, no finding changes.
+
+WS27 Clojure (full corpus, 283 repositories, none excluded):
+
+- The default graph changes in four repositories, all in Clojure files:
+  45 edges removed, all `high`, none added: Lipas 18 (a `(let [set-field
+  (partial set-field …)])` local called from `#(set-field …)`, a
+  destructured `zone-colors`), Riemann 17 (`fold` and `top` parameters,
+  a `fun` local), Metabase 9 (a `letfn` `extract`), cljdoc 1 (an
+  `index-reader-fn` parameter). Each bound a same-named function of the
+  namespace.
+- Under `--reference-edges`, the same 45 call edges are removed and 132
+  reference edges are added (`high`): Metabase 113, Lipas 10, Riemann 7,
+  cljdoc 2. They are function values the WS26 filter hid by over-binding:
+  `with-redefs` and `…-redefs` inits (`(with-redefs [f stub] …)`
+  references `stub`), `binding` inits reading the var (`(binding [*x*
+  (inc *x*)] …)`), symbols inside a `with-open` or `with-temp` init, a
+  `let` init reading the outer name (`(let [subject ((get opts :subject
+  subject) …)])`), a schema var after `:-` in a parameter vector, and
+  names in code a syntax-quote generates.
 - Under `--dead-code`, no finding changes.
 
 ## [0.11.0] - 2026-10-16

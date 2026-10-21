@@ -233,7 +233,6 @@ pub const CLOJURE_BINDING_FORMS: &[&str] = &[
     "let*",
     "loop",
     "loop*",
-    "binding",
     "doseq",
     "for",
     "when-let",
@@ -244,10 +243,20 @@ pub const CLOJURE_BINDING_FORMS: &[&str] = &[
     "dotimes",
 ];
 
+/// Clojure forms whose binding vector rebinds vars (`(binding [*out* w]
+/// …)`, `(with-redefs [f stub] …)`): each name is the var itself, never a
+/// local, so `(f)` inside still calls the var `f`; each init is a value.
+pub const CLOJURE_VAR_REBINDING_FORMS: &[&str] = &["binding", "with-redefs"];
+
+/// Name suffixes of Clojure macros that, by the convention `with-redefs`
+/// sets, redefine vars in their binding vector (a test library's
+/// `with-dynamic-fn-redefs`): like `CLOJURE_VAR_REBINDING_FORMS`.
+pub const CLOJURE_VAR_REBINDING_SUFFIXES: &[&str] = &["-redefs"];
+
 /// Prefixes of Clojure macros whose first argument, when it is a vector,
-/// binds locals in a shape cgg does not know (`with-open`, `with-redefs`,
-/// a library's `with-temp`): every symbol in it is taken as bound and
-/// none as a value.
+/// binds locals in a shape cgg does not know (`with-open`, a library's
+/// `with-temp`): every symbol directly in it is taken as bound and none as
+/// a value (`CLOJURE_VAR_REBINDING_FORMS` excepted).
 pub const CLOJURE_BINDING_FORM_PREFIXES: &[&str] = &["with-"];
 
 /// Clojure forms that define a function: the parameter vector(s) after

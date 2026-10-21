@@ -1,7 +1,10 @@
 //! Clojure plugin — callable extraction.
 
 use crate::LanguagePlugin;
-use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
+use cgg_core::{
+    DefRecord, DefVariant, FileFacts, ImportRecord, LocalBinding, RefRecord, ids::FileId,
+};
+use std::collections::HashMap;
 use std::path::Path;
 use tree_sitter::{Node, Tree};
 
@@ -36,7 +39,17 @@ impl LanguagePlugin for ClojurePlugin {
             source,
             facts: &mut facts,
             namespace: String::new(),
-            locals: Vec::new(),
+            bound: if ctx.reference_sites {
+                let mut m: HashMap<String, Vec<(u32, u32)>> = HashMap::new();
+                for b in binding_spans(tree, source) {
+                    m.entry(b.name)
+                        .or_default()
+                        .push((b.start_byte, b.end_byte));
+                }
+                m
+            } else {
+                HashMap::new()
+            },
             in_quote: 0,
             referred: Vec::new(),
             refer_all: false,
@@ -57,10 +70,9 @@ struct ClojureWalker<'a> {
     ctx: crate::ExtractCtx<'a>,
     facts: &'a mut FileFacts,
     namespace: String,
-    /// Under `reference_sites`: the names bound by the enclosing `let`,
-    /// `fn` parameters, `doseq` … (innermost last). Clojure has no locals
-    /// spec, so the shadow filter for value references lives here.
-    locals: Vec<String>,
+    /// Under `reference_sites`: where each name is bound (`binding_spans`,
+    /// the file's locals table), for the value filter.
+    bound: HashMap<String, Vec<(u32, u32)>>,
     /// Depth of quoted data (`'(a b)`), where a symbol is not a value.
     in_quote: u32,
     /// Names the `ns` form `:refer`s, and whether it refers or `:use`s a
@@ -129,13 +141,11 @@ impl<'a> ClojureWalker<'a> {
                     self.record_call(node);
                 }
                 if self.ctx.reference_sites {
-                    let mark = self.locals.len();
                     let quoted = self.head_name(node) == Some("quote");
                     self.in_quote += u32::from(quoted);
                     self.enter_form(node);
                     self.walk_children(node);
                     self.in_quote -= u32::from(quoted);
-                    self.locals.truncate(mark);
                 } else {
                     self.walk_children(node);
                 }
@@ -1042,7 +1052,14 @@ impl ClojureWalker<'_> {
         {
             return;
         }
-        if check_locals && ns.is_empty() && self.locals.iter().any(|l| l == name) {
+        let at = sym.start_byte() as u32;
+        if check_locals
+            && ns.is_empty()
+            && self
+                .bound
+                .get(name)
+                .is_some_and(|v| v.iter().any(|&(s, e)| s <= at && at < e))
+        {
             return;
         }
         let full = if ns.is_empty() {
@@ -1087,23 +1104,9 @@ impl ClojureWalker<'_> {
         }
     }
 
-    /// Every symbol of a destructuring pattern (`x`, `[a & more]`,
-    /// `{:keys [f] :as m}`) is a local.
-    fn bind_pattern(&mut self, n: Node) {
-        if n.kind() == "sym_lit" {
-            let name = self.sym_parts(n).1;
-            if name != "&" {
-                self.locals.push(name.to_string());
-            }
-            return;
-        }
-        for e in forms(n) {
-            self.bind_pattern(e);
-        }
-    }
-
-    /// `[pattern init …]`: each init is a value, then its pattern binds.
-    /// `:let [..]` in `for`/`doseq` nests another such vector.
+    /// `[pattern init …]`: each init is a value (what each pattern binds
+    /// is in `binding_spans`). `:let [..]` in `for`/`doseq` nests another
+    /// such vector.
     fn bind_pairs(&mut self, vec: Node) {
         let items = forms(vec);
         for pair in items.chunks(2) {
@@ -1120,16 +1123,13 @@ impl ClojureWalker<'_> {
             if let Some(init) = init {
                 self.value_form(init);
             }
-            self.bind_pattern(pat);
         }
     }
 
-    /// The parameter vector(s) from `items[start..]`: one vector, or the
-    /// arity lists `([x] …) ([x y] …)`; a docstring or attribute map before
-    /// them is skipped.
-    /// Returns the index of the first body form after a single parameter
-    /// vector (arity lists carry their own bodies).
-    fn bind_params(&mut self, items: &[Node], start: usize) -> Option<usize> {
+    /// The index of the first body form after a single parameter vector
+    /// from `items[start..]` (a docstring or attribute map before it
+    /// skipped); `None` for arity lists, which carry their own bodies.
+    fn body_after_params(&self, items: &[Node], start: usize) -> Option<usize> {
         for (i, n) in items.iter().enumerate().skip(start) {
             match n.kind() {
                 "str_lit" | "map_lit" => continue,
@@ -1141,59 +1141,20 @@ impl ClojureWalker<'_> {
                 {
                     continue;
                 }
-                "vec_lit" => {
-                    self.bind_pattern(*n);
-                    return Some(i + 1);
-                }
-                "list_lit" => {
-                    if let Some(p) = forms(*n).first().filter(|p| p.kind() == "vec_lit") {
-                        self.bind_pattern(*p);
-                    } else {
-                        return None;
-                    }
-                }
+                "vec_lit" => return Some(i + 1),
                 _ => return None,
             }
         }
         None
     }
 
-    /// A method or `letfn` body (`(m [this x] …)`) rather than a call.
-    fn is_fn_spec(&self, list: Node) -> bool {
-        let Some(p) = list.parent() else {
-            return false;
-        };
-        let owner = if p.kind() == "vec_lit" {
-            match p.parent() {
-                Some(g) if g.kind() == "list_lit" => g,
-                _ => return false,
-            }
-        } else if p.kind() == "list_lit" {
-            p
-        } else {
-            return false;
-        };
-        let Some(h) = self.head_name(owner) else {
-            return false;
-        };
-        if !cgg_core::stdlib::CLOJURE_METHOD_BODY_FORMS.contains(&h) {
-            return false;
-        }
-        if p.kind() == "vec_lit" && h != "letfn" {
-            return false;
-        }
-        forms(list)
-            .get(1)
-            .is_some_and(|n| matches!(n.kind(), "vec_lit" | "list_lit"))
-    }
-
-    /// Bind what a form binds over its body and record the function
-    /// values among its arguments.
+    /// Record the function values among a form's arguments (what it
+    /// binds, and where, is `binding_spans`).
     fn enter_form(&mut self, list: Node) {
         use cgg_core::stdlib as std_t;
         let items = forms(list);
-        if self.is_fn_spec(list) {
-            if let Some(body) = self.bind_params(&items, 1) {
+        if fn_spec_owner(list, self.source).is_some() {
+            if let Some(body) = self.body_after_params(&items, 1) {
                 self.value_forms(&items[body..]);
             }
             return;
@@ -1210,41 +1171,27 @@ impl ClojureWalker<'_> {
         let first_vec = items.get(1).copied().filter(|v| v.kind() == "vec_lit");
         if let Some(&(_, skip)) = std_t::CLOJURE_FN_FORMS.iter().find(|(f, _)| *f == h) {
             let mut start = 1 + skip;
-            // `(fn name [x] …)` binds its own name too.
             if skip == 0 && items.get(1).is_some_and(|n| n.kind() == "sym_lit") {
-                self.bind_pattern(items[1]);
                 start += 1;
             }
             // The body's forms are values too: a function returning a
             // handler or a route table (`(defn routes [] [["/" {:get h}]])`).
-            if let Some(body) = self.bind_params(&items, start) {
+            if let Some(body) = self.body_after_params(&items, start) {
                 self.value_forms(&items[body..]);
             }
-        } else if h == "letfn" {
-            if let Some(v) = first_vec {
-                for spec in forms(v) {
-                    if let Some(name) =
-                        forms(spec).first().filter(|n| n.kind() == "sym_lit")
-                    {
-                        self.bind_pattern(*name);
-                    }
-                }
-            }
-        } else if std_t::CLOJURE_BINDING_FORMS.contains(&h) {
+        } else if std_t::CLOJURE_BINDING_FORMS.contains(&h) || var_rebinding(h) {
             if let Some(v) = first_vec {
                 self.bind_pairs(v);
                 self.value_forms(&items[2..]);
             }
-        } else if let Some(v) = first_vec.filter(|_| {
-            std_t::CLOJURE_BINDING_FORM_PREFIXES
-                .iter()
-                .any(|p| h.starts_with(p))
-        }) {
-            self.bind_pattern(v);
-        } else if std_t::CLOJURE_TYPE_FIELD_FORMS.contains(&h) {
-            if let Some(fields) = items.get(2).filter(|v| v.kind() == "vec_lit") {
-                self.bind_pattern(*fields);
-            }
+        } else if h == "letfn"
+            || std_t::CLOJURE_TYPE_FIELD_FORMS.contains(&h)
+            || (first_vec.is_some()
+                && std_t::CLOJURE_BINDING_FORM_PREFIXES
+                    .iter()
+                    .any(|p| h.starts_with(p)))
+        {
+            // Bindings only; the methods and specs are walked on their own.
         } else if std_t::CLOJURE_DEF_FORMS.contains(&h) {
             if items.len() >= 3
                 && let Some(last) = items.last()
@@ -1260,6 +1207,372 @@ impl ClojureWalker<'_> {
             self.value_forms(&items[1..]);
         }
     }
+}
+
+/// WS27: the Clojure locals table, the one record of what binds a name and
+/// where. `cgg_lang::locals` hands it to the resolver (a bare call through
+/// a local is `shadowed-by-local`), and the WS26 value filter reads it (a
+/// value naming a local is not a function value).
+///
+/// - `fn`/`defn`/`defn-`/`defmacro`/`defmethod` parameters
+///   (`CLOJURE_FN_FORMS`) over their arity's body, every arity, `&` rest
+///   and destructuring included; `(fn self [x] …)` binds `self` over the
+///   whole `fn`.
+/// - Method parameters of `deftype`/`defrecord`/`reify`/`proxy`/
+///   `extend-type`/`extend-protocol` bodies and `letfn` specs over the
+///   method; `deftype`/`defrecord` fields over the type's methods.
+/// - `letfn` names over the whole `letfn` (mutually recursive).
+/// - `let`/`loop`/`doseq`/`for`/`when-let`/… (`CLOJURE_BINDING_FORMS`):
+///   each pattern from the end of its init to the end of the form; a
+///   `:let` in `for`/`doseq` binds the same way, `:when`/`:while` bind
+///   nothing. `binding`, `with-redefs` and any `…-redefs` macro
+///   (`CLOJURE_VAR_REBINDING_FORMS`/`_SUFFIXES`) rebind vars and bind no
+///   local; another `with-…` vector binds the symbols directly in it over
+///   the form.
+/// - A `catch` binding over the rest of its clause.
+///
+/// Inside a syntax-quote, the code a macro generates names vars, not the
+/// macro's locals: no binding is in scope there except under `~`/`~@`,
+/// and nothing the template itself binds is recorded. Namespace-level
+/// `def`s, the `defn` name, keywords and `#()` `%` arguments are not
+/// locals.
+pub(crate) fn binding_spans(tree: &Tree, src: &[u8]) -> Vec<LocalBinding> {
+    let mut w = SpanWalk {
+        src,
+        out: Vec::new(),
+        dead: Vec::new(),
+    };
+    w.walk(tree.root_node(), false);
+    // Carve the syntax-quoted regions (minus their unquotes) out of every
+    // binding.
+    w.dead.sort_unstable();
+    let mut out = Vec::with_capacity(w.out.len());
+    for b in w.out {
+        let mut from = b.start_byte;
+        for &(s, e) in &w.dead {
+            if e <= from || s >= b.end_byte {
+                continue;
+            }
+            if from < s {
+                out.push(LocalBinding {
+                    start_byte: from,
+                    end_byte: s,
+                    ..b.clone()
+                });
+            }
+            from = from.max(e);
+        }
+        if from < b.end_byte {
+            out.push(LocalBinding {
+                start_byte: from,
+                ..b
+            });
+        }
+    }
+    out.sort_by_key(|b| (b.start_byte, b.end_byte));
+    out.dedup();
+    out
+}
+
+struct SpanWalk<'s> {
+    src: &'s [u8],
+    out: Vec<LocalBinding>,
+    /// Syntax-quoted regions outside any unquote, where no local is in
+    /// scope.
+    dead: Vec<(u32, u32)>,
+}
+
+impl<'s> SpanWalk<'s> {
+    fn name(&self, sym: Node<'_>) -> &'s str {
+        let n = sym.child_by_field_name("name").unwrap_or(sym);
+        n.utf8_text(self.src).unwrap_or("")
+    }
+
+    fn ns(&self, sym: Node<'_>) -> bool {
+        sym.child_by_field_name("namespace").is_some()
+    }
+
+    fn bind(
+        &mut self,
+        syms: &[Node<'_>],
+        start: usize,
+        end: usize,
+        decl: usize,
+        param: bool,
+    ) {
+        for &s in syms {
+            let name = self.name(s);
+            if name.is_empty() || name == "&" || name == "_" || start >= end {
+                continue;
+            }
+            self.out.push(LocalBinding {
+                name: name.to_string(),
+                start_byte: start as u32,
+                end_byte: end as u32,
+                decl_byte: decl.min(start) as u32,
+                param,
+            });
+        }
+    }
+
+    fn walk(&mut self, node: Node<'_>, in_template: bool) {
+        match node.kind() {
+            "dis_expr" | "quoting_lit" => return,
+            "syn_quoting_lit" if !in_template => {
+                self.dead
+                    .push((node.start_byte() as u32, node.end_byte() as u32));
+                self.children(node, true);
+                return;
+            }
+            // `~x` / `~@xs` inside a template: the macro's own code, where
+            // its locals are in scope again.
+            "unquoting_lit" | "unquote_splicing_lit" if in_template => {
+                self.reopen(node);
+                self.children(node, false);
+                return;
+            }
+            // `#(let [x …] …)`: the `#(…)` is the form itself.
+            "list_lit" | "anon_fn_lit" if !in_template => self.form(node),
+            _ => {}
+        }
+        self.children(node, in_template);
+    }
+
+    /// Re-open `node`'s span inside the dead region holding it.
+    fn reopen(&mut self, node: Node<'_>) {
+        let (s, e) = (node.start_byte() as u32, node.end_byte() as u32);
+        if let Some(i) = self.dead.iter().rposition(|&(a, b)| a <= s && e <= b) {
+            let (a, b) = self.dead.remove(i);
+            if a < s {
+                self.dead.push((a, s));
+            }
+            if e < b {
+                self.dead.push((e, b));
+            }
+        }
+    }
+
+    fn children(&mut self, node: Node<'_>, in_template: bool) {
+        let mut c = node.walk();
+        let kids: Vec<Node<'_>> = node.children(&mut c).collect();
+        for k in kids {
+            self.walk(k, in_template);
+        }
+    }
+
+    /// What one list form binds.
+    fn form(&mut self, list: Node<'_>) {
+        use cgg_core::stdlib as std_t;
+        let items = forms(list);
+        let Some(head) = items.first().copied() else {
+            return;
+        };
+        if head.kind() != "sym_lit" {
+            return;
+        }
+        // A method body or `letfn` spec (`(m [this x] …)`).
+        if fn_spec_owner(list, self.src).is_some() {
+            self.params(&items, 1, list);
+            return;
+        }
+        let h = self.name(head);
+        let first_vec = items.get(1).copied().filter(|v| v.kind() == "vec_lit");
+        let (start, end) = (list.start_byte(), list.end_byte());
+        if let Some(&(_, skip)) = std_t::CLOJURE_FN_FORMS.iter().find(|(f, _)| *f == h) {
+            let mut at = 1 + skip;
+            if skip == 0 && items.get(1).is_some_and(|n| n.kind() == "sym_lit") {
+                self.bind(&[items[1]], start, end, start, false);
+                at += 1;
+            }
+            self.params(&items, at, list);
+        } else if h == "letfn" {
+            if let Some(v) = first_vec {
+                let names: Vec<Node<'_>> = forms(v)
+                    .into_iter()
+                    .filter_map(|spec| forms(spec).first().copied())
+                    .filter(|n| n.kind() == "sym_lit" && !self.ns(*n))
+                    .collect();
+                self.bind(&names, start, end, start, false);
+            }
+        } else if std_t::CLOJURE_BINDING_FORMS.contains(&h) {
+            if let Some(v) = first_vec {
+                self.pairs(v, end, start);
+            }
+        } else if var_rebinding(h) {
+            // Vars, not locals.
+        } else if let Some(v) = first_vec.filter(|_| {
+            std_t::CLOJURE_BINDING_FORM_PREFIXES
+                .iter()
+                .any(|p| h.starts_with(p))
+        }) {
+            let syms: Vec<Node<'_>> = forms(v)
+                .into_iter()
+                .filter(|n| n.kind() == "sym_lit" && !self.ns(*n))
+                .collect();
+            self.bind(&syms, v.end_byte(), end, start, false);
+        } else if std_t::CLOJURE_TYPE_FIELD_FORMS.contains(&h) {
+            if let Some(fields) = items.get(2).filter(|v| v.kind() == "vec_lit") {
+                let syms = pattern_syms(*fields, self.src);
+                self.bind(&syms, fields.end_byte(), end, start, false);
+            }
+        } else if h == "catch" {
+            if let Some(e) = items.get(2).filter(|n| n.kind() == "sym_lit") {
+                self.bind(&[*e], e.end_byte(), end, start, false);
+            }
+        }
+    }
+
+    /// `[pattern init …]`, sequential: each pattern binds from the end of
+    /// its init; `:let [..]` nests, `:when`/`:while` bind nothing.
+    fn pairs(&mut self, vec: Node<'_>, end: usize, decl: usize) {
+        let items = forms(vec);
+        for pair in items.chunks(2) {
+            let pat = pair[0];
+            let init = pair.get(1).copied();
+            if pat.kind() == "kwd_lit" {
+                if pat.utf8_text(self.src).unwrap_or("") == ":let"
+                    && let Some(v) = init.filter(|v| v.kind() == "vec_lit")
+                {
+                    self.pairs(v, end, decl);
+                }
+                continue;
+            }
+            let from = init.map_or(pat.end_byte(), |i| i.end_byte());
+            let syms = pattern_syms(pat, self.src);
+            self.bind(&syms, from, end, decl, false);
+        }
+    }
+
+    /// The parameter vector(s) of a function form from `items[at..]`: one
+    /// vector over the rest of the form, or arity lists each over its own
+    /// body. A docstring, attribute map or schema annotation is skipped.
+    fn params(&mut self, items: &[Node<'_>], at: usize, form: Node<'_>) {
+        let decl = form.start_byte();
+        for (i, n) in items.iter().enumerate().skip(at) {
+            match n.kind() {
+                "str_lit" | "map_lit" => continue,
+                "kwd_lit" if n.utf8_text(self.src).unwrap_or("") == ":-" => continue,
+                _ if i > at
+                    && items
+                        .get(i - 1)
+                        .is_some_and(|p| p.utf8_text(self.src).unwrap_or("") == ":-") =>
+                {
+                    continue;
+                }
+                "vec_lit" => {
+                    let syms = pattern_syms(*n, self.src);
+                    self.bind(&syms, n.end_byte(), form.end_byte(), decl, true);
+                    return;
+                }
+                "list_lit" => {
+                    if let Some(p) = forms(*n).first().filter(|p| p.kind() == "vec_lit") {
+                        let syms = pattern_syms(*p, self.src);
+                        self.bind(&syms, p.end_byte(), n.end_byte(), decl, true);
+                    } else {
+                        return;
+                    }
+                }
+                _ => return,
+            }
+        }
+    }
+}
+
+/// The symbols a destructuring pattern binds: a symbol; a vector's
+/// elements (`&` and `:as` read through; never a schema after `:-`); a
+/// map's `:keys`/`:strs`/`:syms` (`::keys`, `:ns/keys` too; `[a/b]`
+/// binding `b`), its `:as`, and each `pattern key` entry's pattern —
+/// never an `:or` default or a lookup key.
+pub(crate) fn pattern_syms<'n>(p: Node<'n>, src: &[u8]) -> Vec<Node<'n>> {
+    let text = |n: Node<'_>| n.utf8_text(src).unwrap_or("").to_string();
+    let mut out = Vec::new();
+    match p.kind() {
+        "sym_lit" => out.push(p),
+        "vec_lit" => {
+            let items = forms(p);
+            for (i, e) in items.iter().enumerate() {
+                // A schema annotation (`[x :- [:fn pred?]]`) binds nothing.
+                let schema = i > 0
+                    && items[i - 1].kind() == "kwd_lit"
+                    && items[i - 1].utf8_text(src).unwrap_or("") == ":-";
+                if e.kind() != "kwd_lit" && !schema {
+                    out.extend(pattern_syms(*e, src));
+                }
+            }
+        }
+        "map_lit" => {
+            let items = forms(p);
+            for pair in items.chunks(2) {
+                let (k, v) = (pair[0], pair.get(1).copied());
+                if k.kind() == "kwd_lit" {
+                    // `:keys`, `::keys`, `:ns/keys`, `::alias/keys`.
+                    let kw = text(k);
+                    let kw = kw.rsplit('/').next().unwrap_or("").trim_start_matches(':');
+                    match kw {
+                        "keys" | "strs" | "syms" => {
+                            if let Some(v) = v.filter(|v| v.kind() == "vec_lit") {
+                                out.extend(
+                                    forms(v)
+                                        .into_iter()
+                                        .filter(|s| s.kind() == "sym_lit"),
+                                );
+                            }
+                        }
+                        "as" => {
+                            if let Some(v) = v.filter(|v| v.kind() == "sym_lit") {
+                                out.push(v);
+                            }
+                        }
+                        _ => {}
+                    }
+                } else {
+                    // `{pattern lookup-key}`.
+                    out.extend(pattern_syms(k, src));
+                }
+            }
+        }
+        _ => {}
+    }
+    out
+}
+
+/// A form whose binding vector rebinds vars (`binding`, `with-redefs`,
+/// any `…-redefs` macro), binding no local.
+fn var_rebinding(head: &str) -> bool {
+    cgg_core::stdlib::CLOJURE_VAR_REBINDING_FORMS.contains(&head)
+        || cgg_core::stdlib::CLOJURE_VAR_REBINDING_SUFFIXES
+            .iter()
+            .any(|s| head.ends_with(s))
+}
+
+/// The form a method or `letfn` spec (`(m [this x] …)`) belongs to, when
+/// `list` is one.
+fn fn_spec_owner<'n>(list: Node<'n>, src: &[u8]) -> Option<Node<'n>> {
+    let p = list.parent()?;
+    let owner = match p.kind() {
+        "vec_lit" => p.parent().filter(|g| g.kind() == "list_lit")?,
+        "list_lit" => p,
+        _ => return None,
+    };
+    let head = *forms(owner).first()?;
+    if head.kind() != "sym_lit" {
+        return None;
+    }
+    let h = head
+        .child_by_field_name("name")
+        .unwrap_or(head)
+        .utf8_text(src)
+        .unwrap_or("");
+    if !cgg_core::stdlib::CLOJURE_METHOD_BODY_FORMS.contains(&h) {
+        return None;
+    }
+    if p.kind() == "vec_lit" && h != "letfn" {
+        return None;
+    }
+    forms(list)
+        .get(1)
+        .is_some_and(|n| matches!(n.kind(), "vec_lit" | "list_lit"))
+        .then_some(owner)
 }
 
 #[cfg(test)]
@@ -1694,6 +2007,28 @@ mod tests {
         assert!(value_names(&f).is_empty());
         let off = extract("(defn r [] (map step []) #'h)\n");
         assert!(value_names(&off).is_empty());
+    }
+
+    /// WS27: the value filter reads the locals table. `binding` and
+    /// `with-redefs` rebind vars, so a name they rebind is still the var's
+    /// value; a macro's parameter does not hide a name in the code its
+    /// syntax-quote generates, only under `~`.
+    #[test]
+    fn rebound_vars_and_defaults_are_values() {
+        let f = extract_with_refs(
+            "(defn h [x] x)
+(defn g [x] x)
+(defn dflt [x] x)
+(defn mp [x] x)
+             (defn run [{:keys [a] :or {a dflt}}]
+               (binding [h g] (map h []))
+               (with-redefs [g h] (map g [])))
+             (defmacro mac [mp] `(map mp ~mp))
+",
+        );
+        let mut got = value_names(&f);
+        got.sort_unstable();
+        assert_eq!(got, vec!["g", "g", "h", "h", "mp"]);
     }
 
     /// Metadata on a definition's name (`^:private`, `^{…}`, `#^Tag`,
