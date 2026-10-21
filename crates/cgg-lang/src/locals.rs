@@ -530,6 +530,9 @@ pub fn collect(lang: &str, tree: &Tree, source: &[u8]) -> Vec<LocalBinding> {
     if lang == "julia" {
         return collect_julia(tree, source);
     }
+    if lang == "haskell" {
+        return collect_haskell(tree, source);
+    }
     let Some(spec) = spec(lang) else {
         return Vec::new();
     };
@@ -2397,6 +2400,314 @@ fn julia_literal(v: Node<'_>) -> bool {
             .is_some_and(julia_literal))
 }
 
+/// Whether a Haskell `where`/`let` binding named by an operator
+/// (`(<+>) p q = …`) is recorded. No call site carries an operator name
+/// (cgg records only `f x` applications headed by a variable), so it can
+/// shadow nothing.
+const HASKELL_OPERATOR_LOCALS: bool = false;
+
+/// Haskell (WS27): a function clause's argument patterns over the clause
+/// (guards, body and its own `where`); `where` bindings over the whole
+/// clause they hang off (a `where` function is a local function); an
+/// expression `let … in e` over the whole `let` (it is recursive); a
+/// `do`-`let` from the statement to the end of the `do`, a `p <- e` bind
+/// from its end; a list comprehension's generators and `let`s over the
+/// head expression and from the qualifier on; lambda patterns over the
+/// lambda; `case`/`\case` alternative patterns over the alternative; a
+/// pattern guard (`| Just y <- …`) from the guard to the end of its
+/// right-hand side. Patterns bind their variables through as-patterns,
+/// constructor applications, tuples, lists, records (`R{f = x}`, a pun
+/// `R{f}`; a `{..}` wildcard names nothing the tree shows), bang, lazy and
+/// infix patterns; never a constructor, a field name, a type or a view
+/// pattern's function. Top-level declarations are the module's, never
+/// locals.
+fn collect_haskell(tree: &Tree, src: &[u8]) -> Vec<LocalBinding> {
+    let mut out: Vec<LocalBinding> = Vec::new();
+    let text = |n: Node<'_>| n.utf8_text(src).unwrap_or("");
+    let mut push =
+        |name: Node<'_>, start: usize, end: usize, decl: usize, param: bool| {
+            let t = text(name);
+            if t.is_empty() || t == "_" || start >= end {
+                return;
+            }
+            out.push(LocalBinding {
+                name: t.to_string(),
+                start_byte: start as u32,
+                end_byte: end as u32,
+                decl_byte: decl.min(start) as u32,
+                param,
+            });
+        };
+    let mut cursor = tree.walk();
+    loop {
+        let node = cursor.node();
+        match node.kind() {
+            // A clause's argument patterns; a lambda's.
+            "function" | "lambda" => {
+                if let Some(ps) = node.child_by_field_name("patterns") {
+                    for v in haskell_pattern_vars(ps) {
+                        push(
+                            v,
+                            node.start_byte(),
+                            node.end_byte(),
+                            node.start_byte(),
+                            true,
+                        );
+                    }
+                }
+                if node.kind() == "function" {
+                    haskell_where(node, &mut push);
+                }
+            }
+            // A pattern binding's `where` (`x = … where …`); a `do`
+            // statement `p <- e`.
+            "bind" => {
+                let parent = node.parent();
+                if parent.is_some_and(|p| p.kind() == "do" || p.kind() == "mdo") {
+                    if let (Some(pat), Some(block)) =
+                        (node.child_by_field_name("pattern"), parent)
+                    {
+                        for v in haskell_pattern_vars(pat) {
+                            push(
+                                v,
+                                node.end_byte(),
+                                block.end_byte(),
+                                node.start_byte(),
+                                false,
+                            );
+                        }
+                    }
+                } else {
+                    haskell_where(node, &mut push);
+                }
+            }
+            "let_in" => {
+                if let Some(binds) = node.child_by_field_name("binds") {
+                    for v in haskell_bound_names(binds) {
+                        push(
+                            v,
+                            node.start_byte(),
+                            node.end_byte(),
+                            node.start_byte(),
+                            false,
+                        );
+                    }
+                }
+            }
+            // `let` as a `do` statement or a comprehension qualifier.
+            "let" => {
+                if let (Some(parent), Some(binds)) =
+                    (node.parent(), node.child_by_field_name("binds"))
+                {
+                    let names = haskell_bound_names(binds);
+                    match parent.kind() {
+                        "do" | "mdo" => {
+                            for v in names {
+                                push(
+                                    v,
+                                    node.start_byte(),
+                                    parent.end_byte(),
+                                    node.start_byte(),
+                                    false,
+                                );
+                            }
+                        }
+                        "qualifiers" => {
+                            if let Some(comp) = parent.parent() {
+                                let head = comp.child_by_field_name("expression");
+                                for v in names {
+                                    push(
+                                        v,
+                                        node.start_byte(),
+                                        comp.end_byte(),
+                                        node.start_byte(),
+                                        false,
+                                    );
+                                    if let Some(h) = head {
+                                        push(
+                                            v,
+                                            h.start_byte(),
+                                            h.end_byte(),
+                                            node.start_byte(),
+                                            false,
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            // `[e | x <- xs, …]`.
+            "generator" => {
+                if let (Some(pat), Some(comp)) = (
+                    node.child_by_field_name("pattern"),
+                    node.parent().and_then(|q| q.parent()),
+                ) {
+                    for v in haskell_pattern_vars(pat) {
+                        push(
+                            v,
+                            node.end_byte(),
+                            comp.end_byte(),
+                            node.start_byte(),
+                            false,
+                        );
+                        if let Some(head) = comp.child_by_field_name("expression") {
+                            push(
+                                v,
+                                head.start_byte(),
+                                head.end_byte(),
+                                node.start_byte(),
+                                false,
+                            );
+                        }
+                    }
+                }
+            }
+            "alternative" => {
+                if let Some(pat) = node.child_by_field_name("pattern") {
+                    for v in haskell_pattern_vars(pat) {
+                        push(
+                            v,
+                            node.start_byte(),
+                            node.end_byte(),
+                            node.start_byte(),
+                            true,
+                        );
+                    }
+                }
+            }
+            // `| Just y <- e, … = rhs`: to the end of the `match`.
+            "pattern_guard" => {
+                let rhs = std::iter::successors(node.parent(), |n| n.parent())
+                    .take(3)
+                    .find(|n| n.kind() == "match");
+                if let (Some(pat), Some(m)) = (node.child_by_field_name("pattern"), rhs) {
+                    for v in haskell_pattern_vars(pat) {
+                        push(v, node.end_byte(), m.end_byte(), node.start_byte(), false);
+                    }
+                }
+            }
+            _ => {}
+        }
+        if !haskell_advance(&mut cursor) {
+            break;
+        }
+    }
+    out.sort_by_key(|b| (b.start_byte, b.end_byte));
+    out.dedup();
+    out
+}
+
+/// Depth-first step: the first child, else the next sibling of the node
+/// or of its nearest ancestor that has one; `false` at the end.
+fn haskell_advance(c: &mut tree_sitter::TreeCursor<'_>) -> bool {
+    if c.goto_first_child() {
+        return true;
+    }
+    loop {
+        if c.goto_next_sibling() {
+            return true;
+        }
+        if !c.goto_parent() {
+            return false;
+        }
+    }
+}
+
+/// The `where` bindings of a clause or pattern binding, over the whole
+/// clause.
+fn haskell_where(
+    clause: Node<'_>,
+    push: &mut impl FnMut(Node<'_>, usize, usize, usize, bool),
+) {
+    let mut c = clause.walk();
+    let mut after_where = false;
+    for ch in clause.children(&mut c) {
+        if ch.kind() == "where" {
+            after_where = true;
+        } else if after_where && ch.kind() == "local_binds" {
+            for v in haskell_bound_names(ch) {
+                push(
+                    v,
+                    clause.start_byte(),
+                    clause.end_byte(),
+                    clause.start_byte(),
+                    false,
+                );
+            }
+        }
+    }
+}
+
+/// The names a `local_binds` block declares: a function's or a binding's
+/// name (an operator one under `HASKELL_OPERATOR_LOCALS`), and a pattern
+/// binding's variables (`(a, b) = …`); never a type signature.
+fn haskell_bound_names(binds: Node<'_>) -> Vec<Node<'_>> {
+    let mut out = Vec::new();
+    let mut c = binds.walk();
+    for d in binds.named_children(&mut c) {
+        if !matches!(d.kind(), "function" | "bind") {
+            continue;
+        }
+        if let Some(n) = d.child_by_field_name("name") {
+            match n.kind() {
+                "variable" => out.push(n),
+                "prefix_id" if HASKELL_OPERATOR_LOCALS => out.push(n),
+                _ => {}
+            }
+        } else if let Some(p) = d.child_by_field_name("pattern") {
+            out.extend(haskell_pattern_vars(p));
+        }
+    }
+    out
+}
+
+/// The variables a pattern binds.
+fn haskell_pattern_vars(p: Node<'_>) -> Vec<Node<'_>> {
+    let mut out = Vec::new();
+    let mut stack = vec![p];
+    while let Some(n) = stack.pop() {
+        match n.kind() {
+            "variable" => out.push(n),
+            "constructor"
+            | "operator"
+            | "constructor_operator"
+            | "literal"
+            | "wildcard" => {}
+            // `R{f = x}` binds `x`; a pun `R{f}` binds `f`.
+            "field_pattern" => match n.child_by_field_name("pattern") {
+                Some(inner) => stack.push(inner),
+                None => {
+                    if let Some(f) = n.child_by_field_name("field") {
+                        let mut c = f.walk();
+                        out.extend(
+                            f.named_children(&mut c).filter(|k| k.kind() == "variable"),
+                        );
+                    }
+                }
+            },
+            _ => {
+                let mut c = n.walk();
+                for (i, ch) in n.children(&mut c).enumerate() {
+                    // A type annotation, a view pattern's function, a
+                    // constructor applied: none binds.
+                    let field = n.field_name_for_child(i as u32).unwrap_or("");
+                    if !matches!(
+                        field,
+                        "type" | "expression" | "function" | "operator" | "kind"
+                    ) {
+                        stack.push(ch);
+                    }
+                }
+            }
+        }
+    }
+    out.sort_by_key(|n| n.start_byte());
+    out
+}
+
 /// Lua `local` declarations at file scope (WS19): in scope from the end of
 /// the statement to the end of the file. `local log = ngx.log` is a value
 /// the file holds, so a bare `log(…)` is never some required module's
@@ -3816,5 +4127,91 @@ mod tests {
         assert!(!at("w", "w()", 1), "a loop body's local");
         assert!(at("c", "c()", 0));
         assert!(!at("h", "h()", 3), "another function");
+    }
+
+    fn haskell_locals(src: &str) -> Vec<LocalBinding> {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_haskell::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        collect("haskell", &tree, src.as_bytes())
+    }
+
+    /// Haskell (WS27): argument patterns of every shape, `where` and `let`
+    /// bindings, `do` binds and lets, comprehension generators and lets,
+    /// lambda, `case`/`\case` and pattern-guard patterns; never a
+    /// top-level declaration, a constructor, a record field name, a type
+    /// variable or an operator-named binding.
+    #[test]
+    fn haskell_binding_forms() {
+        let src = "module P where\n\
+                   top = 1\n\
+                   f :: a -> a\n\
+                   f x (Just y) all@(a, b) [c] R{field = d} !e ~g (h : hs)\n\
+                   \x20 | Just pg <- lookup x tbl = pg x\n\
+                   \x20 where\n\
+                   \x20   go z = z\n\
+                   \x20   (<+>) p q = p\n\
+                   \x20   (w1, w2) = pair\n\
+                   k = \\u v -> u v\n\
+                   m = do\n  r <- act\n  let s = r\n  s r\n\
+                   n x2 = let t = t x2 in t 1\n\
+                   o = case zz of\n  Just q -> q 2\n\
+                   l = [i j | i <- xs, let j = i]\n\
+                   cs = \\case\n  Just cq -> cq 1\n";
+        let got = haskell_locals(src);
+        let names: Vec<&str> = got.iter().map(|b| b.name.as_str()).collect();
+        for want in [
+            "x", "y", "all", "a", "b", "c", "d", "e", "g", "h", "hs", "pg", "go", "z",
+            "p", "q", "w1", "w2", "u", "v", "r", "s", "x2", "t", "i", "j", "cq",
+        ] {
+            assert!(names.contains(&want), "{want} in {names:?}");
+        }
+        for not in [
+            "top", "f", "k", "m", "n", "o", "l", "cs", "Just", "R", "field", "(<+>)",
+            "<+>", "tbl", "lookup", "act", "xs", "zz",
+        ] {
+            assert!(!names.contains(&not), "{not} in {names:?}");
+        }
+        let param = |n: &str| got.iter().find(|b| b.name == n).unwrap().param;
+        for p in ["x", "all", "u", "q", "cq"] {
+            assert!(param(p), "{p} is a parameter");
+        }
+        for l in ["go", "w1", "r", "s", "t", "i", "pg"] {
+            assert!(!param(l), "{l} is a local");
+        }
+    }
+
+    /// Haskell scopes: a `where` binding over its whole clause (guards
+    /// included), never another clause; a `do` bind from the next
+    /// statement; a comprehension generator over the head expression but
+    /// not its own source list; a pattern guard over its right-hand side
+    /// but not the next guard.
+    #[test]
+    fn haskell_scopes() {
+        let src = "f m\n\
+                   \x20 | w0 m = w0 1\n\
+                   \x20 | Just g <- m = g 2\n\
+                   \x20 | otherwise = g 3\n\
+                   \x20 where\n\
+                   \x20   w0 = id\n\
+                   h = w0 4\n\
+                   d = do\n  b <- b 5\n  b 6\n\
+                   l = [e 7 | e <- e 8]\n";
+        let got = haskell_locals(src);
+        let at = |name: &str, needle: &str| {
+            let site = src.find(needle).expect(needle) as u32;
+            got.iter()
+                .any(|b| b.name == name && b.start_byte <= site && site < b.end_byte)
+        };
+        assert!(at("w0", "w0 m"), "a guard");
+        assert!(at("w0", "w0 1"));
+        assert!(!at("w0", "w0 4"), "another clause");
+        assert!(at("g", "g 2"));
+        assert!(!at("g", "g 3"), "the next guard");
+        assert!(!at("b", "b 5"), "its own source");
+        assert!(at("b", "b 6"));
+        assert!(at("e", "e 7"), "the head expression");
+        assert!(!at("e", "e 8"), "its own source list");
     }
 }

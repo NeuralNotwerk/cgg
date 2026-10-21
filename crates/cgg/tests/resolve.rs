@@ -7081,3 +7081,123 @@ end
         );
     }
 }
+
+/// WS27: a Haskell argument pattern, lambda pattern, `case` alternative
+/// and pattern guard shadow a same-named top-level function: a call
+/// through one is `shadowed-by-local`, never a (wrong, `high`) edge. A
+/// `where` function with a top-level twin keeps binding the `where` one,
+/// and a call in another clause reaches the top-level one.
+#[test]
+fn haskell_patterns_and_where_bindings_shadow_functions() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "Main.hs",
+        r#"module Main where
+
+-- Top-level functions whose names the bindings below reuse.
+cb x = x
+go x = x
+step x = x
+item x = x
+found x = x
+alt x = x
+done x = x
+tmp x = x
+now x = x
+
+-- An argument pattern, a lambda, a `do` bind and a `case` alternative.
+withArg cb = cb 1
+withLambda = \step -> step 2
+withDo = do
+  item <- pure id
+  pure (item 3)
+withCase m = case m of
+  Just alt -> alt 4
+  Nothing -> 0
+
+-- A pattern guard, an expression `let`, a `where` value.
+withGuard m
+  | Just found <- m = found 5
+  | otherwise = 0
+withLet = let done = id in done 6
+withWhereValue = tmp 7
+  where
+    tmp = id
+
+-- A `where` function with a top-level twin: calls bind the `where` one.
+withWhere x = go x
+  where
+    go y = y + 1
+
+-- Positive controls: the binding's own scope ends; another clause.
+controls = now 8
+otherClause = go 9
+"#
+        .as_bytes(),
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let field =
+        |id: &serde_json::Value, f: &str| g["callables"][id.as_str().unwrap()][f].clone();
+    let edges: Vec<(String, String, u64, u64)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                field(&e["src"], "qualified_name")
+                    .as_str()
+                    .unwrap()
+                    .to_string(),
+                field(&e["dst"], "qualified_name")
+                    .as_str()
+                    .unwrap()
+                    .to_string(),
+                field(&e["dst"], "start_line").as_u64().unwrap(),
+                e["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    let shadowed: Vec<(String, u64)> = g["unresolved"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|u| u["reason"]["stage"] == "shadowed-by-local")
+        .map(|u| {
+            (
+                u["name"].as_str().unwrap().to_string(),
+                u["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    for (name, site) in [("cb", 15), ("step", 16), ("alt", 21), ("found", 26)] {
+        assert!(
+            !edges.iter().any(|(_, _, _, l)| *l == site),
+            "{name}() line {site}: {edges:?}"
+        );
+        assert!(
+            shadowed.contains(&(name.to_string(), site)),
+            "{name}() line {site}: {shadowed:?}"
+        );
+    }
+    let has = |src: &str, def: u64, site: u64| {
+        edges
+            .iter()
+            .any(|(s, _, dl, l)| s == src && *dl == def && *l == site)
+    };
+    // The `where` `go` (line 36), not the top-level one (line 5).
+    assert!(has("Main.withWhere", 36, 34), "{edges:?}");
+    assert!(!has("Main.withWhere", 5, 34), "{edges:?}");
+    assert!(!shadowed.iter().any(|(n, l)| n == "go" && *l == 34));
+    // Another clause, and an unrelated call.
+    assert!(has("Main.otherClause", 5, 40), "{edges:?}");
+    assert!(has("Main.controls", 12, 39), "{edges:?}");
+}

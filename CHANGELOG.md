@@ -745,6 +745,25 @@ otherwise change the default graph.
   shadows too: Julia has no function-only lookup, so a call through it is
   an error, never the function.
 
+- **Haskell bindings did not shadow function names (WS27, gap 27).** A
+  call through a Haskell argument pattern (`maybeUpdate (Just x) f = f
+  x`, a `checkSig` or `setter` passed in), a lambda pattern, a `case`
+  alternative, a pattern guard or a `do` bind bound a same-named
+  top-level function of the tree, at `high` where the name was unique.
+  Haskell now has a locals table: a clause's argument patterns over the
+  clause (guards, body and its `where`); `where` bindings over the whole
+  clause they hang off; an expression `let … in e` over the whole `let`
+  (it is recursive); a `do`-`let` from its statement and a `p <- e` bind
+  from its end to the end of the `do`; list-comprehension generators and
+  `let`s over the head expression and from the qualifier on; lambda and
+  `case`/`\case` alternative patterns over their alternative; and a
+  pattern guard from the guard to the end of its right-hand side.
+  Patterns bind through as-patterns, constructor applications, tuples,
+  lists, records (`R{f = x}`, a pun `R{f}`), bang, lazy and infix
+  patterns; constructors, field names, types and top-level declarations
+  never do. A `where` function with a top-level twin keeps binding the
+  `where` one.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -1359,6 +1378,24 @@ WS27 Julia (full corpus, 283 repositories, none excluded):
   handlers()`); a parameter is now bound from the end of its own
   declaration.
 - Under `--reference-edges`, the same edges change; Julia records no
+  reference edges.
+- Under `--dead-code`, no finding changes.
+
+WS27 Haskell (full corpus, 283 repositories, none excluded):
+
+- The default graph changes in four repositories, all in Haskell files:
+  433 edges removed (90 `high`), none added: Pandoc 180, Concordium 169,
+  hspec 82, Yesod 2. Every one is a call through a variable a pattern
+  binds (429: argument, lambda, `case` and pattern-guard patterns, mostly
+  function parameters such as `f`, `action`, `continue`, `setter`) or a
+  `do` tuple bind (4: `(acquire, release) <- …`, `(Endo f, forest) <-
+  …`), until now bound by name to an unrelated function. None was a call
+  into a `where` or `let` function: those were already bound to the
+  local definition and still are.
+- Recording operator-named bindings (`(<+>) p q = …` in a `where`)
+  changes nothing: no call site carries an operator name. They are not
+  recorded.
+- Under `--reference-edges`, the same edges change; Haskell records no
   reference edges.
 - Under `--dead-code`, no finding changes.
 
