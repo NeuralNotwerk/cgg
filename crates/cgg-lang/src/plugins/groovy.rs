@@ -49,6 +49,16 @@ impl LanguagePlugin for GroovyPlugin {
     }
 }
 
+/// Whether the first non-blank byte before `at` is a member dot (`.`,
+/// `?.`, `*.`), not a range's `..`.
+fn continues_a_chain(source: &[u8], at: usize) -> bool {
+    let before = &source[..at.min(source.len())];
+    let Some(i) = before.iter().rposition(|b| !b.is_ascii_whitespace()) else {
+        return false;
+    };
+    before[i] == b'.' && (i == 0 || before[i - 1] != b'.')
+}
+
 /// Attribute of a method declared with a string name (`def "…"()`), which
 /// the `spock` rule reads as a feature method.
 const STRING_NAMED: &str = "string-named";
@@ -270,8 +280,21 @@ impl<'a> GroovyWalker<'a> {
             }
             // `def t = make()`: the bare call's result, recorded as
             // `make()` for type propagation to read the callee's declared
-            // return type (WS23).
-            "local_variable_declaration" => {
+            // return type (WS23). A `def` field's too (WS27): type
+            // propagation reads a declaration no local binding records as
+            // a field, visible where no local or parameter of its name is.
+            // A declaration holding an ERROR is not read: the parser may
+            // have hung the next method's header on it as its value.
+            "local_variable_declaration" | "field_declaration" => {
+                if crate::locals::groovy_declaration_has_error(node)
+                    || (node.kind() == "field_declaration"
+                        && node
+                            .child_by_field_name("type")
+                            .is_none_or(|t| self.text(t) != "def"))
+                {
+                    self.walk_children(node);
+                    return;
+                }
                 let mut c = node.walk();
                 for d in node.children_by_field_name("declarator", &mut c) {
                     if let (Some(name), Some(value)) = (
@@ -509,6 +532,11 @@ impl<'a> GroovyWalker<'a> {
             args.map_or(0, super::arg_count)
                 + u32::from(node.child_by_field_name("body").is_some())
         });
+        // A chain continued on a new line (`builder\n  .commandLine(x)`):
+        // the parser drops the receiver and the dot into an ERROR before
+        // the call. It is a method call, never a bare one (WS27).
+        let dot_call =
+            recv.is_empty() && continues_a_chain(self.source, node.start_byte());
         self.facts.references.push(RefRecord {
             name,
             receiver_hint: recv,
@@ -516,6 +544,7 @@ impl<'a> GroovyWalker<'a> {
             site_byte: node.start_byte() as u32,
             typed_receiver,
             arity,
+            dot_call,
             ..Default::default()
         });
     }
@@ -814,6 +843,22 @@ mod tests {
                 .iter()
                 .any(|r| r.name == "run" && r.receiver_hint == "obj")
         );
+    }
+
+    /// WS27: a chain continued on a new line loses its receiver to an
+    /// ERROR; the call is still a method call (`dot_call`), so a
+    /// parameter of its name does not hide it. A bare call stays bare,
+    /// and so does one after a range's `..`.
+    #[test]
+    fn a_continued_chain_call_is_a_dot_call() {
+        let src = "class C {\n  def f(commandLine) {\n    def e = new Builder()\n      \
+                   .commandLine(commandLine)\n      ?.run()\n    helper()\n    \
+                   def r = 0..size()\n  }\n}\n";
+        let f = extract(src);
+        let dot = |n: &str| f.references.iter().find(|r| r.name == n).unwrap().dot_call;
+        assert!(dot("commandLine"), "{:?}", f.references);
+        assert!(!dot("helper"));
+        assert!(!dot("size"));
     }
 
     fn defs(f: &FileFacts) -> Vec<String> {

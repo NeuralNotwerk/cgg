@@ -6638,3 +6638,150 @@ int now() { return 0; }
         "{edges:?}"
     );
 }
+
+/// WS27: a Groovy method parameter (untyped too), closure parameter, the
+/// implicit `it`, a `def` local, a `for` variable, a `catch` parameter and
+/// a multiple assignment shadow a same-named method of the calling class:
+/// a call through one is `shadowed-by-local`, never a (wrong, `high`)
+/// edge. An initializer and a call after the declaring block reach the
+/// method.
+#[test]
+fn groovy_parameters_and_locals_shadow_methods() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "Main.groovy",
+        r#"class Main {
+    // Methods whose names the parameters and locals below reuse.
+    def handler(x) { x }
+    def cb(x) { x }
+    def fn(x) { x }
+    def item(x) { x }
+    def it(x) { x }
+    def ok(x) { x }
+    def step(x) { x }
+    def err(x) { x }
+    def first(x) { x }
+    def later(x) { x }
+    def now() { 0 }
+    def steps() { [] }
+    def pair() { [1, 2] }
+
+    // Parameter: an untyped one too.
+    def withParam(Closure cb, fn) { cb(1); fn(2) }
+
+    // Closure parameter and the implicit `it`.
+    def withClosure() { [1].each { item -> item(3) } }
+    def withIt() { [1].each { it(4) } }
+
+    // A `def` local holding a closure.
+    def withLocal() {
+        def ok = { x -> x }
+        ok(5)
+    }
+
+    // A `for` variable, a `catch` parameter, multiple assignment.
+    def withFor() { for (step in steps()) { step(6) } }
+    def withCatch() {
+        try { now() } catch (Exception err) { err(7) }
+    }
+    def withMulti() {
+        def (first, second) = pair()
+        first(8)
+    }
+
+    // A same-class method through a parameter of that name.
+    def withHandler(handler) { handler(9) }
+
+    // Positive controls: the initializer sees the function; a call after
+    // the block that declares a local reaches the function again.
+    def controls() {
+        def n = now()
+        if (n) {
+            def later = { x -> x }
+            later(10)
+        }
+        later(11)
+    }
+}
+"#
+        .as_bytes(),
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let edges: Vec<(String, String, u64)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                qn(&e["src"]),
+                qn(&e["dst"]),
+                e["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    let shadowed: Vec<(String, String)> = g["unresolved"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|u| u["reason"]["stage"] == "shadowed-by-local")
+        .map(|u| (qn(&u["src"]), u["name"].as_str().unwrap().to_string()))
+        .collect();
+    for (caller, name) in [
+        ("withParam", "cb"),
+        ("withParam", "fn"),
+        ("withClosure", "item"),
+        ("withIt", "it"),
+        ("withLocal", "ok"),
+        ("withFor", "step"),
+        ("withCatch", "err"),
+        ("withMulti", "first"),
+        ("withHandler", "handler"),
+    ] {
+        let (caller, name) = (format!("Main.{caller}"), format!("Main.{name}"));
+        assert!(
+            !edges.iter().any(|(s, d, _)| *s == caller && *d == name),
+            "{caller} -> {name}: {edges:?}"
+        );
+        let bare = name.trim_start_matches("Main.");
+        assert!(
+            shadowed.iter().any(|(s, n)| *s == caller && n == bare),
+            "{caller} {bare}(): {shadowed:?}"
+        );
+    }
+    for (caller, callee) in [
+        ("withFor", "steps"),
+        ("withCatch", "now"),
+        ("withMulti", "pair"),
+        ("controls", "now"),
+    ] {
+        assert!(
+            edges.iter().any(|(s, d, _)| *s == format!("Main.{caller}")
+                && *d == format!("Main.{callee}")),
+            "{caller} -> {callee}: {edges:?}"
+        );
+    }
+    // `later(11)`, after the block that declares a local `later`, line 51;
+    // `later(10)` inside it, line 49.
+    let later = |l: u64| {
+        edges
+            .iter()
+            .any(|(s, d, at)| s == "Main.controls" && d == "Main.later" && *at == l)
+    };
+    assert!(later(51), "{edges:?}");
+    assert!(!later(49), "{edges:?}");
+}

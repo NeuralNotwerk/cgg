@@ -671,6 +671,35 @@ otherwise change the default graph.
   `typedef` or struct/union/enum/class tag the file or its `#include`
   closure declares are types, never function values.
 
+- **Groovy parameters and locals did not shadow method names (WS27, gap
+  27).** A bare call through a Groovy parameter (`Closure<?> spec` then
+  `spec()`, an untyped `handler` then `handler(9)`), a closure parameter,
+  a closure's implicit `it`, a `def` local holding a closure (`def
+  factory = { … }; factory()`), a `for` variable, a `catch` parameter or
+  a multiple assignment (`def (a, b) = …`) bound the calling class's
+  method of that name at `high`, or a same-named method of another class
+  by name. Groovy now has a locals table: parameters of methods,
+  constructors and script functions (untyped ones included), closure
+  parameters in every shape the parser gives them (`{ a, b -> }`,
+  `{ String s, int n -> }`), Groovy 3 lambda parameters, `def` and typed
+  locals (in scope from the end of the statement, past continuation
+  lines such as a multi-line ternary, to the end of the block), classic
+  `for` initializers, `for (x in xs)` / `for (T x : xs)`, `catch`,
+  try-with-resources and `def (a, b) =`. A closure with no parameter
+  list binds `it` only where it stands as a value (an argument, a
+  trailing closure, an initializer). What the parser reads as a
+  declaration but is not one binds nothing: a command expression
+  (`succeeds tasks(':app')`), a method header it lost, words of a
+  multi-line string it read as code, or a declaration with an ERROR of
+  its own. A script's own `def x = …` is in scope in the script body and
+  its closures, not in its methods or classes, and only in a file that
+  declares no type. Fields are members, not locals: a `def` field
+  holding a bare call's result (`def configurationCache =
+  newConfigurationCacheFixture()`) now types its name, as a guess, in
+  every method where no local or parameter of the name is in scope. A
+  chain continued on a new line (`builder\n  .commandLine(x)`), which
+  the parser reads as a bare call, is recorded as a method call.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -1219,6 +1248,35 @@ WS27 C++ (full corpus, 283 repositories, none excluded):
   same-named parameter read as a function, such as spdlog's
   `filename()` methods, and misparsed C "functions" named `void` and
   `int`) and 30 change band; no `high` finding changes.
+
+WS27 Groovy (full corpus, 283 repositories, none excluded):
+
+- The default graph changes in one repository (Gradle), all in Groovy
+  files: 215 edges removed and 219 added, all `medium`; none change
+  confidence. Unresolved sites fall by 25: `shadowed-by-local` rises
+  from 252 to 322 and `fanout-cap-exceeded` falls by 252. Of the
+  removed, 33 were calls through a parameter or local (`spec()`,
+  `factory()`, `init(rootName)`) matched by name to another class's
+  method; 182 were by-name fan-outs from a receiver held in a `def`
+  field (`def property = property()`, `def container =
+  createContainer()`), which now has the type the field's call is
+  declared to return: a Java class outside the Groovy lookup
+  (`candidates-in-other-files`, 172) or the one fixture class among the
+  old candidates (10). Of the added, 199 are such field receivers
+  bound to their declared type (`configurationCache.assertStateStored()`
+  to `ConfigurationCacheBuildOperationsFixture`), where the fan-out was
+  refused over the cap before. 20 are wrong: in a Spock file whose
+  feature methods the parser merges into one, `provider.calculateValue()`
+  on a local holding `parent.withSideEffect(…)` was typed from another
+  feature's same-named local; it is now untyped and fans out by name
+  like any untyped receiver.
+- Under `--reference-edges`, no reference edge changes; the direct
+  edges change as above.
+- Under `--dead-code`, no finding changes.
+- A script's own variables change one audit record in the corpus (a
+  script-level call through one, now `shadowed-by-local`; 3 before the
+  rule that a file declaring a type has none): a call outside any method
+  has no caller in the graph, and no dead-code finding moves.
 
 ## [0.11.0] - 2026-10-16
 

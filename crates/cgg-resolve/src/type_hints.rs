@@ -3226,10 +3226,27 @@ fn lookup_call_local<'a>(
             std::cmp::Reverse(lt.scope_byte),
         )
     });
-    let lt = decls
-        .into_iter()
-        .find(|lt| local_decl_visible(ix, name, lt.scope_byte, site_byte))?;
+    // Groovy (WS27): a declaration no binding records is a field (`def
+    // property = property()` in a class body), visible wherever no local
+    // or parameter of its name is.
+    let groovy = facts.language == "groovy";
+    let lt = decls.into_iter().find(|lt| {
+        if groovy && !ix.binds(name).iter().any(|b| b.decl_byte == lt.scope_byte) {
+            groovy_field_visible(ix, name, site_byte)
+        } else {
+            local_decl_visible(ix, name, lt.scope_byte, site_byte)
+        }
+    })?;
     call_result_callee(&facts.language, &lt.type_name)
+}
+
+/// Whether a Groovy declaration no binding of the file's locals records
+/// (a field) is the name in scope at `site`: no local or parameter of the
+/// name holds the site.
+fn groovy_field_visible(ix: &LocalIndex<'_>, name: &str, site: u32) -> bool {
+    !ix.binds(name)
+        .iter()
+        .any(|b| b.start_byte <= site && site < b.end_byte)
 }
 
 /// Whether the declaration of `name` that starts at `decl_at` is the
@@ -4005,6 +4022,48 @@ mod tests {
             .map(|r| r.receiver_hint.as_str())
             .collect();
         assert_eq!(got, vec!["jobs.NewRunner()", "other.Open()", "r"]);
+    }
+
+    /// WS27: a Groovy `def` field holding a bare call's result (`def
+    /// property = make()`, a declaration no local binding records) types
+    /// its name in every method where no local or parameter of that name
+    /// is in scope; a parameter of the name hides it.
+    #[test]
+    fn groovy_def_field_types_its_name_where_no_local_hides_it() {
+        let defs = vec![
+            mk_def("make", "Tool make()", 0, 20),
+            mk_def("m1", "def m1()", 50, 150),
+            mk_def("m2", "def m2(property)", 150, 250),
+        ];
+        let call = |byte: u32| RefRecord {
+            name: "go".into(),
+            receiver_hint: "property".into(),
+            site_line: 1,
+            site_byte: byte,
+            ..Default::default()
+        };
+        let mut facts = mk_facts(defs, vec![call(100), call(200)]);
+        facts.language = "groovy".into();
+        facts.local_types = vec![LocalType {
+            var_name: "property".into(),
+            type_name: "make()".into(),
+            scope_byte: 30,
+        }];
+        facts.locals = vec![cgg_core::LocalBinding {
+            name: "property".into(),
+            start_byte: 150,
+            end_byte: 250,
+            decl_byte: 150,
+            param: true,
+        }];
+        propagate_types(&mut facts);
+        let got: Vec<&str> = facts
+            .references
+            .iter()
+            .map(|r| r.receiver_hint.as_str())
+            .collect();
+        assert_eq!(got, vec!["Tool", "property"]);
+        assert!(facts.references[0].weak_receiver_type, "a guess");
     }
 
     /// WS27: `v := f()` with `f` a local in scope calls a function

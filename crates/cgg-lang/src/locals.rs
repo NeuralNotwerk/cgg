@@ -16,6 +16,7 @@
 //! everything is a grammar node kind.
 
 use cgg_core::LocalBinding;
+use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 /// How a binder's scope is found.
@@ -520,6 +521,9 @@ pub fn collect(lang: &str, tree: &Tree, source: &[u8]) -> Vec<LocalBinding> {
     if lang == "c" || lang == "cpp" {
         return collect_c(tree, source, lang == "cpp");
     }
+    if lang == "groovy" {
+        return collect_groovy(tree, source);
+    }
     let Some(spec) = spec(lang) else {
         return Vec::new();
     };
@@ -984,6 +988,767 @@ fn c_variables(d: Node<'_>) -> Vec<Node<'_>> {
             .collect();
     }
     c_variable(d).into_iter().collect()
+}
+
+/// Groovy callables: a binding is a local only inside one (or a closure).
+const GROOVY_CALLABLES: &[&str] = &[
+    "method_declaration",
+    "constructor_declaration",
+    "function_definition",
+    "static_initializer",
+    "lambda_expression",
+    "closure",
+];
+
+/// Groovy bodies whose declarations are members (fields), not locals.
+const GROOVY_TYPE_BODIES: &[&str] = &[
+    "class_body",
+    "interface_body",
+    "enum_body",
+    "enum_body_declarations",
+    "annotation_type_body",
+];
+
+/// Groovy nodes a declaration's scope ends with (callables and closures
+/// too).
+const GROOVY_BLOCKS: &[&str] = &[
+    "block",
+    "constructor_body",
+    "switch_block_statement_group",
+    "switch_rule",
+    "for_statement",
+    "enhanced_for_statement",
+    "program",
+];
+
+/// Groovy declarations a script's own variables are not visible in: a
+/// script's methods and types see only their own and their class's names.
+const GROOVY_OPAQUE: &[&str] = &[
+    "class_declaration",
+    "interface_declaration",
+    "enum_declaration",
+    "annotation_type_declaration",
+    "record_declaration",
+    "method_declaration",
+    "constructor_declaration",
+    "function_definition",
+];
+
+/// Where a closure stands as a value (an argument, a trailing closure, an
+/// initializer): there one with no parameter list binds `it`. A `{ … }`
+/// the parser reads as a closure elsewhere is a block (a loop or `try`
+/// body read as a statement).
+const GROOVY_VALUE_PARENTS: &[&str] = &[
+    "method_invocation",
+    "argument_list",
+    "variable_declarator",
+    "assignment_expression",
+    "map_item",
+    "return_statement",
+    "parenthesized_expression",
+    "ternary_expression",
+    "array_literal",
+    "element_value_pair",
+];
+
+/// Groovy statement keywords the parser, recovering from an error, reads
+/// as the name of a call with a trailing closure (`try { … }`): that
+/// closure is a block, not a value.
+const GROOVY_BLOCK_KEYWORDS: &[&str] = &[
+    "if",
+    "else",
+    "for",
+    "while",
+    "do",
+    "try",
+    "catch",
+    "finally",
+    "switch",
+    "synchronized",
+];
+
+/// Words that never name a Groovy parameter.
+const GROOVY_NOT_NAMES: &[&str] = &[
+    "def", "var", "final", "static", "int", "long", "short", "byte", "char", "boolean",
+    "float", "double", "void", "in", "as", "new", "this", "super", "true", "false",
+    "null", "return", "if", "else", "for", "while",
+];
+
+/// Groovy (WS27): parameters of methods, constructors and script
+/// functions, in scope over the definition; closure parameters (`{ a, b
+/// -> … }`, typed or not) and lambda parameters over the closure or
+/// lambda, and the implicit `it` of a closure with no parameter list
+/// that stands as a value; `def` and typed locals, from the end of their
+/// declaration to the end of their block, closure or callable; classic
+/// `for` initializers; `for (x in xs)` / `for (T x : xs)` after the
+/// iterated value; `catch` parameters; try-with-resources; multiple
+/// assignment `def (a, b) = …`. Fields and properties are members, not
+/// locals.
+///
+/// tree-sitter-groovy reads much of Groovy as Java with errors: an
+/// untyped parameter is a type with an empty name, a closure's parameter
+/// list is a local declaration, a call or an `array_initializer` before a
+/// lambda with no parameters, and `def (a, b) =` is an ERROR. So a
+/// parameter list is read from its text between the delimiters the tree
+/// places (`(`…`)`, `{`…`->`), each parameter kept only when it is
+/// `[annotations] [modifiers] [Type] name [= default]`; nothing else
+/// inside an ERROR node is read.
+///
+/// A script's own `def x = …` (outside every class and method) is in
+/// scope in the script body and its closures, not in the script's
+/// methods or classes. Only in a file that declares no type: where a
+/// `class`, `interface` or `enum` appears, a top-level declaration may be
+/// a member of a class the parser lost.
+fn collect_groovy(tree: &Tree, src: &[u8]) -> Vec<LocalBinding> {
+    let mut w = GroovyWalk {
+        src,
+        out: Vec::new(),
+        arrows: HashMap::new(),
+        script: Vec::new(),
+        opaque: Vec::new(),
+        declares_type: false,
+    };
+    let mut chain: Vec<Node<'_>> = Vec::new();
+    let mut cursor = tree.walk();
+    loop {
+        let node = cursor.node();
+        w.visit(node, &chain);
+        if cursor.goto_first_child() {
+            chain.push(node);
+            continue;
+        }
+        loop {
+            if cursor.goto_next_sibling() {
+                break;
+            }
+            if !cursor.goto_parent() {
+                w.finish_script();
+                let mut out = w.out;
+                out.sort_by_key(|b| (b.start_byte, b.end_byte));
+                out.dedup();
+                return out;
+            }
+            chain.pop();
+        }
+    }
+}
+
+/// Where a Groovy declaration lives.
+enum GroovyCtx {
+    /// A member of a type: not a local.
+    Field,
+    /// Inside a callable or closure, in scope to this byte.
+    Local(u32),
+    /// A script's own variable, in scope to this byte outside the
+    /// script's methods and types.
+    Script(u32),
+}
+
+struct GroovyWalk<'s> {
+    src: &'s [u8],
+    out: Vec<LocalBinding>,
+    /// Closures with a parameter list, by node id: where its `->` starts
+    /// and the id of the lambda the parser hung the body on.
+    arrows: HashMap<usize, (u32, usize)>,
+    /// Script variables: name, declaration start, scope start and end.
+    script: Vec<(String, u32, u32, u32)>,
+    /// Outermost spans of the file's types and methods, in source order.
+    opaque: Vec<(u32, u32)>,
+    /// The file declares a type somewhere (or an ERROR holds the keyword
+    /// of one).
+    declares_type: bool,
+}
+
+impl GroovyWalk<'_> {
+    fn text(&self, n: Node<'_>) -> &str {
+        n.utf8_text(self.src).unwrap_or("")
+    }
+
+    fn push(&mut self, name: &str, start: usize, end: usize, decl: usize, param: bool) {
+        if !groovy_ident(name) || start >= end {
+            return;
+        }
+        self.out.push(LocalBinding {
+            name: name.to_string(),
+            start_byte: start as u32,
+            end_byte: end as u32,
+            decl_byte: decl.min(start) as u32,
+            param,
+        });
+    }
+
+    fn visit(&mut self, node: Node<'_>, chain: &[Node<'_>]) {
+        let kind = node.kind();
+        if GROOVY_OPAQUE.contains(&kind)
+            && self
+                .opaque
+                .last()
+                .is_none_or(|&(_, e)| (node.start_byte() as u32) >= e)
+        {
+            self.opaque
+                .push((node.start_byte() as u32, node.end_byte() as u32));
+        }
+        if matches!(kind, "class" | "interface" | "enum")
+            && chain.last().is_none_or(|p| p.kind() != "class_literal")
+        {
+            self.declares_type = true;
+        }
+        match kind {
+            // A method's, constructor's or script function's own list.
+            "formal_parameters" => {
+                let Some(owner) = chain.last().copied() else {
+                    return;
+                };
+                if !matches!(
+                    owner.kind(),
+                    "method_declaration"
+                        | "constructor_declaration"
+                        | "function_definition"
+                ) || owner.child_by_field_name("parameters").map(|p| p.id())
+                    != Some(node.id())
+                {
+                    return;
+                }
+                let inner = self.text(node);
+                let inner = inner
+                    .strip_prefix('(')
+                    .and_then(|t| t.strip_suffix(')'))
+                    .unwrap_or("");
+                for name in groovy_param_names(inner) {
+                    self.push(
+                        &name,
+                        owner.start_byte(),
+                        owner.end_byte(),
+                        owner.start_byte(),
+                        true,
+                    );
+                }
+            }
+            "closure" | "array_initializer" => self.closure(node, chain),
+            "lambda_expression" => {
+                let handled = chain.iter().rev().take(2).any(|p| {
+                    self.arrows
+                        .get(&p.id())
+                        .is_some_and(|&(_, lambda)| lambda == node.id())
+                });
+                if handled {
+                    return;
+                }
+                let Some(params) = node.child_by_field_name("parameters") else {
+                    return;
+                };
+                let names: Vec<String> = match params.kind() {
+                    "identifier" => vec![self.text(params).to_string()],
+                    "inferred_parameters" => {
+                        let mut c = params.walk();
+                        params
+                            .named_children(&mut c)
+                            .filter(|n| n.kind() == "identifier")
+                            .map(|n| self.text(n).to_string())
+                            .collect()
+                    }
+                    "formal_parameters" => {
+                        let t = self.text(params);
+                        let t = t
+                            .strip_prefix('(')
+                            .and_then(|t| t.strip_suffix(')'))
+                            .unwrap_or("");
+                        groovy_param_names(t)
+                    }
+                    _ => Vec::new(),
+                };
+                for name in names {
+                    self.push(
+                        &name,
+                        node.start_byte(),
+                        node.end_byte(),
+                        node.start_byte(),
+                        true,
+                    );
+                }
+            }
+            "local_variable_declaration" => {
+                // A closure's parameter list the parser read as a
+                // declaration (`{ a, b -> … }`).
+                if let Some(p) = chain.last()
+                    && let Some(&(arrow, _)) = self.arrows.get(&p.id())
+                    && (node.start_byte() as u32) < arrow
+                {
+                    return;
+                }
+                if !groovy_declaration(node, self.src) {
+                    return;
+                }
+                let mut names = Vec::new();
+                let mut c = node.walk();
+                for d in node.children_by_field_name("declarator", &mut c) {
+                    if let Some(n) = d.child_by_field_name("name")
+                        && n.kind() == "identifier"
+                    {
+                        names.push(self.text(n).to_string());
+                    }
+                }
+                let start = groovy_statement_end(self.src, node.end_byte());
+                self.declare(names, node.start_byte(), start, chain);
+            }
+            // `def (a, b) = …`: the parser stops at `=` and reads the
+            // list as parameters; the value is the next statement.
+            "ERROR" if node.child_count() == 3 => {
+                let (Some(kw), Some(list), Some(eq)) =
+                    (node.child(0), node.child(1), node.child(2))
+                else {
+                    return;
+                };
+                if kw.kind() != "def" || eq.kind() != "=" {
+                    return;
+                }
+                let names: Vec<String> = match list.kind() {
+                    "inferred_parameters" => {
+                        let mut c = list.walk();
+                        list.named_children(&mut c)
+                            .filter(|n| n.kind() == "identifier")
+                            .map(|n| self.text(n).to_string())
+                            .collect()
+                    }
+                    "formal_parameters" => {
+                        let t = self.text(list);
+                        let t = t
+                            .strip_prefix('(')
+                            .and_then(|t| t.strip_suffix(')'))
+                            .unwrap_or("");
+                        groovy_param_names(t)
+                    }
+                    _ => return,
+                };
+                let start = node
+                    .next_named_sibling()
+                    .map_or(node.end_byte(), |v| v.end_byte());
+                self.declare(names, node.start_byte(), start, chain);
+            }
+            // `for (x in xs)` / `for (T x : xs)`: after the iterated value.
+            "enhanced_for_statement" => {
+                if let Some(n) = node.child_by_field_name("name")
+                    && n.kind() == "identifier"
+                {
+                    let from = node
+                        .child_by_field_name("value")
+                        .map_or(n.end_byte(), |v| v.end_byte());
+                    let name = self.text(n).to_string();
+                    self.push(&name, from, node.end_byte(), node.start_byte(), false);
+                }
+            }
+            "catch_formal_parameter" => {
+                if let (Some(n), Some(clause)) =
+                    (node.child_by_field_name("name"), chain.last().copied())
+                    && clause.kind() == "catch_clause"
+                {
+                    let name = self.text(n).to_string();
+                    self.push(
+                        &name,
+                        n.end_byte(),
+                        clause.end_byte(),
+                        clause.start_byte(),
+                        false,
+                    );
+                }
+            }
+            // `try (def r = open()) { … }`.
+            "resource" => {
+                if let Some(n) = node.child_by_field_name("name")
+                    && let Some(t) = chain
+                        .iter()
+                        .rev()
+                        .find(|p| p.kind() == "try_with_resources_statement")
+                {
+                    let name = self.text(n).to_string();
+                    self.push(
+                        &name,
+                        node.end_byte(),
+                        t.end_byte(),
+                        node.start_byte(),
+                        false,
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// A closure (or the `array_initializer` the parser reads one with a
+    /// bare parameter list as): its parameters before `->`, else `it`.
+    fn closure(&mut self, node: Node<'_>, chain: &[Node<'_>]) {
+        let lambda = groovy_closure_lambda(node);
+        if node.kind() == "array_initializer" && lambda.is_none() {
+            return;
+        }
+        let Some(lambda) = lambda else {
+            // `xs.each { it.go() }`.
+            let Some(parent) = chain.last().copied() else {
+                return;
+            };
+            let block_call = parent.kind() == "method_invocation"
+                && parent
+                    .child_by_field_name("name")
+                    .is_some_and(|n| GROOVY_BLOCK_KEYWORDS.contains(&self.text(n)));
+            if GROOVY_VALUE_PARENTS.contains(&parent.kind()) && !block_call {
+                self.out.push(LocalBinding {
+                    name: "it".to_string(),
+                    start_byte: node.start_byte() as u32,
+                    end_byte: node.end_byte() as u32,
+                    decl_byte: node.start_byte() as u32,
+                    param: true,
+                });
+            }
+            return;
+        };
+        let mut c = lambda.walk();
+        let Some(arrow) = lambda.children(&mut c).find(|n| n.kind() == "->") else {
+            return;
+        };
+        self.arrows
+            .insert(node.id(), (arrow.start_byte() as u32, lambda.id()));
+        let text = self
+            .src
+            .get(node.start_byte()..arrow.start_byte())
+            .and_then(|t| std::str::from_utf8(t).ok())
+            .and_then(|t| t.strip_prefix('{'))
+            .unwrap_or("");
+        for name in groovy_param_names(text) {
+            self.push(
+                &name,
+                node.start_byte(),
+                node.end_byte(),
+                node.start_byte(),
+                true,
+            );
+        }
+    }
+
+    /// Record a declaration of `names` whose statement starts at `decl`
+    /// and whose names are in scope from `start`.
+    fn declare(
+        &mut self,
+        names: Vec<String>,
+        decl: usize,
+        start: usize,
+        chain: &[Node<'_>],
+    ) {
+        match groovy_ctx(chain, &self.arrows) {
+            GroovyCtx::Field => {}
+            GroovyCtx::Local(end) => {
+                for n in names {
+                    self.push(&n, start, end as usize, decl, false);
+                }
+            }
+            GroovyCtx::Script(end) => {
+                for n in names {
+                    self.script.push((n, decl as u32, start as u32, end));
+                }
+            }
+        }
+    }
+
+    /// A script variable is in scope over the rest of its block, except
+    /// inside the script's methods and types.
+    fn finish_script(&mut self) {
+        if self.declares_type {
+            return;
+        }
+        let opaque = std::mem::take(&mut self.opaque);
+        for (name, decl, start, end) in std::mem::take(&mut self.script) {
+            let mut from = start;
+            for &(s, e) in &opaque {
+                if e <= from || s >= end {
+                    continue;
+                }
+                if from < s {
+                    self.push(&name, from as usize, s as usize, decl as usize, false);
+                }
+                from = from.max(e);
+            }
+            if from < end {
+                self.push(&name, from as usize, end as usize, decl as usize, false);
+            }
+        }
+    }
+}
+
+/// Whether a declaration under `chain` is a member, a local or a
+/// script variable, and where its scope ends.
+fn groovy_ctx(chain: &[Node<'_>], arrows: &HashMap<usize, (u32, usize)>) -> GroovyCtx {
+    let mut block_end: Option<u32> = None;
+    for n in chain.iter().rev() {
+        let k = n.kind();
+        let closure_like = k == "array_initializer" && arrows.contains_key(&n.id());
+        if GROOVY_CALLABLES.contains(&k) || closure_like {
+            return GroovyCtx::Local(block_end.unwrap_or(n.end_byte() as u32));
+        }
+        if GROOVY_TYPE_BODIES.contains(&k) {
+            // A block directly in a class body is an initializer.
+            return match block_end {
+                Some(e) => GroovyCtx::Local(e),
+                None => GroovyCtx::Field,
+            };
+        }
+        if k == "program" {
+            return GroovyCtx::Script(block_end.unwrap_or(n.end_byte() as u32));
+        }
+        if block_end.is_none() && GROOVY_BLOCKS.contains(&k) {
+            block_end = Some(n.end_byte() as u32);
+        }
+    }
+    GroovyCtx::Field
+}
+
+/// The lambda a closure's body hangs on when the closure has a parameter
+/// list (`{ a -> … }`, `{ a, b -> … }`, `{ String s, int n -> … }`,
+/// `{ -> … }`): its first named child, or the first after what the
+/// parser made of the parameters, alone or as an expression statement.
+fn groovy_closure_lambda(n: Node<'_>) -> Option<Node<'_>> {
+    let mut c = n.walk();
+    for ch in n.named_children(&mut c) {
+        match ch.kind() {
+            "lambda_expression" => return Some(ch),
+            "expression_statement" => {
+                return ch
+                    .named_child(0)
+                    .filter(|l| l.kind() == "lambda_expression");
+            }
+            "local_variable_declaration" | "juxt_function_call" | "identifier" => {}
+            _ => return None,
+        }
+    }
+    None
+}
+
+/// Whether an ERROR sits directly in a Groovy declaration or one of its
+/// declarators (`once per project`, a lost method header hung on a
+/// field). An error inside a value (`new X([:])`) or the MISSING `;` the
+/// grammar expects after every statement is not one.
+pub(crate) fn groovy_declaration_has_error(node: Node<'_>) -> bool {
+    let mut c = node.walk();
+    node.children(&mut c).any(|k| {
+        k.is_error()
+            || (k.kind() == "variable_declarator" && {
+                let mut dc = k.walk();
+                k.children(&mut dc).any(|d| d.is_error())
+            })
+    })
+}
+
+/// Where the statement a declaration ending at `end` begins really ends:
+/// past each following line that continues it (`? a()`, `: b()`,
+/// `.c()`, `&& d`, `+ e`), which the parser reads as a statement of its
+/// own. The initializer on those lines still sees the outer name
+/// (`def runner = dir ? withDir(dir) : runner()`).
+fn groovy_statement_end(src: &[u8], end: usize) -> usize {
+    let mut pos = end.min(src.len());
+    loop {
+        let Some(off) = src[pos..].iter().position(|b| !b.is_ascii_whitespace()) else {
+            return pos;
+        };
+        let next = pos + off;
+        let crosses_line = src[pos..next].contains(&b'\n')
+            || src.get(pos.wrapping_sub(1)) == Some(&b'\n');
+        if !crosses_line || !matches!(src[next], b'.' | b'?' | b':' | b'&' | b'|' | b'+')
+        {
+            return pos;
+        }
+        pos = src[next..]
+            .iter()
+            .position(|&b| b == b'\n')
+            .map_or(src.len(), |i| next + i + 1);
+    }
+}
+
+/// Whether a `local_variable_declaration` is one. The parser also reads a
+/// command expression (`succeeds tasks(':app')`, `a.extendsFrom
+/// provider(b)`), a method header it lost (`private Task task(String
+/// name) {`) and words inside a multi-line string as declarations. A
+/// declaration ends its statement (a newline, `;`, `}` or the end of the
+/// file follows it on its line), holds no ERROR of its own, and is typed by `def`,
+/// `var` or modifiers alone, a primitive, or a type whose simple name is
+/// capitalized, with a value; a command expression's verb is a
+/// lowercase word, and a word or two alone on a line (text of a
+/// multi-line string the parser read as code) has no type, or no value.
+fn groovy_declaration(node: Node<'_>, src: &[u8]) -> bool {
+    if groovy_declaration_has_error(node) {
+        return false;
+    }
+    let text = src.get(node.start_byte()..node.end_byte()).unwrap_or(&[]);
+    let body_end = text
+        .iter()
+        .rposition(|b| !b.is_ascii_whitespace())
+        .map_or(0, |i| i + 1);
+    let trailing = &text[body_end..];
+    let terminated = text.get(body_end.wrapping_sub(1)) == Some(&b';')
+        || trailing.contains(&b'\n')
+        || src[node.end_byte()..]
+            .iter()
+            .find(|b| !matches!(b, b' ' | b'\t'))
+            .is_none_or(|b| matches!(b, b'\n' | b'\r' | b';' | b'}' | b'/'));
+    if !terminated {
+        return false;
+    }
+    let Some(ty) = node.child_by_field_name("type") else {
+        // `def x = …`, `final x = …`; a bare word on its own line (text
+        // the parser took for code) declares nothing.
+        let mut c = node.walk();
+        return node
+            .children(&mut c)
+            .any(|k| matches!(k.kind(), "def" | "var" | "modifiers"));
+    };
+    let simple = match ty.kind() {
+        "type_identifier" => Some(ty),
+        "scoped_type_identifier" => {
+            ty.named_child(ty.named_child_count().saturating_sub(1) as u32)
+        }
+        "generic_type" => ty.named_child(0).and_then(|t| match t.kind() {
+            "scoped_type_identifier" => {
+                t.named_child(t.named_child_count().saturating_sub(1) as u32)
+            }
+            _ => Some(t),
+        }),
+        "array_type" => ty.child_by_field_name("element").map(|e| {
+            if e.kind() == "generic_type" {
+                e.named_child(0).unwrap_or(e)
+            } else {
+                e
+            }
+        }),
+        // `int`, `boolean`, `void`, …
+        _ => return true,
+    };
+    // `String name` with no value reads the same as two words of a
+    // multi-line string the parser took for code (`No dependencies`).
+    let mut c = node.walk();
+    if !node
+        .children_by_field_name("declarator", &mut c)
+        .any(|d| d.child_by_field_name("value").is_some())
+    {
+        return false;
+    }
+    let Some(simple) = simple else { return false };
+    if simple.kind() != "type_identifier" {
+        return true;
+    }
+    let name = simple.utf8_text(src).unwrap_or("");
+    name == "def" || name == "var" || name.chars().next().is_some_and(char::is_uppercase)
+}
+
+fn groovy_ident(s: &str) -> bool {
+    let mut cs = s.chars();
+    cs.next()
+        .is_some_and(|c| c.is_alphabetic() || c == '_' || c == '$')
+        && cs.all(|c| c.is_alphanumeric() || c == '_' || c == '$')
+        && s != "_"
+}
+
+/// The names a Groovy parameter list's text declares (without its
+/// delimiters): each comma-separated parameter that reads as
+/// `[@Annotation(…)…] [modifiers] [Type] name [= default]`. A piece that
+/// does not is skipped.
+fn groovy_param_names(text: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut depth = 0i32;
+    let mut quote: Option<char> = None;
+    let mut piece_start = 0usize;
+    let mut chars = text.char_indices().peekable();
+    let mut pieces: Vec<&str> = Vec::new();
+    while let Some((i, ch)) = chars.next() {
+        if let Some(q) = quote {
+            if ch == '\\' {
+                chars.next();
+            } else if ch == q {
+                quote = None;
+            }
+            continue;
+        }
+        match ch {
+            '"' | '\'' => quote = Some(ch),
+            '(' | '[' | '{' | '<' => depth += 1,
+            ')' | ']' | '}' | '>' => depth = (depth - 1).max(0),
+            ',' if depth == 0 => {
+                pieces.push(&text[piece_start..i]);
+                piece_start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    pieces.push(&text[piece_start..]);
+    for p in pieces {
+        if let Some(n) = groovy_param_name(p) {
+            out.push(n);
+        }
+    }
+    out
+}
+
+fn groovy_param_name(piece: &str) -> Option<String> {
+    // The default value.
+    let mut p = piece;
+    let mut depth = 0i32;
+    for (i, ch) in piece.char_indices() {
+        match ch {
+            '(' | '[' | '{' | '<' => depth += 1,
+            ')' | ']' | '}' | '>' => depth = (depth - 1).max(0),
+            '=' if depth == 0 => {
+                p = &piece[..i];
+                break;
+            }
+            _ => {}
+        }
+    }
+    let mut p = p.trim();
+    // Annotations: `@Name`, `@a.b.Name(…)`.
+    while let Some(rest) = p.strip_prefix('@') {
+        let end = rest
+            .find(|c: char| !(c.is_alphanumeric() || c == '_' || c == '$' || c == '.'))
+            .unwrap_or(rest.len());
+        let mut rest = rest[end..].trim_start();
+        if rest.starts_with('(') {
+            let mut d = 0i32;
+            let mut close = None;
+            for (i, ch) in rest.char_indices() {
+                match ch {
+                    '(' => d += 1,
+                    ')' => {
+                        d -= 1;
+                        if d == 0 {
+                            close = Some(i);
+                            break;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            rest = rest[close? + 1..].trim_start();
+        }
+        p = rest;
+    }
+    // Type arguments carry their own spaces and commas.
+    let mut flat = String::with_capacity(p.len());
+    let mut depth = 0i32;
+    for ch in p.chars() {
+        match ch {
+            '<' => depth += 1,
+            '>' => depth = (depth - 1).max(0),
+            _ if depth == 0 => flat.push(ch),
+            _ => {}
+        }
+    }
+    let tokens: Vec<&str> = flat.split_whitespace().collect();
+    let (last, lead) = tokens.split_last()?;
+    let type_like = |t: &str| {
+        !t.is_empty()
+            && t.chars()
+                .all(|c| c.is_alphanumeric() || matches!(c, '_' | '$' | '.' | '[' | ']'))
+    };
+    if !lead.iter().all(|t| type_like(t.trim_end_matches("..."))) {
+        return None;
+    }
+    let name = last.trim_start_matches("...").trim_end_matches("[]");
+    (groovy_ident(name) && !GROOVY_NOT_NAMES.contains(&name)).then(|| name.to_string())
 }
 
 /// Lua `local` declarations at file scope (WS19): in scope from the end of
@@ -2008,5 +2773,192 @@ mod tests {
         assert!(!at("e", "e()", 1));
         assert!(at("cb", "cb()", 0));
         assert!(!at("cb", "cb()", 1));
+    }
+
+    fn groovy_locals(src: &str) -> Vec<LocalBinding> {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_groovy::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        collect("groovy", &tree, src.as_bytes())
+    }
+
+    /// Whether `name` is bound at the `nth` occurrence of `needle`.
+    fn bound_at(
+        got: &[LocalBinding],
+        src: &str,
+        name: &str,
+        needle: &str,
+        nth: usize,
+    ) -> bool {
+        let site = src.match_indices(needle).nth(nth).expect(needle).0 as u32;
+        got.iter()
+            .any(|b| b.name == name && b.start_byte <= site && site < b.end_byte)
+    }
+
+    /// Groovy (WS27): method, constructor and script-function parameters
+    /// (untyped ones too, which the parser reads as a type with no name),
+    /// closure parameters in every shape the parser gives them, Groovy 3
+    /// lambdas, `def` and typed locals, `for` variables, `catch` and
+    /// multiple assignment; never a field or a property.
+    #[test]
+    fn groovy_binding_forms() {
+        let src = "class Svc {\n\
+                   def field = 1\n\
+                   String prop\n\
+                   Svc(Closure init) { init() }\n\
+                   def run(cb, x = 1, def y, Object... rest) {\n\
+                   def c1 = { String a, int b -> a(b) }\n\
+                   def c2 = { k1, k2 -> k1(k2) }\n\
+                   items.each { Map<String, Integer> m, n2 ->\n m()\n }\n\
+                   items.each { item -> item() }\n\
+                   String typed = 't'\n\
+                   def (p, q) = pair()\n\
+                   for (e1 in xs) { e1() }\n\
+                   for (int i = 0; i < 3; i++) { }\n\
+                   for (String e2 : xs) { e2() }\n\
+                   try { go() } catch (IOException ex) { ex() }\n\
+                   def lam = (l1, l2) -> l1(l2)\n\
+                   }\n\
+                   }\n\
+                   def top(fn, int n) { fn(n) }\n";
+        let got = groovy_locals(src);
+        let names: Vec<&str> = got.iter().map(|b| b.name.as_str()).collect();
+        for want in [
+            "init", "cb", "x", "y", "rest", "a", "b", "c1", "k1", "k2", "c2", "m", "n2",
+            "item", "typed", "p", "q", "e1", "i", "e2", "ex", "lam", "l1", "l2", "fn",
+            "n",
+        ] {
+            assert!(names.contains(&want), "{want} in {names:?}");
+        }
+        for not in [
+            "field", "prop", "Svc", "run", "top", "String", "int", "Map", "xs",
+        ] {
+            assert!(!names.contains(&not), "{not} in {names:?}");
+        }
+        let param = |n: &str| got.iter().find(|b| b.name == n).unwrap().param;
+        for p in [
+            "init", "cb", "x", "rest", "a", "k1", "m", "item", "l1", "fn",
+        ] {
+            assert!(param(p), "{p} is a parameter");
+        }
+        for l in ["c1", "typed", "p", "e1", "i", "ex", "lam"] {
+            assert!(!param(l), "{l} is a local");
+        }
+    }
+
+    /// Groovy scopes: a closure parameter only inside its closure; `it`
+    /// only in a closure with no parameter list that stands as a value;
+    /// a local after its declaration (not in its own initializer) to the
+    /// end of its block; a `for` variable after its iterated value.
+    #[test]
+    fn groovy_scopes() {
+        let src = "class C {\n\
+                   def run() {\n\
+                   xs.each { it() }\n\
+                   xs.each { -> it() }\n\
+                   xs.each { v -> v() }\n\
+                   v()\n\
+                   def h = h()\n\
+                   h()\n\
+                   if (ok) { def blk = 1; blk() }\n\
+                   blk()\n\
+                   for (z in z()) { z() }\n\
+                   def runner = ok\n  ? other()\n  : runner()\n\
+                   runner()\n\
+                   }\n\
+                   }\n";
+        let got = groovy_locals(src);
+        assert!(
+            !bound_at(&got, src, "runner", "runner()", 0),
+            "a continued initializer"
+        );
+        assert!(bound_at(&got, src, "runner", "runner()", 1));
+        assert!(bound_at(&got, src, "it", "it()", 0), "{got:?}");
+        assert!(
+            !bound_at(&got, src, "it", "it()", 1),
+            "an explicit empty list"
+        );
+        assert!(bound_at(&got, src, "v", "v()", 0));
+        assert!(!bound_at(&got, src, "v", "v()", 1));
+        assert!(!bound_at(&got, src, "h", "h()", 0), "its own initializer");
+        assert!(bound_at(&got, src, "h", "h()", 1));
+        assert!(bound_at(&got, src, "blk", "blk()", 0));
+        assert!(!bound_at(&got, src, "blk", "blk()", 1));
+        assert!(!bound_at(&got, src, "z", "z()", 0), "the iterated value");
+        assert!(bound_at(&got, src, "z", "z()", 1));
+    }
+
+    /// A script's own variables are in scope in the script body and its
+    /// closures, never in the script's methods or classes; a closure the
+    /// parser misreads as a loop or `try` body binds no `it`.
+    #[test]
+    fn groovy_script_variables() {
+        let src = "def run = { -> 1 }\n\
+                   run()\n\
+                   task t { doLast { run() } }\n\
+                   def helper() { run() }\n\
+                   println(String.class)\n\
+                   run()\n";
+        let got = groovy_locals(src);
+        assert!(bound_at(&got, src, "run", "run()", 0));
+        assert!(bound_at(&got, src, "run", "run()", 1), "a closure");
+        assert!(!bound_at(&got, src, "run", "run()", 2), "a script method");
+        assert!(bound_at(&got, src, "run", "run()", 3), "after it");
+        // A file that declares a class: top-level declarations may be
+        // members of a class the parser lost.
+        let with_class = format!("{src}class K {{ def m() {{ run() }} }}\n");
+        assert!(
+            !groovy_locals(&with_class).iter().any(|b| b.name == "run"),
+            "{with_class}"
+        );
+        let blocks = groovy_locals("class C { def f() { try { it() } finally { } } }\n");
+        assert!(!blocks.iter().any(|b| b.name == "it"), "{blocks:?}");
+    }
+
+    /// What the parser reads as a declaration but is not one binds
+    /// nothing: a command expression (`succeeds tasks(':app')`, `a.extendsFrom
+    /// provider(b)`, `noop thing`), a method header it lost, words inside a
+    /// multi-line string; a field is a member. Real declarations beside
+    /// them still bind.
+    #[test]
+    fn groovy_misread_declarations_bind_nothing() {
+        let src = "class C {\n\
+                   def f() {\n\
+                   succeeds tasks(':app').release.assemble\n\
+                   master.extendsFrom provider(one), provider(two)\n\
+                   noop thing\n\
+                   bare\n\
+                   def kept = 1\n\
+                   List<String> names = []\n\
+                   int count = 0\n\
+                   No value\n\
+                   def later\n\
+                   }\n\
+                   }\n\
+                   protected abstract C lost(Collection<String> values)\n";
+        let got = groovy_locals(src);
+        let names: Vec<&str> = got.iter().map(|b| b.name.as_str()).collect();
+        for not in ["tasks", "provider", "thing", "lost", "bare", "value"] {
+            assert!(!names.contains(&not), "{not} in {names:?}");
+        }
+        for want in ["kept", "names", "count", "later"] {
+            assert!(names.contains(&want), "{want} in {names:?}");
+        }
+    }
+
+    /// A Groovy parameter list's text: defaults, annotations, generics,
+    /// arrays and varargs; a piece that is not a parameter is skipped.
+    #[test]
+    fn groovy_parameter_text() {
+        assert_eq!(
+            groovy_param_names(
+                " @Named('a, b') final Map<String, List<Integer>> m, int[] xs = [1, 2], \
+                 String... rest, untyped, f = { a, b -> a }, foo(), 'str' "
+            ),
+            vec!["m", "xs", "rest", "untyped", "f"]
+        );
+        assert!(groovy_param_names(" ").is_empty());
+        assert!(groovy_param_names("int").is_empty());
     }
 }
