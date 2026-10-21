@@ -1,0 +1,1 @@
+{"repo": "scala-spark", "lang": "r", "src": "f", "dst": "g", "dst_path": "/storage/cgg-test_repos/scala-spark/R/pkg/tests/fulltests/test_utils.R", "site_path": "/storage/cgg-test_repos/scala-spark/R/pkg/tests/fulltests/test_utils.R", "site_line": 141, "via": "direct", "confidence": "high", "resolver": "intra-file", "line": "g(x)"}

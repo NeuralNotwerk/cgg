@@ -1,0 +1,11 @@
+old: cgg 0.11.0 (dev g752d05c)  sha256=4b5881ee1ee6d6fbe8932c36df121b3bbcade90d02deaf32caeecdf42d72cbb2
+new: cgg 0.11.0 (dev g752d05c+d12a73cd)  sha256=db56a28ee339c3c8613cf43fdf178ace31742e6b28e9974638be60a0b8db3073
+old=target/remediation/bins/WS27-r-before
+new=target/remediation/bins/WS27-r-r2
+repos=283 elapsed=242s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 2
+  r-ggplot2: edges 436->432 (-4 +0 ~0) callables 1070->1070 unresolved 9034->9038 files 358->358 deadhigh 0->0 
+  scala-spark: edges 303165->303166 (-0 +1 ~0) callables 112369->112369 unresolved 742811->742810 files 9202->9202 deadhigh 68->68 
+by language: see by_language.tsv
+

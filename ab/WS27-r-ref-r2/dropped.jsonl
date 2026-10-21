@@ -1,0 +1,4 @@
+{"repo": "r-ggplot2", "key": ["r", "{\"kind\": \"direct\"}", "compute_bins", "/storage/cgg-test_repos/r-ggplot2/R/bin.R", "bins", "/storage/cgg-test_repos/r-ggplot2/R/bin.R", 165, "high"]}
+{"repo": "r-ggplot2", "key": ["r", "{\"kind\": \"direct\"}", "build_strip", "/storage/cgg-test_repos/r-ggplot2/R/facet-labeller.R", "labeller", "/storage/cgg-test_repos/r-ggplot2/R/facet-labeller.R", 488, "high"]}
+{"repo": "r-ggplot2", "key": ["r", "{\"kind\": \"direct\"}", "call_f", "/storage/cgg-test_repos/r-ggplot2/R/stat-summary-bin.R", "fun", "/storage/cgg-test_repos/r-ggplot2/R/stat-summary-bin.R", 130, "high"]}
+{"repo": "r-ggplot2", "key": ["r", "{\"kind\": \"direct\"}", "wrap_hmisc", "/storage/cgg-test_repos/r-ggplot2/R/stat-summary.R", "fun", "/storage/cgg-test_repos/r-ggplot2/R/stat-summary.R", 268, "high"]}

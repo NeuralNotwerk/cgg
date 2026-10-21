@@ -1,0 +1,1412 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "clojure",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "framework:entry-node",
+        "toplevel:invocation"
+      ],
+      "files": 12,
+      "callables": 79,
+      "roots": 28,
+      "reachable": 56,
+      "reachable_pct": 70,
+      "findings": 23
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 79,
+    "edges": 157,
+    "unresolved_call_sites": 140,
+    "roots": 28,
+    "candidates": 23,
+    "reported": 23,
+    "regions": 14
+  },
+  "roots": [
+    {
+      "id": "Cvxfkejh1f8",
+      "qualified_name": "compojure.coercions/as-int",
+      "language": "clojure",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/clojure-compojure/test/compojure/core_test.clj:57"
+    },
+    {
+      "id": "C178pjjzkb20",
+      "qualified_name": "compojure.core/GET",
+      "language": "clojure",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/clojure-compojure/test/compojure/core_test.clj:84"
+    },
+    {
+      "id": "Cpdsr8xweme",
+      "qualified_name": "compojure.response/render",
+      "language": "clojure",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/clojure-compojure/test/compojure/core_test.clj:130"
+    },
+    {
+      "id": "C4xlexci8ot",
+      "qualified_name": "compojure.response/send",
+      "language": "clojure",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/clojure-compojure/test/compojure/response_test.clj:82"
+    },
+    {
+      "id": "Cqz1evi27tg",
+      "qualified_name": "compojure.route/files",
+      "language": "clojure",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/clojure-compojure/test/compojure/route_test.clj:35"
+    },
+    {
+      "id": "Cjir8jxxfll",
+      "qualified_name": "compojure.route/resources",
+      "language": "clojure",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/clojure-compojure/test/compojure/route_test.clj:26"
+    },
+    {
+      "id": "C9kvhz7hy1k",
+      "qualified_name": "compojure.route/not-found",
+      "language": "clojure",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/clojure-compojure/test/compojure/middleware_test.clj:14"
+    },
+    {
+      "id": "C690ly8zlxp",
+      "qualified_name": "compojure.response-test/expected-response",
+      "language": "clojure",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "named at class or module level at /storage/cgg-test_repos/clojure-compojure/test/compojure/response_test.clj:23"
+    },
+    {
+      "id": "C14frj0oqx5t",
+      "qualified_name": "compojure.response-test/handler-multi",
+      "language": "clojure",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "named at class or module level at /storage/cgg-test_repos/clojure-compojure/test/compojure/response_test.clj:36"
+    },
+    {
+      "id": "Cwfv7b6csoz",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/foo\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::get(\"/foo\")`"
+    },
+    {
+      "id": "C2282hecrii",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/:x\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::get(\"/:x\")`"
+    },
+    {
+      "id": "Ce1kz5q6o1h",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/:x/:y\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::get(\"/:x/:y\")`"
+    },
+    {
+      "id": "Cprqdwg6t2b",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/foo/:x\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::get(\"/foo/:x\")`"
+    },
+    {
+      "id": "Cfkaqz4jl4k",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/foo/:x\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::context(\"/foo/:x\")`"
+    },
+    {
+      "id": "C7wkrergzei",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::get(\"/\")`"
+    },
+    {
+      "id": "Cap7xtvyuzv",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/foo/*\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::get(\"/foo/*\")`"
+    },
+    {
+      "id": "C12dtrydqh8l",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/bar\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::get(\"/bar\")`"
+    },
+    {
+      "id": "Cc6q0ca3eqj",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/foo/:foo-id\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::context(\"/foo/:foo-id\")`"
+    },
+    {
+      "id": "C11q5gyjaqt",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/foo/:id\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::context(\"/foo/:id\")`"
+    },
+    {
+      "id": "Cc6ufrwynl2",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/ip/:ip\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::context(\"/ip/:ip\")`"
+    },
+    {
+      "id": "Ccrj4hkiseo",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/ip\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::context(\"/ip\")`"
+    },
+    {
+      "id": "Cuqjv9g9iya",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/emote/:emote\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::context(\"/emote/:emote\")`"
+    },
+    {
+      "id": "C7dwnx78oec",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/emote\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::context(\"/emote\")`"
+    },
+    {
+      "id": "Cseywiu356",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::context(\"/\")`"
+    },
+    {
+      "id": "Cf63ltpalir",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/hello/:name\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::get(\"/hello/:name\")`"
+    },
+    {
+      "id": "Cw96hapqx15",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/:name\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::context(\"/:name\")`"
+    },
+    {
+      "id": "Chbvlwp4vxa",
+      "qualified_name": "<framework-entry>::network::compojure::get(\"/baz\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::get(\"/baz\")`"
+    },
+    {
+      "id": "Chnvkasnzlj",
+      "qualified_name": "<framework-entry>::network::compojure::context(\"/:id\")",
+      "language": "clojure",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::compojure::context(\"/:id\")`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 1,
+      "members": [
+        "C8pvb81rt9t",
+        "C51sin9jsfe"
+      ],
+      "anchors": [
+        "C51sin9jsfe"
+      ],
+      "files": [
+        "F1p59sn1nmr"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "clojure"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 27,
+      "members": [
+        "Cu2p0mp6je"
+      ],
+      "anchors": [
+        "Cu2p0mp6je"
+      ],
+      "files": [
+        "F8odz54ah7u"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "clojure"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 29,
+      "members": [
+        "C117gz14wstf"
+      ],
+      "anchors": [
+        "C117gz14wstf"
+      ],
+      "files": [
+        "F8odz54ah7u"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "clojure"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 30,
+      "members": [
+        "Ca1es4oq6a1"
+      ],
+      "anchors": [
+        "Ca1es4oq6a1"
+      ],
+      "files": [
+        "F8odz54ah7u"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "clojure"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 31,
+      "members": [
+        "Cudc5eiomcr"
+      ],
+      "anchors": [
+        "Cudc5eiomcr"
+      ],
+      "files": [
+        "F8odz54ah7u"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "clojure"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 32,
+      "members": [
+        "Cknih1c8893"
+      ],
+      "anchors": [
+        "Cknih1c8893"
+      ],
+      "files": [
+        "F8odz54ah7u"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "clojure"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 33,
+      "members": [
+        "C7pj7u4zz39"
+      ],
+      "anchors": [
+        "C7pj7u4zz39"
+      ],
+      "files": [
+        "F8odz54ah7u"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "clojure"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 34,
+      "members": [
+        "C14fve6io8uz"
+      ],
+      "anchors": [
+        "C14fve6io8uz"
+      ],
+      "files": [
+        "F8odz54ah7u"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "clojure"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 35,
+      "members": [
+        "C747r3ujnc4"
+      ],
+      "anchors": [
+        "C747r3ujnc4"
+      ],
+      "files": [
+        "F8odz54ah7u"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "clojure"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 36,
+      "members": [
+        "Cee841iyels",
+        "Clq0s9ergmg"
+      ],
+      "anchors": [
+        "Clq0s9ergmg"
+      ],
+      "files": [
+        "F8odz54ah7u"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "clojure"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 43,
+      "members": [
+        "Cetn2dytemc"
+      ],
+      "anchors": [
+        "Cetn2dytemc"
+      ],
+      "files": [
+        "F8odz54ah7u"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "clojure"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 44,
+      "members": [
+        "C8zxdt6mnzo",
+        "Cqfc9wg35ab",
+        "Ceuwdva00fb",
+        "Ch7x9nl1bxa",
+        "C14qqzjw3ncg",
+        "Czeeiax4pkn"
+      ],
+      "anchors": [],
+      "files": [
+        "F8odz54ah7u",
+        "Fs9wwchs3xy"
+      ],
+      "total_lines": 61,
+      "languages": [
+        "clojure"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 46,
+      "members": [
+        "Cm7rdvbkvu3",
+        "Cvocs1ycs89",
+        "Cu824qikbd4"
+      ],
+      "anchors": [
+        "Cu824qikbd4"
+      ],
+      "files": [
+        "Fxf0o71yd7x"
+      ],
+      "total_lines": 43,
+      "languages": [
+        "clojure"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 53,
+      "members": [
+        "Ce4eh2iymhm"
+      ],
+      "anchors": [
+        "Ce4eh2iymhm"
+      ],
+      "files": [
+        "F14j6oam1nnm"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "clojure"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cu824qikbd4",
+      "qualified_name": "compojure.handler/site",
+      "simple_name": "site",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fxf0o71yd7x",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/handler.clj",
+      "start_line": 36,
+      "end_line": 61,
+      "size_lines": 26,
+      "signature_hint": "(defn site \"Create a handler suitable for a standard website. This adds the following middleware to your routes: - wrap-session - wrap-flash - wrap-cookies - wrap-multipart-params - wrap-params - wrap-nested-params - wrap-keyword-params A map of options may also be provided. These keys are provided: :session : a map of session middleware options :multipart : a map of multipart-params middleware options\" {:deprecated \"1.2\" :arglists '([routes] [routes options])} [routes & [opts]] (-> (api routes) (with-opts wrap-multipart-params (:multipart opts)) (wrap-flash) (with-opts wrap-session (:session opts))))",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -374,
+      "region": 46,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C8zxdt6mnzo",
+      "qualified_name": "compojure.core/pre-init",
+      "simple_name": "pre-init",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8odz54ah7u",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/core.clj",
+      "start_line": 329,
+      "end_line": 342,
+      "size_lines": 14,
+      "signature_hint": "(defn- pre-init [middleware] (let [proxy (middleware (fn ([request] ((:route-handler request) request)) ([request respond raise] ((:route-handler request) request respond raise))))] (fn [handler] (let [prep-request #(assoc % :route-handler handler)] (fn ([request] (proxy (prep-request request))) ([request respond raise] (proxy (prep-request request) respond raise)))))))",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -386,
+      "region": 44,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cqfc9wg35ab"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvocs1ycs89",
+      "qualified_name": "compojure.handler/api",
+      "simple_name": "api",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fxf0o71yd7x",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/handler.clj",
+      "start_line": 22,
+      "end_line": 34,
+      "size_lines": 13,
+      "signature_hint": "(defn api \"Create a handler suitable for a web API. This adds the following middleware to your routes: - wrap-params - wrap-nested-params - wrap-keyword-params\" {:deprecated \"1.2\"} [routes] (-> routes wrap-keyword-params wrap-nested-params wrap-params))",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -387,
+      "region": 46,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cu824qikbd4"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ce4eh2iymhm",
+      "qualified_name": "compojure.response/Renderable",
+      "simple_name": "Renderable",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14j6oam1nnm",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/response.clj",
+      "start_line": 7,
+      "end_line": 15,
+      "size_lines": 9,
+      "signature_hint": "(defprotocol Renderable \"A protocol that tells Compojure how to handle the return value of routes defined by [[GET]], [[POST]], etc. This protocol supports rendering strings, maps, functions, refs, files, seqs, input streams and URLs by default, and may be extended to cover many custom types.\" (render [x request] \"Render `x` into a form suitable for the given request map.\"))",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -391,
+      "region": 53,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cu2p0mp6je",
+      "qualified_name": "compojure.core/defroutes",
+      "simple_name": "defroutes",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8odz54ah7u",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/core.clj",
+      "start_line": 202,
+      "end_line": 207,
+      "size_lines": 6,
+      "signature_hint": "(defmacro defroutes \"Define a Ring handler function from a sequence of routes. The name may optionally be followed by a doc-string and metadata map.\" [name & routes] (let [[name routes] (macro/name-with-attributes name routes)] `(def ~name (routes ~@routes))))",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 27,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ceuwdva00fb",
+      "qualified_name": "compojure.middleware/remove-trailing-slash",
+      "simple_name": "remove-trailing-slash",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fs9wwchs3xy",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/middleware.clj",
+      "start_line": 6,
+      "end_line": 11,
+      "size_lines": 6,
+      "signature_hint": "(defn remove-trailing-slash \"Remove the trailing '/' from a URI string, if it exists.\" [^String uri] (if (.endsWith uri \"/\") (.substring uri 0 (dec (.length uri))) uri))",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 44,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Czeeiax4pkn"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cee841iyels",
+      "qualified_name": "compojure.core/make-rfn",
+      "simple_name": "make-rfn",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8odz54ah7u",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/core.clj",
+      "start_line": 241,
+      "end_line": 245,
+      "size_lines": 5,
+      "signature_hint": "(defn ^:no-doc make-rfn [handler] (-> handler wrap-response wrap-route-middleware wrap-head))",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 36,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Clq0s9ergmg"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Ch7x9nl1bxa",
+      "qualified_name": "compojure.middleware/redirect-to-canonical",
+      "simple_name": "redirect-to-canonical",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fs9wwchs3xy",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/middleware.clj",
+      "start_line": 13,
+      "end_line": 17,
+      "size_lines": 5,
+      "signature_hint": "(defn- redirect-to-canonical ([request] (resp/redirect (:compojure/path request) 301)) ([request respond raise] (respond (redirect-to-canonical request))))",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 44,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Ch7x9nl1bxa"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cm7rdvbkvu3",
+      "qualified_name": "compojure.handler/with-opts",
+      "simple_name": "with-opts",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fxf0o71yd7x",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/handler.clj",
+      "start_line": 17,
+      "end_line": 20,
+      "size_lines": 4,
+      "signature_hint": "(defn- with-opts [routes middleware opts] (if opts (middleware routes opts) (middleware routes)))",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -396,
+      "region": 46,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cu824qikbd4"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C117gz14wstf",
+      "qualified_name": "compojure.core/POST",
+      "simple_name": "POST",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8odz54ah7u",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/core.clj",
+      "start_line": 213,
+      "end_line": 215,
+      "size_lines": 3,
+      "signature_hint": "(defmacro POST \"Generate a `POST` route.\" [path args & body] (compile-route :post path args body))",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 29,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cknih1c8893",
+      "qualified_name": "compojure.core/HEAD",
+      "simple_name": "HEAD",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8odz54ah7u",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/core.clj",
+      "start_line": 225,
+      "end_line": 227,
+      "size_lines": 3,
+      "signature_hint": "(defmacro HEAD \"Generate a `HEAD` route.\" [path args & body] (compile-route :head path args body))",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 32,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C7pj7u4zz39",
+      "qualified_name": "compojure.core/OPTIONS",
+      "simple_name": "OPTIONS",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8odz54ah7u",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/core.clj",
+      "start_line": 229,
+      "end_line": 231,
+      "size_lines": 3,
+      "signature_hint": "(defmacro OPTIONS \"Generate an `OPTIONS` route.\" [path args & body] (compile-route :options path args body))",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 33,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C14fve6io8uz",
+      "qualified_name": "compojure.core/PATCH",
+      "simple_name": "PATCH",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8odz54ah7u",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/core.clj",
+      "start_line": 233,
+      "end_line": 235,
+      "size_lines": 3,
+      "signature_hint": "(defmacro PATCH \"Generate a `PATCH` route.\" [path args & body] (compile-route :patch path args body))",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C8pvb81rt9t",
+      "qualified_name": "compojure.coercions/uuid-pattern",
+      "simple_name": "uuid-pattern",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1p59sn1nmr",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/coercions.clj",
+      "start_line": 11,
+      "end_line": 12,
+      "size_lines": 2,
+      "signature_hint": "(def ^:private uuid-pattern #\"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\")",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -398,
+      "region": 1,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C51sin9jsfe"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14qqzjw3ncg",
+      "qualified_name": "compojure.middleware/assoc-path",
+      "simple_name": "assoc-path",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fs9wwchs3xy",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/middleware.clj",
+      "start_line": 19,
+      "end_line": 20,
+      "size_lines": 2,
+      "signature_hint": "(defn- assoc-path [request path] (assoc request :compojure/path path))",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -398,
+      "region": 44,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Czeeiax4pkn"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czeeiax4pkn",
+      "qualified_name": "compojure.middleware/wrap-canonical-redirect",
+      "simple_name": "wrap-canonical-redirect",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fs9wwchs3xy",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/middleware.clj",
+      "start_line": 22,
+      "end_line": 41,
+      "size_lines": 20,
+      "signature_hint": "(defn wrap-canonical-redirect \"Middleware that permanently redirects any non-canonical route to its canonical equivalent, based on a make-canonical function that changes a URI string into its canonical form. If not supplied, the make-canonical function will default to [[remove-trailing-slash]].\" ([handler] (wrap-canonical-redirect handler remove-trailing-slash)) ([handler make-canonical] (let [redirect-handler (wrap-routes handler (constantly redirect-to-canonical))] (fn ([{uri :uri :as request}] (let [canonical-uri (make-canonical uri)] (if (= uri canonical-uri) (handler request) (redirect-handler (assoc-path request canonical-uri))))) ([{uri :uri :as request} respond raise] (let [canonical-uri (make-canonical uri)] (if (= uri canonical-uri) (handler request respond raise) (redirect-handler (assoc-path request canonical-uri) respond raise))))))))",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -880,
+      "region": 44,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "wrap-canonical-redirect",
+          "sites": 2,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fs8wj5sr2go",
+            "path": "/storage/cgg-test_repos/clojure-compojure/test/compojure/middleware_test.clj",
+            "line": 10,
+            "name": "wrap-canonical-redirect"
+          }
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Czeeiax4pkn"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "Cqfc9wg35ab",
+      "qualified_name": "compojure.core/wrap-routes",
+      "simple_name": "wrap-routes",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8odz54ah7u",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/core.clj",
+      "start_line": 344,
+      "end_line": 357,
+      "size_lines": 14,
+      "signature_hint": "(defn wrap-routes \"Apply a middleware function to routes after they have been matched.\" ([handler middleware] (let [middleware (pre-init middleware) prep-request (fn [request] (let [mw (:route-middleware request identity)] (assoc request :route-middleware (comp mw middleware))))] (fn ([request] (handler (prep-request request))) ([request respond raise] (handler (prep-request request) respond raise))))) ([handler middleware & args] (wrap-routes handler #(apply middleware % args))))",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -886,
+      "region": 44,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "wrap-routes",
+          "sites": 10,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fuk9dlj0djm",
+            "path": "/storage/cgg-test_repos/clojure-compojure/test/compojure/core_test.clj",
+            "line": 277,
+            "name": "wrap-routes"
+          }
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cqfc9wg35ab"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cetn2dytemc",
+      "qualified_name": "compojure.core/let-routes",
+      "simple_name": "let-routes",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8odz54ah7u",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/core.clj",
+      "start_line": 320,
+      "end_line": 327,
+      "size_lines": 8,
+      "signature_hint": "(defmacro let-routes \"Takes a vector of bindings and a body of routes. Equivalent to: (let [...] (routes ...))\" [bindings & body] `(let ~bindings (routes ~@body)))",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -892,
+      "region": 43,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "let-routes",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fuk9dlj0djm",
+            "path": "/storage/cgg-test_repos/clojure-compojure/test/compojure/core_test.clj",
+            "line": 258,
+            "name": "let-routes"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C51sin9jsfe",
+      "qualified_name": "compojure.coercions/as-uuid",
+      "simple_name": "as-uuid",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1p59sn1nmr",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/coercions.clj",
+      "start_line": 14,
+      "end_line": 20,
+      "size_lines": 7,
+      "signature_hint": "(defn as-uuid \"Parse a string into a UUID, or `nil` if the string cannot be parsed.\" [s] (if (re-matches uuid-pattern s) (try (java.util.UUID/fromString s) (catch IllegalArgumentException _ nil))))",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -893,
+      "region": 1,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "as-uuid",
+          "sites": 5,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fkkanlxp1js",
+            "path": "/storage/cgg-test_repos/clojure-compojure/test/compojure/coercions_test.clj",
+            "line": 17,
+            "name": "as-uuid"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ca1es4oq6a1",
+      "qualified_name": "compojure.core/PUT",
+      "simple_name": "PUT",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8odz54ah7u",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/core.clj",
+      "start_line": 217,
+      "end_line": 219,
+      "size_lines": 3,
+      "signature_hint": "(defmacro PUT \"Generate a `PUT` route.\" [path args & body] (compile-route :put path args body))",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -897,
+      "region": 30,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "PUT",
+          "sites": 2,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fuk9dlj0djm",
+            "path": "/storage/cgg-test_repos/clojure-compojure/test/compojure/core_test.clj",
+            "line": 92,
+            "name": "PUT"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cudc5eiomcr",
+      "qualified_name": "compojure.core/DELETE",
+      "simple_name": "DELETE",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8odz54ah7u",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/core.clj",
+      "start_line": 221,
+      "end_line": 223,
+      "size_lines": 3,
+      "signature_hint": "(defmacro DELETE \"Generate a `DELETE` route.\" [path args & body] (compile-route :delete path args body))",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -897,
+      "region": 31,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "DELETE",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fuk9dlj0djm",
+            "path": "/storage/cgg-test_repos/clojure-compojure/test/compojure/core_test.clj",
+            "line": 99,
+            "name": "DELETE"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C747r3ujnc4",
+      "qualified_name": "compojure.core/ANY",
+      "simple_name": "ANY",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8odz54ah7u",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/core.clj",
+      "start_line": 237,
+      "end_line": 239,
+      "size_lines": 3,
+      "signature_hint": "(defmacro ANY \"Generate a route that matches any method.\" [path args & body] (compile-route nil path args body))",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -897,
+      "region": 35,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "ANY",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fuk9dlj0djm",
+            "path": "/storage/cgg-test_repos/clojure-compojure/test/compojure/core_test.clj",
+            "line": 339,
+            "name": "ANY"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Clq0s9ergmg",
+      "qualified_name": "compojure.core/rfn",
+      "simple_name": "rfn",
+      "language": "clojure",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8odz54ah7u",
+      "path": "/storage/cgg-test_repos/clojure-compojure/src/compojure/core.clj",
+      "start_line": 247,
+      "end_line": 249,
+      "size_lines": 3,
+      "signature_hint": "(defmacro rfn \"Generate a route that matches any method and path.\" [args & body] `(make-rfn (fn [request#] (let-request [~args request#] ~@body))))",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -897,
+      "region": 36,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "rfn",
+          "sites": 5,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fuk9dlj0djm",
+            "path": "/storage/cgg-test_repos/clojure-compojure/test/compojure/core_test.clj",
+            "line": 129,
+            "name": "rfn"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 2
+    }
+  ]
+}

@@ -1,0 +1,2352 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "go",
+      "class": "degraded",
+      "visibility": "full",
+      "attributes": "none",
+      "value_references": "full",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "full",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "builtin:main",
+        "framework:entry-node",
+        "framework:test-harness"
+      ],
+      "files": 19,
+      "callables": 61,
+      "roots": 25,
+      "reachable": 39,
+      "reachable_pct": 63,
+      "findings": 22
+    },
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [],
+      "files": 3,
+      "callables": 1,
+      "roots": 0,
+      "reachable": 0,
+      "reachable_pct": 0,
+      "findings": 1,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    },
+    {
+      "language": "perl",
+      "class": "script-driven",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "full",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 86,
+      "callables": 86,
+      "roots": 86,
+      "reachable": 86,
+      "reachable_pct": 100,
+      "findings": 0
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 148,
+    "edges": 140,
+    "unresolved_call_sites": 94,
+    "roots": 111,
+    "candidates": 23,
+    "reported": 23,
+    "regions": 22
+  },
+  "roots": [
+    {
+      "id": "Cu2z1jayoh1",
+      "qualified_name": "actions_test.Test_ActionSuite",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Csin13um0wp",
+      "qualified_name": "actions.init",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `init`"
+    },
+    {
+      "id": "Cz3yot58xa5",
+      "qualified_name": "actions_test.ActionSuite.Test_HomeHandler",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cddwhrqnron",
+      "qualified_name": "actions.init",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `init`"
+    },
+    {
+      "id": "Cmn5wer7p5t",
+      "qualified_name": "actions_test.ActionSuite.Test_PostsResource_List",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C79rolvxi2h",
+      "qualified_name": "actions_test.ActionSuite.Test_PostsResource_Show",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ca1277780bm",
+      "qualified_name": "actions_test.ActionSuite.Test_PostsResource_New",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C3wt84c7dno",
+      "qualified_name": "actions_test.ActionSuite.Test_PostsResource_Create",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Co3vbbfl9",
+      "qualified_name": "actions_test.ActionSuite.Test_PostsResource_Edit",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C142j6gya32l",
+      "qualified_name": "actions_test.ActionSuite.Test_PostsResource_Update",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C6zqhwp35i0",
+      "qualified_name": "actions_test.ActionSuite.Test_PostsResource_Destroy",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C6g7d8y188",
+      "qualified_name": "actions.init",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `init`"
+    },
+    {
+      "id": "C127gmomv1fl",
+      "qualified_name": "actions_test.ActionSuite.Test_UsersResource_List",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C177e0fogaf",
+      "qualified_name": "actions_test.ActionSuite.Test_UsersResource_Show",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ck30rn51dar",
+      "qualified_name": "actions_test.ActionSuite.Test_UsersResource_New",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cmct6hjvvtr",
+      "qualified_name": "actions_test.ActionSuite.Test_UsersResource_Create",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cfylgqirj8a",
+      "qualified_name": "actions_test.ActionSuite.Test_UsersResource_Edit",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Ckf4efy6k4u",
+      "qualified_name": "actions_test.ActionSuite.Test_UsersResource_Update",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cp5xgx66g5v",
+      "qualified_name": "actions_test.ActionSuite.Test_UsersResource_Destroy",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C11wo04z0co0",
+      "qualified_name": "main.main",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Ca8mt7tandi",
+      "qualified_name": "models.init",
+      "language": "go",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `init`"
+    },
+    {
+      "id": "Crcr0p4yytx",
+      "qualified_name": "models_test.Test_ModelSuite",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C17tph941xc9",
+      "qualified_name": "models_test.Test_Post",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "C54jjdsrruf",
+      "qualified_name": "models_test.Test_User",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::go-testing`"
+    },
+    {
+      "id": "Cp4phu344n3",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cf0xhw7wgha",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C15auw81ddlp",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C10fs3nc25zd",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cmkdhqfez3u",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cxxg1994i1f",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cb07fxmnub2",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C8nlv7mpf4h",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C171tolmsksd",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cmdp20g1ebz",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C4tllwo6j6d",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C17gmjicdxek",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Ckrqf3rd7qz",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cnkr602vkec",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C15r9witzti9",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C17e0zpvnvjw",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cl23r391edk",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C1683sqz7ntz",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cn7le0xx5sk",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cypi0lrz34n",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C81drdl2dco",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Csl5lv2itqg",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cwfuyw49teo",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C15nyn4y7en1",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Chc734zu0do",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C8o1nf9d5ht",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cxt64gfv5xx",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C90k06qkqey",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cdhx6tu4nty",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C15bmqqk3eht",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cuqon7g7mko",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Chktqkg7x4e",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Coyhryrpgd8",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Ccpxmo9fpdw",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C65ze0dyhi7",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cmrfiyu6m1m",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Chtewhsn4sp",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cummhvupxq",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Ckcgbejuzmr",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C917fgo0ile",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C10477kgfngr",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C13mbttg2zys",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C18162j7bi0c",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cjgxznhke5m",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cjl9qvigb6b",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C27hgvpc8ms",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C6jiprxf67p",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C5kmsoiofur",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C7re8w8wgtt",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C9ya1i6urdg",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Ch7jvppsylx",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C9450stes4i",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C8p8grrhrgr",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cpnpppxf6io",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C2vn9yyzb7i",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cehh7sfe0ya",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cmqgb6g94kx",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C2fjplw3ubx",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cmxq1uj1yk8",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Crq96ymwwmh",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C8udrw8e5v4",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Ctnhtsvmulo",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cfkq8vz8zkm",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C48dr3xtbqi",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C855df8tul9",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cmb3d326mpd",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C127xq3yh6z1",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cy49od07bkt",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Ctx89pegkgg",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C10d90b5uz85",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C6a4c3vgg5",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C130fts3fw39",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cih58fgixa4",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C867yl2xqnc",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C186kq3cej3k",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C4wfddk8dja",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cdny4dep7a5",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Chywwqnrt8q",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cgqj5zata0v",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cofcfl89dmc",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Ck02dltwd7o",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C18byqmjuo4w",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Css0mrqvrcy",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cibfnctfpzt",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "C4cogmifndw",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Cugiqjf8yes",
+      "qualified_name": "launch_watchman",
+      "language": "perl",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-golangflow-buffalo/pkg/mod/cache/vcs/fb893d710295e4660438d1e89ad24bbac0ac41858acf0a92510527ca1d2ac9fe/hooks/fsmonitor-watchman.sample:42"
+    },
+    {
+      "id": "Ck7icwh1kmt",
+      "qualified_name": "<framework-entry>::test::go-testing",
+      "language": "go",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::go-testing`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 15,
+      "members": [
+        "C111mown3kjv"
+      ],
+      "anchors": [
+        "C111mown3kjv"
+      ],
+      "files": [
+        "F11a3kbfahbg"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 16,
+      "members": [
+        "Cr35nae5sl7"
+      ],
+      "anchors": [
+        "Cr35nae5sl7"
+      ],
+      "files": [
+        "F11a3kbfahbg"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 17,
+      "members": [
+        "Ccv6l3k9gie"
+      ],
+      "anchors": [
+        "Ccv6l3k9gie"
+      ],
+      "files": [
+        "F11a3kbfahbg"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 18,
+      "members": [
+        "Cffebs3hwwm"
+      ],
+      "anchors": [
+        "Cffebs3hwwm"
+      ],
+      "files": [
+        "F11a3kbfahbg"
+      ],
+      "total_lines": 49,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 19,
+      "members": [
+        "C47r60rvyi4"
+      ],
+      "anchors": [
+        "C47r60rvyi4"
+      ],
+      "files": [
+        "F11a3kbfahbg"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 21,
+      "members": [
+        "Cerill2d6rj",
+        "C11dz617vlwz"
+      ],
+      "anchors": [],
+      "cycles": [
+        [
+          "Cerill2d6rj",
+          "C11dz617vlwz"
+        ]
+      ],
+      "files": [
+        "F11a3kbfahbg",
+        "F149957amee2"
+      ],
+      "total_lines": 42,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 33,
+      "members": [
+        "C14gudlm4f1s"
+      ],
+      "anchors": [
+        "C14gudlm4f1s"
+      ],
+      "files": [
+        "F149957amee2"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 34,
+      "members": [
+        "Cvfdh004cm5"
+      ],
+      "anchors": [
+        "Cvfdh004cm5"
+      ],
+      "files": [
+        "F149957amee2"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 35,
+      "members": [
+        "Coec7lpzhez"
+      ],
+      "anchors": [
+        "Coec7lpzhez"
+      ],
+      "files": [
+        "F149957amee2"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 36,
+      "members": [
+        "Codkb22n0fu"
+      ],
+      "anchors": [
+        "Codkb22n0fu"
+      ],
+      "files": [
+        "F149957amee2"
+      ],
+      "total_lines": 29,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 37,
+      "members": [
+        "Cc6v0f75642"
+      ],
+      "anchors": [
+        "Cc6v0f75642"
+      ],
+      "files": [
+        "F149957amee2"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 52,
+      "members": [
+        "C23l21uljet"
+      ],
+      "anchors": [
+        "C23l21uljet"
+      ],
+      "files": [
+        "Fil1svxiskg"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 53,
+      "members": [
+        "C174fl9uu1ka"
+      ],
+      "anchors": [
+        "C174fl9uu1ka"
+      ],
+      "files": [
+        "Fil1svxiskg"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 54,
+      "members": [
+        "Cd6hyu7p4wv"
+      ],
+      "anchors": [],
+      "files": [
+        "Fil1svxiskg"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 55,
+      "members": [
+        "C4vtc8wgqxu"
+      ],
+      "anchors": [
+        "C4vtc8wgqxu"
+      ],
+      "files": [
+        "Fil1svxiskg"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 56,
+      "members": [
+        "C11wz2z3hgu4"
+      ],
+      "anchors": [
+        "C11wz2z3hgu4"
+      ],
+      "files": [
+        "Fil1svxiskg"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 58,
+      "members": [
+        "Cdpd7rnnuw5"
+      ],
+      "anchors": [
+        "Cdpd7rnnuw5"
+      ],
+      "files": [
+        "Fb388qzrhx"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 59,
+      "members": [
+        "C12ioe3mw5pf"
+      ],
+      "anchors": [
+        "C12ioe3mw5pf"
+      ],
+      "files": [
+        "Fb388qzrhx"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 60,
+      "members": [
+        "Chij4nwdv81"
+      ],
+      "anchors": [],
+      "files": [
+        "Fb388qzrhx"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 61,
+      "members": [
+        "C8b1p72ou5k"
+      ],
+      "anchors": [
+        "C8b1p72ou5k"
+      ],
+      "files": [
+        "Fb388qzrhx"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 62,
+      "members": [
+        "Cg7qz4tfkbr"
+      ],
+      "anchors": [
+        "Cg7qz4tfkbr"
+      ],
+      "files": [
+        "Fb388qzrhx"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "go"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 150,
+      "members": [
+        "C8pr4fhpb0e"
+      ],
+      "anchors": [
+        "C8pr4fhpb0e"
+      ],
+      "files": [
+        "Fl0hls86xpf"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "C8pr4fhpb0e",
+      "qualified_name": "plugins",
+      "simple_name": "plugins",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fl0hls86xpf",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/webpack.config.js",
+      "start_line": 39,
+      "end_line": 50,
+      "size_lines": 12,
+      "signature_hint": "plugins()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -388,
+      "region": 150,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14gudlm4f1s",
+      "qualified_name": "actions.UsersResource.List",
+      "simple_name": "List",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F149957amee2",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/users.go",
+      "start_line": 29,
+      "end_line": 55,
+      "size_lines": 27,
+      "signature_hint": "func (v UsersResource) List(c buffalo.Context) error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -673,
+      "region": 33,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11dz617vlwz",
+      "qualified_name": "actions.UsersResource.Destroy",
+      "simple_name": "Destroy",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F149957amee2",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/users.go",
+      "start_line": 175,
+      "end_line": 197,
+      "size_lines": 23,
+      "signature_hint": "func (v UsersResource) Destroy(c buffalo.Context) error",
+      "category": "dead-cycle",
+      "confidence": "medium",
+      "rank": -677,
+      "region": 21,
+      "role": "cycle-member",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "in-cycle",
+          "scc_size": 2
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cerill2d6rj"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cerill2d6rj",
+      "qualified_name": "actions.PostsResource.Destroy",
+      "simple_name": "Destroy",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11a3kbfahbg",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/posts.go",
+      "start_line": 218,
+      "end_line": 236,
+      "size_lines": 19,
+      "signature_hint": "func (v PostsResource) Destroy(c buffalo.Context) error",
+      "category": "dead-cycle",
+      "confidence": "medium",
+      "rank": -681,
+      "region": 21,
+      "role": "cycle-member",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "in-cycle",
+          "scc_size": 2
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C11dz617vlwz"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C111mown3kjv",
+      "qualified_name": "actions.PostsResource.List",
+      "simple_name": "List",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11a3kbfahbg",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/posts.go",
+      "start_line": 66,
+      "end_line": 83,
+      "size_lines": 18,
+      "signature_hint": "func (v PostsResource) List(c buffalo.Context) error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -682,
+      "region": 15,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C47r60rvyi4",
+      "qualified_name": "actions.PostsResource.Edit",
+      "simple_name": "Edit",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11a3kbfahbg",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/posts.go",
+      "start_line": 166,
+      "end_line": 178,
+      "size_lines": 13,
+      "signature_hint": "func (v PostsResource) Edit(c buffalo.Context) error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -687,
+      "region": 19,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cc6v0f75642",
+      "qualified_name": "actions.UsersResource.Edit",
+      "simple_name": "Edit",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F149957amee2",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/users.go",
+      "start_line": 120,
+      "end_line": 132,
+      "size_lines": 13,
+      "signature_hint": "func (v UsersResource) Edit(c buffalo.Context) error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -687,
+      "region": 37,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chij4nwdv81",
+      "qualified_name": "models.User.Validate",
+      "simple_name": "Validate",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fb388qzrhx",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/models/user.go",
+      "start_line": 44,
+      "end_line": 50,
+      "size_lines": 7,
+      "signature_hint": "func (u *User) Validate(tx *pop.Connection) (*validate.Errors, error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -693,
+      "region": 60,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Chij4nwdv81"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cd6hyu7p4wv",
+      "qualified_name": "models.Post.Validate",
+      "simple_name": "Validate",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fil1svxiskg",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/models/post.go",
+      "start_line": 40,
+      "end_line": 45,
+      "size_lines": 6,
+      "signature_hint": "func (p *Post) Validate(tx *pop.Connection) (*validate.Errors, error)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 54,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cd6hyu7p4wv"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C4vtc8wgqxu",
+      "qualified_name": "models.Post.ValidateSave",
+      "simple_name": "ValidateSave",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fil1svxiskg",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/models/post.go",
+      "start_line": 49,
+      "end_line": 51,
+      "size_lines": 3,
+      "signature_hint": "func (p *Post) ValidateSave(tx *pop.Connection) (*validate.Errors, error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 55,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11wz2z3hgu4",
+      "qualified_name": "models.Post.ValidateUpdate",
+      "simple_name": "ValidateUpdate",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fil1svxiskg",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/models/post.go",
+      "start_line": 55,
+      "end_line": 57,
+      "size_lines": 3,
+      "signature_hint": "func (p *Post) ValidateUpdate(tx *pop.Connection) (*validate.Errors, error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 56,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8b1p72ou5k",
+      "qualified_name": "models.User.ValidateSave",
+      "simple_name": "ValidateSave",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fb388qzrhx",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/models/user.go",
+      "start_line": 54,
+      "end_line": 56,
+      "size_lines": 3,
+      "signature_hint": "func (u *User) ValidateSave(tx *pop.Connection) (*validate.Errors, error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 61,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cg7qz4tfkbr",
+      "qualified_name": "models.User.ValidateUpdate",
+      "simple_name": "ValidateUpdate",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fb388qzrhx",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/models/user.go",
+      "start_line": 60,
+      "end_line": 62,
+      "size_lines": 3,
+      "signature_hint": "func (u *User) ValidateUpdate(tx *pop.Connection) (*validate.Errors, error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 62,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccv6l3k9gie",
+      "qualified_name": "actions.PostsResource.New",
+      "simple_name": "New",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11a3kbfahbg",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/posts.go",
+      "start_line": 106,
+      "end_line": 110,
+      "size_lines": 5,
+      "signature_hint": "func (v PostsResource) New(c buffalo.Context) error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -995,
+      "region": 17,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 8
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Coec7lpzhez",
+      "qualified_name": "actions.UsersResource.New",
+      "simple_name": "New",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F149957amee2",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/users.go",
+      "start_line": 80,
+      "end_line": 84,
+      "size_lines": 5,
+      "signature_hint": "func (v UsersResource) New(c buffalo.Context) error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -995,
+      "region": 35,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 8
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cffebs3hwwm",
+      "qualified_name": "actions.PostsResource.Create",
+      "simple_name": "Create",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11a3kbfahbg",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/posts.go",
+      "start_line": 114,
+      "end_line": 162,
+      "size_lines": 49,
+      "signature_hint": "func (v PostsResource) Create(c buffalo.Context) error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1151,
+      "region": 18,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Create",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fayosqu5fnl",
+            "path": "/storage/cgg-test_repos/app-golangflow-buffalo/grifts/seed.go",
+            "line": 20,
+            "name": "Create",
+            "receiver_hint": "models.DB"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Codkb22n0fu",
+      "qualified_name": "actions.UsersResource.Create",
+      "simple_name": "Create",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F149957amee2",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/users.go",
+      "start_line": 88,
+      "end_line": 116,
+      "size_lines": 29,
+      "signature_hint": "func (v UsersResource) Create(c buffalo.Context) error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1171,
+      "region": 36,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Create",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fayosqu5fnl",
+            "path": "/storage/cgg-test_repos/app-golangflow-buffalo/grifts/seed.go",
+            "line": 20,
+            "name": "Create",
+            "receiver_hint": "models.DB"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvfdh004cm5",
+      "qualified_name": "actions.UsersResource.Show",
+      "simple_name": "Show",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F149957amee2",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/users.go",
+      "start_line": 59,
+      "end_line": 76,
+      "size_lines": 18,
+      "signature_hint": "func (v UsersResource) Show(c buffalo.Context) error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1182,
+      "region": 34,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Show",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F100pro7nnpt",
+            "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/app.go",
+            "line": 117,
+            "name": "Show",
+            "receiver_hint": "pr"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cr35nae5sl7",
+      "qualified_name": "actions.PostsResource.Show",
+      "simple_name": "Show",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F11a3kbfahbg",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/posts.go",
+      "start_line": 87,
+      "end_line": 102,
+      "size_lines": 16,
+      "signature_hint": "func (v PostsResource) Show(c buffalo.Context) error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1184,
+      "region": 16,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Show",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F100pro7nnpt",
+            "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/app.go",
+            "line": 117,
+            "name": "Show",
+            "receiver_hint": "pr"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C23l21uljet",
+      "qualified_name": "models.Post.String",
+      "simple_name": "String",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fil1svxiskg",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/models/post.go",
+      "start_line": 24,
+      "end_line": 27,
+      "size_lines": 4,
+      "signature_hint": "func (p Post) String() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 52,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "String",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F100pro7nnpt",
+            "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/app.go",
+            "line": 60,
+            "name": "String",
+            "receiver_hint": "req.URL"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C174fl9uu1ka",
+      "qualified_name": "models.Posts.String",
+      "simple_name": "String",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fil1svxiskg",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/models/post.go",
+      "start_line": 33,
+      "end_line": 36,
+      "size_lines": 4,
+      "signature_hint": "func (p Posts) String() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 53,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "String",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F100pro7nnpt",
+            "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/app.go",
+            "line": 60,
+            "name": "String",
+            "receiver_hint": "req.URL"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdpd7rnnuw5",
+      "qualified_name": "models.User.String",
+      "simple_name": "String",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fb388qzrhx",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/models/user.go",
+      "start_line": 28,
+      "end_line": 31,
+      "size_lines": 4,
+      "signature_hint": "func (u User) String() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 58,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "String",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F100pro7nnpt",
+            "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/app.go",
+            "line": 60,
+            "name": "String",
+            "receiver_hint": "req.URL"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C12ioe3mw5pf",
+      "qualified_name": "models.Users.String",
+      "simple_name": "String",
+      "language": "go",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fb388qzrhx",
+      "path": "/storage/cgg-test_repos/app-golangflow-buffalo/models/user.go",
+      "start_line": 37,
+      "end_line": 40,
+      "size_lines": 4,
+      "signature_hint": "func (u Users) String() string",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1196,
+      "region": 59,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "String",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F100pro7nnpt",
+            "path": "/storage/cgg-test_repos/app-golangflow-buffalo/actions/app.go",
+            "line": 60,
+            "name": "String",
+            "receiver_hint": "req.URL"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

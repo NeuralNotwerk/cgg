@@ -1,0 +1,11 @@
+old: cgg 0.11.0 (dev g752d05c)  sha256=4b5881ee1ee6d6fbe8932c36df121b3bbcade90d02deaf32caeecdf42d72cbb2
+new: cgg 0.11.0 (dev g752d05c+dd82362a)  sha256=daab1db77851b40f796b3db8580047c90c21099ea963ba9c44996ad97ee4251b
+old=target/remediation/bins/WS27-r-before
+new=target/remediation/bins/WS27-r-r1-lit
+repos=283 elapsed=243s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 3
+  app-tweetconf-shiny: edges 24->22 (-2 +0 ~0) callables 37->37 unresolved 53->55 files 9->9 deadhigh 0->0 
+  r-ggplot2: edges 436->432 (-4 +0 ~0) callables 1070->1070 unresolved 9034->9038 files 358->358 deadhigh 0->0 
+  scala-spark: edges 303165->303165 (-1 +1 ~0) callables 112369->112369 unresolved 742811->742811 files 9202->9202 deadhigh 68->68 
+by language: see by_language.tsv
