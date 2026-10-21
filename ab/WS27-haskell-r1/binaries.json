@@ -1,0 +1,12 @@
+{
+ "old": {
+  "sha256": "6c904dff0196ab3e157d60500a1cfcfd19576e92ee6be2f782d93911d21b0426",
+  "version": "cgg 0.11.0 (dev g9c44e55)",
+  "path": "/storage/cgg/target/remediation/bins/WS27-haskell-before"
+ },
+ "new": {
+  "sha256": "15d5c7f855401e50207810c6cdf0f29af86d366acf3c4acf7876054d98c3902a",
+  "version": "cgg 0.11.0 (dev g9c44e55+dc303848)",
+  "path": "/storage/cgg/target/remediation/bins/WS27-haskell-r1"
+ }
+}

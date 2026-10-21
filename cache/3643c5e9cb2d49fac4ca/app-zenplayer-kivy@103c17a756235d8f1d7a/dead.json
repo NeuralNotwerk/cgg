@@ -1,0 +1,4005 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "kivy",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "kivy:kv-binding"
+      ],
+      "files": 12,
+      "callables": 18,
+      "roots": 18,
+      "reachable": 18,
+      "reachable_pct": 100,
+      "findings": 0,
+      "blind_spots": [
+        "ids.foo lookups",
+        "canvas instruction properties",
+        "#:include files are not followed",
+        "KV embedded in Python strings (`Builder.load_string`) is not seen"
+      ]
+    },
+    {
+      "language": "python",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "full",
+      "test_tagging": "full",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "builtin:lifecycle",
+        "framework:entry-node",
+        "framework:rule",
+        "toplevel:invocation"
+      ],
+      "files": 57,
+      "callables": 296,
+      "roots": 74,
+      "reachable": 237,
+      "reachable_pct": 80,
+      "findings": 59,
+      "blind_spots": [
+        "getattr/setattr and other string-dispatched calls"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 314,
+    "edges": 502,
+    "unresolved_call_sites": 131,
+    "roots": 92,
+    "candidates": 59,
+    "reported": 59,
+    "regions": 42
+  },
+  "roots": [
+    {
+      "id": "Cuv1t6ourko",
+      "qualified_name": "AlbumScreen.on_press:34",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C7l7gkl685r",
+      "qualified_name": "AlbumScreen.on_press:46",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cpbsk626u0v",
+      "qualified_name": "library_pure.Library.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C13veh21t627",
+      "qualified_name": "library_pure.Library.get_artists",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-zenplayer-kivy/lib_player/library_pure.py:71"
+    },
+    {
+      "id": "Cw5rz30op8l",
+      "qualified_name": "main.MusicLib.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cizbxh6ngrd",
+      "qualified_name": "main.PlaylistLabel.on_playing",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "Cvu8cf40jwv",
+      "qualified_name": "main.PlaylistLabel.on_touch_down",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "Cw07ht7k0g8",
+      "qualified_name": "main.PlaylistLabel.on_touch_up",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:base-type`"
+    },
+    {
+      "id": "Cty64gzg695",
+      "qualified_name": "main.Controller._sound_state",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "Cmuzlq1ybyb",
+      "qualified_name": "main.Controller.on_volume",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "C97b9ky37h5",
+      "qualified_name": "main.AlbumScreen.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Ch0po32yp21",
+      "qualified_name": "main.FolderChecker.build",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:base-type`"
+    },
+    {
+      "id": "Coqzv3ydc43",
+      "qualified_name": "components.audio.audio_vlc.SoundVLCPlayer.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C4vjduyaqrd",
+      "qualified_name": "components.controller.Controller.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cme4rp8dmxs",
+      "qualified_name": "components.controller.Controller.set_state",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "C912oznxzwx",
+      "qualified_name": "components.controller.Controller.on_state",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "Crflz31jxpb",
+      "qualified_name": "components.controller.Controller._update_progress",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "C158i23g86v0",
+      "qualified_name": "components.controller.Controller.on_file_name",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "C3mpfgr9v22",
+      "qualified_name": "components.controller.Controller.on_volume",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "Copjmvcoate",
+      "qualified_name": "components.filedrop.FileDrop.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cyk2skxvkpr",
+      "qualified_name": "components.filedrop.FileDrop.on_dropfile",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "C13uyke55axu",
+      "qualified_name": "components.keyboard_handler.KeyHandler.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Csw7haarfcw",
+      "qualified_name": "components.keyboard_handler.KeyHandler.on_key_down",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "Ccn3nu6q9o5",
+      "qualified_name": "components.library.Library.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Czm25hfp1a8",
+      "qualified_name": "components.library.Library.get_artists",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-zenplayer-kivy/lib_player/library_pure.py:71"
+    },
+    {
+      "id": "Chz3oykwzbn",
+      "qualified_name": "components.playlist.Playlist.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cam5z4m20ro",
+      "qualified_name": "main.ZenPlayer.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C3olup8af4u",
+      "qualified_name": "main.ZenPlayer.on_pause",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:base-type`"
+    },
+    {
+      "id": "Cg6sap00ebj",
+      "qualified_name": "main.ZenPlayer.on_resume",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:base-type`"
+    },
+    {
+      "id": "Cd8y0aur6fg",
+      "qualified_name": "main.ZenPlayer.build",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:base-type`"
+    },
+    {
+      "id": "Cap340x64wa",
+      "qualified_name": "main.ZenPlayer.on_stop",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:base-type`"
+    },
+    {
+      "id": "C2l56zqb37l",
+      "qualified_name": "albums.AlbumsScreen.on_artist",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "C62fwwd8pud",
+      "qualified_name": "albums.AlbumsScreen.on_artist.update",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "Cxlox578wt9",
+      "qualified_name": "albums.AlbumsScreen.on_randomise",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "Cs4lwd88a2n",
+      "qualified_name": "artists.ArtistsScreen.on_enter",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:base-type`"
+    },
+    {
+      "id": "Ceyiy3c52i6",
+      "qualified_name": "context.ContextScreen.on_actions",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "Cg0zkbxfvoi",
+      "qualified_name": "context.ContextScreen.on_actions.set_value",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "C15riju0h7zf",
+      "qualified_name": "InfoScreen.on_touch_down:17",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C103e03876pj",
+      "qualified_name": "ui.screens.info.info.InfoScreen._show_current_track",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "C11nrl5va2gp",
+      "qualified_name": "ui.screens.info.info.InfoScreen.on_filename",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "C6ieltanh01",
+      "qualified_name": "ui.screens.info.info.InfoScreen.show_artist_info._fetch_and_open",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `py-threading:registrar`"
+    },
+    {
+      "id": "C10ij4gyiujm",
+      "qualified_name": "PlayingScreen.on_touch_down:15",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cyha1b2y3c4",
+      "qualified_name": "ui.screens.playing.playing.MediaButton.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cjf8853hbpv",
+      "qualified_name": "ui.screens.playing.playing.VolumeSlider.on_touch_down",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:base-type`"
+    },
+    {
+      "id": "C15gh7cg11qf",
+      "qualified_name": "ui.screens.playing.playing.VolumeSlider.on_touch_move",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:base-type`"
+    },
+    {
+      "id": "C17rb9ihm1bx",
+      "qualified_name": "ui.screens.playing.playing.VolumeSlider.on_touch_up",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:base-type`"
+    },
+    {
+      "id": "C3ovjlc2k0p",
+      "qualified_name": "ui.screens.playlist.playlist.PlaylistScreen.on_enter",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:base-type`"
+    },
+    {
+      "id": "C5dkkzjh40s",
+      "qualified_name": "ui.screens.playlist.playlist.PlaylistScreen.on_leave",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:base-type`"
+    },
+    {
+      "id": "Ce0lavhqko5",
+      "qualified_name": "ui.screens.playlist.playlist.PlaylistScreen._reload_data",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:registrar`"
+    },
+    {
+      "id": "C6296puttnb",
+      "qualified_name": "TracksScreen.on_press:40",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C13161n8rsmr",
+      "qualified_name": "tracks.TracksScreen.on_album",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "Cw2hjxk7x7x",
+      "qualified_name": "tracks.TracksScreen.on_artist",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "C13gm1h7kyux",
+      "qualified_name": "ui.screens.zenscreen.ZenScreen.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cm5g5wbc7iw",
+      "qualified_name": "zenicon.ZenIcon.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C1l9ow2z1nr",
+      "qualified_name": "zenicon.ZenIcon.on_state",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:base-type`"
+    },
+    {
+      "id": "Cl4xlxtkhrz",
+      "qualified_name": "zenicon.ZenIcon.on_selected",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "Cizz6uv67jy",
+      "qualified_name": "zenicon.ZenSelectableIcon.on_group",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "Chjar2t0ela",
+      "qualified_name": "zenicon.ZenSelectableIcon.on_state",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:base-type`"
+    },
+    {
+      "id": "Cpbzn9u7gx7",
+      "qualified_name": "ZenPlayer.on_press:55",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Clkirf9xeld",
+      "qualified_name": "ZenPlayer.on_press:61",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cjeqodglwer",
+      "qualified_name": "ZenPlayer.on_press:67",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cnknxsdhtve",
+      "qualified_name": "ZenPlayer.on_touch_up:74",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C12n56ud158j",
+      "qualified_name": "ZenPlayer.on_press:79",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C688hdg6z05",
+      "qualified_name": "ZenPlayer.on_press:85",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C18e8ntv2dz",
+      "qualified_name": "ZenPlayer.on_press:91",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cfxq858ntje",
+      "qualified_name": "ZenPlayer.on_touch_up:102",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cp5jmiloe76",
+      "qualified_name": "ZenPlayer.on_press:126",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C1405v3bmhwv",
+      "qualified_name": "ZenPlayer.on_press:132",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Cz24cdyegvt",
+      "qualified_name": "ZenPlayer.on_press:137",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "Csprtt7r8i9",
+      "qualified_name": "ZenPlayer.on_press:142",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C8d68lohytq",
+      "qualified_name": "ZenPlayer.on_press:146",
+      "language": "kivy",
+      "kind": "lifecycle-callback",
+      "rule": "kivy:kv-binding",
+      "detail": "KV event binding invoked by the Kivy runtime"
+    },
+    {
+      "id": "C2lkc6gimy4",
+      "qualified_name": "zenplayer.ZenPlayer.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cbbg63v4l64",
+      "qualified_name": "zenrecycleview.ZenRecycleView.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C8lnvulnmfn",
+      "qualified_name": "zenrecycleview.ZenRecycleView.on_data",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "Cn0ew8yo94s",
+      "qualified_name": "zenrecycleview.ZenRecycleView.on_show_note",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "C3p2qv6ymax",
+      "qualified_name": "zenrecycleview.ZenRecycleView.on_note_text",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "Cfdksznt7q1",
+      "qualified_name": "zenrecycleview.ZenRecycleView.on_search_text",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "Ciw5fgis033",
+      "qualified_name": "zenrecycleview.SelectableLabel.on_selected",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:attribute`"
+    },
+    {
+      "id": "Cq8pqnuesim",
+      "qualified_name": "zenrecycleview.SelectableLabel.on_touch_down",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `kivy:base-type`"
+    },
+    {
+      "id": "Cy7nbki148r",
+      "qualified_name": "zenrecycleview.SelectableRecycleBoxLayout.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cijyvdo7lry",
+      "qualified_name": "zenapibase.ZenAPIBase.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C3hfhsh5fog",
+      "qualified_name": "zenlibrary.ZenLibrary.get_artists",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-zenplayer-kivy/lib_player/library_pure.py:71"
+    },
+    {
+      "id": "C1771vab24r6",
+      "qualified_name": "webserver.webserver.FlaskThread.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C10faxx471zi",
+      "qualified_name": "webserver.zenwebserver.ZenWebServer.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Cx4vf6vtf5x",
+      "qualified_name": "musiclib.LibraryFile.add_fields",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `pydantic:attribute`"
+    },
+    {
+      "id": "C181p0hsvsgj",
+      "qualified_name": "musiclib.LibAnalysis.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Ctrr56vhu8g",
+      "qualified_name": "zenplayer.ZenPlayer.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "C139j6atv03y",
+      "qualified_name": "library.Library.__init__",
+      "language": "python",
+      "kind": "lifecycle-callback",
+      "rule": "builtin:lifecycle",
+      "detail": "`__init__` is invoked by the runtime"
+    },
+    {
+      "id": "Ch3kpryijli",
+      "qualified_name": "library.Library.get_artists",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-zenplayer-kivy/lib_player/library_pure.py:71"
+    },
+    {
+      "id": "C9srm6wrnq1",
+      "qualified_name": "main.init_navigation",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-zenplayer-kivy/zenplayerlit/zenplayerlit/main.py:42"
+    },
+    {
+      "id": "C7yth4xvw9i",
+      "qualified_name": "zencore.get_local_ip_socket",
+      "language": "python",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-zenplayer-kivy/zenplayerlit/zenplayerlit/zencore.py:23"
+    },
+    {
+      "id": "Ccxzabm9k1c",
+      "qualified_name": "<framework-entry>::network::flask::add_url_rule(\"/\")",
+      "language": "python",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::flask::add_url_rule(\"/\")`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 30,
+      "members": [
+        "Cwngmrrj7hr"
+      ],
+      "anchors": [
+        "Cwngmrrj7hr"
+      ],
+      "files": [
+        "F656h6stzlu"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 36,
+      "members": [
+        "C33jd3h5sv3"
+      ],
+      "anchors": [
+        "C33jd3h5sv3"
+      ],
+      "files": [
+        "F656h6stzlu"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 41,
+      "members": [
+        "Cfte2hzojwz"
+      ],
+      "anchors": [
+        "Cfte2hzojwz"
+      ],
+      "files": [
+        "F656h6stzlu"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 43,
+      "members": [
+        "Ccpg7glzgmf"
+      ],
+      "anchors": [
+        "Ccpg7glzgmf"
+      ],
+      "files": [
+        "F656h6stzlu"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 56,
+      "members": [
+        "C16kvz4okukx"
+      ],
+      "anchors": [
+        "C16kvz4okukx"
+      ],
+      "files": [
+        "F5zo4jscjh6"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 57,
+      "members": [
+        "Chce6jcnxsc"
+      ],
+      "anchors": [
+        "Chce6jcnxsc"
+      ],
+      "files": [
+        "F5zo4jscjh6"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 59,
+      "members": [
+        "Cubkweeohfj"
+      ],
+      "anchors": [
+        "Cubkweeohfj"
+      ],
+      "files": [
+        "F5zo4jscjh6"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 60,
+      "members": [
+        "Cpdind1gabc"
+      ],
+      "anchors": [
+        "Cpdind1gabc"
+      ],
+      "files": [
+        "F5zo4jscjh6"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 62,
+      "members": [
+        "Cs33kqqho0k",
+        "Cxswqvag1hd",
+        "C14fx58m6l8d",
+        "C14qftnrht2n",
+        "C1345meyirt8",
+        "C8m7f3b16xz",
+        "Cmt1d5cq00e"
+      ],
+      "anchors": [
+        "C14fx58m6l8d"
+      ],
+      "files": [
+        "F5zo4jscjh6",
+        "F16qct3o2o4h",
+        "Fgnwdo9umq7"
+      ],
+      "total_lines": 43,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 65,
+      "members": [
+        "Co1j83xl640"
+      ],
+      "anchors": [
+        "Co1j83xl640"
+      ],
+      "files": [
+        "F5zo4jscjh6"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 67,
+      "members": [
+        "C14aeeyuy1s7",
+        "Cx9gvks82pc"
+      ],
+      "anchors": [
+        "C14aeeyuy1s7"
+      ],
+      "files": [
+        "F5zo4jscjh6",
+        "F16qct3o2o4h"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 71,
+      "members": [
+        "C42yp206jvb"
+      ],
+      "anchors": [
+        "C42yp206jvb"
+      ],
+      "files": [
+        "F5zo4jscjh6"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 96,
+      "members": [
+        "C17p1i9bxaiw"
+      ],
+      "anchors": [
+        "C17p1i9bxaiw"
+      ],
+      "files": [
+        "Fq71h4zaeay"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 112,
+      "members": [
+        "C15navm5wgu1"
+      ],
+      "anchors": [
+        "C15navm5wgu1"
+      ],
+      "files": [
+        "F16qct3o2o4h"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 117,
+      "members": [
+        "Cca7u8ufws7"
+      ],
+      "anchors": [
+        "Cca7u8ufws7"
+      ],
+      "files": [
+        "Fh6y47k3bor"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 118,
+      "members": [
+        "Cufb0lwn23m"
+      ],
+      "anchors": [
+        "Cufb0lwn23m"
+      ],
+      "files": [
+        "Fh6y47k3bor"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 128,
+      "members": [
+        "Cpebecxf42n"
+      ],
+      "anchors": [
+        "Cpebecxf42n"
+      ],
+      "files": [
+        "Frdpxakncqf"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 129,
+      "members": [
+        "Cfv1nz6yqgq",
+        "C17elp1vzozn",
+        "C54i9jieuwi"
+      ],
+      "anchors": [
+        "C17elp1vzozn"
+      ],
+      "files": [
+        "Frdpxakncqf"
+      ],
+      "total_lines": 50,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 134,
+      "members": [
+        "C18b69l401m0"
+      ],
+      "anchors": [
+        "C18b69l401m0"
+      ],
+      "files": [
+        "F5p2fhtcbu"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 137,
+      "members": [
+        "C16ta3dglacw"
+      ],
+      "anchors": [
+        "C16ta3dglacw"
+      ],
+      "files": [
+        "Fcxe8vwwj93"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 171,
+      "members": [
+        "C8xlosk7ivq",
+        "C4080kb7iep"
+      ],
+      "anchors": [
+        "C8xlosk7ivq"
+      ],
+      "files": [
+        "Fhllf01d0ny"
+      ],
+      "total_lines": 39,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 210,
+      "members": [
+        "C7ucxwd557c",
+        "C16utj2oszar"
+      ],
+      "anchors": [
+        "C7ucxwd557c"
+      ],
+      "files": [
+        "Fgdxtd4d1uy"
+      ],
+      "total_lines": 38,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 213,
+      "members": [
+        "Cx1rqvk0wsl"
+      ],
+      "anchors": [
+        "Cx1rqvk0wsl"
+      ],
+      "files": [
+        "Fgdxtd4d1uy"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 214,
+      "members": [
+        "C16e5oojehqf"
+      ],
+      "anchors": [
+        "C16e5oojehqf"
+      ],
+      "files": [
+        "Fgdxtd4d1uy"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 220,
+      "members": [
+        "C123x9p4p7tx"
+      ],
+      "anchors": [
+        "C123x9p4p7tx"
+      ],
+      "files": [
+        "Ft434w56872"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 221,
+      "members": [
+        "C1ala0quqcl",
+        "Cxmx62l9tck"
+      ],
+      "anchors": [
+        "Cxmx62l9tck"
+      ],
+      "files": [
+        "Ft434w56872"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 222,
+      "members": [
+        "Cn52sr56blq"
+      ],
+      "anchors": [
+        "Cn52sr56blq"
+      ],
+      "files": [
+        "Ft434w56872"
+      ],
+      "total_lines": 15,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 228,
+      "members": [
+        "Cv6psb48dzm"
+      ],
+      "anchors": [
+        "Cv6psb48dzm"
+      ],
+      "files": [
+        "Fqpo92lg2ag"
+      ],
+      "total_lines": 36,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 229,
+      "members": [
+        "C104aa2vwjd0"
+      ],
+      "anchors": [
+        "C104aa2vwjd0"
+      ],
+      "files": [
+        "Fqpo92lg2ag"
+      ],
+      "total_lines": 32,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 230,
+      "members": [
+        "Cn1gplp05rd",
+        "Cdd2voi65v6",
+        "C8e5ilmcsfx"
+      ],
+      "anchors": [
+        "Cdd2voi65v6",
+        "C8e5ilmcsfx"
+      ],
+      "files": [
+        "Ftg5h7v4aj6"
+      ],
+      "total_lines": 89,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 231,
+      "members": [
+        "C3yq79lk75p"
+      ],
+      "anchors": [
+        "C3yq79lk75p"
+      ],
+      "files": [
+        "Ftg5h7v4aj6"
+      ],
+      "total_lines": 32,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 232,
+      "members": [
+        "Cw234rexmdc"
+      ],
+      "anchors": [],
+      "files": [
+        "Ftg5h7v4aj6"
+      ],
+      "total_lines": 23,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 233,
+      "members": [
+        "Cntjn0ep4a5",
+        "Coy42f1f9us"
+      ],
+      "anchors": [
+        "Cntjn0ep4a5"
+      ],
+      "files": [
+        "Ftg5h7v4aj6"
+      ],
+      "total_lines": 35,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 235,
+      "members": [
+        "Cr7t14ur5a6"
+      ],
+      "anchors": [],
+      "files": [
+        "Ftg5h7v4aj6"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 236,
+      "members": [
+        "Cs4a0j7vyqn"
+      ],
+      "anchors": [],
+      "files": [
+        "Ftg5h7v4aj6"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 237,
+      "members": [
+        "C1436raio6bo"
+      ],
+      "anchors": [],
+      "files": [
+        "Ftg5h7v4aj6"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 238,
+      "members": [
+        "Cb10jnsdp7u"
+      ],
+      "anchors": [],
+      "files": [
+        "Ftg5h7v4aj6"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 243,
+      "members": [
+        "Cmrhsk6ulcg"
+      ],
+      "anchors": [
+        "Cmrhsk6ulcg"
+      ],
+      "files": [
+        "Fnozyxfetb7"
+      ],
+      "total_lines": 28,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 244,
+      "members": [
+        "C14gb1eepk9j"
+      ],
+      "anchors": [
+        "C14gb1eepk9j"
+      ],
+      "files": [
+        "Fnozyxfetb7"
+      ],
+      "total_lines": 49,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 250,
+      "members": [
+        "Chflvcj61rb",
+        "C154lwcl7uja",
+        "C17x6h9lupsk"
+      ],
+      "anchors": [
+        "Chflvcj61rb"
+      ],
+      "files": [
+        "Fgp4rjnyu2u",
+        "Fvcmpz4cuom"
+      ],
+      "total_lines": 22,
+      "languages": [
+        "python"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 304,
+      "members": [
+        "C134ndabbwo1"
+      ],
+      "anchors": [
+        "C134ndabbwo1"
+      ],
+      "files": [
+        "Fy7kgnu33ul"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 309,
+      "members": [
+        "Cyuwe40paps"
+      ],
+      "anchors": [
+        "Cyuwe40paps"
+      ],
+      "files": [
+        "Fgzqi1ww41y"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "python"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cn1gplp05rd",
+      "qualified_name": "zenplayer.ZenPlayer._get_state",
+      "simple_name": "_get_state",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ftg5h7v4aj6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenplayer/zenplayer.py",
+      "start_line": 13,
+      "end_line": 29,
+      "size_lines": 17,
+      "signature_hint": "def _get_state(self)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 317,
+      "region": 230,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "App"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cdd2voi65v6"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccpg7glzgmf",
+      "qualified_name": "components.audio.audio_vlc.SoundVLCPlayer._get_length",
+      "simple_name": "_get_length",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F656h6stzlu",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/audio/audio_vlc.py",
+      "start_line": 119,
+      "end_line": 121,
+      "size_lines": 3,
+      "signature_hint": "def _get_length(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 303,
+      "region": 43,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Sound"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14gb1eepk9j",
+      "qualified_name": "zenplaylist.ZenPlaylist.get_playlist_meta",
+      "simple_name": "get_playlist_meta",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fnozyxfetb7",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenplaylist/zenplaylist.py",
+      "start_line": 78,
+      "end_line": 126,
+      "size_lines": 49,
+      "signature_hint": "def get_playlist_meta(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 149,
+      "region": 244,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cv6psb48dzm",
+      "qualified_name": "zenlibrary.ZenLibrary.get_album_cover",
+      "simple_name": "get_album_cover",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fqpo92lg2ag",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenlibrary/zenlibrary.py",
+      "start_line": 143,
+      "end_line": 178,
+      "size_lines": 36,
+      "signature_hint": "def get_album_cover(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 136,
+      "region": 228,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cmrhsk6ulcg",
+      "qualified_name": "zenplaylist.ZenPlaylist.get_playlist",
+      "simple_name": "get_playlist",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fnozyxfetb7",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenplaylist/zenplaylist.py",
+      "start_line": 49,
+      "end_line": 76,
+      "size_lines": 28,
+      "signature_hint": "def get_playlist(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 128,
+      "region": 243,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cca7u8ufws7",
+      "qualified_name": "components.store.StoreFactory.load_pickle",
+      "simple_name": "load_pickle",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "static_method",
+      "file": "Fh6y47k3bor",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/store.py",
+      "start_line": 24,
+      "end_line": 34,
+      "size_lines": 11,
+      "signature_hint": "def load_pickle(file_name, default=None)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 111,
+      "region": 117,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C154lwcl7uja",
+      "qualified_name": "webserver.zenwebserver.ZenWebServer.add_dashboard",
+      "simple_name": "add_dashboard",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fvcmpz4cuom",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/zenwebserver.py",
+      "start_line": 37,
+      "end_line": 44,
+      "size_lines": 8,
+      "signature_hint": "def add_dashboard(self)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 108,
+      "region": 250,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C17x6h9lupsk"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cufb0lwn23m",
+      "qualified_name": "components.store.StoreFactory.save_pickle",
+      "simple_name": "save_pickle",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "static_method",
+      "file": "Fh6y47k3bor",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/store.py",
+      "start_line": 37,
+      "end_line": 43,
+      "size_lines": 7,
+      "signature_hint": "def save_pickle(file_name, obj)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 107,
+      "region": 118,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Coy42f1f9us",
+      "qualified_name": "zenplayer.ZenPlayer.volume_set.get_float",
+      "simple_name": "get_float",
+      "language": "python",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftg5h7v4aj6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenplayer/zenplayer.py",
+      "start_line": 107,
+      "end_line": 111,
+      "size_lines": 5,
+      "signature_hint": "def get_float(value)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 105,
+      "region": 233,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cntjn0ep4a5"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdd2voi65v6",
+      "qualified_name": "zenplayer.ZenPlayer.get_state",
+      "simple_name": "get_state",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ftg5h7v4aj6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenplayer/zenplayer.py",
+      "start_line": 189,
+      "end_line": 240,
+      "size_lines": 52,
+      "signature_hint": "def get_state(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -148,
+      "region": 230,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "App"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C17elp1vzozn",
+      "qualified_name": "albums.AlbumsScreen.item_touched",
+      "simple_name": "item_touched",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Frdpxakncqf",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/screens/albums/albums.py",
+      "start_line": 70,
+      "end_line": 102,
+      "size_lines": 33,
+      "signature_hint": "def item_touched(self, item)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -167,
+      "region": 129,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Screen"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "C3yq79lk75p",
+      "qualified_name": "zenplayer.ZenPlayer.get_track_meta",
+      "simple_name": "get_track_meta",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ftg5h7v4aj6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenplayer/zenplayer.py",
+      "start_line": 31,
+      "end_line": 62,
+      "size_lines": 32,
+      "signature_hint": "def get_track_meta(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -168,
+      "region": 231,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "App"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cntjn0ep4a5",
+      "qualified_name": "zenplayer.ZenPlayer.volume_set",
+      "simple_name": "volume_set",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ftg5h7v4aj6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenplayer/zenplayer.py",
+      "start_line": 88,
+      "end_line": 117,
+      "size_lines": 30,
+      "signature_hint": "def volume_set(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -170,
+      "region": 233,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "App"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C8xlosk7ivq",
+      "qualified_name": "tracks.TracksScreen.item_touched",
+      "simple_name": "item_touched",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fhllf01d0ny",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/screens/tracks/tracks.py",
+      "start_line": 38,
+      "end_line": 65,
+      "size_lines": 28,
+      "signature_hint": "def item_touched(self, item)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -172,
+      "region": 171,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Screen"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "C14fx58m6l8d",
+      "qualified_name": "ui.screens.playlist.playlist.PlaylistScreen.item_touched",
+      "simple_name": "item_touched",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fgnwdo9umq7",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/screens/playlist/playlist.py",
+      "start_line": 39,
+      "end_line": 59,
+      "size_lines": 21,
+      "signature_hint": "def item_touched(self, item)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -179,
+      "region": 62,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Screen"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 11
+    },
+    {
+      "id": "C8e5ilmcsfx",
+      "qualified_name": "zenplayer.ZenPlayer.get_track_cover",
+      "simple_name": "get_track_cover",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ftg5h7v4aj6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenplayer/zenplayer.py",
+      "start_line": 242,
+      "end_line": 261,
+      "size_lines": 20,
+      "signature_hint": "def get_track_cover(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -180,
+      "region": 230,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "App"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C16utj2oszar",
+      "qualified_name": "zenrecycleview.SelectableRecycleBoxLayout.move_selection",
+      "simple_name": "move_selection",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fgdxtd4d1uy",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/widgets/zenrecycleview.py",
+      "start_line": 188,
+      "end_line": 203,
+      "size_lines": 16,
+      "signature_hint": "def move_selection(self, down=True)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -184,
+      "region": 210,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "FocusBehavior"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C7ucxwd557c"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C14aeeyuy1s7",
+      "qualified_name": "components.controller.Controller.play_previous",
+      "simple_name": "play_previous",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F5zo4jscjh6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/controller.py",
+      "start_line": 237,
+      "end_line": 245,
+      "size_lines": 9,
+      "signature_hint": "def play_previous(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -191,
+      "region": 67,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "EventDispatcher"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C16ta3dglacw",
+      "qualified_name": "context.ContextScreen.item_touched",
+      "simple_name": "item_touched",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fcxe8vwwj93",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/screens/context/context.py",
+      "start_line": 38,
+      "end_line": 46,
+      "size_lines": 9,
+      "signature_hint": "def item_touched(self, item)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -191,
+      "region": 137,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Screen"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cubkweeohfj",
+      "qualified_name": "components.controller.Controller.move_forward",
+      "simple_name": "move_forward",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F5zo4jscjh6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/controller.py",
+      "start_line": 177,
+      "end_line": 182,
+      "size_lines": 6,
+      "signature_hint": "def move_forward(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -194,
+      "region": 59,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "EventDispatcher"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Co1j83xl640",
+      "qualified_name": "components.controller.Controller.play_random_album",
+      "simple_name": "play_random_album",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F5zo4jscjh6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/controller.py",
+      "start_line": 218,
+      "end_line": 223,
+      "size_lines": 6,
+      "signature_hint": "def play_random_album(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -194,
+      "region": 65,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "EventDispatcher"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "C42yp206jvb",
+      "qualified_name": "components.controller.Controller.quit",
+      "simple_name": "quit",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F5zo4jscjh6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/controller.py",
+      "start_line": 270,
+      "end_line": 275,
+      "size_lines": 6,
+      "signature_hint": "def quit(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -194,
+      "region": 71,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "EventDispatcher"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "Cpebecxf42n",
+      "qualified_name": "albums.AlbumsScreen.item_selected",
+      "simple_name": "item_selected",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Frdpxakncqf",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/screens/albums/albums.py",
+      "start_line": 41,
+      "end_line": 46,
+      "size_lines": 6,
+      "signature_hint": "def item_selected(self, label, selected)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -194,
+      "region": 128,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Screen"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cpdind1gabc",
+      "qualified_name": "components.controller.Controller.move_backward",
+      "simple_name": "move_backward",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F5zo4jscjh6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/controller.py",
+      "start_line": 184,
+      "end_line": 188,
+      "size_lines": 5,
+      "signature_hint": "def move_backward(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 60,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "EventDispatcher"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cs33kqqho0k",
+      "qualified_name": "components.controller.Controller.remove_index",
+      "simple_name": "remove_index",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F5zo4jscjh6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/controller.py",
+      "start_line": 200,
+      "end_line": 204,
+      "size_lines": 5,
+      "signature_hint": "def remove_index(self, index)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 62,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "EventDispatcher"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C8m7f3b16xz"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C18b69l401m0",
+      "qualified_name": "artists.ArtistsScreen.item_touched",
+      "simple_name": "item_touched",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F5p2fhtcbu",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/screens/artists/artists.py",
+      "start_line": 23,
+      "end_line": 27,
+      "size_lines": 5,
+      "signature_hint": "def item_touched(self, label)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 134,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Screen"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C16e5oojehqf",
+      "qualified_name": "zenrecycleview.SelectableLabel.apply_selection",
+      "simple_name": "apply_selection",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fgdxtd4d1uy",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/widgets/zenrecycleview.py",
+      "start_line": 148,
+      "end_line": 152,
+      "size_lines": 5,
+      "signature_hint": "def apply_selection(self, rv, index, is_selected)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 214,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Label"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cx9gvks82pc",
+      "qualified_name": "components.playlist.Playlist.move_previous",
+      "simple_name": "move_previous",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16qct3o2o4h",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/playlist.py",
+      "start_line": 145,
+      "end_line": 148,
+      "size_lines": 4,
+      "signature_hint": "def move_previous(self)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 67,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "EventDispatcher"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C14aeeyuy1s7"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C15navm5wgu1",
+      "qualified_name": "components.playlist.Playlist.set_index",
+      "simple_name": "set_index",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16qct3o2o4h",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/playlist.py",
+      "start_line": 157,
+      "end_line": 160,
+      "size_lines": 4,
+      "signature_hint": "def set_index(self, index)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 112,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "EventDispatcher"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cxswqvag1hd",
+      "qualified_name": "components.playlist.Playlist.remove_index",
+      "simple_name": "remove_index",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F16qct3o2o4h",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/playlist.py",
+      "start_line": 162,
+      "end_line": 165,
+      "size_lines": 4,
+      "signature_hint": "def remove_index(self, index)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 62,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "EventDispatcher"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cs33kqqho0k"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C1345meyirt8",
+      "qualified_name": "ui.screens.playlist.playlist.PlaylistScreen.button_info",
+      "simple_name": "button_info",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fgnwdo9umq7",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/screens/playlist/playlist.py",
+      "start_line": 65,
+      "end_line": 68,
+      "size_lines": 4,
+      "signature_hint": "def button_info(self, index)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 62,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Screen"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C14fx58m6l8d"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cx1rqvk0wsl",
+      "qualified_name": "zenrecycleview.SelectableLabel.refresh_view_attrs",
+      "simple_name": "refresh_view_attrs",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fgdxtd4d1uy",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/widgets/zenrecycleview.py",
+      "start_line": 143,
+      "end_line": 146,
+      "size_lines": 4,
+      "signature_hint": "def refresh_view_attrs(self, rv, index, data)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 213,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Label"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C33jd3h5sv3",
+      "qualified_name": "components.audio.audio_vlc.SoundVLCPlayer.unload",
+      "simple_name": "unload",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F656h6stzlu",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/audio/audio_vlc.py",
+      "start_line": 69,
+      "end_line": 71,
+      "size_lines": 3,
+      "signature_hint": "def unload(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -197,
+      "region": 36,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Sound"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C16kvz4okukx",
+      "qualified_name": "components.controller.Controller.volume_up",
+      "simple_name": "volume_up",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F5zo4jscjh6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/controller.py",
+      "start_line": 161,
+      "end_line": 163,
+      "size_lines": 3,
+      "signature_hint": "def volume_up(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -197,
+      "region": 56,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "EventDispatcher"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chce6jcnxsc",
+      "qualified_name": "components.controller.Controller.volume_down",
+      "simple_name": "volume_down",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F5zo4jscjh6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/controller.py",
+      "start_line": 165,
+      "end_line": 167,
+      "size_lines": 3,
+      "signature_hint": "def volume_down(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -197,
+      "region": 57,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "EventDispatcher"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C54i9jieuwi",
+      "qualified_name": "albums.AlbumsScreen.view_tracks",
+      "simple_name": "view_tracks",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Frdpxakncqf",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/screens/albums/albums.py",
+      "start_line": 104,
+      "end_line": 106,
+      "size_lines": 3,
+      "signature_hint": "def view_tracks(self)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -197,
+      "region": 129,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Screen"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C17elp1vzozn"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C14qftnrht2n",
+      "qualified_name": "ui.screens.playlist.playlist.PlaylistScreen.button_play",
+      "simple_name": "button_play",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fgnwdo9umq7",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/screens/playlist/playlist.py",
+      "start_line": 61,
+      "end_line": 63,
+      "size_lines": 3,
+      "signature_hint": "def button_play(self, index)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -197,
+      "region": 62,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Screen"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C14fx58m6l8d"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C8m7f3b16xz",
+      "qualified_name": "ui.screens.playlist.playlist.PlaylistScreen.button_remove",
+      "simple_name": "button_remove",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fgnwdo9umq7",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/screens/playlist/playlist.py",
+      "start_line": 70,
+      "end_line": 72,
+      "size_lines": 3,
+      "signature_hint": "def button_remove(self, index)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -197,
+      "region": 62,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Screen"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C14fx58m6l8d"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cwngmrrj7hr",
+      "qualified_name": "components.audio.audio_vlc.SoundVLCPlayer.extensions",
+      "simple_name": "extensions",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "static_method",
+      "file": "F656h6stzlu",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/audio/audio_vlc.py",
+      "start_line": 19,
+      "end_line": 20,
+      "size_lines": 2,
+      "signature_hint": "def extensions()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -198,
+      "region": 30,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Sound"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17p1i9bxaiw",
+      "qualified_name": "components.library.Library.search",
+      "simple_name": "search",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fq71h4zaeay",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/library.py",
+      "start_line": 112,
+      "end_line": 129,
+      "size_lines": 18,
+      "signature_hint": "def search(self, term)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -382,
+      "region": 96,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "search",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fqpo92lg2ag",
+            "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenlibrary/zenlibrary.py",
+            "line": 209,
+            "name": "search",
+            "receiver_hint": "self.ctrl.library"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cn52sr56blq",
+      "qualified_name": "zenapibase.ZenAPIBase.resp_from_image",
+      "simple_name": "resp_from_image",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "static_method",
+      "file": "Ft434w56872",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenapibase.py",
+      "start_line": 39,
+      "end_line": 53,
+      "size_lines": 15,
+      "signature_hint": "def resp_from_image(file_name)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -385,
+      "region": 222,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "resp_from_image",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fqpo92lg2ag",
+            "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenlibrary/zenlibrary.py",
+            "line": 178,
+            "name": "resp_from_image",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxmx62l9tck",
+      "qualified_name": "zenapibase.ZenAPIBase.safe_call",
+      "simple_name": "safe_call",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ft434w56872",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenapibase.py",
+      "start_line": 55,
+      "end_line": 63,
+      "size_lines": 9,
+      "signature_hint": "def safe_call(self, func, *args, get_response=True)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -391,
+      "region": 221,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "safe_call",
+          "sites": 9,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ftg5h7v4aj6",
+            "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenplayer/zenplayer.py",
+            "line": 86,
+            "name": "safe_call",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C1ala0quqcl",
+      "qualified_name": "zenapibase.ZenAPIBase.resp_from_data",
+      "simple_name": "resp_from_data",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "static_method",
+      "file": "Ft434w56872",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenapibase.py",
+      "start_line": 29,
+      "end_line": 36,
+      "size_lines": 8,
+      "signature_hint": "def resp_from_data(data, code=200)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -392,
+      "region": 221,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "resp_from_data",
+          "sites": 16,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fqpo92lg2ag",
+            "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenlibrary/zenlibrary.py",
+            "line": 30,
+            "name": "resp_from_data",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cxmx62l9tck"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C134ndabbwo1",
+      "qualified_name": "library.Library.search",
+      "simple_name": "search",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fy7kgnu33ul",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayerlit/zenplayerlit/library/library.py",
+      "start_line": 106,
+      "end_line": 113,
+      "size_lines": 8,
+      "signature_hint": "def search(self, term)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -392,
+      "region": 304,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "search",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fqpo92lg2ag",
+            "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenlibrary/zenlibrary.py",
+            "line": 209,
+            "name": "search",
+            "receiver_hint": "self.ctrl.library"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cyuwe40paps",
+      "qualified_name": "state.State.load",
+      "simple_name": "load",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "static_method",
+      "file": "Fgzqi1ww41y",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayerlit/zenplayerlit/state.py",
+      "start_line": 27,
+      "end_line": 32,
+      "size_lines": 6,
+      "signature_hint": "def load()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 309,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "load",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fifog11xfai",
+            "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/config.py",
+            "line": 58,
+            "name": "load"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C123x9p4p7tx",
+      "qualified_name": "zenapibase.ZenAPIBase.get_request_arg",
+      "simple_name": "get_request_arg",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "static_method",
+      "file": "Ft434w56872",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenapibase.py",
+      "start_line": 23,
+      "end_line": 26,
+      "size_lines": 4,
+      "signature_hint": "def get_request_arg(key, default=\"\")",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -396,
+      "region": 220,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "get_request_arg",
+          "sites": 8,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fqpo92lg2ag",
+            "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenlibrary/zenlibrary.py",
+            "line": 61,
+            "name": "get_request_arg",
+            "receiver_hint": "self"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cw234rexmdc",
+      "qualified_name": "zenplayer.ZenPlayer.play_pause",
+      "simple_name": "play_pause",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ftg5h7v4aj6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenplayer/zenplayer.py",
+      "start_line": 64,
+      "end_line": 86,
+      "size_lines": 23,
+      "signature_hint": "def play_pause(self)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -477,
+      "region": 232,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "App"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cw234rexmdc"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cfv1nz6yqgq",
+      "qualified_name": "albums.AlbumsScreen.add_to_playlist",
+      "simple_name": "add_to_playlist",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Frdpxakncqf",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/screens/albums/albums.py",
+      "start_line": 48,
+      "end_line": 61,
+      "size_lines": 14,
+      "signature_hint": "def add_to_playlist(self, mode=\"add\")",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -486,
+      "region": 129,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Screen"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 5,
+          "example": "C17elp1vzozn"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "Cr7t14ur5a6",
+      "qualified_name": "zenplayer.ZenPlayer.volume_up",
+      "simple_name": "volume_up",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ftg5h7v4aj6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenplayer/zenplayer.py",
+      "start_line": 119,
+      "end_line": 131,
+      "size_lines": 13,
+      "signature_hint": "def volume_up(self)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -487,
+      "region": 235,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "App"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cr7t14ur5a6"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cs4a0j7vyqn",
+      "qualified_name": "zenplayer.ZenPlayer.volume_down",
+      "simple_name": "volume_down",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ftg5h7v4aj6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenplayer/zenplayer.py",
+      "start_line": 133,
+      "end_line": 145,
+      "size_lines": 13,
+      "signature_hint": "def volume_down(self)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -487,
+      "region": 236,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "App"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cs4a0j7vyqn"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C1436raio6bo",
+      "qualified_name": "zenplayer.ZenPlayer.play_previous",
+      "simple_name": "play_previous",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ftg5h7v4aj6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenplayer/zenplayer.py",
+      "start_line": 147,
+      "end_line": 159,
+      "size_lines": 13,
+      "signature_hint": "def play_previous(self)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -487,
+      "region": 237,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "App"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C1436raio6bo"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cb10jnsdp7u",
+      "qualified_name": "zenplayer.ZenPlayer.play_next",
+      "simple_name": "play_next",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Ftg5h7v4aj6",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenplayer/zenplayer.py",
+      "start_line": 161,
+      "end_line": 173,
+      "size_lines": 13,
+      "signature_hint": "def play_next(self)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -487,
+      "region": 238,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "App"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cb10jnsdp7u"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C4080kb7iep",
+      "qualified_name": "tracks.TracksScreen.add_to_playlist",
+      "simple_name": "add_to_playlist",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fhllf01d0ny",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/screens/tracks/tracks.py",
+      "start_line": 67,
+      "end_line": 77,
+      "size_lines": 11,
+      "signature_hint": "def add_to_playlist(self, mode=\"add\")",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -489,
+      "region": 171,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Screen"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 5,
+          "example": "C8xlosk7ivq"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "Cmt1d5cq00e",
+      "qualified_name": "ui.screens.playlist.playlist.PlaylistScreen.button_clear_files",
+      "simple_name": "button_clear_files",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fgnwdo9umq7",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/screens/playlist/playlist.py",
+      "start_line": 74,
+      "end_line": 76,
+      "size_lines": 3,
+      "signature_hint": "def button_clear_files(self)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -497,
+      "region": 62,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Screen"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "value-position",
+          "sites": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C14fx58m6l8d"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C7ucxwd557c",
+      "qualified_name": "zenrecycleview.ZenRecycleView.on_key_down",
+      "simple_name": "on_key_down",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fgdxtd4d1uy",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/widgets/zenrecycleview.py",
+      "start_line": 91,
+      "end_line": 112,
+      "size_lines": 22,
+      "signature_hint": "def on_key_down(self, keycode, text, modifiers)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -678,
+      "region": 210,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "FloatLayout"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "on_key_down",
+          "sites": 2,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F53c8lnl79s",
+            "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/ui/widgets/zenkeydown.py",
+            "line": 19,
+            "name": "on_key_down"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Cfte2hzojwz",
+      "qualified_name": "components.audio.audio_vlc.SoundVLCPlayer.on_volume",
+      "simple_name": "on_volume",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F656h6stzlu",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/components/audio/audio_vlc.py",
+      "start_line": 103,
+      "end_line": 108,
+      "size_lines": 6,
+      "signature_hint": "def on_volume(self, _instance, volume)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 41,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Sound"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "on_volume",
+          "sites": 1,
+          "reason": "value-ref-ambiguous",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ftg5h7v4aj6",
+            "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenplayer/zenplayer.py",
+            "line": 115,
+            "name": "on_volume"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Chflvcj61rb",
+      "qualified_name": "webserver.webserver.FlaskThread.run",
+      "simple_name": "run",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fgp4rjnyu2u",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/webserver.py",
+      "start_line": 17,
+      "end_line": 22,
+      "size_lines": 6,
+      "signature_hint": "def run(self)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 250,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Thread"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "run",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fvcmpz4cuom",
+            "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/zenwebserver.py",
+            "line": 64,
+            "name": "run",
+            "receiver_hint": "self.app"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C104aa2vwjd0",
+      "qualified_name": "zenlibrary.ZenLibrary.search",
+      "simple_name": "search",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fqpo92lg2ag",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenlibrary/zenlibrary.py",
+      "start_line": 180,
+      "end_line": 211,
+      "size_lines": 32,
+      "signature_hint": "def search(self)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -368,
+      "region": 229,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "search",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fqpo92lg2ag",
+            "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/api/zenlibrary/zenlibrary.py",
+            "line": 209,
+            "name": "search",
+            "receiver_hint": "self.ctrl.library"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17x6h9lupsk",
+      "qualified_name": "webserver.zenwebserver.ZenWebServer.run",
+      "simple_name": "run",
+      "language": "python",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fvcmpz4cuom",
+      "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/zenwebserver.py",
+      "start_line": 57,
+      "end_line": 64,
+      "size_lines": 8,
+      "signature_hint": "def run(self, *args, **kwargs)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "low",
+      "rank": -392,
+      "region": 250,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "run",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 1,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fvcmpz4cuom",
+            "path": "/storage/cgg-test_repos/app-zenplayer-kivy/zenplayer/webserver/zenwebserver.py",
+            "line": 64,
+            "name": "run",
+            "receiver_hint": "self.app"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Chflvcj61rb"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    }
+  ]
+}

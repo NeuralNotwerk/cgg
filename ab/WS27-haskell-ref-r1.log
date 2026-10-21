@@ -1,0 +1,5 @@
+repos 283 excluded []
+added 0
+dropped 433
+  ('haskell', '{"kind": "direct"}', 'high') 90
+  ('haskell', '{"kind": "direct"}', 'medium') 343

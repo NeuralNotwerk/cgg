@@ -1,0 +1,12 @@
+old: cgg 0.11.0 (dev g9c44e55)  sha256=6c904dff0196ab3e157d60500a1cfcfd19576e92ee6be2f782d93911d21b0426
+new: cgg 0.11.0 (dev g9c44e55+d580a21f)  sha256=3643c5e9cb2d49fac4cafaf94cf345eb7a1055cd4f7352d7b94807bcc1e9e382
+old=target/remediation/bins/WS27-haskell-before
+new=target/remediation/bins/WS27-haskell-r1-op
+repos=283 elapsed=241s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 4
+  app-concordium-gotham: edges 19467->19298 (-169 +0 ~0) callables 20228->20228 unresolved 3979->4111 files 380->380 deadhigh 1->1 
+  app-stackage-yesod: edges 864->862 (-2 +0 ~0) callables 1424->1424 unresolved 1023->1025 files 64->64 deadhigh 0->0 
+  haskell-hspec: edges 2977->2895 (-82 +0 ~0) callables 1898->1898 unresolved 218->290 files 188->188 deadhigh 0->0 
+  haskell-pandoc: edges 26867->26687 (-180 +0 ~0) callables 22984->22984 unresolved 6909->7041 files 434->434 deadhigh 0->0 
+by language: see by_language.tsv
