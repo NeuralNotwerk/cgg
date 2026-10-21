@@ -1,0 +1,10 @@
+old: cgg 0.11.0 (dev ge8d94af)  sha256=4b96d7b2e2dc062b3249db4761008b5b06d4c842c3d1d9d64adf5911b977ccac
+new: cgg 0.11.0 (dev ge8d94af+d34d322a)  sha256=cdc7710412c768e89685042195f540ed3d3038e1e897995fbcbc0c63ac9a00a1
+old=target/remediation/bins/WS27-julia-before
+new=target/remediation/bins/WS27-julia-r1
+repos=283 elapsed=421s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 2
+  julia-flux: edges 866->865 (-1 +0 ~0) callables 634->634 unresolved 2105->2106 files 95->95 deadhigh 0->0 
+  julia-genie: edges 1336->1316 (-20 +0 ~0) callables 889->889 unresolved 1167->1181 files 120->120 deadhigh 0->0 
+by language: see by_language.tsv

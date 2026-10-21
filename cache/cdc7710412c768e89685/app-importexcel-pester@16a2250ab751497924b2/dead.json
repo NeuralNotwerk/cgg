@@ -1,0 +1,6342 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "powershell",
+      "class": "script-driven",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 257,
+      "callables": 130,
+      "roots": 21,
+      "reachable": 21,
+      "reachable_pct": 16,
+      "findings": 91
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 130,
+    "edges": 54,
+    "unresolved_call_sites": 1158,
+    "roots": 21,
+    "candidates": 109,
+    "reported": 91,
+    "regions": 88,
+    "withheld": [
+      {
+        "language": "powershell",
+        "category": "reachable-only-from-dead-code",
+        "reason": "script-driven",
+        "would_have_reported": 16
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Cgh0j0gh4m7",
+      "qualified_name": "Get-EnvironmentInfo",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/CI/CI.ps1:99"
+    },
+    {
+      "id": "Cxdcd5xo0j",
+      "qualified_name": "Show-Warning",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/CI/PS-CI.ps1:203"
+    },
+    {
+      "id": "Cw6bthf0ply",
+      "qualified_name": "plot",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/Examples/Charts/plot.ps1:30"
+    },
+    {
+      "id": "Carwr44vtc2",
+      "qualified_name": "pi",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/Examples/Charts/plot.ps1:30"
+    },
+    {
+      "id": "Cqhh5uejn8b",
+      "qualified_name": "Get-DateOffset",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/Examples/ConditionalFormatting/RangeFormatting.ps1:15"
+    },
+    {
+      "id": "C9e0dg3iino",
+      "qualified_name": "Get-Number",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/Examples/ConditionalFormatting/GenDates.ps1:24"
+    },
+    {
+      "id": "Cy8i9yvjdfk",
+      "qualified_name": "Get-ConditionalFormatting",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/Examples/ConditionalFormatting/GetConditionalFormatting.ps1:21"
+    },
+    {
+      "id": "C12htz998er6",
+      "qualified_name": "Get-DateOffset",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/Examples/ConditionalFormatting/RangeFormatting.ps1:15"
+    },
+    {
+      "id": "Cptpcxotq09",
+      "qualified_name": "New-CellData",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/Examples/MortgageCalculator/MortgageCalculator.ps1:54"
+    },
+    {
+      "id": "Caobzgkhzbq",
+      "qualified_name": "Read-Char",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/Examples/OutTabulator/start-demo.ps1:116"
+    },
+    {
+      "id": "Cckpvcu1fe1",
+      "qualified_name": "Rewind",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/Examples/OutTabulator/start-demo.ps1:175"
+    },
+    {
+      "id": "Crnfsnecuw8",
+      "qualified_name": "Get-PesterTests",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/Examples/PesterTestReport/Pester test report.ps1:125"
+    },
+    {
+      "id": "C7ldsj935xr",
+      "qualified_name": "Get-ExcelTable",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/GetExcelTable.ps1:102"
+    },
+    {
+      "id": "Csq9037g0zw",
+      "qualified_name": "ConvertFrom-ExcelColumnName",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/spikes/ConvertFrom-ExcelColumnName.ps1:15"
+    },
+    {
+      "id": "Caqezltkh4o",
+      "qualified_name": "Get-Service",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/__tests__/RangePassing.Tests.ps1:112"
+    },
+    {
+      "id": "Cxmbrya83om",
+      "qualified_name": "Get-Service",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/__tests__/RangePassing.Tests.ps1:112"
+    },
+    {
+      "id": "Cr9z4h2adzv",
+      "qualified_name": "Get-Service",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/__tests__/RangePassing.Tests.ps1:112"
+    },
+    {
+      "id": "Chhb19gtsuu",
+      "qualified_name": "Get-Service",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/__tests__/RangePassing.Tests.ps1:112"
+    },
+    {
+      "id": "Csr23tks2jz",
+      "qualified_name": "Get-Service",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/__tests__/RangePassing.Tests.ps1:112"
+    },
+    {
+      "id": "Ccirh3blhtl",
+      "qualified_name": "Get-Service",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/__tests__/RangePassing.Tests.ps1:112"
+    },
+    {
+      "id": "Czgo0yxgint",
+      "qualified_name": "ConvertFrom-ExcelColumnName",
+      "language": "powershell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-importexcel-pester/spikes/ConvertFrom-ExcelColumnName.ps1:15"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "Cegu5sclwiq"
+      ],
+      "anchors": [
+        "Cegu5sclwiq"
+      ],
+      "files": [
+        "Flxqp4n6p0c"
+      ],
+      "total_lines": 133,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 2,
+      "members": [
+        "Capujeyah84"
+      ],
+      "anchors": [
+        "Capujeyah84"
+      ],
+      "files": [
+        "Fvdo4r1npj4"
+      ],
+      "total_lines": 33,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 4,
+      "members": [
+        "C12ppd8rxwb7"
+      ],
+      "anchors": [
+        "C12ppd8rxwb7"
+      ],
+      "files": [
+        "Fhinpvatkkw"
+      ],
+      "total_lines": 53,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 5,
+      "members": [
+        "Cgi6qke1jr7",
+        "Cnkeiuvbmz",
+        "Cdy842hb008",
+        "C10bz06z7n5t",
+        "C9d23ij66li"
+      ],
+      "anchors": [
+        "Cnkeiuvbmz",
+        "Cdy842hb008",
+        "C10bz06z7n5t",
+        "C9d23ij66li"
+      ],
+      "files": [
+        "Fp782njregx"
+      ],
+      "total_lines": 104,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 10,
+      "members": [
+        "C142mqtgq1q6"
+      ],
+      "anchors": [
+        "C142mqtgq1q6"
+      ],
+      "files": [
+        "F11ahjfx1ud9"
+      ],
+      "total_lines": 119,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 17,
+      "members": [
+        "Cz7spjpvbes"
+      ],
+      "anchors": [
+        "Cz7spjpvbes"
+      ],
+      "files": [
+        "Fewr36nndzi"
+      ],
+      "total_lines": 77,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 18,
+      "members": [
+        "Ciuu5wm41ni"
+      ],
+      "anchors": [
+        "Ciuu5wm41ni"
+      ],
+      "files": [
+        "Fefq24mwjx1"
+      ],
+      "total_lines": 46,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 19,
+      "members": [
+        "Ceq8or57uqu",
+        "C1352worz9hr"
+      ],
+      "anchors": [
+        "Ceq8or57uqu"
+      ],
+      "files": [
+        "Fk89co89vca"
+      ],
+      "total_lines": 179,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 22,
+      "members": [
+        "Cw2zr9qe1fe"
+      ],
+      "anchors": [
+        "Cw2zr9qe1fe"
+      ],
+      "files": [
+        "F2l4f622ueg"
+      ],
+      "total_lines": 24,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 26,
+      "members": [
+        "C10xuhijz357"
+      ],
+      "anchors": [
+        "C10xuhijz357"
+      ],
+      "files": [
+        "Fuw3vsic3u9"
+      ],
+      "total_lines": 21,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 27,
+      "members": [
+        "C1865v8tha8w"
+      ],
+      "anchors": [
+        "C1865v8tha8w"
+      ],
+      "files": [
+        "F7ovu7db9g7"
+      ],
+      "total_lines": 47,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 28,
+      "members": [
+        "C117lote9kz1"
+      ],
+      "anchors": [
+        "C117lote9kz1"
+      ],
+      "files": [
+        "F7ovu7db9g7"
+      ],
+      "total_lines": 42,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 29,
+      "members": [
+        "Csrlyohr1i1"
+      ],
+      "anchors": [
+        "Csrlyohr1i1"
+      ],
+      "files": [
+        "F12cpv34pp3m"
+      ],
+      "total_lines": 34,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 30,
+      "members": [
+        "Cc6fmwip9wx"
+      ],
+      "anchors": [
+        "Cc6fmwip9wx"
+      ],
+      "files": [
+        "Fm6ur2i44s2"
+      ],
+      "total_lines": 46,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 31,
+      "members": [
+        "Cwvf6b186d6"
+      ],
+      "anchors": [
+        "Cwvf6b186d6"
+      ],
+      "files": [
+        "Fwfikzfvpnh"
+      ],
+      "total_lines": 26,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 32,
+      "members": [
+        "Ce4ripr4mw8"
+      ],
+      "anchors": [
+        "Ce4ripr4mw8"
+      ],
+      "files": [
+        "Fx7034eir69"
+      ],
+      "total_lines": 29,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 35,
+      "members": [
+        "C8iq0qan9le",
+        "C166hiijuq5f"
+      ],
+      "anchors": [
+        "C8iq0qan9le"
+      ],
+      "files": [
+        "F16s8xx76bb6",
+        "Fawor5zll6c"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 36,
+      "members": [
+        "Cyaj45udta0"
+      ],
+      "anchors": [
+        "Cyaj45udta0"
+      ],
+      "files": [
+        "F24ft4j3v4t"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 37,
+      "members": [
+        "Cdgmex0l7g4"
+      ],
+      "anchors": [
+        "Cdgmex0l7g4"
+      ],
+      "files": [
+        "F24ft4j3v4t"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 38,
+      "members": [
+        "Cnk2vhlqzs"
+      ],
+      "anchors": [
+        "Cnk2vhlqzs"
+      ],
+      "files": [
+        "F24ft4j3v4t"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 39,
+      "members": [
+        "Cjdh85gkn3x"
+      ],
+      "anchors": [
+        "Cjdh85gkn3x"
+      ],
+      "files": [
+        "F24ft4j3v4t"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 40,
+      "members": [
+        "Cdzseglgi4d"
+      ],
+      "anchors": [
+        "Cdzseglgi4d"
+      ],
+      "files": [
+        "F24ft4j3v4t"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 41,
+      "members": [
+        "Castiy1la2j"
+      ],
+      "anchors": [
+        "Castiy1la2j"
+      ],
+      "files": [
+        "F24ft4j3v4t"
+      ],
+      "total_lines": 34,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 42,
+      "members": [
+        "C2gii6bgeu0"
+      ],
+      "anchors": [
+        "C2gii6bgeu0"
+      ],
+      "files": [
+        "Feziwwr83he"
+      ],
+      "total_lines": 21,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 44,
+      "members": [
+        "Cn0ftqtyyxz",
+        "C1f64biod9u",
+        "Cwjjtfjole6",
+        "Cock2ymb795",
+        "Ch1zx15cyd1",
+        "Ciu2guop596",
+        "C6yzvl60z9m",
+        "Cqcgtd8y9kh",
+        "C2edblrjghe",
+        "Cdbv52jwrno",
+        "C7c9088x08x",
+        "C6phpg0qlm5",
+        "C85sy8ri4kb",
+        "C1gg6kdtujl",
+        "C3hm064kpi7"
+      ],
+      "anchors": [
+        "Cn0ftqtyyxz",
+        "C1f64biod9u",
+        "Cwjjtfjole6",
+        "Cock2ymb795",
+        "Ch1zx15cyd1",
+        "Ciu2guop596"
+      ],
+      "files": [
+        "Fawor5zll6c"
+      ],
+      "total_lines": 177,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 59,
+      "members": [
+        "C106ntxzzixb"
+      ],
+      "anchors": [
+        "C106ntxzzixb"
+      ],
+      "files": [
+        "Fawor5zll6c"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 60,
+      "members": [
+        "C6v6yusvbsn"
+      ],
+      "anchors": [
+        "C6v6yusvbsn"
+      ],
+      "files": [
+        "Fawor5zll6c"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 61,
+      "members": [
+        "C11ok5uwi62y"
+      ],
+      "anchors": [
+        "C11ok5uwi62y"
+      ],
+      "files": [
+        "Fbi88bjzim7"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 62,
+      "members": [
+        "C11p86jgim41"
+      ],
+      "anchors": [
+        "C11p86jgim41"
+      ],
+      "files": [
+        "Fbi88bjzim7"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 63,
+      "members": [
+        "Crj9ah53eg"
+      ],
+      "anchors": [
+        "Crj9ah53eg"
+      ],
+      "files": [
+        "Fbi88bjzim7"
+      ],
+      "total_lines": 40,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 64,
+      "members": [
+        "Cml4yhlr85a"
+      ],
+      "anchors": [
+        "Cml4yhlr85a"
+      ],
+      "files": [
+        "Fbi88bjzim7"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 65,
+      "members": [
+        "Cr7uihorgmc"
+      ],
+      "anchors": [
+        "Cr7uihorgmc"
+      ],
+      "files": [
+        "F9qfi64vqjx"
+      ],
+      "total_lines": 25,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 66,
+      "members": [
+        "Cjcxcqjrtaa"
+      ],
+      "anchors": [
+        "Cjcxcqjrtaa"
+      ],
+      "files": [
+        "Fsvyu5b4a4n"
+      ],
+      "total_lines": 158,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 67,
+      "members": [
+        "Ca0gx3gn6fd"
+      ],
+      "anchors": [
+        "Ca0gx3gn6fd"
+      ],
+      "files": [
+        "Fqrptrw32eb"
+      ],
+      "total_lines": 141,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 68,
+      "members": [
+        "Ccea2rqdqzh"
+      ],
+      "anchors": [],
+      "files": [
+        "F5553kt0xqq"
+      ],
+      "total_lines": 58,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 69,
+      "members": [
+        "Cymhhrfe7u"
+      ],
+      "anchors": [
+        "Cymhhrfe7u"
+      ],
+      "files": [
+        "F11uhfxnjlzc"
+      ],
+      "total_lines": 30,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 70,
+      "members": [
+        "Cortydzriiq"
+      ],
+      "anchors": [
+        "Cortydzriiq"
+      ],
+      "files": [
+        "F869bmie68z"
+      ],
+      "total_lines": 126,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 71,
+      "members": [
+        "C14oqdr3fz7d"
+      ],
+      "anchors": [
+        "C14oqdr3fz7d"
+      ],
+      "files": [
+        "Fsru13xzzxh"
+      ],
+      "total_lines": 188,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 72,
+      "members": [
+        "Cljo8927s8i"
+      ],
+      "anchors": [
+        "Cljo8927s8i"
+      ],
+      "files": [
+        "F7n8ls3057p"
+      ],
+      "total_lines": 80,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 73,
+      "members": [
+        "Cs7wktyit4o"
+      ],
+      "anchors": [
+        "Cs7wktyit4o"
+      ],
+      "files": [
+        "F2rm35c0rx3"
+      ],
+      "total_lines": 38,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 74,
+      "members": [
+        "Curgpmjllzr"
+      ],
+      "anchors": [
+        "Curgpmjllzr"
+      ],
+      "files": [
+        "Fijp1ka8pod"
+      ],
+      "total_lines": 199,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 75,
+      "members": [
+        "Csji25avjj7"
+      ],
+      "anchors": [
+        "Csji25avjj7"
+      ],
+      "files": [
+        "Fe8khw42cl7"
+      ],
+      "total_lines": 35,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 76,
+      "members": [
+        "C8hoct6csbu"
+      ],
+      "anchors": [
+        "C8hoct6csbu"
+      ],
+      "files": [
+        "Fstkdcl0ksf"
+      ],
+      "total_lines": 30,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 77,
+      "members": [
+        "C15vt4big9jo"
+      ],
+      "anchors": [
+        "C15vt4big9jo"
+      ],
+      "files": [
+        "Ftf7tuuga24"
+      ],
+      "total_lines": 43,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 78,
+      "members": [
+        "Cmqr2r6vl6i"
+      ],
+      "anchors": [
+        "Cmqr2r6vl6i"
+      ],
+      "files": [
+        "Fnlwqit5iqc"
+      ],
+      "total_lines": 56,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 79,
+      "members": [
+        "C1607himkh2f"
+      ],
+      "anchors": [
+        "C1607himkh2f"
+      ],
+      "files": [
+        "Few9ggnbogu"
+      ],
+      "total_lines": 61,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 80,
+      "members": [
+        "C4zlcmlnaa1"
+      ],
+      "anchors": [
+        "C4zlcmlnaa1"
+      ],
+      "files": [
+        "Fdeaxr4nz71"
+      ],
+      "total_lines": 95,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 81,
+      "members": [
+        "Cwoxa69s31f"
+      ],
+      "anchors": [
+        "Cwoxa69s31f"
+      ],
+      "files": [
+        "Fpr5owhm7d8"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 82,
+      "members": [
+        "Cd0hpkqsyuj"
+      ],
+      "anchors": [
+        "Cd0hpkqsyuj"
+      ],
+      "files": [
+        "Fxlit9n8o97"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 83,
+      "members": [
+        "C7hrrrmpj6f"
+      ],
+      "anchors": [
+        "C7hrrrmpj6f"
+      ],
+      "files": [
+        "Fsif22bsmac"
+      ],
+      "total_lines": 697,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 84,
+      "members": [
+        "Cbtjb7yyr3q"
+      ],
+      "anchors": [
+        "Cbtjb7yyr3q"
+      ],
+      "files": [
+        "Fg29jyqd1md"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 85,
+      "members": [
+        "Cnorm1v5lvt"
+      ],
+      "anchors": [
+        "Cnorm1v5lvt"
+      ],
+      "files": [
+        "F105q0p8hq6m"
+      ],
+      "total_lines": 47,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 86,
+      "members": [
+        "C16jki0y29bn"
+      ],
+      "anchors": [
+        "C16jki0y29bn"
+      ],
+      "files": [
+        "Fnqk2nk226d"
+      ],
+      "total_lines": 29,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 87,
+      "members": [
+        "Cmv5j8xfyhl"
+      ],
+      "anchors": [
+        "Cmv5j8xfyhl"
+      ],
+      "files": [
+        "Ffpmp5mwgnl"
+      ],
+      "total_lines": 15,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 88,
+      "members": [
+        "Ccly9584nq3"
+      ],
+      "anchors": [
+        "Ccly9584nq3"
+      ],
+      "files": [
+        "F9vt2tlbbba"
+      ],
+      "total_lines": 28,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 89,
+      "members": [
+        "Co2rr2t6jqj"
+      ],
+      "anchors": [
+        "Co2rr2t6jqj"
+      ],
+      "files": [
+        "Fw27rd13kwp"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 90,
+      "members": [
+        "C181e554dmwx"
+      ],
+      "anchors": [
+        "C181e554dmwx"
+      ],
+      "files": [
+        "Fl6jcca3v82"
+      ],
+      "total_lines": 83,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 91,
+      "members": [
+        "Cemr2iyzd7i"
+      ],
+      "anchors": [
+        "Cemr2iyzd7i"
+      ],
+      "files": [
+        "Fbxozf38nak"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 92,
+      "members": [
+        "Cuflfv1modt"
+      ],
+      "anchors": [
+        "Cuflfv1modt"
+      ],
+      "files": [
+        "Fcrkrl38j35"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 93,
+      "members": [
+        "Cnzer7jsv9c"
+      ],
+      "anchors": [
+        "Cnzer7jsv9c"
+      ],
+      "files": [
+        "Fdsgdgukzpq"
+      ],
+      "total_lines": 19,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 94,
+      "members": [
+        "Ckhplc1ln0x"
+      ],
+      "anchors": [
+        "Ckhplc1ln0x"
+      ],
+      "files": [
+        "Ffz3g7csn46"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 95,
+      "members": [
+        "C24d6iwp9am"
+      ],
+      "anchors": [
+        "C24d6iwp9am"
+      ],
+      "files": [
+        "Fqup2fynpw1"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 96,
+      "members": [
+        "Cpyogm2likb"
+      ],
+      "anchors": [
+        "Cpyogm2likb"
+      ],
+      "files": [
+        "F17j0sk8us2n"
+      ],
+      "total_lines": 62,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 97,
+      "members": [
+        "C12agmu8zpi9"
+      ],
+      "anchors": [
+        "C12agmu8zpi9"
+      ],
+      "files": [
+        "Fjmqqo22b9f"
+      ],
+      "total_lines": 42,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 98,
+      "members": [
+        "Ca6id4ugf3v"
+      ],
+      "anchors": [
+        "Ca6id4ugf3v"
+      ],
+      "files": [
+        "F12q9ybwywzw"
+      ],
+      "total_lines": 135,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 99,
+      "members": [
+        "Cts8lhdpdf2"
+      ],
+      "anchors": [
+        "Cts8lhdpdf2"
+      ],
+      "files": [
+        "Fv94a3zquur"
+      ],
+      "total_lines": 147,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 100,
+      "members": [
+        "Ca5b3q9y1gc"
+      ],
+      "anchors": [
+        "Ca5b3q9y1gc"
+      ],
+      "files": [
+        "F2ts8dqtsmm"
+      ],
+      "total_lines": 263,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 101,
+      "members": [
+        "Cbeua7iknyg"
+      ],
+      "anchors": [
+        "Cbeua7iknyg"
+      ],
+      "files": [
+        "F8s3bklrbif"
+      ],
+      "total_lines": 59,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 102,
+      "members": [
+        "C36ejmrte9y"
+      ],
+      "anchors": [
+        "C36ejmrte9y"
+      ],
+      "files": [
+        "F16dgiqnj38t"
+      ],
+      "total_lines": 42,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 103,
+      "members": [
+        "C14p0f68z4m9"
+      ],
+      "anchors": [
+        "C14p0f68z4m9"
+      ],
+      "files": [
+        "F7k8i7tk2qr"
+      ],
+      "total_lines": 88,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 104,
+      "members": [
+        "Ckf5evnxv0e"
+      ],
+      "anchors": [
+        "Ckf5evnxv0e"
+      ],
+      "files": [
+        "F11kprl6zy7o"
+      ],
+      "total_lines": 48,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 105,
+      "members": [
+        "Cnk7nktoxbr"
+      ],
+      "anchors": [
+        "Cnk7nktoxbr"
+      ],
+      "files": [
+        "Fpn7p4szma9"
+      ],
+      "total_lines": 23,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 106,
+      "members": [
+        "Ch3qx8oyw71"
+      ],
+      "anchors": [
+        "Ch3qx8oyw71"
+      ],
+      "files": [
+        "Fts399uufed"
+      ],
+      "total_lines": 76,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 107,
+      "members": [
+        "Ccmgpr0twmk"
+      ],
+      "anchors": [
+        "Ccmgpr0twmk"
+      ],
+      "files": [
+        "F79id6ai9dk"
+      ],
+      "total_lines": 49,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 108,
+      "members": [
+        "Cbf6ji4v5mm",
+        "C242qyd0rg8"
+      ],
+      "anchors": [
+        "Cbf6ji4v5mm"
+      ],
+      "files": [
+        "Fbqxjtju4dl"
+      ],
+      "total_lines": 83,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 110,
+      "members": [
+        "Czfs8wfv5fj"
+      ],
+      "anchors": [
+        "Czfs8wfv5fj"
+      ],
+      "files": [
+        "Fwnann05tdu"
+      ],
+      "total_lines": 53,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 111,
+      "members": [
+        "Ckfkwmo0x4q"
+      ],
+      "anchors": [
+        "Ckfkwmo0x4q"
+      ],
+      "files": [
+        "Fa11tmhp8ms"
+      ],
+      "total_lines": 28,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 112,
+      "members": [
+        "Czsaxbpwexk"
+      ],
+      "anchors": [
+        "Czsaxbpwexk"
+      ],
+      "files": [
+        "Ffe6iqxygq7"
+      ],
+      "total_lines": 24,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 113,
+      "members": [
+        "C7nr8t5zbn8"
+      ],
+      "anchors": [
+        "C7nr8t5zbn8"
+      ],
+      "files": [
+        "F9leg0na4lo"
+      ],
+      "total_lines": 112,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 114,
+      "members": [
+        "C6yodwd1pkz"
+      ],
+      "anchors": [],
+      "files": [
+        "Fi2bvwa5dqh"
+      ],
+      "total_lines": 67,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 115,
+      "members": [
+        "Czame3ui77n"
+      ],
+      "anchors": [
+        "Czame3ui77n"
+      ],
+      "files": [
+        "Faqorhiedou"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 116,
+      "members": [
+        "Cmc8v2izfc2"
+      ],
+      "anchors": [
+        "Cmc8v2izfc2"
+      ],
+      "files": [
+        "Ft5czvxf0gx"
+      ],
+      "total_lines": 128,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 117,
+      "members": [
+        "Cqytkovzq2y"
+      ],
+      "anchors": [],
+      "files": [
+        "Fdom94r6351"
+      ],
+      "total_lines": 200,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 118,
+      "members": [
+        "Cym253lpoqa"
+      ],
+      "anchors": [
+        "Cym253lpoqa"
+      ],
+      "files": [
+        "Fha6oz6bzg2"
+      ],
+      "total_lines": 125,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 119,
+      "members": [
+        "Cdo8msdq5vf"
+      ],
+      "anchors": [
+        "Cdo8msdq5vf"
+      ],
+      "files": [
+        "Fqc82umhkn5"
+      ],
+      "total_lines": 55,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 120,
+      "members": [
+        "Czgxlcgmc0i"
+      ],
+      "anchors": [
+        "Czgxlcgmc0i"
+      ],
+      "files": [
+        "Fxugqn4dz6s"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 127,
+      "members": [
+        "Cowpwrfvrbk"
+      ],
+      "anchors": [
+        "Cowpwrfvrbk"
+      ],
+      "files": [
+        "F1fi9wj171h"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 128,
+      "members": [
+        "Cn318nlf2nb"
+      ],
+      "anchors": [
+        "Cn318nlf2nb"
+      ],
+      "files": [
+        "F1fi9wj171h"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "powershell"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "C7hrrrmpj6f",
+      "qualified_name": "Export-Excel",
+      "simple_name": "Export-Excel",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fsif22bsmac",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Export-Excel.ps1",
+      "start_line": 1,
+      "end_line": 697,
+      "size_lines": 697,
+      "signature_hint": "function Export-Excel",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1103,
+      "region": 83,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Export-Excel",
+          "sites": 252,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ffayhb1kl43",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/CI/CI.ps1",
+            "line": 222,
+            "name": "Export-Excel"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ceq8or57uqu",
+      "qualified_name": "Import-ByColumns",
+      "simple_name": "Import-ByColumns",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fk89co89vca",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/ImportByColumns/import-by-columns.ps1",
+      "start_line": 1,
+      "end_line": 146,
+      "size_lines": 146,
+      "signature_hint": "function Import-ByColumns",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1154,
+      "region": 19,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cegu5sclwiq",
+      "qualified_name": "Add-Subtotals",
+      "simple_name": "Add-Subtotals",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Flxqp4n6p0c",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Add-Subtotals.ps1",
+      "start_line": 1,
+      "end_line": 133,
+      "size_lines": 133,
+      "signature_hint": "Function Add-Subtotals",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1167,
+      "region": 0,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cz7spjpvbes",
+      "qualified_name": "Out-Excel",
+      "simple_name": "Out-Excel",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fewr36nndzi",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/CustomizeExportExcel/Out-Excel.ps1",
+      "start_line": 13,
+      "end_line": 89,
+      "size_lines": 77,
+      "signature_hint": "function Out-Excel",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1223,
+      "region": 17,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1607himkh2f",
+      "qualified_name": "ConvertTo-ExcelXlsx",
+      "simple_name": "ConvertTo-ExcelXlsx",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Few9ggnbogu",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/ConvertTo-ExcelXlsx.ps1",
+      "start_line": 1,
+      "end_line": 61,
+      "size_lines": 61,
+      "signature_hint": "function ConvertTo-ExcelXlsx",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1239,
+      "region": 79,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C12ppd8rxwb7",
+      "qualified_name": "Test-SingleFunction",
+      "simple_name": "Test-SingleFunction",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fhinpvatkkw",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/CI/Test-SingleFunctions.ps1",
+      "start_line": 2,
+      "end_line": 54,
+      "size_lines": 53,
+      "signature_hint": "function Test-SingleFunction",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1247,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1865v8tha8w",
+      "qualified_name": "ConvertTo-PesterTest",
+      "simple_name": "ConvertTo-PesterTest",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F7ovu7db9g7",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/TestRestAPI/PSExcelPester.psm1",
+      "start_line": 1,
+      "end_line": 47,
+      "size_lines": 47,
+      "signature_hint": "function ConvertTo-PesterTest",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1253,
+      "region": 27,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cbf6ji4v5mm",
+      "qualified_name": "Read-Clipboard",
+      "simple_name": "Read-Clipboard",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fbqxjtju4dl",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Read-Clipboard.ps1",
+      "start_line": 2,
+      "end_line": 44,
+      "size_lines": 43,
+      "signature_hint": "function Read-Clipboard",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1257,
+      "region": 108,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C117lote9kz1",
+      "qualified_name": "Show-PesterResult",
+      "simple_name": "Show-PesterResult",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F7ovu7db9g7",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/TestRestAPI/PSExcelPester.psm1",
+      "start_line": 49,
+      "end_line": 90,
+      "size_lines": 42,
+      "signature_hint": "function Show-PesterResult",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1258,
+      "region": 28,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Crj9ah53eg",
+      "qualified_name": "NumberFormatCompletion",
+      "simple_name": "NumberFormatCompletion",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fbi88bjzim7",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Private/ArgumentCompletion.ps1",
+      "start_line": 25,
+      "end_line": 64,
+      "size_lines": 40,
+      "signature_hint": "function NumberFormatCompletion",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1260,
+      "region": 63,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Csji25avjj7",
+      "qualified_name": "Convert-ExcelRangeToImage",
+      "simple_name": "Convert-ExcelRangeToImage",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fe8khw42cl7",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Convert-ExcelRangeToImage.ps1",
+      "start_line": 1,
+      "end_line": 35,
+      "size_lines": 35,
+      "signature_hint": "function Convert-ExcelRangeToImage",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1265,
+      "region": 75,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Csrlyohr1i1",
+      "qualified_name": "Show-PesterResults",
+      "simple_name": "Show-PesterResults",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F12cpv34pp3m",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/TestRestAPI/ShowPesterResults.ps1",
+      "start_line": 1,
+      "end_line": 34,
+      "size_lines": 34,
+      "signature_hint": "function Show-PesterResults",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1266,
+      "region": 29,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Castiy1la2j",
+      "qualified_name": "Invoke-TestSet",
+      "simple_name": "Invoke-TestSet",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F24ft4j3v4t",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/InferData/InferData.ps1",
+      "start_line": 63,
+      "end_line": 96,
+      "size_lines": 34,
+      "signature_hint": "function Invoke-TestSet",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1266,
+      "region": 41,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Capujeyah84",
+      "qualified_name": "Invoke-MultiLike",
+      "simple_name": "Invoke-MultiLike",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fvdo4r1npj4",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/CI/Install.ps1",
+      "start_line": 50,
+      "end_line": 82,
+      "size_lines": 33,
+      "signature_hint": "function Invoke-MultiLike",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1267,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ce4ripr4mw8",
+      "qualified_name": "Get-ExcelTableName",
+      "simple_name": "Get-ExcelTableName",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fx7034eir69",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/GetExcelTable.ps1",
+      "start_line": 1,
+      "end_line": 29,
+      "size_lines": 29,
+      "signature_hint": "function Get-ExcelTableName",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1271,
+      "region": 32,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Co2rr2t6jqj",
+      "qualified_name": "Get-ExcelWorkbookInfo",
+      "simple_name": "Get-ExcelWorkbookInfo",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fw27rd13kwp",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Get-ExcelWorkbookInfo.ps1",
+      "start_line": 1,
+      "end_line": 27,
+      "size_lines": 27,
+      "signature_hint": "function Get-ExcelWorkbookInfo",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1273,
+      "region": 89,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwvf6b186d6",
+      "qualified_name": "Export-StocksToExcel",
+      "simple_name": "Export-StocksToExcel",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fwfikzfvpnh",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Export-StocksToExcel.ps1",
+      "start_line": 1,
+      "end_line": 26,
+      "size_lines": 26,
+      "signature_hint": "function Export-StocksToExcel",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1274,
+      "region": 31,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2gii6bgeu0",
+      "qualified_name": "Pivot",
+      "simple_name": "Pivot",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Feziwwr83he",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Pivot/Pivot.ps1",
+      "start_line": 1,
+      "end_line": 21,
+      "size_lines": 21,
+      "signature_hint": "function Pivot",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1279,
+      "region": 42,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C10bz06z7n5t",
+      "qualified_name": "LineChart",
+      "simple_name": "LineChart",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fp782njregx",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Charting/Charting.ps1",
+      "start_line": 70,
+      "end_line": 88,
+      "size_lines": 19,
+      "signature_hint": "function LineChart",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1281,
+      "region": 5,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C11p86jgim41",
+      "qualified_name": "ListFonts",
+      "simple_name": "ListFonts",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fbi88bjzim7",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Private/ArgumentCompletion.ps1",
+      "start_line": 8,
+      "end_line": 23,
+      "size_lines": 16,
+      "signature_hint": "function ListFonts",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1284,
+      "region": 62,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cml4yhlr85a",
+      "qualified_name": "WorksheetArgumentCompleter",
+      "simple_name": "WorksheetArgumentCompleter",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fbi88bjzim7",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Private/ArgumentCompletion.ps1",
+      "start_line": 66,
+      "end_line": 77,
+      "size_lines": 12,
+      "signature_hint": "function WorksheetArgumentCompleter",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1288,
+      "region": 64,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnk2vhlqzs",
+      "qualified_name": "Test-Boolean",
+      "simple_name": "Test-Boolean",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F24ft4j3v4t",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/InferData/InferData.ps1",
+      "start_line": 21,
+      "end_line": 31,
+      "size_lines": 11,
+      "signature_hint": "function Test-Boolean",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1289,
+      "region": 38,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdgmex0l7g4",
+      "qualified_name": "Test-Date",
+      "simple_name": "Test-Date",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F24ft4j3v4t",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/InferData/InferData.ps1",
+      "start_line": 10,
+      "end_line": 19,
+      "size_lines": 10,
+      "signature_hint": "function Test-Date",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1290,
+      "region": 37,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjdh85gkn3x",
+      "qualified_name": "Test-Number",
+      "simple_name": "Test-Number",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F24ft4j3v4t",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/InferData/InferData.ps1",
+      "start_line": 33,
+      "end_line": 42,
+      "size_lines": 10,
+      "signature_hint": "function Test-Number",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1290,
+      "region": 39,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdzseglgi4d",
+      "qualified_name": "Test-Integer",
+      "simple_name": "Test-Integer",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F24ft4j3v4t",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/InferData/InferData.ps1",
+      "start_line": 44,
+      "end_line": 53,
+      "size_lines": 10,
+      "signature_hint": "function Test-Integer",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1290,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C24d6iwp9am",
+      "qualified_name": "Import-USPS",
+      "simple_name": "Import-USPS",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqup2fynpw1",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Import-USPS.ps1",
+      "start_line": 1,
+      "end_line": 10,
+      "size_lines": 10,
+      "signature_hint": "function Import-USPS",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1290,
+      "region": 95,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckhplc1ln0x",
+      "qualified_name": "Import-UPS",
+      "simple_name": "Import-UPS",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ffz3g7csn46",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Import-UPS.ps1",
+      "start_line": 1,
+      "end_line": 9,
+      "size_lines": 9,
+      "signature_hint": "function Import-UPS",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1291,
+      "region": 94,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cyaj45udta0",
+      "qualified_name": "Test-String",
+      "simple_name": "Test-String",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F24ft4j3v4t",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/InferData/InferData.ps1",
+      "start_line": 1,
+      "end_line": 8,
+      "size_lines": 8,
+      "signature_hint": "function Test-String",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1292,
+      "region": 36,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11ok5uwi62y",
+      "qualified_name": "ColorCompletion",
+      "simple_name": "ColorCompletion",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fbi88bjzim7",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Private/ArgumentCompletion.ps1",
+      "start_line": 1,
+      "end_line": 6,
+      "size_lines": 6,
+      "signature_hint": "function ColorCompletion",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1294,
+      "region": 61,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C106ntxzzixb",
+      "qualified_name": "PSPlot.Title",
+      "simple_name": "Title",
+      "language": "powershell",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fawor5zll6c",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Plot.ps1",
+      "start_line": 207,
+      "end_line": 211,
+      "size_lines": 5,
+      "signature_hint": "[PSPlot] Title($title)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1295,
+      "region": 59,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ca5b3q9y1gc",
+      "qualified_name": "Merge-Worksheet",
+      "simple_name": "Merge-Worksheet",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F2ts8dqtsmm",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Merge-Worksheet.ps1",
+      "start_line": 1,
+      "end_line": 263,
+      "size_lines": 263,
+      "signature_hint": "function Merge-Worksheet",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1537,
+      "region": 100,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Merge-Worksheet",
+          "sites": 8,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F14l2zfovpmn",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/MergeWorkSheet/MergeCSV.ps1",
+            "line": 20,
+            "name": "Merge-Worksheet"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6v6yusvbsn",
+      "qualified_name": "PSPlot.Show",
+      "simple_name": "Show",
+      "language": "powershell",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fawor5zll6c",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Plot.ps1",
+      "start_line": 213,
+      "end_line": 217,
+      "size_lines": 5,
+      "signature_hint": "Show()",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1595,
+      "region": 60,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Curgpmjllzr",
+      "qualified_name": "Compare-Worksheet",
+      "simple_name": "Compare-Worksheet",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fijp1ka8pod",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Compare-Worksheet.ps1",
+      "start_line": 1,
+      "end_line": 199,
+      "size_lines": 199,
+      "signature_hint": "function Compare-Worksheet",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1601,
+      "region": 74,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Compare-Worksheet",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F8cmpctpvze",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/__tests__/Compare-WorkSheet.tests.ps1",
+            "line": 33,
+            "name": "Compare-Worksheet"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14oqdr3fz7d",
+      "qualified_name": "Add-PivotTable",
+      "simple_name": "Add-PivotTable",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fsru13xzzxh",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Add-PivotTable.ps1",
+      "start_line": 1,
+      "end_line": 188,
+      "size_lines": 188,
+      "signature_hint": "function Add-PivotTable",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1612,
+      "region": 71,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Add-PivotTable",
+          "sites": 20,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F10tbzdcoyp8",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Index - Music.ps1",
+            "line": 30,
+            "name": "Add-PivotTable"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjcxcqjrtaa",
+      "qualified_name": "Add-ConditionalFormatting",
+      "simple_name": "Add-ConditionalFormatting",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fsvyu5b4a4n",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Add-ConditionalFormatting.ps1",
+      "start_line": 1,
+      "end_line": 158,
+      "size_lines": 158,
+      "signature_hint": "function Add-ConditionalFormatting",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1642,
+      "region": 66,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Add-ConditionalFormatting",
+          "sites": 39,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fj4jvnp8vs8",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/ConditionalFormatting/Databar.ps1",
+            "line": 27,
+            "name": "Add-ConditionalFormatting"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cts8lhdpdf2",
+      "qualified_name": "Merge-MultipleSheets",
+      "simple_name": "Merge-MultipleSheets",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fv94a3zquur",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Merge-MultipleSheets.ps1",
+      "start_line": 1,
+      "end_line": 147,
+      "size_lines": 147,
+      "signature_hint": "function Merge-MultipleSheets",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1653,
+      "region": 99,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Merge-MultipleSheets",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fbogw0y156r",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/MergeWorkSheet/Merge_3_Servers_Services.ps1",
+            "line": 36,
+            "name": "Merge-MultipleSheets"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ca0gx3gn6fd",
+      "qualified_name": "Add-ExcelChart",
+      "simple_name": "Add-ExcelChart",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqrptrw32eb",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Add-ExcelChart.ps1",
+      "start_line": 2,
+      "end_line": 142,
+      "size_lines": 141,
+      "signature_hint": "function Add-ExcelChart",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1659,
+      "region": 67,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Add-ExcelChart",
+          "sites": 8,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fzaewekrxxl",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Charts/ChartDataSeparatePage.ps1",
+            "line": 33,
+            "name": "Add-ExcelChart"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ca6id4ugf3v",
+      "qualified_name": "Join-Worksheet",
+      "simple_name": "Join-Worksheet",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F12q9ybwywzw",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Join-Worksheet.ps1",
+      "start_line": 1,
+      "end_line": 135,
+      "size_lines": 135,
+      "signature_hint": "function Join-Worksheet",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1665,
+      "region": 98,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Join-Worksheet",
+          "sites": 5,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F18a35xzzzp5",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/JoinWorksheet/Join-Worksheet.sample.ps1",
+            "line": 46,
+            "name": "Join-Worksheet"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmc8v2izfc2",
+      "qualified_name": "Set-ExcelColumn",
+      "simple_name": "Set-ExcelColumn",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ft5czvxf0gx",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Set-ExcelColumn.ps1",
+      "start_line": 1,
+      "end_line": 128,
+      "size_lines": 128,
+      "signature_hint": "function Set-ExcelColumn",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1672,
+      "region": 116,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Set-ExcelColumn",
+          "sites": 24,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F10tbzdcoyp8",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Index - Music.ps1",
+            "line": 23,
+            "name": "Set-ExcelColumn"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cortydzriiq",
+      "qualified_name": "Add-ExcelTable",
+      "simple_name": "Add-ExcelTable",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F869bmie68z",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Add-ExcelTable.ps1",
+      "start_line": 1,
+      "end_line": 126,
+      "size_lines": 126,
+      "signature_hint": "function Add-ExcelTable",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1674,
+      "region": 70,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Add-ExcelTable",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fsif22bsmac",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Export-Excel.ps1",
+            "line": 216,
+            "name": "Add-ExcelTable"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cym253lpoqa",
+      "qualified_name": "Set-ExcelRow",
+      "simple_name": "Set-ExcelRow",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fha6oz6bzg2",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Set-ExcelRow.ps1",
+      "start_line": 1,
+      "end_line": 125,
+      "size_lines": 125,
+      "signature_hint": "function Set-ExcelRow",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1675,
+      "region": 118,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Set-ExcelRow",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F10tbzdcoyp8",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Index - Music.ps1",
+            "line": 22,
+            "name": "Set-ExcelRow"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C142mqtgq1q6",
+      "qualified_name": "Add-ExcelImage",
+      "simple_name": "Add-ExcelImage",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F11ahjfx1ud9",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/AddImage/Add-ExcelImage.ps1",
+      "start_line": 1,
+      "end_line": 119,
+      "size_lines": 119,
+      "signature_hint": "function Add-ExcelImage",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1681,
+      "region": 10,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Add-ExcelImage",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F883tuazp66",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/AddImage/AddImage.ps1",
+            "line": 30,
+            "name": "Add-ExcelImage"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7nr8t5zbn8",
+      "qualified_name": "Send-SQLDataToExcel",
+      "simple_name": "Send-SQLDataToExcel",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F9leg0na4lo",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Send-SQLDataToExcel.ps1",
+      "start_line": 1,
+      "end_line": 112,
+      "size_lines": 112,
+      "signature_hint": "function Send-SQLDataToExcel",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1688,
+      "region": 113,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Send-SQLDataToExcel",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F10tbzdcoyp8",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Index - Music.ps1",
+            "line": 14,
+            "name": "Send-SQLDataToExcel"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4zlcmlnaa1",
+      "qualified_name": "Copy-ExcelWorksheet",
+      "simple_name": "Copy-ExcelWorksheet",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fdeaxr4nz71",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Copy-ExcelWorksheet.ps1",
+      "start_line": 1,
+      "end_line": 95,
+      "size_lines": 95,
+      "signature_hint": "function Copy-ExcelWorksheet",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1705,
+      "region": 80,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Copy-ExcelWorksheet",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fy0f6b2rtb7",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/__tests__/Copy-ExcelWorksheet.Tests.ps1",
+            "line": 44,
+            "name": "Copy-ExcelWorksheet"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14p0f68z4m9",
+      "qualified_name": "New-ExcelChartDefinition",
+      "simple_name": "New-ExcelChartDefinition",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F7k8i7tk2qr",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/New-ExcelChartDefinition.ps1",
+      "start_line": 1,
+      "end_line": 88,
+      "size_lines": 88,
+      "signature_hint": "function New-ExcelChartDefinition",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1712,
+      "region": 103,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "New-ExcelChartDefinition",
+          "sites": 19,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ffayhb1kl43",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/CI/CI.ps1",
+            "line": 219,
+            "name": "New-ExcelChartDefinition"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C181e554dmwx",
+      "qualified_name": "Get-HtmlTable",
+      "simple_name": "Get-HtmlTable",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fl6jcca3v82",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Get-HtmlTable.ps1",
+      "start_line": 3,
+      "end_line": 85,
+      "size_lines": 83,
+      "signature_hint": "function Get-HtmlTable",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1717,
+      "region": 90,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Get-HtmlTable",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fjq7y4wrh8o",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Extra/Get-ModuleStats.ps1",
+            "line": 14,
+            "name": "Get-HtmlTable"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cljo8927s8i",
+      "qualified_name": "Add-Worksheet",
+      "simple_name": "Add-Worksheet",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F7n8ls3057p",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Add-Worksheet.ps1",
+      "start_line": 1,
+      "end_line": 80,
+      "size_lines": 80,
+      "signature_hint": "function Add-Worksheet",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1720,
+      "region": 72,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Add-Worksheet",
+          "sites": 17,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fmceml3ka37",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/AddWorkSheet/AddWorkSheet.ps1",
+            "line": 11,
+            "name": "Add-Worksheet"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ch3qx8oyw71",
+      "qualified_name": "New-PivotTableDefinition",
+      "simple_name": "New-PivotTableDefinition",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fts399uufed",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/New-PivotTableDefinition.ps1",
+      "start_line": 2,
+      "end_line": 77,
+      "size_lines": 76,
+      "signature_hint": "function New-PivotTableDefinition",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1724,
+      "region": 106,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "New-PivotTableDefinition",
+          "sites": 19,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ffayhb1kl43",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/CI/CI.ps1",
+            "line": 220,
+            "name": "New-PivotTableDefinition"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cpyogm2likb",
+      "qualified_name": "Invoke-ExcelQuery",
+      "simple_name": "Invoke-ExcelQuery",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F17j0sk8us2n",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Invoke-ExcelQuery.ps1",
+      "start_line": 2,
+      "end_line": 63,
+      "size_lines": 62,
+      "signature_hint": "function Invoke-ExcelQuery",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1738,
+      "region": 96,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Invoke-ExcelQuery",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fdypfh5i8uy",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/InvokeExcelQuery/Examples.ps1",
+            "line": 13,
+            "name": "Invoke-ExcelQuery"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cbeua7iknyg",
+      "qualified_name": "New-ConditionalFormattingIconSet",
+      "simple_name": "New-ConditionalFormattingIconSet",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8s3bklrbif",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/New-ConditionalFormattingIconSet.ps1",
+      "start_line": 1,
+      "end_line": 59,
+      "size_lines": 59,
+      "signature_hint": "function New-ConditionalFormattingIconSet",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1741,
+      "region": 101,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "New-ConditionalFormattingIconSet",
+          "sites": 7,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fsp65gyq0g0",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/ConditionalFormatting/ConditionalFormattingIcontSetOnlyIcon.ps1",
+            "line": 19,
+            "name": "New-ConditionalFormattingIconSet"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cmqr2r6vl6i",
+      "qualified_name": "ConvertFrom-ExcelToSQLInsert",
+      "simple_name": "ConvertFrom-ExcelToSQLInsert",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnlwqit5iqc",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/ConvertFrom-ExcelToSQLInsert.ps1",
+      "start_line": 1,
+      "end_line": 56,
+      "size_lines": 56,
+      "signature_hint": "function ConvertFrom-ExcelToSQLInsert",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1744,
+      "region": 78,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "ConvertFrom-ExcelToSQLInsert",
+          "sites": 5,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fe0p2thy24v",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/ConvertFrom/ConvertFrom.ps1",
+            "line": 3,
+            "name": "ConvertFrom-ExcelToSQLInsert"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cdo8msdq5vf",
+      "qualified_name": "Set-WorksheetProtection",
+      "simple_name": "Set-WorksheetProtection",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqc82umhkn5",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Set-WorksheetProtection.ps1",
+      "start_line": 1,
+      "end_line": 55,
+      "size_lines": 55,
+      "signature_hint": "function Set-WorksheetProtection",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1745,
+      "region": 119,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Set-WorksheetProtection",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fyqqfpcv5as",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/__tests__/ProtectWorksheet.tests.ps1",
+            "line": 18,
+            "name": "Set-WorksheetProtection"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czfs8wfv5fj",
+      "qualified_name": "Read-OleDbData",
+      "simple_name": "Read-OleDbData",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fwnann05tdu",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Read-OleDbData.ps1",
+      "start_line": 2,
+      "end_line": 54,
+      "size_lines": 53,
+      "signature_hint": "function Read-OleDbData",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1747,
+      "region": 110,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Read-OleDbData",
+          "sites": 10,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F17j0sk8us2n",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Invoke-ExcelQuery.ps1",
+            "line": 60,
+            "name": "Read-OleDbData"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccmgpr0twmk",
+      "qualified_name": "Open-ExcelPackage",
+      "simple_name": "Open-ExcelPackage",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F79id6ai9dk",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Open-ExcelPackage.ps1",
+      "start_line": 1,
+      "end_line": 49,
+      "size_lines": 49,
+      "signature_hint": "function Open-ExcelPackage",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1751,
+      "region": 107,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Open-ExcelPackage",
+          "sites": 76,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F144yaa0m1w",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/CommunityContributions/MultipleWorksheets.ps1",
+            "line": 18,
+            "name": "Open-ExcelPackage"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckf5evnxv0e",
+      "qualified_name": "New-ExcelStyle",
+      "simple_name": "New-ExcelStyle",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F11kprl6zy7o",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/New-ExcelStyle.ps1",
+      "start_line": 1,
+      "end_line": 48,
+      "size_lines": 48,
+      "signature_hint": "function New-ExcelStyle",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1752,
+      "region": 104,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "New-ExcelStyle",
+          "sites": 6,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fdewuihl4q1",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Styles/MultipleStyles.ps1",
+            "line": 26,
+            "name": "New-ExcelStyle"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnorm1v5lvt",
+      "qualified_name": "Get-ExcelFileSchema",
+      "simple_name": "Get-ExcelFileSchema",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F105q0p8hq6m",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Get-ExcelFileSchema.ps1",
+      "start_line": 1,
+      "end_line": 47,
+      "size_lines": 47,
+      "signature_hint": "function Get-ExcelFileSchema",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1753,
+      "region": 85,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Get-ExcelFileSchema",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Ftu0nut0jpc",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/__tests__/Get-ExcelFileSchema.tests.ps1",
+            "line": 30,
+            "name": "Get-ExcelFileSchema"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ciuu5wm41ni",
+      "qualified_name": "Export-MultipleExcelSheets",
+      "simple_name": "Export-MultipleExcelSheets",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fefq24mwjx1",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Experimental/Export-MultipleExcelSheets.ps1",
+      "start_line": 1,
+      "end_line": 46,
+      "size_lines": 46,
+      "signature_hint": "function Export-MultipleExcelSheets",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1754,
+      "region": 18,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Export-MultipleExcelSheets",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fe7clbt0w3h",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Experimental/tryExportMultipleExcelSheets.ps1",
+            "line": 19,
+            "name": "Export-MultipleExcelSheets"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cc6fmwip9wx",
+      "qualified_name": "Test-APIReadXls",
+      "simple_name": "Test-APIReadXls",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fm6ur2i44s2",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/TestRestAPI/TestAPIReadXls.ps1",
+      "start_line": 1,
+      "end_line": 46,
+      "size_lines": 46,
+      "signature_hint": "function Test-APIReadXls",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1754,
+      "region": 30,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Test-APIReadXls",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fxfisonryrm",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/TestRestAPI/TryIt.ps1",
+            "line": 5,
+            "name": "Test-APIReadXls"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C15vt4big9jo",
+      "qualified_name": "ConvertFrom-ExcelSheet",
+      "simple_name": "ConvertFrom-ExcelSheet",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftf7tuuga24",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/ConvertFrom-ExcelSheet.ps1",
+      "start_line": 1,
+      "end_line": 43,
+      "size_lines": 43,
+      "signature_hint": "function ConvertFrom-ExcelSheet",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1757,
+      "region": 77,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "ConvertFrom-ExcelSheet",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fkn15m4cam4",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/__tests__/ConvertFrom-ExcelSheet.Tests.ps1",
+            "line": 7,
+            "name": "ConvertFrom-ExcelSheet"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C12agmu8zpi9",
+      "qualified_name": "Invoke-Sum",
+      "simple_name": "Invoke-Sum",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjmqqo22b9f",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Invoke-Sum.ps1",
+      "start_line": 1,
+      "end_line": 42,
+      "size_lines": 42,
+      "signature_hint": "function Invoke-Sum",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1758,
+      "region": 97,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Invoke-Sum",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fmi0xyacini",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Charts/MultiSeries.ps1",
+            "line": 8,
+            "name": "Invoke-Sum"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C36ejmrte9y",
+      "qualified_name": "New-ConditionalText",
+      "simple_name": "New-ConditionalText",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F16dgiqnj38t",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/New-ConditionalText.ps1",
+      "start_line": 1,
+      "end_line": 42,
+      "size_lines": 42,
+      "signature_hint": "function New-ConditionalText",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1758,
+      "region": 102,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "New-ConditionalText",
+          "sites": 43,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fyw4mc2bts8",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/ConditionalFormatting/TextComparisons.ps1",
+            "line": 22,
+            "name": "New-ConditionalText"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cs7wktyit4o",
+      "qualified_name": "Close-ExcelPackage",
+      "simple_name": "Close-ExcelPackage",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F2rm35c0rx3",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Close-ExcelPackage.ps1",
+      "start_line": 1,
+      "end_line": 38,
+      "size_lines": 38,
+      "signature_hint": "function Close-ExcelPackage",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1762,
+      "region": 73,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Close-ExcelPackage",
+          "sites": 89,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Flxqp4n6p0c",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Add-Subtotals.ps1",
+            "line": 110,
+            "name": "Close-ExcelPackage"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cymhhrfe7u",
+      "qualified_name": "Add-ExcelName",
+      "simple_name": "Add-ExcelName",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F11uhfxnjlzc",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Add-ExcelName.ps1",
+      "start_line": 1,
+      "end_line": 30,
+      "size_lines": 30,
+      "signature_hint": "function Add-ExcelName",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1770,
+      "region": 69,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Add-ExcelName",
+          "sites": 5,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fsif22bsmac",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Export-Excel.ps1",
+            "line": 413,
+            "name": "Add-ExcelName"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8hoct6csbu",
+      "qualified_name": "ConvertFrom-ExcelData",
+      "simple_name": "ConvertFrom-ExcelData",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fstkdcl0ksf",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/ConvertFrom-ExcelData.ps1",
+      "start_line": 1,
+      "end_line": 30,
+      "size_lines": 30,
+      "signature_hint": "function ConvertFrom-ExcelData",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1770,
+      "region": 76,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "ConvertFrom-ExcelData",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fe0p2thy24v",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/ConvertFrom/ConvertFrom.ps1",
+            "line": 5,
+            "name": "ConvertFrom-ExcelData"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16jki0y29bn",
+      "qualified_name": "Get-ExcelFileSummary",
+      "simple_name": "Get-ExcelFileSummary",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnqk2nk226d",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Get-ExcelFileSummary.ps1",
+      "start_line": 1,
+      "end_line": 29,
+      "size_lines": 29,
+      "signature_hint": "function Get-ExcelFileSummary",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1771,
+      "region": 86,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Get-ExcelFileSummary",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F105q0p8hq6m",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Get-ExcelFileSchema.ps1",
+            "line": 35,
+            "name": "Get-ExcelFileSummary"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccly9584nq3",
+      "qualified_name": "Get-ExcelSheetInfo",
+      "simple_name": "Get-ExcelSheetInfo",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F9vt2tlbbba",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Get-ExcelSheetInfo.ps1",
+      "start_line": 1,
+      "end_line": 28,
+      "size_lines": 28,
+      "signature_hint": "function Get-ExcelSheetInfo",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1772,
+      "region": 88,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Get-ExcelSheetInfo",
+          "sites": 6,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fbi88bjzim7",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Private/ArgumentCompletion.ps1",
+            "line": 70,
+            "name": "Get-ExcelSheetInfo"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckfkwmo0x4q",
+      "qualified_name": "Remove-Worksheet",
+      "simple_name": "Remove-Worksheet",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fa11tmhp8ms",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Remove-Worksheet.ps1",
+      "start_line": 1,
+      "end_line": 28,
+      "size_lines": 28,
+      "signature_hint": "function Remove-Worksheet",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1772,
+      "region": 111,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Remove-Worksheet",
+          "sites": 6,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fy0f6b2rtb7",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/__tests__/Copy-ExcelWorksheet.Tests.ps1",
+            "line": 120,
+            "name": "Remove-Worksheet"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cbtjb7yyr3q",
+      "qualified_name": "Get-ExcelColumnName",
+      "simple_name": "Get-ExcelColumnName",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fg29jyqd1md",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Get-ExcelColumnName.ps1",
+      "start_line": 1,
+      "end_line": 27,
+      "size_lines": 27,
+      "signature_hint": "function Get-ExcelColumnName",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1773,
+      "region": 84,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Get-ExcelColumnName",
+          "sites": 13,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Flxqp4n6p0c",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Add-Subtotals.ps1",
+            "line": 56,
+            "name": "Get-ExcelColumnName"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cuflfv1modt",
+      "qualified_name": "Get-XYRange",
+      "simple_name": "Get-XYRange",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcrkrl38j35",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Get-XYRange.ps1",
+      "start_line": 1,
+      "end_line": 27,
+      "size_lines": 27,
+      "signature_hint": "function Get-XYRange",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1773,
+      "region": 92,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Get-XYRange",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fp782njregx",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Charting/Charting.ps1",
+            "line": 14,
+            "name": "Get-XYRange"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czgxlcgmc0i",
+      "qualified_name": "Update-FirstObjectProperties",
+      "simple_name": "Update-FirstObjectProperties",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fxugqn4dz6s",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Update-FirstObjectProperties.ps1",
+      "start_line": 6,
+      "end_line": 32,
+      "size_lines": 27,
+      "signature_hint": "function Update-FirstObjectProperties",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1773,
+      "region": 120,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Update-FirstObjectProperties",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fijp1ka8pod",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Compare-Worksheet.ps1",
+            "line": 194,
+            "name": "Update-FirstObjectProperties"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ciu2guop596",
+      "qualified_name": "PSPlot.Plot",
+      "simple_name": "Plot",
+      "language": "powershell",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fawor5zll6c",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Plot.ps1",
+      "start_line": 100,
+      "end_line": 125,
+      "size_lines": 26,
+      "signature_hint": "[PSPlot] Plot($xValues,$yValues,$x1Values,$y1Values,$x2Values,$y2Values)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1774,
+      "region": 44,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Plot",
+          "sites": 1,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9mhgscfcw7",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Plot/PlotCos.ps1",
+            "line": 4,
+            "name": "Plot",
+            "receiver_hint": "plt"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 12
+    },
+    {
+      "id": "Cr7uihorgmc",
+      "qualified_name": "Invoke-ExcelReZipFile",
+      "simple_name": "Invoke-ExcelReZipFile",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F9qfi64vqjx",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Private/Invoke-ExcelReZipFile.ps1",
+      "start_line": 1,
+      "end_line": 25,
+      "size_lines": 25,
+      "signature_hint": "function Invoke-ExcelReZipFile",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1775,
+      "region": 65,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Invoke-ExcelReZipFile",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F2rm35c0rx3",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Close-ExcelPackage.ps1",
+            "line": 33,
+            "name": "Invoke-ExcelReZipFile"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cw2zr9qe1fe",
+      "qualified_name": "New-PSItem",
+      "simple_name": "New-PSItem",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F2l4f622ueg",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/New-PSItem.ps1",
+      "start_line": 1,
+      "end_line": 24,
+      "size_lines": 24,
+      "signature_hint": "function New-PSItem",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1776,
+      "region": 22,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "New-PSItem",
+          "sites": 94,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fyw4mc2bts8",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/ConditionalFormatting/TextComparisons.ps1",
+            "line": 4,
+            "name": "New-PSItem"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czsaxbpwexk",
+      "qualified_name": "Select-Worksheet",
+      "simple_name": "Select-Worksheet",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ffe6iqxygq7",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Select-Worksheet.ps1",
+      "start_line": 1,
+      "end_line": 24,
+      "size_lines": 24,
+      "signature_hint": "function Select-Worksheet",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1776,
+      "region": 112,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Select-Worksheet",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F7n8ls3057p",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Add-Worksheet.ps1",
+            "line": 74,
+            "name": "Select-Worksheet"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnk7nktoxbr",
+      "qualified_name": "New-PSItem",
+      "simple_name": "New-PSItem",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fpn7p4szma9",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/New-PSItem.ps1",
+      "start_line": 3,
+      "end_line": 25,
+      "size_lines": 23,
+      "signature_hint": "function New-PSItem",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1777,
+      "region": 105,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "New-PSItem",
+          "sites": 94,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fyw4mc2bts8",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/ConditionalFormatting/TextComparisons.ps1",
+            "line": 4,
+            "name": "New-PSItem"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C10xuhijz357",
+      "qualified_name": "Get-StockInfo",
+      "simple_name": "Get-StockInfo",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fuw3vsic3u9",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Stocks/Get-StockInfo.ps1",
+      "start_line": 1,
+      "end_line": 21,
+      "size_lines": 21,
+      "signature_hint": "function Get-StockInfo",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1779,
+      "region": 26,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Get-StockInfo",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F7r5odxbyoo",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Stocks/GetStocksAvgTotVol.ps1",
+            "line": 3,
+            "name": "Get-StockInfo"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ch1zx15cyd1",
+      "qualified_name": "PSPlot.Plot",
+      "simple_name": "Plot",
+      "language": "powershell",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fawor5zll6c",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Plot.ps1",
+      "start_line": 79,
+      "end_line": 98,
+      "size_lines": 20,
+      "signature_hint": "[PSPlot] Plot($xValues,$yValues,$x1Values,$y1Values)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1780,
+      "region": 44,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Plot",
+          "sites": 1,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9mhgscfcw7",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Plot/PlotCos.ps1",
+            "line": 4,
+            "name": "Plot",
+            "receiver_hint": "plt"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 8
+    },
+    {
+      "id": "Cnkeiuvbmz",
+      "qualified_name": "BarChart",
+      "simple_name": "BarChart",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fp782njregx",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Charting/Charting.ps1",
+      "start_line": 30,
+      "end_line": 48,
+      "size_lines": 19,
+      "signature_hint": "function BarChart",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1781,
+      "region": 5,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "BarChart",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fr2qu1dy1zm",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/JustCharts/TryBarChart.ps1",
+            "line": 3,
+            "name": "BarChart"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cdy842hb008",
+      "qualified_name": "PieChart",
+      "simple_name": "PieChart",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fp782njregx",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Charting/Charting.ps1",
+      "start_line": 50,
+      "end_line": 68,
+      "size_lines": 19,
+      "signature_hint": "function PieChart",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1781,
+      "region": 5,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "PieChart",
+          "sites": 3,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fghbwi5v08b",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/JustCharts/PieChartHandles.ps1",
+            "line": 7,
+            "name": "PieChart"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C9d23ij66li",
+      "qualified_name": "ColumnChart",
+      "simple_name": "ColumnChart",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fp782njregx",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Charting/Charting.ps1",
+      "start_line": 90,
+      "end_line": 108,
+      "size_lines": 19,
+      "signature_hint": "function ColumnChart",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1781,
+      "region": 5,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "ColumnChart",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fe2vwb6pol4",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/JustCharts/CentralLimitTheorem.ps1",
+            "line": 3,
+            "name": "ColumnChart"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cnzer7jsv9c",
+      "qualified_name": "Import-Html",
+      "simple_name": "Import-Html",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fdsgdgukzpq",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Import-Html.ps1",
+      "start_line": 2,
+      "end_line": 20,
+      "size_lines": 19,
+      "signature_hint": "function Import-Html",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1781,
+      "region": 93,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Import-Html",
+          "sites": 6,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fuutfkhuros",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/ImportHtml/DemoGraphics.ps1",
+            "line": 4,
+            "name": "Import-Html"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1f64biod9u",
+      "qualified_name": "PSPlot.Plot",
+      "simple_name": "Plot",
+      "language": "powershell",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fawor5zll6c",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Plot.ps1",
+      "start_line": 31,
+      "end_line": 46,
+      "size_lines": 16,
+      "signature_hint": "[PSPlot] Plot($yValues,[string]$options)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1784,
+      "region": 44,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Plot",
+          "sites": 1,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9mhgscfcw7",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Plot/PlotCos.ps1",
+            "line": 4,
+            "name": "Plot",
+            "receiver_hint": "plt"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "Cwoxa69s31f",
+      "qualified_name": "Enable-ExcelAutoFilter",
+      "simple_name": "Enable-ExcelAutoFilter",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fpr5owhm7d8",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Enable-ExcelAutoFilter.ps1",
+      "start_line": 1,
+      "end_line": 16,
+      "size_lines": 16,
+      "signature_hint": "function Enable-ExcelAutoFilter",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1784,
+      "region": 81,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Enable-ExcelAutoFilter",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fc98w03tnyw",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/OpenExcelPackage/EnableFeatures.ps1",
+            "line": 25,
+            "name": "Enable-ExcelAutoFilter"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cd0hpkqsyuj",
+      "qualified_name": "Enable-ExcelAutofit",
+      "simple_name": "Enable-ExcelAutofit",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fxlit9n8o97",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Enable-ExcelAutofit.ps1",
+      "start_line": 1,
+      "end_line": 16,
+      "size_lines": 16,
+      "signature_hint": "function Enable-ExcelAutofit",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1784,
+      "region": 82,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Enable-ExcelAutofit",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fc98w03tnyw",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/OpenExcelPackage/EnableFeatures.ps1",
+            "line": 26,
+            "name": "Enable-ExcelAutofit"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cn0ftqtyyxz",
+      "qualified_name": "PSPlot.Plot",
+      "simple_name": "Plot",
+      "language": "powershell",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fawor5zll6c",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Plot.ps1",
+      "start_line": 15,
+      "end_line": 29,
+      "size_lines": 15,
+      "signature_hint": "[PSPlot] Plot($yValues)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1785,
+      "region": 44,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Plot",
+          "sites": 1,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9mhgscfcw7",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Plot/PlotCos.ps1",
+            "line": 4,
+            "name": "Plot",
+            "receiver_hint": "plt"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Cock2ymb795",
+      "qualified_name": "PSPlot.Plot",
+      "simple_name": "Plot",
+      "language": "powershell",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fawor5zll6c",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Plot.ps1",
+      "start_line": 63,
+      "end_line": 77,
+      "size_lines": 15,
+      "signature_hint": "[PSPlot] Plot($xValues,$yValues,[string]$options)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1785,
+      "region": 44,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Plot",
+          "sites": 1,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9mhgscfcw7",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Plot/PlotCos.ps1",
+            "line": 4,
+            "name": "Plot",
+            "receiver_hint": "plt"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "Cmv5j8xfyhl",
+      "qualified_name": "Get-ExcelSheetDimensionAddress",
+      "simple_name": "Get-ExcelSheetDimensionAddress",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ffpmp5mwgnl",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Get-ExcelSheetDimensionAddress.ps1",
+      "start_line": 1,
+      "end_line": 15,
+      "size_lines": 15,
+      "signature_hint": "function Get-ExcelSheetDimensionAddress",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1785,
+      "region": 87,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Get-ExcelSheetDimensionAddress",
+          "sites": 2,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fpr5owhm7d8",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Enable-ExcelAutoFilter.ps1",
+            "line": 14,
+            "name": "Get-ExcelSheetDimensionAddress"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwjjtfjole6",
+      "qualified_name": "PSPlot.Plot",
+      "simple_name": "Plot",
+      "language": "powershell",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fawor5zll6c",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Plot.ps1",
+      "start_line": 48,
+      "end_line": 61,
+      "size_lines": 14,
+      "signature_hint": "[PSPlot] Plot($xValues,$yValues)",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1786,
+      "region": 44,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Plot",
+          "sites": 1,
+          "reason": "fanout-cap-exceeded",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9mhgscfcw7",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Plot/PlotCos.ps1",
+            "line": 4,
+            "name": "Plot",
+            "receiver_hint": "plt"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Czame3ui77n",
+      "qualified_name": "Set-CellStyle",
+      "simple_name": "Set-CellStyle",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Faqorhiedou",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Set-CellStyle.ps1",
+      "start_line": 4,
+      "end_line": 17,
+      "size_lines": 14,
+      "signature_hint": "function Set-CellStyle",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1786,
+      "region": 115,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Set-CellStyle",
+          "sites": 4,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F92zvw4s8xf",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/FormatCellStyles/ApplyFormatInScriptBlock.ps1",
+            "line": 17,
+            "name": "Set-CellStyle"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8iq0qan9le",
+      "qualified_name": "New-Plot",
+      "simple_name": "New-Plot",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F16s8xx76bb6",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/ImportExcel.psm1",
+      "start_line": 17,
+      "end_line": 22,
+      "size_lines": 6,
+      "signature_hint": "function New-Plot",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1794,
+      "region": 35,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "New-Plot",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9mhgscfcw7",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Plot/PlotCos.ps1",
+            "line": 3,
+            "name": "New-Plot"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cemr2iyzd7i",
+      "qualified_name": "Get-Range",
+      "simple_name": "Get-Range",
+      "language": "powershell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fbxozf38nak",
+      "path": "/storage/cgg-test_repos/app-importexcel-pester/Public/Get-Range.ps1",
+      "start_line": 1,
+      "end_line": 5,
+      "size_lines": 5,
+      "signature_hint": "function Get-Range",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1795,
+      "region": 91,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Get-Range",
+          "sites": 1,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F9mhgscfcw7",
+            "path": "/storage/cgg-test_repos/app-importexcel-pester/Examples/Plot/PlotCos.ps1",
+            "line": 4,
+            "name": "Get-Range"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

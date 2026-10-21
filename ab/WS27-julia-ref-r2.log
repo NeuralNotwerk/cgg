@@ -1,0 +1,5 @@
+repos 283 excluded []
+added 0
+dropped 17
+  ('julia', '{"kind": "direct"}', 'high') 2
+  ('julia', '{"kind": "direct"}', 'medium') 15

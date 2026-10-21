@@ -1,0 +1,12 @@
+{
+ "old": {
+  "sha256": "4b96d7b2e2dc062b3249db4761008b5b06d4c842c3d1d9d64adf5911b977ccac",
+  "version": "cgg 0.11.0 (dev ge8d94af)",
+  "path": "/storage/cgg/target/remediation/bins/WS27-julia-before"
+ },
+ "new": {
+  "sha256": "cdc7710412c768e89685042195f540ed3d3038e1e897995fbcbc0c63ac9a00a1",
+  "version": "cgg 0.11.0 (dev ge8d94af+d34d322a)",
+  "path": "/storage/cgg/target/remediation/bins/WS27-julia-r1"
+ }
+}
