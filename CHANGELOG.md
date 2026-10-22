@@ -924,6 +924,31 @@ otherwise change the default graph.
   of its name, not only its file's: OCaml, F# and Haskell bring
   module-level names in by `open` and `import` (scoping them to the file
   only added 61 `medium` findings and removed none).
+- **Go methods that implement an interface were reported dead (WS31).**
+  A Go type satisfies an interface by having its methods, with no
+  `implements` to read, so a call through an interface value reached at
+  most the interface's method declaration, and the concrete methods it
+  runs had no caller. cgg now reads Go method sets
+  (`cgg_resolve::go_iface`): an interface's declared methods plus those
+  of the interfaces it embeds, and a named type's value- and
+  pointer-receiver methods plus those promoted through its embedded
+  fields, keyed by package directory, with qualified embeds found through
+  the file's imports and standard-library ones (`io.Reader`, `error`) in
+  `cgg_core::stdlib::GO_STDLIB_INTERFACES`. A type satisfies an interface
+  when it has every method by name and, where both signatures show it,
+  by parameter count. Under `--dynamic-dispatch` (and so under
+  `--dead-code`) each interface method declaration gets a `dyn` edge to
+  the same-named method of every satisfying type, as Java's and
+  Python's do; the default graph is unchanged. Under `--dead-code` only,
+  a method call the resolvers left unresolved (an interface-typed field,
+  `s.driver.Get(k)`, is never typed) also reaches the declaration of
+  each in-tree interface of that method name in the calling package or
+  a package it imports, so a live call keeps the implementations live.
+  An interface that only repeats a standard-library one (a local
+  `stringer`) fans out to nothing: every type with a `String` method
+  satisfies it. A method whose type satisfies a standard-library
+  interface (`fmt.Stringer`, `sort.Interface`, `sql.Scanner`, …) carries
+  `implements-external-contract` instead.
 
 ### Compatibility
 
@@ -1709,6 +1734,34 @@ three):
   `reachable-only-from-dead-code` and `dead-cycle` findings withheld
   before are reported (its candidates fall 2,113 → 1,934). 8 move
   `medium` → `low`.
+
+WS31 Go implicit interfaces (full corpus, 283 repositories; `zig-zig`
+timed out on both binaries, and has no Go):
+
+- The default graph is unchanged in every repository.
+- Under `--dynamic-dispatch`, 12,027 Go `dyn` edges are added (all
+  `low`); none are removed.
+- Under `--dead-code`, 15,737 Go findings leave the report (14,644
+  `medium`, 1,093 `low`; Go reports nothing `high`): the AWS Terraform
+  provider 11,513 (each service package's `servicePackage` methods,
+  called through `conns.ServicePackage`, and the resources they list),
+  memos 905, Caddy 661 (modules started and provisioned through
+  `caddy.App`, `caddy.Provisioner`, `caddyfile.Unmarshaler`), Kratos
+  574, Jenkins saplib 451, Kythe 307, the GitHub CLI 304, Hertz 220,
+  Casdoor 192, MicroMDM 191. 725 enter it (565 `medium`, 160 `low`):
+  Kratos 690 and APISIX 35, where the extra roots lift Go's root
+  coverage over the threshold, so the `reachable-only-from-dead-code` and
+  `dead-cycle` findings withheld before are reported (Kratos's
+  candidates fall 13,955 → 11,302).
+- Before, 7,260 Go findings were methods of a type satisfying an
+  in-tree interface that declares the method, 3,657 of them through an
+  interface method declaration that had a caller; the rest of the
+  findings that leave are what those methods call. Matching
+  every local interface that repeats a standard-library one (`stringer`)
+  credited every `String` method in Hertz's examples through one
+  `x.String()`; resolving an import by its last path segment alone
+  credited one Kratos application's repository methods from another's
+  identically named package. Neither does now.
 
 ## [0.11.0] - 2026-10-16
 

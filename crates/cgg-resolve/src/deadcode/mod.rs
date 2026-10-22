@@ -519,6 +519,10 @@ struct Contracts<'a> {
     /// (language, bare owner) of every declared callable — the types the
     /// graph knows, including Rust traits by their declarations.
     owners: std::collections::HashSet<(&'a str, &'a str)>,
+    /// Go method sets, for the standard-library interfaces a type
+    /// satisfies implicitly; `None` without Go.
+    go: Option<crate::go_iface::GoMethodSets>,
+    graph: &'a Graph,
 }
 
 impl<'a> Contracts<'a> {
@@ -549,11 +553,18 @@ impl<'a> Contracts<'a> {
         }
         let hierarchy = crate::dispatch::ClassHierarchy::build(facts);
         let derived = hierarchy.derived_index();
+        let go = graph
+            .callables
+            .values()
+            .any(|c| c.language == "go")
+            .then(|| crate::go_iface::GoMethodSets::build(graph, facts));
         Contracts {
             hierarchy,
             derived,
             members,
             owners,
+            go,
+            graph,
         }
     }
 
@@ -579,6 +590,18 @@ impl<'a> Contracts<'a> {
             return Some(Evidence::ImplementsExternalContract {
                 contract: t.to_string(),
             });
+        }
+        // Go: a method of a type whose method set covers a standard-library
+        // interface (`String`, `Error`, `Len`/`Less`/`Swap`, `Scan`) is
+        // called by the standard library, through no call site.
+        if lang == "go" {
+            return self
+                .go
+                .as_ref()?
+                .stdlib_contract(self.graph, nd.id)
+                .map(|c| Evidence::ImplementsExternalContract {
+                    contract: c.to_string(),
+                });
         }
         // A partial method part: its other half and the callers it
         // stands for are routinely generated code or outside the tree.

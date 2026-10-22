@@ -8103,3 +8103,109 @@ let value = 1\n",
         .collect();
     assert!(!names.iter().any(|n| n == "value"), "{names:?}");
 }
+
+/// WS31: a Go type satisfies an interface by having its methods. A call
+/// through an interface-typed field (`s.driver.Get`) keeps the methods of
+/// every type whose method set covers the interface live — value and
+/// pointer receivers, and methods promoted through an embedded field —
+/// while a type missing a method, or holding one with another parameter
+/// count, is not credited. Under `--dynamic-dispatch` the declaration →
+/// implementation edges are in the graph; the default graph has none.
+#[test]
+fn go_types_implementing_an_interface_are_live() {
+    let tmp = TempDir::new().unwrap();
+    write(tmp.path(), "go.mod", b"module example.com/app\n\ngo 1.21\n");
+    write(
+        tmp.path(),
+        "store/driver.go",
+        b"package store\n\n\
+type Driver interface {\n\
+\tGet(key string) (string, error)\n\
+\tPut(key, value string) error\n\
+\tFlush() error\n\
+}\n\n\
+type Store struct{ driver Driver }\n\n\
+func (s *Store) Lookup(k string) (string, error) {\n\
+\ts.driver.Put(k, k)\n\
+\ts.driver.Flush()\n\
+\treturn s.driver.Get(k)\n\
+}\n",
+    );
+    write(
+        tmp.path(),
+        "impl/impl.go",
+        b"package impl\n\n\
+import \"example.com/app/store\"\n\n\
+type base struct{}\n\n\
+func (b *base) Flush() error { return nil }\n\n\
+type Mem struct{ base }\n\n\
+func (m Mem) Get(key string) (string, error) { return \"\", nil }\n\
+func (m *Mem) Put(key, value string) error    { return nil }\n\n\
+type Half struct{}\n\n\
+func (h Half) Get(key string) (string, error) { return \"\", nil }\n\
+func (h Half) Flush() error                   { return nil }\n\n\
+type Odd struct{}\n\n\
+func (o Odd) Get(key string) (string, error) { return \"\", nil }\n\
+func (o Odd) Put(key string) error            { return nil }\n\
+func (o Odd) Flush() error                    { return nil }\n\n\
+func main() {\n\
+\ts := &store.Store{}\n\
+\ts.Lookup(\"k\")\n\
+\t_, _, _ = Mem{}, Half{}, Odd{}\n\
+}\n",
+    );
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in ["impl.Mem.Get", "impl.Mem.Put", "impl.base.Flush"] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} implements store.Driver, findings: {dead:?}"
+        );
+    }
+    // (`Odd.Put` is left out: with three candidates the resolver binds
+    // `s.driver.Put` by name.)
+    for gone in [
+        "impl.Half.Get",
+        "impl.Half.Flush",
+        "impl.Odd.Get",
+        "impl.Odd.Flush",
+    ] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone}'s type does not satisfy store.Driver, findings: {dead:?}"
+        );
+    }
+
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .arg("-o")
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain).unwrap().matches("dyn|").count(),
+        0
+    );
+    let dynamic = tmp.path().join("d.mmd");
+    cgg()
+        .args(["--dynamic-dispatch", "-o"])
+        .arg(&dynamic)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&dynamic).unwrap();
+    assert_eq!(g.matches("dyn|").count(), 3, "{g}");
+}

@@ -530,6 +530,89 @@ pub const GO_BUILTIN_FUNCS: &[&str] = &[
     "make", "max", "min", "new", "panic", "print", "println", "real", "recover",
 ];
 
+/// Go standard-library interfaces a type satisfies by having the methods,
+/// with no declaration naming them (WS31): each as written in an embed
+/// (`io.Reader`), with its method set as (name, parameter count). The
+/// standard library calls these methods (`fmt` calls `String`, `sort`
+/// calls `Len`/`Less`/`Swap`, `database/sql` calls `Scan`), so a type
+/// whose method set covers one implements a contract outside the tree;
+/// an interface of the tree that embeds one has these methods too.
+pub const GO_STDLIB_INTERFACES: &[(&str, &[(&str, usize)])] = &[
+    ("error", &[("Error", 0)]),
+    ("fmt.Stringer", &[("String", 0)]),
+    ("fmt.GoStringer", &[("GoString", 0)]),
+    ("fmt.Formatter", &[("Format", 2)]),
+    ("io.Reader", &[("Read", 1)]),
+    ("io.Writer", &[("Write", 1)]),
+    ("io.Closer", &[("Close", 0)]),
+    ("io.Seeker", &[("Seek", 2)]),
+    ("io.ReaderAt", &[("ReadAt", 2)]),
+    ("io.WriterAt", &[("WriteAt", 2)]),
+    ("io.ReaderFrom", &[("ReadFrom", 1)]),
+    ("io.WriterTo", &[("WriteTo", 1)]),
+    ("io.ByteReader", &[("ReadByte", 0)]),
+    ("io.ByteWriter", &[("WriteByte", 1)]),
+    ("io.RuneReader", &[("ReadRune", 0)]),
+    ("io.StringWriter", &[("WriteString", 1)]),
+    ("io.ReadCloser", &[("Read", 1), ("Close", 0)]),
+    ("io.WriteCloser", &[("Write", 1), ("Close", 0)]),
+    ("io.ReadWriter", &[("Read", 1), ("Write", 1)]),
+    (
+        "io.ReadWriteCloser",
+        &[("Read", 1), ("Write", 1), ("Close", 0)],
+    ),
+    ("sort.Interface", &[("Len", 0), ("Less", 2), ("Swap", 2)]),
+    (
+        "heap.Interface",
+        &[
+            ("Len", 0),
+            ("Less", 2),
+            ("Swap", 2),
+            ("Push", 1),
+            ("Pop", 0),
+        ],
+    ),
+    ("flag.Value", &[("String", 0), ("Set", 1)]),
+    ("sql.Scanner", &[("Scan", 1)]),
+    ("driver.Valuer", &[("Value", 0)]),
+    ("http.Handler", &[("ServeHTTP", 2)]),
+    ("http.RoundTripper", &[("RoundTrip", 1)]),
+    ("http.Flusher", &[("Flush", 0)]),
+    ("json.Marshaler", &[("MarshalJSON", 0)]),
+    ("json.Unmarshaler", &[("UnmarshalJSON", 1)]),
+    ("encoding.TextMarshaler", &[("MarshalText", 0)]),
+    ("encoding.TextUnmarshaler", &[("UnmarshalText", 1)]),
+    ("encoding.BinaryMarshaler", &[("MarshalBinary", 0)]),
+    ("encoding.BinaryUnmarshaler", &[("UnmarshalBinary", 1)]),
+    ("xml.Marshaler", &[("MarshalXML", 2)]),
+    ("xml.Unmarshaler", &[("UnmarshalXML", 2)]),
+    (
+        "context.Context",
+        &[("Deadline", 0), ("Done", 0), ("Err", 0), ("Value", 1)],
+    ),
+    (
+        "hash.Hash",
+        &[
+            ("Write", 1),
+            ("Sum", 1),
+            ("Reset", 0),
+            ("Size", 0),
+            ("BlockSize", 0),
+        ],
+    ),
+    ("net.Addr", &[("Network", 0), ("String", 0)]),
+    (
+        "slog.Handler",
+        &[
+            ("Enabled", 2),
+            ("Handle", 2),
+            ("WithAttrs", 1),
+            ("WithGroup", 1),
+        ],
+    ),
+    ("slog.LogValuer", &[("LogValue", 0)]),
+];
+
 /// Types a function returns when it is asynchronous: a call on the
 /// result reaches the awaitable itself, or (awaited) the type it wraps,
 /// so a declared `Task<Foo>` says nothing certain about the receiver.

@@ -18,6 +18,7 @@ pub mod descriptor;
 pub mod dispatch;
 pub mod ffi;
 pub mod frameworks;
+pub mod go_iface;
 mod heads;
 pub mod intra_file;
 mod libscope;
