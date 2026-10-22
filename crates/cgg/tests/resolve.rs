@@ -7557,3 +7557,112 @@ def with_default(v = now()):
         );
     }
 }
+
+/// WS27: a Solidity function-typed parameter or local, and one in a `for`
+/// body, shadow a same-named function of the contract: a call through one
+/// is `shadowed-by-local`, never a (wrong, `high`) edge. A call after the
+/// local's block and a member call reach the contract's function.
+#[test]
+fn solidity_parameters_and_locals_shadow_functions() {
+    let tmp = TempDir::new().unwrap();
+    write(tmp.path(), "Vault.sol", r#"pragma solidity ^0.8.0;
+
+contract Token {
+    constructor(address a) {}
+}
+
+contract Vault {
+    // Functions whose names the parameters and locals below reuse.
+    function cb(uint x) internal pure returns (uint) { return x; }
+    function handler(uint x) internal pure returns (uint) { return x; }
+    function step(uint x) internal pure returns (uint) { return x; }
+    function now2() internal pure returns (uint) { return 0; }
+
+    // A function-typed parameter, a local, a `for`-scoped local.
+    function withParam(function(uint) internal pure returns (uint) cb) internal pure returns (uint) {
+        return cb(1);
+    }
+    function withLocal() internal pure returns (uint) {
+        function(uint) internal pure returns (uint) handler = step;
+        return handler(2);
+    }
+    function withFor(function(uint) internal pure returns (uint)[] memory fs) internal pure {
+        for (uint i = 0; i < fs.length; i++) {
+            function(uint) internal pure returns (uint) step = fs[i];
+            step(3);
+        }
+        step(4);
+    }
+
+    // A member call is never shadowed; the value sees the function; a
+    // local named like a contract does not hide its cast.
+    function controls(uint now2) internal pure returns (uint) {
+        uint v = this.cb2(now2);
+        Token Token2 = Token(address(0));
+        return v;
+    }
+    function cb2(uint x) public pure returns (uint) { return cb(x); }
+}
+"#.as_bytes());
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let edges: Vec<(String, String, u64)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                qn(&e["src"]),
+                qn(&e["dst"]),
+                e["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    let shadowed: Vec<(String, u64)> = g["unresolved"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|u| u["reason"]["stage"] == "shadowed-by-local")
+        .map(|u| {
+            (
+                u["name"].as_str().unwrap().to_string(),
+                u["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    for (name, site) in [("cb", 16), ("handler", 20), ("step", 25)] {
+        assert!(
+            !edges.iter().any(|(_, _, l)| *l == site),
+            "{name} line {site}: {edges:?}"
+        );
+        assert!(
+            shadowed.contains(&(name.to_string(), site)),
+            "{name} line {site}: {shadowed:?}"
+        );
+    }
+    for (src, dst, site) in [
+        ("Vault.withFor", "Vault.step", 27),
+        ("Vault.controls", "Vault.cb2", 33),
+        ("Vault.cb2", "Vault.cb", 37),
+    ] {
+        assert!(
+            edges
+                .iter()
+                .any(|(s, d, l)| s == src && d == dst && *l == site),
+            "{src} -> {dst} line {site}: {edges:?}"
+        );
+    }
+}

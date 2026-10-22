@@ -533,6 +533,9 @@ pub fn collect(lang: &str, tree: &Tree, source: &[u8]) -> Vec<LocalBinding> {
     if lang == "haskell" {
         return collect_haskell(tree, source);
     }
+    if lang == "solidity" {
+        return collect_solidity(tree, source);
+    }
     if lang == "starlark" {
         return collect_starlark(tree, source);
     }
@@ -3034,6 +3037,166 @@ fn starlark_targets<'n>(t: Node<'n>, out: &mut Vec<Node<'n>>) {
     }
 }
 
+/// Solidity (WS27): the parameters and named return parameters of a
+/// function, modifier, constructor, `fallback` or `receive`, over the
+/// definition (a constructor's base arguments `Base(x)` see them); never
+/// the parameters inside a function type (`function(uint x) external
+/// cb`), nor an event's or error's. A block-scope declaration (`uint b =
+/// …;`, `(uint a, , bool c) = …;`) from the end of its statement to the
+/// end of its block (C99-style since 0.5), a `for` initializer over the
+/// loop; `try … returns (T x)` names over the success block and a `catch
+/// Error(string memory r)` / `catch (bytes memory d)` parameter over its
+/// clause. Contract-level state variables are members, not locals; Yul
+/// (`assembly`) is not read, since its calls are not recorded.
+fn collect_solidity(tree: &Tree, src: &[u8]) -> Vec<LocalBinding> {
+    let mut out: Vec<LocalBinding> = Vec::new();
+    let mut chain: Vec<Node<'_>> = Vec::new();
+    let mut cursor = tree.walk();
+    loop {
+        let node = cursor.node();
+        match node.kind() {
+            "function_definition"
+            | "modifier_definition"
+            | "constructor_definition"
+            | "fallback_receive_definition" => {
+                let mut c = node.walk();
+                for ch in node.named_children(&mut c) {
+                    let params: Vec<Node<'_>> = match ch.kind() {
+                        "parameter" => vec![ch],
+                        "return_type_definition" => {
+                            let mut rc = ch.walk();
+                            ch.named_children(&mut rc)
+                                .filter(|p| p.kind() == "parameter")
+                                .collect()
+                        }
+                        _ => Vec::new(),
+                    };
+                    for p in params {
+                        if let Some(n) = p.child_by_field_name("name") {
+                            starlark_push(
+                                &mut out,
+                                n,
+                                src,
+                                node.start_byte(),
+                                node.end_byte(),
+                                node.start_byte(),
+                                true,
+                            );
+                        }
+                    }
+                }
+            }
+            "variable_declaration_statement" => {
+                let mut names = Vec::new();
+                let mut c = node.walk();
+                for ch in node.named_children(&mut c) {
+                    match ch.kind() {
+                        "variable_declaration" => {
+                            names.extend(ch.child_by_field_name("name"))
+                        }
+                        "variable_declaration_tuple" => {
+                            let mut tc = ch.walk();
+                            for d in ch.named_children(&mut tc) {
+                                match d.kind() {
+                                    "variable_declaration" => {
+                                        names.extend(d.child_by_field_name("name"))
+                                    }
+                                    "identifier" => names.push(d),
+                                    _ => {}
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                // A `for` initializer: over the loop; else to the end of
+                // the enclosing block or body.
+                let owner = chain.iter().rev().find(|n| {
+                    matches!(
+                        n.kind(),
+                        "block_statement" | "function_body" | "for_statement"
+                    )
+                });
+                if let Some(owner) = owner {
+                    let start = if owner.kind() == "for_statement" {
+                        node.start_byte()
+                    } else {
+                        node.end_byte()
+                    };
+                    for n in names {
+                        starlark_push(
+                            &mut out,
+                            n,
+                            src,
+                            start,
+                            owner.end_byte(),
+                            node.start_byte(),
+                            false,
+                        );
+                    }
+                }
+            }
+            // `try … returns (T x) { … }`: over the success block.
+            "try_statement" => {
+                if let Some(body) = node.child_by_field_name("body") {
+                    let mut c = node.walk();
+                    for p in node
+                        .named_children(&mut c)
+                        .filter(|p| p.kind() == "parameter")
+                    {
+                        if let Some(n) = p.child_by_field_name("name") {
+                            starlark_push(
+                                &mut out,
+                                n,
+                                src,
+                                body.start_byte(),
+                                body.end_byte(),
+                                node.start_byte(),
+                                false,
+                            );
+                        }
+                    }
+                }
+            }
+            "catch_clause" => {
+                let mut c = node.walk();
+                for p in node
+                    .named_children(&mut c)
+                    .filter(|p| p.kind() == "parameter")
+                {
+                    if let Some(n) = p.child_by_field_name("name") {
+                        starlark_push(
+                            &mut out,
+                            n,
+                            src,
+                            node.start_byte(),
+                            node.end_byte(),
+                            node.start_byte(),
+                            false,
+                        );
+                    }
+                }
+            }
+            _ => {}
+        }
+        if cursor.goto_first_child() {
+            chain.push(node);
+            continue;
+        }
+        loop {
+            if cursor.goto_next_sibling() {
+                break;
+            }
+            if !cursor.goto_parent() {
+                out.sort_by_key(|b| (b.start_byte, b.end_byte));
+                out.dedup();
+                return out;
+            }
+            chain.pop();
+        }
+    }
+}
+
 /// Lua `local` declarations at file scope (WS19): in scope from the end of
 /// the statement to the end of the file. `local log = ngx.log` is a value
 /// the file holds, so a bare `log(…)` is never some required module's
@@ -4721,5 +4884,57 @@ mod tests {
         assert!(at("early", "early()"), "assigned later in the body");
         assert!(!at("x", "x()"), "another function");
         assert!(at("k", "k()"), "a comprehension variable");
+    }
+
+    fn solidity_locals(src: &str) -> Vec<LocalBinding> {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_solidity::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        collect("solidity", &tree, src.as_bytes())
+    }
+
+    /// Solidity (WS27): parameters and named returns of functions,
+    /// modifiers and constructors, block-scope and tuple declarations,
+    /// `for` initializers, `try … returns` and `catch` parameters; never a
+    /// function type's parameter, a state variable or an event parameter;
+    /// a declaration from the end of its statement to the end of its
+    /// block.
+    #[test]
+    fn solidity_binding_forms_and_scopes() {
+        let src = "contract C {\n\
+                   \x20 function(uint) external stateFn;\n\
+                   \x20 event E(uint ev);\n\
+                   \x20 function f(uint a, function(uint x) external cb) public returns (uint r) {\n\
+                   \x20   uint b = b2();\n\
+                   \x20   (uint t, , bool u) = g();\n\
+                   \x20   { uint inner = 1; inner; }\n\
+                   \x20   inner2();\n\
+                   \x20   for (uint i = 0; i < 3; i++) { cb(i); }\n\
+                   \x20   try this.h() returns (uint got) { got; } catch Error(string memory why) { why; }\n\
+                   \x20 }\n\
+                   \x20 modifier m(uint mp) { _; }\n\
+                   \x20 constructor(uint cp) Base(cp) {}\n\
+                   }\n";
+        let got = solidity_locals(src);
+        let names: Vec<&str> = got.iter().map(|b| b.name.as_str()).collect();
+        for want in [
+            "a", "cb", "r", "b", "t", "u", "inner", "i", "got", "why", "mp", "cp",
+        ] {
+            assert!(names.contains(&want), "{want} in {names:?}");
+        }
+        for not in ["x", "stateFn", "ev", "f", "m", "C", "E"] {
+            assert!(!names.contains(&not), "{not} in {names:?}");
+        }
+        let at = |name: &str, needle: &str| {
+            let site = src.find(needle).expect(needle) as u32;
+            got.iter()
+                .any(|b| b.name == name && b.start_byte <= site && site < b.end_byte)
+        };
+        assert!(!at("b", "b2()"), "its own initializer");
+        assert!(at("inner", "inner; }"));
+        assert!(!at("inner", "inner2()"), "after its block");
+        assert!(at("cb", "cb(i)"));
+        assert!(at("cp", "cp) {}"), "a base argument sees the parameter");
     }
 }

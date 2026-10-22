@@ -824,6 +824,21 @@ otherwise change the default graph.
   the module's same-named function each bind their own instead of being
   refused as `ambiguous-in-file`.
 
+- **Solidity parameters and locals did not shadow function names (WS27,
+  gap 27).** A call through a function-typed Solidity parameter
+  (`function() view returns (uint48) clock` then `clock()`) or local bound
+  a same-named function of the tree at `high`. Solidity now has a locals
+  table: the parameters and named returns of functions, modifiers,
+  constructors, `fallback` and `receive` over the definition (a
+  constructor's base arguments see them); never a function type's own
+  parameters, an event's or error's; a block-scope declaration (tuple
+  declarations included) from the end of its statement to the end of its
+  block, a `for` initializer over the loop, `try … returns (T x)` names
+  over the success block and `catch` parameters over their clause.
+  State variables are members, not locals, and a member call (`x.f()`)
+  is never shadowed. Inline assembly is not read: its calls are not
+  recorded.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -1510,6 +1525,17 @@ WS27 Starlark (full corpus, 283 repositories, none excluded):
 - Whole-body and from-the-assignment scopes for a function's assigned
   names give the same graph; the whole body, the language rule, is used.
 - Under `--reference-edges` and `--dead-code`, nothing changes.
+
+WS27 Solidity (full corpus, 283 repositories, none excluded):
+
+- The default graph changes in one repository (OpenZeppelin), in one
+  file: 2 edges removed, both `high`, none added. `ERC6372Utils`'s
+  `blockNumberClockMode(clock())` and `timestampClockMode(clock())` call
+  a function-typed parameter `clock`, and bound the `IERC6372.clock`
+  interface declaration.
+- Under `--reference-edges`, the same 2 edges are removed; Solidity
+  records no reference edges.
+- Under `--dead-code`, no finding changes.
 
 ## [0.11.0] - 2026-10-16
 
