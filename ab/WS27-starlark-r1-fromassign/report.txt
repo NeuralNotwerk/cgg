@@ -1,0 +1,8 @@
+old: cgg 0.11.0 (dev g7a92bdc)  sha256=48159db9b57ca949cfe5833d7cd60ae5c0397df52ed6253c39e7db619503ecaf
+new: cgg 0.11.0 (dev g7a92bdc+de9ed142)  sha256=e99ab8c3094cbf8a98a3dbb52d66fe7a252f978fc1649a9fd92e7390c85e13eb
+old=target/remediation/bins/WS27-starlark-before
+new=target/remediation/bins/WS27-starlark-r1-fromassign
+repos=283 elapsed=239s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 0
+by language: see by_language.tsv

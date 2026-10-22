@@ -1,0 +1,604 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "bash",
+      "class": "script-driven",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [],
+      "files": 6,
+      "callables": 1,
+      "roots": 0,
+      "reachable": 0,
+      "reachable_pct": 0,
+      "findings": 1
+    },
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "framework:entry-node",
+        "framework:test-harness",
+        "toplevel:invocation"
+      ],
+      "files": 6,
+      "callables": 6,
+      "roots": 10,
+      "reachable": 5,
+      "reachable_pct": 83,
+      "findings": 0,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    },
+    {
+      "language": "openapi",
+      "class": "descriptor",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 9,
+      "callables": 132,
+      "roots": 19,
+      "reachable": 103,
+      "reachable_pct": 78,
+      "findings": 0
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 139,
+    "edges": 340,
+    "unresolved_call_sites": 25,
+    "roots": 29,
+    "candidates": 31,
+    "reported": 1,
+    "regions": 11,
+    "withheld": [
+      {
+        "language": "javascript",
+        "category": "only-used-by-tests",
+        "reason": "missing-signal",
+        "would_have_reported": 1
+      },
+      {
+        "language": "openapi",
+        "category": "never-referenced",
+        "reason": "descriptor-language",
+        "would_have_reported": 19
+      },
+      {
+        "language": "openapi",
+        "category": "reachable-only-from-dead-code",
+        "reason": "descriptor-language",
+        "would_have_reported": 10
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "C8f6z0z304a",
+      "qualified_name": "info",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v2.0/schema.json:26"
+    },
+    {
+      "id": "Cq9z619xny8",
+      "qualified_name": "paths",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v2.0/schema.json:58"
+    },
+    {
+      "id": "C9a3juo5jpi",
+      "qualified_name": "definitions",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v2.0/schema.json:61"
+    },
+    {
+      "id": "C13pjxllb00d",
+      "qualified_name": "parameterDefinitions",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v2.0/schema.json:64"
+    },
+    {
+      "id": "Co496picmkn",
+      "qualified_name": "responseDefinitions",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v2.0/schema.json:67"
+    },
+    {
+      "id": "Cexgrquiqbm",
+      "qualified_name": "externalDocs",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v2.0/schema.json:83"
+    },
+    {
+      "id": "Caluklv36ph",
+      "qualified_name": "vendorExtension",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v2.0/schema.json:14"
+    },
+    {
+      "id": "Cl9nqyka1t5",
+      "qualified_name": "security",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v2.0/schema.json:70"
+    },
+    {
+      "id": "Cwv2k4r6tuf",
+      "qualified_name": "tag",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v2.0/schema.json:78"
+    },
+    {
+      "id": "Cmuojoyzd8m",
+      "qualified_name": "securityDefinitions",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v2.0/schema.json:73"
+    },
+    {
+      "id": "Ceu8js6wnrw",
+      "qualified_name": "mediaTypeList",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v2.0/schema.json:53"
+    },
+    {
+      "id": "C10z16k19qa6",
+      "qualified_name": "schemesList",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v2.0/schema.json:39"
+    },
+    {
+      "id": "Cu5by3wprj0",
+      "qualified_name": "parseYamlFromFile",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/tests/schema/oas-schema.mjs:14"
+    },
+    {
+      "id": "Cjh8ob1gp0p",
+      "qualified_name": "handler_at_32",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::vitest`"
+    },
+    {
+      "id": "C7dqvaugo1v",
+      "qualified_name": "handler_at_36",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::vitest`"
+    },
+    {
+      "id": "C6xzm6oo357",
+      "qualified_name": "Info",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v3.0/schema.yaml:14"
+    },
+    {
+      "id": "Cv3tyw9s69w",
+      "qualified_name": "Server",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v3.0/schema.yaml:20"
+    },
+    {
+      "id": "Cxjxk0o7x4x",
+      "qualified_name": "Components",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v3.0/schema.yaml:33"
+    },
+    {
+      "id": "Cfi19j4cjkc",
+      "qualified_name": "Paths",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v3.0/schema.yaml:31"
+    },
+    {
+      "id": "C2i279g10i4",
+      "qualified_name": "SecurityRequirement",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v3.0/schema.yaml:24"
+    },
+    {
+      "id": "Ce52wj00ub6",
+      "qualified_name": "Tag",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v3.0/schema.yaml:28"
+    },
+    {
+      "id": "Cn6b158igyb",
+      "qualified_name": "ExternalDocumentation",
+      "language": "openapi",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/_archive_/schemas/v3.0/schema.yaml:16"
+    },
+    {
+      "id": "C5vh787zebi",
+      "qualified_name": "preface",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/scripts/md2html/md2html.js:486"
+    },
+    {
+      "id": "Cv62du4pr8r",
+      "qualified_name": "doMaintainers",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/scripts/md2html/md2html.js:296"
+    },
+    {
+      "id": "Cvq5wgchd10",
+      "qualified_name": "getPublishDate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/scripts/md2html/md2html.js:301"
+    },
+    {
+      "id": "C8pyogkgbdf",
+      "qualified_name": "handler_at_8",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::vitest`"
+    },
+    {
+      "id": "Cnxxq6rviy8",
+      "qualified_name": "handler_at_12",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::vitest`"
+    },
+    {
+      "id": "Cadrrj55ocs",
+      "qualified_name": "parseYamlFromFile",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/openapi-spec/tests/schema/oas-schema.mjs:14"
+    },
+    {
+      "id": "C6mxab2twft",
+      "qualified_name": "<framework-entry>::test::vitest",
+      "language": "javascript",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::vitest`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 61,
+      "members": [
+        "Czauj6wp293"
+      ],
+      "anchors": [
+        "Czauj6wp293"
+      ],
+      "files": [
+        "Fz0ad77ydia"
+      ],
+      "total_lines": 71,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 62,
+      "members": [
+        "C3hcn0pbqhz"
+      ],
+      "anchors": [
+        "C3hcn0pbqhz"
+      ],
+      "files": [
+        "Fz0ad77ydia"
+      ],
+      "total_lines": 91,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 63,
+      "members": [
+        "Cmlens8aw40"
+      ],
+      "anchors": [
+        "Cmlens8aw40"
+      ],
+      "files": [
+        "F20mpzlzr97"
+      ],
+      "total_lines": 55,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 64,
+      "members": [
+        "C2kylaxamqh",
+        "C4lp1vx7qm2",
+        "C8ivrsn7j12",
+        "C2r5jj5kfip",
+        "C17w9zdy2nw5",
+        "Cdtukaukv00",
+        "C172lwcdjypw",
+        "Chbxp9pwy75"
+      ],
+      "anchors": [
+        "C2r5jj5kfip",
+        "C17w9zdy2nw5",
+        "Cdtukaukv00",
+        "C172lwcdjypw",
+        "Chbxp9pwy75"
+      ],
+      "files": [
+        "Fot617pmb6s"
+      ],
+      "total_lines": 137,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 72,
+      "members": [
+        "Cfgyr37k7ho"
+      ],
+      "anchors": [
+        "Cfgyr37k7ho"
+      ],
+      "files": [
+        "Fot617pmb6s"
+      ],
+      "total_lines": 20,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 73,
+      "members": [
+        "Ctg6l4huezl",
+        "C183ijvoonrw",
+        "Ciyt05fwawf",
+        "Cearimzo7xz",
+        "Cwnsryvl9os",
+        "Cx4y49ahgs8",
+        "C106iozi424b"
+      ],
+      "anchors": [
+        "Cearimzo7xz",
+        "Cwnsryvl9os",
+        "Cx4y49ahgs8",
+        "C106iozi424b"
+      ],
+      "files": [
+        "Fp92pv7767u"
+      ],
+      "total_lines": 130,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 80,
+      "members": [
+        "C108g3eso59",
+        "C5td259qk6u",
+        "C9sammzujjz",
+        "C4pg31iw3o7",
+        "Czb6c1zoed1",
+        "Crc1f6hhkh9"
+      ],
+      "anchors": [
+        "C4pg31iw3o7",
+        "Czb6c1zoed1",
+        "Crc1f6hhkh9"
+      ],
+      "files": [
+        "Ffhp0313k57"
+      ],
+      "total_lines": 101,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 86,
+      "members": [
+        "C8lrcn40x7c",
+        "Cq4rp1wntl7"
+      ],
+      "anchors": [
+        "Cq4rp1wntl7"
+      ],
+      "files": [
+        "F5lehlds8hi"
+      ],
+      "total_lines": 53,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 88,
+      "members": [
+        "Cbbio4n04r4"
+      ],
+      "anchors": [
+        "Cbbio4n04r4"
+      ],
+      "files": [
+        "F5lehlds8hi"
+      ],
+      "total_lines": 43,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 89,
+      "members": [
+        "C12hjurvohld"
+      ],
+      "anchors": [
+        "C12hjurvohld"
+      ],
+      "files": [
+        "F5lehlds8hi"
+      ],
+      "total_lines": 73,
+      "languages": [
+        "openapi"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 138,
+      "members": [
+        "C11mxhxazwpw"
+      ],
+      "anchors": [
+        "C11mxhxazwpw"
+      ],
+      "files": [
+        "Fisy8tfv7wj"
+      ],
+      "total_lines": 40,
+      "languages": [
+        "bash"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "C11mxhxazwpw",
+      "qualified_name": "publish_schema",
+      "simple_name": "publish_schema",
+      "language": "bash",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fisy8tfv7wj",
+      "path": "/storage/cgg-test_repos/openapi-spec/scripts/schema-publish.sh",
+      "start_line": 27,
+      "end_line": 66,
+      "size_lines": 40,
+      "signature_hint": "publish_schema()",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1260,
+      "region": 138,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

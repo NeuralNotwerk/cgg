@@ -1,0 +1,12 @@
+{
+ "old": {
+  "sha256": "48159db9b57ca949cfe5833d7cd60ae5c0397df52ed6253c39e7db619503ecaf",
+  "version": "cgg 0.11.0 (dev g7a92bdc)",
+  "path": "/storage/cgg/target/remediation/bins/WS27-starlark-before"
+ },
+ "new": {
+  "sha256": "e99ab8c3094cbf8a98a3dbb52d66fe7a252f978fc1649a9fd92e7390c85e13eb",
+  "version": "cgg 0.11.0 (dev g7a92bdc+de9ed142)",
+  "path": "/storage/cgg/target/remediation/bins/WS27-starlark-r1-fromassign"
+ }
+}
