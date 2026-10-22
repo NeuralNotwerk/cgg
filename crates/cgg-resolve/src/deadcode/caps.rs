@@ -1,8 +1,8 @@
 //! Per-language capability disclosure.
 //!
-//! Extraction coverage is very uneven: most of the 45 plugins declare no
-//! `visibility` and no real `attributes`, and dispatch modelling only
-//! produces edges for Rust. A report that presented a Rust finding and a
+//! Extraction coverage is very uneven: most plugins declare no
+//! `visibility` and no real `attributes`, and dispatch modelling covers
+//! only some languages. A report that presented a Rust finding and a
 //! Fortran finding with equal authority would be lying, so every report
 //! states per language what cgg could see.
 //!

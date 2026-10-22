@@ -531,7 +531,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(4807 callables, 15660 edges, 4591 cross-file, 625ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(4813 callables, 15688 edges, 4592 cross-file, 475ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -1474,13 +1474,18 @@ know](#adding-a-framework-cgg-does-not-know).
   parsing (`skip_reason: long-line`). Some tree-sitter grammars (Kivy KV)
   parse in time quadratic in line length; the guard prevents a multi-second
   stall. Currently only Kivy KV sets a cap (32 KB/line).
-- C/C++ function-like macros are extracted as callables but not expanded (no
-  preprocessor simulation). Object-like `#define NAME expr` is followed one
-  level only to type a receiver (`THE_APP->run()`); nothing else is preprocessed
+- C/C++ preprocessing is partial. A function-defining `#define` invoked at
+  file, namespace or class scope is expanded one level (`#`, `##`,
+  `__VA_ARGS__`; no nested expansion), and object-like `#define NAME expr` is
+  followed one level only to type a receiver (`THE_APP->run()`); nothing else
+  is preprocessed, and calls written inside an unexpanded macro body are not
+  recorded
 - Type inference is partial — handles parameters, constructors, return types,
-  and (opt-in, Rust, C++, and Python) interface/trait, virtual, and
-  class-inheritance dispatch to known implementors and overrides via
-  `--dynamic-dispatch`; does not handle generics or fully dynamic typing
+  and (opt-in via `--dynamic-dispatch`) dispatch to known implementors and
+  overrides: Rust traits, C++ virtuals, class inheritance in Python, Java, C#,
+  Kotlin, Scala, Groovy, TS, JS, Swift, Dart, PHP and Ruby, Go interfaces
+  (satisfied structurally) and Clojure protocols and multimethods; does not
+  handle generics or fully dynamic typing
 - No daemon / watch mode, and **no on-disk cache**. Every run re-walks,
   re-parses and re-resolves from source, which is what makes a run
   reproducible from the tree alone. Parsing dominates the wall clock, so
@@ -1512,7 +1517,7 @@ know](#adding-a-framework-cgg-does-not-know).
   where to look, never to conclude something is exploitable.
 - Dead-code signal coverage is very uneven across languages. `visibility` is
   extracted for 7 of 46 plugins, real attributes for 9, and value-reference
-  capture for 11. Every report prints a per-language capability table so a "no"
+  capture for 26. Every report prints a per-language capability table so a "no"
   column is visible before the findings are.
 
 ## Potential future improvements

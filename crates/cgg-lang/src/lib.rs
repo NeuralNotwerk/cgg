@@ -443,10 +443,10 @@ pub struct PluginSignals {
     pub exports: bool,
     /// Tags definitions with a `TestRole`.
     pub test_defs: bool,
-    /// Captures identifier-shaped literals used for dynamic dispatch
-    /// (`getattr(o, "m")`), as a suppression-only signal.
     /// Records functions passed by name as values (`register(handler)`).
     pub value_refs: bool,
+    /// Captures identifier-shaped literals used for dynamic dispatch
+    /// (`getattr(o, "m")`), as a suppression-only signal.
     pub dyn_uses: bool,
     /// Detects statements following an unconditional terminator.
     pub unreachable: bool,
