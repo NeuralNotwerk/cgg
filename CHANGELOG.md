@@ -880,6 +880,51 @@ otherwise change the default graph.
   interface bodies, derived-type components and module variables are not
   locals.
 
+- **F# functions with a return-type annotation, and every `and` binding
+  after the first, were not callables (WS26b).** The F# grammar reads
+  `let f (x: T) : R = …` as a value pattern rather than a function
+  declaration, and the plugin read only the first binding of `let rec f …
+  and g …`, so `g`'s body was attributed to `f` and both shapes left
+  their callees unreachable. Each binding of a `let` is now its own
+  callable, spanning its `let` or `and` to the end of its body: a
+  `function_declaration_left`, and a value pattern that is a lowercase
+  name applied to argument patterns (the shape a return-type annotation
+  or an attribute on an `and` binding produces). A value (`let x = …`,
+  `let f = fun …`, `let (a, b) = …`) is still not a callable, and the
+  F# locals table reads every binding's parameters the same way.
+- **F# calls inside an operator expression were lost (WS26b).** The F#
+  grammar reads `xs |> f a` as `(xs |> f) a` and `x + g y` as
+  `(x + g) y`; the call's head was an operator expression, so no call
+  was recorded. Application binds tighter than any operator, so the
+  callee is now the operator's right operand — unless what it is
+  "applied" to is a block the grammar folded in (`while i < s.Length do
+  …`), which is no call.
+- **OCaml, Haskell and F# functions used as values were not references
+  (WS26b, gap 25).** `List.map f xs`, `xs |> f`, `f @@ x`, `map f xs`,
+  `f <$> x`, `m >>= f`, `f . g`, a record field's value (`{ handler = f
+  }`, OCaml's punned `{ M.encode; decode }`), list, array and tuple
+  elements, and the value a binding returns (`let handler = f`, `where
+  h = f`) left the function with no reference, so it was reported dead.
+  Under `--dead-code` and `--reference-edges` each is now a value
+  reference, recorded the way the call would be (OCaml's value path as
+  written, Haskell's bare name, F#'s `f` or `M.f`), never the head of an
+  application, a constructor, a Haskell type or pattern variable, or an
+  F# member read through a variable (`x.Length`). F# operands are read
+  only for the operators that take functions (pipelines, composition,
+  the monadic and applicative combinators): `=` is also a named argument
+  (`Foo(key = v)`). Names a parameter or local binds are dropped through
+  each language's locals table, which for OCaml now includes punned
+  record fields in patterns (`{ handler; _ } -> handler x`, also a
+  call through a local before). A binding these plugins record as a
+  callable but that holds data (OCaml `let name = …` and Haskell `limit =
+  …` with no parameter and no lambda) is a data member: a value naming it
+  reads it and is dropped. A local function — a `let`/`where` definition
+  inside another — is the local that names it, so naming it is a
+  reference to it. A value outside any callable credits every callable
+  of its name, not only its file's: OCaml, F# and Haskell bring
+  module-level names in by `open` and `import` (scoping them to the file
+  only added 61 `medium` findings and removed none).
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -1610,6 +1655,60 @@ WS27 Fortran (full corpus, 283 repositories, none excluded):
 - Under `--reference-edges`, the same edges change; Fortran records no
   reference edges.
 - Under `--dead-code`, no finding changes.
+
+WS26b F# definitions (full corpus, 283 repositories; `zig-zig` timed out
+on both binaries, and has no F#):
+
+- 148 F# callables are added: FsAutoComplete 108, Paket 24, Swate 8, the
+  Giraffe card sample 4, the Orleans samples 3, FsSnip 1. 461 edges are
+  added (384 `high`): calls in the new callables' bodies, which had no
+  caller before. 121 edges change caller only — a call in an `and`
+  binding's body, attributed to the first binding before — and 1 wrong
+  `medium` edge (`cachedSnapshots.Add` → a calculator's `Add`) is
+  removed.
+- Under `--dead-code`, 83 findings enter the report and 15 leave it, all
+  `medium`. Most new ones are new callables nothing calls by name: a
+  function passed as a value (`List.iter walkClause clauses`, which the
+  value references below credit) or called module-qualified across many
+  same-named functions (`RemoveUnusedBinding.fix`; 44 other code-fix
+  `fix` functions were already reported, a resolver gap of their own).
+
+WS26b F# calls in operator expressions, OCaml record puns (full corpus,
+283 repositories, none excluded):
+
+- The default graph changes in eight repositories. 2,066 F# edges are
+  added (1,063 `high`): FsAutoComplete 1,257, Paket 566, Swate 174, the
+  Giraffe card sample 61, FsSnip 5, and 3 in an F# fixture of bat. 11
+  change confidence. F# unresolved sites rise by 4,775, mostly library
+  calls in pipelines (`|> List.map f`, `|> Option.defaultValue x`; `map`
+  alone is 2,497) that were not recorded at all before.
+- 18 OCaml edges are removed (5 `high`): dune 12, the Opium pool app 6.
+  Each was a call through a field a record pattern puns (`{ on_event;
+  equal = _ } -> on_event input event`), bound to a same-named function.
+
+WS26b OCaml, Haskell and F# function values (full corpus, 283
+repositories; `zig-zig` timed out on both binaries, and has none of the
+three):
+
+- The default graph is otherwise unchanged.
+- Under `--reference-edges`, 10,317 reference edges are added (8,352
+  `high`): Haskell 5,590 (pandoc 3,323, Concordium 1,432), OCaml 2,894
+  (opam 994, the Opium pool app 907, dune 649), F# 1,833 (Paket 693,
+  Swate 535, FsAutoComplete 522). None are removed. Treating every
+  argument-less OCaml or Haskell binding as a function, and every
+  operand of every F# operator as a value, would add about 114,500
+  instead, most of them reads of local and module-level data (`name`,
+  `path`, `mempty`), Haskell type variables and F# named arguments.
+- Under `--dead-code` (all of WS26b together, against the same
+  baseline), 4,184 findings leave the report (4,112 `medium`,
+  72 `low`; none `high`): Haskell 2,177 (pandoc 1,370, Concordium 525,
+  hadolint 197), OCaml 1,272 (opam 447, the Opium pool app 343, dune
+  294), F# 735 (Swate 309, Paket 260, FsAutoComplete 92). 693 enter it
+  (687 `medium`, 6 `low`): 645 are FsAutoComplete's, where the extra
+  roots lift F#'s root coverage over the threshold, so the 910
+  `reachable-only-from-dead-code` and `dead-cycle` findings withheld
+  before are reported (its candidates fall 2,113 → 1,934). 8 move
+  `medium` → `low`.
 
 ## [0.11.0] - 2026-10-16
 

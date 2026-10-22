@@ -21,7 +21,7 @@ impl LanguagePlugin for FsharpPlugin {
 
     fn extract(
         &self,
-        _ctx: &crate::ExtractCtx<'_>,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -33,6 +33,7 @@ impl LanguagePlugin for FsharpPlugin {
             facts: &mut facts,
             scope: Vec::new(),
             bases: Vec::new(),
+            reference_sites: ctx.reference_sites,
         };
         w.walk(tree.root_node());
         facts
@@ -45,6 +46,9 @@ struct FsharpWalker<'a> {
     scope: Vec<String>,
     /// The type an enclosing `inherit Base(…)` names, innermost last.
     bases: Vec<Vec<String>>,
+    /// Record functions used as values (`value_ref`):
+    /// `crate::ExtractCtx::reference_sites`.
+    reference_sites: bool,
 }
 
 impl<'a> FsharpWalker<'a> {
@@ -74,6 +78,9 @@ impl<'a> FsharpWalker<'a> {
     }
 
     fn walk(&mut self, node: Node) {
+        if self.reference_sites {
+            self.capture_value_positions(node);
+        }
         match node.kind() {
             "anon_type_defn" => {
                 let name = self
@@ -146,45 +153,54 @@ impl<'a> FsharpWalker<'a> {
     }
 
     fn record_let(&mut self, node: Node) {
-        // Only `let name args = ...` (function_declaration_left) is a callable.
-        let Some(decl) = self.child_kind(node, "function_declaration_left") else {
-            return;
-        };
-        let Some(ident) = self.child_kind(decl, "identifier") else {
-            return;
-        };
-        let name = self.text(ident).to_string();
-        if name.is_empty() {
-            return;
+        // Every function binding is a callable: `let f x = …`, the
+        // `let f (x: T) : R = …` form the grammar reads as a value
+        // pattern, and each binding of `let rec f … and g …`.
+        for (i, b) in crate::locals::fsharp_let_bindings(node, self.source)
+            .into_iter()
+            .enumerate()
+        {
+            let Some(ident) = b.name else {
+                continue;
+            };
+            let name = self.text(ident).to_string();
+            if name.is_empty() {
+                continue;
+            }
+            // The first binding starts at the `let` (and its attributes);
+            // a later one at its `and`.
+            let text = self.source.get(b.start..b.end).unwrap_or_default();
+            let qn = self.qn(&name);
+            self.facts.definitions.push(DefRecord {
+                simple_name: name,
+                qualified_name: qn,
+                variant: if self.scope.is_empty() {
+                    DefVariant::FreeFunction
+                } else {
+                    DefVariant::InherentMethod
+                },
+                start_line: (b.start_row as u32) + 1,
+                end_line: (b.end_row as u32) + 1,
+                start_byte: b.start as u32,
+                end_byte: b.end as u32,
+                signature_hint: super::extract_signature(
+                    std::str::from_utf8(text).unwrap_or(""),
+                ),
+                visibility: String::new(),
+                // F# attributes are `[<FunctionName("X")>]`, which the
+                // shared collector reads like any other. Recorded from
+                // 0.6.8; before that F# could not match an attribute rule
+                // at all, so Azure Functions — a first-party .NET runtime —
+                // had nothing to key on.
+                attributes: if i == 0 {
+                    super::attrs::collect_with_preceding(node, self.source)
+                } else {
+                    Vec::new()
+                },
+                base_types: self.bases.last().cloned().unwrap_or_default(),
+                ..Default::default()
+            });
         }
-        let qn = self.qn(&name);
-        let (sl, el) = (
-            (node.start_position().row as u32) + 1,
-            (node.end_position().row as u32) + 1,
-        );
-        self.facts.definitions.push(DefRecord {
-            simple_name: name,
-            qualified_name: qn,
-            variant: if self.scope.is_empty() {
-                DefVariant::FreeFunction
-            } else {
-                DefVariant::InherentMethod
-            },
-            start_line: sl,
-            end_line: el,
-            start_byte: node.start_byte() as u32,
-            end_byte: node.end_byte() as u32,
-            signature_hint: super::extract_signature(self.text(node)),
-            visibility: String::new(),
-            // F# attributes are `[<FunctionName("X")>]`, which the
-            // shared collector reads like any other. Recorded from
-            // 0.6.8; before that F# could not match an attribute rule
-            // at all, so Azure Functions — a first-party .NET runtime —
-            // had nothing to key on.
-            attributes: super::attrs::collect_with_preceding(node, self.source),
-            base_types: self.bases.last().cloned().unwrap_or_default(),
-            ..Default::default()
-        });
     }
 
     fn record_member(&mut self, node: Node) {
@@ -314,11 +330,36 @@ impl<'a> FsharpWalker<'a> {
         // application_expression: first child is the callee. May be nested
         // application_expression (curried application) — descend leftward.
         let mut cur = node;
+        // Where the site is: the application, or the callee itself when
+        // the grammar folded it into an operator expression.
+        let mut site = node;
         loop {
             if let Some(mut first) = cur.child(0) {
                 if first.kind() == "application_expression" {
                     cur = first;
                     continue;
+                }
+                // `xs |> f a`, `x + f y`: application binds tighter than
+                // any operator, but the grammar reads `(xs |> f) a`. The
+                // callee is the operator's right operand.
+                if first.kind() == "infix_expression" {
+                    // Unless what it is "applied" to is a block the
+                    // grammar lost track of (`while a < b.Length do …`).
+                    if applies_to_block(cur) {
+                        break;
+                    }
+                    match last_named(first) {
+                        Some(r) if r.kind() == "application_expression" => {
+                            cur = r;
+                            site = r;
+                            continue;
+                        }
+                        Some(r) => {
+                            first = r;
+                            site = r;
+                        }
+                        None => break,
+                    }
                 }
                 // `f<int> x`: a type application (`typed_expression`)
                 // calls what it applies type arguments to.
@@ -352,8 +393,8 @@ impl<'a> FsharpWalker<'a> {
                             self.facts.references.push(RefRecord {
                                 name,
                                 receiver_hint: receiver,
-                                site_line: (node.start_position().row as u32) + 1,
-                                site_byte: node.start_byte() as u32,
+                                site_line: (site.start_position().row as u32) + 1,
+                                site_byte: site.start_byte() as u32,
                                 ..Default::default()
                             });
                         }
@@ -373,8 +414,8 @@ impl<'a> FsharpWalker<'a> {
                         self.facts.references.push(RefRecord {
                             name,
                             receiver_hint: String::new(),
-                            site_line: (node.start_position().row as u32) + 1,
-                            site_byte: node.start_byte() as u32,
+                            site_line: (site.start_position().row as u32) + 1,
+                            site_byte: site.start_byte() as u32,
                             not_def,
                             ..Default::default()
                         });
@@ -385,6 +426,172 @@ impl<'a> FsharpWalker<'a> {
             break;
         }
     }
+}
+
+impl FsharpWalker<'_> {
+    /// Functions used as values, when the run records reference sites: an
+    /// application's arguments (`List.map f xs`), an operator's operands
+    /// (`xs |> f`, `f >> g`), a record or object-expression field value,
+    /// list, array and tuple elements, and the value a `let` or member
+    /// returns (`let handler = f`). Recorded the way the call would be —
+    /// `f` bare, `M.f` through a module or type — marked `value_ref`.
+    /// A capitalized bare name is a union case or type, and a member read
+    /// through a variable (`x.Length`) a property read, so neither is
+    /// recorded. Names a parameter or local binds are dropped through the
+    /// F# locals (`value_refs::prune`).
+    fn capture_value_positions(&mut self, node: Node) {
+        let mut values: Vec<Node> = Vec::new();
+        match node.kind() {
+            "application_expression" => {
+                let mut c = node.walk();
+                values.extend(node.named_children(&mut c).skip(1));
+            }
+            "infix_expression" => {
+                // Only an operator that takes a function: `=` is also a
+                // named argument (`Foo(key = v)`), and arithmetic and
+                // comparison operands are data.
+                let applies = node
+                    .named_children(&mut node.walk())
+                    .find(|k| k.kind() == "infix_op")
+                    .is_some_and(|op| FUNCTION_OPERATORS.contains(&self.text(op)));
+                if !applies {
+                    return;
+                }
+                let mut c = node.walk();
+                let mut operands: Vec<Node> = node
+                    .named_children(&mut c)
+                    .filter(|k| k.kind() != "infix_op")
+                    .collect();
+                // `(xs |> f) a` as the grammar reads `xs |> f a`: the right
+                // operand is the callee (`record_call`).
+                let callee = node.parent().is_some_and(|p| {
+                    p.kind() == "application_expression"
+                        && p.child(0).is_some_and(|f| f.id() == node.id())
+                        && !applies_to_block(p)
+                });
+                if callee {
+                    operands.pop();
+                }
+                values.extend(operands);
+            }
+            "field_initializer" => values.extend(node.child_by_field_name("value")),
+            "list_expression" | "array_expression" | "tuple_expression" => {
+                let mut c = node.walk();
+                values.extend(node.named_children(&mut c));
+            }
+            "function_or_value_defn" => {
+                let mut c = node.walk();
+                values.extend(node.children_by_field_name("body", &mut c));
+            }
+            "method_or_prop_defn" => {
+                // The body: the last child, unless that is the name or the
+                // parameters.
+                let mut c = node.walk();
+                let mut last = None;
+                if c.goto_first_child() {
+                    loop {
+                        if c.node().is_named() {
+                            last = Some((c.node(), c.field_name().is_some()));
+                        }
+                        if !c.goto_next_sibling() {
+                            break;
+                        }
+                    }
+                }
+                values.extend(last.filter(|(_, field)| !field).map(|(n, _)| n));
+            }
+            _ => return,
+        }
+        for v in values {
+            self.value_ref_in(v, 0);
+        }
+    }
+
+    fn value_ref_in(&mut self, v: Node, depth: u8) {
+        if depth > 4 {
+            return;
+        }
+        match v.kind() {
+            "long_identifier_or_op" => {
+                if let Some(inner) = v.named_child(0) {
+                    self.value_ref_in(inner, depth + 1);
+                }
+                return;
+            }
+            "paren_expression" => {
+                if let Some(inner) = last_named(v) {
+                    self.value_ref_in(inner, depth + 1);
+                }
+                return;
+            }
+            "identifier" | "long_identifier" => {}
+            _ => return,
+        }
+        let mut idents: Vec<Node> = Vec::new();
+        if v.kind() == "identifier" {
+            idents.push(v);
+        } else {
+            let mut c = v.walk();
+            idents.extend(
+                v.named_children(&mut c)
+                    .filter(|k| k.kind() == "identifier"),
+            );
+        }
+        let Some(name_node) = idents.pop() else {
+            return;
+        };
+        let name = self.text(name_node).to_string();
+        let lower = |t: &str| t.starts_with(|c: char| c.is_lowercase() || c == '_');
+        let receiver: Vec<&str> = idents.iter().map(|i| self.text(*i)).collect();
+        match receiver.first() {
+            None if !lower(&name) => return,
+            Some(head) if lower(head) => return,
+            _ => {}
+        }
+        if name.is_empty() || name == "_" {
+            return;
+        }
+        let receiver_hint = receiver.join(".");
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint,
+            site_line: (name_node.start_position().row as u32) + 1,
+            site_byte: name_node.start_byte() as u32,
+            value_ref: true,
+            ..Default::default()
+        });
+    }
+}
+
+/// The operators whose operands are functions: pipelines, composition
+/// and the common monadic and applicative combinators.
+const FUNCTION_OPERATORS: &[&str] = &[
+    "|>", "||>", "|||>", "<|", "<||", "<|||", ">>", "<<", ">>=", "=<<", ">=>", "<=<",
+    "<!>", "<*>", "<&>", "<^>",
+];
+
+/// Whether an application's first argument is a block (`do …`, `if …`,
+/// a `let … in …`): the grammar folding a statement into an application
+/// (`while i < s.Length do …`), not a call.
+fn applies_to_block(app: Node) -> bool {
+    app.child(1).is_some_and(|a| {
+        matches!(
+            a.kind(),
+            "do_expression"
+                | "if_expression"
+                | "match_expression"
+                | "while_expression"
+                | "for_expression"
+                | "try_expression"
+                | "declaration_expression"
+                | "sequential_expression"
+        )
+    })
+}
+
+/// The last named child of `n`.
+fn last_named(n: Node) -> Option<Node> {
+    n.named_child(n.named_child_count().checked_sub(1)? as u32)
 }
 
 #[cfg(test)]
@@ -514,5 +721,127 @@ mod tests {
         assert!(refs.contains(&("C", "", true)), "{refs:?}");
         // Near miss: a record type has no constructor node.
         assert!(!f.definitions.iter().any(|d| d.qualified_name == "R.R"));
+    }
+
+    #[test]
+    fn every_function_binding_is_a_callable() {
+        let f = extract(
+            "module M\nlet rec ra x = rb x\nand rb (y: int) : int = ra y\nand [<A>] rc z = z\nlet getCol (s: int) : int = s\nlet private pf (x: int) : int = x\nlet value = 1\nlet lam = fun x -> x\nlet Wrap w = w\nlet (a, b) = (1, 2)\n",
+        );
+        let defs: Vec<(&str, u32, u32)> = f
+            .definitions
+            .iter()
+            .map(|d| (d.simple_name.as_str(), d.start_line, d.end_line))
+            .collect();
+        for (name, line) in [("ra", 2), ("rb", 3), ("rc", 4), ("getCol", 5), ("pf", 6)] {
+            assert!(
+                defs.iter()
+                    .any(|(n, s, e)| *n == name && *s == line && *e == line),
+                "{name} at {line}: {defs:?}"
+            );
+        }
+        // Near misses: values, a lambda value and a destructuring stay values.
+        for name in ["value", "lam", "a", "b"] {
+            assert!(!defs.iter().any(|(n, ..)| *n == name), "{name}: {defs:?}");
+        }
+        // Each `and` binding spans only itself.
+        let rb = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "rb")
+            .unwrap();
+        let ra = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "ra")
+            .unwrap();
+        assert!(ra.end_byte <= rb.start_byte, "{ra:?} {rb:?}");
+    }
+
+    fn extract_with_refs(src: &str, refs: bool) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_fsharp::LANGUAGE_FSHARP.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        FsharpPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(refs),
+            FileId::new(0),
+            &PathBuf::from("/tmp/x.fs"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    /// WS26b: a function used as a value is a reference site only when the
+    /// run asks for them; an application's head is a call, never a value.
+    #[test]
+    fn function_values_are_reference_sites() {
+        let src = "module V\nlet h = List.map g1 [1]\nlet k = [1] |> List.map g2 |> M.g3\nlet c = g4 >> g5\nlet r = { Handler = g6; Other = M.G7 }\nlet l = [ g8; None ]\nlet a = [| g9 |]\nlet v = g10\nlet run () = head 1 + s.Length\n";
+        let f = extract_with_refs(src, true);
+        let got: Vec<(String, String)> = f
+            .references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
+            .collect();
+        for (recv, name) in [
+            ("", "g1"),
+            ("", "g2"),
+            ("M", "g3"),
+            ("", "g4"),
+            ("", "g5"),
+            ("", "g6"),
+            ("M", "G7"),
+            ("", "g8"),
+            ("", "g9"),
+            ("", "g10"),
+        ] {
+            assert!(
+                got.contains(&(recv.to_string(), name.to_string())),
+                "missing {recv}.{name} in {got:?}"
+            );
+        }
+        let names: Vec<&str> = got.iter().map(|(_, n)| n.as_str()).collect();
+        for n in ["head", "map", "None", "Length", "run"] {
+            assert!(!names.contains(&n), "{n} recorded: {got:?}");
+        }
+        assert!(
+            !extract_with_refs(src, false)
+                .references
+                .iter()
+                .any(|r| r.value_ref)
+        );
+    }
+
+    /// WS26b: the grammar reads `xs |> f a` as `(xs |> f) a` and
+    /// `x + g y` as `(x + g) y`; the callee is the operator's right operand.
+    #[test]
+    fn a_call_folded_into_an_operator_is_recorded() {
+        let f = extract("let run xs =\n    xs |> step 1 |> ignore\n    1 + other 2\n");
+        let calls: Vec<&str> = f
+            .references
+            .iter()
+            .filter(|r| !r.value_ref)
+            .map(|r| r.name.as_str())
+            .collect();
+        assert!(calls.contains(&"step"), "{calls:?}");
+        assert!(calls.contains(&"other"), "{calls:?}");
+        // Near miss: the left operand is not the callee.
+        assert!(!calls.contains(&"xs"), "{calls:?}");
+    }
+
+    /// WS26b near misses: a named argument or comparison (`=`) and an
+    /// arithmetic operand are data, and a `while … do` block the grammar
+    /// folds into an application is no call.
+    #[test]
+    fn data_operands_and_folded_blocks_are_not_functions() {
+        let f = extract_with_refs(
+            "let f () =\n    Foo(key = keyFn) |> ignore\n    let n = a + sizeFn\n    while i < target.Length do\n        i <- i + 1\n",
+            true,
+        );
+        let names: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
+        for n in ["keyFn", "sizeFn", "Length"] {
+            assert!(!names.contains(&n), "{n}: {names:?}");
+        }
     }
 }

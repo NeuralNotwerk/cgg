@@ -356,7 +356,10 @@ const DART_SPEC: Spec = Spec {
 };
 
 const OCAML_SPEC: Spec = Spec {
-    idents: &["value_pattern"],
+    // `field_name`: a punned record field (`{ handler; _ }`) binds the
+    // field's name. (`{ a = x }` binds `a` too: over-shadowing refuses an
+    // edge, never adds one.)
+    idents: &["value_pattern", "field_name"],
     binders: &[
         b("parameter", &["pattern"], Scope::Param),
         b("match_case", &["pattern"], Scope::Own),
@@ -374,6 +377,7 @@ const OCAML_SPEC: Spec = Spec {
         "list_pattern",
         "record_pattern",
         "field_pattern",
+        "field_path",
         "labeled_argument",
         "label",
     ],
@@ -3361,70 +3365,160 @@ fn collect_fsharp(tree: &Tree, src: &[u8]) -> Vec<LocalBinding> {
     }
 }
 
-/// One `let` (`let!`, `let rec`): its parameters over the definition, and
-/// its name or pattern over its `in` body when it is local.
+/// One binding of an F# `let` (`let rec f … and g …` holds several).
+pub(crate) struct FsharpLet<'n> {
+    /// From the `let` (the first binding) or the `and` (a later one) to
+    /// the end of the binding's body.
+    pub start: usize,
+    pub end: usize,
+    /// The 0-based rows of `start` and `end`.
+    pub start_row: usize,
+    pub end_row: usize,
+    /// Where the parameters' scope starts: the end of the left side.
+    pub left_end: usize,
+    /// The function's name, when the binding is one (`let f x = …`,
+    /// `let f (x: T) : R = …`).
+    pub name: Option<Node<'n>>,
+    /// The function's parameter patterns.
+    pub args: Vec<Node<'n>>,
+    /// A non-function binding's pattern (`let x = …`, `let (a, b) = …`).
+    pub pattern: Option<Node<'n>>,
+}
+
+/// The bindings of one F# `function_or_value_defn`. A left side the
+/// grammar reads as `function_declaration_left` is a function; so is a
+/// `value_declaration_left` whose pattern is a lowercase name applied to
+/// argument patterns, the shape a return-type annotation
+/// (`let f (x: T) : R = …`) or an attribute on an `and` binding produces.
+pub(crate) fn fsharp_let_bindings<'n>(node: Node<'n>, src: &[u8]) -> Vec<FsharpLet<'n>> {
+    let lower = |n: Node<'_>| {
+        n.utf8_text(src)
+            .ok()
+            .and_then(|t| t.chars().next())
+            .is_some_and(|c| c.is_lowercase() || c == '_')
+    };
+    let mut c = node.walk();
+    let kids: Vec<(Node<'n>, Option<&'static str>)> = {
+        let mut v = Vec::new();
+        if c.goto_first_child() {
+            loop {
+                v.push((c.node(), c.field_name()));
+                if !c.goto_next_sibling() {
+                    break;
+                }
+            }
+        }
+        v
+    };
+    let mut out = Vec::new();
+    let mut seg_start = node.start_byte();
+    let mut seg_row = node.start_position().row;
+    let mut i = 0;
+    while i < kids.len() {
+        let (k, _) = kids[i];
+        if k.kind() == "and" {
+            seg_start = k.start_byte();
+            seg_row = k.start_position().row;
+        }
+        if !matches!(
+            k.kind(),
+            "function_declaration_left" | "value_declaration_left"
+        ) {
+            i += 1;
+            continue;
+        }
+        let left = k;
+        // The binding ends with its body, or before the next `and`.
+        let mut end = left.end_byte();
+        let mut end_row = left.end_position().row;
+        let mut j = i + 1;
+        while j < kids.len() && kids[j].0.kind() != "and" {
+            end = kids[j].0.end_byte();
+            end_row = kids[j].0.end_position().row;
+            if kids[j].1 == Some("body") {
+                j += 1;
+                break;
+            }
+            j += 1;
+        }
+        let mut b = FsharpLet {
+            start: seg_start,
+            end,
+            start_row: seg_row,
+            end_row,
+            left_end: left.end_byte(),
+            name: None,
+            args: Vec::new(),
+            pattern: None,
+        };
+        let mut lc = left.walk();
+        let lk: Vec<Node<'n>> = left.named_children(&mut lc).collect();
+        if left.kind() == "function_declaration_left" {
+            b.name = lk.iter().copied().find(|k| k.kind() == "identifier");
+            b.args = lk
+                .iter()
+                .copied()
+                .filter(|k| k.kind() == "argument_patterns")
+                .collect();
+        } else if let Some(mut pat) =
+            lk.iter().copied().find(|k| k.kind().ends_with("_pattern"))
+        {
+            if pat.kind() == "attribute_pattern"
+                && let Some(inner) = pat
+                    .named_child(pat.named_child_count().saturating_sub(1) as u32)
+                    .filter(|n| n.kind().ends_with("_pattern"))
+            {
+                pat = inner;
+            }
+            let mut pc = pat.walk();
+            let pk: Vec<Node<'n>> = pat.named_children(&mut pc).collect();
+            let head = pk
+                .first()
+                .copied()
+                .filter(|h| h.kind() == "long_identifier_or_op")
+                .and_then(fsharp_simple_ident)
+                .filter(|h| lower(*h));
+            match head {
+                Some(h) if pat.kind() == "identifier_pattern" && pk.len() > 1 => {
+                    b.name = Some(h);
+                    b.args = pk[1..].to_vec();
+                }
+                _ => b.pattern = Some(pat),
+            }
+        }
+        out.push(b);
+        seg_start = end;
+        seg_row = end_row;
+        i = j.max(i + 1);
+    }
+    out
+}
+
+/// One `let` (`let!`, `let rec`, each binding of `let rec … and …`): its
+/// parameters over the binding, and its name or pattern over its `in`
+/// body when it is local.
 fn fsharp_defn(
     node: Node<'_>,
     chain: &[Node<'_>],
     src: &[u8],
     out: &mut Vec<LocalBinding>,
 ) {
-    let mut c = node.walk();
-    let kids: Vec<Node<'_>> = node.children(&mut c).collect();
-    let rec = kids.iter().any(|k| k.kind() == "rec");
-    let Some(left) = kids.iter().copied().find(|k| {
-        matches!(
-            k.kind(),
-            "function_declaration_left" | "value_declaration_left"
-        )
-    }) else {
-        return;
+    let rec = {
+        let mut c = node.walk();
+        node.children(&mut c).any(|k| k.kind() == "rec")
     };
-    // The name (a function's), its parameter patterns, or the value
-    // pattern a non-function binding binds.
-    let (name, params, values): (Option<Node<'_>>, Vec<Node<'_>>, Vec<Node<'_>>) =
-        if left.kind() == "function_declaration_left" {
-            let mut lc = left.walk();
-            let lk: Vec<Node<'_>> = left.named_children(&mut lc).collect();
-            let name = lk.iter().copied().find(|k| k.kind() == "identifier");
-            let params = lk
-                .iter()
-                .filter(|k| k.kind() == "argument_patterns")
-                .flat_map(|a| fsharp_pattern_vars(*a, src))
-                .collect();
-            (name, params, Vec::new())
-        } else {
-            let Some(pat) = left.named_child(0) else {
-                return;
-            };
-            let mut pc = pat.walk();
-            let pk: Vec<Node<'_>> = pat.named_children(&mut pc).collect();
-            let head = pk
-                .first()
-                .copied()
-                .filter(|h| h.kind() == "long_identifier_or_op");
-            if pat.kind() == "identifier_pattern" && pk.len() > 1 && head.is_some() {
-                // `let f a (b, c) = …`: a function.
-                let name = head.and_then(|h| fsharp_simple_ident(h));
-                let params = pk[1..]
-                    .iter()
-                    .flat_map(|a| fsharp_pattern_vars(*a, src))
-                    .collect();
-                (name, params, Vec::new())
-            } else {
-                (None, Vec::new(), fsharp_pattern_vars(pat, src))
+    let bindings = fsharp_let_bindings(node, src);
+    let mut names: Vec<Node<'_>> = Vec::new();
+    for b in &bindings {
+        for a in &b.args {
+            for p in fsharp_pattern_vars(*a, src) {
+                starlark_push(out, p, src, b.left_end, b.end, b.start, true);
             }
-        };
-    for p in params {
-        starlark_push(
-            out,
-            p,
-            src,
-            left.end_byte(),
-            node.end_byte(),
-            node.start_byte(),
-            true,
-        );
+        }
+        names.extend(b.name);
+        if let Some(pat) = b.pattern {
+            names.extend(fsharp_pattern_vars(pat, src));
+        }
     }
     // Where the binding is: inside a function or expression (a local), in
     // a class body, or at module level (neither).
@@ -3439,8 +3533,6 @@ fn fsharp_defn(
                 | "ce_expression"
         )
     });
-    let mut names: Vec<Node<'_>> = values;
-    names.extend(name);
     if local && !class_level {
         let Some(decl) = parent.filter(|p| p.kind() == "declaration_expression") else {
             return;
@@ -4279,9 +4371,10 @@ mod tests {
             (
                 "ocaml",
                 tree_sitter_ocaml::LANGUAGE_OCAML.into(),
-                "let iter f s = List.iter (fun e -> f e) s",
-                &["f", "s", "e"],
-                &["iter"],
+                "let iter f s = List.iter (fun e -> f e) s\n\
+                 let h x = match x with E { loop; _ } -> run loop",
+                &["f", "s", "e", "x", "loop"],
+                &["iter", "h", "run"],
             ),
             (
                 "lua",

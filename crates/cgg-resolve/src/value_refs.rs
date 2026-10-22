@@ -216,6 +216,10 @@ pub fn prune(all_facts: &mut [FileFacts]) {
             });
         let zig = f.language == "zig";
         let objc = f.language == "objc";
+        let local_defs = LOCAL_DEF_LANGS.contains(&f.language.as_str());
+        // OCaml records a value as its path (`M.default`); the binding it
+        // names is the last segment.
+        let ocaml = f.language == "ocaml";
         let imports = std::mem::take(&mut f.imports);
         f.references.retain(|r| {
             !r.value_ref
@@ -228,8 +232,8 @@ pub fn prune(all_facts: &mut [FileFacts]) {
                         erlang_value_names_a_clause(r, own, &erlang_clauses)
                     })
                     && !((r.receiver_hint.is_empty() || member_reads)
-                        && is_field(&r.name))
-                    && !shadowed(&locals, &defs, r))
+                        && is_field(if ocaml { leaf(r) } else { &r.name }))
+                    && !shadowed(&locals, &defs, r, local_defs))
         });
         f.definitions = defs;
         f.imports = imports;
@@ -278,16 +282,35 @@ fn shadowed(
     locals: &crate::scope::FileLocals,
     defs: &[cgg_core::DefRecord],
     r: &RefRecord,
+    local_defs: bool,
 ) -> bool {
     if !locals.shadows_bare_call(r) {
         return false;
     }
     let Some(crate::scope::Binding {
-        start, end, decl, ..
+        start,
+        end,
+        decl,
+        param,
     }) = locals.binding_decl_at(&r.name, r.site_byte)
     else {
         return true;
     };
+    // Where every local binding of a name is itself a definition (OCaml,
+    // Haskell and F# `let`/`where` functions), a local whose scope holds
+    // a same-named definition is that definition: Haskell's `where
+    // handler = …` scopes over the whole clause, before the definition
+    // starts. A parameter never is.
+    if local_defs
+        && !param
+        && defs.iter().any(|d| {
+            d.simple_name == r.name
+                && decl.min(start) <= d.start_byte
+                && d.end_byte <= end
+        })
+    {
+        return false;
+    }
     // A local function's binding starts where its definition does and
     // runs on to the end of its block (C# `void Handler() {…}` passed as
     // `Run(Handler)`, WS27). A parameter named like its own function
@@ -318,6 +341,10 @@ fn erlang_value_names_a_clause(
     };
     arities.is_some_and(|a| r.arity.is_none() || a.contains(&r.arity))
 }
+
+/// Languages whose plugins record every function a `let` or `where`
+/// binds, local ones included, as a definition (see [`shadowed`]).
+const LOCAL_DEF_LANGS: &[&str] = &["ocaml", "haskell", "fsharp"];
 
 /// Languages whose `x.m` in value position reads a field or getter far
 /// more often than it tears off a method: a name some class declares as
@@ -387,7 +414,8 @@ pub fn prune_paren_less(all_facts: &mut [FileFacts]) {
         let locals = crate::scope::FileLocals::build(f);
         let defs = std::mem::take(&mut f.definitions);
         f.references.retain(|r| {
-            !r.paren_less || (known.contains(&r.name) && !shadowed(&locals, &defs, r))
+            !r.paren_less
+                || (known.contains(&r.name) && !shadowed(&locals, &defs, r, false))
         });
         // A kept paren-less site is a call of a parameterless `def`: a
         // value reference the plugin recorded on the same name and byte

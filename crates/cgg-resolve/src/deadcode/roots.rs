@@ -1337,7 +1337,9 @@ fn clojure_qualified_toplevel(
 
 /// Languages whose class- or module-level value references name the
 /// declaring file's own callables (see the top-level rule in
-/// [`discover`]).
+/// [`discover`]). Not OCaml, F# or Haskell: a bare name at module level
+/// there is as often an `open`ed or imported module's (WS26b A/B: scoping
+/// them only added 61 `medium` findings, removing none).
 const FILE_SCOPED_VALUE_REF_LANGS: &[&str] = &[
     "ruby", "swift", "dart", "scala", "lua", "erlang", "clojure", "zig", "groovy",
 ];

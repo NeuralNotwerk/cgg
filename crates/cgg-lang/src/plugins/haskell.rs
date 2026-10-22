@@ -24,7 +24,7 @@ impl LanguagePlugin for HaskellPlugin {
 
     fn extract(
         &self,
-        _ctx: &crate::ExtractCtx<'_>,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -35,6 +35,7 @@ impl LanguagePlugin for HaskellPlugin {
             source,
             facts: &mut facts,
             module: String::new(),
+            reference_sites: ctx.reference_sites,
         };
         w.walk(tree.root_node());
         facts
@@ -45,6 +46,9 @@ struct HaskellWalker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     module: String,
+    /// Record functions used as values (`value_ref`):
+    /// `crate::ExtractCtx::reference_sites`.
+    reference_sites: bool,
 }
 
 impl<'a> HaskellWalker<'a> {
@@ -64,6 +68,9 @@ impl<'a> HaskellWalker<'a> {
     }
 
     fn walk(&mut self, node: Node) {
+        if self.reference_sites {
+            self.capture_value_positions(node);
+        }
         match node.kind() {
             // The module declaration is a `header` node wrapping a
             // `module` node; dispatching on `module` reached the inner
@@ -183,6 +190,18 @@ impl<'a> HaskellWalker<'a> {
             return;
         }
 
+        // An argument-less binding whose value is not a lambda is data
+        // (`limit = 10`, `defaultConfig = …`): a value naming it reads it,
+        // never passes a function (`value_refs::prune`).
+        if node.kind() == "bind" {
+            let lambda = node
+                .child_by_field_name("match")
+                .and_then(|m| m.child_by_field_name("expression"))
+                .is_some_and(|e| matches!(e.kind(), "lambda" | "lambda_case"));
+            if !lambda {
+                self.facts.data_members.push(name.clone());
+            }
+        }
         let qn = self.qn(&name);
         let (sl, el) = (
             (node.start_position().row as u32) + 1,
@@ -220,6 +239,104 @@ impl<'a> HaskellWalker<'a> {
             }
         }
     }
+}
+
+impl HaskellWalker<'_> {
+    /// Functions used as values, when the run records reference sites: an
+    /// application's arguments (`map f xs`), an operator's operands
+    /// (`f <$> x`, `m >>= f`, `f . g`), a record field's value, list and
+    /// tuple elements, and the right side of an argument-less binding
+    /// (`where handler = f`). Never the head of an application, never a
+    /// constructor. Bare names only, as calls are recorded. Names a
+    /// parameter or local binds are dropped through the Haskell locals
+    /// (`value_refs::prune`).
+    fn capture_value_positions(&mut self, node: Node) {
+        let mut values: Vec<Node> = Vec::new();
+        let mut c = node.walk();
+        if matches!(node.kind(), "apply" | "infix" | "list" | "tuple")
+            && in_type_or_pattern(node)
+        {
+            return;
+        }
+        match node.kind() {
+            "apply" => values.extend(node.child_by_field_name("argument")),
+            "infix" => {
+                values.extend(node.child_by_field_name("left_operand"));
+                values.extend(node.child_by_field_name("right_operand"));
+            }
+            "field_update" => values.extend(node.child_by_field_name("expression")),
+            "list" | "tuple" => {
+                values.extend(node.children_by_field_name("element", &mut c));
+            }
+            "bind" => values.extend(
+                node.child_by_field_name("match")
+                    .and_then(|m| m.child_by_field_name("expression")),
+            ),
+            _ => return,
+        }
+        for v in values {
+            self.value_ref_in(v, 0);
+        }
+    }
+
+    fn value_ref_in(&mut self, v: Node, depth: u8) {
+        if depth > 4 {
+            return;
+        }
+        match v.kind() {
+            "parens" => {
+                if let Some(e) = v.named_child(0) {
+                    self.value_ref_in(e, depth + 1);
+                }
+            }
+            "variable" => {
+                let name = self.text(v).to_string();
+                if name.is_empty() {
+                    return;
+                }
+                self.facts.references.push(RefRecord {
+                    name,
+                    receiver_hint: String::new(),
+                    site_line: (v.start_position().row as u32) + 1,
+                    site_byte: v.start_byte() as u32,
+                    value_ref: true,
+                    ..Default::default()
+                });
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Whether `n` is part of a type (a signature, a data, newtype or type
+/// declaration, an instance or class head) or of a pattern (`Just f ->`,
+/// `(a, b) <- m`): type variables and pattern variables are `variable`s,
+/// and type and constructor applications `apply`s, there too.
+fn in_type_or_pattern(n: Node) -> bool {
+    let mut cur = n;
+    while let Some(p) = cur.parent() {
+        let is_field =
+            |f: &str| p.child_by_field_name(f).is_some_and(|t| t.id() == cur.id());
+        if is_field("type") || is_field("pattern") || is_field("patterns") {
+            return true;
+        }
+        match p.kind() {
+            "data_type" | "newtype" | "type_synomym" | "type_family"
+            | "type_instance" | "data_family" | "data_instance" | "deriving"
+            | "deriving_instance" | "instance" | "class" | "context"
+            | "kind_signature" | "patterns" => return true,
+            "match"
+            | "declarations"
+            | "instance_declarations"
+            | "class_declarations"
+            | "local_binds"
+            | "haskell"
+            | "exp"
+            | "guards" => return false,
+            _ => cur = p,
+        }
+    }
+    false
 }
 
 #[cfg(test)]
@@ -290,5 +407,80 @@ mod tests {
         let f = extract("import qualified Data.Map as M\n\nmain = pure ()\n");
         let paths: Vec<&str> = f.imports.iter().map(|i| i.path.as_str()).collect();
         assert!(paths.contains(&"Data.Map"), "got: {paths:?}");
+    }
+
+    fn extract_with_refs(src: &str, refs: bool) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_haskell::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        HaskellPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(refs),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.hs"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    /// WS26b: a function used as a value is a reference site only when the
+    /// run asks for them; an application's head is a call, never a value.
+    #[test]
+    fn function_values_are_reference_sites() {
+        let src = "module M where\nh = map g1 [1]\nk = g2 <$> Just 1\nc = g3 . g4\nb = Just 1 >>= g5\nr = Cfg { handler = g6 }\nl = [g7, (g8)]\nt = (g9, 1)\nw = q\n  where q = g10\nap = head 1\n";
+        let f = extract_with_refs(src, true);
+        let got: Vec<(String, String)> = f
+            .references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
+            .collect();
+        for (recv, name) in [
+            ("", "g1"),
+            ("", "g2"),
+            ("", "g3"),
+            ("", "g4"),
+            ("", "g5"),
+            ("", "g6"),
+            ("", "g7"),
+            ("", "g8"),
+            ("", "g9"),
+            ("", "g10"),
+            ("", "q"),
+        ] {
+            assert!(
+                got.contains(&(recv.to_string(), name.to_string())),
+                "missing {recv}.{name} in {got:?}"
+            );
+        }
+        let names: Vec<&str> = got.iter().map(|(_, n)| n.as_str()).collect();
+        for n in ["head", "map", "Just", "Cfg", "handler"] {
+            assert!(!names.contains(&n), "{n} recorded: {got:?}");
+        }
+        assert!(
+            !extract_with_refs(src, false)
+                .references
+                .iter()
+                .any(|r| r.value_ref)
+        );
+    }
+
+    /// WS26b near misses: pattern variables (`(r, s) <- m`, `Just g ->`)
+    /// and type variables in a signature are not values.
+    #[test]
+    fn patterns_and_types_are_not_values() {
+        let f = extract_with_refs(
+            "module M where\nf :: forall pv. C pv => S pv -> m a\nf = do\n  (rv, sv) <- mk\n  case m of\n    Just gv -> gv\n",
+            true,
+        );
+        let values: Vec<&str> = f
+            .references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| r.name.as_str())
+            .collect();
+        for n in ["pv", "rv", "sv", "gv"] {
+            assert!(!values.contains(&n), "{n}: {values:?}");
+        }
     }
 }

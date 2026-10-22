@@ -7925,3 +7925,181 @@ end module
         "{edges:?}"
     );
 }
+
+/// WS26b: an OCaml, Haskell or F# function passed as an argument, piped,
+/// composed, stored in a record or list, or bound to a name is a
+/// reference — live in the dead-code report and a `ref` edge under
+/// `--reference-edges` — while the default graph is untouched. A
+/// parameter of the same name is not a reference.
+#[test]
+fn ml_family_function_values_are_references() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "main.ml",
+        b"let mapped x = x + 1\n\
+let piped x = x\n\
+let stored x = x\n\
+let shadowed x = x\n\
+let orphan_ml x = x\n\
+let use_param shadowed = List.map shadowed [1]\n\
+let table () = [ stored ]\n\
+let () = ignore (List.map mapped [1] |> List.map piped, table (), use_param)\n",
+    );
+    write(
+        tmp.path(),
+        "Main.hs",
+        b"module Main where\n\
+composedA x = x\n\
+composedB x = x\n\
+fmapped x = x\n\
+viaWhere x = x\n\
+orphanHs x = x\n\
+main = print (map (composedA . composedB) [1], fmapped <$> Just 1, h 1)\n\
+  where h = viaWhere\n",
+    );
+    write(
+        tmp.path(),
+        "Program.fs",
+        b"module Program\n\
+let fsMapped x = x + 1\n\
+let fsPiped x = x\n\
+let fsInRecord x = x\n\
+let fsShadowed x = x\n\
+let orphanFs x = x\n\
+let useParam fsShadowed = List.map fsShadowed [1]\n\
+type R = { F: int -> int }\n\
+[<EntryPoint>]\n\
+let main argv =\n\
+    let r = { F = fsInRecord }\n\
+    [1] |> List.map fsMapped |> List.map fsPiped |> ignore\n\
+    useParam 1 |> ignore\n\
+    r.F 1\n",
+    );
+
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .args([
+            "--dead-code",
+            "--no-graph",
+            "--dead-code-format",
+            "json",
+            "--dead-code-report",
+        ])
+        .arg(&report)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let dead = dead_code_qns(&report);
+    for live in [
+        "mapped",
+        "piped",
+        "stored",
+        "Main.composedA",
+        "Main.composedB",
+        "Main.fmapped",
+        "Main.viaWhere",
+        "fsMapped",
+        "fsPiped",
+        "fsInRecord",
+    ] {
+        assert!(
+            !dead.iter().any(|q| q == live),
+            "{live} is referenced as a value, findings: {dead:?}"
+        );
+    }
+    for gone in [
+        "shadowed",
+        "orphan_ml",
+        "Main.orphanHs",
+        "fsShadowed",
+        "orphanFs",
+    ] {
+        assert!(
+            dead.iter().any(|q| q == gone),
+            "{gone} has no reference, findings: {dead:?}"
+        );
+    }
+
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .arg("-o")
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&plain).unwrap().matches("ref|").count(),
+        0
+    );
+    let refs = tmp.path().join("r.mmd");
+    cgg()
+        .args(["--reference-edges", "-o"])
+        .arg(&refs)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&refs).unwrap();
+    assert!(g.matches("ref|").count() >= 5, "{g}");
+}
+
+/// WS26b: every F# function binding is a callable — the second binding of
+/// `let rec … and …` and a function with a return-type annotation, which
+/// the grammar reads as a value pattern — and owns the calls in its body.
+#[test]
+fn fsharp_and_bindings_and_annotated_functions_are_callables() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "Lib.fs",
+        b"module Lib\n\
+let leaf x = x\n\
+let rec first x = second x\n\
+and second (y: int) : int = leaf y\n\
+let annotated (s: int) : int = leaf s\n\
+let value = 1\n",
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let edges: Vec<(String, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| (qn(&e["src"]), qn(&e["dst"])))
+        .collect();
+    for (src, dst) in [
+        ("first", "second"),
+        ("second", "leaf"),
+        ("annotated", "leaf"),
+    ] {
+        assert!(
+            edges.iter().any(|(s, d)| s == src && d == dst),
+            "{src} -> {dst}: {edges:?}"
+        );
+    }
+    // `second`'s call belongs to `second`, not to `first`.
+    assert!(
+        !edges.iter().any(|(s, d)| s == "first" && d == "leaf"),
+        "{edges:?}"
+    );
+    let names: Vec<String> = g["callables"]
+        .as_object()
+        .unwrap()
+        .values()
+        .filter_map(|c| c["qualified_name"].as_str().map(str::to_string))
+        .collect();
+    assert!(!names.iter().any(|n| n == "value"), "{names:?}");
+}

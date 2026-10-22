@@ -24,7 +24,7 @@ impl LanguagePlugin for OcamlPlugin {
 
     fn extract(
         &self,
-        _ctx: &crate::ExtractCtx<'_>,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -36,6 +36,7 @@ impl LanguagePlugin for OcamlPlugin {
             facts: &mut facts,
             module: String::new(),
             lets: Vec::new(),
+            reference_sites: ctx.reference_sites,
         };
         w.walk(tree.root_node());
         facts
@@ -49,6 +50,9 @@ struct OcamlWalker<'a> {
     /// Enclosing `let` bindings, innermost last: name, start byte, and
     /// whether the name is in scope in its own body (`let rec`).
     lets: Vec<(String, u32, bool)>,
+    /// Record functions used as values (`value_ref`):
+    /// `crate::ExtractCtx::reference_sites`.
+    reference_sites: bool,
 }
 
 impl<'a> OcamlWalker<'a> {
@@ -64,6 +68,10 @@ impl<'a> OcamlWalker<'a> {
     }
 
     fn walk(&mut self, node: Node) {
+        // A `let`'s own value is read inside the binding (below).
+        if self.reference_sites && node.kind() != "let_binding" {
+            self.capture_value_positions(node);
+        }
         match node.kind() {
             "module_definition" => {
                 self.extract_module(node);
@@ -97,6 +105,9 @@ impl<'a> OcamlWalker<'a> {
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
                 self.lets.push((name, node.start_byte() as u32, rec));
+                if self.reference_sites {
+                    self.capture_value_positions(node);
+                }
                 self.walk_children(node);
                 self.lets.pop();
             }
@@ -216,6 +227,12 @@ impl<'a> OcamlWalker<'a> {
             return;
         }
 
+        // A binding with no parameter whose value is not a `fun` or
+        // `function` is data (`let name = …`): a value naming it reads
+        // it, never passes a function (`value_refs::prune`).
+        if node.kind() == "let_binding" && !self.binds_function(node) {
+            self.facts.data_members.push(name.clone());
+        }
         let qn = self.qn(&name);
         let (sl, el) = (
             (node.start_position().row as u32) + 1,
@@ -265,6 +282,129 @@ impl<'a> OcamlWalker<'a> {
                 });
             }
         }
+    }
+}
+
+impl OcamlWalker<'_> {
+    /// Whether a `let` binds a function: it has a parameter, or its value
+    /// is a `fun` or `function` (through a type annotation too).
+    fn binds_function(&self, node: Node) -> bool {
+        let mut c = node.walk();
+        if node.children(&mut c).any(|k| k.kind() == "parameter") {
+            return true;
+        }
+        let mut body = node.child_by_field_name("body");
+        while let Some(b) = body {
+            match b.kind() {
+                "fun_expression" | "function_expression" => return true,
+                "parenthesized_expression" | "typed_expression" => {
+                    body = b.named_child(0);
+                }
+                _ => return false,
+            }
+        }
+        false
+    }
+
+    /// Functions used as values, when the run records reference sites: an
+    /// application's arguments, labeled ones included (`List.map f xs`,
+    /// `~f:g`), an operator's operands (`xs |> f`, `f @@ x`), a record
+    /// field's value, list, array and tuple elements, and the value a
+    /// `let` binds or returns (`let handler = f`, `let get () = f`). Never
+    /// the head of an application. Recorded the way the call would be —
+    /// the value path as written (`f`, `M.f`) — marked `value_ref`. Names
+    /// a parameter or local binds are dropped through the OCaml locals
+    /// (`value_refs::prune`).
+    fn capture_value_positions(&mut self, node: Node) {
+        let mut values: Vec<Node> = Vec::new();
+        let mut c = node.walk();
+        match node.kind() {
+            "application_expression" => {
+                values.extend(node.children_by_field_name("argument", &mut c));
+            }
+            "infix_expression" => {
+                values.extend(node.child_by_field_name("left"));
+                values.extend(node.child_by_field_name("right"));
+            }
+            "field_expression" | "let_binding" => {
+                match node.child_by_field_name("body") {
+                    Some(b) => values.push(b),
+                    // A punned field (`{ M.encode; decode }`) is the value of
+                    // the same-named binding in scope.
+                    None if node.kind() == "field_expression" => {
+                        if let Some(name) = node
+                            .named_child(0)
+                            .filter(|p| p.kind() == "field_path")
+                            .and_then(|p| {
+                                p.named_child(
+                                    p.named_child_count().saturating_sub(1) as u32
+                                )
+                            })
+                            .filter(|n| n.kind() == "field_name")
+                        {
+                            self.push_value(self.text(name).to_string(), name);
+                        }
+                    }
+                    None => {}
+                }
+            }
+            "list_expression" | "array_expression" | "tuple_expression" => {
+                values.extend(node.named_children(&mut c));
+            }
+            _ => return,
+        }
+        for v in values {
+            self.value_ref_in(v, 0);
+        }
+    }
+
+    fn value_ref_in(&mut self, v: Node, depth: u8) {
+        if depth > 4 {
+            return;
+        }
+        match v.kind() {
+            "labeled_argument" => {
+                if let Some(e) = v.child_by_field_name("expression") {
+                    self.value_ref_in(e, depth + 1);
+                }
+            }
+            "parenthesized_expression" => {
+                if let Some(e) = v.child_by_field_name("expression") {
+                    self.value_ref_in(e, depth + 1);
+                }
+            }
+            "value_path" => {
+                let name = self.text(v).to_string();
+                self.push_value(name, v);
+            }
+            _ => {}
+        }
+    }
+
+    /// Record `name` (as written at `at`) as a function value.
+    fn push_value(&mut self, name: String, at: Node) {
+        // A parenthesized operator (`( + )`) is no function of the tree.
+        if name.is_empty() || name.contains(['(', ' ']) {
+            return;
+        }
+        // `let f = f` without `rec` names the outer `f`, as a call does
+        // (`record_call`).
+        let not_def = self
+            .lets
+            .iter()
+            .rev()
+            .find(|(n, _, _)| *n == name)
+            .filter(|(_, _, rec)| !rec)
+            .map(|(_, b, _)| *b);
+        self.facts.references.push(RefRecord {
+            name,
+            receiver_hint: String::new(),
+            site_line: (at.start_position().row as u32) + 1,
+            site_byte: at.start_byte() as u32,
+            not_def,
+            value_ref: true,
+            ..Default::default()
+        });
     }
 }
 
@@ -356,5 +496,65 @@ mod tests {
             .collect();
         assert!(second.is_some(), "{:?}", f.definitions);
         assert_eq!(calls, vec![("helper", second), ("loop", None)], "{calls:?}");
+    }
+
+    fn extract_with_refs(src: &str, refs: bool) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_ocaml::LANGUAGE_OCAML.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        OcamlPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(refs),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.ml"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    /// WS26b: a function used as a value is a reference site only when the
+    /// run asks for them; an application's head is a call, never a value.
+    #[test]
+    fn function_values_are_reference_sites() {
+        let src = "let h = List.map g1 [1]\nlet k = [1] |> List.map g2 |> g3\nlet c = g4 @@ 1\nlet r = { handler = g5; other = M.g6; M.g14; g15 }\nlet l = [g7; g8]\nlet a = [| g9 |]\nlet t = (g10, 1)\nlet v = g11\nlet ret () = g12\nlet lab = run ~f:g13\nlet ap = head 1\n";
+        let f = extract_with_refs(src, true);
+        let got: Vec<(String, String)> = f
+            .references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
+            .collect();
+        for (recv, name) in [
+            ("", "g1"),
+            ("", "g2"),
+            ("", "g3"),
+            ("", "g4"),
+            ("", "g5"),
+            ("", "M.g6"),
+            ("", "g7"),
+            ("", "g8"),
+            ("", "g9"),
+            ("", "g10"),
+            ("", "g11"),
+            ("", "g12"),
+            ("", "g13"),
+            ("", "g14"),
+            ("", "g15"),
+        ] {
+            assert!(
+                got.contains(&(recv.to_string(), name.to_string())),
+                "missing {recv}.{name} in {got:?}"
+            );
+        }
+        let names: Vec<&str> = got.iter().map(|(_, n)| n.as_str()).collect();
+        for n in ["head", "run", "List.map", "Some"] {
+            assert!(!names.contains(&n), "{n} recorded: {got:?}");
+        }
+        assert!(
+            !extract_with_refs(src, false)
+                .references
+                .iter()
+                .any(|r| r.value_ref)
+        );
     }
 }
