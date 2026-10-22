@@ -787,6 +787,25 @@ otherwise change the default graph.
   parameter is in scope there only under `~`. A qualified call (`ns/f`)
   is never shadowed.
 
+- **Nix parameters and `let` bindings did not shadow function names, and
+  same-named local functions of one file were ambiguous (WS27, gap
+  27).** A call through a Nix lambda parameter (`f: … f x`), a formal
+  (`{ renderAttrs, ... }: renderAttrs …`) or a `let` value bound a
+  same-named function of the tree, and an `inherit (lib) optionalString;`
+  local bound another module's own `optionalString`. Nix now has a
+  locals table: a lambda's parameter, formals and `@` name over the whole
+  lambda (body and defaults; a file whose top level is a lambda binds
+  `pkgs`, `lib` … over the file); a `let`'s bindings, `inherit x;` and
+  `inherit (s) x;` included, over the whole `let` (recursive); and a `rec
+  { … }` set's attributes over the set. `inherit (import ./f.nix …) x;`
+  is another name for that file's `x` and keeps its edge; plain attrset
+  keys, top-level bindings and `with e;` (dynamic) bind nothing, and a
+  selected call (`lib.f x`, `pkgs.foo`) is never shadowed. Nix also
+  joins lexical narrowing: a function defined in a `let` inside another
+  is visible by name only there, so two functions each with their own
+  `let hasSpace = …` (or `su`, `indentAll`) bind their own instead of
+  being refused as `ambiguous-in-file`.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -1440,6 +1459,27 @@ WS27 Clojure (full corpus, 283 repositories, none excluded):
   `let` init reading the outer name (`(let [subject ((get opts :subject
   subject) …)])`), a schema var after `:-` in a parameter vector, and
   names in code a syntax-quote generates.
+- Under `--dead-code`, no finding changes.
+
+WS27 Nix (full corpus, 283 repositories, none excluded):
+
+- The default graph changes in two repositories, all in Nix files: 20
+  edges removed (2 `high`), 12 added (all `high`), and 4 move `medium`
+  → `high`. The removed are calls through a parameter or formal (`f`
+  3, `renderAttrs`/`renderList` 2), a local from `inherit (lib) …`
+  bound to another module's `optionalString` (10), a `let` value bound
+  to another file's function (1), and the wrong one of two same-named
+  `let` functions (4, home-manager's mbsync module). The 12 added and 4
+  raised bind a `let` function in the caller's own enclosing function,
+  until now refused as `ambiguous-in-file` or bound to both twins:
+  home-manager's `generators.nix` (`indentAll`, `literalValueToString`,
+  `mkSection`) and mbsync module, and Ghostty's `nix/tests.nix` (`su` in
+  each test script).
+- Whether a `rec { … }` set's attributes are recorded changes nothing in
+  the corpus; they are recorded. A first cut also removed a correct
+  `high` edge through `inherit (import ../lib.nix { … }) x;`, now kept.
+- Under `--reference-edges`, the same edges change; Nix records no
+  reference edges.
 - Under `--dead-code`, no finding changes.
 
 ## [0.11.0] - 2026-10-16

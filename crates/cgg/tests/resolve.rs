@@ -7318,3 +7318,126 @@ fn clojure_parameters_and_locals_shadow_functions() {
         );
     }
 }
+
+/// WS27: a Nix lambda parameter, formal and `let` binding shadow a
+/// same-named function of the file: a call through one is
+/// `shadowed-by-local`, never a (wrong, `high`) edge. A `let` function and
+/// a `rec` attribute keep their edges, a qualified select is never
+/// shadowed, an `inherit` from an import still reaches that file, and two
+/// functions' same-named `let` functions each bind their own.
+#[test]
+fn nix_parameters_and_let_bindings_shadow_functions() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "lib.nix",
+        r#"# A function default.nix inherits through an import.
+{ }:
+{
+  mkPath = x: x;
+}
+"#
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "default.nix",
+        r#"{ pkgs, cb ? null, ... }@args:
+let
+  # A `let` function: calls bind it.
+  helper = x: x + 1;
+in
+rec {
+  # Functions whose names the bindings below reuse.
+  step = x: x;
+  handler = x: x;
+  item = x: x;
+  fmt = x: x;
+
+  # A `let` function and a `rec` attribute keep their edges.
+  useHelper = y: helper y;
+  useFmt = y: fmt y;
+  # A lambda parameter, a formal set, a `let` inside, the file's formal.
+  withParam = step: step 2;
+  withFormals = { handler, ... }: handler 3;
+  withLet = y: let item = y; in item 4;
+  withFileFormal = y: cb y;
+  # `with` never shadows a lexical name, nor names one.
+  dynamic = y: with pkgs; mkThing y;
+  # A qualified select is never shadowed by a local of its last name.
+  selected = step: pkgs.step step;
+  # An `inherit` from an import names that file's function.
+  withImport = y: let inherit (import ./lib.nix { }) mkPath; in mkPath y;
+  # Two functions' own `let` functions of one name: each binds its own.
+  twinA = y: let pick = v: v; in pick y;
+  twinB = y: let pick = v: v + 1; in pick y;
+}
+"#
+        .as_bytes(),
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let field =
+        |id: &serde_json::Value, f: &str| g["callables"][id.as_str().unwrap()][f].clone();
+    let edges: Vec<(String, u64, u64)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                field(&e["src"], "qualified_name")
+                    .as_str()
+                    .unwrap()
+                    .to_string(),
+                field(&e["dst"], "start_line").as_u64().unwrap(),
+                e["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    let shadowed: Vec<(String, u64)> = g["unresolved"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|u| u["reason"]["stage"] == "shadowed-by-local")
+        .map(|u| {
+            (
+                u["name"].as_str().unwrap().to_string(),
+                u["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    for (name, site) in [("step", 17), ("handler", 18), ("item", 19)] {
+        assert!(
+            !edges.iter().any(|(_, _, l)| *l == site),
+            "{name} line {site}: {edges:?}"
+        );
+        assert!(
+            shadowed.contains(&(name.to_string(), site)),
+            "{name} line {site}: {shadowed:?}"
+        );
+    }
+    // `let` and `rec` functions, a qualified select, an `inherit` from an
+    // import (lib.nix's `mkPath`, line 4), and each twin `pick` its own.
+    for (src, def, site) in [
+        ("useHelper", 4, 14),
+        ("useFmt", 11, 15),
+        ("selected", 8, 24),
+        ("withImport", 4, 26),
+        ("twinA", 28, 28),
+        ("twinB", 29, 29),
+    ] {
+        assert!(
+            edges
+                .iter()
+                .any(|(s, d, l)| s == src && *d == def && *l == site),
+            "{src} line {site}: {edges:?}"
+        );
+    }
+}

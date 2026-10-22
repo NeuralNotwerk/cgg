@@ -533,6 +533,9 @@ pub fn collect(lang: &str, tree: &Tree, source: &[u8]) -> Vec<LocalBinding> {
     if lang == "haskell" {
         return collect_haskell(tree, source);
     }
+    if lang == "nix" {
+        return collect_nix(tree, source);
+    }
     if lang == "clojure" {
         // One record of Clojure's bindings, shared with the plugin's WS26
         // value filter.
@@ -2713,6 +2716,141 @@ fn haskell_pattern_vars(p: Node<'_>) -> Vec<Node<'_>> {
     out
 }
 
+/// Whether a Nix `rec { … }` attrset's attributes are recorded as
+/// bindings in scope inside the set.
+const NIX_REC_LOCALS: bool = true;
+
+/// Nix (WS27): a lambda's parameter (`x: body`), its formals (`{ a, b ?
+/// d, ... }`) and `@` name (`args@{ … }`, `{ … }@args`), over the whole
+/// lambda: the body and the formals' defaults, which see each other (a
+/// file whose top level is a lambda binds `pkgs`, `lib` … over the file);
+/// a `let … in e`'s bindings over the whole `let` (recursive), `inherit
+/// x;` and `inherit (s) x;` included (not `inherit (import ./f.nix …) x;`,
+/// another name for that file's `x`); a `rec { … }` set's attributes over
+/// the set (`NIX_REC_LOCALS`). A binding `a.b = …` binds `a`. Never a
+/// plain attrset's keys, a top-level binding, or a `with e;` scope, which
+/// is dynamic and never shadows a lexical name.
+fn collect_nix(tree: &Tree, src: &[u8]) -> Vec<LocalBinding> {
+    let mut out: Vec<LocalBinding> = Vec::new();
+    let mut push = |name: Node<'_>, scope: Node<'_>, param: bool| {
+        let t = name.utf8_text(src).unwrap_or("");
+        if t.is_empty() {
+            return;
+        }
+        out.push(LocalBinding {
+            name: t.to_string(),
+            start_byte: scope.start_byte() as u32,
+            end_byte: scope.end_byte() as u32,
+            decl_byte: scope.start_byte() as u32,
+            param,
+        });
+    };
+    let mut cursor = tree.walk();
+    loop {
+        let node = cursor.node();
+        match node.kind() {
+            "function_expression" => {
+                if let Some(u) = node.child_by_field_name("universal") {
+                    push(u, node, true);
+                }
+                if let Some(formals) = node.child_by_field_name("formals") {
+                    let mut c = formals.walk();
+                    for f in formals.children_by_field_name("formal", &mut c) {
+                        if let Some(n) = f.child_by_field_name("name") {
+                            push(n, node, true);
+                        }
+                    }
+                }
+            }
+            "let_expression" => {
+                let mut c = node.walk();
+                for set in node
+                    .named_children(&mut c)
+                    .filter(|n| n.kind() == "binding_set")
+                {
+                    for n in nix_bound_names(set, src) {
+                        push(n, node, false);
+                    }
+                }
+            }
+            "rec_attrset_expression" if NIX_REC_LOCALS => {
+                let mut c = node.walk();
+                for set in node
+                    .named_children(&mut c)
+                    .filter(|n| n.kind() == "binding_set")
+                {
+                    for n in nix_bound_names(set, src) {
+                        push(n, node, false);
+                    }
+                }
+            }
+            _ => {}
+        }
+        if !haskell_advance(&mut cursor) {
+            break;
+        }
+    }
+    out.sort_by_key(|b| (b.start_byte, b.end_byte));
+    out.dedup();
+    out
+}
+
+/// Whether an `inherit (e) …` takes its names from an `import` (`(import
+/// ./lib.nix { inherit config; })`, through parentheses and curried
+/// arguments).
+fn nix_inherits_from_import(b: Node<'_>, src: &[u8]) -> bool {
+    let mut e = b.child_by_field_name("expression");
+    while let Some(n) = e {
+        match n.kind() {
+            "parenthesized_expression" => e = n.named_child(0),
+            "apply_expression" => e = n.child_by_field_name("function"),
+            "variable_expression" => {
+                return n.utf8_text(src).ok()
+                    == Some(cgg_core::stdlib::NIX_IMPORT_BUILTIN);
+            }
+            _ => return false,
+        }
+    }
+    false
+}
+
+/// The names a Nix `binding_set` binds: each binding's first attribute
+/// (`a.b = …` binds `a`; a quoted or interpolated one names nothing) and
+/// each inherited attribute.
+fn nix_bound_names<'n>(set: Node<'n>, src: &[u8]) -> Vec<Node<'n>> {
+    let mut out = Vec::new();
+    let mut c = set.walk();
+    for b in set.children_by_field_name("binding", &mut c) {
+        match b.kind() {
+            "binding" => {
+                if let Some(first) = b
+                    .child_by_field_name("attrpath")
+                    .and_then(|p| p.child_by_field_name("attr"))
+                    .filter(|a| a.kind() == "identifier")
+                {
+                    out.push(first);
+                }
+            }
+            // `inherit (import ./f.nix { … }) x;` names `f.nix`'s `x`: a
+            // member alias, which the by-name reading finds; it shadows
+            // nothing. `inherit (lib) x;` holds a value cgg cannot see.
+            "inherit_from" if nix_inherits_from_import(b, src) => {}
+            "inherit" | "inherit_from" => {
+                if let Some(attrs) = b.child_by_field_name("attrs") {
+                    let mut ac = attrs.walk();
+                    out.extend(
+                        attrs
+                            .children_by_field_name("attr", &mut ac)
+                            .filter(|a| a.kind() == "identifier"),
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
 /// Lua `local` declarations at file scope (WS19): in scope from the end of
 /// the statement to the end of the file. `local log = ngx.log` is a value
 /// the file holds, so a bare `log(…)` is never some required module's
@@ -4299,5 +4437,55 @@ mod tests {
         assert!(!at("u", "(u 6)"), "another arity");
         assert!(!at("mp", "(mp 7)"), "generated code");
         assert!(at("mp", "mp 8)"), "under an unquote");
+    }
+
+    fn nix_locals(src: &str) -> Vec<LocalBinding> {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_nix::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        collect("nix", &tree, src.as_bytes())
+    }
+
+    /// Nix (WS27): lambda parameters, formals and `@` names (a top-level
+    /// lambda's too), `let` bindings with `inherit`, and `rec`
+    /// attributes; never a plain attrset's keys, a `with` scope or a
+    /// select's attribute.
+    #[test]
+    fn nix_binding_forms_and_scopes() {
+        let src = "{ pkgs, lib ? pkgs.lib, ... }@args:\n\
+                   let\n  f = x: x;\n  inherit (lib) mkIf;\n  a.b = 1;\n\
+                   in rec {\n  r = f 1;\n  s = { c, d ? c, ... }: d;\n  \
+                   t = with lib; mkOption {};\n  plain = { key = 1; };\n}\n\
+                   ";
+        let got = nix_locals(src);
+        let names: Vec<&str> = got.iter().map(|b| b.name.as_str()).collect();
+        for want in [
+            "pkgs", "lib", "args", "f", "mkIf", "a", "x", "r", "s", "t", "c", "d",
+        ] {
+            assert!(names.contains(&want), "{want} in {names:?}");
+        }
+        for not in ["key", "mkOption", "b"] {
+            assert!(!names.contains(&not), "{not} in {names:?}");
+        }
+        let at = |name: &str, needle: &str| {
+            let site = src.find(needle).expect(needle) as u32;
+            got.iter()
+                .any(|b| b.name == name && b.start_byte <= site && site < b.end_byte)
+        };
+        assert!(
+            at("pkgs", "pkgs.lib"),
+            "a formal's default sees the formals"
+        );
+        assert!(at("c", "c, ..."), "formals see each other");
+        assert!(at("f", "f 1"), "`let` is recursive into its body");
+        assert!(!at("x", "f 1"), "a parameter only in its lambda");
+        let param = |n: &str| got.iter().find(|b| b.name == n).unwrap().param;
+        assert!(param("pkgs") && param("args") && param("x"));
+        assert!(!param("f") && !param("r"));
+        // `inherit (import ./f.nix …) x;` is another name for f.nix's `x`.
+        let imp =
+            nix_locals("let inherit (import ./f.nix { }) a; inherit (lib) b; in a b\n");
+        let imp: Vec<&str> = imp.iter().map(|b| b.name.as_str()).collect();
+        assert_eq!(imp, vec!["b"]);
     }
 }

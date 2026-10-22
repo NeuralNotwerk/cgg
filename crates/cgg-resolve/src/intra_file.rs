@@ -136,6 +136,7 @@ fn lexically_scoped(language: &str) -> bool {
             | "dart"
             | "haskell"
             | "julia"
+            | "nix"
     )
 }
 

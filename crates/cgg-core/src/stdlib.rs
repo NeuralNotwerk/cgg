@@ -381,6 +381,11 @@ pub const ERLANG_MFA_CALLS: &[(&str, usize, usize)] = &[
     ("erpc:cast", 4, 1),
 ];
 
+/// The Nix builtin that loads another file (`import ./lib.nix { … }`):
+/// `inherit (import ./f.nix …) x;` is another name for that file's `x`
+/// (WS27).
+pub const NIX_IMPORT_BUILTIN: &str = "import";
+
 /// R functions that bind a variable named by a string literal in the
 /// calling function's environment (`assign("x", value)`), and the
 /// arguments that send the binding elsewhere instead (WS27): with one of
