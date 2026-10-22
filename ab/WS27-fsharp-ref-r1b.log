@@ -1,0 +1,6 @@
+repos 283 excluded []
+added 2
+  ('fsharp', '{"kind": "direct"}', 'medium') 2
+dropped 494
+  ('fsharp', '{"kind": "direct"}', 'high') 17
+  ('fsharp', '{"kind": "direct"}', 'medium') 477

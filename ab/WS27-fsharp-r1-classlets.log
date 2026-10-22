@@ -1,0 +1,14 @@
+old: cgg 0.11.0 (dev gda420f5)  sha256=055ad4672a3c4482ecb851641b9dc6db51e08b40f8af51d4873c554ed86ce56d
+new: cgg 0.11.0 (dev gda420f5+df2d99b4)  sha256=602da87c3261b683dcc844191c3d13e21b4c3d6ed94dcc80a7fbce006d6ff771
+old=target/remediation/bins/WS27-fsharp-before
+new=target/remediation/bins/WS27-fsharp-r1-classlets
+repos=283 elapsed=241s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 5
+  app-avalonia-samples: edges 4132->4131 (-1 +0 ~0) callables 2374->2374 unresolved 1774->1775 files 309->309 deadhigh 0->0 
+  app-cardmgmt-giraffe: edges 102->99 (-3 +0 ~0) callables 188->188 unresolved 92->95 files 26->26 deadhigh 0->0 
+  app-fsautocomplete-expecto: edges 3798->3530 (-268 +0 ~0) callables 2569->2569 unresolved 2931->3192 files 378->378 deadhigh 0->0 
+  app-swate-saturn: edges 11773->11441 (-334 +2 ~0) callables 5116->5116 unresolved 6987->7276 files 649->649 deadhigh 0->0 
+  fsharp-paket: edges 8844->8770 (-74 +0 ~0) callables 3920->3920 unresolved 5175->5245 files 494->494 deadhigh 0->0 
+by language: see by_language.tsv
+
