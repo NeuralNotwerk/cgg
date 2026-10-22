@@ -1,0 +1,10 @@
+old: cgg 0.11.0 (dev gc160bb7)  sha256=b630b196bc48bd536e1782e4cd67165ee0fca4b1ba24810c7dd3da1b388960de
+new: cgg 0.11.0 (dev gc160bb7+d046fa5b)  sha256=25d70b262b2a4e107af53158bc5584eca6da10650bcdec47fa32f3be560d2219
+old=target/remediation/bins/WS27-solidity-before
+new=target/remediation/bins/WS27-solidity-r1
+repos=283 elapsed=491s
+excluded (timeout/error, NOT diffed): 1
+  zig-zig: graph rc old=124 new=124
+repos changed: 1
+  solidity-openzeppelin: edges 18688->18686 (-2 +0 ~0) callables 8858->8858 unresolved 6127->6129 files 707->707 deadhigh 0->0 
+by language: see by_language.tsv
