@@ -533,6 +533,9 @@ pub fn collect(lang: &str, tree: &Tree, source: &[u8]) -> Vec<LocalBinding> {
     if lang == "haskell" {
         return collect_haskell(tree, source);
     }
+    if lang == "fsharp" {
+        return collect_fsharp(tree, source);
+    }
     if lang == "solidity" {
         return collect_solidity(tree, source);
     }
@@ -3197,6 +3200,356 @@ fn collect_solidity(tree: &Tree, src: &[u8]) -> Vec<LocalBinding> {
     }
 }
 
+/// Whether an F# class's own `let` bindings (`type T() = let priv x =
+/// …`) are recorded as bindings over the type.
+const FSHARP_CLASS_LETS: bool = false;
+
+/// F# (WS27): the parameters of a `let` function and of a member (curried
+/// and tupled, typed, `?opt`, patterns) and a member's self identifier
+/// (`member this.M`), over the definition; `fun` patterns over the
+/// lambda; `match`/`function`/`try … with` rule patterns over their rule,
+/// guard included; inside a function or expression, a `let` (`let!`,
+/// `use`, `use!` too) binds its name or pattern from the end of the
+/// binding to the end of its `in` body, a `let rec` from its own start;
+/// `for x in …` and `for i = … to …` over the loop. Module-level `let`s
+/// are the module's, and a class's own `let`s its private members
+/// (`FSHARP_CLASS_LETS`). In a pattern, a capitalized head is a union
+/// case or active pattern, not a variable; field names, types and
+/// constants bind nothing.
+fn collect_fsharp(tree: &Tree, src: &[u8]) -> Vec<LocalBinding> {
+    let mut out: Vec<LocalBinding> = Vec::new();
+    let mut chain: Vec<Node<'_>> = Vec::new();
+    let mut cursor = tree.walk();
+    loop {
+        let node = cursor.node();
+        match node.kind() {
+            "function_or_value_defn" => fsharp_defn(node, &chain, src, &mut out),
+            "method_or_prop_defn" => {
+                let member = chain.last().copied().unwrap_or(node);
+                if let Some(this) = node
+                    .child_by_field_name("name")
+                    .and_then(|n| n.child_by_field_name("instance"))
+                {
+                    starlark_push(
+                        &mut out,
+                        this,
+                        src,
+                        node.start_byte(),
+                        member.end_byte(),
+                        member.start_byte(),
+                        true,
+                    );
+                }
+                let mut c = node.walk();
+                for a in node.children_by_field_name("args", &mut c) {
+                    for v in fsharp_pattern_vars(a, src) {
+                        starlark_push(
+                            &mut out,
+                            v,
+                            src,
+                            a.end_byte(),
+                            member.end_byte(),
+                            member.start_byte(),
+                            true,
+                        );
+                    }
+                }
+            }
+            "fun_expression" => {
+                let mut c = node.walk();
+                if let Some(ps) = node
+                    .named_children(&mut c)
+                    .find(|k| k.kind() == "argument_patterns")
+                {
+                    for v in fsharp_pattern_vars(ps, src) {
+                        starlark_push(
+                            &mut out,
+                            v,
+                            src,
+                            ps.end_byte(),
+                            node.end_byte(),
+                            node.start_byte(),
+                            true,
+                        );
+                    }
+                }
+            }
+            "rule" => {
+                if let Some(pat) = node.child_by_field_name("pattern") {
+                    for v in fsharp_pattern_vars(pat, src) {
+                        starlark_push(
+                            &mut out,
+                            v,
+                            src,
+                            pat.end_byte(),
+                            node.end_byte(),
+                            node.start_byte(),
+                            true,
+                        );
+                    }
+                }
+            }
+            "for_expression" => {
+                let mut c = node.walk();
+                if let Some(target) = node.named_children(&mut c).next().filter(|k| {
+                    matches!(
+                        k.kind(),
+                        "identifier_pattern"
+                            | "identifier"
+                            | "paren_pattern"
+                            | "repeat_pattern"
+                    )
+                }) {
+                    for v in fsharp_pattern_vars(target, src) {
+                        starlark_push(
+                            &mut out,
+                            v,
+                            src,
+                            target.end_byte(),
+                            node.end_byte(),
+                            node.start_byte(),
+                            false,
+                        );
+                    }
+                }
+            }
+            // `use r = open ()` (and `use!`) as a declaration expression.
+            "declaration_expression" => {
+                let mut c = node.walk();
+                let kids: Vec<Node<'_>> = node.children(&mut c).collect();
+                if let Some(u) =
+                    kids.iter().position(|k| matches!(k.kind(), "use" | "use!"))
+                    && let Some(target) = kids.get(u + 1).filter(|k| k.is_named())
+                {
+                    let from = kids
+                        .get(u + 2)
+                        .filter(|k| k.is_named())
+                        .map_or(target.end_byte(), |v| v.end_byte());
+                    for v in fsharp_pattern_vars(*target, src) {
+                        starlark_push(
+                            &mut out,
+                            v,
+                            src,
+                            from,
+                            node.end_byte(),
+                            node.start_byte(),
+                            false,
+                        );
+                    }
+                }
+            }
+            _ => {}
+        }
+        if cursor.goto_first_child() {
+            chain.push(node);
+            continue;
+        }
+        loop {
+            if cursor.goto_next_sibling() {
+                break;
+            }
+            if !cursor.goto_parent() {
+                out.sort_by_key(|b| (b.start_byte, b.end_byte));
+                out.dedup();
+                return out;
+            }
+            chain.pop();
+        }
+    }
+}
+
+/// One `let` (`let!`, `let rec`): its parameters over the definition, and
+/// its name or pattern over its `in` body when it is local.
+fn fsharp_defn(
+    node: Node<'_>,
+    chain: &[Node<'_>],
+    src: &[u8],
+    out: &mut Vec<LocalBinding>,
+) {
+    let mut c = node.walk();
+    let kids: Vec<Node<'_>> = node.children(&mut c).collect();
+    let rec = kids.iter().any(|k| k.kind() == "rec");
+    let Some(left) = kids.iter().copied().find(|k| {
+        matches!(
+            k.kind(),
+            "function_declaration_left" | "value_declaration_left"
+        )
+    }) else {
+        return;
+    };
+    // The name (a function's), its parameter patterns, or the value
+    // pattern a non-function binding binds.
+    let (name, params, values): (Option<Node<'_>>, Vec<Node<'_>>, Vec<Node<'_>>) =
+        if left.kind() == "function_declaration_left" {
+            let mut lc = left.walk();
+            let lk: Vec<Node<'_>> = left.named_children(&mut lc).collect();
+            let name = lk.iter().copied().find(|k| k.kind() == "identifier");
+            let params = lk
+                .iter()
+                .filter(|k| k.kind() == "argument_patterns")
+                .flat_map(|a| fsharp_pattern_vars(*a, src))
+                .collect();
+            (name, params, Vec::new())
+        } else {
+            let Some(pat) = left.named_child(0) else {
+                return;
+            };
+            let mut pc = pat.walk();
+            let pk: Vec<Node<'_>> = pat.named_children(&mut pc).collect();
+            let head = pk
+                .first()
+                .copied()
+                .filter(|h| h.kind() == "long_identifier_or_op");
+            if pat.kind() == "identifier_pattern" && pk.len() > 1 && head.is_some() {
+                // `let f a (b, c) = …`: a function.
+                let name = head.and_then(|h| fsharp_simple_ident(h));
+                let params = pk[1..]
+                    .iter()
+                    .flat_map(|a| fsharp_pattern_vars(*a, src))
+                    .collect();
+                (name, params, Vec::new())
+            } else {
+                (None, Vec::new(), fsharp_pattern_vars(pat, src))
+            }
+        };
+    for p in params {
+        starlark_push(
+            out,
+            p,
+            src,
+            left.end_byte(),
+            node.end_byte(),
+            node.start_byte(),
+            true,
+        );
+    }
+    // Where the binding is: inside a function or expression (a local), in
+    // a class body, or at module level (neither).
+    let parent = chain.last().copied();
+    let class_level = parent.is_some_and(|p| p.kind() == "type_extension_elements");
+    let local = chain.iter().any(|a| {
+        matches!(
+            a.kind(),
+            "function_or_value_defn"
+                | "method_or_prop_defn"
+                | "fun_expression"
+                | "ce_expression"
+        )
+    });
+    let mut names: Vec<Node<'_>> = values;
+    names.extend(name);
+    if local && !class_level {
+        let Some(decl) = parent.filter(|p| p.kind() == "declaration_expression") else {
+            return;
+        };
+        let from = if rec {
+            node.start_byte()
+        } else {
+            node.end_byte()
+        };
+        for n in names {
+            starlark_push(out, n, src, from, decl.end_byte(), node.start_byte(), false);
+        }
+    } else if class_level && FSHARP_CLASS_LETS {
+        if let Some(ty) = chain.iter().rev().find(|a| a.kind() == "anon_type_defn") {
+            for n in names {
+                starlark_push(
+                    out,
+                    n,
+                    src,
+                    ty.start_byte(),
+                    ty.end_byte(),
+                    node.start_byte(),
+                    false,
+                );
+            }
+        }
+    }
+}
+
+/// The single identifier of a `long_identifier_or_op` / `long_identifier`
+/// (`f`; not `A.f`), when it names a variable (lowercase or `_` first).
+fn fsharp_simple_ident(n: Node<'_>) -> Option<Node<'_>> {
+    let inner = if n.kind() == "long_identifier_or_op" {
+        n.named_child(0)?
+    } else {
+        n
+    };
+    let ident = match inner.kind() {
+        "identifier" => inner,
+        "long_identifier" if inner.named_child_count() == 1 => inner.named_child(0)?,
+        _ => return None,
+    };
+    (ident.kind() == "identifier").then_some(ident)
+}
+
+/// The variables an F# pattern binds. A pattern headed by a capitalized
+/// name (`Some v`, `Error e`, `None`) is a union case or active pattern:
+/// only its arguments bind. Types, constants and field names bind nothing.
+fn fsharp_pattern_vars<'n>(p: Node<'n>, src: &[u8]) -> Vec<Node<'n>> {
+    let lower = |n: Node<'_>| {
+        n.utf8_text(src)
+            .ok()
+            .and_then(|t| t.chars().next())
+            .is_some_and(|c| c.is_lowercase() || c == '_')
+    };
+    let mut out = Vec::new();
+    let mut stack = vec![p];
+    while let Some(n) = stack.pop() {
+        match n.kind() {
+            "identifier" => {
+                if lower(n) {
+                    out.push(n);
+                }
+            }
+            "long_identifier" | "long_identifier_or_op" => {
+                if let Some(i) = fsharp_simple_ident(n).filter(|i| lower(*i)) {
+                    out.push(i);
+                }
+            }
+            "identifier_pattern" => {
+                let mut c = n.walk();
+                let kids: Vec<Node<'_>> = n.named_children(&mut c).collect();
+                let head = kids.first().copied();
+                let head_var = head.and_then(|h| {
+                    if h.kind() == "long_identifier_or_op" {
+                        fsharp_simple_ident(h)
+                    } else {
+                        None
+                    }
+                });
+                match head_var {
+                    // A lowercase head is a variable (and, with arguments,
+                    // a curried parameter list read as one pattern).
+                    Some(h) if lower(h) => {
+                        out.push(h);
+                        stack.extend(kids.into_iter().skip(1));
+                    }
+                    // A union case or active pattern: its arguments.
+                    Some(_) => stack.extend(kids.into_iter().skip(1)),
+                    None => stack.extend(kids),
+                }
+            }
+            // A record pattern's field name is not bound, its value is.
+            "field_pattern" => {
+                if let Some(v) =
+                    n.named_child(n.named_child_count().saturating_sub(1) as u32)
+                    && n.named_child_count() > 1
+                {
+                    stack.push(v);
+                }
+            }
+            k if k.ends_with("type") || k == "const" || k == "wildcard_pattern" => {}
+            _ => {
+                let mut c = n.walk();
+                stack.extend(n.named_children(&mut c));
+            }
+        }
+    }
+    out.sort_by_key(|n| n.start_byte());
+    out
+}
+
 /// Lua `local` declarations at file scope (WS19): in scope from the end of
 /// the statement to the end of the file. `local log = ngx.log` is a value
 /// the file holds, so a bare `log(…)` is never some required module's
@@ -4936,5 +5289,59 @@ mod tests {
         assert!(!at("inner", "inner2()"), "after its block");
         assert!(at("cb", "cb(i)"));
         assert!(at("cp", "cp) {}"), "a base argument sees the parameter");
+    }
+
+    fn fsharp_locals(src: &str) -> Vec<LocalBinding> {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_fsharp::LANGUAGE_FSHARP.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        collect("fsharp", &tree, src.as_bytes())
+    }
+
+    /// F# (WS27): parameters (typed, tupled, `?opt`), `let`/`let rec`/
+    /// `let!`/`use` locals, `fun`, `match` and `try … with` patterns, `for`
+    /// targets and a member's self and parameters; never a module-level or
+    /// class `let`, a union case or a type.
+    #[test]
+    fn fsharp_binding_forms_and_scopes() {
+        let src = "module P\n\
+                   let top = 1\n\
+                   let f (a: int) b (c, d) ?opt =\n\
+                   \x20   let x = x0 a\n\
+                   \x20   let rec loop n = loop n\n\
+                   \x20   use r = openIt ()\n\
+                   \x20   for i in xs do i ()\n\
+                   \x20   let g = fun p q -> p q\n\
+                   \x20   match b with\n\
+                   \x20   | Some v when v > 0 -> v ()\n\
+                   \x20   | _ -> ()\n\
+                   let h () = async {\n\
+                   \x20   let! res = get ()\n\
+                   \x20   return res ()\n\
+                   }\n\
+                   type T() =\n\
+                   \x20   let priv x = x\n\
+                   \x20   member this.M(y) = priv y\n";
+        let got = fsharp_locals(src);
+        let names: Vec<&str> = got.iter().map(|b| b.name.as_str()).collect();
+        for want in [
+            "a", "b", "c", "d", "opt", "x", "loop", "n", "r", "i", "g", "p", "q", "v",
+            "res", "this", "y",
+        ] {
+            assert!(names.contains(&want), "{want} in {names:?}");
+        }
+        for not in ["top", "f", "h", "priv", "Some", "int", "T", "M"] {
+            assert!(!names.contains(&not), "{not} in {names:?}");
+        }
+        let at = |name: &str, needle: &str| {
+            let site = src.find(needle).expect(needle) as u32;
+            got.iter()
+                .any(|b| b.name == name && b.start_byte <= site && site < b.end_byte)
+        };
+        assert!(!at("x", "x0 a"), "a non-rec value's own right-hand side");
+        assert!(at("loop", "loop n\n"), "a `let rec` covers itself");
+        assert!(at("v", "v > 0"), "a `when` guard");
+        assert!(at("res", "res ()"));
     }
 }

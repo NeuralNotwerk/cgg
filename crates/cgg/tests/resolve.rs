@@ -7666,3 +7666,122 @@ contract Vault {
         );
     }
 }
+
+/// WS27: an F# parameter, lambda pattern, `match` and `try … with` rule
+/// pattern and local `let` shadow a same-named function of the module: a
+/// call through one is `shadowed-by-local`, never a (wrong, `high`) edge.
+/// A nested function and the module's same-named one each keep their
+/// edge, and a value's own initializer sees the module's function.
+#[test]
+fn fsharp_parameters_and_locals_shadow_functions() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "Lib.fs",
+        r#"module Lib
+
+// Functions whose names the bindings below reuse.
+let cb x = x
+let handler x = x
+let item x = x
+let step x = x
+let err x = x
+let now () = 0
+
+// A parameter, a lambda, a match rule, a local, a `for` target, `try`.
+let withParam cb = cb 1
+let withLambda xs = List.map (fun handler -> handler 2) xs
+let withMatch o =
+    match o with
+    | Some item -> item 3
+    | None -> 0
+let withLocal () =
+    let step = now
+    step ()
+let withTry () =
+    try now () with err -> err ()
+
+// A nested function keeps its edge; positional shadowing still picks it.
+let withNested x =
+    let helper y = y + 1
+    helper x
+let helper y = y
+let useHelper x = helper x
+
+// A qualified call is never shadowed; a value sees the module function.
+let withQualified cb = Lib.cb cb
+let withValue () =
+    let now = now ()
+    now
+"#
+        .as_bytes(),
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let field =
+        |id: &serde_json::Value, f: &str| g["callables"][id.as_str().unwrap()][f].clone();
+    let edges: Vec<(String, u64, u64)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                field(&e["src"], "qualified_name")
+                    .as_str()
+                    .unwrap()
+                    .to_string(),
+                field(&e["dst"], "start_line").as_u64().unwrap(),
+                e["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    let shadowed: Vec<(String, u64)> = g["unresolved"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|u| u["reason"]["stage"] == "shadowed-by-local")
+        .map(|u| {
+            (
+                u["name"].as_str().unwrap().to_string(),
+                u["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    // Each site against the line of the module function it reused.
+    for (name, def, site) in [
+        ("cb", 4, 12),
+        ("handler", 5, 13),
+        ("item", 6, 16),
+        ("step", 7, 20),
+        ("err", 8, 22),
+    ] {
+        assert!(
+            !edges.iter().any(|(_, d, l)| *d == def && *l == site),
+            "{name} line {site}: {edges:?}"
+        );
+        assert!(
+            shadowed.contains(&(name.to_string(), site)),
+            "{name} line {site}: {shadowed:?}"
+        );
+    }
+    for (src, def, site) in [
+        ("withNested", 26, 27),
+        ("useHelper", 28, 29),
+        ("withTry", 9, 22),
+        ("withValue", 9, 34),
+    ] {
+        assert!(
+            edges
+                .iter()
+                .any(|(s, d, l)| s == src && *d == def && *l == site),
+            "{src} line {site}: {edges:?}"
+        );
+    }
+}

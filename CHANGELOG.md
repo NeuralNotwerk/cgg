@@ -839,6 +839,25 @@ otherwise change the default graph.
   is never shadowed. Inline assembly is not read: its calls are not
   recorded.
 
+- **F# parameters and locals did not shadow function names (WS27, gap
+  27).** A call through an F# parameter (a code-fix provider's
+  `getParseResultsForFile`, a React setter `setArcFile`, a callback
+  `rmv`), a `fun` or `match` pattern, or a local holding a function
+  (`let check = check true`, `let interpret = interpretCardProgram (…)`)
+  bound a same-named function of the tree, at `high` where the name was
+  unique. F# now has a locals table: the parameters of a `let` function
+  and of a member (curried and tupled, typed, `?opt`, patterns) and a
+  member's self identifier, over the definition; `fun` patterns over the
+  lambda; `match`/`function`/`try … with` rule patterns over their rule,
+  `when` guard included; inside a function or expression, a `let`
+  (`let!`, `use`, `use!` too) from the end of the binding to the end of
+  its `in` body, a `let rec` from its own start; and `for` loop
+  variables. Module-level `let`s and a class's own `let`s are members,
+  not locals; a capitalized pattern head is a union case or active
+  pattern; a qualified call (`Module.f x`, `x.M()`) is never shadowed. A
+  nested `let` function keeps binding itself, as positional shadowing
+  had it.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -1535,6 +1554,25 @@ WS27 Solidity (full corpus, 283 repositories, none excluded):
   interface declaration.
 - Under `--reference-edges`, the same 2 edges are removed; Solidity
   records no reference edges.
+- Under `--dead-code`, no finding changes.
+
+WS27 F# (full corpus, 283 repositories, none excluded):
+
+- The default graph changes in four repositories, all in F# files: 494
+  edges removed (17 `high`) and 2 added (`medium`): Swate 324 (+2),
+  FsAutoComplete 106, Paket 61, the Giraffe card sample 3. Every removed
+  edge is a call through a parameter, pattern or local bound by name to
+  a same-named function elsewhere (450 through a parameter or pattern,
+  44 through a local). The 2 added are wrong: in Swate,
+  `CreateColumnModal`'s and `UpdateColumnModal`'s `submit ()` call a
+  local `let submit = …`; they bound another component's static
+  `submit` and now bind `EditColumnModal`'s nested `submit`, which the
+  resolver keeps as a closure a local might hold.
+- Recording a class's own `let`s as locals would remove 186 more edges,
+  all correct calls from the class's members to its own `let`
+  functions; they are not recorded.
+- Under `--reference-edges`, the same edges change; F# records no
+  reference edges.
 - Under `--dead-code`, no finding changes.
 
 ## [0.11.0] - 2026-10-16
