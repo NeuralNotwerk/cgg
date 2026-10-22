@@ -7785,3 +7785,143 @@ let withValue () =
         );
     }
 }
+
+/// WS27: in Fortran an array element `a(i)` reads like a call. A local
+/// array (declared in any case: `REAL :: Tbl(3)` then `tbl(i)`), a dummy
+/// procedure and a statement function shadow a same-named function of
+/// another module: a reference through one is `shadowed-by-local`, never
+/// a (wrong, `high`) edge. A real call still binds.
+#[test]
+fn fortran_arrays_dummies_and_statement_functions_shadow_functions() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "lib.f90",
+        r#"! Functions whose names the arrays, dummies and locals in main.f90 reuse.
+module lib
+contains
+  real function weights(i)
+    integer :: i
+    weights = i
+  end function
+  real function cb(x)
+    real :: x
+    cb = x
+  end function
+  real function tbl(i)
+    integer :: i
+    tbl = i
+  end function
+  real function scale(x)
+    real :: x
+    scale = x
+  end function
+  real function helper(x)
+    real :: x
+    helper = x
+  end function
+end module
+"#
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "main.f90",
+        r#"module app
+  use lib
+contains
+  ! An array, a dummy procedure, an array declared in another case.
+  real function use_array(n)
+    integer :: n
+    real :: weights(10)
+    weights = 1.0
+    use_array = weights(n)
+  end function
+  real function use_dummy(cb, x)
+    procedure(cb_iface) :: cb
+    real :: x
+    use_dummy = cb(x)
+  end function
+  real function use_case(i)
+    integer :: i
+    REAL :: Tbl(3)
+    Tbl = 0.0
+    use_case = tbl(i)
+  end function
+  ! A statement function.
+  real function use_stmt(x)
+    real :: x, scale
+    scale(x) = x * 2.0
+    use_stmt = scale(x)
+  end function
+  ! Positive control: a real call to a module function.
+  real function use_call(x)
+    real :: x
+    use_call = helper(x)
+  end function
+end module
+"#
+        .as_bytes(),
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let edges: Vec<(String, String, u64)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                qn(&e["src"]),
+                qn(&e["dst"]),
+                e["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    let shadowed: Vec<(String, u64)> = g["unresolved"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|u| u["reason"]["stage"] == "shadowed-by-local")
+        .map(|u| {
+            (
+                u["name"].as_str().unwrap().to_string(),
+                u["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    for (name, site) in [
+        ("weights", 9),
+        ("cb", 14),
+        ("tbl", 20),
+        ("scale", 25),
+        ("scale", 26),
+    ] {
+        assert!(
+            !edges.iter().any(|(_, _, l)| *l == site),
+            "{name} line {site}: {edges:?}"
+        );
+        assert!(
+            shadowed.contains(&(name.to_string(), site)),
+            "{name} line {site}: {shadowed:?}"
+        );
+    }
+    assert!(
+        edges
+            .iter()
+            .any(|(s, d, l)| s == "app::use_call" && d == "lib::helper" && *l == 31),
+        "{edges:?}"
+    );
+}

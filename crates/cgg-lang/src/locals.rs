@@ -533,6 +533,9 @@ pub fn collect(lang: &str, tree: &Tree, source: &[u8]) -> Vec<LocalBinding> {
     if lang == "haskell" {
         return collect_haskell(tree, source);
     }
+    if lang == "fortran" {
+        return collect_fortran(tree, source);
+    }
     if lang == "fsharp" {
         return collect_fsharp(tree, source);
     }
@@ -3550,6 +3553,228 @@ fn fsharp_pattern_vars<'n>(p: Node<'n>, src: &[u8]) -> Vec<Node<'n>> {
     out
 }
 
+/// Whether a Fortran module's own variables (`real :: tbl(10)` in a
+/// module's specification part) are recorded as bindings over the module
+/// and its `contains`.
+const FORTRAN_MODULE_VARS: bool = false;
+
+/// Fortran (WS27). Names are case-insensitive: each binding is recorded
+/// lowercased, and `cgg_resolve::scope` folds a call's name to match. A
+/// function reference `f(x)` and an array element `a(i)` read the same,
+/// so what a procedure declares decides: over the whole program,
+/// function or subroutine (its `contains` included, through host
+/// association) — its dummy arguments, its result variable (`result(r)`,
+/// or the function's own name when it has none), the variables its
+/// specification part declares (type declarations, `dimension`/
+/// `allocatable`/`pointer`/`target` statements, `common` members,
+/// procedure pointers), and a name assigned through an argument list
+/// (`a(i) = …`, `sf(y) = …`: an array or a statement function, never a
+/// function); a `block`'s declarations over the block, an `associate`
+/// name over the construct, a `do concurrent`/`forall` index over its
+/// loop. A non-pointer `procedure(iface) :: p` or `external :: p` names an
+/// external procedure and is not a local (unless a dummy); interface
+/// bodies, derived-type components and module variables
+/// (`FORTRAN_MODULE_VARS`) are not.
+fn collect_fortran(tree: &Tree, src: &[u8]) -> Vec<LocalBinding> {
+    let mut out: Vec<LocalBinding> = Vec::new();
+    let mut cursor = tree.walk();
+    loop {
+        let node = cursor.node();
+        match node.kind() {
+            "program" | "function" | "subroutine" | "block_construct" => {
+                fortran_unit(node, src, &mut out);
+            }
+            "module" | "submodule" if FORTRAN_MODULE_VARS => {
+                fortran_unit(node, src, &mut out)
+            }
+            "associate_statement" => {
+                let mut c = node.walk();
+                for list in node
+                    .named_children(&mut c)
+                    .filter(|k| k.kind() == "association_list")
+                {
+                    let mut lc = list.walk();
+                    for a in list.named_children(&mut lc) {
+                        if let Some(n) = a.child_by_field_name("name") {
+                            fortran_push(&mut out, n, src, node, false);
+                        }
+                    }
+                }
+            }
+            "concurrent_control" | "triplet_spec" => {
+                let owner = std::iter::successors(node.parent(), |n| n.parent())
+                    .take(4)
+                    .find(|n| {
+                        matches!(n.kind(), "do_loop" | "forall_statement" | "forall")
+                    });
+                if let (Some(i), Some(owner)) = (
+                    node.named_child(0).filter(|k| k.kind() == "identifier"),
+                    owner,
+                ) {
+                    fortran_push(&mut out, i, src, owner, false);
+                }
+            }
+            _ => {}
+        }
+        if !haskell_advance(&mut cursor) {
+            break;
+        }
+    }
+    out.sort_by_key(|b| (b.start_byte, b.end_byte));
+    out.dedup();
+    out
+}
+
+fn fortran_push(
+    out: &mut Vec<LocalBinding>,
+    name: Node<'_>,
+    src: &[u8],
+    scope: Node<'_>,
+    param: bool,
+) {
+    let t = name
+        .utf8_text(src)
+        .unwrap_or("")
+        .trim()
+        .to_ascii_lowercase();
+    if t.is_empty() {
+        return;
+    }
+    out.push(LocalBinding {
+        name: t,
+        start_byte: scope.start_byte() as u32,
+        end_byte: scope.end_byte() as u32,
+        decl_byte: scope.start_byte() as u32,
+        param,
+    });
+}
+
+/// What one scoping unit (or `block`) declares, over the unit.
+fn fortran_unit(unit: Node<'_>, src: &[u8], out: &mut Vec<LocalBinding>) {
+    let mut c = unit.walk();
+    let kids: Vec<Node<'_>> = unit.named_children(&mut c).collect();
+    for k in &kids {
+        match k.kind() {
+            "function_statement" | "subroutine_statement" => {
+                if let Some(ps) = k.child_by_field_name("parameters") {
+                    let mut pc = ps.walk();
+                    for p in ps
+                        .named_children(&mut pc)
+                        .filter(|p| p.kind() == "identifier")
+                    {
+                        fortran_push(out, p, src, unit, true);
+                    }
+                }
+                if k.kind() == "function_statement" {
+                    let mut kc = k.walk();
+                    let result = k
+                        .named_children(&mut kc)
+                        .find(|r| r.kind() == "function_result")
+                        .and_then(|r| {
+                            let mut rc = r.walk();
+                            r.named_children(&mut rc).find(|i| i.kind() == "identifier")
+                        });
+                    match result {
+                        Some(r) => fortran_push(out, r, src, unit, false),
+                        // No `result`: the function's name is its result
+                        // variable inside its body.
+                        None => {
+                            if let Some(n) = k.child_by_field_name("name") {
+                                fortran_push(out, n, src, unit, false);
+                            }
+                        }
+                    }
+                }
+            }
+            "variable_declaration" => {
+                // `procedure(iface) :: p` without `pointer` declares an
+                // external procedure, not a variable.
+                let external_proc = k.child_by_field_name("type").is_some_and(|t| {
+                    t.kind() == "procedure" && {
+                        let mut tc = t.walk();
+                        !t.named_children(&mut tc).any(|a| {
+                            a.kind() == "procedure_attribute"
+                                && a.utf8_text(src)
+                                    .unwrap_or("")
+                                    .eq_ignore_ascii_case("pointer")
+                        })
+                    }
+                });
+                if !external_proc {
+                    let mut dc = k.walk();
+                    for d in k.children_by_field_name("declarator", &mut dc) {
+                        if let Some(n) = fortran_declared_name(d) {
+                            fortran_push(out, n, src, unit, false);
+                        }
+                    }
+                }
+            }
+            // `dimension :: a(10)`, `allocatable :: b`, `pointer :: p`.
+            "variable_modification" => {
+                let mut qc = k.walk();
+                let declares = k.named_children(&mut qc).any(|q| {
+                    q.kind() == "type_qualifier"
+                        && matches!(
+                            q.utf8_text(src)
+                                .unwrap_or("")
+                                .to_ascii_lowercase()
+                                .split('(')
+                                .next(),
+                            Some("dimension" | "allocatable" | "pointer" | "target")
+                        )
+                });
+                if declares {
+                    let mut dc = k.walk();
+                    for d in k.children_by_field_name("declarator", &mut dc) {
+                        if let Some(n) = fortran_declared_name(d) {
+                            fortran_push(out, n, src, unit, false);
+                        }
+                    }
+                }
+            }
+            "common_statement" => {
+                let mut gc = k.walk();
+                for g in k
+                    .named_children(&mut gc)
+                    .filter(|g| g.kind() == "variable_group")
+                {
+                    let mut vc = g.walk();
+                    for v in g.named_children(&mut vc) {
+                        if v.kind() != "name"
+                            && let Some(n) = fortran_declared_name(v)
+                        {
+                            fortran_push(out, n, src, unit, false);
+                        }
+                    }
+                }
+            }
+            // `a(i) = …` / `sf(y) = …`: an array or a statement function.
+            "assignment_statement" => {
+                if let Some(l) = k
+                    .child_by_field_name("left")
+                    .filter(|l| l.kind() == "call_expression")
+                    && let Some(n) = l.named_child(0).filter(|n| n.kind() == "identifier")
+                {
+                    fortran_push(out, n, src, unit, false);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// The name a declarator declares (`a`, `a(10)`, `a = 1`, `p => null()`).
+fn fortran_declared_name(d: Node<'_>) -> Option<Node<'_>> {
+    match d.kind() {
+        "identifier" => Some(d),
+        "sized_declarator" => d.named_child(0).filter(|n| n.kind() == "identifier"),
+        "init_declarator" | "pointer_init_declarator" => {
+            fortran_declared_name(d.child_by_field_name("left")?)
+        }
+        _ => None,
+    }
+}
+
 /// Lua `local` declarations at file scope (WS19): in scope from the end of
 /// the statement to the end of the file. `local log = ngx.log` is a value
 /// the file holds, so a bare `log(…)` is never some required module's
@@ -5343,5 +5568,69 @@ mod tests {
         assert!(at("loop", "loop n\n"), "a `let rec` covers itself");
         assert!(at("v", "v > 0"), "a `when` guard");
         assert!(at("res", "res ()"));
+    }
+
+    fn fortran_locals(src: &str) -> Vec<LocalBinding> {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_fortran::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        collect("fortran", &tree, src.as_bytes())
+    }
+
+    /// Fortran (WS27): dummies, the result variable, every declaration
+    /// form of the specification part (lowercased), assigned-through
+    /// names, `block`, `associate` and `do concurrent`/`forall` names;
+    /// never an external procedure, an interface body's name, a derived
+    /// type's component or a module variable; a declaration covers the
+    /// unit's internal procedures.
+    #[test]
+    fn fortran_binding_forms_and_scopes() {
+        let src = "module m\n\
+                   \x20 real :: modarr(10)\n\
+                   contains\n\
+                   \x20 function f(x, cb) result(r)\n\
+                   \x20   real :: x, r, A(10)\n\
+                   \x20   procedure(iface) :: cb\n\
+                   \x20   procedure(iface) :: extp\n\
+                   \x20   procedure(iface), pointer :: pp => null()\n\
+                   \x20   external :: ext\n\
+                   \x20   integer, dimension(:), allocatable :: b\n\
+                   \x20   dimension :: d(4)\n\
+                   \x20   common /blk/ cm, cn(2)\n\
+                   \x20   type :: t\n\
+                   \x20     real :: comp\n\
+                   \x20   end type\n\
+                   \x20   sf(y) = y * 2\n\
+                   \x20   r = a(1)\n\
+                   \x20 contains\n\
+                   \x20   subroutine inner()\n\
+                   \x20     r = a(2)\n\
+                   \x20   end subroutine\n\
+                   \x20 end function\n\
+                   \x20 function g(k)\n\
+                   \x20   integer :: k\n\
+                   \x20   g = k\n\
+                   \x20 end function\n\
+                   end module\n";
+        let got = fortran_locals(src);
+        let names: Vec<&str> = got.iter().map(|b| b.name.as_str()).collect();
+        for want in [
+            "x", "cb", "r", "a", "pp", "b", "d", "cm", "cn", "sf", "k", "g",
+        ] {
+            assert!(names.contains(&want), "{want} in {names:?}");
+        }
+        for not in [
+            "modarr", "extp", "ext", "comp", "t", "f", "inner", "iface", "A",
+        ] {
+            assert!(!names.contains(&not), "{not} in {names:?}");
+        }
+        let at = |name: &str, needle: &str| {
+            let site = src.find(needle).expect(needle) as u32;
+            got.iter()
+                .any(|b| b.name == name && b.start_byte <= site && site < b.end_byte)
+        };
+        assert!(at("a", "a(2)"), "host association into `contains`");
+        assert!(!at("a", "g = k"), "another function");
     }
 }

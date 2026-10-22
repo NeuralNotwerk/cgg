@@ -41,7 +41,15 @@ pub(crate) struct FileLocals {
     /// the same name — a minified bundle binds one short name thousands
     /// of times, so a lookup climbs this chain instead of scanning.
     spans: HashMap<String, Vec<Span>>,
+    /// The language's names are case-insensitive (Fortran, WS27): the
+    /// plugin records bindings lowercased, and a name is looked up so.
+    fold_case: bool,
 }
+
+/// Languages whose names are case-insensitive: their locals are recorded
+/// lowercased (`cgg_lang::locals`), and a call site's name is folded to
+/// match.
+const CASE_INSENSITIVE_LANGS: &[&str] = &["fortran"];
 
 impl FileLocals {
     pub(crate) fn build(facts: &FileFacts) -> Self {
@@ -100,7 +108,11 @@ impl FileLocals {
             spans.insert(name, out);
         }
         let imported = import_sites.keys().map(|k| (*k).to_string()).collect();
-        FileLocals { spans, imported }
+        FileLocals {
+            spans,
+            imported,
+            fold_case: CASE_INSENSITIVE_LANGS.contains(&facts.language.as_str()),
+        }
     }
 
     /// The innermost binding of `name` in scope at `site`, as its span.
@@ -110,6 +122,13 @@ impl FileLocals {
 
     /// [`Self::binding_at`] with where the binding's declaration starts.
     pub(crate) fn binding_decl_at(&self, name: &str, site: u32) -> Option<Binding> {
+        let folded;
+        let name = if self.fold_case {
+            folded = name.to_ascii_lowercase();
+            folded.as_str()
+        } else {
+            name
+        };
         let v = self.spans.get(name)?;
         let pos = v.partition_point(|(s, _, _, _, _)| *s <= site);
         let mut cur = pos.checked_sub(1);
@@ -224,6 +243,20 @@ mod tests {
 
     /// `Err(cb) => cb!(…)`: a macro is not a value, so a binding of the
     /// same name does not shadow it.
+    /// WS27: Fortran names are case-insensitive. Its locals are recorded
+    /// lowercased, and a call written in any case finds them; another
+    /// language still matches exactly.
+    #[test]
+    fn fortran_names_fold_case() {
+        let mut f = facts();
+        f.language = "fortran".into();
+        let l = FileLocals::build(&f);
+        assert!(l.shadows_bare_call(&call("CB", "", 20)));
+        assert!(l.shadows_bare_call(&call("Cb", "", 20)));
+        let js = FileLocals::build(&facts());
+        assert!(!js.shadows_bare_call(&call("CB", "", 20)));
+    }
+
     #[test]
     fn a_macro_invocation_is_not_shadowed_by_a_value() {
         let l = FileLocals::build(&facts());

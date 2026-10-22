@@ -858,6 +858,28 @@ otherwise change the default graph.
   nested `let` function keeps binding itself, as positional shadowing
   had it.
 
+- **Fortran array elements, dummy procedures and statement functions were
+  read as calls of same-named functions (WS27, gap 27).** A Fortran
+  array element `a(i)` reads like a function reference, so a local array
+  (`logical, allocatable :: finished(:)` then `finished(i) = …`), a
+  character substring (`fullpath(1:n)`), a dummy procedure (`call
+  collect(testsuite)` with `procedure(collect_interface) :: collect`) or
+  a statement function bound a same-named function of the tree, at
+  `high` where the name was unique. Fortran now has a locals table, its
+  names lowercased since Fortran is case-insensitive (the resolver folds
+  a Fortran call's name to match). Over the whole program, function or
+  subroutine, its `contains` included: dummy arguments, the result
+  variable (`result(r)`, else the function's own name), every variable
+  the specification part declares (type declarations, `dimension`/
+  `allocatable`/`pointer`/`target` statements, `common` members,
+  procedure pointers), and a name assigned through an argument list
+  (`a(i) = …`, a statement function `sf(y) = …`); a `block`'s
+  declarations over the block, `associate` names and `do concurrent`/
+  `forall` indices over their construct. A non-pointer `procedure(iface)
+  :: p` or `external :: p` names an external procedure and stays a call;
+  interface bodies, derived-type components and module variables are not
+  locals.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -1572,6 +1594,20 @@ WS27 F# (full corpus, 283 repositories, none excluded):
   all correct calls from the class's members to its own `let`
   functions; they are not recorded.
 - Under `--reference-edges`, the same edges change; F# records no
+  reference edges.
+- Under `--dead-code`, no finding changes.
+
+WS27 Fortran (full corpus, 283 repositories, none excluded):
+
+- The default graph changes in one repository (fpm), all in Fortran
+  files: 11 edges removed (2 `high`), none added. Each was an array
+  element, substring or dummy procedure bound to a same-named function:
+  `finished(i) = …` (a local array) and `fullpath(1:length-1)` (a local
+  string) at `high`, `s(n1:n2)` on a `character(*)` dummy (3), and
+  `call collect(testsuite)` through a dummy procedure (6).
+- Recording a module's own variables as locals for its procedures
+  changes nothing in the corpus; they are not recorded.
+- Under `--reference-edges`, the same edges change; Fortran records no
   reference edges.
 - Under `--dead-code`, no finding changes.
 
