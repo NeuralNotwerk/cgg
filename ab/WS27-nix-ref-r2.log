@@ -1,0 +1,6 @@
+repos 283 excluded []
+added 16
+  ('nix', '{"kind": "direct"}', 'high') 16
+dropped 24
+  ('nix', '{"kind": "direct"}', 'high') 2
+  ('nix', '{"kind": "direct"}', 'medium') 22

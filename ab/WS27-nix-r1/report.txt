@@ -1,0 +1,9 @@
+old: cgg 0.11.0 (dev g51a05c0)  sha256=c5d8d1c655f651e79f1359f9bccb27fd9144653619ec20981be8598b5f0a5616
+new: cgg 0.11.0 (dev g51a05c0+daad79ab)  sha256=df01e69a95558981ef17861ecae0d0cab23dbcca43892817c959e0ee9ec8cb9f
+old=target/remediation/bins/WS27-nix-before
+new=target/remediation/bins/WS27-nix-r1
+repos=283 elapsed=403s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 1
+  nix-home-manager: edges 1037->1012 (-25 +0 ~0) callables 1347->1347 unresolved 1867->1888 files 3445->3445 deadhigh 0->0 
+by language: see by_language.tsv

@@ -1,0 +1,2043 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "rust",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "full",
+      "test_tagging": "full",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "builtin:main",
+        "framework:entry-node",
+        "framework:rule",
+        "framework:test-harness",
+        "lang:export",
+        "rust:returned-response"
+      ],
+      "files": 75,
+      "callables": 256,
+      "roots": 126,
+      "reachable": 227,
+      "reachable_pct": 88,
+      "findings": 14,
+      "blind_spots": [
+        "calls inside macro arguments (format!, writeln!, vec!, assert_eq!)",
+        "symbols named only in attribute string literals (#[serde(deserialize_with = \"…\")]) — serde's are recorded as doubt, never as edges",
+        "functions passed as values inside macro arguments (format!(\"{}\", x.map(f))) — recorded as doubt, never as edges"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 256,
+    "edges": 613,
+    "unresolved_call_sites": 111,
+    "roots": 126,
+    "candidates": 63,
+    "reported": 14,
+    "regions": 22,
+    "withheld": [
+      {
+        "language": "rust",
+        "category": "only-used-by-tests",
+        "reason": "missing-signal",
+        "would_have_reported": 34
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Cteyuzeurgb",
+      "qualified_name": "realworld_application::main",
+      "language": "rust",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Ci12tcjpbxg",
+      "qualified_name": "realworld_db::queries::articles::delete",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `delete`"
+    },
+    {
+      "id": "C1kijnmoyga",
+      "qualified_name": "realworld_db::queries::articles::feed",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `feed`"
+    },
+    {
+      "id": "Cbhekfd9vz4",
+      "qualified_name": "realworld_db::queries::articles::tags",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `tags`"
+    },
+    {
+      "id": "Cm3xqb3ccd7",
+      "qualified_name": "realworld_db::queries::favorites::favorite",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `favorite`"
+    },
+    {
+      "id": "C17w4okkf2dl",
+      "qualified_name": "realworld_db::queries::favorites::unfavorite",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `unfavorite`"
+    },
+    {
+      "id": "Cql9gh6ln8",
+      "qualified_name": "realworld_db::queries::followers::follow",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `follow`"
+    },
+    {
+      "id": "C1nket0e7d3",
+      "qualified_name": "realworld_db::queries::followers::unfollow",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `unfollow`"
+    },
+    {
+      "id": "Ceida7jwg2p",
+      "qualified_name": "realworld_db::repository::<Repository as domain::repositories::Repository>::feed",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `feed`"
+    },
+    {
+      "id": "Ch5qy3aug6k",
+      "qualified_name": "realworld_db::repository::<Repository as domain::repositories::Repository>::delete_article",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `delete_article`"
+    },
+    {
+      "id": "Czpqfo1y7v",
+      "qualified_name": "realworld_db::repository::<Repository as domain::repositories::Repository>::update_article",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `update_article`"
+    },
+    {
+      "id": "C16cd0ym4w63",
+      "qualified_name": "realworld_db::repository::<Repository as domain::repositories::Repository>::favorite",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `favorite`"
+    },
+    {
+      "id": "Ckghytssplw",
+      "qualified_name": "realworld_db::repository::<Repository as domain::repositories::Repository>::unfavorite",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `unfavorite`"
+    },
+    {
+      "id": "Cabrcr89a1m",
+      "qualified_name": "realworld_db::repository::<Repository as domain::repositories::Repository>::update_user",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `update_user`"
+    },
+    {
+      "id": "C87pftylqef",
+      "qualified_name": "realworld_db::repository::<Repository as domain::repositories::Repository>::get_profile",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `get_profile`"
+    },
+    {
+      "id": "Caco3m6opmm",
+      "qualified_name": "realworld_db::repository::<Repository as domain::repositories::Repository>::follow",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `follow`"
+    },
+    {
+      "id": "Cc0wrycwunh",
+      "qualified_name": "realworld_db::repository::<Repository as domain::repositories::Repository>::unfollow",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `unfollow`"
+    },
+    {
+      "id": "C14sl127vc9q",
+      "qualified_name": "realworld_db::shims::<domain::User as From<User>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "C16kjwozf4x5",
+      "qualified_name": "realworld_db::shims::<domain::Profile as From<User>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "C13fg857hk53",
+      "qualified_name": "realworld_db::shims::<NewArticle<'a> as From<(&'a domain::ArticleContent, &'a domain::User)>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cd0k3rszy0l",
+      "qualified_name": "realworld_db::shims::<UpdateArticle<'a> as From<&'a domain::ArticleUpdate>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "C1415clgv30z",
+      "qualified_name": "realworld_db::shims::<UpdateUser<'a> as From<&'a domain::UserUpdate>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "C67itcmmxgl",
+      "qualified_name": "realworld_db::tests::conduit_articles::list_articles",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cfnk92p98bd",
+      "qualified_name": "realworld_db::tests::conduit_articles::delete_article",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "C4mimi14u55",
+      "qualified_name": "realworld_db::tests::conduit_articles::no_tags_if_there_are_no_articles",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "C1309hgyme3g",
+      "qualified_name": "realworld_db::tests::conduit_articles::no_tags_if_there_are_only_articles_without_tags",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cy0yasbefs1",
+      "qualified_name": "realworld_db::tests::conduit_articles::tags_works",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cvombw6fvp",
+      "qualified_name": "realworld_db::tests::conduit_favorites::you_cannot_favorite_an_article_which_does_not_exist",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Ccaygweitse",
+      "qualified_name": "realworld_db::tests::conduit_favorites::you_can_favorite_an_article_twice_but_it_only_counts_for_one",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "C3joylpgtft",
+      "qualified_name": "realworld_db::tests::conduit_favorites::you_can_favorite_an_article_which_you_never_favorited",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cqp544y2vp0",
+      "qualified_name": "realworld_db::tests::conduit_favorites::favorites_works",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cguymchzl4z",
+      "qualified_name": "realworld_db::tests::conduit_users::test_create_user",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "C20xin18gcl",
+      "qualified_name": "realworld_db::tests::conduit_users::test_authenticate_user",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Czfi79b15gn",
+      "qualified_name": "realworld_db::tests::conduit_users::test_update_user",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "C4x5k23xiz",
+      "qualified_name": "realworld_domain::articles::errors::<PublishArticleError as From<GetUserError>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cw8298h3voc",
+      "qualified_name": "realworld_domain::errors::<DatabaseError as From<GetUserError>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "C8xnkj29e7w",
+      "qualified_name": "realworld_domain::errors::<DatabaseError as From<GetArticleError>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Czbopmbyoz2",
+      "qualified_name": "realworld_domain::repositories::Repository::feed",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `feed`"
+    },
+    {
+      "id": "Cmmevpcv2np",
+      "qualified_name": "realworld_domain::repositories::Repository::delete_article",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `delete_article`"
+    },
+    {
+      "id": "Cnjjm0uv58p",
+      "qualified_name": "realworld_domain::repositories::Repository::update_article",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `update_article`"
+    },
+    {
+      "id": "Cu02s3gtc5a",
+      "qualified_name": "realworld_domain::repositories::Repository::favorite",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `favorite`"
+    },
+    {
+      "id": "Cs8vkbrless",
+      "qualified_name": "realworld_domain::repositories::Repository::unfavorite",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `unfavorite`"
+    },
+    {
+      "id": "Cvumj24jcji",
+      "qualified_name": "realworld_domain::repositories::Repository::update_user",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `update_user`"
+    },
+    {
+      "id": "Cb0ey2d3nbw",
+      "qualified_name": "realworld_domain::repositories::Repository::get_profile",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `get_profile`"
+    },
+    {
+      "id": "C97fsi9j59f",
+      "qualified_name": "realworld_domain::repositories::Repository::follow",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `follow`"
+    },
+    {
+      "id": "Ceiviufgqzl",
+      "qualified_name": "realworld_domain::repositories::Repository::unfollow",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `unfollow`"
+    },
+    {
+      "id": "C165297uyst9",
+      "qualified_name": "realworld_domain::users::models::User::update_article",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `update_article`"
+    },
+    {
+      "id": "Cgxvtbylgo5",
+      "qualified_name": "realworld_domain::users::models::User::delete",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `delete`"
+    },
+    {
+      "id": "C17i119fcu8p",
+      "qualified_name": "realworld_domain::users::models::User::favorite",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `favorite`"
+    },
+    {
+      "id": "Co5dujeoe68",
+      "qualified_name": "realworld_domain::users::models::User::unfavorite",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `unfavorite`"
+    },
+    {
+      "id": "C32ckyuf1ub",
+      "qualified_name": "realworld_domain::users::models::User::follow",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `follow`"
+    },
+    {
+      "id": "Coi5iz1vjaj",
+      "qualified_name": "realworld_domain::users::models::User::unfollow",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `unfollow`"
+    },
+    {
+      "id": "Ci34dmpea58",
+      "qualified_name": "realworld_domain::users::models::User::feed",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `feed`"
+    },
+    {
+      "id": "C6qkmnulcaz",
+      "qualified_name": "realworld_domain::tests::domain_articles::slugs_must_be_unique",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cqojvn0nagx",
+      "qualified_name": "realworld_domain::tests::domain_articles::insert_and_retrieve_article",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cx76r1buun7",
+      "qualified_name": "realworld_domain::tests::domain_articles::update_and_retrieve_article",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "C642juw9hkm",
+      "qualified_name": "realworld_web::app::get_app",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `get_app`"
+    },
+    {
+      "id": "C4vnfgiqot7",
+      "qualified_name": "realworld_web::articles::delete::delete_article",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `delete_article`"
+    },
+    {
+      "id": "C82u7zrwc12",
+      "qualified_name": "realworld_web::articles::favorite::favorite",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `favorite`"
+    },
+    {
+      "id": "C3cd6hk729u",
+      "qualified_name": "realworld_web::articles::favorite::unfavorite",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `unfavorite`"
+    },
+    {
+      "id": "C7v47k7ot9",
+      "qualified_name": "realworld_web::articles::feed::<FeedQuery as Default>::default",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cvn588uizl",
+      "qualified_name": "realworld_web::articles::feed::<domain::FeedQuery as From<FeedQuery>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cxd29w7f6e1",
+      "qualified_name": "realworld_web::articles::feed::feed",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `feed`"
+    },
+    {
+      "id": "Cpc16upg23l",
+      "qualified_name": "realworld_web::articles::find::get_article",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `get_article`"
+    },
+    {
+      "id": "C10us180o0l5",
+      "qualified_name": "realworld_web::articles::insert::<domain::ArticleContent as From<NewArticleRequest>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cwtud9ixizh",
+      "qualified_name": "realworld_web::articles::insert::insert_article",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `insert_article`"
+    },
+    {
+      "id": "Cdk3pefpnmf",
+      "qualified_name": "realworld_web::articles::list::<domain::ArticleQuery as From<ArticleQuery>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cgqkhje43uu",
+      "qualified_name": "realworld_web::articles::list::<ArticleQuery as FromStr>::from_str",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "C187ihtt7o0z",
+      "qualified_name": "realworld_web::articles::list::list_articles",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `list_articles`"
+    },
+    {
+      "id": "Cxn31n7ltjm",
+      "qualified_name": "realworld_web::articles::responses::<ArticlesResponse as From<Vec<T>>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cmhxagbjgib",
+      "qualified_name": "realworld_web::articles::responses::<ArticleResponse as From<T>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "C1t60dv7ve5",
+      "qualified_name": "realworld_web::articles::responses::<Article as From<domain::Article>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Ctdjpy7brl9",
+      "qualified_name": "realworld_web::articles::responses::<Article as From<domain::ArticleView>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cecq7bqtv2k",
+      "qualified_name": "realworld_web::articles::responses::<Author as From<domain::Profile>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cw2oa1a3xr4",
+      "qualified_name": "realworld_web::articles::responses::<Author as From<domain::ProfileView>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "C14erzyv7ij1",
+      "qualified_name": "realworld_web::articles::tags::tags",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `tags`"
+    },
+    {
+      "id": "Cqrh0b7bpii",
+      "qualified_name": "realworld_web::articles::update::<ArticleUpdate as From<Request>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "C4waz6z3sux",
+      "qualified_name": "realworld_web::articles::update::update_article",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `update_article`"
+    },
+    {
+      "id": "Co8vhr97peg",
+      "qualified_name": "realworld_web::auth::tests::encode_decode_token",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cgn7mvg4zy3",
+      "qualified_name": "realworld_web::comments::create::create",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `create`"
+    },
+    {
+      "id": "Chbjp7i0k7c",
+      "qualified_name": "realworld_web::comments::delete::delete",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `delete`"
+    },
+    {
+      "id": "Cxxicecl906",
+      "qualified_name": "realworld_web::comments::get::get",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `get`"
+    },
+    {
+      "id": "Cx57ntlcm6k",
+      "qualified_name": "realworld_web::comments::responses::<Comment as From<domain::Comment>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cwlmko3cbj9",
+      "qualified_name": "realworld_web::comments::responses::<Comment as From<domain::CommentView>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "C1zl9jlq1bp",
+      "qualified_name": "realworld_web::comments::responses::<CommentsResponse as From<Vec<T>>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Chv49lzrybv",
+      "qualified_name": "realworld_web::errors::<ErrorResponse as From<GetUserError>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cwyvda9aaru",
+      "qualified_name": "realworld_web::errors::<ErrorResponse as From<PasswordError>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "C196yh562gj",
+      "qualified_name": "realworld_web::errors::<ErrorResponse as From<LoginError>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cp6s7hmwn7b",
+      "qualified_name": "realworld_web::errors::<ErrorResponse as From<SignUpError>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cwyec0634sc",
+      "qualified_name": "realworld_web::errors::<ErrorResponse as From<GetArticleError>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "C16d3p3o2k4n",
+      "qualified_name": "realworld_web::errors::<ErrorResponse as From<DatabaseError>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "C3s4mi2e5is",
+      "qualified_name": "realworld_web::errors::<ErrorResponse as From<PublishArticleError>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cxxmft7yg1h",
+      "qualified_name": "realworld_web::errors::<ErrorResponse as From<ChangeArticleError>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "C12a015br986",
+      "qualified_name": "realworld_web::errors::<ErrorResponse as From<DeleteCommentError>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cj1u97xiftj",
+      "qualified_name": "realworld_web::<ErrorResponse as From<Response>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Clybfy0yzoq",
+      "qualified_name": "realworld_web::<ErrorResponse as IntoResponse>::into_response",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "rust:returned-response",
+      "detail": "`ErrorResponse` is returned by a handler; the framework converts it"
+    },
+    {
+      "id": "C119pyeddcn6",
+      "qualified_name": "realworld_web::profiles::follow::follow",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `follow`"
+    },
+    {
+      "id": "C10uh761zloj",
+      "qualified_name": "realworld_web::profiles::follow::unfollow",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `unfollow`"
+    },
+    {
+      "id": "Ct39u259wo1",
+      "qualified_name": "realworld_web::profiles::get::get_profile",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `get_profile`"
+    },
+    {
+      "id": "C6q82h8di7l",
+      "qualified_name": "realworld_web::profiles::responses::<ProfileResponse as From<domain::Profile>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "C182201vy34u",
+      "qualified_name": "realworld_web::profiles::responses::<ProfileResponse as From<domain::ProfileView>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cnciu71tksr",
+      "qualified_name": "realworld_web::users::current_user::get_current_user",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `get_current_user`"
+    },
+    {
+      "id": "C9egl1323mp",
+      "qualified_name": "realworld_web::users::login::login",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `login`"
+    },
+    {
+      "id": "Cyc5pem0zr5",
+      "qualified_name": "realworld_web::users::register::<SignUp as TryFrom<RegistrationRequest>>::try_from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cbbkc703iit",
+      "qualified_name": "realworld_web::users::register::register",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `register`"
+    },
+    {
+      "id": "C153elx80t6o",
+      "qualified_name": "realworld_web::users::responses::<UserResponse as From<(domain::User, String)>>::from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "C5uxl144j8u",
+      "qualified_name": "realworld_web::users::update::<domain::UserUpdate as TryFrom<UpdateUserRequest>>::try_from",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "C1jzqfm1b4l",
+      "qualified_name": "realworld_web::users::update::update_user",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `update_user`"
+    },
+    {
+      "id": "C4jo22h7wp7",
+      "qualified_name": "realworld_web::tests::test_server::TestApp::get_current_user",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `get_current_user`"
+    },
+    {
+      "id": "Cnshh3jd5mz",
+      "qualified_name": "realworld_web::tests::test_server::TestApp::update_article",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `update_article`"
+    },
+    {
+      "id": "Clqbpc2qpgd",
+      "qualified_name": "realworld_web::tests::test_server::TestApp::get_article",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `get_article`"
+    },
+    {
+      "id": "C96mfyo0zvi",
+      "qualified_name": "realworld_web::tests::test_server::TestApp::delete_article",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `delete_article`"
+    },
+    {
+      "id": "C15ejqckjrfp",
+      "qualified_name": "realworld_web::tests::test_server::TestApp::get_profile",
+      "language": "rust",
+      "kind": "exported-api",
+      "rule": "lang:export",
+      "detail": "exported as `get_profile`"
+    },
+    {
+      "id": "Cxpf7l06kc5",
+      "qualified_name": "realworld_web::tests::test_server::<TestApp as std::ops::Drop>::drop",
+      "language": "rust",
+      "kind": "framework-callback",
+      "rule": "framework:rule",
+      "detail": "invoked by framework rule `rust-std-traits:base-type`"
+    },
+    {
+      "id": "Cixpb9q9l16",
+      "qualified_name": "realworld_web::tests::web_articles::should_list_articles",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cjbqw3717ai",
+      "qualified_name": "realworld_web::tests::web_articles::favorite_count_is_updated_correctly",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "C11cjj5yecjr",
+      "qualified_name": "realworld_web::tests::web_articles::should_get_articles_by_author",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Ckjtvt9343f",
+      "qualified_name": "realworld_web::tests::web_articles::should_create_article",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "C137lv14z80q",
+      "qualified_name": "realworld_web::tests::web_articles::should_update_article",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cwzwequrw0t",
+      "qualified_name": "realworld_web::tests::web_articles::should_delete_article",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cji4lf58raw",
+      "qualified_name": "realworld_web::tests::web_comments::comments_api",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cr47re95tll",
+      "qualified_name": "realworld_web::tests::web_comments::you_cannot_delete_a_comment_which_you_did_not_write",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cia6sxyq4g2",
+      "qualified_name": "realworld_web::tests::web_profiles::profiles_api",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "Cfrs6im06o7",
+      "qualified_name": "realworld_web::tests::web_users::register_and_login",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "C3ya5zbjwde",
+      "qualified_name": "realworld_web::tests::web_users::update_and_retrieve_user_details",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::cargo-test`"
+    },
+    {
+      "id": "C18g0vh54ll",
+      "qualified_name": "<framework-entry>::test::cargo-test",
+      "language": "rust",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::cargo-test`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 79,
+      "members": [
+        "Cvpz55kzvl2"
+      ],
+      "anchors": [
+        "Cvpz55kzvl2"
+      ],
+      "files": [
+        "F6da7swbl4h"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 81,
+      "members": [
+        "Cdui43yr4fd"
+      ],
+      "anchors": [
+        "Cdui43yr4fd"
+      ],
+      "files": [
+        "F6da7swbl4h"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 82,
+      "members": [
+        "C1hpogxldx2"
+      ],
+      "anchors": [
+        "C1hpogxldx2"
+      ],
+      "files": [
+        "F6da7swbl4h"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 90,
+      "members": [
+        "Czd1nsy42kv"
+      ],
+      "anchors": [
+        "Czd1nsy42kv"
+      ],
+      "files": [
+        "Fyj69289val"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 91,
+      "members": [
+        "C1yhu9bof6g"
+      ],
+      "anchors": [
+        "C1yhu9bof6g"
+      ],
+      "files": [
+        "Fyj69289val"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 92,
+      "members": [
+        "Chdmhpvvh4o"
+      ],
+      "anchors": [
+        "Chdmhpvvh4o"
+      ],
+      "files": [
+        "Fyj69289val"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 93,
+      "members": [
+        "Ccobznukxys"
+      ],
+      "anchors": [
+        "Ccobznukxys"
+      ],
+      "files": [
+        "Fyj69289val"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 97,
+      "members": [
+        "Crgqmopxdv"
+      ],
+      "anchors": [
+        "Crgqmopxdv"
+      ],
+      "files": [
+        "Fyj69289val"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 105,
+      "members": [
+        "Cm86oiu5z4l"
+      ],
+      "anchors": [
+        "Cm86oiu5z4l"
+      ],
+      "files": [
+        "Fyj69289val"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 106,
+      "members": [
+        "C11a15pq5tjb"
+      ],
+      "anchors": [
+        "C11a15pq5tjb"
+      ],
+      "files": [
+        "Fyj69289val"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 111,
+      "members": [
+        "C12x1asxp07y"
+      ],
+      "anchors": [
+        "C12x1asxp07y"
+      ],
+      "files": [
+        "Fyj69289val"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 132,
+      "members": [
+        "Cojk8bde4od"
+      ],
+      "anchors": [
+        "Cojk8bde4od"
+      ],
+      "files": [
+        "F3641tlqng6"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 134,
+      "members": [
+        "C12eg282ppv1"
+      ],
+      "anchors": [
+        "C12eg282ppv1"
+      ],
+      "files": [
+        "F3641tlqng6"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 136,
+      "members": [
+        "Cwkji3pp5gf",
+        "Ckkrp3o83qx"
+      ],
+      "anchors": [
+        "Cwkji3pp5gf"
+      ],
+      "files": [
+        "F3641tlqng6"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 139,
+      "members": [
+        "Cprxpsu2qnf"
+      ],
+      "anchors": [
+        "Cprxpsu2qnf"
+      ],
+      "files": [
+        "F12mdvl5a1hn"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 141,
+      "members": [
+        "C177o269viae"
+      ],
+      "anchors": [
+        "C177o269viae"
+      ],
+      "files": [
+        "F12mdvl5a1hn"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 142,
+      "members": [
+        "Cyp4u2s2m85"
+      ],
+      "anchors": [
+        "Cyp4u2s2m85"
+      ],
+      "files": [
+        "F12mdvl5a1hn"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 170,
+      "members": [
+        "Capeqa4be0v",
+        "Cpy6ep0n9vm",
+        "Cfxdlruyb0",
+        "Cptye9xihrs"
+      ],
+      "anchors": [
+        "Cptye9xihrs"
+      ],
+      "files": [
+        "F11u18dnkyey",
+        "F11wp4mu24rm"
+      ],
+      "total_lines": 33,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 195,
+      "members": [
+        "Cwm7rh30dem",
+        "Cevto8zpvlt"
+      ],
+      "anchors": [
+        "Cwm7rh30dem"
+      ],
+      "files": [
+        "F11wp4mu24rm"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 215,
+      "members": [
+        "Cu0ldmq2xvt",
+        "Ccti2nnsgm",
+        "Ch7h77u4x75"
+      ],
+      "anchors": [
+        "Cu0ldmq2xvt",
+        "Ch7h77u4x75"
+      ],
+      "files": [
+        "F14zxws5y4qu"
+      ],
+      "total_lines": 19,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 221,
+      "members": [
+        "Ch8t8uijpyu"
+      ],
+      "anchors": [
+        "Ch8t8uijpyu"
+      ],
+      "files": [
+        "F12lt6fpw53"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 223,
+      "members": [
+        "Cnoqt1ttofy"
+      ],
+      "anchors": [
+        "Cnoqt1ttofy"
+      ],
+      "files": [
+        "F12lt6fpw53"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "rust"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Capeqa4be0v",
+      "qualified_name": "realworld_web::auth::validation",
+      "simple_name": "validation",
+      "language": "rust",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F11u18dnkyey",
+      "path": "/storage/cgg-test_repos/app-realworld-tide/src/web/src/auth.rs",
+      "start_line": 24,
+      "end_line": 26,
+      "size_lines": 3,
+      "signature_hint": "fn validation() -> Validation",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 603,
+      "region": 170,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cfxdlruyb0"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        },
+        {
+          "kind": "private-visibility",
+          "token": "private"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cptye9xihrs",
+      "qualified_name": "realworld_web::middleware::<JwtMiddleware as Middleware<State>>::handle",
+      "simple_name": "handle",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "trait_method",
+      "file": "F11wp4mu24rm",
+      "path": "/storage/cgg-test_repos/app-realworld-tide/src/web/src/middleware.rs",
+      "start_line": 29,
+      "end_line": 40,
+      "size_lines": 12,
+      "signature_hint": "fn handle<'a>(&'a self, cx: Request<State>, next: Next<'a, State>) -> BoxFuture<'a, Response>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 112,
+      "region": 170,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implements-external-contract",
+          "contract": "Middleware"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cpy6ep0n9vm",
+      "qualified_name": "realworld_web::auth::extract_token",
+      "simple_name": "extract_token",
+      "language": "rust",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F11u18dnkyey",
+      "path": "/storage/cgg-test_repos/app-realworld-tide/src/web/src/auth.rs",
+      "start_line": 45,
+      "end_line": 53,
+      "size_lines": 9,
+      "signature_hint": "pub fn extract_token(headers: &HeaderMap) -> Option<&str>",
+      "visibility": "pub",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 109,
+      "region": 170,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "pub"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cfxdlruyb0"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cfxdlruyb0",
+      "qualified_name": "realworld_web::auth::extract_claims",
+      "simple_name": "extract_claims",
+      "language": "rust",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F11u18dnkyey",
+      "path": "/storage/cgg-test_repos/app-realworld-tide/src/web/src/auth.rs",
+      "start_line": 55,
+      "end_line": 63,
+      "size_lines": 9,
+      "signature_hint": "pub fn extract_claims(headers: &HeaderMap) -> Option<Claims>",
+      "visibility": "pub",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": 109,
+      "region": 170,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "pub"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cptye9xihrs"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cevto8zpvlt",
+      "qualified_name": "realworld_web::middleware::<Request<State> as ContextExt>::get_claims",
+      "simple_name": "get_claims",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "trait_method",
+      "file": "F11wp4mu24rm",
+      "path": "/storage/cgg-test_repos/app-realworld-tide/src/web/src/middleware.rs",
+      "start_line": 22,
+      "end_line": 25,
+      "size_lines": 4,
+      "signature_hint": "fn get_claims(&self) -> Result<&Claims, Error>",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -96,
+      "region": 195,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "get_claims",
+          "sites": 7,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Frq469pivsk",
+            "path": "/storage/cgg-test_repos/app-realworld-tide/src/web/src/articles/delete.rs",
+            "line": 13,
+            "name": "get_claims",
+            "receiver_hint": "tide::Request"
+          }
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cwm7rh30dem"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1yhu9bof6g",
+      "qualified_name": "realworld_domain::repositories::Repository::get_article_view",
+      "simple_name": "get_article_view",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "trait_default_method",
+      "file": "Fyj69289val",
+      "path": "/storage/cgg-test_repos/app-realworld-tide/src/domain/src/repositories.rs",
+      "start_line": 17,
+      "end_line": 21,
+      "size_lines": 5,
+      "signature_hint": "fn get_article_view( &self, viewer: &User, article: Article, ) -> Result<ArticleView, GetArticleError>;",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 91,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "Repository",
+          "impls": 23,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Chdmhpvvh4o",
+      "qualified_name": "realworld_domain::repositories::Repository::get_articles_views",
+      "simple_name": "get_articles_views",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "trait_default_method",
+      "file": "Fyj69289val",
+      "path": "/storage/cgg-test_repos/app-realworld-tide/src/domain/src/repositories.rs",
+      "start_line": 22,
+      "end_line": 26,
+      "size_lines": 5,
+      "signature_hint": "fn get_articles_views( &self, viewer: &User, articles: Vec<Article>, ) -> Result<Vec<ArticleView>, DatabaseError>;",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 92,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "Repository",
+          "impls": 23,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C11a15pq5tjb",
+      "qualified_name": "realworld_domain::repositories::Repository::get_user_by_email_and_password",
+      "simple_name": "get_user_by_email_and_password",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "trait_default_method",
+      "file": "Fyj69289val",
+      "path": "/storage/cgg-test_repos/app-realworld-tide/src/domain/src/repositories.rs",
+      "start_line": 53,
+      "end_line": 57,
+      "size_lines": 5,
+      "signature_hint": "fn get_user_by_email_and_password( &self, email: &str, password: &str, ) -> Result<User, LoginError>;",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -195,
+      "region": 106,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "Repository",
+          "impls": 23,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Czd1nsy42kv",
+      "qualified_name": "realworld_domain::repositories::Repository::get_article_by_slug",
+      "simple_name": "get_article_by_slug",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "trait_default_method",
+      "file": "Fyj69289val",
+      "path": "/storage/cgg-test_repos/app-realworld-tide/src/domain/src/repositories.rs",
+      "start_line": 16,
+      "end_line": 16,
+      "size_lines": 1,
+      "signature_hint": "fn get_article_by_slug(&self, slug: &str) -> Result<Article, GetArticleError>;",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 90,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "Repository",
+          "impls": 23,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ccobznukxys",
+      "qualified_name": "realworld_domain::repositories::Repository::find_articles",
+      "simple_name": "find_articles",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "trait_default_method",
+      "file": "Fyj69289val",
+      "path": "/storage/cgg-test_repos/app-realworld-tide/src/domain/src/repositories.rs",
+      "start_line": 27,
+      "end_line": 27,
+      "size_lines": 1,
+      "signature_hint": "fn find_articles(&self, query: ArticleQuery) -> Result<Vec<Article>, DatabaseError>;",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 93,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "Repository",
+          "impls": 23,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Crgqmopxdv",
+      "qualified_name": "realworld_domain::repositories::Repository::get_comment",
+      "simple_name": "get_comment",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "trait_default_method",
+      "file": "Fyj69289val",
+      "path": "/storage/cgg-test_repos/app-realworld-tide/src/domain/src/repositories.rs",
+      "start_line": 36,
+      "end_line": 36,
+      "size_lines": 1,
+      "signature_hint": "fn get_comment(&self, comment_id: u64) -> Result<Comment, DeleteCommentError>;",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 97,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "Repository",
+          "impls": 23,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cm86oiu5z4l",
+      "qualified_name": "realworld_domain::repositories::Repository::get_user_by_id",
+      "simple_name": "get_user_by_id",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "trait_default_method",
+      "file": "Fyj69289val",
+      "path": "/storage/cgg-test_repos/app-realworld-tide/src/domain/src/repositories.rs",
+      "start_line": 52,
+      "end_line": 52,
+      "size_lines": 1,
+      "signature_hint": "fn get_user_by_id(&self, user_id: Uuid) -> Result<User, GetUserError>;",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 105,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "Repository",
+          "impls": 23,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C12x1asxp07y",
+      "qualified_name": "realworld_domain::repositories::Repository::get_tags",
+      "simple_name": "get_tags",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "trait_default_method",
+      "file": "Fyj69289val",
+      "path": "/storage/cgg-test_repos/app-realworld-tide/src/domain/src/repositories.rs",
+      "start_line": 62,
+      "end_line": 62,
+      "size_lines": 1,
+      "signature_hint": "fn get_tags(&self) -> Result<HashSet<String>, DatabaseError>;",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -199,
+      "region": 111,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "Repository",
+          "impls": 23,
+          "unresolved_sites": 0,
+          "called_impls": 1
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cwm7rh30dem",
+      "qualified_name": "realworld_web::middleware::ContextExt::get_claims",
+      "simple_name": "get_claims",
+      "language": "rust",
+      "kind": "method",
+      "def_variant": "trait_default_method",
+      "file": "F11wp4mu24rm",
+      "path": "/storage/cgg-test_repos/app-realworld-tide/src/web/src/middleware.rs",
+      "start_line": 18,
+      "end_line": 18,
+      "size_lines": 1,
+      "signature_hint": "fn get_claims(&self) -> Result<&Claims, Error>;",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 195,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implemented-trait-surface",
+          "trait_name": "ContextExt",
+          "impls": 1,
+          "unresolved_sites": 7,
+          "called_impls": 0
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "get_claims",
+          "sites": 7,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Frq469pivsk",
+            "path": "/storage/cgg-test_repos/app-realworld-tide/src/web/src/articles/delete.rs",
+            "line": 13,
+            "name": "get_claims",
+            "receiver_hint": "tide::Request"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 1
+    }
+  ]
+}

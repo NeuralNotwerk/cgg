@@ -1,0 +1,338 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "bash",
+      "class": "script-driven",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 1,
+      "callables": 5,
+      "roots": 4,
+      "reachable": 4,
+      "reachable_pct": 80,
+      "findings": 1
+    },
+    {
+      "language": "csharp",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "framework:entry-node"
+      ],
+      "files": 3,
+      "callables": 4,
+      "roots": 2,
+      "reachable": 2,
+      "reachable_pct": 50,
+      "findings": 2
+    },
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 7,
+      "callables": 10,
+      "roots": 3,
+      "reachable": 10,
+      "reachable_pct": 100,
+      "findings": 0,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 19,
+    "edges": 9,
+    "unresolved_call_sites": 13,
+    "roots": 9,
+    "candidates": 3,
+    "reported": 3,
+    "regions": 3
+  },
+  "roots": [
+    {
+      "id": "C11ejkn2056f",
+      "qualified_name": "normalizeRepo",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-azure-functions-dotnet/.github/prompts/.propagation/cleanup-duplicates.js:25"
+    },
+    {
+      "id": "Cxvj3uj3igj",
+      "qualified_name": "builtin_targets",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-azure-functions-dotnet/.github/prompts/.propagation/fix_infra_and_audit.sh:56"
+    },
+    {
+      "id": "Ctif3k2ik9i",
+      "qualified_name": "update_track",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-azure-functions-dotnet/.github/prompts/.propagation/fix_infra_and_audit.sh:163"
+    },
+    {
+      "id": "Cpfg2hdvvqg",
+      "qualified_name": "find_infra_file",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-azure-functions-dotnet/.github/prompts/.propagation/fix_infra_and_audit.sh:125"
+    },
+    {
+      "id": "Cupn5sw7nfi",
+      "qualified_name": "safe_push",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-azure-functions-dotnet/.github/prompts/.propagation/fix_infra_and_audit.sh:148"
+    },
+    {
+      "id": "C4zocja50ff",
+      "qualified_name": "generateReport",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-azure-functions-dotnet/.github/prompts/.propagation/generate-report.js:15"
+    },
+    {
+      "id": "C15752f11lvm",
+      "qualified_name": "updatePRStatuses",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-azure-functions-dotnet/.github/prompts/.propagation/update-pr-statuses.js:58"
+    },
+    {
+      "id": "C1swswkz6dj",
+      "qualified_name": "<framework-entry>::network::azure-functions::Function(\"httpget\")",
+      "language": "csharp",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::azure-functions::Function(\"httpget\")`"
+    },
+    {
+      "id": "Cio64esmm6i",
+      "qualified_name": "<framework-entry>::network::azure-functions::Function(\"httppost\")",
+      "language": "csharp",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::azure-functions::Function(\"httppost\")`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 2,
+      "members": [
+        "Cyb775f18bd"
+      ],
+      "anchors": [
+        "Cyb775f18bd"
+      ],
+      "files": [
+        "F37otrve3tg"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "bash"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 15,
+      "members": [
+        "Cl0tsa08wbw"
+      ],
+      "anchors": [
+        "Cl0tsa08wbw"
+      ],
+      "files": [
+        "Fybp2luwtc9"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "csharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 17,
+      "members": [
+        "Cd499g4fjl7"
+      ],
+      "anchors": [
+        "Cd499g4fjl7"
+      ],
+      "files": [
+        "F10uzs2mjcgd"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "csharp"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cl0tsa08wbw",
+      "qualified_name": "Company.Function.httpGetFunction.httpGetFunction",
+      "simple_name": "httpGetFunction",
+      "language": "csharp",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fybp2luwtc9",
+      "path": "/storage/cgg-test_repos/app-azure-functions-dotnet/http/httpGetFunction.cs",
+      "start_line": 12,
+      "end_line": 15,
+      "size_lines": 4,
+      "signature_hint": "public httpGetFunction(ILoggerFactory loggerFactory)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 15,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cd499g4fjl7",
+      "qualified_name": "Company.Function.HttpPostBody.HttpPostBody",
+      "simple_name": "HttpPostBody",
+      "language": "csharp",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F10uzs2mjcgd",
+      "path": "/storage/cgg-test_repos/app-azure-functions-dotnet/http/httpPostBodyFunction.cs",
+      "start_line": 14,
+      "end_line": 17,
+      "size_lines": 4,
+      "signature_hint": "public HttpPostBody(ILoggerFactory loggerFactory)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -196,
+      "region": 17,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cyb775f18bd",
+      "qualified_name": "ts",
+      "simple_name": "ts",
+      "language": "bash",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F37otrve3tg",
+      "path": "/storage/cgg-test_repos/app-azure-functions-dotnet/.github/prompts/.propagation/fix_infra_and_audit.sh",
+      "start_line": 60,
+      "end_line": 60,
+      "size_lines": 1,
+      "signature_hint": "ts()",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -1299,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-is-script-driven"
+        },
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-value-references"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}
