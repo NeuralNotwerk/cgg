@@ -533,6 +533,9 @@ pub fn collect(lang: &str, tree: &Tree, source: &[u8]) -> Vec<LocalBinding> {
     if lang == "haskell" {
         return collect_haskell(tree, source);
     }
+    if lang == "starlark" {
+        return collect_starlark(tree, source);
+    }
     if lang == "nix" {
         return collect_nix(tree, source);
     }
@@ -2851,6 +2854,186 @@ fn nix_bound_names<'n>(set: Node<'n>, src: &[u8]) -> Vec<Node<'n>> {
     out
 }
 
+/// Whether a Starlark function's assigned names are in scope over the
+/// whole body (the language rule: a name assigned anywhere in a function
+/// is local throughout it, and a use before the assignment is an error,
+/// never the global) rather than from the assignment on.
+const STARLARK_WHOLE_BODY: bool = true;
+
+/// Starlark (WS27): a `def`'s parameters (positional, defaulted,
+/// keyword-only, `*args`, `**kwargs`) and a `lambda`'s, from the end of
+/// the parameter list (a default is evaluated outside the function and
+/// sees the outer name) to the end of the function; inside a `def`, the
+/// names its own body assigns (`x = …`, unpacking, `x += …`), its `for`
+/// targets and its nested `def`s, over the whole body
+/// (`STARLARK_WHOLE_BODY`); a comprehension's variables over the
+/// comprehension. Module-level assignments, `def` names and `load()`
+/// names are the module's, and a keyword argument's name binds nothing.
+fn collect_starlark(tree: &Tree, src: &[u8]) -> Vec<LocalBinding> {
+    let mut out: Vec<LocalBinding> = Vec::new();
+    let mut cursor = tree.walk();
+    loop {
+        let node = cursor.node();
+        match node.kind() {
+            "function_definition" | "lambda" => {
+                if let Some(ps) = node.child_by_field_name("parameters") {
+                    let mut c = ps.walk();
+                    for p in ps.named_children(&mut c) {
+                        let name = match p.kind() {
+                            "identifier" => Some(p),
+                            "default_parameter" | "typed_default_parameter" => {
+                                p.child_by_field_name("name")
+                            }
+                            "typed_parameter"
+                            | "list_splat_pattern"
+                            | "dictionary_splat_pattern" => p.named_child(0),
+                            _ => None,
+                        };
+                        if let Some(n) = name.filter(|n| n.kind() == "identifier") {
+                            starlark_push(
+                                &mut out,
+                                n,
+                                src,
+                                ps.end_byte(),
+                                node.end_byte(),
+                                node.start_byte(),
+                                true,
+                            );
+                        }
+                    }
+                }
+                if node.kind() == "function_definition"
+                    && let Some(body) = node.child_by_field_name("body")
+                {
+                    let mut names = Vec::new();
+                    starlark_body_names(body, &mut names);
+                    for (n, stmt_end) in names {
+                        let from = if STARLARK_WHOLE_BODY {
+                            body.start_byte()
+                        } else {
+                            stmt_end
+                        };
+                        starlark_push(
+                            &mut out,
+                            n,
+                            src,
+                            from,
+                            node.end_byte(),
+                            node.start_byte(),
+                            false,
+                        );
+                    }
+                }
+            }
+            "list_comprehension"
+            | "dictionary_comprehension"
+            | "set_comprehension"
+            | "generator_expression" => {
+                let mut c = node.walk();
+                for clause in node
+                    .named_children(&mut c)
+                    .filter(|k| k.kind() == "for_in_clause")
+                {
+                    if let Some(left) = clause.child_by_field_name("left") {
+                        let mut vars = Vec::new();
+                        starlark_targets(left, &mut vars);
+                        for v in vars {
+                            starlark_push(
+                                &mut out,
+                                v,
+                                src,
+                                node.start_byte(),
+                                node.end_byte(),
+                                node.start_byte(),
+                                false,
+                            );
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+        if !haskell_advance(&mut cursor) {
+            break;
+        }
+    }
+    out.sort_by_key(|b| (b.start_byte, b.end_byte));
+    out.dedup();
+    out
+}
+
+fn starlark_push(
+    out: &mut Vec<LocalBinding>,
+    name: Node<'_>,
+    src: &[u8],
+    start: usize,
+    end: usize,
+    decl: usize,
+    param: bool,
+) {
+    let t = name.utf8_text(src).unwrap_or("");
+    if t.is_empty() || t == "_" || start >= end {
+        return;
+    }
+    out.push(LocalBinding {
+        name: t.to_string(),
+        start_byte: start as u32,
+        end_byte: end as u32,
+        decl_byte: decl.min(start) as u32,
+        param,
+    });
+}
+
+/// The names a function body binds, each with the end of its statement:
+/// assignment and `for` targets and nested `def` names, never inside a
+/// nested `def`, `lambda` or comprehension (their own scopes).
+fn starlark_body_names<'n>(n: Node<'n>, out: &mut Vec<(Node<'n>, usize)>) {
+    let mut c = n.walk();
+    for ch in n.named_children(&mut c) {
+        match ch.kind() {
+            "function_definition" => {
+                if let Some(name) = ch.child_by_field_name("name") {
+                    out.push((name, ch.start_byte()));
+                }
+            }
+            "lambda"
+            | "list_comprehension"
+            | "dictionary_comprehension"
+            | "set_comprehension"
+            | "generator_expression" => {}
+            "assignment" | "augmented_assignment" | "for_statement" => {
+                if let Some(left) = ch.child_by_field_name("left") {
+                    let mut vars = Vec::new();
+                    starlark_targets(left, &mut vars);
+                    out.extend(vars.into_iter().map(|v| (v, ch.end_byte())));
+                }
+                starlark_body_names(ch, out);
+            }
+            _ => starlark_body_names(ch, out),
+        }
+    }
+}
+
+/// The identifiers an assignment or `for` target binds (`x`, `a, b`,
+/// `[a, (b, c)]`); never a subscript or attribute.
+fn starlark_targets<'n>(t: Node<'n>, out: &mut Vec<Node<'n>>) {
+    match t.kind() {
+        "identifier" => out.push(t),
+        "pattern_list"
+        | "tuple_pattern"
+        | "list_pattern"
+        | "tuple"
+        | "list"
+        | "parenthesized_expression" => {
+            let mut c = t.walk();
+            for ch in t.named_children(&mut c) {
+                starlark_targets(ch, out);
+            }
+        }
+        _ => {}
+    }
+}
+
 /// Lua `local` declarations at file scope (WS19): in scope from the end of
 /// the statement to the end of the file. `local log = ngx.log` is a value
 /// the file holds, so a bare `log(…)` is never some required module's
@@ -4487,5 +4670,56 @@ mod tests {
             nix_locals("let inherit (import ./f.nix { }) a; inherit (lib) b; in a b\n");
         let imp: Vec<&str> = imp.iter().map(|b| b.name.as_str()).collect();
         assert_eq!(imp, vec!["b"]);
+    }
+
+    fn starlark_locals(src: &str) -> Vec<LocalBinding> {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&tree_sitter_starlark::LANGUAGE.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        collect("starlark", &tree, src.as_bytes())
+    }
+
+    /// Starlark (WS27): every parameter form, a function's assigned
+    /// names, `for` targets and nested `def`s over its whole body,
+    /// `lambda` and comprehension variables; never a module-level name, a
+    /// `load()` name or a keyword argument's name; a default sees the
+    /// outer name.
+    #[test]
+    fn starlark_binding_forms_and_scopes() {
+        let src = "load(\"//x:y.bzl\", \"imp\", alias = \"name\")\n\
+                   top = 1\n\
+                   def f(a, b = top(), *args, c, d = 2, **kwargs):\n\
+                   \x20   early()\n\
+                   \x20   x = a()\n\
+                   \x20   y, [z, w] = pair()\n\
+                   \x20   for i in items:\n\
+                   \x20       early = i\n\
+                   \x20   def inner(p):\n\
+                   \x20       return p\n\
+                   \x20   g(kw = 1)\n\
+                   \x20   return [k() for k in ks] + [(lambda q: q)(1)]\n\
+                   def other():\n\
+                   \x20   return x()\n";
+        let got = starlark_locals(src);
+        let names: Vec<&str> = got.iter().map(|b| b.name.as_str()).collect();
+        for want in [
+            "a", "b", "args", "c", "d", "kwargs", "x", "y", "z", "w", "i", "early",
+            "inner", "p", "k", "q",
+        ] {
+            assert!(names.contains(&want), "{want} in {names:?}");
+        }
+        for not in ["top", "imp", "alias", "name", "f", "other", "kw", "g"] {
+            assert!(!names.contains(&not), "{not} in {names:?}");
+        }
+        let at = |name: &str, needle: &str| {
+            let site = src.find(needle).expect(needle) as u32;
+            got.iter()
+                .any(|b| b.name == name && b.start_byte <= site && site < b.end_byte)
+        };
+        assert!(!at("b", "top()"), "a default sees the outer name");
+        assert!(at("early", "early()"), "assigned later in the body");
+        assert!(!at("x", "x()"), "another function");
+        assert!(at("k", "k()"), "a comprehension variable");
     }
 }

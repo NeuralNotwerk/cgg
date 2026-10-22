@@ -806,6 +806,24 @@ otherwise change the default graph.
   `let hasSpace = …` (or `su`, `indentAll`) bind their own instead of
   being refused as `ambiguous-in-file`.
 
+- **Starlark parameters and locals did not shadow function names, and
+  same-named nested `def`s of one file were ambiguous (WS27, gap 27).**
+  A call through a Starlark parameter (`def _run(ctx,
+  write_extra_action): write_extra_action(…)`), a `lambda` parameter, a
+  local or a `for` target bound a same-named function of the file at
+  `high`. Starlark now has a locals table: a `def`'s or `lambda`'s
+  parameters (defaulted, keyword-only, `*args`, `**kwargs`) from the end
+  of the parameter list, so a default still sees the module's function;
+  inside a `def`, the names its body assigns (unpacking and `+=`
+  included), its `for` targets and nested `def`s, over the whole body
+  (Starlark makes a name assigned anywhere in a function local to all of
+  it); and comprehension variables over their comprehension. Module-level
+  names, `load()` names and keyword-argument names bind nothing.
+  Starlark also joins lexical narrowing, as Python has it: a nested `def`
+  is visible by name only in its function, so a call to it and a call to
+  the module's same-named function each bind their own instead of being
+  refused as `ambiguous-in-file`.
+
 ### Compatibility
 
 The default graph changes (full corpus, 283 repositories, none excluded):
@@ -1481,6 +1499,17 @@ WS27 Nix (full corpus, 283 repositories, none excluded):
 - Under `--reference-edges`, the same edges change; Nix records no
   reference edges.
 - Under `--dead-code`, no finding changes.
+
+WS27 Starlark (full corpus, 283 repositories, none excluded):
+
+- The default graph is unchanged in every repository: Starlark bare calls
+  through a parameter or local rarely meet a same-named function of the
+  same file, and a bare call never binds another file's. One audit record
+  moves from `candidates-in-other-files` to `shadowed-by-local` (Kythe's
+  `write_extra_action`, a callable parameter).
+- Whole-body and from-the-assignment scopes for a function's assigned
+  names give the same graph; the whole body, the language rule, is used.
+- Under `--reference-edges` and `--dead-code`, nothing changes.
 
 ## [0.11.0] - 2026-10-16
 

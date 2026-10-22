@@ -7441,3 +7441,119 @@ rec {
         );
     }
 }
+
+/// WS27: a Starlark parameter, `lambda` parameter, local and `for` target
+/// shadow a same-named function of the file: a call through one is
+/// `shadowed-by-local`, never a (wrong, `high`) edge. A nested `def` binds
+/// its own, another function reaches the module's, and a default or a
+/// keyword argument still sees the module's function.
+#[test]
+fn starlark_parameters_and_locals_shadow_functions() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "rules.bzl",
+        r#"# Functions whose names the parameters and locals below reuse.
+def cb(x):
+    return x
+def handler(x):
+    return x
+def item(x):
+    return x
+def step(x):
+    return x
+def helper(x):
+    return x
+def now():
+    return 0
+
+# A parameter, a `lambda` parameter, a local, a `for` target.
+def with_param(cb):
+    return cb(1)
+def with_lambda(xs):
+    return [f(2) for f in xs] + [(lambda handler: handler(3))(cb)]
+def with_local():
+    item = now()
+    return item(4)
+def with_for(fs):
+    for step in fs:
+        step(5)
+
+# A nested def keeps its edge; another function's call reaches the
+# module's `helper`.
+def with_nested():
+    def helper(x):
+        return x + 1
+    return helper(6)
+def with_module():
+    return helper(7)
+
+# A default sees the module's function; a keyword argument binds nothing.
+def with_default(v = now()):
+    return cb(v, handler = handler)
+"#
+        .as_bytes(),
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let field =
+        |id: &serde_json::Value, f: &str| g["callables"][id.as_str().unwrap()][f].clone();
+    let edges: Vec<(String, u64, u64)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                field(&e["src"], "qualified_name")
+                    .as_str()
+                    .unwrap()
+                    .to_string(),
+                field(&e["dst"], "start_line").as_u64().unwrap(),
+                e["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    let shadowed: Vec<(String, u64)> = g["unresolved"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|u| u["reason"]["stage"] == "shadowed-by-local")
+        .map(|u| {
+            (
+                u["name"].as_str().unwrap().to_string(),
+                u["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    for (name, site) in [("cb", 17), ("handler", 19), ("item", 22), ("step", 25)] {
+        assert!(
+            !edges.iter().any(|(_, _, l)| *l == site),
+            "{name} line {site}: {edges:?}"
+        );
+        assert!(
+            shadowed.contains(&(name.to_string(), site)),
+            "{name} line {site}: {shadowed:?}"
+        );
+    }
+    for (src, def, site) in [
+        ("with_nested", 30, 32),
+        ("with_module", 10, 34),
+        ("with_default", 12, 37),
+        ("with_default", 2, 38),
+        ("with_local", 12, 21),
+    ] {
+        assert!(
+            edges
+                .iter()
+                .any(|(s, d, l)| s == src && *d == def && *l == site),
+            "{src} line {site}: {edges:?}"
+        );
+    }
+}

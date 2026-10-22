@@ -137,6 +137,7 @@ fn lexically_scoped(language: &str) -> bool {
             | "haskell"
             | "julia"
             | "nix"
+            | "starlark"
     )
 }
 
