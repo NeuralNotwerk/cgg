@@ -1,0 +1,3102 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 95,
+      "callables": 103,
+      "roots": 27,
+      "reachable": 43,
+      "reachable_pct": 41,
+      "findings": 60,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 103,
+    "edges": 72,
+    "unresolved_call_sites": 105,
+    "roots": 27,
+    "candidates": 60,
+    "reported": 60,
+    "regions": 51
+  },
+  "roots": [
+    {
+      "id": "C1wtxgb919d",
+      "qualified_name": "CardLibrary",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/api/libraries/Card.js:83"
+    },
+    {
+      "id": "Ch8qcn3ip6m",
+      "qualified_name": "DeckLibrary",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/api/libraries/Deck.js:43"
+    },
+    {
+      "id": "C30unut5zrw",
+      "qualified_name": "SetLibrary",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/api/libraries/Set.js:39"
+    },
+    {
+      "id": "Ckyi60c1j9i",
+      "qualified_name": "request",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/sails.io.js:98"
+    },
+    {
+      "id": "Cgzhhwvfzm3",
+      "qualified_name": "LeftPanel",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/deck-builder/controller.js:434"
+    },
+    {
+      "id": "Cljkfgy4yyc",
+      "qualified_name": "RightPanel",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/deck-builder/controller.js:435"
+    },
+    {
+      "id": "C124edab5dbx",
+      "qualified_name": "Controls",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/deck-builder/controller.js:436"
+    },
+    {
+      "id": "Csxar2ovt5o",
+      "qualified_name": "CardTemplate",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/driver/template.js:86"
+    },
+    {
+      "id": "C12okuoyvuk6",
+      "qualified_name": "pkg",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/generic/utilities.js:42"
+    },
+    {
+      "id": "Cx08213d29n",
+      "qualified_name": "optapply",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/generic/utilities.js:40"
+    },
+    {
+      "id": "Cqcrjglwo6s",
+      "qualified_name": "otpcall",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/generic/utilities.js:41"
+    },
+    {
+      "id": "C5qc9y8ofmv",
+      "qualified_name": "Battlefield",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.area.battlefield.js:68"
+    },
+    {
+      "id": "Cp2y75xi74n",
+      "qualified_name": "Exile",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.area.exile.js:43"
+    },
+    {
+      "id": "C10xwks02l07",
+      "qualified_name": "Graveyard",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.area.graveyard.js:43"
+    },
+    {
+      "id": "Cxzdyslm8xb",
+      "qualified_name": "Hand",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.area.hand.js:140"
+    },
+    {
+      "id": "C6j5glqj7oy",
+      "qualified_name": "Area",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.area.js:191"
+    },
+    {
+      "id": "Cv6su6t3h4a",
+      "qualified_name": "Library",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.area.library.js:87"
+    },
+    {
+      "id": "Cqncezu0dj4",
+      "qualified_name": "_m",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.controller.js:90"
+    },
+    {
+      "id": "Cth792o9qnh",
+      "qualified_name": "DelayedModules",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.controller.js:85"
+    },
+    {
+      "id": "Cvttdks9r2m",
+      "qualified_name": "Chat",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.module.chat.js:74"
+    },
+    {
+      "id": "Cvgc72dezpx",
+      "qualified_name": "Counter",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.module.counter.js:30"
+    },
+    {
+      "id": "C2tl8ljrdt9",
+      "qualified_name": "Drag",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.module.drag.js:77"
+    },
+    {
+      "id": "Ccpyz6135aa",
+      "qualified_name": "DeckChoiceModal",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.module.modals.js:105"
+    },
+    {
+      "id": "C166x5c0frpu",
+      "qualified_name": "SearchCardsModal",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.module.modals.js:106"
+    },
+    {
+      "id": "C3e3uedjs39",
+      "qualified_name": "Points",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.module.points.js:41"
+    },
+    {
+      "id": "C11eft7ihfg5",
+      "qualified_name": "Plugin",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/plugins/context_menu.js:85"
+    },
+    {
+      "id": "Cfkm3xkvdd2",
+      "qualified_name": "Plugin",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/plugins/context_menu.js:85"
+    }
+  ],
+  "regions": [
+    {
+      "id": 0,
+      "members": [
+        "C63fbsqx0yw",
+        "C72b1d89dv5",
+        "Clalmn3qvr9"
+      ],
+      "anchors": [
+        "C63fbsqx0yw"
+      ],
+      "files": [
+        "F60r8nv5u9k"
+      ],
+      "total_lines": 80,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 3,
+      "members": [
+        "Cwppj0uge8h"
+      ],
+      "anchors": [
+        "Cwppj0uge8h"
+      ],
+      "files": [
+        "F60r8nv5u9k"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 4,
+      "members": [
+        "Cprn8xg8c1g"
+      ],
+      "anchors": [
+        "Cprn8xg8c1g"
+      ],
+      "files": [
+        "Fyox1rgyc8v"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 5,
+      "members": [
+        "Csk3dw4mdpu"
+      ],
+      "anchors": [
+        "Csk3dw4mdpu"
+      ],
+      "files": [
+        "Fyox1rgyc8v"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 7,
+      "members": [
+        "C1012pfc5dsq"
+      ],
+      "anchors": [
+        "C1012pfc5dsq"
+      ],
+      "files": [
+        "F138guv921je"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 8,
+      "members": [
+        "Cezyas6fdng",
+        "C4sodwdiogc"
+      ],
+      "anchors": [
+        "C4sodwdiogc"
+      ],
+      "files": [
+        "F138guv921je",
+        "F13zn6nqc7kc"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 9,
+      "members": [
+        "Cudqm6zpvjv"
+      ],
+      "anchors": [
+        "Cudqm6zpvjv"
+      ],
+      "files": [
+        "F138guv921je"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 10,
+      "members": [
+        "Copn0in7qr3",
+        "Cityeeospmp",
+        "Cm5138ywmw7"
+      ],
+      "anchors": [
+        "Cm5138ywmw7"
+      ],
+      "files": [
+        "F138guv921je",
+        "F4lbgmrqr6k"
+      ],
+      "total_lines": 30,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 15,
+      "members": [
+        "Cpa426pajk0"
+      ],
+      "anchors": [
+        "Cpa426pajk0"
+      ],
+      "files": [
+        "F13zn6nqc7kc"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 16,
+      "members": [
+        "Csckx113rpz"
+      ],
+      "anchors": [
+        "Csckx113rpz"
+      ],
+      "files": [
+        "F13zn6nqc7kc"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 18,
+      "members": [
+        "Cn9esxu4klv"
+      ],
+      "anchors": [
+        "Cn9esxu4klv"
+      ],
+      "files": [
+        "F14hv46nz302"
+      ],
+      "total_lines": 13,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 19,
+      "members": [
+        "Cen0teohhow"
+      ],
+      "anchors": [
+        "Cen0teohhow"
+      ],
+      "files": [
+        "Fpdd34oee7u"
+      ],
+      "total_lines": 20,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 20,
+      "members": [
+        "C13il1r776e2"
+      ],
+      "anchors": [
+        "C13il1r776e2"
+      ],
+      "files": [
+        "F2ys9qqd2au"
+      ],
+      "total_lines": 49,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 21,
+      "members": [
+        "C9xpd1zstij",
+        "C1445dosxl9p",
+        "Cjj6qhtayip",
+        "Cx7vivr0kk1",
+        "Ccwv65bi8wp"
+      ],
+      "anchors": [
+        "C9xpd1zstij",
+        "C1445dosxl9p",
+        "Cjj6qhtayip"
+      ],
+      "files": [
+        "Flyxxl5q2kn",
+        "Fnu5mh9fao0",
+        "Fayvm9zqs9x",
+        "Feot0x4xyjf"
+      ],
+      "total_lines": 167,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 24,
+      "members": [
+        "Cvdorumtuo4"
+      ],
+      "anchors": [
+        "Cvdorumtuo4"
+      ],
+      "files": [
+        "Fayvm9zqs9x"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 25,
+      "members": [
+        "C9ork4kh3ce"
+      ],
+      "anchors": [
+        "C9ork4kh3ce"
+      ],
+      "files": [
+        "Fwhpo6vr4j6"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 26,
+      "members": [
+        "C1wrddbyoel"
+      ],
+      "anchors": [
+        "C1wrddbyoel"
+      ],
+      "files": [
+        "Fwhpo6vr4j6"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 27,
+      "members": [
+        "C5l2ndhzis"
+      ],
+      "anchors": [
+        "C5l2ndhzis"
+      ],
+      "files": [
+        "Fwhpo6vr4j6"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 29,
+      "members": [
+        "C17inhfdxo3c"
+      ],
+      "anchors": [
+        "C17inhfdxo3c"
+      ],
+      "files": [
+        "Fwhpo6vr4j6"
+      ],
+      "total_lines": 23,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 35,
+      "members": [
+        "Cno2nc8frp4"
+      ],
+      "anchors": [
+        "Cno2nc8frp4"
+      ],
+      "files": [
+        "Frk13ekad55"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 36,
+      "members": [
+        "Clpfj7pr3vv"
+      ],
+      "anchors": [
+        "Clpfj7pr3vv"
+      ],
+      "files": [
+        "Fs3f5crum2p"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 37,
+      "members": [
+        "C6mpq231jyf"
+      ],
+      "anchors": [
+        "C6mpq231jyf"
+      ],
+      "files": [
+        "F3a3whd0oln"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 43,
+      "members": [
+        "Cfuo7oxxou6"
+      ],
+      "anchors": [
+        "Cfuo7oxxou6"
+      ],
+      "files": [
+        "Feot0x4xyjf"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 62,
+      "members": [
+        "Ccsi2hwoo02"
+      ],
+      "anchors": [
+        "Ccsi2hwoo02"
+      ],
+      "files": [
+        "Fx9arzrje54"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 63,
+      "members": [
+        "Chzv80awhgp"
+      ],
+      "anchors": [
+        "Chzv80awhgp"
+      ],
+      "files": [
+        "Fx9arzrje54"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 64,
+      "members": [
+        "Cbrblen0eo5"
+      ],
+      "anchors": [
+        "Cbrblen0eo5"
+      ],
+      "files": [
+        "Fx9arzrje54"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 71,
+      "members": [
+        "C13j32hi5qge"
+      ],
+      "anchors": [
+        "C13j32hi5qge"
+      ],
+      "files": [
+        "F11a39rhrr4p"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 78,
+      "members": [
+        "C155i4fekpgo"
+      ],
+      "anchors": [
+        "C155i4fekpgo"
+      ],
+      "files": [
+        "F4vym3sxg89"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 92,
+      "members": [
+        "C7h5rd8w0wi"
+      ],
+      "anchors": [],
+      "files": [
+        "Fipwvok1gg4"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 93,
+      "members": [
+        "C69wa2z79v0"
+      ],
+      "anchors": [],
+      "files": [
+        "Fipwvok1gg4"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 97,
+      "members": [
+        "Ccbl1bayf7c"
+      ],
+      "anchors": [],
+      "files": [
+        "Fgjvjpc0cq3"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 98,
+      "members": [
+        "Cr9xnrrcg74"
+      ],
+      "anchors": [
+        "Cr9xnrrcg74"
+      ],
+      "files": [
+        "Fg9yxeg3ztm"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 99,
+      "members": [
+        "C96p0anrw7t"
+      ],
+      "anchors": [
+        "C96p0anrw7t"
+      ],
+      "files": [
+        "F148oahhngwl"
+      ],
+      "total_lines": 27,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 100,
+      "members": [
+        "Cz71n5rzv9v"
+      ],
+      "anchors": [
+        "Cz71n5rzv9v"
+      ],
+      "files": [
+        "Fsxfkd0h3l3"
+      ],
+      "total_lines": 15,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 101,
+      "members": [
+        "C12gyf137d9t"
+      ],
+      "anchors": [
+        "C12gyf137d9t"
+      ],
+      "files": [
+        "Fck0ftpm0l4"
+      ],
+      "total_lines": 23,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 102,
+      "members": [
+        "C2748dpaw6q"
+      ],
+      "anchors": [
+        "C2748dpaw6q"
+      ],
+      "files": [
+        "Fkl1udag4mx"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 103,
+      "members": [
+        "C146tsi2pssv"
+      ],
+      "anchors": [
+        "C146tsi2pssv"
+      ],
+      "files": [
+        "Fqx53qtsat6"
+      ],
+      "total_lines": 31,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 104,
+      "members": [
+        "Cwoinpnssst"
+      ],
+      "anchors": [
+        "Cwoinpnssst"
+      ],
+      "files": [
+        "F13kfyi2j2qy"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 105,
+      "members": [
+        "Cdkg0f7i31a"
+      ],
+      "anchors": [
+        "Cdkg0f7i31a"
+      ],
+      "files": [
+        "Fag4gt1oxw3"
+      ],
+      "total_lines": 139,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 106,
+      "members": [
+        "Co46vhmq7b7"
+      ],
+      "anchors": [
+        "Co46vhmq7b7"
+      ],
+      "files": [
+        "Fq90hnika8m"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 107,
+      "members": [
+        "Cure24tbie6"
+      ],
+      "anchors": [
+        "Cure24tbie6"
+      ],
+      "files": [
+        "F4rpd6lezdl"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 108,
+      "members": [
+        "Cag5n547n56"
+      ],
+      "anchors": [
+        "Cag5n547n56"
+      ],
+      "files": [
+        "F2iz95cy7jv"
+      ],
+      "total_lines": 20,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 109,
+      "members": [
+        "Cb4tfisgb6g"
+      ],
+      "anchors": [
+        "Cb4tfisgb6g"
+      ],
+      "files": [
+        "Fpprixiv1gu"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 110,
+      "members": [
+        "C6ootyf2ygx"
+      ],
+      "anchors": [
+        "C6ootyf2ygx"
+      ],
+      "files": [
+        "Flxqbmaevz7"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 111,
+      "members": [
+        "Ct7rxwg15qv"
+      ],
+      "anchors": [
+        "Ct7rxwg15qv"
+      ],
+      "files": [
+        "F14bj5i6e4ch"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 112,
+      "members": [
+        "Cnbpt5qy3d2"
+      ],
+      "anchors": [
+        "Cnbpt5qy3d2"
+      ],
+      "files": [
+        "Fo4o67x7w4v"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 113,
+      "members": [
+        "Cuk7qvd65bk"
+      ],
+      "anchors": [
+        "Cuk7qvd65bk"
+      ],
+      "files": [
+        "F6h1m3xapbc"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 114,
+      "members": [
+        "Cxq01aechm3"
+      ],
+      "anchors": [
+        "Cxq01aechm3"
+      ],
+      "files": [
+        "F11ub6uynai8"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 115,
+      "members": [
+        "Cbmqegmi5b4"
+      ],
+      "anchors": [
+        "Cbmqegmi5b4"
+      ],
+      "files": [
+        "F179bgjw6q4i"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 116,
+      "members": [
+        "Ca8t7gb5dxm"
+      ],
+      "anchors": [
+        "Ca8t7gb5dxm"
+      ],
+      "files": [
+        "Fvzqoygoay2"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 117,
+      "members": [
+        "Ccym63gpgwv"
+      ],
+      "anchors": [
+        "Ccym63gpgwv"
+      ],
+      "files": [
+        "Fw5mikoyypf"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cdkg0f7i31a",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fag4gt1oxw3",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/sails-linker.js",
+      "start_line": 14,
+      "end_line": 152,
+      "size_lines": 139,
+      "signature_hint": "module.exports = function(grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 39,
+      "region": 105,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjj6qhtayip",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fayvm9zqs9x",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/responses/serverError.js",
+      "start_line": 14,
+      "end_line": 84,
+      "size_lines": 71,
+      "signature_hint": "module.exports = function serverError (errors)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -29,
+      "region": 21,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C63fbsqx0yw",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F60r8nv5u9k",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/Gruntfile.js",
+      "start_line": 15,
+      "end_line": 81,
+      "size_lines": 67,
+      "signature_hint": "module.exports = function(grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -33,
+      "region": 0,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "C13il1r776e2",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F2ys9qqd2au",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/responses/badRequest.js",
+      "start_line": 21,
+      "end_line": 69,
+      "size_lines": 49,
+      "signature_hint": "module.exports = function badRequest(validationErrors, redirectTo)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -51,
+      "region": 20,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C9xpd1zstij",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Flyxxl5q2kn",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/responses/forbidden.js",
+      "start_line": 12,
+      "end_line": 51,
+      "size_lines": 40,
+      "signature_hint": "module.exports = function forbidden(message)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -60,
+      "region": 21,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C146tsi2pssv",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqx53qtsat6",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/jst.js",
+      "start_line": 15,
+      "end_line": 45,
+      "size_lines": 31,
+      "signature_hint": "module.exports = function(grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -69,
+      "region": 103,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1445dosxl9p",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fnu5mh9fao0",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/responses/notFound.js",
+      "start_line": 12,
+      "end_line": 40,
+      "size_lines": 29,
+      "signature_hint": "module.exports = function notFound()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -71,
+      "region": 21,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C96p0anrw7t",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F148oahhngwl",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/coffee.js",
+      "start_line": 12,
+      "end_line": 38,
+      "size_lines": 27,
+      "signature_hint": "module.exports = function(grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -73,
+      "region": 99,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C17inhfdxo3c",
+      "qualified_name": "afterEmitted",
+      "simple_name": "afterEmitted",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fwhpo6vr4j6",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/sails.io.js",
+      "start_line": 132,
+      "end_line": 154,
+      "size_lines": 23,
+      "signature_hint": "function afterEmitted (result)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -77,
+      "region": 29,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C12gyf137d9t",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fck0ftpm0l4",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/copy.js",
+      "start_line": 16,
+      "end_line": 38,
+      "size_lines": 23,
+      "signature_hint": "module.exports = function(grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -77,
+      "region": 101,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cen0teohhow",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fpdd34oee7u",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/policies/views_globals.js",
+      "start_line": 6,
+      "end_line": 25,
+      "size_lines": 20,
+      "signature_hint": "module.exports = function (req, res, ok)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -80,
+      "region": 19,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cag5n547n56",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F2iz95cy7jv",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/watch.js",
+      "start_line": 13,
+      "end_line": 32,
+      "size_lines": 20,
+      "signature_hint": "module.exports = function(grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -80,
+      "region": 108,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cm5138ywmw7",
+      "qualified_name": "parse",
+      "simple_name": "parse",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4lbgmrqr6k",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/libraries/Deck.js",
+      "start_line": 20,
+      "end_line": 38,
+      "size_lines": 19,
+      "signature_hint": "this.parse = function(text, format)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -81,
+      "region": 10,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Ccwv65bi8wp",
+      "qualified_name": "render",
+      "simple_name": "render",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Feot0x4xyjf",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/driver/template.js",
+      "start_line": 53,
+      "end_line": 70,
+      "size_lines": 18,
+      "signature_hint": "this.render = function(card, indexOverride)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -82,
+      "region": 21,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 6,
+          "example": "C9xpd1zstij"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Csk3dw4mdpu",
+      "qualified_name": "authenticate",
+      "simple_name": "authenticate",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fyox1rgyc8v",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/controllers/LoginController.js",
+      "start_line": 25,
+      "end_line": 41,
+      "size_lines": 17,
+      "signature_hint": "exports.authenticate = function(req, res)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -83,
+      "region": 5,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C155i4fekpgo",
+      "qualified_name": "add",
+      "simple_name": "add",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4vym3sxg89",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.module.drag.js",
+      "start_line": 22,
+      "end_line": 38,
+      "size_lines": 17,
+      "signature_hint": "this.add = function($card)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -83,
+      "region": 78,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cwoinpnssst",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13kfyi2j2qy",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/less.js",
+      "start_line": 13,
+      "end_line": 28,
+      "size_lines": 16,
+      "signature_hint": "module.exports = function(grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -84,
+      "region": 104,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cz71n5rzv9v",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fsxfkd0h3l3",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/concat.js",
+      "start_line": 13,
+      "end_line": 27,
+      "size_lines": 15,
+      "signature_hint": "module.exports = function(grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -85,
+      "region": 100,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Co46vhmq7b7",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fq90hnika8m",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/sync.js",
+      "start_line": 14,
+      "end_line": 27,
+      "size_lines": 14,
+      "signature_hint": "module.exports = function(grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -86,
+      "region": 106,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cn9esxu4klv",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14hv46nz302",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/policies/authentication.js",
+      "start_line": 10,
+      "end_line": 22,
+      "size_lines": 13,
+      "signature_hint": "module.exports = function(req, res, next)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -87,
+      "region": 18,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cprn8xg8c1g",
+      "qualified_name": "login",
+      "simple_name": "login",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fyox1rgyc8v",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/controllers/LoginController.js",
+      "start_line": 11,
+      "end_line": 22,
+      "size_lines": 12,
+      "signature_hint": "exports.login = function(req, res)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -88,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cezyas6fdng",
+      "qualified_name": "getBy",
+      "simple_name": "getBy",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F138guv921je",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/libraries/Card.js",
+      "start_line": 34,
+      "end_line": 44,
+      "size_lines": 11,
+      "signature_hint": "this.getBy = function(criteria)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -89,
+      "region": 8,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C4sodwdiogc"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C2748dpaw6q",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fkl1udag4mx",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/cssmin.js",
+      "start_line": 11,
+      "end_line": 21,
+      "size_lines": 11,
+      "signature_hint": "module.exports = function(grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -89,
+      "region": 102,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cure24tbie6",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4rpd6lezdl",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/uglify.js",
+      "start_line": 12,
+      "end_line": 22,
+      "size_lines": 11,
+      "signature_hint": "module.exports = function(grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -89,
+      "region": 107,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6ootyf2ygx",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Flxqbmaevz7",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/buildProd.js",
+      "start_line": 1,
+      "end_line": 11,
+      "size_lines": 11,
+      "signature_hint": "module.exports = function (grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -89,
+      "region": 110,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ca8t7gb5dxm",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fvzqoygoay2",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/prod.js",
+      "start_line": 1,
+      "end_line": 11,
+      "size_lines": 11,
+      "signature_hint": "module.exports = function (grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -89,
+      "region": 116,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvdorumtuo4",
+      "qualified_name": "readabilify",
+      "simple_name": "readabilify",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fayvm9zqs9x",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/responses/serverError.js",
+      "start_line": 65,
+      "end_line": 73,
+      "size_lines": 9,
+      "signature_hint": "function readabilify(value)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 24,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cx7vivr0kk1",
+      "qualified_name": "specialCases",
+      "simple_name": "specialCases",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Feot0x4xyjf",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/driver/template.js",
+      "start_line": 42,
+      "end_line": 50,
+      "size_lines": 9,
+      "signature_hint": "function specialCases(card, context)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 21,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ccwv65bi8wp"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccsi2hwoo02",
+      "qualified_name": "moveTo",
+      "simple_name": "moveTo",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fx9arzrje54",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.area.js",
+      "start_line": 103,
+      "end_line": 111,
+      "size_lines": 9,
+      "signature_hint": "this.moveTo = function(area, id, e)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 62,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Chzv80awhgp",
+      "qualified_name": "moveFrom",
+      "simple_name": "moveFrom",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fx9arzrje54",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.area.js",
+      "start_line": 113,
+      "end_line": 121,
+      "size_lines": 9,
+      "signature_hint": "this.moveFrom = function(area, id, e)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 63,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C13j32hi5qge",
+      "qualified_name": "onUpdate",
+      "simple_name": "onUpdate",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F11a39rhrr4p",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.area.library.js",
+      "start_line": 70,
+      "end_line": 78,
+      "size_lines": 9,
+      "signature_hint": "this.onUpdate = function(cards)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 71,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cr9xnrrcg74",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fg9yxeg3ztm",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/config/clean.js",
+      "start_line": 12,
+      "end_line": 20,
+      "size_lines": 9,
+      "signature_hint": "module.exports = function(grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 98,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ct7rxwg15qv",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14bj5i6e4ch",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/compileAssets.js",
+      "start_line": 1,
+      "end_line": 9,
+      "size_lines": 9,
+      "signature_hint": "module.exports = function (grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 111,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cb4tfisgb6g",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fpprixiv1gu",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/build.js",
+      "start_line": 1,
+      "end_line": 8,
+      "size_lines": 8,
+      "signature_hint": "module.exports = function (grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -92,
+      "region": 109,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccym63gpgwv",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fw5mikoyypf",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/syncAssets.js",
+      "start_line": 1,
+      "end_line": 8,
+      "size_lines": 8,
+      "signature_hint": "module.exports = function (grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -92,
+      "region": 117,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Clalmn3qvr9",
+      "qualified_name": "invokeConfigFn",
+      "simple_name": "invokeConfigFn",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F60r8nv5u9k",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/Gruntfile.js",
+      "start_line": 57,
+      "end_line": 63,
+      "size_lines": 7,
+      "signature_hint": "function invokeConfigFn(tasks)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -93,
+      "region": 0,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C63fbsqx0yw"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C7h5rd8w0wi",
+      "qualified_name": "_renderListItem",
+      "simple_name": "_renderListItem",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fipwvok1gg4",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/simple/lobby.js",
+      "start_line": 47,
+      "end_line": 53,
+      "size_lines": 7,
+      "signature_hint": "function _renderListItem(game)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -93,
+      "region": 92,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cuk7qvd65bk",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6h1m3xapbc",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/linkAssets.js",
+      "start_line": 1,
+      "end_line": 7,
+      "size_lines": 7,
+      "signature_hint": "module.exports = function (grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -93,
+      "region": 113,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxq01aechm3",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F11ub6uynai8",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/linkAssetsBuild.js",
+      "start_line": 1,
+      "end_line": 7,
+      "size_lines": 7,
+      "signature_hint": "module.exports = function (grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -93,
+      "region": 114,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cbmqegmi5b4",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F179bgjw6q4i",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/linkAssetsBuildProd.js",
+      "start_line": 1,
+      "end_line": 7,
+      "size_lines": 7,
+      "signature_hint": "module.exports = function (grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -93,
+      "region": 115,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C72b1d89dv5",
+      "qualified_name": "loadTasks",
+      "simple_name": "loadTasks",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F60r8nv5u9k",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/Gruntfile.js",
+      "start_line": 46,
+      "end_line": 51,
+      "size_lines": 6,
+      "signature_hint": "function loadTasks(relPath)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -94,
+      "region": 0,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C63fbsqx0yw"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cityeeospmp",
+      "qualified_name": "searchByNameAndSet",
+      "simple_name": "searchByNameAndSet",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F138guv921je",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/libraries/Card.js",
+      "start_line": 73,
+      "end_line": 78,
+      "size_lines": 6,
+      "signature_hint": "this.searchByNameAndSet = function(name, set)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -94,
+      "region": 10,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cm5138ywmw7"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccbl1bayf7c",
+      "qualified_name": "finished",
+      "simple_name": "finished",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fgjvjpc0cq3",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/scripts/magiccards-sets.js",
+      "start_line": 26,
+      "end_line": 30,
+      "size_lines": 5,
+      "signature_hint": "function finished()",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 97,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1wrddbyoel",
+      "qualified_name": "post",
+      "simple_name": "post",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fwhpo6vr4j6",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/sails.io.js",
+      "start_line": 54,
+      "end_line": 56,
+      "size_lines": 3,
+      "signature_hint": "Socket.prototype.post = function (url, data, cb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 26,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C5l2ndhzis",
+      "qualified_name": "put",
+      "simple_name": "put",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fwhpo6vr4j6",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/sails.io.js",
+      "start_line": 70,
+      "end_line": 72,
+      "size_lines": 3,
+      "signature_hint": "Socket.prototype.put = function (url, data, cb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 27,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cbrblen0eo5",
+      "qualified_name": "selectCard",
+      "simple_name": "selectCard",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fx9arzrje54",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/playground/playground.area.js",
+      "start_line": 123,
+      "end_line": 125,
+      "size_lines": 3,
+      "signature_hint": "this.selectCard = function(id)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 64,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C69wa2z79v0",
+      "qualified_name": "_destroyListItem",
+      "simple_name": "_destroyListItem",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fipwvok1gg4",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/simple/lobby.js",
+      "start_line": 56,
+      "end_line": 58,
+      "size_lines": 3,
+      "signature_hint": "function _destroyListItem(id)",
+      "category": "unreachable-from-roots",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 93,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnbpt5qy3d2",
+      "qualified_name": "exports",
+      "simple_name": "exports",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fo4o67x7w4v",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/tasks/register/default.js",
+      "start_line": 1,
+      "end_line": 3,
+      "size_lines": 3,
+      "signature_hint": "module.exports = function (grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 112,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cwppj0uge8h",
+      "qualified_name": "default",
+      "simple_name": "default",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F60r8nv5u9k",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/Gruntfile.js",
+      "start_line": 74,
+      "end_line": 74,
+      "size_lines": 1,
+      "signature_hint": "registerDefinitions.default = function (grunt)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -99,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cudqm6zpvjv",
+      "qualified_name": "getByIdArray",
+      "simple_name": "getByIdArray",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F138guv921je",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/libraries/Card.js",
+      "start_line": 47,
+      "end_line": 63,
+      "size_lines": 17,
+      "signature_hint": "this.getByIdArray = function(card_array)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -383,
+      "region": 9,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 2
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cfuo7oxxou6",
+      "qualified_name": "renderSearch",
+      "simple_name": "renderSearch",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Feot0x4xyjf",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/driver/template.js",
+      "start_line": 76,
+      "end_line": 81,
+      "size_lines": 6,
+      "signature_hint": "this.renderSearch = function(card, index_override)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 43,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Copn0in7qr3",
+      "qualified_name": "searchByName",
+      "simple_name": "searchByName",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F138guv921je",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/libraries/Card.js",
+      "start_line": 66,
+      "end_line": 70,
+      "size_lines": 5,
+      "signature_hint": "this.searchByName = function(name)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 10,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cm5138ywmw7"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cpa426pajk0",
+      "qualified_name": "getSetInfo",
+      "simple_name": "getSetInfo",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13zn6nqc7kc",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/libraries/Set.js",
+      "start_line": 20,
+      "end_line": 24,
+      "size_lines": 5,
+      "signature_hint": "this.getSetInfo = function(set_code)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 15,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 2
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Csckx113rpz",
+      "qualified_name": "getSetsInfo",
+      "simple_name": "getSetsInfo",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13zn6nqc7kc",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/libraries/Set.js",
+      "start_line": 27,
+      "end_line": 29,
+      "size_lines": 3,
+      "signature_hint": "this.getSetsInfo = function()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 16,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 2
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4sodwdiogc",
+      "qualified_name": "getCards",
+      "simple_name": "getCards",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13zn6nqc7kc",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/libraries/Set.js",
+      "start_line": 32,
+      "end_line": 34,
+      "size_lines": 3,
+      "signature_hint": "this.getCards = function(set_code)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 8,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Clpfj7pr3vv",
+      "qualified_name": "currentDriver",
+      "simple_name": "currentDriver",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fs3f5crum2p",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/driver/magiccards.info.js",
+      "start_line": 139,
+      "end_line": 146,
+      "size_lines": 8,
+      "signature_hint": "this.currentDriver = function(card)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -592,
+      "region": 36,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "currentDriver",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Feot0x4xyjf",
+            "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/driver/template.js",
+            "line": 17,
+            "name": "currentDriver",
+            "receiver_hint": "this"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6mpq231jyf",
+      "qualified_name": "currentDriver",
+      "simple_name": "currentDriver",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F3a3whd0oln",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/driver/mtgimage.js",
+      "start_line": 21,
+      "end_line": 27,
+      "size_lines": 7,
+      "signature_hint": "this.currentDriver = function(card)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -593,
+      "region": 37,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "currentDriver",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Feot0x4xyjf",
+            "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/driver/template.js",
+            "line": 17,
+            "name": "currentDriver",
+            "receiver_hint": "this"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1012pfc5dsq",
+      "qualified_name": "get",
+      "simple_name": "get",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F138guv921je",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/api/libraries/Card.js",
+      "start_line": 27,
+      "end_line": 31,
+      "size_lines": 5,
+      "signature_hint": "this.get = function(id)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -595,
+      "region": 7,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "get",
+          "sites": 11,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd6ym9l871",
+            "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/deck-builder/controller.js",
+            "line": 174,
+            "name": "get",
+            "receiver_hint": "this"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C9ork4kh3ce",
+      "qualified_name": "get",
+      "simple_name": "get",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fwhpo6vr4j6",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/sails.io.js",
+      "start_line": 38,
+      "end_line": 40,
+      "size_lines": 3,
+      "signature_hint": "Socket.prototype.get = function (url, data, cb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -597,
+      "region": 25,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "get",
+          "sites": 11,
+          "reason": "candidates-in-other-files",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fd6ym9l871",
+            "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/deck-builder/controller.js",
+            "line": 174,
+            "name": "get",
+            "receiver_hint": "this"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cno2nc8frp4",
+      "qualified_name": "currentDriver",
+      "simple_name": "currentDriver",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Frk13ekad55",
+      "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/driver/gatherer.js",
+      "start_line": 18,
+      "end_line": 20,
+      "size_lines": 3,
+      "signature_hint": "this.currentDriver = function(card)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -597,
+      "region": 35,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "currentDriver",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Feot0x4xyjf",
+            "path": "/storage/cgg-test_repos/app-mtgnode-sails/assets/js/src/driver/template.js",
+            "line": 17,
+            "name": "currentDriver",
+            "receiver_hint": "this"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

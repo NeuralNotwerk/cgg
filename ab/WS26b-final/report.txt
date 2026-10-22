@@ -1,0 +1,18 @@
+old: cgg 0.11.0 (dev gac2f62f)  sha256=6269cf313e6ae31639ca398be1e6a29fa9f9839f1aacff91df611cf01e669062
+new: cgg 0.11.0 (dev gac2f62f+d87bc6fb)  sha256=d419363c2a775050b85d8e9372f8d4371bd66d3585eb8c5a1fa3a1fca5a83a56
+old=target/remediation/bins/WS27-perl-before
+new=target/remediation/bins/WS26b-final2
+repos=283 elapsed=308s
+excluded (timeout/error, NOT diffed): 1
+  zig-zig: graph rc old=124 new=124
+repos changed: 9
+  app-cardmgmt-giraffe: edges 99->160 (-0 +61 ~0) callables 188->192 unresolved 95->102 files 26->26 deadhigh 0->0 
+  app-fsautocomplete-expecto: edges 3692->5290 (-111 +1709 ~4) callables 2569->2677 unresolved 3030->4705 files 378->378 deadhigh 0->0 
+  app-fssnip-suave: edges 145->157 (-0 +12 ~0) callables 265->266 unresolved 491->495 files 36->36 deadhigh 0->0 
+  app-orleans-samples: edges 15687->15687 (-0 +0 ~0) callables 20780->20783 unresolved 21183->21183 files 3175->3175 deadhigh 56->56 
+  app-swate-saturn: edges 11451->11633 (-4 +186 ~4) callables 5116->5124 unresolved 7266->8980 files 649->649 deadhigh 0->0 
+  app-zpool-opium: edges 9323->9317 (-6 +0 ~0) callables 20127->20127 unresolved 3766->3772 files 895->895 deadhigh 0->0 
+  fsharp-paket: edges 8783->9453 (-7 +677 ~4) callables 3920->3944 unresolved 5232->6519 files 494->494 deadhigh 0->0 
+  ocaml-dune: edges 14581->14569 (-12 +0 ~0) callables 29797->29797 unresolved 78588->78598 files 4759->4759 deadhigh 0->0 
+  rust-bat: edges 2925->2928 (-0 +3 ~0) callables 1981->1981 unresolved 2078->2078 files 176->176 deadhigh 3->3 
+by language: see by_language.tsv

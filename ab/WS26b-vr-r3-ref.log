@@ -1,0 +1,13 @@
+repos 283 excluded [('zig-zig', (124, 0))]
+added 12345
+  ('fsharp', '{"kind": "direct"}', 'high') 1063
+  ('fsharp', '{"kind": "direct"}', 'medium') 1003
+  ('fsharp', '{"kind": "reference"}', 'high') 1291
+  ('fsharp', '{"kind": "reference"}', 'medium') 542
+  ('haskell', '{"kind": "reference"}', 'high') 4905
+  ('haskell', '{"kind": "reference"}', 'medium') 685
+  ('ocaml', '{"kind": "reference"}', 'high') 2129
+  ('ocaml', '{"kind": "reference"}', 'medium') 727
+dropped 18
+  ('ocaml', '{"kind": "direct"}', 'high') 5
+  ('ocaml', '{"kind": "direct"}', 'medium') 13

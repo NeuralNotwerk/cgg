@@ -1,0 +1,5178 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "haskell",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "full",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "builtin:main",
+        "framework:entry-node",
+        "framework:test-harness",
+        "toplevel:invocation"
+      ],
+      "files": 32,
+      "callables": 541,
+      "roots": 13,
+      "reachable": 30,
+      "reachable_pct": 5,
+      "findings": 72
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 541,
+    "edges": 797,
+    "unresolved_call_sites": 114,
+    "roots": 13,
+    "candidates": 508,
+    "reported": 72,
+    "regions": 109,
+    "withheld": [
+      {
+        "language": "haskell",
+        "category": "reachable-only-from-dead-code",
+        "reason": "low-root-coverage",
+        "would_have_reported": 314
+      },
+      {
+        "language": "haskell",
+        "category": "only-used-by-tests",
+        "reason": "missing-signal",
+        "would_have_reported": 13
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "C10fz2bsxk13",
+      "qualified_name": "main",
+      "language": "haskell",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "C933b40l8uc",
+      "qualified_name": "Main.main",
+      "language": "haskell",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cwixi302yw0",
+      "qualified_name": "Feature.Common.HTTP.e",
+      "language": "haskell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-realworld-scotty/src/Feature/Common/HTTP.hs:43"
+    },
+    {
+      "id": "Cwwyzy3skep",
+      "qualified_name": "Feature.Common.Util.e",
+      "language": "haskell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-realworld-scotty/src/Feature/Common/HTTP.hs:43"
+    },
+    {
+      "id": "Cplkyaataox",
+      "qualified_name": "Feature.User.HTTP.a",
+      "language": "haskell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/HTTP.hs:96"
+    },
+    {
+      "id": "C88fiape0rd",
+      "qualified_name": "Lib.main",
+      "language": "haskell",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "C15iqgf1yyxb",
+      "qualified_name": "Misc.Client.r",
+      "language": "haskell",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-realworld-scotty/src/Misc/Client.hs:205"
+    },
+    {
+      "id": "C16i1ua30aa3",
+      "qualified_name": "Platform.HTTP.main",
+      "language": "haskell",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "C1m7fmi36se",
+      "qualified_name": "main",
+      "language": "haskell",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Ct6kp9an691",
+      "qualified_name": "Spec.Article.spec",
+      "language": "haskell",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::hspec`"
+    },
+    {
+      "id": "Cfupid8i9sf",
+      "qualified_name": "Spec.Comment.spec",
+      "language": "haskell",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::hspec`"
+    },
+    {
+      "id": "Cq3665u9g78",
+      "qualified_name": "Spec.User.spec",
+      "language": "haskell",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::hspec`"
+    },
+    {
+      "id": "Cbnkkmxwbhu",
+      "qualified_name": "<framework-entry>::test::hspec",
+      "language": "haskell",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::hspec`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 2,
+      "members": [
+        "Ckd3p3xr9vy",
+        "C6x2iaet5kj",
+        "Cqmu4pegx01",
+        "C16n7q97098s",
+        "Ci1svypsqb6",
+        "C11cjv4ko02y",
+        "C181m51lf3k9",
+        "C8oihgzkugh",
+        "Cl18rou1ewx",
+        "Cyj6ylyjuaj",
+        "Cfe7u71kwai",
+        "Cqcixu5mism",
+        "Cz4mnnemcg9",
+        "Cm1j9r8pg8f",
+        "Cuzko0zpsig",
+        "Cbpg2quj1re",
+        "C13dorouihph",
+        "Cn3bywvczcx",
+        "Cia2h19lzno",
+        "C62vvlg6em6",
+        "Cmylap02dio",
+        "Ctk61jds2qg",
+        "C9vwlsyn46n",
+        "C2pxkgsu6ef",
+        "C12fxdww6d4p",
+        "Cjjchr45nju",
+        "Cpeo7sugzwu",
+        "C1067ojtjgc7",
+        "C6jdc3rn4i2",
+        "C11b6b42mpqg",
+        "Cmbn6f393un",
+        "Cukqmjajf8t",
+        "Cobidv2qc9a",
+        "Cg0at30sfef",
+        "Cxrb4yv6zp1",
+        "Ckqud3ti3am",
+        "Cfcwqu3wtal",
+        "C6r93k2mcaj",
+        "C3echnudq8y",
+        "Cawx4bq2ag9",
+        "C17ulc34ug89",
+        "Cnv3yrgwssi",
+        "Cqgdavzm6zr",
+        "C67cd4h0exr",
+        "C16ep84rzkw3",
+        "Cgr3ovrt17x",
+        "Cjatre06y6l",
+        "C1188jps223v",
+        "Cqmik40ptgb",
+        "Ctzdejj9xvd",
+        "C4x34lbven7",
+        "Cwjt5nbsfqh",
+        "Cn44frtupo7",
+        "C8ctfiltvkb",
+        "C10dykgt4r31",
+        "C4ncjnovgxq",
+        "Cv9flm82302",
+        "Cds6aontmrz",
+        "C3s2eiq0sxt",
+        "Cnqogx2m78z",
+        "Cwo4y9o4fh8",
+        "Cgsapwqjl88",
+        "Citq5n8z0eq",
+        "C8af796pxjt",
+        "Ckaz4kv437f",
+        "Ct6u5t3a4f6",
+        "Cvxxmi2ae47",
+        "Crmn93jntiw",
+        "Cx17ctvnmec",
+        "C8gyfm8ey6n",
+        "Cs3swol1s81",
+        "Cni1wxngz1p",
+        "C6ffvdxre79",
+        "Clxsx9f7o90",
+        "Cdudyw5aaz3",
+        "Cnwgyfabkft",
+        "Csmuyhki093",
+        "Ck7e3e7a28t",
+        "Crl06pjuk2i",
+        "Cv7w0gqb615",
+        "Ctjf17x5cbr",
+        "C8nr7fdg8u",
+        "C3r6ytxlpi7",
+        "Cm34tldfx09",
+        "C10up9fh5w30",
+        "Cqtl00lln1l",
+        "Cdh3omx6d6q",
+        "Coi96zev19n",
+        "Cw4f90jw6tt",
+        "C9cbiezfkfy",
+        "C5img8o2ixq",
+        "Cemyczs4n0n",
+        "C16vxpub93pa",
+        "C608oo3yjo9",
+        "Cqfdo60xdo1",
+        "Cvxqfpvekxh",
+        "Css6t2d28rh",
+        "Cza0ol1wz31",
+        "C10yyiq7ywb2",
+        "C15mdfdtspvg",
+        "Cn4rvqw5olg",
+        "C12mtjoolimd",
+        "Cyygz0h4eeb",
+        "Cv7rk6v8vjb",
+        "C126mp90ai53",
+        "Co8hp8n0al5",
+        "C11jii4uugdz",
+        "Ci02vs4yom6",
+        "Cr8urbga6w",
+        "C11ek9rerlck",
+        "Cnhvllh825w",
+        "Cpzzay8neh",
+        "Cve3ok8yxzq",
+        "Ccdtjvk89m5",
+        "Ccsl6txowqm",
+        "C16audrftvdl",
+        "Ck8nq8egdor",
+        "C80bhyl7c90",
+        "C11k8j8b06gc",
+        "Cseo35t4g4p",
+        "Cvsrbur0vzv",
+        "Ci9hwmqp669",
+        "C9awty6mlfw",
+        "Ccfue7r4gny",
+        "Cmer1fgje5a",
+        "C1z0501zij0",
+        "C1322j7k90p6",
+        "Crv79stdczu",
+        "C88ldyv7bpi",
+        "Cgm24joe52s",
+        "Chpq746510j",
+        "C167f29gogt3",
+        "C9g6h6l0g3g",
+        "C7ulyzp7xyk",
+        "Ckotjns2wpo",
+        "C11mfk8mlycu",
+        "C7y6jms1i2c",
+        "Csexs0336ip",
+        "C80g8ujh02r",
+        "Ccaigh2j72q",
+        "Ccaevq46c76",
+        "Clgkqms7em8",
+        "C13t1zc9t3rw",
+        "Ct4kmujsl25",
+        "C15yaeisjs5t",
+        "C139xh9nbx0o",
+        "Cakrxhlu2tw",
+        "C3fsfwgq4zw",
+        "C13yd4jvrtac",
+        "C10ys03mr8ke",
+        "C8kquz38hbj",
+        "Cll7zhakf05",
+        "C91o7xubg7u",
+        "Cpq2zx9qwio",
+        "C14qvhdycsxt",
+        "C17erpi6jkpz",
+        "Cz9dwcahqns",
+        "Ctnt5h31e5q",
+        "Cwhclt59fd2",
+        "C10e4077jyux",
+        "Cux3gczjk8b",
+        "C8cilq0om8q",
+        "Celjha438hj",
+        "C103q2itkx50",
+        "C8f88u1c3vt",
+        "Cgy6dpcpp85",
+        "Cqfncvud9mb",
+        "Czftm1oyr3p",
+        "C40v5t1pfds",
+        "C7uwuvdp6uy",
+        "Cdarjbfe3m",
+        "C48mimheyan",
+        "Ctxjfwmcmp4",
+        "Cuj8ir2ji7q",
+        "C108hbgufzvi",
+        "Cbz5cacdppp",
+        "Clouxmgl9i6",
+        "Cd9cnnl5q0f",
+        "Ccx8ayzqmfr",
+        "Csiyzv8tkb6",
+        "C151tqtbr1ch",
+        "Ccgo6jxlkd8",
+        "Crrcyhdh1hj",
+        "Cyhzydtmiim",
+        "Cej31z0pzw3",
+        "Cnz4dh19oex",
+        "Cqz48lth38v",
+        "C6jbmsefwgo",
+        "C14l37tomuu7",
+        "Cyetsn47f04",
+        "Cng5vrglfbr",
+        "Czked3xzmlw",
+        "Cno578m2v6j",
+        "C17i9io04rh6",
+        "Cne7b96teq3",
+        "C3xliuwffqe",
+        "Cmcvwldnyde",
+        "Cvfzsujwyqw",
+        "Csg8jel81mo",
+        "Cmx8cuu0nfh",
+        "C32mnhcnzow",
+        "Ckne4lmm837",
+        "Cel3cbmf36o",
+        "Cpaflnkzdjv",
+        "Cyx35ple3qo",
+        "C17nwuec05ps",
+        "Cqonkgyxxij",
+        "Cg0ttlgzfk2",
+        "C16jw7qosd3w",
+        "C8awuwzf846",
+        "Cbuxh3xfgm",
+        "C3x31twzg0h",
+        "Cuuj7c3v6rm",
+        "C10o8rq7hi0z",
+        "Chbg6m1icc1",
+        "C24ytmc2ab3",
+        "C12lsavirqcw",
+        "Cf757sn346z",
+        "C8ci04k7afo",
+        "C15t762k6win",
+        "C16uxfvm6wmd",
+        "Cycwm5kn0ex",
+        "Cxjkfsgmr5r",
+        "C11kbsp7wmny",
+        "C10puxk5oa8g",
+        "C10hc3jaekp6",
+        "C123allogubn",
+        "C1766a2jxed8",
+        "Cen11w2t47i",
+        "Cnlmzbawi6z",
+        "Ct6o5ue4vv1",
+        "C9r9hkulu7f",
+        "Czv5rnrxsnh",
+        "Cddwxc7qdtq",
+        "C9z4tvqe3ti",
+        "C12p2fz1sqsa",
+        "Clvyg43onnn",
+        "Czyxto6bail",
+        "C152q2l5jr2p",
+        "Cjh5u1330jo",
+        "Cyzi3gz6rko",
+        "Cx9k72c84e",
+        "Cb8qpt7qdiy",
+        "Cabd6c1eaaj",
+        "C125h3sgu6fz",
+        "Cfsyfk02c87",
+        "Cyjh0v1kkh6",
+        "C174lfer5poc",
+        "Cj250sfjysa",
+        "Cfwx6mm4jyo",
+        "Ciw0rewfqzd",
+        "Cqz8kegaipc",
+        "C3lvdu7fhzw",
+        "Coho4yqexp0",
+        "Coztxa4at2i",
+        "C1713k4svkvh",
+        "Czkgu5n3bjh",
+        "C16a6dhkm8sr",
+        "C2j183e97yw",
+        "C62vo8nym1e",
+        "C120gjy64491",
+        "Cx16ic1teep",
+        "Ch5wxam57y2",
+        "C1588ctluhi1",
+        "Cxjftgbktw1",
+        "Cb1kp6gn2ue",
+        "Cxzptbhjhfd",
+        "Cv8tikynq45",
+        "C10fb4fs3a9c",
+        "C10gn5jlojpg",
+        "Cfz6tphdoc7",
+        "C2m9teltg9z",
+        "Co9ompg4i69",
+        "Cmryogl74iv",
+        "C15wf21w43u7",
+        "C162d5h5rwgd",
+        "Cgj9936y976",
+        "C12sxd7664kj",
+        "C3k5p79zldm",
+        "C16eop8hujf5",
+        "Cmzprymhh03",
+        "Cj2zi23xutt",
+        "Cbubzges8ma",
+        "Czwlguuwkv",
+        "C136dbhaquls",
+        "Coxz3aku8vp",
+        "Cerxtmt1qii",
+        "Cyjr1m05k6g",
+        "C17j192tkmeo",
+        "Cstw1mhw70r",
+        "Ctczbk6nn1l",
+        "Clgbds7a6wx",
+        "C10ltlhd5e8a",
+        "Cbvmincp6cc",
+        "Ca7kcjsuv5w",
+        "Cdvpwohcwfl",
+        "Cswjj1xx5il",
+        "C73umtht9jq",
+        "Cz12xcsdekh",
+        "C111kj0f8kd2",
+        "Cf2p5z1l6ao",
+        "Cy8e7762r8a",
+        "C135nxnuto5m",
+        "Ccdk0o2cnpw",
+        "Cncx9ylcvai",
+        "C3pxql5uw7u",
+        "Caa0qe03lqj",
+        "C3lhy68vk2u",
+        "C4hv8kwgt42",
+        "Cptaxxac8oh",
+        "Ctm7514918g",
+        "C16811nj80ut",
+        "Ck4bx3vp9jp",
+        "Ca801rycrj2",
+        "Crok9f8d8iq",
+        "Cj3d1ad1avu",
+        "Cr1v0tqle9u",
+        "Cneki6dyfmf",
+        "C11uy3cz0qc9",
+        "C8zoa68a562",
+        "C10htp342ym2",
+        "C986hkdjqav",
+        "C67rwv412yj",
+        "C12yvby1jewj",
+        "C12wksb2r85f",
+        "Ckx16b9vj1h",
+        "Csf2vbe8rg",
+        "C15u4er8dwb",
+        "Cbs7x55rf7p",
+        "C17sc092qmie",
+        "C6oay27svxt",
+        "Ch4cl810q7f",
+        "Cd4fbliq0y8",
+        "Cbdbw9itso2",
+        "Cp7qjjyf3ji",
+        "Cmy8dtfvgjm",
+        "C10fc3j4hjay",
+        "C6jub3ac7p"
+      ],
+      "anchors": [
+        "Ckd3p3xr9vy",
+        "C11cjv4ko02y",
+        "C8oihgzkugh",
+        "Cyj6ylyjuaj",
+        "Cfe7u71kwai",
+        "Cqcixu5mism",
+        "Cz4mnnemcg9",
+        "Cm1j9r8pg8f",
+        "Cuzko0zpsig",
+        "C12fxdww6d4p",
+        "Cxrb4yv6zp1",
+        "C67cd4h0exr",
+        "C10dykgt4r31",
+        "Cds6aontmrz",
+        "C8af796pxjt",
+        "C8gyfm8ey6n",
+        "C10up9fh5w30",
+        "Cqfdo60xdo1",
+        "C126mp90ai53",
+        "Ci02vs4yom6",
+        "Cr8urbga6w",
+        "Cnhvllh825w",
+        "Cpzzay8neh",
+        "Cve3ok8yxzq",
+        "Ccsl6txowqm",
+        "C16audrftvdl",
+        "Ck8nq8egdor",
+        "C7ulyzp7xyk",
+        "C7y6jms1i2c",
+        "C10ys03mr8ke",
+        "C91o7xubg7u",
+        "Cux3gczjk8b",
+        "Cmryogl74iv",
+        "Cmzprymhh03",
+        "Cj2zi23xutt",
+        "Cbubzges8ma",
+        "Czwlguuwkv",
+        "C136dbhaquls",
+        "Coxz3aku8vp",
+        "Cerxtmt1qii",
+        "Cyjr1m05k6g",
+        "C17j192tkmeo",
+        "Cstw1mhw70r",
+        "Ctczbk6nn1l",
+        "Clgbds7a6wx",
+        "C10ltlhd5e8a",
+        "Cbvmincp6cc",
+        "Ca7kcjsuv5w",
+        "Cdvpwohcwfl",
+        "Cswjj1xx5il",
+        "C73umtht9jq",
+        "C111kj0f8kd2",
+        "Cf2p5z1l6ao",
+        "Cy8e7762r8a",
+        "C135nxnuto5m",
+        "Ccdk0o2cnpw",
+        "Cncx9ylcvai",
+        "C3lhy68vk2u",
+        "C4hv8kwgt42",
+        "Ck4bx3vp9jp",
+        "Crok9f8d8iq",
+        "Cj3d1ad1avu",
+        "Cr1v0tqle9u",
+        "C986hkdjqav",
+        "C67rwv412yj",
+        "C12wksb2r85f",
+        "Ckx16b9vj1h",
+        "Csf2vbe8rg",
+        "C15u4er8dwb",
+        "Cbs7x55rf7p",
+        "C17sc092qmie",
+        "Cd4fbliq0y8",
+        "C10fc3j4hjay",
+        "C6jub3ac7p"
+      ],
+      "files": [
+        "Ftejusqzq02",
+        "F14eteuojqx6",
+        "Fqv4vdt4ixs",
+        "Fuhof45gh41",
+        "Fp49iy1qajx",
+        "Fclaonwpk6j",
+        "Fdktlii07ux",
+        "F15fobdqnjq8",
+        "Fi7rk98thj0",
+        "Fr5v0oscdw8",
+        "Febb751angk",
+        "Ffrbkvli3n2",
+        "Flj71q7ee3h",
+        "Fy2yvi0zgn8",
+        "F4ebikoadee",
+        "Ftq8zigcbje",
+        "F18a2434zd35",
+        "F3dnil1ilri",
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1225,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 7,
+      "members": [
+        "C6uy6sd9366"
+      ],
+      "anchors": [
+        "C6uy6sd9366"
+      ],
+      "files": [
+        "Ftejusqzq02"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 8,
+      "members": [
+        "Clxts412o5k"
+      ],
+      "anchors": [
+        "Clxts412o5k"
+      ],
+      "files": [
+        "Ftejusqzq02"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 10,
+      "members": [
+        "C710wvoihae"
+      ],
+      "anchors": [
+        "C710wvoihae"
+      ],
+      "files": [
+        "Ftejusqzq02"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 13,
+      "members": [
+        "C17rvhzkzoru"
+      ],
+      "anchors": [
+        "C17rvhzkzoru"
+      ],
+      "files": [
+        "Ftejusqzq02"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 16,
+      "members": [
+        "Cqi8cnqw0la"
+      ],
+      "anchors": [
+        "Cqi8cnqw0la"
+      ],
+      "files": [
+        "Ftejusqzq02"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 17,
+      "members": [
+        "Cn3gbl5iv5v"
+      ],
+      "anchors": [
+        "Cn3gbl5iv5v"
+      ],
+      "files": [
+        "Ftejusqzq02"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 20,
+      "members": [
+        "C1444ht13bdt"
+      ],
+      "anchors": [
+        "C1444ht13bdt"
+      ],
+      "files": [
+        "Ftejusqzq02"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 21,
+      "members": [
+        "Cm0unbra1ww"
+      ],
+      "anchors": [
+        "Cm0unbra1ww"
+      ],
+      "files": [
+        "Ftejusqzq02"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 22,
+      "members": [
+        "Cehz0dpj0vt"
+      ],
+      "anchors": [
+        "Cehz0dpj0vt"
+      ],
+      "files": [
+        "Ftejusqzq02"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 23,
+      "members": [
+        "Cba2s5edxsi"
+      ],
+      "anchors": [
+        "Cba2s5edxsi"
+      ],
+      "files": [
+        "Ftejusqzq02"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 25,
+      "members": [
+        "Ck81x4bt6ir"
+      ],
+      "anchors": [
+        "Ck81x4bt6ir"
+      ],
+      "files": [
+        "Ftejusqzq02"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 26,
+      "members": [
+        "C36hcekuy1f"
+      ],
+      "anchors": [
+        "C36hcekuy1f"
+      ],
+      "files": [
+        "Ftejusqzq02"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 30,
+      "members": [
+        "Cmd27991xnm",
+        "Clsn09bbb3a"
+      ],
+      "anchors": [
+        "Clsn09bbb3a"
+      ],
+      "files": [
+        "Ftejusqzq02"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 40,
+      "members": [
+        "Cjvpmjjxqf8",
+        "Cjbm4ewt3yj",
+        "C8mqeai99tu"
+      ],
+      "anchors": [
+        "Cjbm4ewt3yj"
+      ],
+      "files": [
+        "F14eteuojqx6",
+        "Fqv4vdt4ixs",
+        "Flj71q7ee3h"
+      ],
+      "total_lines": 10,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 72,
+      "members": [
+        "C4bo005dlhq"
+      ],
+      "anchors": [],
+      "files": [
+        "Fpcjups5i8x"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 73,
+      "members": [
+        "Ckf8egr0zcn",
+        "Caqbrtt6aht",
+        "C16t12gzxhdz",
+        "Cgrs4dcuq9i",
+        "Cjsvlopwmtk",
+        "Ctadrmiy8w1",
+        "Chaffk68y7e",
+        "Cgn253bqwya",
+        "Cjvfed2iam9",
+        "Cirucy9xx6a",
+        "Cozq72twr47",
+        "Cp96oeanff5"
+      ],
+      "anchors": [
+        "Cjsvlopwmtk"
+      ],
+      "files": [
+        "Fuhof45gh41",
+        "F17tsrrr87rb",
+        "Flj71q7ee3h"
+      ],
+      "total_lines": 33,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 92,
+      "members": [
+        "Cnmzpjwcq2n"
+      ],
+      "anchors": [
+        "Cnmzpjwcq2n"
+      ],
+      "files": [
+        "Fp49iy1qajx"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 93,
+      "members": [
+        "Ckw789tnw5g"
+      ],
+      "anchors": [
+        "Ckw789tnw5g"
+      ],
+      "files": [
+        "Fp49iy1qajx"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 95,
+      "members": [
+        "Cblldefb3vz"
+      ],
+      "anchors": [
+        "Cblldefb3vz"
+      ],
+      "files": [
+        "Fp49iy1qajx"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 96,
+      "members": [
+        "Cuj297vnhv3"
+      ],
+      "anchors": [
+        "Cuj297vnhv3"
+      ],
+      "files": [
+        "Fp49iy1qajx"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 128,
+      "members": [
+        "C81xulo6ccn"
+      ],
+      "anchors": [],
+      "files": [
+        "Fzfakhtlp2m"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 139,
+      "members": [
+        "Cviqmmiljp0"
+      ],
+      "anchors": [
+        "Cviqmmiljp0"
+      ],
+      "files": [
+        "F15fobdqnjq8"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 142,
+      "members": [
+        "C10jtnmz5wre"
+      ],
+      "anchors": [
+        "C10jtnmz5wre"
+      ],
+      "files": [
+        "F119ntzydwcf"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 150,
+      "members": [
+        "Cjqga7f08px"
+      ],
+      "anchors": [
+        "Cjqga7f08px"
+      ],
+      "files": [
+        "Fi7rk98thj0"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 153,
+      "members": [
+        "C15w58dpyja"
+      ],
+      "anchors": [
+        "C15w58dpyja"
+      ],
+      "files": [
+        "Fi7rk98thj0"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 156,
+      "members": [
+        "Crdeinfusb"
+      ],
+      "anchors": [
+        "Crdeinfusb"
+      ],
+      "files": [
+        "Fi7rk98thj0"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 157,
+      "members": [
+        "C8tfoe9ueen"
+      ],
+      "anchors": [
+        "C8tfoe9ueen"
+      ],
+      "files": [
+        "Fi7rk98thj0"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 159,
+      "members": [
+        "C1229sfrh77r"
+      ],
+      "anchors": [
+        "C1229sfrh77r"
+      ],
+      "files": [
+        "Fi7rk98thj0"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 160,
+      "members": [
+        "C15frr217mhb"
+      ],
+      "anchors": [
+        "C15frr217mhb"
+      ],
+      "files": [
+        "Fi7rk98thj0"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 213,
+      "members": [
+        "C6omb8qwk91"
+      ],
+      "anchors": [
+        "C6omb8qwk91"
+      ],
+      "files": [
+        "Fl1an9atmp3"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 218,
+      "members": [
+        "C25edmaxh7v"
+      ],
+      "anchors": [],
+      "files": [
+        "Flj71q7ee3h"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 251,
+      "members": [
+        "C8mbslqy9kz"
+      ],
+      "anchors": [
+        "C8mbslqy9kz"
+      ],
+      "files": [
+        "Flj71q7ee3h"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 335,
+      "members": [
+        "Cf87cau2k6w"
+      ],
+      "anchors": [
+        "Cf87cau2k6w"
+      ],
+      "files": [
+        "Fy2yvi0zgn8"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 340,
+      "members": [
+        "Ck5rtliz1i2",
+        "C4rhhn4uv54",
+        "C11ny9zpqfoy",
+        "Cj6d0en1s5z"
+      ],
+      "anchors": [
+        "Ck5rtliz1i2"
+      ],
+      "files": [
+        "Ffaa0m3giin"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 343,
+      "members": [
+        "C5sq8e7s5ly"
+      ],
+      "anchors": [
+        "C5sq8e7s5ly"
+      ],
+      "files": [
+        "Ffaa0m3giin"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 347,
+      "members": [
+        "Cxsj00hrzx8"
+      ],
+      "anchors": [
+        "Cxsj00hrzx8"
+      ],
+      "files": [
+        "Frlndxwaua2"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 349,
+      "members": [
+        "Cs2xl25wdlw",
+        "Cpbpjs5eoze"
+      ],
+      "anchors": [
+        "Cs2xl25wdlw"
+      ],
+      "files": [
+        "Frlndxwaua2"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 351,
+      "members": [
+        "C7whbn6pl87"
+      ],
+      "anchors": [
+        "C7whbn6pl87"
+      ],
+      "files": [
+        "Frlndxwaua2"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 352,
+      "members": [
+        "Cdexgapmwto",
+        "Cyubi4990mc"
+      ],
+      "anchors": [
+        "Cyubi4990mc"
+      ],
+      "files": [
+        "Frlndxwaua2"
+      ],
+      "total_lines": 2,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 355,
+      "members": [
+        "Cijbfj0wyww",
+        "Cy03if5wm27",
+        "C490tstmxku",
+        "C7a1d3h71sm",
+        "Cqztyibbfy6",
+        "C3emp5bolms",
+        "C7vfv1bvcf",
+        "Cu2excare9f",
+        "Cm53u6eeo5r"
+      ],
+      "anchors": [
+        "Cijbfj0wyww"
+      ],
+      "files": [
+        "F15uk34w6bu5"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 364,
+      "members": [
+        "C1181n9b5ziw",
+        "C54ltw6wa8o",
+        "Cqzx39qwk9c",
+        "Cf69ef4hg9p",
+        "Cu5a7gjphj7"
+      ],
+      "anchors": [
+        "C1181n9b5ziw"
+      ],
+      "files": [
+        "F4ebikoadee"
+      ],
+      "total_lines": 12,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 366,
+      "members": [
+        "Cctw9nyglav",
+        "C17a7zwu3lxm",
+        "C12qjyadgr6i"
+      ],
+      "anchors": [
+        "Cctw9nyglav"
+      ],
+      "files": [
+        "F4ebikoadee"
+      ],
+      "total_lines": 6,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 385,
+      "members": [
+        "Cso84m6wwih",
+        "Ceobwflff5a",
+        "C86rt7ei5x7",
+        "Cwy1i85nbq4",
+        "Cethafttkfn",
+        "Cxw6pdw8ifk",
+        "Ch34medz4f",
+        "Cbzvdc9ntq1",
+        "C1kixosodwi",
+        "Cjcqg3bqmcm",
+        "C14ylj85h1zh",
+        "Cu730t91vw2",
+        "Cj9lkn5j4i9"
+      ],
+      "anchors": [
+        "Cso84m6wwih",
+        "Cxw6pdw8ifk",
+        "Cu730t91vw2"
+      ],
+      "files": [
+        "Ftq8zigcbje",
+        "F3dnil1ilri"
+      ],
+      "total_lines": 180,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 388,
+      "members": [
+        "C15dly2vzx7k"
+      ],
+      "anchors": [
+        "C15dly2vzx7k"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 389,
+      "members": [
+        "Cphpxjqgz22"
+      ],
+      "anchors": [
+        "Cphpxjqgz22"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 398,
+      "members": [
+        "Co2xqd77xv8"
+      ],
+      "anchors": [
+        "Co2xqd77xv8"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 399,
+      "members": [
+        "Cdkbrp55wr9"
+      ],
+      "anchors": [
+        "Cdkbrp55wr9"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 401,
+      "members": [
+        "Cuxf8xfwncr"
+      ],
+      "anchors": [
+        "Cuxf8xfwncr"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 402,
+      "members": [
+        "C65uxa2mwls"
+      ],
+      "anchors": [
+        "C65uxa2mwls"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 408,
+      "members": [
+        "Clsx7gbe19g"
+      ],
+      "anchors": [
+        "Clsx7gbe19g"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 409,
+      "members": [
+        "C17v9p7ses7e"
+      ],
+      "anchors": [
+        "C17v9p7ses7e"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 410,
+      "members": [
+        "C4hjij1bk1h"
+      ],
+      "anchors": [
+        "C4hjij1bk1h"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 412,
+      "members": [
+        "Cqgzycrg7b2"
+      ],
+      "anchors": [
+        "Cqgzycrg7b2"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 413,
+      "members": [
+        "Cbqyqthfqn1"
+      ],
+      "anchors": [
+        "Cbqyqthfqn1"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 414,
+      "members": [
+        "Cu5njilwi33"
+      ],
+      "anchors": [
+        "Cu5njilwi33"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 416,
+      "members": [
+        "Ckg0wittgy7"
+      ],
+      "anchors": [
+        "Ckg0wittgy7"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 417,
+      "members": [
+        "C16rva3r9s7y"
+      ],
+      "anchors": [
+        "C16rva3r9s7y"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 421,
+      "members": [
+        "C54f2a3r1ht"
+      ],
+      "anchors": [
+        "C54f2a3r1ht"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 422,
+      "members": [
+        "Cox5qhi9h4i"
+      ],
+      "anchors": [
+        "Cox5qhi9h4i"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 424,
+      "members": [
+        "C8uvvs65uur"
+      ],
+      "anchors": [
+        "C8uvvs65uur"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 425,
+      "members": [
+        "C17bh8m1ouqz"
+      ],
+      "anchors": [
+        "C17bh8m1ouqz"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 427,
+      "members": [
+        "C17n4cblgx3v"
+      ],
+      "anchors": [
+        "C17n4cblgx3v"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 428,
+      "members": [
+        "C389k38i2mi",
+        "Csghytvtinz",
+        "C3y388cwiia",
+        "Cfsmlie25ng"
+      ],
+      "anchors": [
+        "C389k38i2mi"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 51,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 432,
+      "members": [
+        "C211k9l6qe5"
+      ],
+      "anchors": [
+        "C211k9l6qe5"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 436,
+      "members": [
+        "Cmwx4euibno"
+      ],
+      "anchors": [
+        "Cmwx4euibno"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 438,
+      "members": [
+        "Cc7pq3hbcuj"
+      ],
+      "anchors": [
+        "Cc7pq3hbcuj"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 439,
+      "members": [
+        "Cse0z3pqovq"
+      ],
+      "anchors": [
+        "Cse0z3pqovq"
+      ],
+      "files": [
+        "Ftq8zigcbje"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 448,
+      "members": [
+        "Cqv9mm51wsm"
+      ],
+      "anchors": [
+        "Cqv9mm51wsm"
+      ],
+      "files": [
+        "F18a2434zd35"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 451,
+      "members": [
+        "Coi5hpdd1vm"
+      ],
+      "anchors": [
+        "Coi5hpdd1vm"
+      ],
+      "files": [
+        "F18a2434zd35"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 453,
+      "members": [
+        "C5npkmddrr1"
+      ],
+      "anchors": [
+        "C5npkmddrr1"
+      ],
+      "files": [
+        "F18a2434zd35"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 454,
+      "members": [
+        "C13yvo6x03ak"
+      ],
+      "anchors": [
+        "C13yvo6x03ak"
+      ],
+      "files": [
+        "F18a2434zd35"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 455,
+      "members": [
+        "C164dqp85iq6"
+      ],
+      "anchors": [
+        "C164dqp85iq6"
+      ],
+      "files": [
+        "F18a2434zd35"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 456,
+      "members": [
+        "Crth1r8otnh"
+      ],
+      "anchors": [
+        "Crth1r8otnh"
+      ],
+      "files": [
+        "F18a2434zd35"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 459,
+      "members": [
+        "C64mv9h81b2"
+      ],
+      "anchors": [
+        "C64mv9h81b2"
+      ],
+      "files": [
+        "F18a2434zd35"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 462,
+      "members": [
+        "Cgq1exqxir3"
+      ],
+      "anchors": [
+        "Cgq1exqxir3"
+      ],
+      "files": [
+        "F18a2434zd35"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 463,
+      "members": [
+        "Csl1a292u8i"
+      ],
+      "anchors": [
+        "Csl1a292u8i"
+      ],
+      "files": [
+        "F18a2434zd35"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 464,
+      "members": [
+        "Cgidz0l02hx"
+      ],
+      "anchors": [
+        "Cgidz0l02hx"
+      ],
+      "files": [
+        "F18a2434zd35"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 468,
+      "members": [
+        "Ca7o42o5ohr",
+        "C19rsdpst6i"
+      ],
+      "anchors": [
+        "Ca7o42o5ohr"
+      ],
+      "files": [
+        "F3dnil1ilri"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 486,
+      "members": [
+        "Cu7nahdlb4p"
+      ],
+      "anchors": [
+        "Cu7nahdlb4p"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 489,
+      "members": [
+        "C68f2yhca02"
+      ],
+      "anchors": [
+        "C68f2yhca02"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 490,
+      "members": [
+        "Cw273ztibzy"
+      ],
+      "anchors": [
+        "Cw273ztibzy"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 491,
+      "members": [
+        "C12nf7x2ysxz"
+      ],
+      "anchors": [
+        "C12nf7x2ysxz"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 496,
+      "members": [
+        "Cwb92gkm01l"
+      ],
+      "anchors": [
+        "Cwb92gkm01l"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 498,
+      "members": [
+        "C76i2blxtx"
+      ],
+      "anchors": [
+        "C76i2blxtx"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 499,
+      "members": [
+        "Citdjmy9bsn"
+      ],
+      "anchors": [
+        "Citdjmy9bsn"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 500,
+      "members": [
+        "Ck8dkxs3jva"
+      ],
+      "anchors": [
+        "Ck8dkxs3jva"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 502,
+      "members": [
+        "Ck357lqu1fz"
+      ],
+      "anchors": [
+        "Ck357lqu1fz"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 503,
+      "members": [
+        "Cawc5v7lce8"
+      ],
+      "anchors": [
+        "Cawc5v7lce8"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 504,
+      "members": [
+        "Cmbcdyhc2q2"
+      ],
+      "anchors": [
+        "Cmbcdyhc2q2"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 505,
+      "members": [
+        "Czwp6pxkuer"
+      ],
+      "anchors": [
+        "Czwp6pxkuer"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 507,
+      "members": [
+        "Ch2bs7sgldf"
+      ],
+      "anchors": [
+        "Ch2bs7sgldf"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 511,
+      "members": [
+        "Cca58q3hhtn"
+      ],
+      "anchors": [
+        "Cca58q3hhtn"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 513,
+      "members": [
+        "C10wc6pg5z3u"
+      ],
+      "anchors": [
+        "C10wc6pg5z3u"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 515,
+      "members": [
+        "Cwpevw89uss"
+      ],
+      "anchors": [
+        "Cwpevw89uss"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 516,
+      "members": [
+        "Cjpho3khryu"
+      ],
+      "anchors": [
+        "Cjpho3khryu"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 518,
+      "members": [
+        "Crdr41b62wy"
+      ],
+      "anchors": [
+        "Crdr41b62wy"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 523,
+      "members": [
+        "C41hvb5nc1a"
+      ],
+      "anchors": [
+        "C41hvb5nc1a"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 526,
+      "members": [
+        "Cz94fk7z4oq"
+      ],
+      "anchors": [
+        "Cz94fk7z4oq"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 527,
+      "members": [
+        "Cqy6ehbdsra"
+      ],
+      "anchors": [
+        "Cqy6ehbdsra"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 528,
+      "members": [
+        "Cyagrt4f8qn"
+      ],
+      "anchors": [
+        "Cyagrt4f8qn"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 529,
+      "members": [
+        "C8y16e2wsvg"
+      ],
+      "anchors": [
+        "C8y16e2wsvg"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 532,
+      "members": [
+        "Ch4goz4n2c4"
+      ],
+      "anchors": [
+        "Ch4goz4n2c4"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 534,
+      "members": [
+        "Cxtlze8bz7q"
+      ],
+      "anchors": [
+        "Cxtlze8bz7q"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 535,
+      "members": [
+        "C3frv71wzym"
+      ],
+      "anchors": [
+        "C3frv71wzym"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 536,
+      "members": [
+        "C6w2vf05xk3"
+      ],
+      "anchors": [
+        "C6w2vf05xk3"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 537,
+      "members": [
+        "Crsrix8wk36"
+      ],
+      "anchors": [
+        "Crsrix8wk36"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 538,
+      "members": [
+        "Czu4m1srfqw"
+      ],
+      "anchors": [
+        "Czu4m1srfqw"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 539,
+      "members": [
+        "Cgi6rtf7l3l"
+      ],
+      "anchors": [
+        "Cgi6rtf7l3l"
+      ],
+      "files": [
+        "Ffgpiy5uoas"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "haskell"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Ckd3p3xr9vy",
+      "qualified_name": "Feature.Article.HTTP.routes",
+      "simple_name": "routes",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 31,
+      "end_line": 85,
+      "size_lines": 55,
+      "signature_hint": "routes = do get \"/api/articles\" $ do curUser <- Auth.optionalUser pagination <- parsePagination articleFilter <- parseArticleFilter result <- lift $ getArticles curUser articleFilter pagination json $ ArticlesWrapper result (length result) get \"/api/articles/feed\" $ do curUser <- Auth.requireUser pagination <- parsePagination result <- lift $ getFeed curUser pagination json $ ArticlesWrapper result (length result) get \"/api/articles/:slug\" $ do curUser <- Auth.optionalUser slug <- param \"slug\" result <- stopIfError articleErrorHandler $ getArticle curUser slug json $ ArticleWrapper result post \"/api/articles\" $ do curUser <- Auth.requireUser req <- parseJsonBody (\"article\" .: createArticleForm) result <- stopIfError articleErrorHandler $ createArticle curUser req json $ ArticleWrapper result put \"/api/articles/:slug\" $ do curUser <- Auth.requireUser slug <- param \"slug\" req <- parseJsonBody (\"article\" .: updateArticleForm) result <- stopIfError articleErrorHandler $ updateArticle curUser slug req json $ ArticleWrapper result delete \"/api/articles/:slug\" $ do curUser <- Auth.requireUser slug <- param \"slug\" stopIfError articleErrorHandler $ deleteArticle curUser slug json $ asText \"\" post \"/api/articles/:slug/favorite\" $ do curUser <- Auth.requireUser slug <- param \"slug\" result <- stopIfError articleErrorHandler $ favoriteArticle curUser slug json $ ArticleWrapper result delete \"/api/articles/:slug/favorite\" $ do curUser <- Auth.requireUser slug <- param \"slug\" result <- stopIfError articleErrorHandler $ unfavoriteArticle curUser slug json $ ArticleWrapper result get \"/api/tags\" $ do result <- lift getTags json $ TagsWrapper result",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -645,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 17
+    },
+    {
+      "id": "C126mp90ai53",
+      "qualified_name": "Feature.User.HTTP.routes",
+      "simple_name": "routes",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fi7rk98thj0",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/HTTP.hs",
+      "start_line": 29,
+      "end_line": 73,
+      "size_lines": 45,
+      "signature_hint": "routes = do -- users post \"/api/users/login\" $ do req <- parseJsonBody (\"user\" .: authForm) result <- stopIfError userErrorHandler $ login req json $ UserWrapper result post \"/api/users\" $ do req <- parseJsonBody (\"user\" .: registerForm) result <- stopIfError userErrorHandler $ register req json $ UserWrapper result get \"/api/user\" $ do curUser <- Auth.requireUser result <- stopIfError userErrorHandler $ getUser curUser json $ UserWrapper result put \"/api/user\" $ do curUser <- Auth.requireUser req <- parseJsonBody (\"user\" .: updateUserForm) result <- stopIfError userErrorHandler $ updateUser curUser req json $ UserWrapper result -- profiles get \"/api/profiles/:username\" $ do curUser <- Auth.optionalUser username <- param \"username\" result <- stopIfError userErrorHandler $ getProfile curUser username json $ ProfileWrapper result post \"/api/profiles/:username/follow\" $ do curUser <- Auth.requireUser username <- param \"username\" result <- stopIfError userErrorHandler $ followUser curUser username json $ ProfileWrapper result delete \"/api/profiles/:username/follow\" $ do curUser <- Auth.requireUser username <- param \"username\" result <- stopIfError userErrorHandler $ unfollowUser curUser username json $ ProfileWrapper result",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -655,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "Cds6aontmrz",
+      "qualified_name": "Feature.Comment.HTTP.routes",
+      "simple_name": "routes",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fp49iy1qajx",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Comment/HTTP.hs",
+      "start_line": 23,
+      "end_line": 43,
+      "size_lines": 21,
+      "signature_hint": "routes = do post \"/api/articles/:slug/comments\" $ do curUser <- Auth.requireUser slug <- param \"slug\" req <- parseJsonBody (\"comment\" .: \"body\" .: DF.text Nothing) result <- stopIfError commentErrorHandler $ addComment curUser slug req json $ CommentWrapper result delete \"/api/articles/:slug/comments/:id\" $ do curUser <- Auth.requireUser slug <- param \"slug\" cId <- param \"id\" stopIfError commentErrorHandler $ delComment curUser slug cId json $ asText \"\" get \"/api/articles/:slug/comments\" $ do curUser <- Auth.optionalUser slug <- param \"slug\" result <- stopIfError commentErrorHandler $ getComments curUser slug json $ CommentsWrapper result",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -679,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 10
+    },
+    {
+      "id": "C10dykgt4r31",
+      "qualified_name": "Feature.Auth.HTTP.requireUser",
+      "simple_name": "requireUser",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fuhof45gh41",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Auth/HTTP.hs",
+      "start_line": 27,
+      "end_line": 33,
+      "size_lines": 7,
+      "signature_hint": "requireUser = do result <- getCurrentUser stopIfError tokenErrorHandler (pure result) where tokenErrorHandler e = do status status401 json e",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -693,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C7whbn6pl87",
+      "qualified_name": "Platform.HTTP.acquireTLSSetting",
+      "simple_name": "acquireTLSSetting",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Frlndxwaua2",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Platform/HTTP.hs",
+      "start_line": 37,
+      "end_line": 42,
+      "size_lines": 6,
+      "signature_hint": "acquireTLSSetting = do env <- (>>= readMay) <$> lookupEnv \"ENABLE_HTTPS\" let enableHttps = fromMaybe True env return $ if enableHttps then Just $ tlsSettings \"secrets/tls/certificate.pem\" \"secrets/tls/key.pem\" else Nothing",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -694,
+      "region": 351,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxrb4yv6zp1",
+      "qualified_name": "Feature.Article.PG.isArticleExist",
+      "simple_name": "isArticleExist",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14eteuojqx6",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/PG.hs",
+      "start_line": 130,
+      "end_line": 134,
+      "size_lines": 5,
+      "signature_hint": "isArticleExist slug = do results <- withConn $ \\conn -> query conn qry (Only slug) return $ results == [Only True] where qry = \"select true from articles where slug = ? limit 1\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -695,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cqfdo60xdo1",
+      "qualified_name": "Feature.Common.HTTP.parsePagination",
+      "simple_name": "parsePagination",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F15fobdqnjq8",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Common/HTTP.hs",
+      "start_line": 13,
+      "end_line": 16,
+      "size_lines": 4,
+      "signature_hint": "parsePagination = do limit <- param \"limit\" `rescue` const (return 20) offset <- param \"offset\" `rescue` const (return 0) return $ Pagination limit offset",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C1181n9b5ziw",
+      "qualified_name": "Platform.PG.init",
+      "simple_name": "init",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4ebikoadee",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Platform/PG.hs",
+      "start_line": 15,
+      "end_line": 18,
+      "size_lines": 4,
+      "signature_hint": "init = do pool <- acquirePool migrateDb pool return pool",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 364,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cctw9nyglav",
+      "qualified_name": "Platform.PG.acquirePool",
+      "simple_name": "acquirePool",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4ebikoadee",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Platform/PG.hs",
+      "start_line": 21,
+      "end_line": 24,
+      "size_lines": 4,
+      "signature_hint": "acquirePool = do envUrl <- lookupEnv \"DATABASE_URL\" let pgUrl = fromString $ fromMaybe \"postgresql://localhost/realworld\" envUrl createPool (connectPostgreSQL pgUrl) close 1 10 10",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -696,
+      "region": 366,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cmryogl74iv",
+      "qualified_name": "Misc.Client.health",
+      "simple_name": "health",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fy2yvi0zgn8",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Misc/Client.hs",
+      "start_line": 197,
+      "end_line": 199,
+      "size_lines": 3,
+      "signature_hint": "health = runExceptT $ do url <- buildUrl \"/health\" exec $ get url",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cs2xl25wdlw",
+      "qualified_name": "Platform.HTTP.acquirePort",
+      "simple_name": "acquirePort",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Frlndxwaua2",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Platform/HTTP.hs",
+      "start_line": 34,
+      "end_line": 36,
+      "size_lines": 3,
+      "signature_hint": "acquirePort = do port <- fromMaybe \"\" <$> lookupEnv \"PORT\" return . fromMaybe 3000 $ readMay port",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 349,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cjsvlopwmtk",
+      "qualified_name": "Feature.Auth.HTTP.optionalUser",
+      "simple_name": "optionalUser",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fuhof45gh41",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Auth/HTTP.hs",
+      "start_line": 23,
+      "end_line": 24,
+      "size_lines": 2,
+      "signature_hint": "optionalUser = either (const Nothing) Just <$> getCurrentUser",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 73,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C10jtnmz5wre",
+      "qualified_name": "Feature.Common.Util.orThrow",
+      "simple_name": "orThrow",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F119ntzydwcf",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Common/Util.hs",
+      "start_line": 6,
+      "end_line": 7,
+      "size_lines": 2,
+      "signature_hint": "orThrow action e = maybe (Left e) Right <$> action",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -698,
+      "region": 142,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6uy6sd9366",
+      "qualified_name": "Feature.Article.HTTP.curUser",
+      "simple_name": "curUser",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 41,
+      "end_line": 41,
+      "size_lines": 1,
+      "signature_hint": "curUser <- Auth.requireUser",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 7,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Clxts412o5k",
+      "qualified_name": "Feature.Article.HTTP.pagination",
+      "simple_name": "pagination",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 42,
+      "end_line": 42,
+      "size_lines": 1,
+      "signature_hint": "pagination <- parsePagination",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 8,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11cjv4ko02y",
+      "qualified_name": "Feature.Article.HTTP.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 43,
+      "end_line": 43,
+      "size_lines": 1,
+      "signature_hint": "result <- lift $ getFeed curUser pagination",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 5
+    },
+    {
+      "id": "C710wvoihae",
+      "qualified_name": "Feature.Article.HTTP.curUser",
+      "simple_name": "curUser",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 47,
+      "end_line": 47,
+      "size_lines": 1,
+      "signature_hint": "curUser <- Auth.optionalUser",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 10,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8oihgzkugh",
+      "qualified_name": "Feature.Article.HTTP.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 49,
+      "end_line": 49,
+      "size_lines": 1,
+      "signature_hint": "result <- stopIfError articleErrorHandler $ getArticle curUser slug",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "C17rvhzkzoru",
+      "qualified_name": "Feature.Article.HTTP.curUser",
+      "simple_name": "curUser",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 53,
+      "end_line": 53,
+      "size_lines": 1,
+      "signature_hint": "curUser <- Auth.requireUser",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 13,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cyj6ylyjuaj",
+      "qualified_name": "Feature.Article.HTTP.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 55,
+      "end_line": 55,
+      "size_lines": 1,
+      "signature_hint": "result <- stopIfError articleErrorHandler $ createArticle curUser req",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "Cqi8cnqw0la",
+      "qualified_name": "Feature.Article.HTTP.curUser",
+      "simple_name": "curUser",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 59,
+      "end_line": 59,
+      "size_lines": 1,
+      "signature_hint": "curUser <- Auth.requireUser",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 16,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cn3gbl5iv5v",
+      "qualified_name": "Feature.Article.HTTP.slug",
+      "simple_name": "slug",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 60,
+      "end_line": 60,
+      "size_lines": 1,
+      "signature_hint": "slug <- param \"slug\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 17,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cfe7u71kwai",
+      "qualified_name": "Feature.Article.HTTP.req",
+      "simple_name": "req",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 61,
+      "end_line": 61,
+      "size_lines": 1,
+      "signature_hint": "req <- parseJsonBody (\"article\" .: updateArticleForm)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cqcixu5mism",
+      "qualified_name": "Feature.Article.HTTP.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 62,
+      "end_line": 62,
+      "size_lines": 1,
+      "signature_hint": "result <- stopIfError articleErrorHandler $ updateArticle curUser slug req",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 8
+    },
+    {
+      "id": "C1444ht13bdt",
+      "qualified_name": "Feature.Article.HTTP.curUser",
+      "simple_name": "curUser",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 66,
+      "end_line": 66,
+      "size_lines": 1,
+      "signature_hint": "curUser <- Auth.requireUser",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 20,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cm0unbra1ww",
+      "qualified_name": "Feature.Article.HTTP.slug",
+      "simple_name": "slug",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 67,
+      "end_line": 67,
+      "size_lines": 1,
+      "signature_hint": "slug <- param \"slug\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 21,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cehz0dpj0vt",
+      "qualified_name": "Feature.Article.HTTP.curUser",
+      "simple_name": "curUser",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 72,
+      "end_line": 72,
+      "size_lines": 1,
+      "signature_hint": "curUser <- Auth.requireUser",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 22,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cba2s5edxsi",
+      "qualified_name": "Feature.Article.HTTP.slug",
+      "simple_name": "slug",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 73,
+      "end_line": 73,
+      "size_lines": 1,
+      "signature_hint": "slug <- param \"slug\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 23,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cz4mnnemcg9",
+      "qualified_name": "Feature.Article.HTTP.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 74,
+      "end_line": 74,
+      "size_lines": 1,
+      "signature_hint": "result <- stopIfError articleErrorHandler $ favoriteArticle curUser slug",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "Ck81x4bt6ir",
+      "qualified_name": "Feature.Article.HTTP.curUser",
+      "simple_name": "curUser",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 78,
+      "end_line": 78,
+      "size_lines": 1,
+      "signature_hint": "curUser <- Auth.requireUser",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 25,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C36hcekuy1f",
+      "qualified_name": "Feature.Article.HTTP.slug",
+      "simple_name": "slug",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 79,
+      "end_line": 79,
+      "size_lines": 1,
+      "signature_hint": "slug <- param \"slug\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 26,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cm1j9r8pg8f",
+      "qualified_name": "Feature.Article.HTTP.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 80,
+      "end_line": 80,
+      "size_lines": 1,
+      "signature_hint": "result <- stopIfError articleErrorHandler $ unfavoriteArticle curUser slug",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "Cuzko0zpsig",
+      "qualified_name": "Feature.Article.HTTP.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 84,
+      "end_line": 84,
+      "size_lines": 1,
+      "signature_hint": "result <- lift getTags",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Clsn09bbb3a",
+      "qualified_name": "Feature.Article.HTTP.parseArticleFilter",
+      "simple_name": "parseArticleFilter",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ftejusqzq02",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/HTTP.hs",
+      "start_line": 105,
+      "end_line": 105,
+      "size_lines": 1,
+      "signature_hint": "parseArticleFilter = ArticleFilter <$> mayParam \"tag\" <*> mayParam \"author\" <*> mayParam \"favorited\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 30,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C12fxdww6d4p",
+      "qualified_name": "Feature.Article.PG.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F14eteuojqx6",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/PG.hs",
+      "start_line": 40,
+      "end_line": 40,
+      "size_lines": 1,
+      "signature_hint": "result <- withConn $ \\conn -> query conn qry (uId, slug)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C67cd4h0exr",
+      "qualified_name": "Feature.Article.Service.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqv4vdt4ixs",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/Service.hs",
+      "start_line": 21,
+      "end_line": 21,
+      "size_lines": 1,
+      "signature_hint": "result <- lift $ findArticles (Just slug) Nothing mayCurUser (ArticleFilter Nothing Nothing Nothing) (Pagination 1 0)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cjbm4ewt3yj",
+      "qualified_name": "Feature.Article.Service.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fqv4vdt4ixs",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/Service.hs",
+      "start_line": 55,
+      "end_line": 55,
+      "size_lines": 1,
+      "signature_hint": "result <- lift $ isArticleOwnedBy uId slug",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 40,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cnmzpjwcq2n",
+      "qualified_name": "Feature.Comment.HTTP.curUser",
+      "simple_name": "curUser",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fp49iy1qajx",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Comment/HTTP.hs",
+      "start_line": 33,
+      "end_line": 33,
+      "size_lines": 1,
+      "signature_hint": "curUser <- Auth.requireUser",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 92,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ckw789tnw5g",
+      "qualified_name": "Feature.Comment.HTTP.slug",
+      "simple_name": "slug",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fp49iy1qajx",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Comment/HTTP.hs",
+      "start_line": 34,
+      "end_line": 34,
+      "size_lines": 1,
+      "signature_hint": "slug <- param \"slug\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 93,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cblldefb3vz",
+      "qualified_name": "Feature.Comment.HTTP.curUser",
+      "simple_name": "curUser",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fp49iy1qajx",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Comment/HTTP.hs",
+      "start_line": 40,
+      "end_line": 40,
+      "size_lines": 1,
+      "signature_hint": "curUser <- Auth.optionalUser",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 95,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cuj297vnhv3",
+      "qualified_name": "Feature.Comment.HTTP.slug",
+      "simple_name": "slug",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fp49iy1qajx",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Comment/HTTP.hs",
+      "start_line": 41,
+      "end_line": 41,
+      "size_lines": 1,
+      "signature_hint": "slug <- param \"slug\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 96,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8af796pxjt",
+      "qualified_name": "Feature.Comment.HTTP.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fp49iy1qajx",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Comment/HTTP.hs",
+      "start_line": 42,
+      "end_line": 42,
+      "size_lines": 1,
+      "signature_hint": "result <- stopIfError commentErrorHandler $ getComments curUser slug",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "C8gyfm8ey6n",
+      "qualified_name": "Feature.Comment.PG.results",
+      "simple_name": "results",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fclaonwpk6j",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Comment/PG.hs",
+      "start_line": 40,
+      "end_line": 40,
+      "size_lines": 1,
+      "signature_hint": "results <- withConn $ \\conn -> query conn qry arg",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C10up9fh5w30",
+      "qualified_name": "Feature.Comment.Service.comments",
+      "simple_name": "comments",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fdktlii07ux",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Comment/Service.hs",
+      "start_line": 19,
+      "end_line": 19,
+      "size_lines": 1,
+      "signature_hint": "comments <- ExceptT $ getComments' (Just curUser) slug (Just cId)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cviqmmiljp0",
+      "qualified_name": "Feature.Common.HTTP.err",
+      "simple_name": "err",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F15fobdqnjq8",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Common/HTTP.hs",
+      "start_line": 43,
+      "end_line": 43,
+      "size_lines": 1,
+      "signature_hint": "err -> ActionT e m a",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 139,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Ci02vs4yom6",
+      "qualified_name": "Feature.User.HTTP.req",
+      "simple_name": "req",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fi7rk98thj0",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/HTTP.hs",
+      "start_line": 39,
+      "end_line": 39,
+      "size_lines": 1,
+      "signature_hint": "req <- parseJsonBody (\"user\" .: registerForm)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cr8urbga6w",
+      "qualified_name": "Feature.User.HTTP.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fi7rk98thj0",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/HTTP.hs",
+      "start_line": 40,
+      "end_line": 40,
+      "size_lines": 1,
+      "signature_hint": "result <- stopIfError userErrorHandler $ register req",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "Cnhvllh825w",
+      "qualified_name": "Feature.User.HTTP.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fi7rk98thj0",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/HTTP.hs",
+      "start_line": 45,
+      "end_line": 45,
+      "size_lines": 1,
+      "signature_hint": "result <- stopIfError userErrorHandler $ getUser curUser",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "Cjqga7f08px",
+      "qualified_name": "Feature.User.HTTP.curUser",
+      "simple_name": "curUser",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fi7rk98thj0",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/HTTP.hs",
+      "start_line": 49,
+      "end_line": 49,
+      "size_lines": 1,
+      "signature_hint": "curUser <- Auth.requireUser",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 150,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cpzzay8neh",
+      "qualified_name": "Feature.User.HTTP.req",
+      "simple_name": "req",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fi7rk98thj0",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/HTTP.hs",
+      "start_line": 50,
+      "end_line": 50,
+      "size_lines": 1,
+      "signature_hint": "req <- parseJsonBody (\"user\" .: updateUserForm)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cve3ok8yxzq",
+      "qualified_name": "Feature.User.HTTP.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fi7rk98thj0",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/HTTP.hs",
+      "start_line": 51,
+      "end_line": 51,
+      "size_lines": 1,
+      "signature_hint": "result <- stopIfError userErrorHandler $ updateUser curUser req",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "C15w58dpyja",
+      "qualified_name": "Feature.User.HTTP.curUser",
+      "simple_name": "curUser",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fi7rk98thj0",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/HTTP.hs",
+      "start_line": 58,
+      "end_line": 58,
+      "size_lines": 1,
+      "signature_hint": "curUser <- Auth.optionalUser",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 153,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ccsl6txowqm",
+      "qualified_name": "Feature.User.HTTP.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fi7rk98thj0",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/HTTP.hs",
+      "start_line": 60,
+      "end_line": 60,
+      "size_lines": 1,
+      "signature_hint": "result <- stopIfError userErrorHandler $ getProfile curUser username",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "Crdeinfusb",
+      "qualified_name": "Feature.User.HTTP.curUser",
+      "simple_name": "curUser",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fi7rk98thj0",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/HTTP.hs",
+      "start_line": 64,
+      "end_line": 64,
+      "size_lines": 1,
+      "signature_hint": "curUser <- Auth.requireUser",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 156,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8tfoe9ueen",
+      "qualified_name": "Feature.User.HTTP.username",
+      "simple_name": "username",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fi7rk98thj0",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/HTTP.hs",
+      "start_line": 65,
+      "end_line": 65,
+      "size_lines": 1,
+      "signature_hint": "username <- param \"username\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 157,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16audrftvdl",
+      "qualified_name": "Feature.User.HTTP.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fi7rk98thj0",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/HTTP.hs",
+      "start_line": 66,
+      "end_line": 66,
+      "size_lines": 1,
+      "signature_hint": "result <- stopIfError userErrorHandler $ followUser curUser username",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "C1229sfrh77r",
+      "qualified_name": "Feature.User.HTTP.curUser",
+      "simple_name": "curUser",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fi7rk98thj0",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/HTTP.hs",
+      "start_line": 70,
+      "end_line": 70,
+      "size_lines": 1,
+      "signature_hint": "curUser <- Auth.requireUser",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 159,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C15frr217mhb",
+      "qualified_name": "Feature.User.HTTP.username",
+      "simple_name": "username",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fi7rk98thj0",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/HTTP.hs",
+      "start_line": 71,
+      "end_line": 71,
+      "size_lines": 1,
+      "signature_hint": "username <- param \"username\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 160,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Ck8nq8egdor",
+      "qualified_name": "Feature.User.HTTP.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fi7rk98thj0",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/HTTP.hs",
+      "start_line": 72,
+      "end_line": 72,
+      "size_lines": 1,
+      "signature_hint": "result <- stopIfError userErrorHandler $ unfollowUser curUser username",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "C7ulyzp7xyk",
+      "qualified_name": "Feature.User.PG.results",
+      "simple_name": "results",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Febb751angk",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/PG.hs",
+      "start_line": 13,
+      "end_line": 13,
+      "size_lines": 1,
+      "signature_hint": "results <- withConn $ \\conn -> query conn qry (email, pass)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C7y6jms1i2c",
+      "qualified_name": "Feature.User.PG.results",
+      "simple_name": "results",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Febb751angk",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/PG.hs",
+      "start_line": 26,
+      "end_line": 26,
+      "size_lines": 1,
+      "signature_hint": "results <- withConn $ \\conn -> query conn qry (Only uId)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C10ys03mr8ke",
+      "qualified_name": "Feature.User.PG.results",
+      "simple_name": "results",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Febb751angk",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/PG.hs",
+      "start_line": 76,
+      "end_line": 76,
+      "size_lines": 1,
+      "signature_hint": "results <- withConn $ \\conn -> query conn qry (mayUserId, username)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C91o7xubg7u",
+      "qualified_name": "Feature.User.PG.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Febb751angk",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/PG.hs",
+      "start_line": 86,
+      "end_line": 86,
+      "size_lines": 1,
+      "signature_hint": "result <- withConn $ \\conn -> try $ execute conn qry (uId, username)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cux3gczjk8b",
+      "qualified_name": "Feature.User.Service.result",
+      "simple_name": "result",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ffrbkvli3n2",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/Service.hs",
+      "start_line": 20,
+      "end_line": 20,
+      "size_lines": 1,
+      "signature_hint": "result <- addUser param defaultImgUrl",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C6omb8qwk91",
+      "qualified_name": "Feature.User.Types.fromRow",
+      "simple_name": "fromRow",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fl1an9atmp3",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/User/Types.hs",
+      "start_line": 71,
+      "end_line": 71,
+      "size_lines": 1,
+      "signature_hint": "fromRow = Profile <$> field <*> field <*> field <*> field",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 213,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8mbslqy9kz",
+      "qualified_name": "Lib.isArticleExist",
+      "simple_name": "isArticleExist",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Flj71q7ee3h",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Lib.hs",
+      "start_line": 94,
+      "end_line": 94,
+      "size_lines": 1,
+      "signature_hint": "isArticleExist = ArticlePG.isArticleExist",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 251,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cf87cau2k6w",
+      "qualified_name": "Misc.Client.handleHttpException",
+      "simple_name": "handleHttpException",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fy2yvi0zgn8",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Misc/Client.hs",
+      "start_line": 226,
+      "end_line": 226,
+      "size_lines": 1,
+      "signature_hint": "handleHttpException err = return . Left $ ErrUnknown $ tshow err",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 335,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5sq8e7s5ly",
+      "qualified_name": "Platform.AesonUtil.lowerCaseFirst",
+      "simple_name": "lowerCaseFirst",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ffaa0m3giin",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Platform/AesonUtil.hs",
+      "start_line": 14,
+      "end_line": 14,
+      "size_lines": 1,
+      "signature_hint": "lowerCaseFirst \"\" = \"\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 343,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxsj00hrzx8",
+      "qualified_name": "Platform.HTTP.mayTLSSetting",
+      "simple_name": "mayTLSSetting",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Frlndxwaua2",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Platform/HTTP.hs",
+      "start_line": 26,
+      "end_line": 26,
+      "size_lines": 1,
+      "signature_hint": "mayTLSSetting <- acquireTLSSetting",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 347,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cyubi4990mc",
+      "qualified_name": "Platform.HTTP.enableHttps",
+      "simple_name": "enableHttps",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Frlndxwaua2",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Platform/HTTP.hs",
+      "start_line": 39,
+      "end_line": 39,
+      "size_lines": 1,
+      "signature_hint": "enableHttps = fromMaybe True env",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 352,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cijbfj0wyww",
+      "qualified_name": "Platform.JWT.init",
+      "simple_name": "init",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F15uk34w6bu5",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Platform/JWT.hs",
+      "start_line": 20,
+      "end_line": 20,
+      "size_lines": 1,
+      "signature_hint": "init = Env <$> acquireJWTExpirationSecs <*> acquireJwks",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -699,
+      "region": 355,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Ck5rtliz1i2",
+      "qualified_name": "Platform.AesonUtil.commonJSONDeriveMany",
+      "simple_name": "commonJSONDeriveMany",
+      "language": "haskell",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ffaa0m3giin",
+      "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Platform/AesonUtil.hs",
+      "start_line": 8,
+      "end_line": 9,
+      "size_lines": 2,
+      "signature_hint": "commonJSONDeriveMany names = concat <$> mapM commonJSONDerive names",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -1198,
+      "region": 340,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-attributes"
+        },
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "commonJSONDeriveMany",
+          "sites": 5,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fpcjups5i8x",
+            "path": "/storage/cgg-test_repos/app-realworld-scotty/src/Feature/Article/Types.hs",
+            "line": 57,
+            "name": "commonJSONDeriveMany"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 1
+    }
+  ]
+}

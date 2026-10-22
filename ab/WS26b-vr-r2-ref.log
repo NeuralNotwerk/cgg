@@ -1,0 +1,11 @@
+repos 283 excluded []
+added 12961
+  ('fsharp', '{"kind": "direct"}', 'high') 1063
+  ('fsharp', '{"kind": "direct"}', 'medium') 1006
+  ('fsharp', '{"kind": "reference"}', 'high') 1409
+  ('fsharp', '{"kind": "reference"}', 'medium') 839
+  ('haskell', '{"kind": "reference"}', 'high') 4913
+  ('haskell', '{"kind": "reference"}', 'medium') 791
+  ('ocaml', '{"kind": "reference"}', 'high') 2169
+  ('ocaml', '{"kind": "reference"}', 'medium') 771
+dropped 0

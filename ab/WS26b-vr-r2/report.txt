@@ -1,0 +1,14 @@
+old: cgg 0.11.0 (dev gac2f62f+d4ded4a4)  sha256=bcbdf65876f6d59c3aaafeecbb721a467f83f813b09a22988df029c81a7db6a9
+new: cgg 0.11.0 (dev gac2f62f+d944fd6a)  sha256=4cd3186c3e9c8effabb97afdd82746e43d2c6d1af6dffb038c75abd65c3dcdd4
+old=target/remediation/bins/WS26b-fs-r1
+new=target/remediation/bins/WS26b-vr-r2
+repos=283 elapsed=267s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 6
+  app-cardmgmt-giraffe: edges 99->160 (-0 +61 ~0) callables 192->192 unresolved 95->102 files 26->26 deadhigh 0->0 
+  app-fsautocomplete-expecto: edges 4033->5293 (-0 +1260 ~4) callables 2677->2677 unresolved 3002->4705 files 378->378 deadhigh 0->0 
+  app-fssnip-suave: edges 152->157 (-0 +5 ~0) callables 266->266 unresolved 487->495 files 36->36 deadhigh 0->0 
+  app-swate-saturn: edges 11459->11633 (-0 +174 ~4) callables 5124->5124 unresolved 7269->8980 files 649->649 deadhigh 0->0 
+  fsharp-paket: edges 8887->9453 (-0 +566 ~3) callables 3944->3944 unresolved 5173->6519 files 494->494 deadhigh 0->0 
+  rust-bat: edges 2925->2928 (-0 +3 ~0) callables 1981->1981 unresolved 2078->2078 files 176->176 deadhigh 3->3 
+by language: see by_language.tsv

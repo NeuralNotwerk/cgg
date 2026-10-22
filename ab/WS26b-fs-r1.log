@@ -1,0 +1,16 @@
+old: cgg 0.11.0 (dev gac2f62f)  sha256=6269cf313e6ae31639ca398be1e6a29fa9f9839f1aacff91df611cf01e669062
+new: cgg 0.11.0 (dev gac2f62f+d4ded4a4)  sha256=bcbdf65876f6d59c3aaafeecbb721a467f83f813b09a22988df029c81a7db6a9
+old=target/remediation/bins/WS27-perl-before
+new=target/remediation/bins/WS26b-fs-r1
+repos=283 elapsed=420s
+excluded (timeout/error, NOT diffed): 1
+  zig-zig: graph rc old=124 new=124
+repos changed: 6
+  app-cardmgmt-giraffe: edges 99->99 (-0 +0 ~0) callables 188->192 unresolved 95->95 files 26->26 deadhigh 0->0 
+  app-fsautocomplete-expecto: edges 3692->4033 (-111 +452 ~0) callables 2569->2677 unresolved 3030->3002 files 378->378 deadhigh 0->0 
+  app-fssnip-suave: edges 145->152 (-0 +7 ~0) callables 265->266 unresolved 491->487 files 36->36 deadhigh 0->0 
+  app-orleans-samples: edges 15687->15687 (-0 +0 ~0) callables 20780->20783 unresolved 21183->21183 files 3175->3175 deadhigh 56->56 
+  app-swate-saturn: edges 11451->11459 (-4 +12 ~0) callables 5116->5124 unresolved 7266->7269 files 649->649 deadhigh 0->0 
+  fsharp-paket: edges 8783->8887 (-7 +111 ~1) callables 3920->3944 unresolved 5232->5173 files 494->494 deadhigh 0->0 
+by language: see by_language.tsv
+

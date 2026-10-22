@@ -1,0 +1,12 @@
+{
+ "old": {
+  "sha256": "6269cf313e6ae31639ca398be1e6a29fa9f9839f1aacff91df611cf01e669062",
+  "version": "cgg 0.11.0 (dev gac2f62f)",
+  "path": "/storage/cgg/target/remediation/bins/WS27-perl-before"
+ },
+ "new": {
+  "sha256": "d419363c2a775050b85d8e9372f8d4371bd66d3585eb8c5a1fa3a1fca5a83a56",
+  "version": "cgg 0.11.0 (dev gac2f62f+d87bc6fb)",
+  "path": "/storage/cgg/target/remediation/bins/WS26b-final2"
+ }
+}
