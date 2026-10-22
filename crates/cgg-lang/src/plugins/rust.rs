@@ -2367,6 +2367,7 @@ impl<'a> Walker<'a> {
             // would win, which on axum was the context-less one — every
             // real route lost its path.
             self.facts.references.push(RefRecord {
+                arg_labels: Vec::new(),
                 arg_type: None,
                 from_macro_arg: false,
                 path_receiver: false,

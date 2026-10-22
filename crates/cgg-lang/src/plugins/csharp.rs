@@ -748,6 +748,9 @@ impl<'a> Walker<'a> {
             site_line,
             site_byte: node.start_byte() as u32,
             typed_receiver,
+            // Named arguments still count one each; `params` and optional
+            // parameters are the resolver's (`accepts_arity`).
+            arity: argument_count(node),
             ..Default::default()
         })
     }

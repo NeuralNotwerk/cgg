@@ -548,6 +548,7 @@ impl<'a> KtWalker<'a> {
             dot_call,
             implicit_receiver,
             typed_receiver,
+            arity: call_arity(node),
             ..Default::default()
         });
     }
@@ -803,6 +804,36 @@ fn misparsed_object<'t>(node: Node<'t>, source: &[u8]) -> Option<(String, Node<'
         && body.kind() == "lambda_literal")
         .then(|| (name.utf8_text(source).unwrap_or("").to_string(), *body))
         .filter(|(n, _)| !n.is_empty())
+}
+
+/// A call's argument count: its value arguments (named ones too) plus a
+/// trailing lambda (`g(1) { … }` is two). `None` with a spread (`*xs`),
+/// whose count the source does not show.
+fn call_arity(call: Node) -> Option<u32> {
+    let suffix = call
+        .named_children(&mut call.walk())
+        .find(|c| c.kind() == "call_suffix")?;
+    let mut n = 0u32;
+    for part in suffix.named_children(&mut suffix.walk()) {
+        match part.kind() {
+            "value_arguments" => {
+                for a in part.named_children(&mut part.walk()) {
+                    if a.kind() != "value_argument" {
+                        continue;
+                    }
+                    if a.named_children(&mut a.walk())
+                        .any(|x| x.kind() == "spread_expression")
+                    {
+                        return None;
+                    }
+                    n += 1;
+                }
+            }
+            "annotated_lambda" => n += 1,
+            _ => {}
+        }
+    }
+    Some(n)
 }
 
 #[cfg(test)]

@@ -2021,11 +2021,22 @@ fn param_list_span(sig: &str) -> Option<(usize, usize)> {
 
 /// Languages that overload by parameter count and whose plugins record a
 /// call's argument count ([`cgg_core::RefRecord::arity`]).
-/// C# records the count for constructions and constructor delegation
-/// only; Groovy (WS23) for method calls too, except one passing named
-/// arguments or a spread.
-pub(crate) const OVERLOAD_ARITY_LANGS: &[&str] =
-    &["java", "scala", "cpp", "csharp", "groovy", "swift"];
+/// Groovy (WS23) records it for method calls too, except one passing
+/// named arguments or a spread; C# (WS28) for every call, constructions
+/// and delegation included; Kotlin (WS28) for every call, a trailing
+/// lambda counted, except one passing a spread; TypeScript (WS28) for
+/// every call and `new`, except one passing a spread. Swift also records
+/// its argument labels (`RefRecord::arg_labels`).
+pub(crate) const OVERLOAD_ARITY_LANGS: &[&str] = &[
+    "java",
+    "scala",
+    "cpp",
+    "csharp",
+    "groovy",
+    "swift",
+    "kotlin",
+    "typescript",
+];
 
 /// Whether a callable declared with signature `sig` can take `arity`
 /// positional arguments: `Some(false)` only when its parameter list is
@@ -2048,22 +2059,126 @@ pub(crate) fn accepts_arity(sig: &str, arity: u32) -> Option<bool> {
         return Some(arity == 0);
     }
     let mut required = 0u32;
+    let mut max = 0u32;
     let mut variadic = false;
-    for p in &params {
-        // `T...`, Scala `x: T*`, C# `params T[] x`.
+    for (i, p) in params.iter().enumerate() {
+        // TypeScript's `this: T` types the receiver; it takes no argument.
+        if p.starts_with("this:") || p.starts_with("this :") {
+            continue;
+        }
+        max += 1;
+        // `T...`, Scala `x: T*`, C# `params T[] x`, Kotlin `vararg x: T`,
+        // TypeScript `...rest`.
         if p.contains("...")
             || (p.contains(':') && p.trim_end().ends_with('*'))
             || p.starts_with("params ")
+            || p.starts_with("vararg ")
+            || p.contains(" vararg ")
         {
             variadic = true;
             continue;
         }
-        if !has_top_level_eq(p) {
+        // A C# extension method's `this T x` is the receiver of
+        // `x.M(…)` and the first argument of `C.M(x, …)`.
+        if i == 0 && p.starts_with("this ") {
+            continue;
+        }
+        // A default value, or TypeScript's optional `x?: T`.
+        if !has_top_level_eq(p) && !optional_marker(p) {
             required += 1;
         }
     }
-    let max = params.len() as u32;
     Some(arity >= required && (variadic || arity <= max))
+}
+
+/// Whether a Swift function declared with `sig` can take a call writing
+/// these argument labels ([`cgg_core::RefRecord::arg_labels`]): each
+/// argument, in order, matches the next parameter whose external label it
+/// writes (`_` for an unlabeled one), skipping parameters with a default;
+/// a variadic parameter takes the unlabeled arguments that follow it; a
+/// trailing closure (`{`) takes any next parameter. Every parameter left
+/// over must have a default. `None` when the list cannot be read or a
+/// parameter's label cannot be.
+pub(crate) fn swift_accepts_labels(sig: &str, labels: &[String]) -> Option<bool> {
+    if labels.is_empty() {
+        return None;
+    }
+    let list = param_list(sig)?;
+    struct P {
+        label: String,
+        optional: bool,
+        variadic: bool,
+    }
+    let mut params: Vec<P> = Vec::new();
+    for p in split_top_level(list, |c| c == ',', false) {
+        let p = p.trim();
+        if p.is_empty() {
+            continue;
+        }
+        let (head, ty) = p.split_once(':')?;
+        let words: Vec<&str> = head
+            .split_whitespace()
+            .filter(|w| !w.starts_with('@'))
+            .collect();
+        let label = match words.as_slice() {
+            [name] => *name,
+            [.., label, _name] => *label,
+            [] => return None,
+        };
+        params.push(P {
+            label: label.to_string(),
+            optional: has_top_level_eq(p),
+            variadic: ty
+                .split('=')
+                .next()
+                .unwrap_or(ty)
+                .trim_end()
+                .ends_with("..."),
+        });
+    }
+    let mut i = 0usize;
+    let mut in_variadic = false;
+    for l in labels {
+        if l == "{" {
+            in_variadic = false;
+            if i >= params.len() {
+                return Some(false);
+            }
+            // The first parameter it must fill, defaulted ones skipped;
+            // with none left, the next defaulted one.
+            i = match params[i..].iter().position(|p| !(p.optional || p.variadic)) {
+                Some(k) => i + k + 1,
+                None => i + 1,
+            };
+            continue;
+        }
+        if in_variadic && l == "_" {
+            continue;
+        }
+        loop {
+            let Some(p) = params.get(i) else {
+                return Some(false);
+            };
+            if p.label == *l {
+                i += 1;
+                in_variadic = p.variadic;
+                break;
+            }
+            if p.optional || p.variadic {
+                i += 1;
+                continue;
+            }
+            return Some(false);
+        }
+    }
+    Some(params[i..].iter().all(|p| p.optional || p.variadic))
+}
+
+/// TypeScript's optional parameter, `x?: T` (its name, before the type's
+/// `:`, ends in `?`); a nullable type (`x: Int?`, `int? x`) is not one.
+fn optional_marker(p: &str) -> bool {
+    p.split_once(':')
+        .is_some_and(|(name, _)| name.trim_end().ends_with('?'))
 }
 
 /// A `=` at bracket depth 0 that is not part of `==`, `<=`, `>=`, `!=`,
@@ -5118,6 +5233,68 @@ mod tests {
     #[test]
     fn accepts_arity_reads_defaults_varargs_and_packs() {
         let f = |s: &str, n| accepts_arity(s, n);
+        // WS28: a C# extension method's `this` parameter is the receiver
+        // or the first argument; Kotlin `vararg`; TypeScript `x?:`, rest
+        // and `this:`.
+        let ext = "public static string Pad(this string s, int n)";
+        assert_eq!(f(ext, 1), Some(true));
+        assert_eq!(f(ext, 2), Some(true));
+        assert_eq!(f(ext, 3), Some(false));
+        assert_eq!(f("fun log(vararg xs: Any)", 4), Some(true));
+        assert_eq!(f("fun f(a: Int, b: Int = 0, g: () -> Unit)", 2), Some(true));
+        assert_eq!(
+            f("fun f(a: Int, b: Int = 0, g: () -> Unit)", 1),
+            Some(false)
+        );
+        assert_eq!(f("find(id: string, opts?: FindOptions)", 1), Some(true));
+        assert_eq!(f("find(id: string, opts?: FindOptions)", 3), Some(false));
+        assert_eq!(
+            f("on(this: Emitter, ev: string, ...fns: Fn[])", 1),
+            Some(true)
+        );
+        assert_eq!(f("on(this: Emitter, ev: string)", 2), Some(false));
+        // Swift labels pick among same-count overloads.
+        let l = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let sl = |s: &str, v: &[&str]| swift_accepts_labels(s, &l(v));
+        assert_eq!(sl("init(count: Int)", &["count"]), Some(true));
+        assert_eq!(sl("init(data: Data)", &["count"]), Some(false));
+        assert_eq!(
+            sl("static func removeItem(at url: URL) -> Bool", &["at"]),
+            Some(true)
+        );
+        assert_eq!(
+            sl(
+                "static func removeItem(atPath path: String) -> Bool",
+                &["at"]
+            ),
+            Some(false)
+        );
+        assert_eq!(
+            sl(
+                "init(adapters: [A] = [], retriers: [R] = [], interceptors: [I] = [])",
+                &["adapters", "retriers"]
+            ),
+            Some(true)
+        );
+        assert_eq!(
+            sl("init(adapter: A, retrier: R)", &["adapters", "retriers"]),
+            Some(false)
+        );
+        assert_eq!(
+            sl("func f(_ a: Int, b: Int = 0, c: () -> Void)", &["_", "{"]),
+            Some(true)
+        );
+        assert_eq!(
+            sl(
+                "func log(_ items: Any..., sep: String = \" \")",
+                &["_", "_", "sep"]
+            ),
+            Some(true)
+        );
+        assert_eq!(sl("func g(x: Int)", &["x", "y"]), Some(false));
+        // Near misses: a nullable type is no optional parameter.
+        assert_eq!(f("fun g(x: Int?)", 0), Some(false));
+        assert_eq!(f("void G(int? x)", 0), Some(false));
         assert_eq!(
             f("public ISE(String formatText, Object... arguments)", 1),
             Some(true)

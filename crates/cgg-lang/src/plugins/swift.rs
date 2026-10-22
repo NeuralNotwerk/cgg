@@ -379,6 +379,7 @@ impl<'a> SwiftWalker<'a> {
             site_byte: node.start_byte() as u32,
             typed_receiver,
             arity: call_arity(node),
+            arg_labels: call_labels(node, self.source),
             ..Default::default()
         });
         // Shape B: a handler passed by name to a registration call.
@@ -446,6 +447,45 @@ fn call_arity(call: Node) -> Option<u32> {
         }
     }
     Some(n)
+}
+
+/// The argument labels a Swift call writes (`f(1, at: x) { }` is `_`,
+/// `at`, `{`), for overload narrowing by label
+/// ([`cgg_core::RefRecord::arg_labels`]); empty when no argument is
+/// labeled, where the count alone says as much.
+fn call_labels(call: Node, src: &[u8]) -> Vec<String> {
+    let Some(suffix) = call
+        .children(&mut call.walk())
+        .find(|c| c.kind() == "call_suffix")
+    else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    let mut labeled = false;
+    for c in suffix.named_children(&mut suffix.walk()) {
+        match c.kind() {
+            "value_arguments" => {
+                for a in c.named_children(&mut c.walk()) {
+                    if a.kind() != "value_argument" {
+                        continue;
+                    }
+                    match a
+                        .child_by_field_name("name")
+                        .and_then(|n| n.utf8_text(src).ok())
+                    {
+                        Some(l) => {
+                            labeled = true;
+                            out.push(l.trim().to_string());
+                        }
+                        None => out.push("_".to_string()),
+                    }
+                }
+            }
+            "lambda_literal" | "annotated_lambda" => out.push("{".to_string()),
+            _ => {}
+        }
+    }
+    if labeled { out } else { Vec::new() }
 }
 
 /// `Wrap<Int>.s()` in expression position is parsed as two comparisons,

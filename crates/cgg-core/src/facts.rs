@@ -437,6 +437,15 @@ pub struct RefRecord {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub arity: Option<u32>,
 
+    /// Swift: the argument labels the call writes, one per argument in
+    /// order — the label, `_` for an unlabeled argument, `{` for a
+    /// trailing closure — when any argument is labeled (WS28). Swift
+    /// overloads are told apart by their labels as often as by their
+    /// count (`init(count:)`, `init(data:)`); see
+    /// `type_hints::swift_accepts_labels`. Empty otherwise.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub arg_labels: Vec<String>,
+
     /// Set when the site *names* a callable as a value without calling
     /// it, written in a shape that carries its receiver: a Java method
     /// reference (`this::m`, `Type::m`, `Type::new`), a C# method group

@@ -8209,3 +8209,107 @@ func main() {\n\
     let g = fs::read_to_string(&dynamic).unwrap();
     assert_eq!(g.matches("dyn|").count(), 3, "{g}");
 }
+
+/// WS28: a call's argument count (C#, Kotlin, TypeScript) and Swift's
+/// argument labels pick among an overload set, cross-file too; an
+/// overload set the count narrows to one is one callee, `high` where the
+/// lookup is otherwise certain (Java). Same-count overloads stay, at
+/// `medium`.
+#[test]
+fn overloads_narrow_by_argument_count_and_labels() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "cs/Svc.cs",
+        b"namespace App {\n  public class Svc {\n    public void Run() {}\n    public void Run(int a) {}\n    public void Run(int a, int b, int c = 0) {}\n    public void Log(object o) {}\n    public void Log(string s) {}\n  }\n}\n",
+    );
+    write(
+        tmp.path(),
+        "cs/Use.cs",
+        b"namespace App {\n  public class Use {\n    public void Go(Svc s) {\n      s.Run(1);\n      s.Log(\"a\");\n    }\n  }\n}\n",
+    );
+    write(
+        tmp.path(),
+        "kt/Lib.kt",
+        b"package app\nclass Lib {\n  fun each(f: (Int) -> Unit) {}\n  fun each(n: Int, f: (Int) -> Unit) {}\n}\n",
+    );
+    write(
+        tmp.path(),
+        "kt/Use.kt",
+        b"package app\nfun go(l: Lib) {\n  l.each(3) { }\n}\n",
+    );
+    write(
+        tmp.path(),
+        "sw/Buf.swift",
+        b"final class Buf {\n  init(count: Int) {}\n  init(data: String) {}\n}\n",
+    );
+    write(
+        tmp.path(),
+        "sw/Use.swift",
+        b"func go() {\n  _ = Buf(count: 2)\n}\n",
+    );
+    write(
+        tmp.path(),
+        "java/p/Svc.java",
+        b"package p;\npublic class Svc {\n  public void run() {}\n  public void run(int a) {}\n}\n",
+    );
+    write(
+        tmp.path(),
+        "java/p/Use.java",
+        b"package p;\npublic class Use {\n  void go() {\n    Svc s = new Svc();\n    s.run(1);\n  }\n}\n",
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let field = |id: &serde_json::Value, f: &str| {
+        g["callables"][id.as_str().unwrap()][f]
+            .as_str()
+            .unwrap_or_default()
+            .to_string()
+    };
+    let edges: Vec<(String, String, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                field(&e["src"], "qualified_name"),
+                field(&e["dst"], "signature_hint"),
+                e["confidence"].as_str().unwrap().to_string(),
+            )
+        })
+        .collect();
+    let to = |src: &str, sig: &str| -> Vec<&str> {
+        edges
+            .iter()
+            .filter(|(s, d, _)| s.ends_with(src) && d.starts_with(sig))
+            .map(|(_, _, c)| c.as_str())
+            .collect()
+    };
+    // C#: one argument reaches `Run(int a)` only; `Log` keeps both.
+    assert_eq!(to("Use.Go", "public void Run(int a)").len(), 1, "{edges:?}");
+    assert!(to("Use.Go", "public void Run()").is_empty(), "{edges:?}");
+    assert!(
+        to("Use.Go", "public void Run(int a, int b").is_empty(),
+        "{edges:?}"
+    );
+    assert_eq!(to("Use.Go", "public void Log").len(), 2, "{edges:?}");
+    // Kotlin: an argument and a trailing lambda are two.
+    assert_eq!(to("go", "fun each(n: Int").len(), 1, "{edges:?}");
+    assert!(to("go", "fun each(f:").is_empty(), "{edges:?}");
+    // Swift: the label picks the initializer.
+    assert_eq!(to("go", "init(count: Int)").len(), 1, "{edges:?}");
+    assert!(to("go", "init(data: String)").is_empty(), "{edges:?}");
+    // Java: an overload set narrowed to one by arity, cross-file, is high.
+    assert_eq!(
+        to("Use.go", "public void run(int a)"),
+        vec!["high"],
+        "{edges:?}"
+    );
+}

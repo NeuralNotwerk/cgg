@@ -949,6 +949,35 @@ otherwise change the default graph.
   satisfies it. A method whose type satisfies a standard-library
   interface (`fmt.Stringer`, `sort.Interface`, `sql.Scanner`, …) carries
   `implements-external-contract` instead.
+- **Calls bound the wrong overload in C#, Kotlin, Swift and TypeScript,
+  and a C# or Kotlin call through a type bound one arbitrary overload
+  (WS28).** C# recorded a call's argument count only for constructions,
+  and Kotlin and TypeScript not at all, so a call reached every overload
+  of its name whatever it passed; a typed cross-file lookup kept one
+  member of an overload set, chosen by indexing order, sometimes at
+  `high`. Every C#, Kotlin and TypeScript call now records its argument
+  count (C# named arguments one each; a Kotlin trailing lambda one; a
+  Kotlin or TypeScript spread leaves it unknown), and the three join
+  `OVERLOAD_ARITY_LANGS`. `accepts_arity` reads a C# extension method's
+  `this` parameter (the receiver, or the first argument of a static
+  call), Kotlin `vararg`, TypeScript optional `x?:`, rest parameters and
+  `this:` (which takes no argument), besides the defaults and varargs it
+  read before. Swift calls also record their argument labels
+  (`RefRecord::arg_labels`), which pick among same-count initializers
+  and methods (`init(count:)`, `init(data:)`; defaults skipped, a
+  variadic taking the unlabeled arguments after it, a trailing closure
+  the next parameter it must fill). A typed C#, Kotlin or TypeScript
+  lookup reads the whole overload set even when the count is unknown,
+  as Swift and Groovy already did. Narrowing still never empties a set.
+- **A cross-file call narrowed to one overload by its argument count
+  stayed `medium` (WS28).** The certainty check counted an overload set
+  — one qualified name, several callables in one file — as copies of a
+  name, the way it counts a vendored module, so a Java, Scala, C++, C#,
+  Kotlin, Groovy, Swift or TypeScript call resolved to the one overload
+  that takes its arguments was never `high`. With the count known, an
+  overload set is one callee: a single survivor is `high` when the
+  lookup is otherwise certain. Copies of a qualified name in several
+  files still are not.
 
 ### Compatibility
 
@@ -1762,6 +1791,45 @@ timed out on both binaries, and has no Go):
   `x.String()`; resolving an import by its last path segment alone
   credited one Kratos application's repository methods from another's
   identically named package. Neither does now.
+
+WS28 overload narrowing (full corpus, 283 repositories, none excluded;
+measured per language against the previous step, and as a whole against
+the WS31 tree):
+
+- Before, the corpus had 12,213 C#, 10,168 Kotlin, 7,381 TypeScript and
+  2,054 Swift call sites bound to two or more overloads of one name in
+  one file (6,803, 6,221, 5,240 and 604 of them between overloads with
+  different parameter counts). Groovy's 7,827 are overloads of one
+  parameter count told apart by type, which no count narrows; Groovy is
+  unchanged.
+- C#: 20,553 edges removed and 9,033 added, all `medium` (Json.NET
+  15,478/8,693, Serilog 1,910, Orleans samples 1,827). 8,653 edges move
+  `high` → `medium`: a typed lookup that kept one arbitrary member of an
+  overload set now reads the set, and same-count overloads stay a
+  `medium` guess. 4,395 move `medium` → `high` (one overload left).
+- Kotlin: 21,303 `medium` and 2 `high` edges removed, 8,126 `medium`
+  added (Okio 9,334 removed, WordPress Android 4,910, OkHttp 3,752). One
+  removed `high` was a call with one argument bound to a zero-parameter
+  extension of the same name; 1,000 `high` edges to one of several
+  receiver-typed extension overloads (`String.toResponseBody`,
+  `ByteString.toResponseBody`) are now `medium` over the set.
+- Swift: 778 `medium` edges removed (Alamofire 284, Ghostty 200,
+  CodeEdit 182, Alarik 94); 238 edges move to `high`.
+- TypeScript: 41,844 `medium` and 14 `high` edges removed, 1,521
+  `medium` added (Metabase 18,472 removed, mostly by-name fan-out of
+  `.click()`, `.card()` and the like onto same-named functions taking a
+  different number of parameters; Immich 2,782; Ghost 1,858). 321 edges
+  move to `high`, 24 from it.
+- The certainty fix moves 45,043 Java, 3,143 Scala, 1,855 C++, 275
+  Groovy and the C#/Kotlin/Swift/TypeScript edges above to `high`; no
+  edge is added by it.
+- Under `--dead-code`, 428 findings leave the report and 920 enter it
+  (822 `medium`, 87 `low`, 11 `high`), and 2 move `medium` → `high`. The
+  ones entering were reached only through a wrong overload: the 11
+  `high` are Serilog's reflectively invoked `SurrogateConfigurationMethods`
+  (5), whose only edges were zero-argument calls bound to their
+  one-parameter statics, and 6 C# methods in Orleans, Ombi, MonoGame and
+  the Unity boat sample likewise.
 
 ## [0.11.0] - 2026-10-16
 

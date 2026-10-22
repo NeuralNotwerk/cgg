@@ -750,8 +750,7 @@ pub fn link_file_with_cap(
                     // The argument count leaves one overload: the others
                     // provably cannot take the call, so the callee is
                     // known, not guessed.
-                    let targets =
-                        overloads_for_arity(&facts.language, &candidates, rref.arity);
+                    let targets = overloads_for_arity(&facts.language, &candidates, rref);
                     let confidence = if targets.len() == 1 {
                         Confidence::High
                     } else {
@@ -966,21 +965,46 @@ pub(crate) fn is_clause_language(language: &str) -> bool {
 fn overloads_for_arity(
     language: &str,
     candidates: &[(u32, &DefRecord)],
-    arity: Option<u32>,
+    rref: &RefRecord,
 ) -> Vec<u32> {
     let all: Vec<u32> = candidates.iter().map(|(i, _)| *i).collect();
-    let Some(n) = arity else { return all };
     if !crate::type_hints::OVERLOAD_ARITY_LANGS.contains(&language) {
         return all;
     }
-    let fits: Vec<u32> = candidates
-        .iter()
-        .filter(|(_, d)| {
-            crate::type_hints::accepts_arity(&d.signature_hint, n) != Some(false)
-        })
-        .map(|(i, _)| *i)
-        .collect();
-    if fits.is_empty() { all } else { fits }
+    let fits: Vec<(u32, &DefRecord)> = match rref.arity {
+        Some(n) => candidates
+            .iter()
+            .copied()
+            .filter(|(_, d)| {
+                crate::type_hints::accepts_arity(&d.signature_hint, n) != Some(false)
+            })
+            .collect(),
+        None => candidates.to_vec(),
+    };
+    let fits = if fits.is_empty() {
+        candidates.to_vec()
+    } else {
+        fits
+    };
+    // Swift: then by the labels the call writes (WS28).
+    let labeled: Vec<u32> = if language == "swift" && !rref.arg_labels.is_empty() {
+        fits.iter()
+            .filter(|(_, d)| {
+                crate::type_hints::swift_accepts_labels(
+                    &d.signature_hint,
+                    &rref.arg_labels,
+                ) != Some(false)
+            })
+            .map(|(i, _)| *i)
+            .collect()
+    } else {
+        Vec::new()
+    };
+    if !labeled.is_empty() {
+        labeled
+    } else {
+        fits.iter().map(|(i, _)| *i).collect()
+    }
 }
 
 fn clause_targets(

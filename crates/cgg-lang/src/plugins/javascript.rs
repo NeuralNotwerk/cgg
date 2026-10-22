@@ -1604,12 +1604,31 @@ impl<'a> JsWalker<'a> {
         } else {
             format!("{recv}.{name}")
         };
+        // TypeScript overloads by parameter count (WS28): the arguments
+        // passed, `None` with a spread, whose count the source does not
+        // show.
+        let arity = (self.facts.language == "typescript")
+            .then(|| match node.child_by_field_name("arguments") {
+                Some(args) => {
+                    let mut c = args.walk();
+                    let kids: Vec<Node> = args
+                        .named_children(&mut c)
+                        .filter(|n| !n.kind().contains("comment"))
+                        .collect();
+                    (!kids.iter().any(|k| k.kind() == "spread_element"))
+                        .then_some(kids.len() as u32)
+                }
+                // `new Foo` without a list passes nothing.
+                None => (node.kind() == "new_expression").then_some(0),
+            })
+            .flatten();
         self.facts.references.push(RefRecord {
             name,
             receiver_hint: shaped.unwrap_or(recv),
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
             typed_receiver,
+            arity,
             ..Default::default()
         });
         // Shape B/E: `app.get('/x', listUsers)` and
@@ -1673,6 +1692,7 @@ impl<'a> JsWalker<'a> {
                 ..Default::default()
             });
             self.facts.references.push(RefRecord {
+                arg_labels: Vec::new(),
                 arg_type: None,
                 from_macro_arg: false,
                 path_receiver: false,

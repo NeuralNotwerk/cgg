@@ -2827,6 +2827,7 @@ mod tests {
         let g = graph_with(vec![handler]);
         let mut f = facts_with_import("javascript", "app.js", "express");
         f.references.push(RefRecord {
+            arg_labels: Vec::new(),
             arg_type: None,
             from_macro_arg: false,
             path_receiver: false,
@@ -2870,6 +2871,7 @@ mod tests {
 
         let mut bare = facts_with_import("rust", "s.rs", "axum");
         bare.references.push(RefRecord {
+            arg_labels: Vec::new(),
             arg_type: None,
             from_macro_arg: false,
             path_receiver: false,
@@ -2899,6 +2901,7 @@ mod tests {
         // so it needs no route of its own.
         let mut free = facts_with_import("rust", "s.rs", "axum");
         free.references.push(RefRecord {
+            arg_labels: Vec::new(),
             arg_type: None,
             from_macro_arg: false,
             path_receiver: false,
@@ -2935,6 +2938,7 @@ mod tests {
         let g = graph_with(vec![handler]);
         let mut f = facts_with_import("rust", "s.rs", "axum");
         f.references.push(RefRecord {
+            arg_labels: Vec::new(),
             arg_type: None,
             from_macro_arg: false,
             path_receiver: false,
@@ -2996,6 +3000,7 @@ mod tests {
         let g = graph_with(vec![node(0, "app.other", "other", "javascript")]);
         let mut f = facts_with_import("javascript", "app.js", "express");
         f.references.push(RefRecord {
+            arg_labels: Vec::new(),
             arg_type: None,
             from_macro_arg: false,
             path_receiver: false,
@@ -3041,6 +3046,7 @@ mod tests {
 
         let mut f = facts_with_import("python", "ui.py", "kivy");
         f.references.push(RefRecord {
+            arg_labels: Vec::new(),
             arg_type: None,
             from_macro_arg: false,
             path_receiver: false,

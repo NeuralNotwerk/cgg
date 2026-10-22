@@ -1013,8 +1013,23 @@ pub fn resolve(
     // lookups consult this set and refuse instead.
     let mut qn_collisions: std::collections::HashSet<(String, String)> =
         std::collections::HashSet::new();
+    // The collisions whose carriers all sit in one file: an overload set
+    // (WS28), one callee once the call's argument count picks among it,
+    // not copies of a name in several files.
+    let mut qn_files: HashMap<(String, String), FileId> = HashMap::new();
+    let mut multi_file_qns: std::collections::HashSet<(String, String)> =
+        std::collections::HashSet::new();
     for c in graph.callables.values() {
         let key = (c.language.clone(), c.qualified_name.clone());
+        match qn_files.get(&key) {
+            Some(f) if *f != c.file => {
+                multi_file_qns.insert(key.clone());
+            }
+            Some(_) => {}
+            None => {
+                qn_files.insert(key.clone(), c.file);
+            }
+        }
         if let Some(prev) = by_qn.insert(key.clone(), c.id)
             && prev != c.id
         {
@@ -2596,6 +2611,7 @@ pub fn resolve(
                     &phpix,
                     &scala_wild,
                     &qn_collisions,
+                    &multi_file_qns,
                     &overloads,
                     &unique_owners,
                     &mut refused_module,
@@ -2701,6 +2717,7 @@ pub fn resolve(
                                     &phpix,
                                     &scala_wild,
                                     &qn_collisions,
+                                    &multi_file_qns,
                                     &overloads,
                                     &unique_owners,
                                     &mut m2,
@@ -2741,12 +2758,16 @@ pub fn resolve(
                 // count picks among it.
                 let lookup_len = resolved.as_ref().map_or(0, Vec::len);
                 let resolved = resolved.map(|cids| {
-                    // Swift and Groovy (WS23) read the whole set even when
-                    // the count is unknown (named arguments, a spread):
-                    // every overload is a candidate then, never the one
-                    // the index happened to keep.
+                    // Swift and Groovy (WS23), and C#, Kotlin and
+                    // TypeScript (WS28), read the whole set even when the
+                    // count is unknown (named arguments, a spread): every
+                    // overload is a candidate then, never the one the
+                    // index happened to keep.
                     let cids = if (r.arity.is_some()
-                        || matches!(lang.as_str(), "swift" | "groovy"))
+                        || matches!(
+                            lang.as_str(),
+                            "swift" | "groovy" | "csharp" | "kotlin" | "typescript"
+                        ))
                         && crate::type_hints::OVERLOAD_ARITY_LANGS
                             .contains(&lang.as_str())
                     {
@@ -2768,7 +2789,8 @@ pub fn resolve(
                     } else {
                         cids
                     };
-                    narrow_by_arity(graph, &lang, r.arity, cids)
+                    let cids = narrow_by_arity(graph, &lang, r.arity, cids);
+                    narrow_by_labels(graph, &lang, &r.arg_labels, cids)
                 });
                 // Reading the whole overload set is a guess among its
                 // members, bounded by the cap like any other: a set the
@@ -4804,6 +4826,12 @@ struct CertainCtx<'a> {
     graph: &'a Graph,
     unique_owners: &'a OwnerFacts,
     qn_collisions: &'a std::collections::HashSet<(String, String)>,
+    /// The collisions carried in more than one file.
+    multi_file_qns: &'a std::collections::HashSet<(String, String)>,
+    /// The call's argument count is known in an overloading language: the
+    /// caller reads a lookup's whole overload set and narrows it by the
+    /// count, so one survivor is the one overload that can take it.
+    arity_picks_overload: bool,
     /// The receiver's type was a guess (`RefRecord::weak_receiver_type`),
     /// or the receiver was recovered from a macro's token tree.
     weak_receiver: bool,
@@ -4823,9 +4851,12 @@ impl CertainCtx<'_> {
             && !self.minified_caller()
             && cids.iter().all(|c| {
                 self.graph.callables.get(c).is_some_and(|n| {
-                    !self
-                        .qn_collisions
-                        .contains(&(n.language.clone(), n.qualified_name.clone()))
+                    let key = (n.language.clone(), n.qualified_name.clone());
+                    // An overload set (one file) is one callee when the
+                    // argument count picks among it (WS28).
+                    !self.qn_collisions.contains(&key)
+                        || (self.arity_picks_overload
+                            && !self.multi_file_qns.contains(&key))
                 })
             })
     }
@@ -5156,6 +5187,32 @@ pub(crate) fn narrow_by_arity(
         .filter(|c| {
             graph.callables.get(c).is_none_or(|node| {
                 crate::type_hints::accepts_arity(&node.signature_hint, n) != Some(false)
+            })
+        })
+        .collect();
+    if fits.is_empty() { cids } else { fits }
+}
+
+/// Swift: the candidates whose parameter labels can take the call's
+/// argument labels ([`crate::type_hints::swift_accepts_labels`]).
+/// One-sided like [`narrow_by_arity`]: a list that cannot be read stays,
+/// and a filter that would empty the set leaves it as it was.
+pub(crate) fn narrow_by_labels(
+    graph: &Graph,
+    lang: &str,
+    labels: &[String],
+    cids: Vec<CallableId>,
+) -> Vec<CallableId> {
+    if lang != "swift" || labels.is_empty() || cids.len() < 2 {
+        return cids;
+    }
+    let fits: Vec<CallableId> = cids
+        .iter()
+        .copied()
+        .filter(|c| {
+            graph.callables.get(c).is_none_or(|node| {
+                crate::type_hints::swift_accepts_labels(&node.signature_hint, labels)
+                    != Some(false)
             })
         })
         .collect();
@@ -5548,6 +5605,8 @@ fn try_resolve_ref(
     scala_wild: &std::collections::BTreeSet<String>,
     // Qualified names more than one callable carries; see `resolve`.
     qn_collisions: &std::collections::HashSet<(String, String)>,
+    // Those of them carried in more than one file (not an overload set).
+    multi_file_qns: &std::collections::HashSet<(String, String)>,
     // `(file, qualified name)` → the overload set it declares.
     overloads: &HashMap<(FileId, &str), Vec<CallableId>>,
     // Owner names one declaration site owns (see `unique_owner_names`).
@@ -5572,6 +5631,9 @@ fn try_resolve_ref(
         graph,
         unique_owners,
         qn_collisions,
+        multi_file_qns,
+        arity_picks_overload: r.arity.is_some()
+            && crate::type_hints::OVERLOAD_ARITY_LANGS.contains(&lang),
         weak_receiver: r.weak_receiver_type || r.from_macro_arg,
         lang,
         caller_file,
