@@ -1,0 +1,380 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "bash",
+      "class": "script-driven",
+      "visibility": "none",
+      "attributes": "none",
+      "value_references": "none",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 5,
+      "callables": 6,
+      "roots": 6,
+      "reachable": 6,
+      "reachable_pct": 100,
+      "findings": 0
+    },
+    {
+      "language": "java",
+      "class": "analyzable",
+      "visibility": "full",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "high",
+      "root_rules_active": [
+        "builtin:main",
+        "framework:entry-node",
+        "framework:test-harness"
+      ],
+      "files": 5,
+      "callables": 8,
+      "roots": 4,
+      "reachable": 4,
+      "reachable_pct": 50,
+      "findings": 4
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 14,
+    "edges": 3,
+    "unresolved_call_sites": 17,
+    "roots": 10,
+    "candidates": 4,
+    "reported": 4,
+    "regions": 4
+  },
+  "roots": [
+    {
+      "id": "C15a9j9lxjxq",
+      "qualified_name": "warn",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-micronaut-graalapp/gradlew:119"
+    },
+    {
+      "id": "C11lye0zt6ha",
+      "qualified_name": "die",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-micronaut-graalapp/gradlew:101"
+    },
+    {
+      "id": "C1iluk5i917",
+      "qualified_name": "save",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-micronaut-graalapp/gradlew:178"
+    },
+    {
+      "id": "Clnsb0ri5le",
+      "qualified_name": "example.micronaut.Application.main",
+      "language": "java",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "C72iq13n09j",
+      "qualified_name": "example.micronaut.ConferenceControllerTest.testHello",
+      "language": "java",
+      "kind": "test-entry",
+      "rule": "framework:test-harness",
+      "detail": "run by `<framework-entry>::test::junit`"
+    },
+    {
+      "id": "Cs0mtcs3uus",
+      "qualified_name": "warn",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-micronaut-graalapp/gradlew:119"
+    },
+    {
+      "id": "Cfotzrpry0m",
+      "qualified_name": "die",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-micronaut-graalapp/gradlew:101"
+    },
+    {
+      "id": "Cv7k8a0qp78",
+      "qualified_name": "save",
+      "language": "bash",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-micronaut-graalapp/gradlew:178"
+    },
+    {
+      "id": "Ckfsl0dpro2",
+      "qualified_name": "<framework-entry>::network::micronaut::Get(\"/random\")",
+      "language": "java",
+      "kind": "framework-callback",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::network::micronaut::Get(\"/random\")`"
+    },
+    {
+      "id": "C1fuuwhpgef",
+      "qualified_name": "<framework-entry>::test::junit",
+      "language": "java",
+      "kind": "test-entry",
+      "rule": "framework:entry-node",
+      "detail": "synthesized entry node `<framework-entry>::test::junit`"
+    }
+  ],
+  "regions": [
+    {
+      "id": 4,
+      "members": [
+        "Cvmjsn5qagu"
+      ],
+      "anchors": [
+        "Cvmjsn5qagu"
+      ],
+      "files": [
+        "F8d2rzp09we"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 5,
+      "members": [
+        "Cunlqz06h62"
+      ],
+      "anchors": [
+        "Cunlqz06h62"
+      ],
+      "files": [
+        "F8d2rzp09we"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 6,
+      "members": [
+        "C4ey4r1fca5"
+      ],
+      "anchors": [
+        "C4ey4r1fca5"
+      ],
+      "files": [
+        "F8d2rzp09we"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 7,
+      "members": [
+        "C16e4o4956x5"
+      ],
+      "anchors": [
+        "C16e4o4956x5"
+      ],
+      "files": [
+        "Fy14cfps0h9"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "java"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cunlqz06h62",
+      "qualified_name": "example.micronaut.Conference.getName",
+      "simple_name": "getName",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F8d2rzp09we",
+      "path": "/storage/cgg-test_repos/app-micronaut-graalapp/complete/src/main/java/example/micronaut/Conference.java",
+      "start_line": 14,
+      "end_line": 16,
+      "size_lines": 3,
+      "signature_hint": "public String getName()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 5,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4ey4r1fca5",
+      "qualified_name": "example.micronaut.Conference.setName",
+      "simple_name": "setName",
+      "language": "java",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F8d2rzp09we",
+      "path": "/storage/cgg-test_repos/app-micronaut-graalapp/complete/src/main/java/example/micronaut/Conference.java",
+      "start_line": 18,
+      "end_line": 20,
+      "size_lines": 3,
+      "signature_hint": "public void setName(String name)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 103,
+      "region": 6,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C16e4o4956x5",
+      "qualified_name": "example.micronaut.ConferenceController.ConferenceController",
+      "simple_name": "ConferenceController",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "Fy14cfps0h9",
+      "path": "/storage/cgg-test_repos/app-micronaut-graalapp/complete/src/main/java/example/micronaut/ConferenceController.java",
+      "start_line": 11,
+      "end_line": 13,
+      "size_lines": 3,
+      "signature_hint": "public ConferenceController(ConferenceService conferenceService)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -197,
+      "region": 7,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvmjsn5qagu",
+      "qualified_name": "example.micronaut.Conference.Conference",
+      "simple_name": "Conference",
+      "language": "java",
+      "kind": "constructor",
+      "def_variant": "constructor",
+      "file": "F8d2rzp09we",
+      "path": "/storage/cgg-test_repos/app-micronaut-graalapp/complete/src/main/java/example/micronaut/Conference.java",
+      "start_line": 10,
+      "end_line": 12,
+      "size_lines": 3,
+      "signature_hint": "public Conference(String name)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -697,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "implicitly-invokable-kind",
+          "callable_kind": "constructor"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "Conference",
+          "sites": 7,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "F13b058jw19m",
+            "path": "/storage/cgg-test_repos/app-micronaut-graalapp/complete/src/main/java/example/micronaut/ConferenceService.java",
+            "line": 12,
+            "name": "Conference"
+          }
+        },
+        {
+          "kind": "public-visibility",
+          "token": "public"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "language-signals-complete"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

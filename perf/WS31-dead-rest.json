@@ -1,0 +1,252 @@
+[
+ {
+  "repo": "dart-flutter",
+  "old_ms": null,
+  "new_ms": null
+ },
+ {
+  "repo": "hcl-terraform-aws",
+  "old_ms": null,
+  "new_ms": null
+ },
+ {
+  "repo": "js-polka",
+  "old_ms": 114.3006719648838,
+  "new_ms": 114.17937197256833
+ },
+ {
+  "repo": "js-restify",
+  "old_ms": 414.9266000604257,
+  "new_ms": 414.93566997814924
+ },
+ {
+  "repo": "julia-flux",
+  "old_ms": 264.60990589112043,
+  "new_ms": 264.7586560342461
+ },
+ {
+  "repo": "julia-genie",
+  "old_ms": 414.95152097195387,
+  "new_ms": 415.0026709539816
+ },
+ {
+  "repo": "kivy-carvera",
+  "old_ms": 1267.167970072478,
+  "new_ms": 1267.2471029218286
+ },
+ {
+  "repo": "kivy-kivymd",
+  "old_ms": 815.5601029284298,
+  "new_ms": 815.667484072037
+ },
+ {
+  "repo": "kotlin-okio",
+  "old_ms": 916.2422589724883,
+  "new_ms": 916.1476709414274
+ },
+ {
+  "repo": "lean-batteries",
+  "old_ms": 766.2316330242902,
+  "new_ms": 765.746857970953
+ },
+ {
+  "repo": "lua-kong",
+  "old_ms": 3572.970495908521,
+  "new_ms": 3572.930430062115
+ },
+ {
+  "repo": "lua-neovim",
+  "old_ms": 8182.2326050605625,
+  "new_ms": 11683.306016027927
+ },
+ {
+  "repo": "nix-home-manager",
+  "old_ms": 1316.831691074185,
+  "new_ms": 1317.0200450113043
+ },
+ {
+  "repo": "objc-afnetworking",
+  "old_ms": 264.680961961858,
+  "new_ms": 264.6360320504755
+ },
+ {
+  "repo": "ocaml-dune",
+  "old_ms": 8132.240952923894,
+  "new_ms": 8032.51318493858
+ },
+ {
+  "repo": "openapi-spec",
+  "old_ms": 114.25252794288099,
+  "new_ms": 114.23204897437245
+ },
+ {
+  "repo": "perl-dancer2",
+  "old_ms": 515.1293269591406,
+  "new_ms": 515.041918028146
+ },
+ {
+  "repo": "perl-mojolicious",
+  "old_ms": 1667.881077970378,
+  "new_ms": 1668.4383620740846
+ },
+ {
+  "repo": "php-laravel",
+  "old_ms": 6930.986755993217,
+  "new_ms": 6879.938552970998
+ },
+ {
+  "repo": "powershell-psget",
+  "old_ms": 114.20177400577813,
+  "new_ms": 114.23744296189398
+ },
+ {
+  "repo": "proto-grpc",
+  "old_ms": 64.21452201902866,
+  "new_ms": 64.53527009580284
+ },
+ {
+  "repo": "py-apscheduler",
+  "old_ms": 314.75372600834817,
+  "new_ms": 314.7271659690887
+ },
+ {
+  "repo": "py-dash",
+  "old_ms": 2569.71240893472,
+  "new_ms": 2569.964132970199
+ },
+ {
+  "repo": "py-dramatiq",
+  "old_ms": 264.46264900732785,
+  "new_ms": 265.10466600302607
+ },
+ {
+  "repo": "py-falcon",
+  "old_ms": 1066.3965929998085,
+  "new_ms": 1066.7914939112961
+ },
+ {
+  "repo": "py-huey",
+  "old_ms": 364.75359403993934,
+  "new_ms": 364.8331940639764
+ },
+ {
+  "repo": "py-litestar",
+  "old_ms": 2068.2488509919494,
+  "new_ms": 2068.7796979909763
+ },
+ {
+  "repo": "py-quart",
+  "old_ms": 264.46534402202815,
+  "new_ms": 265.0351809570566
+ },
+ {
+  "repo": "py-robyn",
+  "old_ms": 515.1767050847411,
+  "new_ms": 515.242345049046
+ },
+ {
+  "repo": "py-scrapy",
+  "old_ms": 1717.9313669912517,
+  "new_ms": 1717.3386269714683
+ },
+ {
+  "repo": "python-flask",
+  "old_ms": 364.7420529741794,
+  "new_ms": 364.9469210067764
+ },
+ {
+  "repo": "python-httpie",
+  "old_ms": 364.9646919220686,
+  "new_ms": 364.8583320900798
+ },
+ {
+  "repo": "r-ggplot2",
+  "old_ms": 665.6191409565508,
+  "new_ms": 666.0175289725885
+ },
+ {
+  "repo": "ruby-jekyll",
+  "old_ms": 465.14276100788265,
+  "new_ms": 465.2147199958563
+ },
+ {
+  "repo": "rust-bat",
+  "old_ms": 6580.886349081993,
+  "new_ms": 6479.080284014344
+ },
+ {
+  "repo": "rust-ntex",
+  "old_ms": 1767.984319012612,
+  "new_ms": 1768.0807249853387
+ },
+ {
+  "repo": "rust-ripgrep",
+  "old_ms": 916.2024540128186,
+  "new_ms": 916.1534560844302
+ },
+ {
+  "repo": "rust-rtic",
+  "old_ms": 1968.8997190678492,
+  "new_ms": 1968.5651279287413
+ },
+ {
+  "repo": "scala-play",
+  "old_ms": 4625.347389956005,
+  "new_ms": 4574.673052993603
+ },
+ {
+  "repo": "scala-spark",
+  "old_ms": null,
+  "new_ms": null
+ },
+ {
+  "repo": "smithy-protocol-tests",
+  "old_ms": 5127.274070982821,
+  "new_ms": 5128.060851013288
+ },
+ {
+  "repo": "solidity-openzeppelin",
+  "old_ms": 1668.2788429316133,
+  "new_ms": 1668.3808279922232
+ },
+ {
+  "repo": "starlark-skylib",
+  "old_ms": 164.62043300271034,
+  "new_ms": 164.75727094803005
+ },
+ {
+  "repo": "swift-alamofire",
+  "old_ms": 1066.5249159792438,
+  "new_ms": 1066.2980290362611
+ },
+ {
+  "repo": "ts-typeorm",
+  "old_ms": 5676.2685920111835,
+  "new_ms": 5677.15543799568
+ },
+ {
+  "repo": "ts-zod",
+  "old_ms": 1568.6381160048768,
+  "new_ms": 1567.3941959394142
+ },
+ {
+  "repo": "verilog-picorv32",
+  "old_ms": 314.82545903418213,
+  "new_ms": 314.70587896183133
+ },
+ {
+  "repo": "vhdl-uvvm",
+  "old_ms": 2068.630596040748,
+  "new_ms": 2068.9336420036852
+ },
+ {
+  "repo": "zig-http",
+  "old_ms": 214.6258989814669,
+  "new_ms": 214.5457100123167
+ },
+ {
+  "repo": "zig-zig",
+  "old_ms": null,
+  "new_ms": null
+ }
+]
