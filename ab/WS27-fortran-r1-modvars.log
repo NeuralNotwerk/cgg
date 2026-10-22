@@ -1,0 +1,10 @@
+old: cgg 0.11.0 (dev g2709f51)  sha256=e337bd596e63bbb3cf87b6a8ad8a7dbcbab4d860a441476e0b8a9a71c6bb6aca
+new: cgg 0.11.0 (dev g2709f51+d3f4ad70)  sha256=e428a3426e058707929843e7a0ca72965ed75b31443ad45c82b9d73c2dd2c479
+old=target/remediation/bins/WS27-fortran-before
+new=target/remediation/bins/WS27-fortran-r1-modvars
+repos=283 elapsed=243s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 1
+  app-fpm-fortran: edges 3198->3187 (-11 +0 ~0) callables 1216->1216 unresolved 18->25 files 248->248 deadhigh 0->0 
+by language: see by_language.tsv
+

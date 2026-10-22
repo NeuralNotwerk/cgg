@@ -1,0 +1,12 @@
+{
+ "old": {
+  "sha256": "e337bd596e63bbb3cf87b6a8ad8a7dbcbab4d860a441476e0b8a9a71c6bb6aca",
+  "version": "cgg 0.11.0 (dev g2709f51)",
+  "path": "/storage/cgg/target/remediation/bins/WS27-fortran-before"
+ },
+ "new": {
+  "sha256": "e428a3426e058707929843e7a0ca72965ed75b31443ad45c82b9d73c2dd2c479",
+  "version": "cgg 0.11.0 (dev g2709f51+d3f4ad70)",
+  "path": "/storage/cgg/target/remediation/bins/WS27-fortran-r1-modvars"
+ }
+}
