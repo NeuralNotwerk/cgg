@@ -254,8 +254,9 @@ fn a_lone_nested_function_is_medium_outside_its_parent() {
         (
             "a.fs",
             "module A\nlet outer () =\n    let helper () = ()\n    helper ()\n\nlet other () =\n    helper ()\n",
-            "outer",
-            "helper",
+            // WS34: an F# module-level function is named by its module path.
+            "A.outer",
+            "A.helper",
         ),
         (
             "a.scala",
@@ -974,7 +975,7 @@ fn groovy_scala_and_fsharp_constructions_reach_their_constructors() {
     );
     assert_eq!(lines("FBox.FBox", "FBase.FBase"), 1, "{edges:#?}");
     assert_eq!(lines("FBox.FBox", "FBox.FBox"), 1, "{edges:#?}");
-    assert_eq!(lines("make", "FBox.FBox"), 2, "{edges:#?}");
+    assert_eq!(lines("M.make", "FBox.FBox"), 2, "{edges:#?}");
 }
 
 /// WS22: narrowing a fan-out to its concrete candidates never leaves only

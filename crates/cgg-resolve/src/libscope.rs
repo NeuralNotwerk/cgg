@@ -207,6 +207,13 @@ pub(crate) struct LibIndex<'a> {
     /// for `:mod.f()` written in Elixir.
     erl_funcs: HashMap<(String, String), Vec<CallableId>>,
     erl_modules: HashSet<String>,
+    /// F#: `(module path, name)` → the functions it declares (`A.B.Mod`,
+    /// `f` for `A.B.Mod.f`), and a type's static members (`T`, `M`).
+    fs_funcs: HashMap<(String, String), Vec<CallableId>>,
+    /// F#: file → the paths a module-qualified call written there may be
+    /// relative to: its own namespaces and modules (every prefix) and its
+    /// `open`s, nearest first.
+    fs_contexts: HashMap<FileId, Vec<String>>,
 }
 
 impl<'a> LibIndex<'a> {
@@ -216,6 +223,7 @@ impl<'a> LibIndex<'a> {
         ix.build_perl(graph, facts);
         ix.build_scala(graph, facts);
         ix.build_elixir(graph, facts);
+        ix.build_fsharp(graph, facts);
         if !facts.iter().any(|f| f.language == "dart") {
             return ix;
         }
@@ -1074,6 +1082,85 @@ impl<'a> LibIndex<'a> {
     /// define is external; one that defines no `f` is refused, unless it
     /// `use`s a dependency (whose macros may have generated it). `None`
     /// when the receiver is not a module path.
+    fn build_fsharp(&mut self, graph: &Graph, facts: &[FileFacts]) {
+        if !facts.iter().any(|f| f.language == "fsharp") {
+            return;
+        }
+        for c in graph.callables.values() {
+            if c.language != "fsharp" || c.synthetic {
+                continue;
+            }
+            if let Some((path, name)) = c.qualified_name.rsplit_once('.') {
+                self.fs_funcs
+                    .entry((path.to_string(), name.to_string()))
+                    .or_default()
+                    .push(c.id);
+            }
+        }
+        for v in self.fs_funcs.values_mut() {
+            v.sort_unstable();
+        }
+        for f in facts.iter().filter(|f| f.language == "fsharp") {
+            let mut ctx: Vec<String> = Vec::new();
+            // Its own namespaces and modules, innermost prefix first.
+            for p in &f.packages {
+                let segs: Vec<&str> = p.split('.').collect();
+                for k in (1..=segs.len()).rev() {
+                    let pre = segs[..k].join(".");
+                    if !ctx.contains(&pre) {
+                        ctx.push(pre);
+                    }
+                }
+            }
+            for i in f.imports.iter().filter(|i| i.kind == "open") {
+                let p = i.path.trim().to_string();
+                if !p.is_empty() && !ctx.contains(&p) {
+                    ctx.push(p);
+                }
+            }
+            self.fs_contexts.insert(f.file, ctx);
+        }
+    }
+
+    /// F# `Mod.f` / `A.B.f` (WS34): the function `f` the module path names
+    /// — written whole, or relative to one of the file's own namespaces
+    /// and modules or its `open`s — and, for a type's static member,
+    /// `T.M`. `None` when no in-tree module of that path declares `f`,
+    /// which leaves the call to the ordinary steps (a library module such
+    /// as `List` or `Seq` stays external).
+    pub(crate) fn resolve_fsharp(
+        &self,
+        caller_file: FileId,
+        r: &RefRecord,
+    ) -> Option<Vec<CallableId>> {
+        let rh = r.receiver_hint.trim();
+        if rh.is_empty()
+            || r.typed_receiver
+            || !rh.starts_with(|c: char| c.is_uppercase())
+            || !rh.split('.').all(|s| {
+                !s.is_empty() && s.chars().all(|c| c.is_alphanumeric() || c == '_')
+            })
+        {
+            return None;
+        }
+        let name = r.name.as_str();
+        let mut paths: Vec<String> = vec![rh.to_string()];
+        for p in self
+            .fs_contexts
+            .get(&caller_file)
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+        {
+            paths.push(format!("{p}.{rh}"));
+        }
+        // The first path that names an in-tree `f`: the nearest scope wins,
+        // as F#'s name resolution does.
+        paths
+            .iter()
+            .find_map(|p| self.fs_funcs.get(&(p.clone(), name.to_string())))
+            .cloned()
+    }
+
     pub(crate) fn resolve_elixir(
         &self,
         caller_file: FileId,

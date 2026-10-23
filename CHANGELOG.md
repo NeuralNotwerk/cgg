@@ -56,6 +56,21 @@ otherwise change the default graph.
   refused stays refused. Not Scala, Kotlin, Swift, Dart or Rust, where a
   member's name carries its type and a span a parse recovered past
   would make a type's members look nested.
+- **F# module-qualified calls reached no module (WS34).** `Mod.f x`,
+  `A.B.Mod.f x` and `CodeFix.check` were looked up by the name `f` alone,
+  so a call reached another module's same-named function (the ~45
+  code-fix modules each declare a `fix`), or nothing, and about 640 live
+  functions were reported dead. A module-level F# function is now named
+  by its module path (`App.CodeFixes.AddA.fix`: the file's `namespace`
+  or `module A.B.Mod`, then each nested `module Inner =`), and a call
+  through a capitalized path binds the `f` of the module that path
+  names — written whole, or relative to the file's own namespaces and
+  modules or its `open`s, nearest first (`LibIndex::resolve_fsharp`).
+  One such function is `high`; copies in several files bind at
+  `medium`. A path no in-tree module declares (`List.map`, `Seq.filter`)
+  is left to the ordinary steps and stays external. A call the grammar
+  splits as `A.B` dot `f` inside an operator expression is recorded as
+  the dotted call it is.
 
 ### Compatibility
 
@@ -104,6 +119,27 @@ WS33 nested definitions (full corpus, 283 repositories, none excluded):
 - Under `--dead-code`, 213 `medium` findings leave the report and 329
   enter it (266 `medium`, 63 `low`); 101 move `medium` → `low`. None are
   `high` either way.
+
+WS34 F# module-qualified calls (every corpus repository containing F#, 8
+repositories, none excluded; edges compared by source site and target
+position, since module-level F# qualified names now carry their module):
+
+- Module-level F# functions are renamed with their module path
+  (`fix` → `FsAutoComplete.CodeFix.AddMissingSeq.fix`).
+- 4,966 call sites gain an edge (most of them module-qualified calls
+  that were unresolved), 574 bind a different target (`<| CodeFix.check`
+  from another module's `check` to the `CodeFix` module's, `Data.insertSnippet`
+  from `insert.fs` to the `Data` module's), 25 narrow to one target and
+  1,851 change confidence only. 13 sites lose their edge, each a wrong
+  binding: the compiler library's `Range.mkRange` and
+  `Range.rangeContainsRange` bound to a same-named test helper at `high`,
+  `PackageResolver.Resolve` bound to `ModuleResolver.Resolve` at `high`,
+  and by-name method guesses (`git.add`). Unresolved F# sites fall by
+  about 3,300.
+- Under `--reference-edges`, the same changes.
+- Under `--dead-code`, 1,970 F# findings leave the report (1,943
+  `medium`, 27 `low`) and 14 enter it; 227 move `medium` → `low` and 4
+  `low` → `medium`. None are `high`.
 
 ## [0.11.1] - 2026-10-23
 

@@ -7772,10 +7772,10 @@ let withValue () =
         );
     }
     for (src, def, site) in [
-        ("withNested", 26, 27),
-        ("useHelper", 28, 29),
-        ("withTry", 9, 22),
-        ("withValue", 9, 34),
+        ("Lib.withNested", 26, 27),
+        ("Lib.useHelper", 28, 29),
+        ("Lib.withTry", 9, 22),
+        ("Lib.withValue", 9, 34),
     ] {
         assert!(
             edges
@@ -7999,9 +7999,9 @@ let main argv =\n\
         "Main.composedB",
         "Main.fmapped",
         "Main.viaWhere",
-        "fsMapped",
-        "fsPiped",
-        "fsInRecord",
+        "Program.fsMapped",
+        "Program.fsPiped",
+        "Program.fsInRecord",
     ] {
         assert!(
             !dead.iter().any(|q| q == live),
@@ -8012,8 +8012,8 @@ let main argv =\n\
         "shadowed",
         "orphan_ml",
         "Main.orphanHs",
-        "fsShadowed",
-        "orphanFs",
+        "Program.fsShadowed",
+        "Program.orphanFs",
     ] {
         assert!(
             dead.iter().any(|q| q == gone),
@@ -8080,10 +8080,11 @@ let value = 1\n",
         .iter()
         .map(|e| (qn(&e["src"]), qn(&e["dst"])))
         .collect();
+    // WS34: a module-level function is named by its module path.
     for (src, dst) in [
-        ("first", "second"),
-        ("second", "leaf"),
-        ("annotated", "leaf"),
+        ("Lib.first", "Lib.second"),
+        ("Lib.second", "Lib.leaf"),
+        ("Lib.annotated", "Lib.leaf"),
     ] {
         assert!(
             edges.iter().any(|(s, d)| s == src && d == dst),
@@ -8092,7 +8093,9 @@ let value = 1\n",
     }
     // `second`'s call belongs to `second`, not to `first`.
     assert!(
-        !edges.iter().any(|(s, d)| s == "first" && d == "leaf"),
+        !edges
+            .iter()
+            .any(|(s, d)| s == "Lib.first" && d == "Lib.leaf"),
         "{edges:?}"
     );
     let names: Vec<String> = g["callables"]
@@ -8101,7 +8104,10 @@ let value = 1\n",
         .values()
         .filter_map(|c| c["qualified_name"].as_str().map(str::to_string))
         .collect();
-    assert!(!names.iter().any(|n| n == "value"), "{names:?}");
+    assert!(
+        !names.iter().any(|n| n.rsplit('.').next() == Some("value")),
+        "{names:?}"
+    );
 }
 
 /// WS31: a Go type satisfies an interface by having its methods. A call
@@ -8370,4 +8376,73 @@ fn nested_functions_are_not_visible_outside_their_function() {
     assert!(!has("bad", "make_checker.check"), "{edges:?}");
     assert!(!has("caller", "make_checker.check"), "{edges:?}");
     assert!(!has("count", "parties"), "{edges:?}");
+}
+
+/// WS34: an F# `Mod.f` call reaches the `f` of the module that path names
+/// — written whole, relative to an `open`, or through the file's own
+/// namespace — never a same-named `f` of another module; a library
+/// module (`List.map`) stays outside the tree.
+#[test]
+fn fsharp_module_qualified_calls_reach_their_module() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "AddA.fs",
+        b"module App.CodeFixes.AddA\n\nlet fix (x: int) = x + 1\nlet map f xs = xs\n",
+    );
+    write(
+        tmp.path(),
+        "AddB.fs",
+        b"module App.CodeFixes.AddB\n\nlet fix (x: int) = x + 2\n",
+    );
+    write(
+        tmp.path(),
+        "Ns.fs",
+        b"namespace N.S\n\nmodule Mod =\n    let h z = z\n",
+    );
+    write(
+        tmp.path(),
+        "Use.fs",
+        b"module App.Use\nopen App.CodeFixes\n\nlet run () =\n    let d = AddA.fix 4 + N.S.Mod.h 3\n    let e = List.map id [1]\n    d\n",
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let edges: Vec<(String, String, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                qn(&e["src"]),
+                qn(&e["dst"]),
+                e["confidence"].as_str().unwrap().to_string(),
+            )
+        })
+        .collect();
+    let to = |d: &str| -> Vec<&str> {
+        edges
+            .iter()
+            .filter(|(s, t, _)| s == "App.Use.run" && t == d)
+            .map(|(_, _, c)| c.as_str())
+            .collect()
+    };
+    assert_eq!(to("App.CodeFixes.AddA.fix"), vec!["high"], "{edges:?}");
+    assert_eq!(to("N.S.Mod.h"), vec!["high"], "{edges:?}");
+    // Near misses: the other module's `fix`, and an in-tree `map` for
+    // the library's `List.map`.
+    assert!(to("App.CodeFixes.AddB.fix").is_empty(), "{edges:?}");
+    assert!(to("App.CodeFixes.AddA.map").is_empty(), "{edges:?}");
 }

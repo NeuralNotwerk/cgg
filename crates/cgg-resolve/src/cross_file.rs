@@ -6148,6 +6148,13 @@ fn try_resolve_ref(
         }
         return None;
     }
+    // WS34: F# `Mod.f` through the module path the file can see.
+    if lang == "fsharp"
+        && let Some(cids) = libix.resolve_fsharp(caller_file, r)
+    {
+        *module_certain = cids.len() == 1;
+        return Some(cids);
+    }
     // WS12b: Elixir `Mod.f()` / `&Mod.f/1` / `__MODULE__.f()` / `:m.f()`
     // name module `Mod` through the file's aliases: its `f` of the call's
     // arity, never another module's `f`.

@@ -34,6 +34,7 @@ impl LanguagePlugin for FsharpPlugin {
             scope: Vec::new(),
             bases: Vec::new(),
             reference_sites: ctx.reference_sites,
+            modules: Vec::new(),
         };
         w.walk(tree.root_node());
         facts
@@ -49,9 +50,21 @@ struct FsharpWalker<'a> {
     /// Record functions used as values (`value_ref`):
     /// `crate::ExtractCtx::reference_sites`.
     reference_sites: bool,
+    /// The enclosing namespace and modules, outermost first: `A.B` for
+    /// `namespace A.B`, `X.Mod` for `module X.Mod`, then each nested
+    /// `module Inner =` (WS34).
+    modules: Vec<String>,
 }
 
 impl<'a> FsharpWalker<'a> {
+    /// A module-level function's qualified name: its module path, then
+    /// its name (`A.B.Mod.f`), so `Mod.f` written elsewhere can find it.
+    fn module_qn(&self, simple: &str) -> String {
+        if !self.scope.is_empty() || self.modules.is_empty() {
+            return self.qn(simple);
+        }
+        format!("{}.{simple}", self.modules.join("."))
+    }
     fn text(&self, n: Node) -> &str {
         n.utf8_text(self.source).unwrap_or("")
     }
@@ -115,6 +128,31 @@ impl<'a> FsharpWalker<'a> {
                 self.walk_children(node);
                 return;
             }
+            // `namespace A.B` / `module A.B.Mod` (the file's) and a nested
+            // `module Inner =`: the path a module-qualified call names.
+            "namespace" | "named_module" | "module_defn" => {
+                let name = if node.kind() == "module_defn" {
+                    self.child_kind(node, "identifier")
+                } else {
+                    node.child_by_field_name("name")
+                }
+                .map(|n| self.text(n).trim().to_string())
+                .filter(|n| !n.is_empty() && n != "global");
+                match name {
+                    Some(n) => {
+                        if node.kind() != "module_defn"
+                            && !self.facts.packages.contains(&n)
+                        {
+                            self.facts.packages.push(n.clone());
+                        }
+                        self.modules.push(n);
+                        self.walk_children(node);
+                        self.modules.pop();
+                    }
+                    None => self.walk_children(node),
+                }
+                return;
+            }
             "import_decl" => {
                 if let Some(li) = self.child_kind(node, "long_identifier") {
                     let path = self.text(li).to_string();
@@ -170,7 +208,7 @@ impl<'a> FsharpWalker<'a> {
             // The first binding starts at the `let` (and its attributes);
             // a later one at its `and`.
             let text = self.source.get(b.start..b.end).unwrap_or_default();
-            let qn = self.qn(&name);
+            let qn = self.module_qn(&name);
             self.facts.definitions.push(DefRecord {
                 simple_name: name,
                 qualified_name: qn,
@@ -374,6 +412,39 @@ impl<'a> FsharpWalker<'a> {
                     first
                 };
                 match inner.kind() {
+                    // `A.B.f x` the grammar splits as `A.B` dot `f` (inside an
+                    // operator expression, WS34): the same dotted call.
+                    "dot_expression" => {
+                        let (Some(base), Some(field)) = (
+                            inner.child_by_field_name("base"),
+                            inner.child_by_field_name("field"),
+                        ) else {
+                            break;
+                        };
+                        // `N.S` dot `Mod.h`: the whole path is `N.S.Mod.h`.
+                        let full: String =
+                            format!("{}.{}", self.text(base), self.text(field))
+                                .split_whitespace()
+                                .collect();
+                        let path_like = full.split('.').all(|seg| {
+                            !seg.is_empty()
+                                && seg.chars().all(|c| c.is_alphanumeric() || c == '_')
+                        });
+                        let (recv, name) = full
+                            .rsplit_once('.')
+                            .map(|(a, b)| (a.to_string(), b.to_string()))
+                            .unwrap_or_default();
+                        if path_like && !recv.is_empty() && !name.is_empty() {
+                            self.facts.references.push(RefRecord {
+                                name,
+                                receiver_hint: recv,
+                                site_line: (site.start_position().row as u32) + 1,
+                                site_byte: site.start_byte() as u32,
+                                arity: None,
+                                ..Default::default()
+                            });
+                        }
+                    }
                     "long_identifier" => {
                         // Dotted: take last identifier as name, prefix as receiver.
                         let mut idents: Vec<String> = Vec::new();
