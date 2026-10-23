@@ -9,6 +9,47 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-10-23
+
+A correctness release: the fixes (WS32–WS38) for the major issues a
+triage of 0.11.1 found. Every change fixes a wrong or missing result in
+an existing plugin or resolver step, so it ships as a patch; nothing here
+is a new flag, output format, language or parser. Groovy shapes that only
+a fuller grammar can parse are deferred to a minor release
+([`BACKLOG.md`](BACKLOG.md), issue #11).
+
+> **0.11.1 still reported some wrong edges as `high`.** A Haskell `do`
+> bind (`x <- e`) was extracted as a definition named `x`, and calls of
+> any `x` bound to it (WS32); a local named like another function's
+> nested helper, or a bare call in another file, bound that helper
+> (WS33); a C call inside `#ifdef A` could bind the `#else` stub (WS36);
+> and a Groovy `x?.stop()` whose receiver the parse dropped bound the
+> enclosing `stop` itself (WS38). A consumer filtering on `high` in 0.11.1
+> and earlier kept these. Across the corpus 0.11.2 drops 14,741 `high`
+> edges: 13,708 are the same call re-bound to the same file's callable
+> under a corrected name (F# module paths, Clojure `letfn` callers,
+> Groovy classes), 125 move to the right callable in another file, and
+> 908 were wrong bindings with no replacement (727 Haskell).
+
+Full corpus (282 repositories) against 0.11.1, default graph:
+
+| | 0.11.1 | 0.11.2 |
+| --- | ---: | ---: |
+| callables | 2,936,972 | 2,930,506 |
+| edges | 6,942,369 | 6,980,038 |
+| cross-file edges | 4,940,921 | 4,965,235 |
+| unresolved sites | 7,683,491 | 7,693,761 |
+| entry nodes | 426,549 | 429,685 |
+| `--dead-code` findings | 1,134,963 | 1,122,367 |
+
+62,119 edges are removed (14,741 `high`) and 98,795 added (29,628
+`high`); 5,316 more keep their call but change target set or confidence.
+Callables fall because 12,850 phantom Haskell definitions go (WS32) while
+Groovy (WS38) and Clojure (WS37) recover 6,384. No `high` dead-code
+finding enters or leaves the report (657 before and after). The
+per-workstream *Compatibility* blocks below give each change's own
+numbers.
+
 ### Fixed
 
 - **Haskell `do` binds and type-signature arrows were extracted as
@@ -140,6 +181,35 @@ otherwise change the default graph.
   interpolation or a comment are never rewritten. A string's delimiters
   change only for `''` and one-line slashy strings, whose content stays
   as written.
+
+### Performance
+
+- **Release measurement vs 0.11.1** (`scripts/compare-release.py`,
+  `--jobs 1`, 282 repositories, paired): total 286.4 s → 289.5 s
+  (+1.1%), median per repository (baseline over 150 ms) +1.0%, 74 of 179
+  faster. Like-for-like apart from the recovered Groovy and Clojure
+  code, which is now analyzed instead of skipped as ERROR spans or
+  misread. No repository exceeds the max(10%, 1 s) runway; the largest
+  moves are `erlang-otp` 8.9 → 9.8 s, `app-ocamlorg-dream` 12.4 → 13.1 s
+  and `app-yapi-koa` 5.4 → 6.1 s. Machine load was not recorded by the
+  run; the host also runs standing GPU inference and other batch jobs
+  (load averages from 11 to 34 were seen the same day), so per-repository
+  deltas of a few percent are within noise. The largest single-run
+  regressions (`app-gin-photoprism` +27%, `app-eshop-aspnet` +28%,
+  `app-flaskbb-flask` +20%, `fsharp-paket` +15%, `app-yapi-koa` +14%,
+  `erlang-otp` +10%, `app-alarik-vapor` +16%) were re-timed paired and
+  interleaved, five runs each with JSON output: every one is between
+  −3.6% and 0.0%. Several are in languages this release does not touch.
+- **`groovy-gradle`**, over the runway in 0.11.1 (+18%), is flat: the
+  WS38 rewrites are one linear pass (9.60 → 9.12 s in the release
+  measurement).
+- **`--dead-code`:** each workstream was timed paired against its own
+  baseline (full corpus for WS33, otherwise every repository containing
+  the languages it changed); none exceeded the max(20%, 5 s) runway.
+  `dart-flutter`, `hcl-terraform-aws`, `scala-spark` and `zig-zig` exceed
+  the 60 s per-repository cap under `--dead-code` at `--jobs 1` on both
+  versions.
+- **Tests:** `cargo test --workspace` (already built) 11.0 s.
 
 ### Compatibility
 
