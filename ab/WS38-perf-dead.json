@@ -1,0 +1,97 @@
+[
+ {
+  "repo": "app-bamboobsc-struts",
+  "old_ms": 18956.5897770226,
+  "new_ms": 18905.3807889577
+ },
+ {
+  "repo": "app-darkness-flame",
+  "old_ms": 114.43733994383365,
+  "new_ms": 113.90775197651237
+ },
+ {
+  "repo": "app-gs-batch-processing",
+  "old_ms": 64.0568679664284,
+  "new_ms": 31.975239049643278
+ },
+ {
+  "repo": "app-immich-nestjs",
+  "old_ms": 6277.3181239608675,
+  "new_ms": 6277.629641001113
+ },
+ {
+  "repo": "app-kythe-bazel",
+  "old_ms": 3922.3023999948055,
+  "new_ms": 4037.785833934322
+ },
+ {
+  "repo": "app-marquez-dropwizard",
+  "old_ms": 1216.8299839831889,
+  "new_ms": 1166.4056020090356
+ },
+ {
+  "repo": "app-micronaut-graalapp",
+  "old_ms": 32.05446898937225,
+  "new_ms": 32.03874791506678
+ },
+ {
+  "repo": "app-quack-oak",
+  "old_ms": 715.68239107728,
+  "new_ms": 715.8047390403226
+ },
+ {
+  "repo": "app-rn-expensify",
+  "old_ms": 36845.08957702201,
+  "new_ms": 36691.8437971035
+ },
+ {
+  "repo": "app-saplib-jenkins",
+  "old_ms": 5926.785861025564,
+  "new_ms": 5927.069938043132
+ },
+ {
+  "repo": "app-serverless-examples",
+  "old_ms": 415.10399791877717,
+  "new_ms": 414.89240899682045
+ },
+ {
+  "repo": "app-streama-grails",
+  "old_ms": 2019.0751670161262,
+  "new_ms": 1968.673154944554
+ },
+ {
+  "repo": "app-thingsboard-concurrent",
+  "old_ms": 20672.677824040875,
+  "new_ms": 21433.00367204938
+ },
+ {
+  "repo": "app-wordpress-android",
+  "old_ms": 11147.802280029282,
+  "new_ms": 11911.036545992829
+ },
+ {
+  "repo": "dart-flutter",
+  "old_ms": null,
+  "new_ms": null
+ },
+ {
+  "repo": "groovy-gradle",
+  "old_ms": 42143.98554805666,
+  "new_ms": 39968.735452974215
+ },
+ {
+  "repo": "nix-home-manager",
+  "old_ms": 1367.2109919134527,
+  "new_ms": 1517.393043031916
+ },
+ {
+  "repo": "rust-bat",
+  "old_ms": 7385.669470066205,
+  "new_ms": 7936.920747044496
+ },
+ {
+  "repo": "smithy-protocol-tests",
+  "old_ms": 5779.520120937377,
+  "new_ms": 5926.824365044013
+ }
+]

@@ -1,0 +1,753 @@
+app-immich-nestjs/mobile/android/app/build.gradle	16	android {
+app-quack-oak/mobile/android/app/build.gradle	4	android {
+app-saplib-jenkins/documentation/bin/createDocu.groovy	19	static createDependencyList(Set deps) {
+app-saplib-jenkins/documentation/bin/resolveTransitiveCalls.groovy	40	def tmpCalls = [:]
+app-saplib-jenkins/src/com/sap/piper/ConfigurationHelper.groovy	6	def static SEPARATOR = '/'
+app-saplib-jenkins/src/com/sap/piper/ConfigurationLoader.groovy	21	static Map generalConfiguration(script){
+app-saplib-jenkins/src/com/sap/piper/DebugReport.groovy	8	static final long serialVersionUID = 1L
+app-saplib-jenkins/src/com/sap/piper/DescriptorUtils.groovy	9	@Field
+app-saplib-jenkins/src/com/sap/piper/DockerUtils.groovy	5	private static Script script
+app-saplib-jenkins/src/com/sap/piper/DownloadCacheUtils.groovy	68	return ''
+app-saplib-jenkins/src/com/sap/piper/GitUtils.groovy	8	for (def extension : scm.getExtensions()) {
+app-saplib-jenkins/src/com/sap/piper/JenkinsUtils.groovy	18	@API
+app-saplib-jenkins/src/com/sap/piper/Utils.groovy	12	if(params.excludes == null) params.excludes = ''
+app-saplib-jenkins/src/com/sap/piper/analytics/InfluxData.groovy	9	protected Map fields = [jenkins_custom_data: [:], pipeline_data: [:], step_data: [:]]
+app-saplib-jenkins/src/com/sap/piper/analytics/Telemetry.groovy	9	protected static Telemetry instance
+app-saplib-jenkins/src/com/sap/piper/cm/ChangeManagement.groovy	39	private String getLabeledItem(
+app-saplib-jenkins/src/com/sap/piper/cm/StepHelpers.groovy	7	@Deprecated // use go implementation instead
+app-saplib-jenkins/src/com/sap/piper/integration/CloudFoundry.groovy	4	final Script script
+app-saplib-jenkins/src/com/sap/piper/tools/neo/NeoCommandHelper.groovy	10	private Script step
+app-saplib-jenkins/src/com/sap/piper/variablesubstitution/YamlUtils.groovy	11	private final DebugHelper logger
+app-saplib-jenkins/src/com/sap/piper/versioning/DockerArtifactVersioning.groovy	4	protected DockerArtifactVersioning(script, configuration) {
+app-saplib-jenkins/test/groovy/CheckChangeInDevelopmentTest.groovy	26	private ExpectedException thrown = ExpectedException.none()
+app-saplib-jenkins/test/groovy/CloudFoundryDeployTest.groovy	27	.withCredentials('test_cfCredentialsId', 'test_cf', '********')
+app-saplib-jenkins/test/groovy/CommonStepsTest.groovy	62	.filter {! whitelistScriptReference.contains(it)}
+app-saplib-jenkins/test/groovy/DockerExecuteOnKubernetesTest.groovy	32	private ExpectedException exception = ExpectedException.none()
+app-saplib-jenkins/test/groovy/DownloadCacheUtilsTest.groovy	26	DownloadCacheUtils.metaClass.static.networkName = {return }
+app-saplib-jenkins/test/groovy/DubExecuteTest.groovy	19	private ExpectedException thrown = new ExpectedException().none()
+app-saplib-jenkins/test/groovy/InfluxWriteDataTest.groovy	28	public JenkinsLoggingRule loggingRule = new JenkinsLoggingRule(this)
+app-saplib-jenkins/test/groovy/MailSendNotificationTest.groovy	13	private JenkinsLoggingRule loggingRule = new JenkinsLoggingRule(this)
+app-saplib-jenkins/test/groovy/MavenExecuteTest.groovy	22	private ExpectedException exception = ExpectedException.none()
+app-saplib-jenkins/test/groovy/NeoDeployTest.groovy	41	private ExpectedException thrown = new ExpectedException().none()
+app-saplib-jenkins/test/groovy/NpmExecuteEndToEndTestsTest.groovy	22	private JenkinsStepRule stepRule = new JenkinsStepRule(this)
+app-saplib-jenkins/test/groovy/NpmExecuteTest.groovy	19	private ExpectedException thrown = new ExpectedException().none()
+app-saplib-jenkins/test/groovy/PipelineExecuteTest.groovy	15	private ExpectedException thrown = new ExpectedException().none()
+app-saplib-jenkins/test/groovy/PipelineRestartStepsTest.groovy	13	private JenkinsErrorRule errorRule = new JenkinsErrorRule(this)
+app-saplib-jenkins/test/groovy/PiperStageWrapperTest.groovy	23	private ExpectedException thrown = ExpectedException.none()
+app-saplib-jenkins/test/groovy/SeleniumExecuteTestsTest.groovy	13	private ExpectedException thrown = ExpectedException.none()
+app-saplib-jenkins/test/groovy/SetupCommonPipelineEnvironmentTest.groovy	27	def usedConfigFile
+app-saplib-jenkins/test/groovy/SnykExecuteTest.groovy	25	private ExpectedException thrown = ExpectedException.none()
+app-saplib-jenkins/test/groovy/TmsUploadTest.groovy	25	private ExpectedException thrown = new ExpectedException()
+app-saplib-jenkins/test/groovy/TransportRequestCreateTest.groovy	31	private ExpectedException thrown = new ExpectedException()
+app-saplib-jenkins/test/groovy/TransportRequestReleaseTest.groovy	30	private ExpectedException thrown = new ExpectedException()
+app-saplib-jenkins/test/groovy/com/sap/piper/ConfigurationHelperTest.groovy	14	Script mockScript = new Script() {
+app-saplib-jenkins/test/groovy/com/sap/piper/ConfigurationMergerTest.groovy	13	@Rule
+app-saplib-jenkins/test/groovy/com/sap/piper/DebugReportTest.groovy	25	Set<String> buildDetails = DebugReport.instance.environment.build_details as Set<String>
+app-saplib-jenkins/test/groovy/com/sap/piper/DescriptorUtilsTest.groovy	23	@Rule
+app-saplib-jenkins/test/groovy/com/sap/piper/MapUtilsTest.groovy	11	@Test
+app-saplib-jenkins/test/groovy/com/sap/piper/MtaUtilsTest.groovy	20	private static srcPackageJson = 'test/resources/MtaUtils/package.json'
+app-saplib-jenkins/test/groovy/com/sap/piper/UtilsTest.groovy	23	private ExpectedException thrown = ExpectedException.none()
+app-saplib-jenkins/test/groovy/com/sap/piper/cm/ChangeManagementTest.groovy	129	.isChangeInDevelopment([:],
+app-saplib-jenkins/test/groovy/com/sap/piper/integration/TransportManagementServiceTest.groovy	54	assertThat(requestParams.customHeaders[1].value, is("Basic ${"${clientId}:${clientSecret}".bytes.encodeBase64()}"))
+app-saplib-jenkins/test/groovy/templates/PiperPipelineStageConfirmTest.groovy	14	private JenkinsStepRule jsr = new JenkinsStepRule(this)
+app-saplib-jenkins/test/groovy/templates/PiperPipelineStageInitTest.groovy	22	private JenkinsStepRule jsr = new JenkinsStepRule(this)
+app-saplib-jenkins/test/groovy/templates/PiperPipelineStagePRVotingTest.groovy	22	private JenkinsStepRule jsr = new JenkinsStepRule(this)
+app-saplib-jenkins/test/groovy/util/JenkinsCredentialsRule.groovy	17	Map credentials = [:]
+app-saplib-jenkins/test/groovy/util/JenkinsPropertiesRule.groovy	35	return new Statement() {
+app-saplib-jenkins/test/groovy/util/JenkinsReadYamlRule.groovy	11	final BasePipelineTest testInstance
+app-saplib-jenkins/test/groovy/util/LibraryLoadingTestExecutionListener.groovy	13	static PipelineTestHelper singletonInstance
+app-saplib-jenkins/vars/abapEnvironmentPipeline.groovy	2	pipeline {
+app-saplib-jenkins/vars/artifactSetVersion.groovy	20	@Field Set STEP_CONFIG_KEYS = [
+app-saplib-jenkins/vars/checkChangeInDevelopment.groovy	18	@Field Set GENERAL_CONFIG_KEYS = [
+app-saplib-jenkins/vars/checkForLegacyConfiguration.groovy	13	void call(Map parameters = [:]) {
+app-saplib-jenkins/vars/checksPublishResults.groovy	14	@Field Set TOOLS = [
+app-saplib-jenkins/vars/commonPipelineEnvironment.groovy	10	def projectName
+app-saplib-jenkins/vars/dockerExecute.groovy	17	@Field Set GENERAL_CONFIG_KEYS = [
+app-saplib-jenkins/vars/dockerExecuteOnKubernetes.groovy	18	@Field Set GENERAL_CONFIG_KEYS = [
+app-saplib-jenkins/vars/handlePipelineStepErrors.groovy	16	@Field Set STEP_CONFIG_KEYS = GENERAL_CONFIG_KEYS.plus([
+app-saplib-jenkins/vars/influxWriteData.groovy	16	@Field Set STEP_CONFIG_KEYS = GENERAL_CONFIG_KEYS.plus([
+app-saplib-jenkins/vars/mailSendNotification.groovy	69	/**
+app-saplib-jenkins/vars/mavenExecute.groovy	10	def call(Map parameters = [:]) {
+app-saplib-jenkins/vars/multicloudDeploy.groovy	49	/**
+app-saplib-jenkins/vars/neoDeploy.groovy	17	@Field Set GENERAL_CONFIG_KEYS = [
+app-saplib-jenkins/vars/pipelineStashFilesAfterBuild.groovy	12	@Field Set STEP_CONFIG_KEYS = [
+app-saplib-jenkins/vars/pipelineStashFilesBeforeBuild.groovy	28	/**
+app-saplib-jenkins/vars/piperExecuteBin.groovy	16	void call(Map parameters = [:], String stepName, String metadataFile, List credentialInfo, boolean failOnMissingReports = false, boolean fai
+app-saplib-jenkins/vars/piperPipeline.groovy	2	pipeline {
+app-saplib-jenkins/vars/piperPipelineStageAcceptance.groovy	13	@Field STAGE_STEP_KEYS = [
+app-saplib-jenkins/vars/piperPipelineStageInit.groovy	14	@Field Set GENERAL_CONFIG_KEYS = [
+app-saplib-jenkins/vars/piperPipelineStagePRVoting.groovy	12	@Field Set GENERAL_CONFIG_KEYS = [
+app-saplib-jenkins/vars/piperPipelineStageRelease.groovy	13	@Field STAGE_STEP_KEYS = [
+app-saplib-jenkins/vars/piperPipelineStageSecurity.groovy	13	@Field STAGE_STEP_KEYS = [
+app-saplib-jenkins/vars/piperStageWrapper.groovy	13	void call(Map parameters = [:], body) {
+app-saplib-jenkins/vars/seleniumExecuteTests.groovy	14	@Field Set GENERAL_CONFIG_KEYS = [
+app-saplib-jenkins/vars/setupCommonPipelineEnvironment.groovy	15	@Field Set GENERAL_CONFIG_KEYS = [
+app-saplib-jenkins/vars/snykExecute.groovy	20	@Field Set STEP_CONFIG_KEYS = GENERAL_CONFIG_KEYS.plus([
+app-saplib-jenkins/vars/testsPublishResults.groovy	61	@GenerateDocumentation
+app-saplib-jenkins/vars/transportRequestUploadFile.groovy	20	@Field Set GENERAL_CONFIG_KEYS = [
+app-saplib-jenkins/vars/xsDeploy.groovy	30	}
+app-streama-grails/grails-app/controllers/streama/DashController.groovy	7	static responseFormats = ['json', 'xml']
+app-streama-grails/grails-app/controllers/streama/FileController.groovy	34	render (responseObj as JSON)
+app-streama-grails/grails-app/controllers/streama/LoginController.groovy	42	redirect uri: conf.successHandler.defaultTargetUrl
+app-streama-grails/grails-app/controllers/streama/NotificationQueueController.groovy	11	def mailService
+app-streama-grails/grails-app/controllers/streama/TheMovieDbController.groovy	13	static responseFormats = ['json', 'xml']
+app-streama-grails/grails-app/controllers/streama/UserController.groovy	13	def validationService
+app-streama-grails/grails-app/controllers/streama/ViewingStatusController.groovy	11	static responseFormats = ['json', 'xml']
+app-streama-grails/grails-app/domain/streama/TvShow.groovy	9	transient springSecurityService
+app-streama-grails/grails-app/domain/streama/Video.groovy	7	transient springSecurityService
+app-streama-grails/grails-app/services/streama/BulkCreateService.groovy	12	def grailsApplication
+app-streama-grails/grails-app/services/streama/DefaultDataService.groovy	9	def roles = [
+app-streama-grails/grails-app/services/streama/FfmpegService.groovy	49	try {
+app-streama-grails/grails-app/services/streama/MigrationService.groovy	37	movies.each{
+app-streama-grails/grails-app/services/streama/OpensubtitlesService.groovy	62	for (file in video.files) {
+app-streama-grails/grails-app/services/streama/SettingsService.groovy	5	@Transactional
+app-streama-grails/grails-app/services/streama/TheMovieDbService.groovy	25	return Settings.findBySettingsKey('TheMovieDB API key')?.value
+app-streama-grails/grails-app/services/streama/TranscodingService.groovy	11	def ffmpegService
+app-streama-grails/grails-app/services/streama/UploadService.groovy	9	@Transactional
+app-streama-grails/grails-app/services/streama/VideoService.groovy	14	def fileService
+app-streama-grails/grails-app/services/streama/marshallers/MarshallerService.groovy	21	def springSecurityService
+app-streama-grails/grails-app/services/streama/marshallers/MediaDetailMarshallerService.groovy	7	@Transactional
+app-streama-grails/grails-app/services/streama/marshallers/PlayerMarshallerService.groovy	20	JSON.createNamedConfig('player') { cfg ->
+app-streama-grails/src/main/groovy/streama/traits/SimpleInstance.groovy	3	trait SimpleInstance {
+app-thingsboard-concurrent/packaging/java/build.gradle	1	/**
+app-wordpress-android/WordPress/build.gradle	4	plugins {
+app-wordpress-android/libs/editor/build.gradle	8	android {
+app-wordpress-android/settings.gradle	1	pluginManagement {
+dart-flutter/dev/integration_tests/flutter_gallery/android/app/build.gradle	27	def flutterVersionComponents = flutterVersion.split(/[^0-9]+/)
+groovy-gradle/build-logic/documentation/src/main/groovy/gradlebuild/docs/UserGuideTransformTask.groovy	88	doc.documentElement.bookinfo[0]?.appendChild(releaseInfo)
+groovy-gradle/build-logic/documentation/src/test/groovy/gradlebuild/docs/dsl/docbook/BasicJavadocLexerTest.groovy	1	/*
+groovy-gradle/build-logic/performance-testing/src/main/groovy/gradlebuild/performance/generator/tasks/AbstractProjectGeneratorTask.groovy	42	/**
+groovy-gradle/build-logic/performance-testing/src/main/groovy/gradlebuild/performance/generator/tasks/JvmProjectGeneratorTask.groovy	30	@Internal
+groovy-gradle/build-logic/performance-testing/src/main/groovy/gradlebuild/performance/tasks/PerformanceTest.groovy	70	@OutputDirectory
+groovy-gradle/build-logic/performance-testing/src/main/resources/mirroring-init-script.gradle	25	Map<String, String> mirrors = [:]
+groovy-gradle/platforms/core-configuration/base-diagnostics/src/integTest/groovy/org/gradle/api/tasks/diagnostics/TaskGraphIntegrationTest.groovy	48	buildFile """
+groovy-gradle/platforms/core-configuration/base-diagnostics/src/test/groovy/org/gradle/api/reporting/model/ModelReportParserTest.groovy	33	''   | 'Report text must not be blank'
+groovy-gradle/platforms/core-configuration/base-diagnostics/src/test/groovy/org/gradle/api/tasks/diagnostics/internal/DefaultGroupTaskReportModelTest.groovy	1	/*
+groovy-gradle/platforms/core-configuration/base-diagnostics/src/testFixtures/groovy/org/gradle/api/reporting/model/ModelReportOutput.groovy	38	parsedModelReport.nodeOnlyLines.eachWithIndex { String line, i ->
+groovy-gradle/platforms/core-configuration/configuration-cache/src/crossVersionTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheProblemsCrossVersionTest.groovy	30	@ToolingApiVersion(">=8.10 <8.12")
+groovy-gradle/platforms/core-configuration/configuration-cache/src/crossVersionTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheProblemsTapi812PlusCrossVersionTest.groovy	59	buildFile """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/crossVersionTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheProblemsTapi813PlusCrossVersionTest.groovy	49	if (singleProblem.problem.definition.id.name == "executing-gradle-on-jvm-versions-and-lower") {
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheBuildEventsListenerIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheBuildFeatureIntegrationTest.groovy	37	run "something"
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheBuildOperationsIntegrationTest.groovy	46	inDirectory 'app'
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheBuildServiceIntegrationTest.groovy	56	@Issue('https://github.com/gradle/gradle/issues/31039')
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheBuildSrcChangesIntegrationTest.groovy	33	buildFile << """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheBuildTreeStructureIntegrationTest.groovy	29	settingsFile << """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheClassLoaderCachingIntegrationTest.groovy	29	jarWithClasses(
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheCleanupIntegrationTest.groovy	39	@Issue('https://github.com/gradle/gradle/issues/23957')
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheDebugLogIntegrationTest.groovy	30	buildFile """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheEncryptionIntegrationTest.groovy	204	fails(*(["help", "--configuration-cache"] + encryptionOptions))
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheFileTreeIntegrationTest.groovy	27	buildFile """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheGracefulDegradationIntegrationTest.groovy	25	public static final String CONFIGURATION_CACHE_INCOMPATIBLE_TASKS_OR_FEATURES_FOOTER = "Some tasks or features in this build are not compati
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheGradlePropertiesFileIntegrationTest.groovy	21	def configurationCache = newConfigurationCacheFixture()
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheGradlePropertiesIntegrationTest.groovy	37	configurationCacheRun "help", "-PgradleProp=1", "-PunusedProperty=42"
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheIncludedBuildInputsChangesIntegrationTest.groovy	38	fixture.buildFile << """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheIncludedBuildTransformIntegrationTest.groovy	36	settingsFile """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheIncompatibleTasksIntegrationTest.groovy	49	fixture.assertStateStoredAndDiscarded {
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheIntegrationTest.groovy	42	configurationCacheRun(task, *options)
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheMultiProjectIntegrationTest.groovy	23	settingsFile << """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheProblemReportingIntegrationTest.groovy	38	buildFile '''
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheProblemsServiceIntegTest.groovy	34	buildFile """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheReadOnlyIntegrationTest.groovy	53	configurationCacheRun("help", *options, ENABLE_READ_ONLY_CACHE)
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheStandardStreamsIntegrationTest.groovy	118	buildFile """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheSupportedTypesIntegrationTest.groovy	42	buildFile << """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/ConfigurationCacheTaskExecutionIntegrationTest.groovy	24	def configurationCache = new ConfigurationCacheFixture(this)
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/fixtures/BuildLogicChangeFixture.groovy	30	[Kind.values(), Language.values()].combinations().collect { Kind kind, Language language ->
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/fixtures/MissingScriptFixture.groovy	32	[
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/inputs/undeclared/MethodReferenceInstrumentationIntegrationTest.groovy	33	def classTemplate = { ownerKind, ownerName -> """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/isolated/IsolatedProjectsAccessFromGroovyDslIntegrationTest.groovy	154	settingsFile << """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/isolated/IsolatedProjectsBuildFeatureIntegrationTest.groovy	22	buildFile """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/isolated/IsolatedProjectsBuildOperationsIntegrationTest.groovy	26	settingsFile """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/isolated/IsolatedProjectsBuildStateAccessIntegrationTest.groovy	22	settingsFile "build-logic/settings.gradle", """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/isolated/IsolatedProjectsCompositeBuildIntegrationTest.groovy	100	includedBuild("plugins-a") {
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/isolated/IsolatedProjectsFixture.groovy	34	private final AbstractConfigurationCacheOptInFeatureIntegrationTest spec
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/isolated/IsolatedProjectsIgnoreProblemsIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/isolated/IsolatedProjectsIntegrationTest.groovy	30	run "ipStatus"
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/isolated/IsolatedProjectsParallelConfigurationIntegrationTest.groovy	33	settingsFile """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/isolated/IsolatedProjectsProblemReportingIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/isolated/IsolatedProjectsTaskPathIntegrationTest.groovy	104	buildFile """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/isolated/IsolatedProjectsToolingApiIdeaProjectIntegrationTest.groovy	39	private def pluginApplyingModel = PluginApplyingBuilder.MODEL_NAME
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/isolated/IsolatedProjectsToolingApiParallelConfigurationIntegrationTest.groovy	169	fixture.assertModelStored {
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/isolated/IsolatedProjectsToolingApiStreamingBuildActionIntegrationTest.groovy	55	(streamedModels[0] as GradleProject).name == "hello-world"
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/promo/ConfigurationCachePromoIntegrationTest.groovy	30	buildFile """
+groovy-gradle/platforms/core-configuration/configuration-cache/src/integTest/groovy/org/gradle/internal/cc/impl/promo/ConfigurationCacheToolingApiPromoIntegrationTest.groovy	34	settingsFile "" // The build must have a settings file for TAPI to work.
+groovy-gradle/platforms/core-configuration/declarative-dsl-provider/src/testFixtures/groovy/org/gradle/features/internal/builders/DefinitionBuilder.groovy	34	/**
+groovy-gradle/platforms/core-configuration/declarative-dsl-provider/src/testFixtures/groovy/org/gradle/features/internal/builders/PluginConfig.groovy	22	/**
+groovy-gradle/platforms/core-configuration/declarative-dsl-provider/src/testFixtures/groovy/org/gradle/features/internal/builders/TestScenarioBuilder.groovy	23	/**
+groovy-gradle/platforms/core-configuration/domain-object-collections/src/integTest/groovy/org/gradle/api/NamedDomainObjectContainerIntegrationTest.groovy	22	@SelfType(AbstractDomainObjectContainerIntegrationTest)
+groovy-gradle/platforms/core-configuration/file-collections/src/integTest/groovy/org/gradle/api/file/FilePropertyLifecycleIntegrationTest.groovy	197	buildFile << """
+groovy-gradle/platforms/core-configuration/file-collections/src/integTest/groovy/org/gradle/api/file/RelativePathFilesIntegrationTest.groovy	30	settingsFile """
+groovy-gradle/platforms/core-configuration/file-collections/src/test/groovy/org/gradle/api/internal/file/AbstractFileTreeTest.groovy	68	def filtered = tree.matching(new Action<PatternFilterable>() {
+groovy-gradle/platforms/core-configuration/file-collections/src/test/groovy/org/gradle/api/internal/file/DefaultFileCollectionFactoryTest.groovy	228	def collection = factory.resolving('test files', [{ 'abc' }] as Object[])
+groovy-gradle/platforms/core-configuration/file-collections/src/test/groovy/org/gradle/api/internal/file/collections/DefaultConfigurableFileCollectionSpec.groovy	43	def fileResolver = Mock(FileResolver)
+groovy-gradle/platforms/core-configuration/file-collections/src/test/groovy/org/gradle/api/internal/file/collections/DefaultConfigurableFileTreeTest.groovy	42	TaskDependencyFactory taskDependencyFactory = DefaultTaskDependencyFactory.withNoAssociatedProject()
+groovy-gradle/platforms/core-configuration/flow-services/src/integTest/groovy/org/gradle/internal/flow/services/FlowScopeIntegrationTest.groovy	31	@Requires(
+groovy-gradle/platforms/core-configuration/input-tracking/src/test/groovy/org/gradle/internal/configuration/inputs/AccessTrackingPropertiesTest.groovy	590	'existing' | ''         | AccessTrackingPropertiesTest::removeMapping | null
+groovy-gradle/platforms/core-configuration/java-api-extractor/src/test/groovy/org/gradle/internal/tools/api/ApiClassExtractorInnerClassTest.groovy	1	/*
+groovy-gradle/platforms/core-configuration/java-api-extractor/src/test/groovy/org/gradle/internal/tools/api/ApiClassExtractorTest.groovy	32	def api = toApi 'A': '''
+groovy-gradle/platforms/core-configuration/kotlin-dsl-tooling-builders/src/crossVersionTest/groovy/org/gradle/kotlin/dsl/tooling/builders/r93/GradleDslBaseScriptModelCrossVersionSpec.groovy	37	GradleDslBaseScriptModel model = withConnection { connection ->
+groovy-gradle/platforms/core-configuration/model-core/src/integTest/groovy/org/gradle/api/provider/CredentialsProviderIntegrationTest.groovy	30	buildFile """
+groovy-gradle/platforms/core-configuration/model-core/src/integTest/groovy/org/gradle/api/provider/MapPropertyIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/core-configuration/model-core/src/integTest/groovy/org/gradle/api/provider/PropertyIntegrationTest.groovy	33	buildFile """
+groovy-gradle/platforms/core-configuration/model-core/src/integTest/groovy/org/gradle/api/provider/ProviderIntegrationTest.groovy	28	public static final String DEFAULT_TEXT = 'default'
+groovy-gradle/platforms/core-configuration/model-core/src/integTest/groovy/org/gradle/model/ModelRuleBindingValidationIntegrationTest.groovy	33	settingsFile << """
+groovy-gradle/platforms/core-configuration/model-core/src/integTest/groovy/org/gradle/model/managed/ManagedModelGroovyScalarConfigurationIntegrationTest.groovy	28	private static final String CLASSES = '''
+groovy-gradle/platforms/core-configuration/model-core/src/test/groovy/org/gradle/api/internal/provider/CredentialsProviderFactoryTest.groovy	46	identity << ['%$#$#^!@', '', ' ', 'a ', 'a b', '$a', '_b', 'c!', '-42', null]
+groovy-gradle/platforms/core-configuration/model-core/src/test/groovy/org/gradle/internal/extensibility/ExtensionContainerTest.groovy	191	container.create Parent, 'foo', Child
+groovy-gradle/platforms/core-configuration/model-core/src/test/groovy/org/gradle/internal/extensibility/ExtensionsStorageTest.groovy	69	def t = thrown UnknownDomainObjectException
+groovy-gradle/platforms/core-configuration/model-core/src/test/groovy/org/gradle/internal/extensibility/ExtraPropertiesExtensionTest.groovy	208	project.ext.has 'aProperty'
+groovy-gradle/platforms/core-configuration/model-core/src/test/groovy/org/gradle/model/internal/manage/projection/AbstractCollectionModelProjectionTest.groovy	34	def collectionPath = ModelPath.path("collection")
+groovy-gradle/platforms/core-configuration/model-core/src/test/groovy/org/gradle/model/internal/registry/DefaultModelRegistryTest.groovy	82	normaliseLineSeparators(e.message).contains '''
+groovy-gradle/platforms/core-configuration/model-groovy/src/integTest/groovy/org/gradle/model/dsl/internal/transform/ModelDslRuleDetectionIntegrationSpec.groovy	29	def normalisedPath = path.replace('"', '').replaceAll("'", "")
+groovy-gradle/platforms/core-configuration/model-groovy/src/integTest/groovy/org/gradle/model/dsl/internal/transform/ModelDslRuleInputDetectionIntegrationSpec.groovy	26	@UnsupportedWithConfigurationCache(because = "software model")
+groovy-gradle/platforms/core-configuration/model-groovy/src/integTest/groovy/org/gradle/model/dsl/internal/transform/NestedModelDslUsageIntegrationSpec.groovy	34	buildFile """
+groovy-gradle/platforms/core-configuration/model-reflect/src/test/groovy/org/gradle/internal/reflect/annotations/impl/DefaultTypeAnnotationMetadataStoreTest.groovy	44	private static final COLOR = new AnnotationCategory() {
+groovy-gradle/platforms/core-configuration/model-reflect/src/test/groovy/org/gradle/internal/reflect/validation/ValidationMessageCheckerTest.groovy	44	outputEquals """
+groovy-gradle/platforms/core-configuration/model-reflect/src/testFixtures/groovy/org/gradle/internal/reflect/validation/ValidationMessageChecker.groovy	28	trait ValidationMessageChecker {
+groovy-gradle/platforms/core-configuration/model-reflect/src/testFixtures/groovy/org/gradle/internal/reflect/validation/ValidationMessageDisplayConfiguration.groovy	122	return ''
+groovy-gradle/platforms/core-execution/build-cache-http/src/integTest/groovy/org/gradle/caching/http/internal/HttpBuildCacheConfigurationBuildOperationIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/core-execution/build-cache-http/src/integTest/groovy/org/gradle/caching/http/internal/HttpBuildCacheServiceErrorHandlingIntegrationTest.groovy	28	buildFile << """
+groovy-gradle/platforms/core-execution/build-cache-http/src/integTest/groovy/org/gradle/caching/http/internal/HttpBuildCacheServiceIntegrationTest.groovy	31	static final String ORIGINAL_HELLO_WORLD = """
+groovy-gradle/platforms/core-execution/build-cache/src/integTest/groovy/org/gradle/caching/internal/BuildCacheBuildOperationsIntegrationTest.groovy	54	settingsFile << """
+groovy-gradle/platforms/core-execution/execution-e2e-tests/src/integTest/groovy/org/gradle/integtests/NestedInputKotlinImplementationTrackingIntegrationTest.groovy	48	run 'myTask'
+groovy-gradle/platforms/core-execution/execution-e2e-tests/src/integTest/groovy/org/gradle/integtests/ParallelProjectExecutionIntegrationTest.groovy	36	buildFile << """
+groovy-gradle/platforms/core-execution/execution-e2e-tests/src/integTest/groovy/org/gradle/integtests/TaskUpToDateIntegrationTest.groovy	28	buildFile << """
+groovy-gradle/platforms/core-execution/execution/src/integTest/groovy/org/gradle/internal/execution/MutableUnitOfWorkBuilder.groovy	39	@CompileStatic
+groovy-gradle/platforms/core-execution/execution/src/test/groovy/org/gradle/internal/execution/history/changes/FingerprintCompareStrategyTest.groovy	33	private static final ABSOLUTE = AbsolutePathFingerprintCompareStrategy.INSTANCE
+groovy-gradle/platforms/core-execution/file-watching/src/integTest/groovy/org/gradle/internal/watch/LoggingFileSystemWatchingIntegrationTest.groovy	36	buildFile << """
+groovy-gradle/platforms/core-execution/hashing-services/src/test/groovy/org/gradle/api/internal/changedetection/state/CachingFileHasherTest.groovy	64	1 * cache.put(file.absolutePath, _) >> { String key, FileInfo fileInfo ->
+groovy-gradle/platforms/core-execution/persistent-cache/src/test/groovy/org/gradle/cache/internal/DefaultFileLockManagerWithCrossVersionProtocolTest.groovy	32	lockFile.withDataInputStream { str ->
+groovy-gradle/platforms/core-execution/persistent-cache/src/test/groovy/org/gradle/cache/internal/DefaultFileLockManagerWithNewProtocolTest.groovy	45	lock?.close()
+groovy-gradle/platforms/core-execution/persistent-cache/src/test/groovy/org/gradle/cache/internal/locklistener/DefaultFileLockContentionHandlerTest.groovy	29	def addressFactory = new InetAddressFactory()
+groovy-gradle/platforms/core-execution/snapshots/src/test/groovy/org/gradle/internal/fingerprint/impl/PathNormalizationStrategyTest.groovy	32	@CleanupTestDirectory
+groovy-gradle/platforms/core-execution/snapshots/src/test/groovy/org/gradle/internal/snapshot/VfsRelativePathTest.groovy	33	'/'                    | ''
+groovy-gradle/platforms/core-execution/snapshots/src/test/groovy/org/gradle/internal/snapshot/impl/DirectorySnapshotterTest.groovy	49	@UsesNativeServices
+groovy-gradle/platforms/core-execution/snapshots/src/test/groovy/org/gradle/internal/vfs/impl/VersionHierarchyRootTest.groovy	1	/*
+groovy-gradle/platforms/core-execution/workers/src/integTest/groovy/org/gradle/workers/internal/WorkerExecutorIntegrationTest.groovy	149	settingsFile << """
+groovy-gradle/platforms/core-execution/workers/src/integTest/groovy/org/gradle/workers/internal/WorkerExecutorParametersKotlinIntegrationTest.groovy	47	result.assertTaskSkipped ':runWork'
+groovy-gradle/platforms/core-runtime/base-services/src/test/groovy/org/gradle/internal/SafeFileLocationUtilsTest.groovy	67	'..'            | ''
+groovy-gradle/platforms/core-runtime/base-services/src/test/groovy/org/gradle/internal/jvm/JvmTest.groovy	30	@Rule
+groovy-gradle/platforms/core-runtime/base-services/src/test/groovy/org/gradle/internal/resources/DefaultResourceLockCoordinationServiceTest.groovy	68	async {
+groovy-gradle/platforms/core-runtime/base-services/src/test/groovy/org/gradle/internal/work/DefaultWorkerLeaseServiceProjectLockTest.groovy	34	def workerLeaseService = workerLeaseService(1)
+groovy-gradle/platforms/core-runtime/base-services/src/test/groovy/org/gradle/internal/work/DefaultWorkerLeaseServiceWorkerLeaseTest.groovy	30	async {
+groovy-gradle/platforms/core-runtime/build-configuration/src/testFixtures/groovy/org/gradle/internal/buildconfiguration/fixture/DaemonJvmPropertiesFixture.groovy	36	@SelfType(AbstractIntegrationSpec)
+groovy-gradle/platforms/core-runtime/build-operations-trace/src/integTest/groovy/org/gradle/internal/operations/trace/BuildOperationTraceIntegrationTest.groovy	32	run "help", "-D${BuildOperationTrace.SYSPROP}=trace"
+groovy-gradle/platforms/core-runtime/build-operations/src/test/groovy/org/gradle/internal/operations/DefaultBuildOperationRunnerTest.groovy	58	1 * listener.start(_, _) >> { BuildOperationDescriptor descriptor, BuildOperationState operationState ->
+groovy-gradle/platforms/core-runtime/build-option/src/test/groovy/org/gradle/internal/buildoption/BuildOptionFixture.groovy	23	public static final String GRADLE_PROPERTY = 'org.gradle.test'
+groovy-gradle/platforms/core-runtime/build-profile/src/integTest/groovy/org/gradle/profile/ProfilingIntegrationTest.groovy	60	@Issue("https://github.com/gradle/gradle/issues/16872")
+groovy-gradle/platforms/core-runtime/classpath/src/integTest/groovy/org/gradle/internal/classpath/BuildScriptClasspathIntegrationSpec.groovy	42	static final int MAX_CACHE_AGE_IN_DAYS = CacheConfigurationsInternal.DEFAULT_MAX_AGE_IN_DAYS_FOR_CREATED_CACHE_ENTRIES
+groovy-gradle/platforms/core-runtime/classpath/src/testFixtures/groovy/org/gradle/internal/classpath/intercept/TestInterceptorsSubstitution.groovy	50	if (interceptorFactorySet !instanceof ThreadLocalInterceptorSet) {
+groovy-gradle/platforms/core-runtime/cli/src/test/groovy/org/gradle/cli/CommandLineParserTest.groovy	579	parser.parse(['-a', ''])
+groovy-gradle/platforms/core-runtime/client-services/src/test/groovy/org/gradle/launcher/daemon/client/DaemonClientTest.groovy	63	_ * connection.daemon >> Stub(DaemonConnectDetails)
+groovy-gradle/platforms/core-runtime/gradle-cli/src/test/groovy/org/gradle/launcher/cli/DefaultCommandLineActionFactoryTest.groovy	48	@Rule
+groovy-gradle/platforms/core-runtime/internal-instrumentation-processor/src/test/groovy/org/gradle/internal/instrumentation/extensions/property/PropertyUpgradeCustomInterceptorCodeGenTest.groovy	30	def givenSource = source """
+groovy-gradle/platforms/core-runtime/internal-instrumentation-processor/src/test/groovy/org/gradle/internal/instrumentation/processor/ConfigurationCacheInstrumentationProcessorTest.groovy	43	withAnnotatedType 'Foo'
+groovy-gradle/platforms/core-runtime/io/src/test/groovy/org/gradle/internal/io/StreamByteBufferTest.groovy	1	/*
+groovy-gradle/platforms/core-runtime/launcher/src/integTest/groovy/org/gradle/launcher/cli/CommandLineIntegrationLoggingSpec.groovy	27	buildFile << """
+groovy-gradle/platforms/core-runtime/launcher/src/integTest/groovy/org/gradle/launcher/cli/TaskOptionsSpec.groovy	27	return """
+groovy-gradle/platforms/core-runtime/launcher/src/integTest/groovy/org/gradle/launcher/continuous/ContinuousBuildCancellationIntegrationTest.groovy	59	[inputBefore, flushBefore] << [['', ' ', 'a', 'some input', 'a' * 8192], [true, false]].combinations()
+groovy-gradle/platforms/core-runtime/launcher/src/integTest/groovy/org/gradle/launcher/daemon/DaemonFeedbackIntegrationSpec.groovy	85	buildFile """
+groovy-gradle/platforms/core-runtime/launcher/src/integTest/groovy/org/gradle/launcher/daemon/DaemonInitialCommunicationFailureIntegrationSpec.groovy	73	output.contains DaemonMessages.REMOVING_DAEMON_ADDRESS_ON_FAILURE
+groovy-gradle/platforms/core-runtime/launcher/src/test/groovy/org/gradle/launcher/cli/converter/BuildLayoutConverterTest.groovy	105	assert result.gradleUserHomeDir == parameters.gradleUserHomeDir
+groovy-gradle/platforms/core-runtime/launcher/src/test/groovy/org/gradle/launcher/cli/converter/LayoutToPropertiesConverterTest.groovy	54	rootDir.file("settings.gradle") << ''
+groovy-gradle/platforms/core-runtime/launcher/src/test/groovy/org/gradle/launcher/cli/converter/PropertiesToDaemonParametersConverterTest.groovy	57	params.systemProperties == [foo: '', bar: '']
+groovy-gradle/platforms/core-runtime/launcher/src/test/groovy/org/gradle/launcher/continuous/ContinuousIntegrationTestFixtureTest.groovy	118	GradleExecuter executer
+groovy-gradle/platforms/core-runtime/logging/src/integTest/groovy/org/gradle/internal/logging/console/jvm/AbstractConsoleJvmTestLoggingFunctionalTest.groovy	76	file(JAVA_TEST_FILE_PATH) << javaTestClass { '' }
+groovy-gradle/platforms/core-runtime/logging/src/integTest/groovy/org/gradle/internal/logging/console/taskgrouping/AbstractBasicGroupedTaskLoggingFunctionalTest.groovy	30	private static long sleepTimeout = GroupingProgressLogEventGenerator.HIGH_WATERMARK_FLUSH_TIMEOUT / 2 * 3
+groovy-gradle/platforms/core-runtime/logging/src/integTest/groovy/org/gradle/internal/logging/console/taskgrouping/AbstractConsoleVerboseRenderingFunctionalTest.groovy	55	settingsFile << """
+groovy-gradle/platforms/core-runtime/logging/src/test/groovy/org/gradle/internal/deprecation/LoggingDeprecatedFeatureHandlerTest.groovy	49	final outputEventListener = new CollectingTestOutputEventListener()
+groovy-gradle/platforms/core-runtime/logging/src/test/groovy/org/gradle/internal/logging/LoggingCommandLineConverterTest.groovy	87	e.message == /Argument value 'unknown' given for --console option is invalid/
+groovy-gradle/platforms/core-runtime/logging/src/test/groovy/org/gradle/internal/logging/events/IntQuestionPromptEventTest.groovy	63	''    | -2
+groovy-gradle/platforms/core-runtime/logging/src/test/groovy/org/gradle/internal/logging/progress/DefaultProgressLoggerFactoryTest.groovy	43	1 * progressListener.started(!null) >> { ProgressStartEvent event ->
+groovy-gradle/platforms/core-runtime/logging/src/test/groovy/org/gradle/internal/logging/services/LoggingServiceRegistryTest.groovy	374	outputs.stdOut == ''
+groovy-gradle/platforms/core-runtime/logging/src/test/groovy/org/gradle/internal/logging/sink/OutputEventRendererTest.groovy	40	@Rule
+groovy-gradle/platforms/core-runtime/logging/src/test/groovy/org/gradle/internal/logging/sink/ProgressLogEventGeneratorTest.groovy	42	1 * target.onOutput(!null) >> { args ->
+groovy-gradle/platforms/core-runtime/logging/src/test/groovy/org/gradle/internal/logging/source/PrintStreamLoggingSystemTest.groovy	95	original.toString() == ''
+groovy-gradle/platforms/core-runtime/logging/src/test/groovy/org/gradle/internal/logging/text/LoggingBackedStyledTextOutputTest.groovy	60	1 * listener.onOutput(!null) >> { args ->
+groovy-gradle/platforms/core-runtime/messaging/src/test/groovy/org/gradle/internal/remote/internal/hub/MessageHubBackedObjectConnectionTest.groovy	45	connection.queueIncoming(new ChannelMessage(new ChannelIdentifier(Worker.name), new MethodInvocation(Worker.class.getMethod("doStuff", Strin
+groovy-gradle/platforms/core-runtime/messaging/src/test/groovy/org/gradle/internal/remote/internal/inet/TcpConnectorTest.groovy	40	@Timeout(60)
+groovy-gradle/platforms/core-runtime/native/src/test/groovy/org/gradle/internal/nativeintegration/console/ConsoleMetaDataSupportsTaskbarProgressTest.groovy	24	private ProcessEnvironment env = NativeServicesTestFixture.getInstance().get(ProcessEnvironment)
+groovy-gradle/platforms/core-runtime/native/src/test/groovy/org/gradle/internal/nativeintegration/console/ConsoleMetaDataSupportsUnicodeTest.groovy	24	private ProcessEnvironment env = NativeServicesTestFixture.getInstance().get(ProcessEnvironment)
+groovy-gradle/platforms/core-runtime/process-memory-services/src/test/groovy/org/gradle/process/internal/health/memory/MemoryAmountTest.groovy	75	notation << [null, '', '5b', '5B']
+groovy-gradle/platforms/core-runtime/process-services/src/integTest/groovy/org/gradle/process/internal/CancellationIntegrationTest.groovy	29	private static final String START_UP_MESSAGE = "Cancellable task started!"
+groovy-gradle/platforms/core-runtime/process-services/src/integTest/groovy/org/gradle/process/internal/DestroyForkedProcessesIntegrationTest.groovy	39	buildFile << """
+groovy-gradle/platforms/core-runtime/process-services/src/test/groovy/org/gradle/api/internal/tasks/util/DefaultJavaForkOptionsTest.groovy	49	@Rule
+groovy-gradle/platforms/core-runtime/process-services/src/test/groovy/org/gradle/process/internal/JavaExecHandleBuilderTest.groovy	64	jvmArgs == ['-Dprop=value', 'jvm1', 'jvm2', '-Xms64m', '-Xmx1g', fileEncodingProperty(expectedEncoding), *localeProperties(), '-cp', "$jar1$
+groovy-gradle/platforms/core-runtime/wrapper-main/src/integTest/groovy/org/gradle/integtests/WrapperHttpIntegrationTest.groovy	414	file("gradle.properties").writeProperties(
+groovy-gradle/platforms/core-runtime/wrapper-main/src/integTest/groovy/org/gradle/integtests/WrapperSystemPropertyPrecedenceIntegrationTest.groovy	38	new File(gradleUserHome, 'gradle.properties') << (user ? 'systemProp.foo=user' : '')
+groovy-gradle/platforms/core-runtime/wrapper-shared/src/test/groovy/org/gradle/wrapper/WrapperExecutorTest.groovy	127	wrapper.execute(['arg'] as String[], install, start)
+groovy-gradle/platforms/documentation/docs/src/snippets/integration-tests/dependencyManagement/customizingResolution-selectionRule/groovy/build.gradle	15	@Override
+groovy-gradle/platforms/documentation/docs/src/snippets/integration-tests/files/copy/groovy/build.gradle	4	tasks.register('copyReport', Copy) {
+groovy-gradle/platforms/documentation/docs/src/snippets/reference/dependency-management/dependency-management/customizingResolution-selectionRule/groovy/build.gradle	15	@Override
+groovy-gradle/platforms/documentation/docs/src/snippets/reference/gradle-types/copy/groovy/build.gradle	4	tasks.register('copyReport', Copy) {
+groovy-gradle/platforms/documentation/samples/src/integTest/groovy/org/gradle/integtests/samples/SamplesApplicationIntegrationTest.groovy	89	dslDir.file("build.$extension") << """
+groovy-gradle/platforms/enterprise/enterprise-plugin-performance/src/templates/root/build.gradle	38	File buildDir = parameters.getBuildDirectory().get()
+groovy-gradle/platforms/enterprise/enterprise/src/integTest/groovy/org/gradle/internal/enterprise/BaseBuildScanPluginCheckInFixture.groovy	42	@SuppressWarnings("GrMethodMayBeStatic")
+groovy-gradle/platforms/enterprise/enterprise/src/integTest/groovy/org/gradle/internal/enterprise/ConfigurationCacheDevelocityPluginIntegrationTest.groovy	41	settingsFile '''
+groovy-gradle/platforms/enterprise/enterprise/src/integTest/groovy/org/gradle/internal/enterprise/DevelocityBuildLifecycleServiceIntegrationTest.groovy	26	settingsFile << """
+groovy-gradle/platforms/enterprise/enterprise/src/integTest/groovy/org/gradle/internal/enterprise/DevelocityPluginConfigToolingApiIntegrationTest.groovy	27	def toolingApi = new ToolingApi(distribution, temporaryFolder)
+groovy-gradle/platforms/enterprise/enterprise/src/integTest/groovy/org/gradle/internal/enterprise/DevelocityPluginEndOfBuildCallbackIntegrationTest.groovy	35	buildFile """
+groovy-gradle/platforms/extensibility/plugin-development/src/integTest/groovy/org/gradle/plugin/devel/plugins/JavaGradlePluginPluginIntegrationTest.groovy	28	final static String NO_DESCRIPTOR_WARNING = JavaGradlePluginPlugin.NO_DESCRIPTOR_WARNING_MESSAGE.substring(4)
+groovy-gradle/platforms/extensibility/plugin-development/src/integTest/groovy/org/gradle/plugin/devel/plugins/PrecompiledGroovyPluginsIntegrationTest.groovy	596	file("buildSrc/src/main/groovy/plugins/foo.gradle") << """
+groovy-gradle/platforms/extensibility/plugin-development/src/integTest/groovy/org/gradle/plugin/devel/tasks/ValidatePluginsPart2IntegrationTest.groovy	237	verifyAll(receivedProblem(0)) {
+groovy-gradle/platforms/extensibility/plugin-development/src/integTest/groovy/org/gradle/plugin/devel/variants/GradlePluginWithVariantsPublicationIntegrationTest.groovy	42	producer.file('settings.gradle') << ''
+groovy-gradle/platforms/extensibility/plugin-development/src/test/groovy/org/gradle/plugin/devel/plugins/JavaGradlePluginPluginTest.groovy	71	'implementation-class='              | ''                 | false
+groovy-gradle/platforms/extensibility/plugin-use/src/integTest/groovy/org/gradle/plugin/repository/AuthenticatedPluginRepositorySpec.groovy	79	buildFile """
+groovy-gradle/platforms/extensibility/plugin-use/src/integTest/groovy/org/gradle/plugin/repository/PluginManagementDslSpec.groovy	39	succeeds 'help'
+groovy-gradle/platforms/extensibility/plugin-use/src/integTest/groovy/org/gradle/plugin/repository/ResolvingFromMultipleCustomPluginRepositorySpec.groovy	32	@LeaksFileHandles
+groovy-gradle/platforms/extensibility/plugin-use/src/integTest/groovy/org/gradle/plugin/repository/ResolvingFromSingleCustomPluginRepositorySpec.groovy	31	@LeaksFileHandles
+groovy-gradle/platforms/extensibility/plugin-use/src/integTest/groovy/org/gradle/plugin/repository/ResolvingSnapshotFromPluginRepositorySpec.groovy	26	private publishTestPlugin(String version = "1.0-SNAPSHOT", String message = "from plugin") {
+groovy-gradle/platforms/extensibility/plugin-use/src/integTest/groovy/org/gradle/plugin/repository/ResolvingWithPluginManagementSpec.groovy	34	private publishTestPlugin(Repository repository) {
+groovy-gradle/platforms/extensibility/plugin-use/src/integTest/groovy/org/gradle/plugin/use/CorePluginUseIntegrationSpec.groovy	25	public static final String QUALIFIED_JAVA = "org.gradle.java"
+groovy-gradle/platforms/extensibility/plugin-use/src/integTest/groovy/org/gradle/plugin/use/DeployedPortalIntegrationSpec.groovy	29	@Requires(TestEnvironmentPreconditions.Online)
+groovy-gradle/platforms/extensibility/plugin-use/src/integTest/groovy/org/gradle/plugin/use/NonDeclarativePluginUseIntegrationSpec.groovy	82	buildFile """
+groovy-gradle/platforms/extensibility/plugin-use/src/integTest/groovy/org/gradle/plugin/use/PluginUseDslIntegrationSpec.groovy	31	buildFile """
+groovy-gradle/platforms/extensibility/plugin-use/src/integTest/groovy/org/gradle/plugin/use/VersionInSettingsPluginUseIntegrationTest.groovy	39	withSettings """
+groovy-gradle/platforms/extensibility/plugin-use/src/integTest/groovy/org/gradle/plugin/use/VersionedPluginUseIntegrationTest.groovy	25	public static final String PLUGIN_ID = "org.myplugin"
+groovy-gradle/platforms/extensibility/test-kit/src/integTest/groovy/org/gradle/testkit/runner/GradleRunnerRetryTest.groovy	35	def iteration = 0
+groovy-gradle/platforms/extensibility/unit-test-fixtures/src/test/groovy/org/gradle/testfixtures/ProjectBuilderTest.groovy	87	project.apply plugin: CustomPlugin
+groovy-gradle/platforms/ide/ide-native/src/integTest/groovy/org/gradle/ide/visualstudio/VisualStudioIncrementalIntegrationTest.groovy	27	def app = new CppHelloWorldApp()
+groovy-gradle/platforms/ide/ide-native/src/integTest/groovy/org/gradle/ide/xcode/XcodeCppApplicationProjectIntegrationTest.groovy	55	buildFile << """
+groovy-gradle/platforms/ide/ide-native/src/integTest/groovy/org/gradle/ide/xcode/XcodeMultipleCppProjectIntegrationTest.groovy	34	settingsFile << """
+groovy-gradle/platforms/ide/ide-native/src/integTest/groovy/org/gradle/ide/xcode/XcodeMultipleSwiftProjectIntegrationTest.groovy	46	buildFile << """
+groovy-gradle/platforms/ide/ide-native/src/integTest/groovy/org/gradle/ide/xcode/XcodeSwiftApplicationProjectIntegrationTest.groovy	55	settingsFile << """
+groovy-gradle/platforms/ide/ide-native/src/testFixtures/groovy/org/gradle/ide/xcode/fixtures/ProjectFile.groovy	97	assert targets.empty
+groovy-gradle/platforms/ide/ide-plugins/src/integTest/groovy/org/gradle/plugins/ide/eclipse/EclipseIntegrationTest.groovy	103	def expectedOrder = [
+groovy-gradle/platforms/ide/ide-plugins/src/integTest/groovy/org/gradle/plugins/ide/idea/IdeaModuleIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/ide/ide-plugins/src/test/groovy/org/gradle/plugins/ide/eclipse/EclipsePluginTest.groovy	119	project.sourceSets.main.output.dir 'generated-folder'
+groovy-gradle/platforms/ide/ide-plugins/src/test/groovy/org/gradle/plugins/ide/eclipse/EclipseWtpPluginTest.groovy	48	project.apply plugin: 'eclipse'
+groovy-gradle/platforms/ide/ide-plugins/src/test/groovy/org/gradle/plugins/ide/eclipse/model/ProjectTest.groovy	29	def static final CUSTOM_REFERENCED_PROJECTS = ['refProject'] as LinkedHashSet
+groovy-gradle/platforms/ide/ide-plugins/src/test/groovy/org/gradle/plugins/ide/idea/IdeaPluginTest.groovy	161	project.sourceSets.main.output.dir 'generated-folder'
+groovy-gradle/platforms/ide/ide-plugins/src/test/groovy/org/gradle/plugins/ide/idea/model/ProjectTest.groovy	22	final PathFactory pathFactory = new PathFactory().addPathVariable("PROJECT_DIR", new File("root"))
+groovy-gradle/platforms/ide/ide/src/integTest/groovy/org/gradle/plugins/ide/eclipse/EclipseClasspathIntegrationTest.groovy	87	ExecutionResult result = runEclipseTask """
+groovy-gradle/platforms/ide/ide/src/integTest/groovy/org/gradle/plugins/ide/eclipse/EclipseLinkedResourceIntegrationTest.groovy	43	settingsFile.text = """
+groovy-gradle/platforms/ide/ide/src/integTest/groovy/org/gradle/plugins/ide/eclipse/EclipseScopeAttributeIntegrationTest.groovy	27	@Rule
+groovy-gradle/platforms/ide/ide/src/integTest/groovy/org/gradle/plugins/ide/idea/IdeaJavaLanguageSettingsIntegrationTest.groovy	99	buildFile << """
+groovy-gradle/platforms/ide/ide/src/test/groovy/org/gradle/plugins/ide/eclipse/model/EclipseModelTest.groovy	60	@ExpectDeprecation("Using types related to file generation tasks of IDE plugins (org.gradle.plugins.ide.eclipse.model.EclipseWtp). This beha
+groovy-gradle/platforms/ide/ide/src/testFixtures/groovy/org/gradle/plugins/ide/eclipse/EclipseClasspathFixture.groovy	25	final TestFile userHomeDir
+groovy-gradle/platforms/ide/ide/src/testFixtures/groovy/org/gradle/plugins/ide/eclipse/EclipseProjectFixture.groovy	1	/*
+groovy-gradle/platforms/ide/ide/src/testFixtures/groovy/org/gradle/plugins/ide/fixtures/IdeaModuleFixture.groovy	27	private final GPathResult iml
+groovy-gradle/platforms/ide/problems-api/src/integTest/groovy/org/gradle/api/problems/ProblemLocationPastCapIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/ide/problems-api/src/integTest/groovy/org/gradle/api/problems/ProblemsApiBuildOperationIntegrationTest.groovy	37	withReportProblemTask """
+groovy-gradle/platforms/ide/problems-api/src/integTest/groovy/org/gradle/api/problems/ProblemsServiceIntegrationTest.groovy	42	withReportProblemTask """
+groovy-gradle/platforms/ide/tooling-api/buildship.gradle	1	/**
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/integtests/tooling/fixture/CrossVersionToolingApiSpecificationRetryTest.groovy	62	ioe.cause?.message == "Timeout waiting to connect to the Gradle daemon.\n more infos"
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/integtests/tooling/r10rc1/PassingCommandLineArgumentsCrossVersionSpec.groovy	106	withConnection { ProjectConnection it ->
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/integtests/tooling/r213/ModelsWithGradleProjectCrossVersionSpec.groovy	33	static projectScopedModels = [GradleProject, EclipseProject, HierarchicalEclipseProject]
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/integtests/tooling/r25/TestProgressCrossVersionSpec.groovy	65	withConnection {
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/integtests/tooling/r40/BuildProgressCrossVersionSpec.groovy	47	[initScript1, initScript2].each { it << '' }
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/integtests/tooling/r40/ResolveArtifactsProgressCrossVersionSpec.groovy	54	buildFile << buildFileContent('')
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/integtests/tooling/r61/TestLauncherCrossVersionSpec.groovy	70	e.cause.message.contains 'No matching tests found'
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/integtests/tooling/r62/CapturingMultipleUserInputCrossVersionSpec.groovy	75	withConnection { connection ->
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/integtests/tooling/r76/TestLauncherTestSpecCrossVersionSpec.groovy	45	exception.cause.message.startsWith 'No matching tests found in any candidate test task'
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/integtests/tooling/r812/ProblemProgressEventCrossVersionSpec.groovy	52	withConnection { connection ->
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/integtests/tooling/r813/JvmArgumentPassingCrossVersionSpec.groovy	31	@ToolingApiVersion(">=8.13")
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/integtests/tooling/r86/ProblemProgressEventCrossVersionSpec.groovy	29	@ToolingApiVersion("=8.6")
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/integtests/tooling/r87/ProblemProgressEventCrossVersionSpec.groovy	47	withConnection { connection ->
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/integtests/tooling/r88/ProblemProgressEventCrossVersionSpec.groovy	46	withConnection { connection ->
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/integtests/tooling/r89/ProblemProgressEventCrossVersionSpec.groovy	53	withConnection { connection ->
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/integtests/tooling/r940/BuildEnvironmentVersionInfoCrossVersionSpec.groovy	49	verifyAll {
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/plugins/ide/tooling/m3/ToolingApiEclipseModelCrossVersionSpec.groovy	88	buildFile << '''
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/plugins/ide/tooling/m5/ToolingApiHonorsProjectCustomizationsCrossVersionSpec.groovy	105	file('build.gradle').text = """
+groovy-gradle/platforms/ide/tooling-api/src/crossVersionTest/groovy/org/gradle/plugins/ide/tooling/r214/ToolingApiEclipseModelWtpClasspathAttributesCrossVersionSpec.groovy	69	buildFile <<
+groovy-gradle/platforms/ide/tooling-api/src/test/groovy/org/gradle/tooling/internal/consumer/DistributionFactoryTest.groovy	35	@Rule final TestNameTestDirectoryProvider tmpDir = new TestNameTestDirectoryProvider(getClass())
+groovy-gradle/platforms/ide/tooling-api/src/test/groovy/org/gradle/tooling/internal/consumer/connection/ParameterAwareBuildControllerAdapterTest.groovy	37	def graphAdapter = Mock(ObjectGraphAdapter)
+groovy-gradle/platforms/ide/tooling-api/src/testFixtures/groovy/org/gradle/integtests/tooling/fixture/ProgressEvents.groovy	89	Map<OperationDescriptor, StartEvent> running = [:]
+groovy-gradle/platforms/ide/tooling-api/src/testFixtures/groovy/org/gradle/integtests/tooling/fixture/TestFailureSpecification.groovy	28	/**
+groovy-gradle/platforms/ide/tooling-api/src/testFixtures/groovy/org/gradle/integtests/tooling/fixture/ToolingApiModelChecker.groovy	35	assert actual instanceof Collection
+groovy-gradle/platforms/jvm/code-quality/src/integTest/groovy/org/gradle/api/plugins/quality/checkstyle/CheckstylePluginExternalDTDOptionIntegrationTest.groovy	48	buildFile """
+groovy-gradle/platforms/jvm/code-quality/src/test/groovy/org/gradle/api/plugins/quality/PmdPluginTest.groovy	110	verifyAll(task) {
+groovy-gradle/platforms/jvm/ear/src/test/groovy/org/gradle/plugins/ear/EarPluginTest.groovy	105	task dependsOn(JvmConstants.CLASSES_TASK_NAME, JvmConstants.COMPILE_JAVA_TASK_NAME)
+groovy-gradle/platforms/jvm/jacoco/src/test/groovy/org/gradle/testing/jacoco/plugins/JacocoPluginSpec.groovy	30	project.apply plugin: 'jacoco'
+groovy-gradle/platforms/jvm/jacoco/src/testFixtures/groovy/org/gradle/testing/jacoco/plugins/fixtures/JacocoCoverage.groovy	27	private static final String[] ALL = [JacocoPlugin.DEFAULT_JACOCO_VERSION, '0.7.6.201602180812'].asImmutable()
+groovy-gradle/platforms/jvm/jacoco/src/testFixtures/groovy/org/gradle/testing/jacoco/plugins/fixtures/JacocoReportFixture.groovy	23	private static final String NON_BREAKING_WHITESPACE = '\u00A0'
+groovy-gradle/platforms/jvm/jacoco/src/testFixtures/groovy/org/gradle/testing/jacoco/plugins/fixtures/JacocoReportXmlFixture.groovy	1	/*
+groovy-gradle/platforms/jvm/java-platform/src/integTest/groovy/org/gradle/integtests/resolve/platforms/JavaPlatformResolveIntegrationTest.groovy	115	resolve.expectGraph {
+groovy-gradle/platforms/jvm/language-groovy/src/integTest/groovy/org/gradle/groovy/compile/CachedGroovyCompileIntegrationTest.groovy	23	String compilationTask = ':compileGroovy'
+groovy-gradle/platforms/jvm/language-groovy/src/integTest/groovy/org/gradle/groovy/compile/GroovyJavaJointCompileSourceOrderIntegrationTest.groovy	38	when:
+groovy-gradle/platforms/jvm/language-groovy/src/testFixtures/groovy/org/gradle/groovy/compile/AbstractBasicGroovyCompilerIntegrationSpec.groovy	98	writeAnnotationProcessingBuild(
+groovy-gradle/platforms/jvm/language-groovy/src/testFixtures/groovy/org/gradle/groovy/compile/AbstractGroovyCompilerIntegrationSpec.groovy	72	buildFile << "dependencies { implementation '${groovyModuleDependency("groovy-test", versionNumber)}' }"
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/api/tasks/JavaExecDebugIntegrationTest.groovy	37	@Rule
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/api/tasks/JavaExecIntegrationTest.groovy	57	"""
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/api/tasks/compile/AbstractIncrementalAnnotationProcessingIntegrationTest.groovy	50	buildFile << """
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/api/tasks/compile/IsolatingIncrementalAnnotationProcessingIntegrationTest.groovy	42	private HelperProcessorFixture helperProcessor
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/api/tasks/compile/JavaCompileAvoidanceWithBuildCacheServiceIntegrationTest.groovy	34	@Rule
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/api/tasks/compile/JavaCompileCompatibilityIntegrationTest.groovy	89	buildFile << """
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/api/tasks/compile/JavaCompileToolchainIntegrationTest.groovy	249	"java home"  | 'options.forkOptions.javaHome = file("<path>")' | ''
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/api/tasks/javadoc/JavadocIntegrationTest.groovy	36	@Rule
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/incremental/AbstractClassChangeIncrementalCompilationIntegrationTest.groovy	26	source """class A {
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/incremental/AbstractCrossTaskIncrementalCompilationIntegrationTest.groovy	28	source api: ["class A {}", "class B extends A {}"]
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/incremental/AbstractSourceIncrementalCompilationIntegrationTest.groovy	28	source "class A {}", "class B {}", "class C {}"
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/incremental/BaseIncrementalCompilationAfterFailureIntegrationTest.groovy	34	String compileStaticAnnotation = ""
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/incremental/BaseJavaClassChangeIncrementalCompilationIntegrationTest.groovy	27	CompiledLanguage language = CompiledLanguage.JAVA
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/incremental/CrossTaskClassChangesIncrementalCompilationIntegrationTest.groovy	27	source api: ["class A {}", "class B {}"], impl: ["class ImplA extends A {}", "class ImplB extends B {}"]
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/incremental/CrossTaskConstantChangesIncrementalGroovyCompilationIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/incremental/CrossTaskConstantChangesIncrementalJavaCompilationIntegrationTest.groovy	29	CompiledLanguage language = CompiledLanguage.JAVA
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/incremental/CrossTaskIncrementalJavaCompilationIntegrationTest.groovy	27	@ToBeFixedForIsolatedProjects(because = "subprojects/allprojects, configure projects from root")
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/incremental/GroovyIncrementalCompilationIntegrationTest.groovy	24	CompiledLanguage language = CompiledLanguage.GROOVY
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/incremental/JavaClassChangeCliIncrementalCompilationIntegrationTest.groovy	26	buildFile << """
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/incremental/JavaClassChangeIncrementalCompilationIntegrationTest.groovy	27	CompiledLanguage language = CompiledLanguage.JAVA
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/jpms/AbstractJavaModuleIntegrationTest.groovy	35	buildFile << """
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/jpms/compile/AbstractMultipleLocalJavaModulesCompileIntegrationTest.groovy	31	succeeds ':compileJava'
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/jpms/compile/CachingAndIncrementalJavaModuleCompileIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/jpms/compile/JavaModuleCompileIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/jpms/test/JavaModuleBackboxTestExcutionIntegrationTest.groovy	39	succeeds ':test'
+groovy-gradle/platforms/jvm/language-java/src/testFixtures/groovy/org/gradle/language/fixtures/AnnotationProcessorFixture.groovy	24	/**
+groovy-gradle/platforms/jvm/language-jvm/src/integTest/groovy/org/gradle/api/tasks/bundling/JarEncodingIntegrationTest.groovy	30	@TestFileSystemSensitiveArchives
+groovy-gradle/platforms/jvm/platform-jvm/src/test/groovy/org/gradle/api/internal/tasks/DefaultSourceSetTest.groovy	88	assertThat(sourceSet.java.filter.includes, equalTo(['**/*.java'] as Set))
+groovy-gradle/platforms/jvm/platform-jvm/src/test/groovy/org/gradle/api/java/archives/internal/DefaultManifestMergeSpecTest.groovy	29	def static final DEFAULT_MANIFEST_CHARSET = TestUtil.providerFactory().provider { ManifestInternal.DEFAULT_CONTENT_CHARSET }
+groovy-gradle/platforms/jvm/platform-jvm/src/test/groovy/org/gradle/api/java/archives/internal/DefaultManifestTest.groovy	33	def static final DEFAULT_MANIFEST_CHARSET = TestUtil.providerFactory().provider { ManifestInternal.DEFAULT_CONTENT_CHARSET }
+groovy-gradle/platforms/jvm/plugins-application/src/integTest/groovy/org/gradle/api/plugins/ApplicationPluginConfigurationIntegrationTest.groovy	71	file("src/main/java/test/Main.java") << """
+groovy-gradle/platforms/jvm/plugins-application/src/integTest/groovy/org/gradle/api/plugins/ApplicationPluginIntegrationTest.groovy	123	buildFile << '''
+groovy-gradle/platforms/jvm/plugins-groovy/src/integTest/groovy/org/gradle/groovy/GroovyJavaLibraryInteractionIntegrationTest.groovy	39	propertiesFile << """
+groovy-gradle/platforms/jvm/plugins-java-base/src/testFixtures/groovy/org/gradle/java/compile/AbstractJavaGroovyCompileAvoidanceIntegrationSpec.groovy	50	buildFile << """
+groovy-gradle/platforms/jvm/plugins-java-library/src/integTest/groovy/org/gradle/java/JavaLibraryCompilationIntegrationTest.groovy	27	private toggleCompileClasspathPackaging(boolean activate) {
+groovy-gradle/platforms/jvm/plugins-java-library/src/integTest/groovy/org/gradle/java/JavaLibraryCrossProjectTargetJvmVersionIntegrationTest.groovy	57	fails ':checkDeps'
+groovy-gradle/platforms/jvm/plugins-java-library/src/integTest/groovy/org/gradle/java/JavaLibraryFeatureCompilationIntegrationTest.groovy	25	private toggleCompileClasspathPackaging(boolean activate) {
+groovy-gradle/platforms/jvm/plugins-java-library/src/integTest/groovy/org/gradle/java/JavaLibraryPublishedTargetJvmEnvironmentIntegrationTest.groovy	33	buildFile << """
+groovy-gradle/platforms/jvm/plugins-java/src/integTest/groovy/org/gradle/api/plugins/JavaPluginTest.groovy	214	mainSourceSet.getOutput().getBuildDependencies().getDependencies(null)*.name as Set == [ JvmConstants.CLASSES_TASK_NAME, JvmConstants.COMPIL
+groovy-gradle/platforms/jvm/plugins-jvm-test-suite/src/integTest/groovy/org/gradle/testing/testsuites/TestSuitesTestFrameworkIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/jvm/scala/src/integTest/groovy/org/gradle/scala/compile/CachedScalaCompileIntegrationTest.groovy	30	project.with {
+groovy-gradle/platforms/jvm/scala/src/integTest/groovy/org/gradle/scala/compile/UpToDateScalaCompileIntegrationTest.groovy	42	run 'compileScala'
+groovy-gradle/platforms/jvm/scala/src/integTest/groovy/org/gradle/scala/scaladoc/ScalaDocIntegrationTest.groovy	105	withBuildCache().run scaladoc
+groovy-gradle/platforms/jvm/scala/src/test/groovy/org/gradle/api/plugins/scala/ScalaPluginTest.groovy	68	task.source as List == mainSourceSet.scala  as List
+groovy-gradle/platforms/jvm/testing-jvm/src/integTest/groovy/org/gradle/testing/AbstractJvmFailFastIntegrationSpec.groovy	78	'default config'   | ['test']                   | ''
+groovy-gradle/platforms/jvm/testing-jvm/src/integTest/groovy/org/gradle/testing/AbstractTestReportIntegrationTest.groovy	37	file("src/test/java/LoggingTest.java") << """
+groovy-gradle/platforms/jvm/testing-jvm/src/integTest/groovy/org/gradle/testing/TestProcessingStartupFailureIntegrationTest.groovy	148	failure.assertThatCause(matchesRegexp(/Process 'Gradle Test Executor \d+' finished with non-zero exit value.*/))
+groovy-gradle/platforms/jvm/testing-jvm/src/integTest/groovy/org/gradle/testing/TestReportTaskIntegrationTest.groovy	38	@Rule
+groovy-gradle/platforms/jvm/testing-jvm/src/integTest/groovy/org/gradle/testing/TestTaskRelocationIntegrationTest.groovy	26	@Override
+groovy-gradle/platforms/jvm/testing-jvm/src/integTest/groovy/org/gradle/testing/junit/AbstractJUnitCategoriesOrTagsCoverageIntegrationSpec.groovy	46	testSources.with {
+groovy-gradle/platforms/jvm/testing-jvm/src/integTest/groovy/org/gradle/testing/junit/AbstractJUnitTestClassDetectionIntegrationTest.groovy	28	buildFile << """
+groovy-gradle/platforms/jvm/testing-jvm/src/integTest/groovy/org/gradle/testing/junit/junit6/jupiter/JUnit6JUnitIntegrationTest.groovy	102	outputContains("""JUnit6OrderingTest > testA() STANDARD_OUT
+groovy-gradle/platforms/jvm/testing-jvm/src/integTest/groovy/org/gradle/testing/junit/jupiter/JUnitJupiterTestReportIntegrationTest.groovy	35	buildFile """
+groovy-gradle/platforms/jvm/testing-jvm/src/testFixtures/groovy/org/gradle/testing/fixture/TestFrameworkStartupTestFixture.groovy	25	/**
+groovy-gradle/platforms/jvm/toolchains-jvm/src/integTest/groovy/org/gradle/jvm/toolchain/JavaToolchainBuildOperationsIntegrationTest.groovy	60	jdkMetadata = AvailableJavaHomes.getJvmInstallationMetadata(Jvm.current())
+groovy-gradle/platforms/jvm/war/src/test/groovy/org/gradle/api/plugins/WarPluginTest.groovy	71	task dependsOn(WarPlugin.WAR_TASK_NAME, JavaPlugin.JAR_TASK_NAME)
+groovy-gradle/platforms/native/language-native/src/integTest/groovy/org/gradle/language/cpp/AbstractCppPublishingIntegrationTest.groovy	41	if (!apiDependencies.isEmpty()) {
+groovy-gradle/platforms/native/language-native/src/integTest/groovy/org/gradle/language/cpp/CppApplicationPublishingIntegrationTest.groovy	234	consumer.file("settings.gradle") << ''
+groovy-gradle/platforms/native/language-native/src/integTest/groovy/org/gradle/language/cpp/CppIncrementalBuildIntegrationTest.groovy	31	private static final String LIBRARY = ':library'
+groovy-gradle/platforms/native/language-native/src/integTest/groovy/org/gradle/language/cpp/CppLibraryPublishingIntegrationTest.groovy	44	assert !lib.publicHeaders.files.empty
+groovy-gradle/platforms/native/language-native/src/integTest/groovy/org/gradle/language/cpp/CppStaticLibraryPublishingIntegrationTest.groovy	41	buildFile << """
+groovy-gradle/platforms/native/language-native/src/integTest/groovy/org/gradle/language/cpp/CppToolChainChangesIntegrationTest.groovy	31	buildFile << """
+groovy-gradle/platforms/native/language-native/src/integTest/groovy/org/gradle/language/cpp/tasks/CppUnexportMainSymbolIntegrationTest.groovy	70	List<String> mainSymbols = ["_main", "main", "_wmain", "wmain"]
+groovy-gradle/platforms/native/language-native/src/integTest/groovy/org/gradle/language/swift/SwiftCachingIntegrationTest.groovy	37	project.file('settings.gradle') << '''
+groovy-gradle/platforms/native/language-native/src/integTest/groovy/org/gradle/language/swift/tasks/SwiftUnexportMainSymbolIntegrationTest.groovy	50	List<String> mainSymbols = ["_main", "main"]
+groovy-gradle/platforms/native/language-native/src/test/groovy/org/gradle/language/cpp/plugins/CppLibraryPluginTest.groovy	107	project.library.binaries.get().name as Set == ['mainDebugShared', 'mainReleaseShared', 'mainDebugStatic', 'mainReleaseStatic'] as Set
+groovy-gradle/platforms/native/language-native/src/test/groovy/org/gradle/language/nativeplatform/internal/incremental/sourceparser/PreprocessingReaderTest.groovy	121	input = """
+groovy-gradle/platforms/native/language-native/src/test/groovy/org/gradle/language/nativeplatform/internal/incremental/sourceparser/RegexBackedCSourceParserTest.groovy	106	return new MacroWithComplexExpression(name, type, value, args.collect { it instanceof Expression ? it : expression(it as String) })
+groovy-gradle/platforms/native/language-native/src/test/groovy/org/gradle/language/swift/plugins/SwiftLibraryPluginTest.groovy	100	project.library.binaries.get().name as Set == ['mainDebugShared', 'mainReleaseShared', 'mainDebugStatic', 'mainReleaseStatic'] as Set
+groovy-gradle/platforms/native/language-native/src/testFixtures/groovy/org/gradle/language/LanguageTaskNames.groovy	21	abstract trait LanguageTaskNames {
+groovy-gradle/platforms/native/language-native/src/testFixtures/groovy/org/gradle/language/VariantContext.groovy	1	/*
+groovy-gradle/platforms/native/language-native/src/testFixtures/groovy/org/gradle/language/swift/AbstractSwiftComponentIntegrationTest.groovy	52	succeeds "verifyBinariesSwiftVersion"
+groovy-gradle/platforms/native/platform-native/src/test/groovy/org/gradle/nativeplatform/toolchain/internal/gcc/metadata/GccMetadataProviderTest.groovy	42	@UsesNativeServices
+groovy-gradle/platforms/native/platform-native/src/test/groovy/org/gradle/nativeplatform/toolchain/internal/msvcpp/LegacyWindowsSdkLocatorTest.groovy	29	@Rule TestNameTestDirectoryProvider tmpDir = new TestNameTestDirectoryProvider(getClass())
+groovy-gradle/platforms/native/platform-native/src/test/groovy/org/gradle/nativeplatform/toolchain/internal/swift/SwiftDepsHandlerTest.groovy	27	@Requires(OsTestPreconditions.NotWindows)
+groovy-gradle/platforms/native/platform-native/src/testFixtures/groovy/org/gradle/ide/visualstudio/fixtures/ProjectFile.groovy	30	String name
+groovy-gradle/platforms/native/platform-native/src/testFixtures/groovy/org/gradle/ide/visualstudio/fixtures/SolutionFile.groovy	1	/*
+groovy-gradle/platforms/native/platform-native/src/testFixtures/groovy/org/gradle/nativeplatform/fixtures/NativeBinaryFixture.groovy	33	final TestFile file
+groovy-gradle/platforms/native/platform-native/src/testFixtures/groovy/org/gradle/nativeplatform/fixtures/app/CppAppWithLibrariesWithApiDependencies.groovy	27	final SourceFileElement main = new SourceFileElement() {
+groovy-gradle/platforms/native/plugins-model-native/src/integTest/groovy/org/gradle/api/reporting/model/ModelReportIntegrationTest.groovy	29	buildFile << """
+groovy-gradle/platforms/native/plugins-model-native/src/integTest/groovy/org/gradle/execution/taskgraph/RuleTaskCreationIntegrationTest.groovy	32	buildFile << """
+groovy-gradle/platforms/native/plugins-model-native/src/integTest/groovy/org/gradle/execution/taskgraph/RuleTaskExecutionIntegrationTest.groovy	27	buildFile << """
+groovy-gradle/platforms/native/plugins-model-native/src/integTest/groovy/org/gradle/language/AbstractNativePreCompiledHeaderIntegrationTest.groovy	239	buildFile << """
+groovy-gradle/platforms/native/plugins-model-native/src/integTest/groovy/org/gradle/language/base/CustomComponentBinariesIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/native/plugins-model-native/src/integTest/groovy/org/gradle/language/base/FunctionalSourceSetIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/native/plugins-model-native/src/integTest/groovy/org/gradle/language/base/LanguageSourceSetIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/native/plugins-model-native/src/integTest/groovy/org/gradle/model/dsl/ModelDslCreationIntegrationTest.groovy	27	buildFile '''
+groovy-gradle/platforms/native/plugins-model-native/src/integTest/groovy/org/gradle/nativeplatform/NativeDependentComponentsReportIntegrationTest.groovy	33	buildFile simpleCppBuild()
+groovy-gradle/platforms/native/plugins-model-native/src/integTest/groovy/org/gradle/nativeplatform/toolchain/MultipleNativeToolChainIntegrationTest.groovy	51	Assume.assumeNotNull(x86ToolChain?.buildScriptConfig, sparcToolChain?.buildScriptConfig)
+groovy-gradle/platforms/native/plugins-model-native/src/test/groovy/org/gradle/ide/visualstudio/internal/NativeSpecVisualStudioTargetBinaryTest.groovy	248	checkNames targetBinary, "exeNameExe", 'buildTypeOne'
+groovy-gradle/platforms/native/plugins-model-native/src/test/groovy/org/gradle/language/assembler/plugins/AssemblerPluginTest.groovy	55	sources as Set == exe.sources as Set
+groovy-gradle/platforms/native/plugins-model-native/src/test/groovy/org/gradle/nativeplatform/plugins/NativeComponentModelPluginTest.groovy	65	project.apply plugin: 'native-component-model'
+groovy-gradle/platforms/software/build-init/src/integTest/groovy/org/gradle/buildinit/plugins/BuildInitPluginIntegrationTest.groovy	36	@Override
+groovy-gradle/platforms/software/dependency-management/src/crossVersionTest/groovy/org/gradle/integtests/resolve/ResolveCrossVersionIntegrationTest.groovy	29	@Rule
+groovy-gradle/platforms/software/dependency-management/src/crossVersionTest/groovy/org/gradle/integtests/resolve/artifactreuse/CacheReuseCrossVersionIntegrationTest.groovy	30	buildFile << """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/internal/component/resolution/failure/ModuleRejectedIncompatibleConstraintsFailureDescriberIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/ConfigurationCacheDependencyResolutionIntegrationTest.groovy	1074	buildFile << """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/DependencyNotationIntegrationSpec.groovy	29	buildFile <<  """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/ExternalModuleVariantsIntegrationTest.groovy	25	.hasPackaging('aar')
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/LenientArtifactViewIntegrationTest.groovy	28	private final DependencyVerificationFixture verificationFile = new DependencyVerificationFixture(
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/LenientArtifactViewWithConfigurationCacheIntegrationTest.groovy	46	buildFile """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/LocalExcludeResolveIntegrationTest.groovy	62	buildFile << """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/ParallelDownloadsIntegrationTest.groovy	27	@Rule
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/PluginVariantResolveIntegrationTest.groovy	48	fails ':help'
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/PublishedRichVersionConstraintsIntegrationTest.groovy	27	repository {
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/RepositoriesDeclaredInSettingsIntegrationTest.groovy	44	repository {
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/RepositoryInteractionDependencyResolveIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/ResolveConfigurationDependenciesBuildOperationIntegrationTest.groovy	41	settingsFile << """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/ResolveConfigurationRepositoriesBuildOperationIntegrationTest.groovy	27	def operations = new BuildOperationsFixture(executer, temporaryFolder)
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/alignment/AlignmentIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/alignment/ForcingPlatformAlignmentTest.groovy	49	repoSpec.metaClass.platform = this.&platform.curry(repoSpec)
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/alignment/ForcingUsingStrictlyPlatformAlignmentTest.groovy	26	@Requires(value = TestExecutionPreconditions.IsEmbeddedExecutor, reason = """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/api/ArtifactDeclarationIntegrationTest.groovy	23	ResolveTestFixture resolve = new ResolveTestFixture(testDirectory)
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/api/ExtendingConfigurationsIntegrationTest.groovy	32	buildFile << """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/attributes/CrossProjectMultipleVariantSelectionIntegrationTest.groovy	28	settingsFile << """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/attributes/DependenciesAttributesIntegrationTest.groovy	39	repository {
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/attributes/MultipleVariantSelectionIntegrationTest.groovy	29	buildFile << """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/attributes/VariantAwareResolutionWithConfigurationAttributesIntegrationTest.groovy	29	file("buildSrc/src/main/groovy/VariantsPlugin.groovy") << '''
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/bundling/JavaBundlingResolveIntegrationTest.groovy	30	buildFile << """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/caching/ArtifactCacheUnusedEntryCleanupIntegrationTest.groovy	39	public static final int HALF_DEFAULT_MAX_AGE_IN_DAYS = Math.max(1, DEFAULT_MAX_AGE_IN_DAYS_FOR_DOWNLOADED_CACHE_ENTRIES / 2 as int)
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/caching/CachingDependencyMetadataInMemoryIntegrationTest.groovy	30	file("build.gradle") << """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/capabilities/CapabilitiesRulesIntegrationTest.groovy	28	repository {
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/capabilities/CapabilitiesUseCasesIntegrationTest.groovy	31	/**
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/capabilities/PublishedCapabilitiesIntegrationTest.groovy	28	repository {
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/catalog/TomlDependenciesExtensionIntegrationTest.groovy	39	@Rule
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/consistency/ProjectLocalDependencyResolutionConsistencyIntegrationTest.groovy	30	repository {
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/constraints/DependencyConstraintsIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/constraints/PublishedDependencyConstraintsIntegrationTest.groovy	32	repository {
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/http/HttpAuthenticationDependencyResolutionIntegrationTest.groovy	34	static String badCredentials = "credentials{username = 'testuser'; password = 'bad'}"
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/http/MetadataSourcesResolveIntegrationTest.groovy	34	buildFile << """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/ivy/AbstractComponentSelectionRulesIntegrationTest.groovy	26	repository {
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/ivy/ComponentSelectionRulesProcessingIntegTest.groovy	27	buildFile << """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/ivy/IvyBrokenDescriptorIntegrationTest.groovy	53	fails "checkDeps"
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/ivy/IvyComponentMetadataRulesStatusIntegrationTest.groovy	43	buildFile <<
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/ivy/IvyDescriptorDependencyExcludeResolveIntegrationTest.groovy	50	'non-matching module'          | [module: 'other'] | ['a-1.0.jar', 'b-1.0.jar', 'c-1.0.jar']
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/ivy/IvyDescriptorModuleExcludeResolveIntegrationTest.groovy	119	/**
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/ivy/IvyDescriptorResolveIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/ivy/IvyDynamicRevisionResolveIntegrationTest.groovy	45	runAndFail 'checkDeps'
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/ivy/IvyHttpRepoResolveIntegrationTest.groovy	29	ResolveTestFixture resolve = new ResolveTestFixture(testDirectory)
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/ivy/IvyModuleResolveIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/ivy/IvyResolveIntegrationTest.groovy	25	settingsFile """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/maven/BadPomFileResolveIntegrationTest.groovy	24	final resolve = new ResolveTestFixture(testDirectory)
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/maven/MavenDependencyResolveIntegrationTest.groovy	29	repository {
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/maven/MavenLocalDependencyWithGradleMetadataResolutionIntegrationTest.groovy	72	resolve.expectGraph {
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/maven/MavenPomPackagingResolveIntegrationTest.groovy	37	buildFile << """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/maven/MavenPomRelocationIntegrationTest.groovy	36	.dependsOn(apiDep, scope: 'compile')
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/platforms/PlatformResolveIntegrationTest.groovy	38	.asGradlePlatform()
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/reproducibility/FailOnDynamicVersionsResolveIntegrationTest.groovy	38	settingsFile << """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/rules/AbstractDependencyMetadataRulesIntegrationTest.groovy	44	repository {
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/rules/ComponentAttributesRulesIntegrationTest.groovy	28	repository {
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/rules/ComponentMetadataRulesIntegrationTest.groovy	29	buildFile <<
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/rules/ComponentReplacementIntegrationTest.groovy	28	buildFile << """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/rules/VariantFilesMetadataRulesIntegrationTest.groovy	26	['org.gradle.jvm.version': 8, 'org.gradle.status': useIvy() ? 'integration' : 'release', 'org.gradle.usage': 'java-runtime', 'org.gradle.lib
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/strict/EndorseStrictVersionsIntegrationTest.groovy	30	repository {
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/strict/StrictVersionConstraintsFeatureInteractionIntegrationTest.groovy	25	repository {
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/strict/StrictVersionConstraintsIntegrationTest.groovy	25	repository {
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/strict/StrictVersionsInPlatformCentricDevelopmentIntegrationTest.groovy	46	case PLATFORM:
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/suppliers/CustomVersionListerIntegrationTest.groovy	1	/*
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/suppliers/CustomVersionListerWithSupplierIntegrationTest.groovy	25	@RequiredFeature(feature = GradleMetadataResolveRunner.GRADLE_METADATA, value = "false")
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/suppliers/DynamicRevisionRemoteResolveWithMetadataSupplierIntegrationTest.groovy	56	repository {
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/transform/ArtifactTransformBuildOperationIntegrationTest.groovy	50	@ToBeFixedForIsolatedProjects(because = "ArtifactTransformTestFixture is not IP compatible")
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/transform/ArtifactTransformIntegrationTest.groovy	104	buildFile << """
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/transform/ArtifactTransformWithDependenciesIntegrationTest.groovy	51	.dependsOn("hamcrest", "hamcrest-core", "1.3")
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/verification/DependencyVerificationSignatureCheckIntegTest.groovy	42	createMetadataFile {
+groovy-gradle/platforms/software/dependency-management/src/integTest/groovy/org/gradle/integtests/resolve/versions/AbstractRichVersionConstraintsIntegrationTest.groovy	28	repository {
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/configurations/DefaultConfigurationSpec.groovy	101	def resolver = Mock(ConfigurationResolver)
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/dependencies/DefaultImmutableVersionConstraintTest.groovy	29	v.preferredVersion == ''
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/dependencies/DefaultMutableVersionConstraintTest.groovy	29	e.preferredVersion == ''
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/dsl/CachedCodePathComponentMetadataProcessorTest.groovy	60	def instantiator = TestUtil.instantiatorFactory().decorateLenient()
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/dsl/ComponentSelectorParsersTest.groovy	48	v[0].versionConstraint.preferredVersion == ''
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/dsl/DefaultComponentMetadataProcessorTest.groovy	145	e.message == /Unexpected status 'green' specified for group:module:version. Expected one of: [alpha, beta]/
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/dsl/ModuleComponentSelectorParsersTest.groovy	134	ex.message.contains 'cannot be empty'
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/dsl/PublishArtifactNotationParserFactoryTest.groovy	50	_ * provider.module >> module
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/ivyservice/DefaultIvyContextManagerTest.groovy	72	1 * transformer.transform(_) >> { Ivy param ->
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/ivyservice/ivyresolve/ConnectionFailureRepositoryDisablerTest.groovy	95	createNestedException(new HttpErrorStatusCodeException('GET', 'test.file', statusCode, ''))
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/ivyservice/ivyresolve/parser/GradleModuleMetadataParserTest.groovy	140	DefaultImmutableVersionConstraint.of(version, '', '', [])
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/ivyservice/ivyresolve/parser/GradlePomModuleDescriptorParserBomTest.groovy	26	pomFile << """
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/ivyservice/ivyresolve/parser/GradlePomModuleDescriptorParserTest.groovy	30	pomFile << """
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/ivyservice/ivyresolve/parser/IvyXmlModuleDescriptorParserTest.groovy	365	rules[0].configurations as List == ["myconf1"]
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/ivyservice/ivyresolve/strategy/VersionParserTest.groovy	97	''          | []
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/ivyservice/resolutionstrategy/DefaultResolutionStrategySpec.groovy	53	def cachePolicy = new DefaultCachePolicy()
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/ivyservice/resolveengine/AbstractConflictResolverTest.groovy	34	List<ComponentResolutionState> participants = []
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/ivyservice/resolveengine/DependencyGraphBuilderTest.groovy	97	def conflictResolver = Mock(ModuleConflictResolver)
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/ivyservice/resolveengine/graph/selectors/SelectorStateResolverTest.groovy	266	return new TestResolver(conflictHandlingResolver)
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/ivyservice/resolveengine/result/ComponentSelectorSerializerTest.groovy	50	private final Serializer<ComponentSelector> serializer =
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/artifacts/repositories/DefaultIvyArtifactRepositoryTest.groovy	52	final instantiator = TestUtil.objectFactory()
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/catalog/DefaultVersionCatalogBuilderTest.groovy	260	model.getDependencyData("groovy-json").version.strictVersion == ''
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/catalog/LibrariesSourceGeneratorTest.groovy	145	generate {
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/notations/DependencyMapNotationConverterTest.groovy	41	d.versionConstraint.preferredVersion == ''
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/api/internal/notations/DependencyStringNotationConverterTest.groovy	42	d.versionConstraint.preferredVersion == ''
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/internal/component/external/model/AbstractDependencyMetadataRulesTest.groovy	76	private ivyComponentMetadata(String[] deps) {
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/internal/component/external/model/DefaultIvyModuleResolveMetadataTest.groovy	45	List<Artifact> artifacts = []
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/internal/component/external/model/DefaultModuleComponentSelectorTest.groovy	48	def selector = DefaultModuleComponentSelector.newSelector(DefaultModuleIdentifier.newId('some-group', 'some-name'), v('1.0'), ImmutableAttri
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/internal/component/local/model/DefaultLibraryComponentSelectorTest.groovy	34	defaultBuildComponentSelector.displayName == /project ':myPath' library 'myLib'/
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/internal/locking/DefaultDependencyLockingProviderTest.groovy	180	substitutionAction.execute(_ as DependencySubstitution) >> { DependencySubstitution ds ->
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/internal/locking/DependencyLockingGraphVisitorTest.groovy	102	1 * identifier.version >> ''
+groovy-gradle/platforms/software/dependency-management/src/test/groovy/org/gradle/internal/resource/cached/AbstractCachedIndexTest.groovy	33	@Rule TestNameTestDirectoryProvider temporaryFolder = new TestNameTestDirectoryProvider(getClass())
+groovy-gradle/platforms/software/dependency-management/src/testFixtures/groovy/org/gradle/integtests/fixtures/publish/ModuleVersionSpec.groovy	33	private final String groupId
+groovy-gradle/platforms/software/dependency-management/src/testFixtures/groovy/org/gradle/integtests/resolve/AbstractProjectDependencyConflictResolutionIntegrationSpec.groovy	82	def preferProjectModulesOption = ''
+groovy-gradle/platforms/software/dependency-management/src/testFixtures/groovy/org/gradle/integtests/resolve/ivy/AbstractIvyRemoteRepoResolveIntegrationTest.groovy	44	buildFile << """
+groovy-gradle/platforms/software/dependency-management/src/testFixtures/groovy/org/gradle/resolve/scenarios/VersionRangeResolveTestScenarios.groovy	28	public static final REJECTED = "REJECTED"
+groovy-gradle/platforms/software/ivy/src/crossVersionTest/groovy/org/gradle/api/publish/ivy/IvyPublishCrossVersionIntegrationTest.groovy	81	version current withTasks 'publish' run()
+groovy-gradle/platforms/software/ivy/src/integTest/groovy/org/gradle/api/publish/ivy/ConfigurationCacheIvyPublishIntegrationTest.groovy	37	def configurationCache = newConfigurationCacheFixture()
+groovy-gradle/platforms/software/ivy/src/integTest/groovy/org/gradle/api/publish/ivy/IvyPublishDescriptorCustomizationIntegTest.groovy	25	def module = ivyRepo.module("org.gradle", "publish", "2")
+groovy-gradle/platforms/software/ivy/src/integTest/groovy/org/gradle/api/publish/ivy/IvyPublishHttpIntegTest.groovy	93	succeeds 'publish'
+groovy-gradle/platforms/software/ivy/src/test/groovy/org/gradle/api/publish/ivy/internal/publisher/IvyDescriptorFileGeneratorTest.groovy	65	with (ivyXml) {
+groovy-gradle/platforms/software/ivy/src/testFixtures/groovy/org/gradle/api/publish/ivy/AbstractIvyPublishIntegTest.groovy	54	throw new UnsupportedOperationException("Unsupported dependency notation: ${dependencyNotation}")
+groovy-gradle/platforms/software/maven/src/crossVersionTest/groovy/org/gradle/api/publish/maven/MavenPublishCrossVersionIntegrationTest.groovy	55	buildFile.text = """
+groovy-gradle/platforms/software/maven/src/integTest/groovy/org/gradle/api/publish/maven/AbstractMavenPublishJavaIntegTest.groovy	39	createBuildScripts("""
+groovy-gradle/platforms/software/maven/src/integTest/groovy/org/gradle/api/publish/maven/ConfigurationCacheMavenPublishIntegrationTest.groovy	33	@Rule
+groovy-gradle/platforms/software/maven/src/integTest/groovy/org/gradle/api/publish/maven/MavenPublishArtifactCustomizationIntegTest.groovy	27	createBuildScripts("""
+groovy-gradle/platforms/software/maven/src/integTest/groovy/org/gradle/api/publish/maven/MavenPublishHttpIntegTest.groovy	32	@Rule
+groovy-gradle/platforms/software/maven/src/integTest/groovy/org/gradle/api/publish/maven/MavenPublishJavaWithDocsAndFeaturesIntegTest.groovy	33	features().each { featureName ->
+groovy-gradle/platforms/software/maven/src/integTest/groovy/org/gradle/api/publish/maven/MavenPublishPomPackagingIntegTest.groovy	27	createBuildScripts """
+groovy-gradle/platforms/software/maven/src/integTest/groovy/org/gradle/api/publish/maven/MavenPublishSnapshotIntegTest.groovy	27	buildFile << """
+groovy-gradle/platforms/software/maven/src/testFixtures/groovy/org/gradle/integtests/fixtures/publish/maven/AbstractMavenPublishIntegTest.groovy	62	resolveArtifacts(module) {
+groovy-gradle/platforms/software/platform-base/src/integTest/groovy/org/gradle/api/plugins/ArchivesConfigurationDeprecationIntegrationTest.groovy	23	buildFile """
+groovy-gradle/platforms/software/plugins-version-catalog/src/integTest/groovy/org/gradle/catalog/VersionCatalogPluginApplicationIntegrationTest.groovy	35	versionCatalogFile """
+groovy-gradle/platforms/software/plugins-version-catalog/src/integTest/groovy/org/gradle/catalog/VersionCatalogResolveIntegrationTest.groovy	82	def platformProject = preparePlatformProject '''
+groovy-gradle/platforms/software/publish/src/test/groovy/org/gradle/api/publish/internal/metadata/GradleModuleMetadataWriterTest.groovy	78	@Rule
+groovy-gradle/platforms/software/resources-gcs/src/integTest/groovy/org/gradle/integtests/resource/gcs/fixtures/GcsServer.groovy	62	assert path == request.pathInfo
+groovy-gradle/platforms/software/resources-gcs/src/test/groovy/org/gradle/internal/resource/transport/gcp/gcs/GcsClientTest.groovy	41	1 * storage.objects(*_) >> Mock(Storage.Objects) {
+groovy-gradle/platforms/software/resources-http/src/test/groovy/org/gradle/internal/resource/transport/http/HttpClientConfigurerTest.groovy	28	public static final String REMOTE_HOST = "host"
+groovy-gradle/platforms/software/resources-http/src/test/groovy/org/gradle/internal/resource/transport/http/ntlm/NTLMCredentialsTest.groovy	62	ntlmCredentials.domain == ''
+groovy-gradle/platforms/software/resources-s3/src/integTest/groovy/org/gradle/integtests/resource/s3/fixtures/S3Server.groovy	39	public static final String BUCKET_NAME = "tests3bucket"
+groovy-gradle/platforms/software/resources-s3/src/test/groovy/org/gradle/internal/resource/transport/aws/s3/S3ClientTest.groovy	41	_ * s3ConnectionProperties.getEndpoint() >> Optional.absent()
+groovy-gradle/platforms/software/resources-s3/src/test/groovy/org/gradle/internal/resource/transport/aws/s3/S3ConnectionPropertiesTest.groovy	101	value << ['', 'w', '-1', "${Integer.MAX_VALUE + 1}"]
+groovy-gradle/platforms/software/resources-sftp/src/integTest/groovy/org/gradle/api/publish/ivy/IvyPublishSftpIntegrationTest.groovy	122	succeeds 'publish'
+groovy-gradle/platforms/software/resources/src/test/groovy/org/gradle/internal/resource/CachingTextResourceTest.groovy	24	def target = Mock(TextResource)
+groovy-gradle/platforms/software/signing/src/integTest/groovy/org/gradle/plugins/signing/InMemoryPgpSignatoryProviderIntegrationSpec.groovy	90	buildFile << """
+groovy-gradle/platforms/software/signing/src/integTest/groovy/org/gradle/plugins/signing/SigningSamplesSpec.groovy	42	run "publish"
+groovy-gradle/platforms/software/signing/src/test/groovy/org/gradle/plugins/signing/SigningTasksSpec.groovy	30	signing {
+groovy-gradle/platforms/software/signing/src/test/groovy/org/gradle/plugins/signing/signatory/pgp/PgpSignatoryFactoryTest.groovy	25	private static final String KEY_ID_VALUE = '24875D73'
+groovy-gradle/platforms/software/signing/src/test/groovy/org/gradle/plugins/signing/type/type/AbstractSignatureTypeProviderSpec.groovy	25	static type1 = new AbstractSignatureType() { String getExtension() { "1" } }
+groovy-gradle/platforms/software/signing/src/testFixtures/groovy/org/gradle/test/fixtures/GpgCmdFixture.groovy	28	private static final Random RANDOM = new Random()
+groovy-gradle/platforms/software/software-diagnostics/src/integTest/groovy/org/gradle/api/reporting/dependencies/HtmlDependencyReportTaskIntegrationTest.groovy	39	settingsFile """
+groovy-gradle/platforms/software/software-diagnostics/src/integTest/groovy/org/gradle/api/tasks/diagnostics/BuildEnvironmentReportTaskIntegrationTest.groovy	49	buildFile << """
+groovy-gradle/platforms/software/software-diagnostics/src/test/groovy/org/gradle/api/tasks/diagnostics/DependencyInsightReportTaskSpec.groovy	71	task.setConfiguration 'foo'
+groovy-gradle/platforms/software/software-diagnostics/src/test/groovy/org/gradle/api/tasks/diagnostics/PropertyReportTaskTest.groovy	43	1 * renderer.addProperty('group', '')
+groovy-gradle/platforms/software/software-diagnostics/src/test/groovy/org/gradle/api/tasks/diagnostics/internal/dependencies/AsciiDependencyReportRendererTest.groovy	58	textOutput.value.readLines() == [
+groovy-gradle/platforms/software/software-diagnostics/src/test/groovy/org/gradle/api/tasks/diagnostics/internal/dsl/DependencyResultSpecNotationParserSpec.groovy	98	parser.parseNotation('')
+groovy-gradle/platforms/software/software-diagnostics/src/test/groovy/org/gradle/api/tasks/diagnostics/internal/graph/DependencyGraphRendererSpec.groovy	26	private textOutput = new TestStyledTextOutput().ignoreStyle()
+groovy-gradle/platforms/software/testing-base-infrastructure/src/test/groovy/org/gradle/api/internal/tasks/testing/filter/TestSelectionMatcherTest.groovy	42	for (pair in patternMatches) {
+groovy-gradle/platforms/software/testing-base/src/integTest/groovy/org/gradle/testing/TestEventReporterHtmlReportIntegrationTest.groovy	43	.testPath(":passing suite")
+groovy-gradle/platforms/software/testing-base/src/testFixtures/groovy/org/gradle/api/internal/tasks/testing/BuildableTestResultsProvider.groovy	33	long timestamp = 0
+groovy-gradle/platforms/software/testing-base/src/testFixtures/groovy/org/gradle/api/internal/tasks/testing/report/HtmlTestResultsFixture.groovy	26	Document content
+groovy-gradle/platforms/software/testing-base/src/testFixtures/groovy/org/gradle/api/internal/tasks/testing/report/generic/GenericHtmlTestExecutionResult.groovy	55	private final Lazy<Set<Path>> executedTestPathsLazy = Lazy.locking().of({
+groovy-gradle/platforms/software/testing-base/src/testFixtures/groovy/org/gradle/integtests/fixtures/DefaultTestExecutionResult.groovy	28	List<TestExecutionResult> results = []
+groovy-gradle/platforms/software/testing-base/src/testFixtures/groovy/org/gradle/integtests/fixtures/JUnitTestClassExecutionResult.groovy	34	GPathResult testClassNode
+groovy-gradle/subprojects/composite-builds/src/integTest/groovy/org/gradle/integtests/composite/CompositeBuildCommandLineArgsIntegrationTest.groovy	51	dependency 'org.test:buildB:1.0'
+groovy-gradle/subprojects/composite-builds/src/integTest/groovy/org/gradle/integtests/composite/CompositeBuildConfigurationAttributesResolveIntegrationTest.groovy	25	def resolve = new ResolveTestFixture(testDirectory)
+groovy-gradle/subprojects/composite-builds/src/integTest/groovy/org/gradle/integtests/composite/CompositeBuildDependencyArtifactsIntegrationTest.groovy	53	dependency 'org.test:buildB:1.0'
+groovy-gradle/subprojects/composite-builds/src/integTest/groovy/org/gradle/integtests/composite/CompositeBuildProjectDepthIntegrationTest.groovy	29	def subprojectsPrintingDepth = { TestFile dir ->
+groovy-gradle/subprojects/composite-builds/src/integTest/groovy/org/gradle/integtests/composite/ConfigurationCacheCompositeBuildsIntegrationTest.groovy	45	inDirectory 'app'
+groovy-gradle/subprojects/core-api/src/test/groovy/org/gradle/api/tasks/util/PatternSetTest.groovy	46	assertThat(patternSet.excludes, equalTo([TEST_PATTERN_2] as Set))
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/ContainerElementServiceInjectionIntegrationTest.groovy	31	buildFile """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/CrossBuildScriptCachingIntegrationSpec.groovy	41	FileTreeBuilder root
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/DynamicObjectIntegrationTest.groovy	27	settingsFile """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/ExtraPropertiesIntegrationTest.groovy	1	/*
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/FinalizerTaskIntegrationTest.groovy	31	buildFile '''
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/NestedConfigureDslIntegrationTest.groovy	82	buildFile """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/SettingsIncludeManyIntegrationTest.groovy	22	@Issue("https://github.com/gradle/gradle/issues/13018")
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/TaskContainerIntegrationTest.groovy	24	@SelfType(AbstractDomainObjectContainerIntegrationTest)
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/events/BuildExecutionEventsIntegrationTest.groovy	25	@UnsupportedWithConfigurationCache(because = "tests listener behaviour")
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/file/BuildLayoutIntegrationTest.groovy	60	settingsFile """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/file/FileCollectionSymlinkIntegrationTest.groovy	55	buildScript << """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/file/FileResolutionIntegrationTest.groovy	23	buildFile """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/internal/options/InternalOptionsResolutionIntegrationTest.groovy	29	run "help", "--dry-run", "-Dorg.gradle.internal.foo=bar"
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/internal/project/LifecycleAwareProjectIntegrationTest.groovy	39	settingsFile """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/internal/project/ProjectEqualityContractIntegrationTest.groovy	38	buildFile("buildSrc/build.gradle", """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/internal/tasks/TaskCacheabilityReasonIntegrationTest.groovy	46	buildFile """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/internal/tasks/userinput/UserInputHandlingIntegrationTest.groovy	34	private static final int INTERACTIVE_WAIT_TIME_SECONDS = 60
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/invocation/GradleLifecycleBeforeProjectEagerExecutionIntegrationTest.groovy	27	settingsFile """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/invocation/GradleLifecycleIntegrationTest.groovy	26	settingsFile '''
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/invocation/GradleLifecycleIsolationIntegrationTest.groovy	27	settingsFile '''
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/tasks/AbstractExecutionResultExecTaskIntegrationTest.groovy	66	failureHasCause(~/Process '.*' finished with non-zero exit value 42/)
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/tasks/CacheTaskArchiveErrorIntegrationTest.groovy	72	fails "customTask"
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/tasks/CachedCustomTaskExecutionIntegrationTest.groovy	49	withBuildCache().run "help"
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/tasks/CachedTaskExecutionIntegrationTest.groovy	32	public static final String ORIGINAL_HELLO_WORLD = """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/tasks/CommandLineTaskExecutionIntegrationTest.groovy	26	settingsFile """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/tasks/CopyPermissionsIntegrationTest.groovy	38	buildFile << """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/tasks/CopySpecEncodingIntegrationSpec.groovy	32	buildFile """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/tasks/CopySpecIntegrationSpec.groovy	30	@Rule
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/tasks/CopyTaskIntegrationSpec.groovy	37	@Rule
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/tasks/DirectorySensitivityErrorHandlingIntegrationSpec.groovy	32	buildFile << """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/tasks/IncrementalBuildIntegrationTest.groovy	34	buildFile << '''
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/tasks/LambdaInputsIntegrationTest.groovy	46	run 'myTask'
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/tasks/NestedInputIntegrationTest.groovy	37	buildFile << """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/tasks/TaskCreationBuildOperationIntegrationTest.groovy	186	run 'foo'
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/tasks/TaskPropertiesIntegrationTest.groovy	29	buildFile """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/tasks/options/MultipleTaskOptionsIntegrationTest.groovy	26	@ToBeFixedForIsolatedProjects(because = "allprojects")
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/api/tasks/outputorigin/IncrementalBuildOutputOriginIntegrationTest.groovy	51	buildFile """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/configuration/ExecuteUserLifecycleListenerBuildOperationIntegrationTest.groovy	41	def operations = new BuildOperationsFixture(executer, temporaryFolder)
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/configuration/project/LifecycleProjectEvaluatorIntegrationTest.groovy	37	buildFile """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/execution/commandline/CommandLineIntegrationTest.groovy	44	buildFile """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/groovy/scripts/GroovyCompileScriptBuildOperationIntegrationTest.groovy	45	succeeds 'help', '-I', 'init.gradle'
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/initialization/InitScriptIntegrationTest.groovy	32	buildFile """
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/initialization/PropertiesLoaderIntegrationTest.groovy	1	/*
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/initialization/buildsrc/BuildSrcEventsIntegrationTest.groovy	24	@UnsupportedWithConfigurationCache(iterationMatchers = ".*BUILD_.*", because = "gradle.buildFinished")
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/internal/operations/notify/BuildOperationNotificationIntegrationTest.groovy	44	def notifications = new BuildOperationNotificationFixture(executer, testDirectoryProvider)
+groovy-gradle/subprojects/core/src/integTest/groovy/org/gradle/plugin/ScriptPluginClassLoadingIntegrationTest.groovy	30	def pluginBuilder = new PluginBuilder(file("plugin"))
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/api/internal/artifacts/ExcludeRuleNotationConverterTest.groovy	40	ExcludeRule d = parser.parseNotation([module: 'aModule']);
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/api/internal/catalog/parser/TomlCatalogFileParserTest.groovy	45	new DefaultVersionCatalogBuilder(
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/api/internal/file/DefaultSourceDirectorySetTest.groovy	45	@Rule
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/api/internal/file/copy/DefaultCopySpecResolutionTest.groovy	32	@Rule
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/api/internal/file/copy/DefaultCopySpecTest.groovy	41	@Rule
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/api/internal/file/copy/DuplicateHandlingCopyActionExecutorTest.groovy	45	def fileSystem = Mock(FileSystem)
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/api/internal/initialization/loadercache/DefaultClassLoaderCacheTest.groovy	33	def classpathHasher = new FileClasspathHasher()
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/api/internal/plugins/RuleSourceApplicationTest.groovy	38	project.apply plugin: 'custom-rule-source'
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/api/internal/project/DefaultProjectStateRegistryTest.groovy	155	async {
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/api/internal/project/DefaultProjectTest.groovy	126	static final String TEST_BUILD_FILE_NAME = 'build.gradle'
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/api/internal/project/NewDefaultProjectTest.groovy	36	rootTasks[project]*.path as Set == [":bar", ":artifactTransforms", ":buildEnvironment", ":dependencies", ":dependencyInsight", ":foo", ":hel
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/api/internal/tasks/DefaultTaskContainerTest.groovy	56	private taskIdentityFactory = TestTaskIdentities.factory()
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/configuration/ScriptPluginFactorySelectorTest.groovy	31	def providerInstantiator = Mock(ScriptPluginFactorySelector.ProviderInstantiator)
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/configuration/project/LifecycleProjectEvaluatorTest.groovy	36	private project = Mock(ProjectInternal)
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/execution/plan/DefaultExecutionPlanParallelTest.groovy	64	Node priorityNode(Map<String, ?> options = [:]) {
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/execution/plan/DefaultExecutionPlanTest.groovy	53	executionPlan?.close()
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/execution/plan/ValuedVfsHierarchyTest.groovy	47	location << ['', '/some', '/some/location']
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/internal/buildevents/BuildExceptionReporterTest.groovy	51	final TestStyledTextOutput output = new TestStyledTextOutput()
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/internal/fingerprint/classpath/impl/DefaultClasspathFingerprinterTest.groovy	83	fileCollectionFingerprint == [
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/internal/fingerprint/impl/DefaultFileCollectionSnapshotterTest.groovy	135	Factory<File> factory = new Factory<File>() {
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/internal/jvm/JavaModuleDetectorTest.groovy	73	Set<File> files = entries.collect { entry ->
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/internal/typeconversion/MapNotationConverterTest.groovy	73	parser.parseNotation([name: null, version: ''])
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/internal/xml/XmlValidationTest.groovy	28	''          | _
+groovy-gradle/subprojects/core/src/test/groovy/org/gradle/util/internal/NameValidatorTest.groovy	45	@Subject(NameValidator)
+groovy-gradle/subprojects/core/src/testFixtures/groovy/org/gradle/api/tasks/bundling/AbstractArchiveTaskTest.groovy	31	assert archiveTask.archiveClassifier.get() == ''
+groovy-gradle/subprojects/core/src/testFixtures/groovy/org/gradle/util/TestUtil.groovy	95	public static final Closure TEST_CLOSURE = {}
+groovy-gradle/testing/integ-test/src/crossVersionTest/groovy/org/gradle/integtests/PluginBinaryCompatibilityCrossVersionSpec.groovy	1	/*
+groovy-gradle/testing/integ-test/src/crossVersionTest/groovy/org/gradle/integtests/PropertyUpgradesBinaryCompatibilityCrossVersionSpec.groovy	42	prepareJavaPluginTest """
+groovy-gradle/testing/integ-test/src/crossVersionTest/groovy/org/gradle/integtests/TaskTransitiveSubclassingBinaryCompatibilityCrossVersionSpec.groovy	25	@TargetVersions("6.8+")
+groovy-gradle/testing/integ-test/src/integTest/groovy/org/gradle/integtests/CacheProjectIntegrationTest.groovy	37	static final String TEST_FILE = "build/test.txt"
+groovy-gradle/testing/integ-test/src/integTest/groovy/org/gradle/integtests/MultiProjectDependencyIntegrationTest.groovy	30	buildFile << """
+groovy-gradle/testing/integ-test/src/integTest/groovy/org/gradle/integtests/SyncTaskIntegrationTest.groovy	34	file('dest').create {
+groovy-gradle/testing/integ-test/src/integTest/groovy/org/gradle/integtests/configuration/ExecuteDomainObjectCollectionCallbackBuildOperationTypeIntegrationTest.groovy	30	def ops = new BuildOperationsFixture(executer, temporaryFolder)
+groovy-gradle/testing/internal-distribution-testing/src/main/groovy/org/gradle/integtests/fixtures/RetryConditions.groovy	38	if (t?.message?.startsWith('Timeout waiting for build to complete.')) {
+groovy-gradle/testing/internal-distribution-testing/src/main/groovy/org/gradle/integtests/fixtures/daemon/AbstractDaemonFixture.groovy	30	public static final int STATE_CHANGE_TIMEOUT = 20000
+groovy-gradle/testing/internal-distribution-testing/src/main/groovy/org/gradle/integtests/fixtures/executer/ReleasedGradleDistribution.groovy	1	/*
+groovy-gradle/testing/internal-distribution-testing/src/main/groovy/org/gradle/test/fixtures/AbstractModule.groovy	36	private static Date lmd = new Date(ZipEntryConstants.CONSTANT_TIME_FOR_ZIP_ENTRIES)
+groovy-gradle/testing/internal-distribution-testing/src/main/groovy/org/gradle/test/fixtures/GradleModuleMetadata.groovy	31	private Map<String, Object> values
+groovy-gradle/testing/internal-distribution-testing/src/main/groovy/org/gradle/test/fixtures/gradle/DependencySpec.groovy	1	/*
+groovy-gradle/testing/internal-distribution-testing/src/main/groovy/org/gradle/test/fixtures/ivy/IvyDescriptor.groovy	24	Map<String, IvyDescriptorConfiguration> configurations = [:]
+groovy-gradle/testing/internal-distribution-testing/src/main/groovy/org/gradle/test/fixtures/ivy/IvyFileModule.groovy	39	final String ivyPattern
+groovy-gradle/testing/internal-distribution-testing/src/main/groovy/org/gradle/test/fixtures/maven/AbstractMavenModule.groovy	43	private final TestFile rootDir
+groovy-gradle/testing/internal-distribution-testing/src/main/groovy/org/gradle/test/fixtures/maven/MavenFileModule.groovy	71	"""
+groovy-gradle/testing/internal-distribution-testing/src/main/groovy/org/gradle/test/fixtures/maven/MavenPom.groovy	24	final Map<String, MavenScope> scopes = [:]
+groovy-gradle/testing/internal-distribution-testing/src/main/groovy/org/gradle/test/fixtures/maven/MavenScope.groovy	1	/*
+groovy-gradle/testing/internal-distribution-testing/src/main/groovy/org/gradle/test/fixtures/server/http/SecuredHandlerCollection.groovy	32	private final HandlerCollection handlers = new HandlerCollection(true)
+groovy-gradle/testing/internal-distribution-testing/src/test/groovy/org/gradle/integtests/fixtures/executer/OutputScrapingExecutionResultTest.groovy	548	error(e15).startsWith(error('''
+groovy-gradle/testing/internal-integ-testing/src/main/groovy/org/gradle/integtests/fixtures/AbstractIntegrationSpec.groovy	95	/**
+groovy-gradle/testing/internal-integ-testing/src/main/groovy/org/gradle/integtests/fixtures/AutoTestedSamplesUtil.groovy	28	private static final Pattern SAMPLE_START = Pattern.compile(/<pre class=['"]autoTested(.*?)['"].*?>/)
+groovy-gradle/testing/internal-integ-testing/src/main/groovy/org/gradle/integtests/fixtures/BuildOperationTreeQueries.groovy	226	assert expectedOrder*.parentId.unique().size() == 1
+groovy-gradle/testing/internal-integ-testing/src/main/groovy/org/gradle/integtests/fixtures/CompilationOutputsFixture.groovy	31	private final File targetDir
+groovy-gradle/testing/internal-integ-testing/src/main/groovy/org/gradle/integtests/fixtures/FileSystemWatchingFixture.groovy	22	@SelfType(AbstractIntegrationSpec)
+groovy-gradle/testing/internal-integ-testing/src/main/groovy/org/gradle/integtests/fixtures/WellBehavedPluginTest.groovy	82	protected applyPluginUnqualified(File target = buildFile) {
+groovy-gradle/testing/internal-integ-testing/src/main/groovy/org/gradle/integtests/fixtures/configurationcache/ConfigurationCacheProblemsFixture.groovy	47	protected static final String CC_REPORT_HTML_FILE_NAME = "configuration-cache-report.html"
+groovy-gradle/testing/internal-integ-testing/src/main/groovy/org/gradle/integtests/fixtures/configurationcache/ConfigurationCacheReportFixture.groovy	102	private final File reportFile
+groovy-gradle/testing/internal-integ-testing/src/main/groovy/org/gradle/integtests/fixtures/jvm/JavaToolchainBuildOperationsFixture.groovy	29	/**
+groovy-gradle/testing/internal-integ-testing/src/main/groovy/org/gradle/integtests/fixtures/maven/ApiMavenResolver.groovy	90	session.setTransferListener(new AbstractTransferListener() {
+groovy-gradle/testing/internal-integ-testing/src/main/groovy/org/gradle/integtests/fixtures/problems/ReceivedProblem.groovy	42	private final long operationId
+groovy-gradle/testing/internal-integ-testing/src/main/groovy/org/gradle/integtests/fixtures/versions/AndroidGradlePluginVersions.groovy	37	public static final String OVERRIDE_VERSION_CHECK = '-Dcom.android.build.gradle.overrideVersionCheck=true'
+groovy-gradle/testing/internal-integ-testing/src/main/groovy/org/gradle/internal/scan/config/fixtures/ApplyDevelocityPluginFixture.groovy	35	def matcher = settingsText =~ /id[ (]["']com.gradle.develocity["'][)]? version[ (]["'](.*)["'][)]?/
+groovy-gradle/testing/internal-integ-testing/src/main/groovy/org/gradle/test/fixtures/jpms/ModuleJarFixture.groovy	40	jar(name, '', JarKind.LIB)
+groovy-gradle/testing/internal-integ-testing/src/main/groovy/org/gradle/test/fixtures/server/sftp/SftpResource.groovy	26	SFTPServer server
+groovy-gradle/testing/internal-integ-testing/src/test/groovy/org/gradle/integtests/fixtures/configurationcache/ConfigurationCacheProblemsFixtureTest.groovy	52	reportFile.setText ""
+groovy-gradle/testing/internal-performance-testing/src/main/groovy/org/gradle/performance/generator/BazelFileContentGenerator.groovy	1	/*
+groovy-gradle/testing/internal-performance-testing/src/main/groovy/org/gradle/performance/generator/DeclarativeDslTestProjectGenerator.groovy	35	final TestProjectGeneratorConfiguration config
+groovy-gradle/testing/internal-performance-testing/src/main/groovy/org/gradle/performance/generator/DependencyTree.groovy	1	/*
+groovy-gradle/testing/internal-performance-testing/src/main/groovy/org/gradle/performance/generator/FileContentGenerator.groovy	29	case KOTLIN:
+groovy-gradle/testing/internal-performance-testing/src/main/groovy/org/gradle/performance/results/AbstractWritableResultsStore.groovy	27	@CompileStatic
+groovy-gradle/testing/internal-performance-testing/src/test/groovy/org/gradle/performance/ResultSpecification.groovy	34	final String channel = 'commits'
+groovy-gradle/testing/internal-performance-testing/src/test/groovy/org/gradle/performance/results/report/DefaultPerformanceExecutionDataProviderTest.groovy	30	@Rule
+groovy-gradle/testing/performance/src/performanceTest/groovy/org/gradle/performance/regression/android/RealLifeAndroidBuildPerformanceTest.groovy	53	@RunFor([
+groovy-gradle/testing/performance/src/performanceTest/groovy/org/gradle/performance/regression/corefeature/ParallelDownloadsPerformanceTest.groovy	116	private final static int[] DELAYS = [2, 3, 5, 8, 13, 21, 34, 55]
+groovy-gradle/testing/performance/src/performanceTest/groovy/org/gradle/performance/regression/java/JavaConfigurationCachePerformanceTest.groovy	44	@RunFor([
+groovy-gradle/testing/performance/src/performanceTest/groovy/org/gradle/performance/regression/java/JavaIDEModelPerformanceTest.groovy	43	runner.toolingApi("Eclipse model") {
+groovy-gradle/testing/performance/src/performanceTest/groovy/org/gradle/performance/regression/java/JavaIncrementalExecutionPerformanceTest.groovy	40	JavaTestProject testProject
+groovy-gradle/testing/smoke-test/src/smokeTest/groovy/org/gradle/play/integtest/fixtures/external/RunningPlayApp.groovy	28	static final int UNASSIGNED = -1
+groovy-gradle/testing/smoke-test/src/smokeTest/groovy/org/gradle/smoketests/KotlinMultiplatformPluginSmokeTest.groovy	44	.expectLegacyDeprecationWarningIf(
+groovy-gradle/testing/smoke-test/src/smokeTest/groovy/org/gradle/smoketests/ProtobufPluginSmokeTest.groovy	29	private static protobufToolsVersion = "4.31.1"
+groovy-gradle/testing/smoke-test/src/smokeTest/groovy/org/gradle/smoketests/WithPluginValidation.groovy	1	/*
+groovy-gradle/testing/smoke-test/src/smokeTest/resources/org/gradle/smoketests/android-kotlin-example/app/build.gradle	7	android {
+groovy-gradle/testing/soak/src/integTest/groovy/org/gradle/jvm/toolchain/JavaToolchainDownloadSoakTest.groovy	34	static final Jvm EXPECTED_JVM = AvailableJavaHomes.differentVersion
+groovy-gradle/testing/soak/src/integTest/groovy/org/gradle/launcher/daemon/DaemonPerformanceMonitoringSoakTest.groovy	51	try {
+rust-bat/tests/syntax-tests/highlighted/Groovy/test.groovy	1	[38;2;248;248;242minterface [0m[3;38;2;102;217;239mDisplay[0m[38;2;248;248;242m [0m[38;2;248;248;242m{[0m

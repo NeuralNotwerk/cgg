@@ -1,0 +1,19 @@
+old: cgg 0.11.1 (dev gb63d0df)  sha256=851df06e30993ed8787169278fee9787f9d1c8d3f1d26c0f02f07e0a7970127b
+new: cgg 0.11.1 (dev gb63d0df+d1afc6fb)  sha256=4d491339500fd15b43ae02e88b62868937643f30bfca42ca56487e498e4fce8c
+old=target/remediation/bins/WS38-before
+new=target/remediation/bins/WS38-r3
+repos=19 elapsed=60s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 10
+  app-immich-nestjs: edges 29908->29908 (-0 +0 ~0) callables 15674->15674 unresolved 20594->20596 files 1984->1984 deadhigh 1->1 
+  app-marquez-dropwizard: edges 10919->10919 (-0 +0 ~0) callables 3551->3551 unresolved 5507->5508 files 631->631 deadhigh 1->1 
+  app-quack-oak: edges 1150->1150 (-0 +0 ~0) callables 969->969 unresolved 2128->2129 files 488->488 deadhigh 0->0 
+  app-rn-expensify: edges 183242->183242 (-0 +0 ~0) callables 68752->68752 unresolved 172453->172465 files 8710->8710 deadhigh 0->0 
+  app-saplib-jenkins: edges 26313->27916 (-415 +2018 ~0) callables 8254->8828 unresolved 5576->5635 files 1535->1535 deadhigh 0->0 
+  app-streama-grails: edges 6637->6984 (-39 +386 ~0) callables 3705->3881 unresolved 8491->8499 files 207->207 deadhigh 0->0 
+  app-thingsboard-concurrent: edges 165765->165765 (-0 +0 ~0) callables 50160->50160 unresolved 85023->85039 files 6599->6599 deadhigh 17->17 
+  app-wordpress-android: edges 109450->109455 (-0 +5 ~0) callables 40581->40586 unresolved 32454->32462 files 4260->4260 deadhigh 32->32 
+  dart-flutter: edges 577747->577747 (-0 +0 ~0) callables 120107->120107 unresolved 326594->326605 files 10871->10871 deadhigh 19->19 
+  groovy-gradle: edges 313105->344029 (-23435 +54359 ~98) callables 134667->139593 unresolved 228771->231963 files 24272->24272 deadhigh 43->43 
+by language: see by_language.tsv
+

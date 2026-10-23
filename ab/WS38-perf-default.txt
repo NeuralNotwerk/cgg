@@ -1,0 +1,20 @@
+app-bamboobsc-struts               2424 ->     2064 ms
+app-darkness-flame                   50 ->       49 ms
+app-gs-batch-processing              28 ->       29 ms
+app-immich-nestjs                  1058 ->     1032 ms
+app-kythe-bazel                     699 ->      674 ms
+app-marquez-dropwizard              277 ->      282 ms
+app-micronaut-graalapp               26 ->       26 ms
+app-quack-oak                       147 ->      140 ms
+app-rn-expensify                   7563 ->     7407 ms
+app-saplib-jenkins                  704 ->      714 ms
+app-serverless-examples             134 ->      134 ms
+app-streama-grails                  401 ->      420 ms
+app-thingsboard-concurrent         4292 ->     4264 ms
+app-wordpress-android              2356 ->     2276 ms
+dart-flutter                       9830 ->     9805 ms
+groovy-gradle                      8434 ->     8483 ms
+nix-home-manager                    324 ->      331 ms
+rust-bat                           1414 ->     1373 ms
+smithy-protocol-tests              1291 ->     1288 ms
+total 41.4 -> 40.8 s (-1.6%)

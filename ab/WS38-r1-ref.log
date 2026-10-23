@@ -1,0 +1,11 @@
+repos 19 excluded []
+added 29750
+  ('groovy', '{"family": "spock", "kind": "framework_entry"}', 'low') 2802
+  ('groovy', '{"kind": "direct"}', 'high') 3571
+  ('groovy', '{"kind": "direct"}', 'medium') 23374
+  ('groovy', '{"kind": "reference"}', 'high') 3
+dropped 14305
+  ('groovy', '{"family": "spock", "kind": "framework_entry"}', 'low') 970
+  ('groovy', '{"kind": "direct"}', 'high') 711
+  ('groovy', '{"kind": "direct"}', 'medium') 12622
+  ('groovy', '{"kind": "reference"}', 'high') 2
