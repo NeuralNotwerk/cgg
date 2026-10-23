@@ -371,7 +371,7 @@ impl<'a> KtWalker<'a> {
             end_line: el,
             start_byte: node.start_byte() as u32,
             end_byte: node.end_byte() as u32,
-            signature_hint: super::extract_signature(self.text(node)),
+            signature_hint: self.function_signature(node),
             visibility: String::new(),
             vis: kotlin_vis(node),
             attributes: super::attrs::with_override_marker(
@@ -419,6 +419,30 @@ impl<'a> KtWalker<'a> {
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
         });
+    }
+
+    /// A function's signature up to its body: the declared return type
+    /// after the parameter list included (`fun make(): Tool`), which the
+    /// shared reader cuts at the `:` (WS35).
+    fn function_signature(&self, node: Node) -> String {
+        match node
+            .named_children(&mut node.walk())
+            .find(|c| c.kind() == "function_body")
+        {
+            Some(body) => {
+                let head = std::str::from_utf8(
+                    &self.source[node.start_byte()..body.start_byte()],
+                )
+                .unwrap_or("");
+                head.split_whitespace()
+                    .collect::<Vec<_>>()
+                    .join(" ")
+                    .trim_end_matches(['{', '='])
+                    .trim()
+                    .to_string()
+            }
+            None => super::extract_signature(self.text(node)),
+        }
     }
 
     fn record_local_type(&mut self, node: Node) {
@@ -486,6 +510,20 @@ impl<'a> KtWalker<'a> {
                     self.facts.local_types.push(cgg_core::LocalType {
                         var_name,
                         type_name: callee_text.to_string(),
+                        scope_byte: node.start_byte() as u32,
+                    });
+                } else if callee.kind() == "simple_identifier"
+                    && callee_text.starts_with(char::is_lowercase)
+                    // A written type (`val f: () -> T = make()`) is the
+                    // local's, never the call's.
+                    && var_decl.named_child_count() == 1
+                {
+                    // `val t = make()`: the bare call's result, typed by
+                    // what `make` is declared to return (WS35,
+                    // `type_hints::CALL_RESULT_LANGS`).
+                    self.facts.local_types.push(cgg_core::LocalType {
+                        var_name,
+                        type_name: format!("{callee_text}()"),
                         scope_byte: node.start_byte() as u32,
                     });
                 }

@@ -71,6 +71,23 @@ otherwise change the default graph.
   is left to the ordinary steps and stays external. A call the grammar
   splits as `A.B` dot `f` inside an operator expression is recorded as
   the dotted call it is.
+- **Kotlin call results were untyped (WS35).** Kotlin writes a return
+  type after the parameter list (`fun make(): Tool`), and the signature
+  cgg kept stopped at that colon, so `make().work()` and `val t =
+  make(); t.work()` fanned `work` out by name across unrelated classes.
+  The signature now runs to the body. A bare call's declared type
+  types its receiver, as in the type-first languages: the calling
+  class's own member first (also through `this.`), and only when it is
+  the one member, extension or local function of that name in the tree;
+  otherwise a top-level function, the calling file's own first and then
+  every top-level function of the name, when all of them agree. Nothing
+  is typed for a name the file imports, a name some member, extension
+  or local function also carries, a call inside an extension body or a
+  scope-function lambda (`x.run { make() }`), an expression body with
+  no written type, a container or function type (`List<Tool>`), a type
+  parameter of the function or its class, or `Any`, `Unit` and
+  `Nothing`. `Tool?` reads as `Tool`, and a `val` with a written type
+  keeps it.
 
 ### Compatibility
 
@@ -140,6 +157,32 @@ position, since module-level F# qualified names now carry their module):
 - Under `--dead-code`, 1,970 F# findings leave the report (1,943
   `medium`, 27 `low`) and 14 enter it; 227 move `medium` → `low` and 4
   `low` → `medium`. None are `high`.
+
+WS35 Kotlin call results (every corpus repository containing Kotlin, 18
+repositories, none excluded; 9 change):
+
+- A Kotlin callable's `signature_hint` now includes its declared return
+  type (`fun make(): Tool`, was `fun make()`).
+- 252 edges move `medium` → `high`: a receiver typed by the declared
+  return type, which binds exactly one method (`createEditorMedia(…).refreshBlogMedia()`,
+  `val routeSelector = newRouteSelector(address)`). 123 edges are added
+  (72 `high`), 222 `medium` edges are removed (by-name fan-out narrowed to the
+  typed class), and 60 sites lose every edge they had. Most of those
+  were wrong: a data class's `copy` bound to an unrelated `UriWrapper.copy`,
+  `date.add(…)` on a `Calendar` bound to an in-tree `add`. Two sites
+  typed to a `typealias` lose a correct `medium` edge: Kotlin type
+  aliases are not read.
+- 12 edges move `high` → `medium` (two survivors instead of one): calls
+  of overloads whose last parameter is a defaulted function type
+  (`checkCancelled: () -> Unit = {}`). The old signature stopped at the
+  `{` of that default and hid the overload from the arity check, so its
+  `high` was an accident. The arity check counts arguments and does not
+  place a trailing lambda.
+- Unresolved Kotlin sites fall by 17 net.
+- Under `--reference-edges`, the same changes.
+- Under `--dead-code`, 7 findings leave the report (6 `medium`, 1 `low`)
+  and 1 enters it (`medium`), and 6 move `low` → `medium`. None are
+  `high`.
 
 ## [0.11.1] - 2026-10-23
 

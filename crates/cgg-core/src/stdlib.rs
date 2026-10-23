@@ -671,6 +671,8 @@ pub const TOP_TYPES: &[(&str, &[&str])] = &[
     ("dart", &["Object", "Dynamic"]),
     ("java", &["Object"]),
     ("groovy", &["Object"]),
+    // `Unit` and `Nothing` name no class a call reaches either.
+    ("kotlin", &["Any", "Unit", "Nothing"]),
 ];
 
 /// Whether `name` is one of `lang`'s [`TOP_TYPES`].

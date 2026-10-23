@@ -5429,6 +5429,103 @@ fn declared_return_types_type_call_results_in_type_first_languages() {
     assert_eq!(to("e"), vec!["Gear::spin@a.cpp high"]);
 }
 
+/// WS35: Kotlin declares a return type after the parameter list (`fun
+/// make(): Tool`). A bare call's declared type types the call as a
+/// receiver and a `val` assigned from it; a member of the calling class
+/// is read before a top-level function. Near misses stay untyped: an
+/// expression body with no written type, a container, a type parameter
+/// (the function's or the class's), a name an extension also carries, a
+/// call inside a scope-function lambda, an imported name, and a local
+/// with a written type keeps that type.
+#[test]
+fn kotlin_declared_return_types_type_call_results() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "Lib.kt",
+        concat!(
+            "package app\n\nclass Tool { fun work() {} }\nclass Other { fun work() {} }\n",
+            "fun make(): Tool = Tool()\nfun many(): List<Tool> = listOf()\n",
+            "fun maybe(): Tool? = null\nfun inferred() = Other()\n",
+            "fun <Item> pick(x: Item): Item = x\nfun shared(): Tool = Tool()\n",
+            "fun builder(): Tool = Tool()\nclass Ext\nfun Ext.builder(): Other = Other()\n",
+        )
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "Holder.kt",
+        concat!(
+            "package app\n\nclass Holder {\n    fun own(): Other = Other()\n",
+            "    fun shared(): Other = Other()\n",
+            "    fun h1() { own().work() }\n    fun h2() { this.own().work() }\n",
+            "    fun h3() { shared().work() }\n    fun h4() { val o = own(); o.work() }\n}\n",
+            "class Box<Item> {\n    fun get(): Item? = null\n    fun b1() { get().work() }\n}\n",
+        )
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "Use.kt",
+        concat!(
+            "package app\n\n",
+            "fun u1() { make().work() }\nfun u2() { val t = make(); t.work() }\n",
+            "fun u3() { val m = maybe(); m?.work() }\nfun u4() { val i = inferred(); i.work() }\n",
+            "fun u5() { many().work() }\nfun u6() { pick(1).work() }\n",
+            "fun u7() { val a: Other = make(); a.work() }\n",
+            "fun u8(x: Ext) { x.run { make().work() } }\nfun u9() { builder().work() }\n",
+            "fun u10() {\n    val t: Other = Other()\n",
+            "    val o = object { fun x() { val t = make() } }\n    t.work()\n}\n",
+        )
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "ext/Imp.kt",
+        "package other\n\nimport lib.outside.make\n\nfun i1() { make().work() }\n"
+            .as_bytes(),
+    );
+    let e = cpp_edges(tmp.path());
+    let to = |src: &str| -> Vec<String> {
+        e.iter()
+            .filter(|(s, d, _)| s == src && d.contains(".work"))
+            .map(|(_, d, c)| format!("{d} {c}"))
+            .collect()
+    };
+    let other = vec!["app.Other.work@Lib.kt high".to_string()];
+    let tool = vec!["app.Tool.work@Lib.kt high".to_string()];
+    let both = vec![
+        "app.Other.work@Lib.kt medium".to_string(),
+        "app.Tool.work@Lib.kt medium".to_string(),
+    ];
+    // `u10`: a nested function's own call-result local does not hide the
+    // outer declared one once that function has ended.
+    for f in [
+        "app.Holder.h1",
+        "app.Holder.h2",
+        "app.Holder.h3",
+        "app.Holder.h4",
+        "app.u7",
+        "app.u10",
+    ] {
+        assert_eq!(to(f), other, "{f}");
+    }
+    for f in ["app.u1", "app.u2", "app.u3"] {
+        assert_eq!(to(f), tool, "{f}");
+    }
+    for f in [
+        "app.Box.b1",
+        "app.u4",
+        "app.u5",
+        "app.u6",
+        "app.u8",
+        "app.u9",
+        "other.i1",
+    ] {
+        assert_eq!(to(f), both, "{f}");
+    }
+}
+
 /// WS23 gap 28: a JS/TS local declared from a construction or with a
 /// type annotation types its receiver where that declaration is the
 /// binding in scope. Another function's local of the name, an inner

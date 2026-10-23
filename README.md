@@ -531,7 +531,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(4827 callables, 15734 edges, 4596 cross-file, 466ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(4842 callables, 15797 edges, 4600 cross-file, 524ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -617,22 +617,24 @@ flowchart LR
   N72["cgg_resolve::intra_file::link_file_with_cap"]
   N73["cgg_resolve::names::owner_from_qn"]
   N74["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
-  N75["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::with_go_results"]
-  N76["cgg_resolve::type_hints::field_index"]
-  N77["cgg_resolve::type_hints::type_alias_index"]
-  N78["cgg_resolve::type_hints::macro_index"]
-  N79["cgg_resolve::type_hints::resolve_macro_types"]
-  N80["cgg_resolve::type_hints::build_return_type_map"]
-  N81["cgg_resolve::type_hints::propagate_types_with_fields"]
-  N82["cgg_resolve::type_hints::settle_assoc_call_locals"]
-  N83["cgg_resolve::type_hints::settle_closure_args"]
-  N84["cgg_resolve::type_hints::settle_implicit_receivers"]
-  N85["cgg_resolve::type_hints::go_result_functions"]
-  N86["cgg_resolve::unreachable::cap_unreachable_edges"]
-  N87["cgg_resolve::value_refs::prune"]
-  N88["cgg_resolve::value_refs::prune_paren_less"]
-  N89["cgg_resolve::value_refs::tag_reference_edges"]
-  N90["cgg_walk::walk"]
+  N75["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::with_kotlin_scoped"]
+  N76["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::with_go_results"]
+  N77["cgg_resolve::type_hints::field_index"]
+  N78["cgg_resolve::type_hints::type_alias_index"]
+  N79["cgg_resolve::type_hints::macro_index"]
+  N80["cgg_resolve::type_hints::resolve_macro_types"]
+  N81["cgg_resolve::type_hints::build_return_type_map"]
+  N82["cgg_resolve::type_hints::propagate_types_with_fields"]
+  N83["cgg_resolve::type_hints::settle_assoc_call_locals"]
+  N84["cgg_resolve::type_hints::settle_closure_args"]
+  N85["cgg_resolve::type_hints::settle_implicit_receivers"]
+  N86["cgg_resolve::type_hints::go_result_functions"]
+  N87["cgg_resolve::type_hints::kotlin_scoped_counts"]
+  N88["cgg_resolve::unreachable::cap_unreachable_edges"]
+  N89["cgg_resolve::value_refs::prune"]
+  N90["cgg_resolve::value_refs::prune_paren_less"]
+  N91["cgg_resolve::value_refs::tag_reference_edges"]
+  N92["cgg_walk::walk"]
   N2 --> N3
   N3 --> N4
   N3 --> N13
@@ -657,7 +659,7 @@ flowchart LR
   N3 --> N46
   N3 --> N45
   N3 --> N40
-  N3 --> N90
+  N3 --> N92
   N3 --> N52
   N3 --> N43
   N3 --> N55
@@ -690,20 +692,22 @@ flowchart LR
   N3 --> N73
   N3 --> N30
   N3 --> N35
-  N3 --> N87
-  N3 --> N88
-  N3 --> N80
-  N3 --> N75
-  N3 --> N74
-  N3 --> N85
+  N3 --> N89
+  N3 --> N90
+  N3 --> N81
+  N3 -->|?| N75
   N3 --> N76
-  N3 --> N78
-  N3 --> N79
+  N3 --> N74
+  N3 --> N86
+  N3 --> N87
   N3 --> N77
+  N3 --> N79
+  N3 --> N80
+  N3 --> N78
+  N3 --> N84
   N3 --> N83
   N3 --> N82
-  N3 --> N81
-  N3 --> N84
+  N3 --> N85
   N3 --> N33
   N3 --> N72
   N3 --> N31
@@ -711,8 +715,8 @@ flowchart LR
   N3 --> N64
   N3 --> N68
   N3 --> N65
-  N3 --> N89
-  N3 --> N86
+  N3 --> N91
+  N3 --> N88
   N3 --> N69
   N3 --> N66
   N3 -->|4x| N37
@@ -754,9 +758,9 @@ flowchart LR
   N68 --> N39
   N69 -->|14x| N41
   N72 -->|7x| N73
-  N81 -->|3x| N41
-  N82 --> N73
-  N84 --> N73
+  N82 -->|3x| N41
+  N83 --> N73
+  N85 --> N73
 ```
 <!-- cgg:end:self -->
 

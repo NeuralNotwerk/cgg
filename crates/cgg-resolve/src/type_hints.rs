@@ -45,6 +45,10 @@ pub struct ReturnTypeIndex<'a> {
     /// ([`go_result_functions`]): a local `x := f()` is read as `f()`
     /// only when `f` is one of them (WS27).
     go_result_fns: std::collections::HashSet<String>,
+    /// Kotlin (WS35): how many definitions of each name are not top-level
+    /// functions (members, extensions, local functions); see
+    /// [`kotlin_scoped_counts`].
+    kotlin_scoped: HashMap<String, usize>,
 }
 
 impl<'a> ReturnTypeIndex<'a> {
@@ -73,7 +77,21 @@ impl<'a> ReturnTypeIndex<'a> {
             by_lower_ret,
             by_name: return_types.clone(),
             go_result_fns: Default::default(),
+            kotlin_scoped: Default::default(),
         }
+    }
+
+    /// With the Kotlin names some member, extension or local function
+    /// defines ([`kotlin_scoped_counts`]).
+    pub fn with_kotlin_scoped(mut self, counts: HashMap<String, usize>) -> Self {
+        self.kotlin_scoped = counts;
+        self
+    }
+
+    /// How many Kotlin members, extensions and local functions are named
+    /// `name`.
+    fn kotlin_scoped(&self, name: &str) -> usize {
+        self.kotlin_scoped.get(name).copied().unwrap_or(0)
     }
 
     /// With the names of the Go functions that declare a result type.
@@ -333,7 +351,15 @@ pub fn build_return_type_map<'a>(
 ) -> HashMap<(&'a str, &'a str), &'a str> {
     let mut seen: HashMap<(&'a str, &'a str), Option<Option<&'a str>>> = HashMap::new();
     for facts in all_facts {
-        for def in &facts.definitions {
+        // Kotlin (WS35): only a top-level function is what a bare call
+        // names wherever it is written; members, extensions and local
+        // functions are read in their own scope ([`ReturnTypeIndex::kotlin_scoped`]).
+        let kotlin_top =
+            (facts.language == "kotlin").then(|| kotlin_top_level_defs(facts));
+        for (i, def) in facts.definitions.iter().enumerate() {
+            if kotlin_top.as_ref().is_some_and(|t| !t[i]) {
+                continue;
+            }
             let ret = declared_return(&facts.language, def);
             agree(
                 seen.entry((facts.language.as_str(), def.simple_name.as_str()))
@@ -685,6 +711,103 @@ pub fn propagate_types_with_fields(
         }
     };
     let call_results = CALL_RESULT_LANGS.contains(&facts.language.as_str());
+    let kotlin_top: std::cell::OnceCell<Vec<bool>> = std::cell::OnceCell::new();
+    // Kotlin (WS35): what a bare call `name(…)` at `site` returns. Kotlin
+    // reads a bare name as the calling class's member before a top-level
+    // function, and a member, an extension or a local function of the name
+    // may be in scope anywhere, so: the calling class's own member when it
+    // is the one such definition of the name in the run; otherwise, only
+    // for a name no member, extension or local function carries, the
+    // calling file's own top-level functions, then (when the file imports
+    // no such name) every top-level function of the name in the language.
+    // `this_only`: the call was written `this.name(…)`.
+    let kotlin_call_return = |name: &str, site: u32, this_only: bool| -> Option<&str> {
+        let tops = kotlin_top.get_or_init(|| kotlin_top_level_defs(facts));
+        let scoped = return_types.kotlin_scoped(name);
+        let enc = enclosing_def(facts, site);
+        // A call in an extension's body may be the extended type's member.
+        if enc.is_some_and(|d| kotlin_extension(&d.signature_hint)) {
+            return None;
+        }
+        let owner = enc.map_or("", |d| {
+            if d.variant == cgg_core::DefVariant::Constructor {
+                d.qualified_name.as_str()
+            } else {
+                d.qualified_name.rsplit_once('.').map_or("", |(o, _)| o)
+            }
+        });
+        if !owner.is_empty() && !facts.packages.iter().any(|p| p == owner) {
+            let members: Vec<&DefRecord> = facts
+                .definitions
+                .iter()
+                .enumerate()
+                .filter(|&(i, d)| {
+                    !tops[i]
+                        && d.variant != cgg_core::DefVariant::Constructor
+                        && d.simple_name == name
+                        && d.qualified_name
+                            .strip_suffix(name)
+                            .and_then(|q| q.strip_suffix('.'))
+                            == Some(owner)
+                })
+                .map(|(_, d)| d)
+                .collect();
+            if !members.is_empty() {
+                if members.len() != scoped {
+                    return None;
+                }
+                let mut slot = None;
+                for d in &members {
+                    agree(&mut slot, declared_return(&facts.language, d));
+                }
+                let ty = slot.flatten()?;
+                // A type parameter of the class (`class Box<Item>`).
+                let class_params = facts
+                    .definitions
+                    .iter()
+                    .find(|d| {
+                        d.variant == cgg_core::DefVariant::Constructor
+                            && d.qualified_name == owner
+                    })
+                    .map(|d| kotlin_type_params(&d.signature_hint))
+                    .unwrap_or_default();
+                return (!class_params.contains(&ty)).then_some(ty);
+            }
+        }
+        if this_only || scoped > 0 {
+            return None;
+        }
+        let mut slot = None;
+        for (i, d) in facts.definitions.iter().enumerate() {
+            if tops[i] && d.simple_name == name {
+                agree(&mut slot, declared_return(&facts.language, d));
+            }
+        }
+        match slot {
+            Some(v) => v,
+            None if imported_name(name) => None,
+            None => return_types.get(&facts.language, name),
+        }
+    };
+    // Kotlin: the call a call-result receiver or local names is a bare
+    // one: not through a receiver, not inside a scope-function lambda
+    // whose receiver may declare it (`x.run { make() }`).
+    let kotlin_bare_site = |name: &str, from: u32, exact: bool| {
+        facts
+            .references
+            .iter()
+            .filter(|r| {
+                r.name == name
+                    && !r.value_ref
+                    && if exact {
+                        r.site_byte == from
+                    } else {
+                        r.site_byte >= from
+                    }
+            })
+            .min_by_key(|r| r.site_byte)
+            .is_some_and(|r| r.receiver_hint.is_empty() && !r.implicit_receiver)
+    };
     // Names worth a scoped lookup: a local recorded as a call's result, a
     // JS/TS local recorded with a type.
     let call_local_names: std::collections::HashSet<&str> = if call_results {
@@ -731,6 +854,39 @@ pub fn propagate_types_with_fields(
         // `make().work()`, `[F make].work`: the receiver is a bare call's
         // result, typed by what that call is declared to return. A call
         // whose return type is unknown is left as written.
+        if kotlin {
+            // `this.make().work()`: the calling class's own member only.
+            if let Some(callee) = rh
+                .strip_prefix("this.")
+                .and_then(|r| call_result_callee(&facts.language, r))
+            {
+                if let Some(ty) = kotlin_call_return(callee, rref.site_byte, true) {
+                    rewrites.push((i, ty.to_string()));
+                }
+                continue;
+            }
+            if let Some(callee) = call_result_callee(&facts.language, rh) {
+                if kotlin_bare_site(callee, rref.site_byte, true)
+                    && let Some(ty) = kotlin_call_return(callee, rref.site_byte, false)
+                {
+                    rewrites.push((i, ty.to_string()));
+                }
+                continue;
+            }
+            // `val t = make(); t.work()`: the local in scope is the call's
+            // result. An untyped one keeps the readings it had before
+            // (WS35), as the type-first languages' do.
+            if call_local_names.contains(rh)
+                && let Some(lt) =
+                    lookup_call_local_decl(facts, local_index_of(), rref.site_byte, rh)
+                && let Some(callee) = call_result_callee(&facts.language, &lt.type_name)
+                && kotlin_bare_site(callee, lt.scope_byte, false)
+                && let Some(ty) = kotlin_call_return(callee, lt.scope_byte, false)
+            {
+                rewrites.push((i, ty.to_string()));
+                continue;
+            }
+        }
         if call_results && let Some(callee) = call_result_callee(&facts.language, rh) {
             if let Some(ty) = call_return(callee) {
                 rewrites.push((i, ty.to_string()));
@@ -742,6 +898,7 @@ pub fn propagate_types_with_fields(
         // Groovy's `def` local may be reassigned a value of another type,
         // so there the reading is a guess.
         if call_results
+            && !kotlin
             && call_local_names.contains(rh)
             && let Some(callee) =
                 lookup_call_local(facts, local_index_of(), rref.site_byte, rh)
@@ -1266,6 +1423,9 @@ fn kotlin_properties(facts: &FileFacts) -> Vec<KotlinProperty> {
         .local_types
         .iter()
         .filter(|lt| !lt.type_name.is_empty())
+        // A property holding a bare call's result (`val x = make()`) is
+        // not declared with a type (WS35).
+        .filter(|lt| call_result_callee("kotlin", &lt.type_name).is_none())
         .filter(|lt| {
             !facts.definitions.iter().any(|d| {
                 !is_class(&d)
@@ -3043,6 +3203,108 @@ pub fn go_result_functions(all_facts: &[FileFacts]) -> std::collections::HashSet
         .collect()
 }
 
+/// Kotlin (WS35): for each of `facts.definitions`, whether it is a
+/// top-level function — named directly under the file's package (or with
+/// no package), not an extension (`fun Foo.f()`), and not nested in
+/// another definition's span (a local function, a member of an `object`).
+fn kotlin_top_level_defs(facts: &FileFacts) -> Vec<bool> {
+    let defs = &facts.definitions;
+    let mut order: Vec<usize> = (0..defs.len()).collect();
+    order.sort_by_key(|&i| (defs[i].start_byte, std::cmp::Reverse(defs[i].end_byte), i));
+    let mut nested = vec![false; defs.len()];
+    let mut reach = 0u32;
+    for &i in &order {
+        nested[i] = defs[i].start_byte < reach;
+        reach = reach.max(defs[i].end_byte);
+    }
+    defs.iter()
+        .enumerate()
+        .map(|(i, d)| {
+            let package_level =
+                match d.qualified_name.strip_suffix(d.simple_name.as_str()) {
+                    Some("") => true,
+                    Some(q) => q
+                        .strip_suffix('.')
+                        .is_some_and(|p| facts.packages.iter().any(|k| k == p)),
+                    None => false,
+                };
+            d.variant != cgg_core::DefVariant::Constructor
+                && !nested[i]
+                && package_level
+                && !kotlin_extension(&d.signature_hint)
+        })
+        .collect()
+}
+
+/// Kotlin (WS35): how many definitions of each name in the run are
+/// functions other than top-level ones ([`kotlin_top_level_defs`]):
+/// members, extensions, local functions. A bare call of such a name may
+/// be one of them, so its result is typed only from the calling class's
+/// own member, and only when that member is the one definition of the name
+/// that is not top-level.
+pub fn kotlin_scoped_counts(all_facts: &[FileFacts]) -> HashMap<String, usize> {
+    let mut out: HashMap<String, usize> = HashMap::new();
+    for facts in all_facts.iter().filter(|f| f.language == "kotlin") {
+        let top = kotlin_top_level_defs(facts);
+        for (i, d) in facts.definitions.iter().enumerate() {
+            if !top[i] && d.variant != cgg_core::DefVariant::Constructor {
+                *out.entry(d.simple_name.clone()).or_default() += 1;
+            }
+        }
+    }
+    out
+}
+
+/// Whether a Kotlin function signature declares an extension: the name in
+/// front of the parameter list is written through a receiver type
+/// (`fun Foo.f()`, `fun <T> List<T>.f()`).
+fn kotlin_extension(sig: &str) -> bool {
+    let Some((open, _)) = param_list_span(sig) else {
+        return false;
+    };
+    sig[..open]
+        .split_whitespace()
+        .last()
+        .is_some_and(|t| t.contains('.'))
+}
+
+/// The type parameters a Kotlin declaration names in the first `<…>` in
+/// front of its parameter list or body (`fun <T, Item : Base> f(…)`,
+/// `class Box<out Item>(…)`): their names, variance and bounds dropped.
+fn kotlin_type_params(sig: &str) -> Vec<&str> {
+    let stop = sig.find(['(', ':', '{', '=']).unwrap_or(sig.len());
+    let Some(open) = sig[..stop].find('<') else {
+        return Vec::new();
+    };
+    let bytes = sig.as_bytes();
+    let mut depth = 0i32;
+    let mut close = None;
+    for (i, &b) in bytes.iter().enumerate().skip(open) {
+        match b {
+            b'<' => depth += 1,
+            b'>' => {
+                depth -= 1;
+                if depth == 0 {
+                    close = Some(i);
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+    let Some(close) = close else {
+        return Vec::new();
+    };
+    split_top_level(&sig[open + 1..close], |c| c == ',', false)
+        .into_iter()
+        .filter_map(|p| {
+            p.split([':', ' '])
+                .map(str::trim)
+                .find(|w| !w.is_empty() && !matches!(*w, "in" | "out" | "reified"))
+        })
+        .collect()
+}
+
 /// A Go local recorded as a bare call's result (`x := f()`, type `f()`)
 /// is kept only when some Go function `f` declares a result type, and
 /// `f` is not itself a parameter or local in scope there (a function
@@ -3282,11 +3544,12 @@ fn visible_binding_span(
     (Some(v.decl_byte) == first_after).then_some((v.start_byte, v.end_byte))
 }
 
-/// Languages whose bare call results type a receiver (WS23): the call
-/// as a receiver (`make().work()`) and a local the plugin recorded as a
-/// call's result (`var t = make()`, type `make()`).
-const CALL_RESULT_LANGS: &[&str] =
-    &["java", "csharp", "dart", "groovy", "c", "cpp", "objc"];
+/// Languages whose bare call results type a receiver (WS23; Kotlin
+/// WS35): the call as a receiver (`make().work()`) and a local the plugin
+/// recorded as a call's result (`var t = make()`, type `make()`).
+const CALL_RESULT_LANGS: &[&str] = &[
+    "java", "csharp", "dart", "groovy", "c", "cpp", "objc", "kotlin",
+];
 
 /// The function a receiver written as a bare call names: `make()`,
 /// `Make(a, b)` → `make`/`Make`; ObjC `[F make]` → `make`. `None` for
@@ -3317,6 +3580,17 @@ fn lookup_call_local<'a>(
     site_byte: u32,
     name: &str,
 ) -> Option<&'a str> {
+    lookup_call_local_decl(facts, ix, site_byte, name)
+        .and_then(|lt| call_result_callee(&facts.language, &lt.type_name))
+}
+
+/// [`lookup_call_local`]'s declaration itself.
+fn lookup_call_local_decl<'a>(
+    facts: &'a FileFacts,
+    ix: &LocalIndex<'a>,
+    site_byte: u32,
+    name: &str,
+) -> Option<&'a cgg_core::LocalType> {
     let enclosing = enclosing_def(facts, site_byte);
     let in_enclosing =
         |b: u32| enclosing.is_some_and(|d| d.start_byte <= b && b < d.end_byte);
@@ -3352,7 +3626,7 @@ fn lookup_call_local<'a>(
             local_decl_visible(ix, name, lt.scope_byte, site_byte)
         }
     })?;
-    call_result_callee(&facts.language, &lt.type_name)
+    call_result_callee(&facts.language, &lt.type_name).map(|_| lt)
 }
 
 /// Whether a Groovy declaration no binding of the file's locals records
@@ -3393,10 +3667,20 @@ fn lookup_local_type<'a>(
     site_byte: u32,
     name: &str,
 ) -> Option<&'a str> {
-    lookup_local_type_any(facts, site_byte, name).filter(|ty| {
-        !(CALL_RESULT_LANGS.contains(&facts.language.as_str())
-            && call_result_callee(&facts.language, ty).is_some())
-    })
+    let call_result = |ty: &str| {
+        CALL_RESULT_LANGS.contains(&facts.language.as_str())
+            && call_result_callee(&facts.language, ty).is_some()
+    };
+    // Kotlin (WS35): a call-result local, read by `lookup_call_local`, is
+    // passed over here, as before it was recorded: this lookup does not
+    // know a nested function's local has gone out of scope.
+    if facts.language == "kotlin" {
+        return lookup_local_type_where(facts, site_byte, name, &|lt| {
+            !call_result(&lt.type_name)
+        })
+        .map(|(_, ty)| ty);
+    }
+    lookup_local_type_any(facts, site_byte, name).filter(|ty| !call_result(ty))
 }
 
 /// [`lookup_local_type`], call-result locals included.
@@ -3495,6 +3779,20 @@ fn extract_return_type<'a>(lang: &str, sig: &'a str) -> Option<&'a str> {
         && let Some(ret) = type_first_return(lang, sig)
     {
         return Some(ret);
+    }
+    // Kotlin (WS35): `fun make(): Tool` — the type after the parameter
+    // list, read as the type-first languages read theirs: `?` stripped, a
+    // container or generic (`List<Tool>`) untyped, never a one-letter type
+    // parameter, a top type or an awaitable. An expression body with no
+    // declared type (`fun make() = …`) returns nothing typed.
+    if lang == "kotlin" {
+        let (_, end) = param_list_span(sig)?;
+        let rest = sig[end + 1..].trim_start().strip_prefix(':')?;
+        let ret = return_type_text(rest).trim().trim_end_matches('?').trim();
+        if ret.contains(['<', '(', '-', '?']) || kotlin_type_params(sig).contains(&ret) {
+            return None;
+        }
+        return nominal_return(lang, ret);
     }
     // Rust: `fn foo() -> Config`
     if let Some(pos) = sig.find("->") {
@@ -4005,6 +4303,31 @@ mod tests {
                 ("q".to_string(), "Local".to_string()),
             ]
         );
+    }
+
+    /// WS35: Kotlin's declared return type follows the parameter list.
+    #[test]
+    fn kotlin_return_types_are_read_after_the_parameter_list() {
+        let ret = |sig| extract_return_type("kotlin", sig);
+        assert_eq!(ret("fun make(): Tool"), Some("Tool"));
+        assert_eq!(
+            ret("override suspend fun make(a: Int): app.Tool?"),
+            Some("Tool")
+        );
+        assert_eq!(ret("fun make()"), None);
+        assert_eq!(ret("fun many(): List<Tool>"), None);
+        assert_eq!(ret("fun f(): (Int) -> Tool"), None);
+        assert_eq!(ret("fun <T> pick(x: T): T"), None);
+        assert_eq!(ret("fun <Item : Base> pick(x: Item): Item"), None);
+        assert_eq!(ret("fun any(): Any"), None);
+        assert!(kotlin_extension("fun Foo.make(): Tool"));
+        assert!(kotlin_extension("fun <T> List<T>.make(): Tool"));
+        assert!(!kotlin_extension("fun <T> make(x: List<T>): Tool"));
+        assert_eq!(
+            kotlin_type_params("class Box<out Item, reified K : Map<A, B>>(val x: Int)"),
+            vec!["Item", "K"]
+        );
+        assert!(kotlin_type_params("class Box(val x: List<Int>)").is_empty());
     }
 
     /// WS23 gap 26: type-first languages declare the return type in front
