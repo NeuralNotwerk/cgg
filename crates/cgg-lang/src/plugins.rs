@@ -37,6 +37,7 @@ pub mod openapi;
 pub mod perl;
 pub mod php;
 pub mod powershell;
+pub(crate) mod preproc;
 pub mod proto;
 pub mod python;
 pub mod r;

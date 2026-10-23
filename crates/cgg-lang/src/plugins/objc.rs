@@ -43,6 +43,7 @@ impl LanguagePlugin for ObjcPlugin {
             facts.data_members = got.members;
             facts.type_names = got.types;
         }
+        super::preproc::mark(tree.root_node(), &mut facts.definitions);
         facts
     }
 }

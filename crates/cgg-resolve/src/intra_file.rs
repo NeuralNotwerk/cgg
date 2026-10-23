@@ -852,6 +852,51 @@ pub fn link_file_with_cap(
                     });
                 }
             }
+            // C-family preprocessor alternatives (WS36): one function
+            // defined once per configuration (`#ifdef _WIN32 … #else …`),
+            // each body in a different branch of one conditional chain.
+            // Whichever is compiled is the callee, so the call binds every
+            // alternative at `medium` (never `high`: which one is a matter
+            // of configuration). A same-named body outside any conditional,
+            // or two in one branch, is a real duplicate and stays
+            // ambiguous. `--fanout-cap 0` never guesses.
+            [(_, first), rest @ ..]
+                if src.is_some()
+                    && fanout_cap > 0
+                    && PREPROC_ALTERNATIVE_LANGS.contains(&facts.language.as_str())
+                    && rest
+                        .iter()
+                        .all(|(_, d)| d.qualified_name == first.qualified_name)
+                    && pairwise_preproc_exclusive(&candidates) =>
+            {
+                let src_id = src.expect("guarded above");
+                // A call inside one branch reaches only the alternative of
+                // that configuration: an alternative in another branch of
+                // a chain the caller sits in is never compiled with it.
+                let caller = enclosing.map(|i| &facts.definitions[i]);
+                let reachable: Vec<u32> = candidates
+                    .iter()
+                    .filter(|(_, d)| !caller.is_some_and(|c| c.preproc_exclusive(d)))
+                    .map(|(i, _)| *i)
+                    .collect();
+                let targets: Vec<u32> = if reachable.is_empty() {
+                    candidates.iter().map(|(i, _)| *i).collect()
+                } else {
+                    reachable
+                };
+                for cand_idx in &targets {
+                    out.edges.push(CallEdge {
+                        src: src_id,
+                        dst: def_ids[&(facts.file, *cand_idx)],
+                        site_line: rref.site_line,
+                        site_byte: rref.site_byte,
+                        confidence: Confidence::Medium,
+                        via: Via::Direct,
+                        resolver: resolver_id.clone(),
+                        weight: 1,
+                    });
+                }
+            }
             _ => {
                 let mut rec = AuditUnresolvedCall::new(
                     src,
@@ -869,6 +914,22 @@ pub fn link_file_with_cap(
     }
 
     out
+}
+
+/// Languages whose same-file same-named definitions may be preprocessor
+/// alternatives (WS36). C++ is not listed: it binds a same-named set as
+/// an overload set already ([`binds_same_name_set`]).
+const PREPROC_ALTERNATIVE_LANGS: &[&str] = &["c", "objc"];
+
+/// Whether no two of `candidates` can be compiled together: each pair sits
+/// in different branches of one preprocessor chain
+/// ([`DefRecord::preproc_exclusive`]).
+fn pairwise_preproc_exclusive(candidates: &[(u32, &DefRecord)]) -> bool {
+    candidates.iter().enumerate().all(|(i, (_, a))| {
+        candidates[i + 1..]
+            .iter()
+            .all(|(_, b)| a.preproc_exclusive(b))
+    })
 }
 
 /// A qualified name that is a scope path ending in the definition's own

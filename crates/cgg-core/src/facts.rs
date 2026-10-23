@@ -322,6 +322,29 @@ pub struct DefRecord {
     /// other definition was loaded. Not copied onto the graph.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub conditional: bool,
+
+    /// C, C++ and Objective-C (WS36): the preprocessor branches the
+    /// definition sits in, outermost first, each as the start byte of its
+    /// `#if`/`#ifdef`/`#ifndef` chain and the branch's position in that
+    /// chain (0 for the `#if` body, then each `#elif`/`#else` in order).
+    /// Two definitions are alternatives — never both compiled — when they
+    /// sit in different branches of one chain. Not copied onto the graph.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub preproc_branches: Vec<(u32, u32)>,
+}
+
+impl DefRecord {
+    /// Whether `self` and `other` sit in different branches of one
+    /// preprocessor chain, so that no configuration compiles both
+    /// ([`DefRecord::preproc_branches`]).
+    pub fn preproc_exclusive(&self, other: &DefRecord) -> bool {
+        self.preproc_branches.iter().any(|&(g, i)| {
+            other
+                .preproc_branches
+                .iter()
+                .any(|&(h, j)| g == h && i != j)
+        })
+    }
 }
 
 /// A single call-site reference extracted from a file.

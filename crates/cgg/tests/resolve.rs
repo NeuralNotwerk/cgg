@@ -5429,6 +5429,51 @@ fn declared_return_types_type_call_results_in_type_first_languages() {
     assert_eq!(to("e"), vec!["Gear::spin@a.cpp high"]);
 }
 
+/// WS36: a C or Objective-C function defined once per preprocessor
+/// branch (`#ifdef _WIN32 … #elif … #else … #endif`, nested chains too)
+/// is one callee whichever configuration is built: a call in the same
+/// file binds every alternative at `medium`, or, from inside one
+/// branch, that branch's alternative. Near misses stay
+/// `ambiguous-in-file`: an `#ifdef` body beside an unconditional one,
+/// two unconditional bodies, and two bodies in one branch.
+#[test]
+fn same_file_preprocessor_alternatives_bind_at_medium() {
+    let src = concat!(
+        "#ifdef _WIN32\nstatic int plat(void) { return 1; }\n",
+        "#elif defined(__APPLE__)\nstatic int plat(void) { return 2; }\n",
+        "#else\nstatic int plat(void) { return 3; }\n#endif\n",
+        "#if A\nstatic void nest(void) {}\n#else\n# if B\nstatic void nest(void) {}\n",
+        "# else\nstatic void nest(void) {}\n# endif\n#endif\n",
+        "#ifdef X\nstatic void dup(void) {}\n#endif\nstatic void dup(void) {}\n",
+        "static void twice(void) {}\nstatic void twice(void) {}\n",
+        "#if Y\nstatic void same_branch(void) {}\nstatic void same_branch(void) {}\n#endif\n",
+        "int main(void) { plat(); nest(); dup(); twice(); same_branch(); return 0; }\n",
+        "#ifdef Q\nstatic void q(void) {}\nstatic void useq(void) { q(); }\n",
+        "#else\nstatic void q(void) {}\n#endif\n",
+    );
+    for file in ["a.c", "a.m"] {
+        let tmp = TempDir::new().unwrap();
+        write(tmp.path(), file, src.as_bytes());
+        let e = cpp_edges(tmp.path());
+        let to = |name: &str| -> Vec<String> {
+            e.iter()
+                .filter(|(s, d, _)| s == "main" && d.starts_with(&format!("{name}@")))
+                .map(|(_, _, c)| c.clone())
+                .collect()
+        };
+        assert_eq!(to("plat"), vec!["medium"; 3], "{file}");
+        assert_eq!(to("nest"), vec!["medium"; 3], "{file}");
+        // A caller inside one branch reaches that branch's alternative.
+        let useq: Vec<&(String, String, String)> =
+            e.iter().filter(|(s, _, _)| s == "useq").collect();
+        assert_eq!(useq.len(), 1, "{file}: {useq:?}");
+        assert_eq!(useq[0].2, "medium", "{file}");
+        for name in ["dup", "twice", "same_branch"] {
+            assert!(to(name).is_empty(), "{file}: {name}");
+        }
+    }
+}
+
 /// WS35: Kotlin declares a return type after the parameter list (`fun
 /// make(): Tool`). A bare call's declared type types the call as a
 /// receiver and a `val` assigned from it; a member of the calling class

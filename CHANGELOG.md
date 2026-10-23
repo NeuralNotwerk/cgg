@@ -88,6 +88,21 @@ otherwise change the default graph.
   parameter of the function or its class, or `Any`, `Unit` and
   `Nothing`. `Tool?` reads as `Tool`, and a `val` with a written type
   keeps it.
+- **A C function defined once per preprocessor branch had no caller in
+  its own file (WS36).** `#ifdef _WIN32 … static int plat(void) {…}
+  #else … static int plat(void) {…} #endif` made every call of `plat` in
+  that file `ambiguous-in-file`, with no edge (18,296 C sites in the
+  corpus), and live functions were reported dead. The C, C++ and
+  Objective-C plugins now record which `#if`/`#ifdef`/`#elif`/`#else`
+  branches hold each definition (`DefRecord::preproc_branches`). When
+  every same-named definition in a C or Objective-C file sits in a
+  different branch of one chain (nested chains included), a call in that
+  file binds each alternative at `medium`. A call inside one of those
+  branches binds only the alternatives its own branch can see. Still
+  `ambiguous-in-file`: a body outside any conditional beside one inside
+  (`#ifdef X … #endif` then an unconditional definition), two bodies in
+  one branch, and two unconditional bodies. C++ already bound such a set
+  as an overload set, and is unchanged.
 
 ### Compatibility
 
@@ -183,6 +198,39 @@ repositories, none excluded; 9 change):
 - Under `--dead-code`, 7 findings leave the report (6 `medium`, 1 `low`)
   and 1 enters it (`medium`), and 6 move `low` → `medium`. None are
   `high`.
+
+WS36 C preprocessor alternatives (every corpus repository containing C,
+C++ or Objective-C, 47 repositories, none excluded; 15 change):
+
+- 8,681 edges are added, all `medium`. Every C site that loses an edge
+  keeps others: 214 `medium` edges to another file's copy now bind the
+  file's own alternatives instead (`D(…)` in `quicklist.c` bound
+  `debugmacro.h`'s `D`, and now binds the two `D`s that `quicklist.c`
+  defines under `#ifndef REDIS_TEST_VERBOSE … #else`). About 4,300
+  edges keep their target and change only resolver (`cross-file` →
+  `intra-file`).
+- 134 edges move `high` → `medium`. About half pointed at an alternative
+  the caller's own branch excludes: `activeDefragCycle()`, called inside
+  `#ifdef HAVE_DEFRAG`, bound at `high` to the `#else` stub, and now
+  binds the definition in its own branch. The rest now share the call
+  with sibling alternatives, or are the one alternative the caller's
+  branch allows, kept at `medium`.
+- C `ambiguous-in-file` sites fall from 18,296 to 14,968 (10,115 →
+  6,787 inside a function). Most of what remains is clang
+  `__overloadable__` functions in the bundled SIMD headers of one
+  repository, macros redefined after `#undef`, and sites outside any
+  function. Objective-C (192) and C++ are unchanged.
+- Unresolved C sites fall by 3,328.
+- Under `--reference-edges`, the same changes, plus 35 `medium`
+  reference edges added and 23 removed (15 `high`: function values
+  naming an alternative, now `medium` across its alternatives).
+- Under `--dead-code`, 637 findings leave the report (543 `low`, 94
+  `medium`) and 35 enter it (`medium`), and 165 move `low` → `medium`.
+  None are `high`. The entering findings are another file's copy that only
+  a by-name binding reached, now taken by the caller's own alternatives:
+  a Windows `erl.c` whose `get_parameters` chain hangs off a `wmain`
+  that is no recognised entry point, and prototypes in bundled
+  Windows and ARM headers.
 
 ## [0.11.1] - 2026-10-23
 

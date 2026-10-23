@@ -65,6 +65,7 @@ impl LanguagePlugin for CPlugin {
             out.unreachable =
                 super::cfg::unreachable_after_terminator(tree, &super::cfg::C_LIKE);
         }
+        super::preproc::mark(tree.root_node(), &mut out.definitions);
         out
     }
 }
