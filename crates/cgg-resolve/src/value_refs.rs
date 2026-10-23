@@ -330,6 +330,21 @@ fn shadowed(
     {
         return false;
     }
+    // A Clojure `letfn` binds its names over the whole form, specs
+    // included: the binding whose scope holds a same-named `letfn`
+    // function is that function (WS37).
+    if !param
+        && defs.iter().any(|d| {
+            d.simple_name == r.name
+                && start <= d.start_byte
+                && d.end_byte <= end
+                && d.attributes
+                    .iter()
+                    .any(|a| a == cgg_core::CLOJURE_LETFN_ATTR)
+        })
+    {
+        return false;
+    }
     // A local function's binding starts where its definition does and
     // runs on to the end of its block (C# `void Handler() {…}` passed as
     // `Run(Handler)`, WS27). A parameter named like its own function

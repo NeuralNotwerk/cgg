@@ -2184,6 +2184,14 @@ impl NameIndex {
             if n.language != language || n.qualified_name.starts_with('<') {
                 continue;
             }
+            // A Clojure `letfn` function is local to its form (WS37): a
+            // name registered anywhere else is never it.
+            if n.attributes
+                .iter()
+                .any(|a| a == cgg_core::CLOJURE_LETFN_ATTR)
+            {
+                continue;
+            }
             by_simple
                 .entry(n.simple_name.clone())
                 .or_default()

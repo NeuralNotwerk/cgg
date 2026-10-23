@@ -103,6 +103,22 @@ otherwise change the default graph.
   (`#ifdef X … #endif` then an unconditional definition), two bodies in
   one branch, and two unconditional bodies. C++ already bound such a set
   as an overload set, and is unchanged.
+- **Clojure `letfn` functions were not callables (WS37).** `(letfn
+  [(even? [n] …) (odd? [n] …)] …)` defines local functions, but cgg read
+  each spec as a call. A call of `even?` in the form's body was
+  `shadowed-by-local`, or bound by name to an unrelated function of that
+  name. Each spec, multi-arity included, is now a callable nested in the
+  definition that holds the form (`ns/outer.even?`, simple name `even?`),
+  tagged `letfn` (`cgg_core::CLOJURE_LETFN_ATTR`). A bare call or value in
+  the form's body or in a sibling spec binds to it in its file. A call of
+  the name outside the form never reaches it, and no other file's call,
+  framework registration or known-name check sees it. Clojure joins
+  `lexically_scoped` for its `letfn` functions only, since a `defn`
+  written inside another form is still a namespace var. A list in a
+  `letfn`'s body (`(walk (or p []) f)`) is no longer read as a spec, so
+  its arguments are values again. The binding table is now built once
+  per file and shared by the locals and the value filter (it was built
+  twice under `--reference-edges`).
 
 ### Compatibility
 
@@ -231,6 +247,28 @@ C++ or Objective-C, 47 repositories, none excluded; 15 change):
   a Windows `erl.c` whose `get_parameters` chain hangs off a `wmain`
   that is no recognised entry point, and prototypes in bundled
   Windows and ARM headers.
+
+WS37 Clojure `letfn` (every corpus repository containing Clojure, 8
+repositories, none excluded; 5 change):
+
+- Building the binding table once changes nothing: an A/B of that change
+  alone shows identical output in all 8 repositories.
+- 703 `letfn` functions become callables (688 of them in one repository).
+- 1,262 edges are added and 276 removed, all `high`. The 276 are calls
+  inside a spec, whose caller is now the spec's function rather than the
+  definition around the form; each is among the added edges. The rest are
+  calls of `letfn` functions, from the form's body and from each other.
+- About 1,100 calls of a `letfn` function written outside any callable
+  (a `deftest` body) are now `no-enclosing-callable`, which roots the
+  function as a top-level invocation in the dead-code report. Before, they
+  counted as external or `shadowed-by-local`.
+- Under `--reference-edges`, 351 reference edges are added and 56
+  removed, all `high` (the same caller move, and values naming a `letfn`
+  function, which the value filter used to drop as locals).
+- Under `--dead-code`, 22 findings enter the report (21 `medium`, 1
+  `low`) and 9 leave it (`medium`). None are `high`. Those entering are
+  `letfn` functions of dead definitions, plus one used only as a map value
+  in its form's body, which is not read as a value.
 
 ## [0.11.1] - 2026-10-23
 

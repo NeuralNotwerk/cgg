@@ -3372,6 +3372,75 @@ fn clojure_external_methods_toplevel_qualified_calls_and_reexports() {
     }
 }
 
+/// WS37: a `letfn` spec is a local function. Calls in the form's body and
+/// in sibling specs (mutual recursion, a multi-arity spec calling itself)
+/// bind to it in its file; a value naming it is a reference to it. A call
+/// of the name outside the form never reaches it, and another file's
+/// same-named function is never reached through it.
+#[test]
+fn clojure_letfn_functions_are_local_callables() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/app/core.clj",
+        concat!(
+            "(ns app.core)\n\n(defn helper [x] x)\n\n",
+            "(defn outer [xs]\n",
+            "  (letfn [(even2? [n] (if (zero? n) true (odd2? (dec n))))\n",
+            "          (odd2? [n] (if (zero? n) false (even2? (dec n))))\n",
+            "          (multi ([a] (multi a 1)) ([a b] (+ a b)))]\n",
+            "    (map multi xs)\n    (helper (even2? 4))))\n\n",
+            "(defn other [] (even2? 3))\n",
+        )
+        .as_bytes(),
+    );
+    write(
+        tmp.path(),
+        "src/app/util.clj",
+        b"(ns app.util)\n(defn even2? [n] (= 0 (mod n 2)))\n(defn user [] (even2? 2))\n",
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["--reference-edges", "-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let c = g["callables"].as_object().unwrap();
+    let qn = |id: &serde_json::Value| {
+        c[id.as_str().unwrap()]["qualified_name"].as_str().unwrap()
+    };
+    let mut edges: Vec<String> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            format!(
+                "{} -> {} {} {}",
+                qn(&e["src"]),
+                qn(&e["dst"]),
+                e["confidence"].as_str().unwrap(),
+                e["via"]["kind"].as_str().unwrap()
+            )
+        })
+        .collect();
+    edges.sort();
+    assert_eq!(
+        edges,
+        vec![
+            "app.core/outer -> app.core/helper high direct",
+            "app.core/outer -> app.core/outer.even2? high direct",
+            "app.core/outer -> app.core/outer.multi high reference",
+            "app.core/outer.even2? -> app.core/outer.odd2? high direct",
+            "app.core/outer.multi -> app.core/outer.multi high direct",
+            "app.core/outer.odd2? -> app.core/outer.even2? high direct",
+            "app.util/user -> app.util/even2? high direct",
+        ]
+    );
+}
+
 /// WS26 Clojure: a symbol argument, a threading step, `#'alias/f` and a
 /// map value name a function; `alias/f` binds through the `require`
 /// alias only, a bare name its own namespace's function, and a `let`
@@ -7433,7 +7502,6 @@ fn clojure_parameters_and_locals_shadow_functions() {
         ("item", 17),
         ("step", 18),
         ("err", 19),
-        ("helper", 20),
     ] {
         let dst = format!("app.core/{name}");
         assert!(
@@ -7445,6 +7513,19 @@ fn clojure_parameters_and_locals_shadow_functions() {
             "{name} line {site}: {shadowed:?}"
         );
     }
+    // A `letfn` name is the local function the form defines (WS37): the
+    // call binds it, never the namespace's `helper`.
+    assert!(
+        edges.iter().any(|(s, d, l)| s == "app.core/with-letfn"
+            && d == "app.core/with-letfn.helper"
+            && *l == 20),
+        "{edges:?}"
+    );
+    assert!(
+        !edges
+            .iter()
+            .any(|(_, d, l)| d == "app.core/helper" && *l == 20)
+    );
     for (src, dst, site) in [
         ("with-binding", "later", 25),
         ("with-init", "now", 26),

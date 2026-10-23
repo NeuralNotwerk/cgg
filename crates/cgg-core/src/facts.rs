@@ -42,6 +42,11 @@ pub const CLOJURE_REEXPORT_KIND: &str = "reexport";
 /// implements. `dispatch::fanout` links the one to the others.
 pub const CLOJURE_MULTIMETHOD_ATTR: &str = "multimethod:";
 
+/// The attribute of a Clojure `letfn` spec's callable (WS37): a function
+/// local to its `letfn` form, nested in the definition holding it, reached
+/// by a bare call in the form's scope and never from another file.
+pub const CLOJURE_LETFN_ATTR: &str = "letfn";
+
 /// `RefRecord::receiver_hint` of an Objective-C selector value
 /// (`@selector(tap:)`, `NSSelectorFromString(@"tap:")`): the method of
 /// that selector on whichever class receives the message — resolved

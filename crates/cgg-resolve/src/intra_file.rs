@@ -138,6 +138,8 @@ pub(crate) fn lexically_scoped(language: &str) -> bool {
             | "julia"
             | "nix"
             | "starlark"
+            // Only its `letfn` local functions nest (WS37).
+            | "clojure"
     )
 }
 
@@ -290,6 +292,9 @@ pub fn link_file_with_cap(
             // A non-recursive binding is not in scope in its own body
             // (OCaml `let f x = f …` without `rec`, WS14b).
             .filter(|(_, d)| rref.not_def != Some(d.start_byte))
+            // A Clojure `letfn` function is a candidate only inside its
+            // form (WS37).
+            .filter(|(_, d)| clojure_letfn_visible(facts, d, rref.site_byte))
             .map(|(i, d)| (i as u32, d))
             .collect();
 
@@ -462,7 +467,19 @@ pub fn link_file_with_cap(
             // A definition whose span is a whole type (a Kotlin primary
             // constructor recorded over its class) is not a lexical scope:
             // its members are the type's, not locals of a function.
+            // Clojure (WS37): only a `letfn` function is local to the form
+            // around it; any other definition is a namespace var, wherever
+            // it is written (a `defn` inside a `let` is still global).
+            let clojure = facts.language == "clojure";
             let parent_span = |i: u32| -> Option<(u32, u32)> {
+                if clojure
+                    && !facts.definitions[i as usize]
+                        .attributes
+                        .iter()
+                        .any(|a| a == cgg_core::CLOJURE_LETFN_ATTR)
+                {
+                    return None;
+                }
                 nesting.parent[i as usize]
                     .map(|p| &facts.definitions[p])
                     .filter(|d| d.variant != DefVariant::Constructor)
@@ -914,6 +931,43 @@ pub fn link_file_with_cap(
     }
 
     out
+}
+
+/// Whether `d` is visible at `site` as a Clojure `letfn` function sees
+/// it (WS37): anything that is no `letfn` function is; a `letfn` function
+/// only inside the form binding it — the innermost binding of its name in
+/// the file's locals around the spec. A call of the name outside the form
+/// never reaches it.
+fn clojure_letfn_visible(facts: &FileFacts, d: &DefRecord, site: u32) -> bool {
+    if facts.language != "clojure"
+        || !d
+            .attributes
+            .iter()
+            .any(|a| a == cgg_core::CLOJURE_LETFN_ATTR)
+    {
+        return true;
+    }
+    // The form binding it: the innermost binding of its name around the
+    // spec. A binding's scope can come in pieces (a syntax-quote's code is
+    // outside a macro's locals), all sharing its declaration.
+    let named = || {
+        facts
+            .locals
+            .iter()
+            .filter(|b| !b.param && b.name == d.simple_name)
+    };
+    let Some(decl) = named()
+        .filter(|b| {
+            b.decl_byte <= d.start_byte
+                && b.start_byte <= d.start_byte
+                && d.start_byte < b.end_byte
+        })
+        .map(|b| b.decl_byte)
+        .max()
+    else {
+        return false;
+    };
+    named().any(|b| b.decl_byte == decl && b.start_byte <= site && site < b.end_byte)
 }
 
 /// Languages whose same-file same-named definitions may be preprocessor

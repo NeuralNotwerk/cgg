@@ -34,22 +34,34 @@ impl LanguagePlugin for ClojurePlugin {
         source: &[u8],
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "clojure");
+        // The file's bindings, read once (WS37): its locals table (not in a
+        // minified file, as for every language) and, under
+        // `reference_sites`, the value filter's shadow table.
+        let minified = crate::longest_line_bytes(source) > crate::MINIFIED_LINE_BYTES;
+        let bindings = if ctx.reference_sites || !minified {
+            binding_spans(tree, source)
+        } else {
+            Vec::new()
+        };
         let mut w = ClojureWalker {
             ctx: *ctx,
             source,
             facts: &mut facts,
             namespace: String::new(),
             bound: if ctx.reference_sites {
-                let mut m: HashMap<String, Vec<(u32, u32)>> = HashMap::new();
-                for b in binding_spans(tree, source) {
-                    m.entry(b.name)
-                        .or_default()
-                        .push((b.start_byte, b.end_byte));
+                let mut m: HashMap<String, Vec<(u32, u32, u32)>> = HashMap::new();
+                for b in &bindings {
+                    m.entry(b.name.clone()).or_default().push((
+                        b.start_byte,
+                        b.end_byte,
+                        b.decl_byte,
+                    ));
                 }
                 m
             } else {
                 HashMap::new()
             },
+            letfn_bound: HashMap::new(),
             in_quote: 0,
             referred: Vec::new(),
             refer_all: false,
@@ -59,6 +71,9 @@ impl LanguagePlugin for ClojurePlugin {
         if ctx.reference_sites {
             let (referred, refer_all) = (std::mem::take(&mut w.referred), w.refer_all);
             keep_reachable_values(&mut facts, &referred, refer_all);
+        }
+        if !minified {
+            facts.locals = bindings;
         }
         facts
     }
@@ -72,7 +87,12 @@ struct ClojureWalker<'a> {
     namespace: String,
     /// Under `reference_sites`: where each name is bound (`binding_spans`,
     /// the file's locals table), for the value filter.
-    bound: HashMap<String, Vec<(u32, u32)>>,
+    bound: HashMap<String, Vec<(u32, u32, u32)>>,
+    /// Under `reference_sites`: the `letfn` forms binding each name, by the
+    /// declaration byte their bindings carry (WS37). Such a binding is the
+    /// local function the form defines, so a value naming it is that
+    /// function, not a value it shadows.
+    letfn_bound: HashMap<String, Vec<u32>>,
     /// Depth of quoted data (`'(a b)`), where a symbol is not a value.
     in_quote: u32,
     /// Names the `ns` form `:refer`s, and whether it refers or `:use`s a
@@ -120,6 +140,8 @@ impl<'a> ClojureWalker<'a> {
                     self.extract_namespace(node);
                 } else if let Some(m) = self.method_spec(node) {
                     self.record_method(node, m);
+                } else if self.is_letfn_spec(node) {
+                    self.record_letfn(node);
                 } else if self.is_defn_form(node) {
                     self.record_callable(node);
                 } else if self.head_name(node).is_some_and(|h| {
@@ -141,6 +163,9 @@ impl<'a> ClojureWalker<'a> {
                     self.record_call(node);
                 }
                 if self.ctx.reference_sites {
+                    if self.head_name(node) == Some("letfn") {
+                        self.note_letfn(node);
+                    }
                     let quoted = self.head_name(node) == Some("quote");
                     self.in_quote += u32::from(quoted);
                     self.enter_form(node);
@@ -610,6 +635,78 @@ impl<'a> ClojureWalker<'a> {
         });
     }
 
+    /// `(k [x] …)` / `(k ([x] …) ([x y] …))` in a `letfn` vector.
+    fn is_letfn_spec(&self, node: Node) -> bool {
+        // `fn_spec_owner` places a spec in the form's binding vector only.
+        node.kind() == "list_lit"
+            && fn_spec_owner(node, self.source)
+                .is_some_and(|owner| self.head_name(owner) == Some("letfn"))
+    }
+
+    /// A `letfn` spec is a local function of the form (WS37): a callable
+    /// nested in the definition holding the form (`ns/outer.k`), simple
+    /// name `k`, tagged [`cgg_core::CLOJURE_LETFN_ATTR`]. It is reached by
+    /// a bare call inside the form's scope, never from another file.
+    fn record_letfn(&mut self, node: Node) {
+        let Some(name_node) = forms(node).first().copied() else {
+            return;
+        };
+        if name_node.kind() != "sym_lit" {
+            return;
+        }
+        let name = self.sym_text(name_node);
+        if name.is_empty() || name.starts_with('~') || name.contains('/') {
+            return;
+        }
+        let (start, end) = (node.start_byte() as u32, node.end_byte() as u32);
+        let parent = self
+            .facts
+            .definitions
+            .iter()
+            .filter(|d| d.start_byte <= start && end <= d.end_byte)
+            .min_by_key(|d| d.end_byte - d.start_byte)
+            .map(|d| d.qualified_name.clone());
+        let qn = match parent {
+            Some(p) => format!("{p}.{name}"),
+            None => self.qn(&name),
+        };
+        self.facts.definitions.push(DefRecord {
+            simple_name: name,
+            qualified_name: qn,
+            variant: DefVariant::FreeFunction,
+            start_line: (node.start_position().row as u32) + 1,
+            end_line: (node.end_position().row as u32) + 1,
+            start_byte: start,
+            end_byte: end,
+            signature_hint: super::extract_signature(self.text(node)),
+            visibility: String::new(),
+            attributes: vec![cgg_core::CLOJURE_LETFN_ATTR.to_string()],
+            ..Default::default()
+        });
+    }
+
+    /// Remember the names a `letfn` binds, with the declaration byte
+    /// `binding_spans` gives them.
+    fn note_letfn(&mut self, node: Node) {
+        let Some(v) = forms(node)
+            .get(1)
+            .copied()
+            .filter(|v| v.kind() == "vec_lit")
+        else {
+            return;
+        };
+        // `binding_spans` declares a `letfn`'s names at the form's start.
+        let decl = node.start_byte() as u32;
+        for spec in forms(v) {
+            if let Some(n) = forms(spec).first().copied()
+                && n.kind() == "sym_lit"
+            {
+                let name = self.sym_parts(n).1.to_string();
+                self.letfn_bound.entry(name).or_default().push(decl);
+            }
+        }
+    }
+
     fn record_call(&mut self, node: Node) {
         // (func_name ...)
         // `^String (f x)`: the type hint is the form's metadata, not its
@@ -1056,14 +1153,23 @@ impl ClojureWalker<'_> {
             return;
         }
         let at = sym.start_byte() as u32;
-        if check_locals
-            && ns.is_empty()
-            && self
-                .bound
-                .get(name)
-                .is_some_and(|v| v.iter().any(|&(s, e)| s <= at && at < e))
-        {
-            return;
+        if check_locals && ns.is_empty() {
+            // The innermost binding of the name around the value; a
+            // `letfn`'s is the local function itself (WS37).
+            let innermost = self.bound.get(name).and_then(|v| {
+                v.iter()
+                    .filter(|&&(s, e, _)| s <= at && at < e)
+                    .min_by_key(|&&(s, e, _)| e - s)
+                    .copied()
+            });
+            if let Some((_, _, decl)) = innermost
+                && !self
+                    .letfn_bound
+                    .get(name)
+                    .is_some_and(|v| v.contains(&decl))
+            {
+                return;
+            }
         }
         let full = if ns.is_empty() {
             name.to_string()
@@ -1572,6 +1678,13 @@ fn fn_spec_owner<'n>(list: Node<'n>, src: &[u8]) -> Option<Node<'n>> {
     if p.kind() == "vec_lit" && h != "letfn" {
         return None;
     }
+    // A `letfn` spec sits in the form's binding vector, its first argument
+    // (WS37); a list in its body (`(f (or x []) g)`) is a call, and a list
+    // in a vector of its body is data.
+    if h == "letfn" && (p.kind() != "vec_lit" || forms(owner).get(1).copied() != Some(p))
+    {
+        return None;
+    }
     forms(list)
         .get(1)
         .is_some_and(|n| matches!(n.kind(), "vec_lit" | "list_lit"))
@@ -1979,8 +2092,8 @@ mod tests {
     }
 
     /// Locals bound by `let`, `fn`/`defn` parameters, `loop`, `doseq`,
-    /// `for` (with `:let`), `letfn`, destructuring and `with-*` vectors
-    /// are not functions; quoted data and `case` constants are not
+    /// `for` (with `:let`), `letfn` parameters, destructuring and `with-*`
+    /// vectors are not functions; quoted data and `case` constants are not
     /// values; and nothing is recorded without `reference_sites`.
     #[test]
     fn locals_and_data_are_not_function_values() {
@@ -2001,7 +2114,9 @@ mod tests {
              (defn run! [f x] x)\n(defn k [x] x)\n(defn m [x] x)\n(defn nope [x] x)\n\
              (defn self [x] x)\n(defn y [x] x)\n(defn q [x] x)\n(defn z [x] x)\n(defn more [x] x)\n",
         );
-        assert_eq!(value_names(&f), vec!["xs"]);
+        // `k` in the `letfn` body is the local function the form defines
+        // (WS37), a value; the `letfn` parameter `z` is not.
+        assert_eq!(value_names(&f), vec!["xs", "k"]);
         // A bare name neither defined here nor referred is a local of a
         // macro cgg cannot read, never another namespace's function.
         let f = extract_with_refs(
@@ -2010,6 +2125,59 @@ mod tests {
         assert!(value_names(&f).is_empty());
         let off = extract("(defn r [] (map step []) #'h)\n");
         assert!(value_names(&off).is_empty());
+    }
+
+    /// WS37: each `letfn` spec, multi-arity included, is a callable nested
+    /// in the definition around it, tagged `letfn`; a spec is not a call.
+    #[test]
+    fn letfn_specs_are_local_functions() {
+        let f = extract(
+            "(ns a)\n(defn outer [xs]\n  (letfn [(ev? [n] (od? n))\n          (od? [n] (ev? n))\n\
+             \x20         (multi ([x] (multi x 1)) ([x y] y))]\n    (ev? 1)))\n\
+             (letfn [(top [] 1)] (top))\n\
+             (letfn [(w [k] k)] [:fn (fn [m] (w m))])\n\
+             (defn g [p] (letfn [(sw [x] x)] (walk (or p []) sw)))\n",
+        );
+        let letfns: Vec<(&str, &str)> = f
+            .definitions
+            .iter()
+            .filter(|d| {
+                d.attributes
+                    .iter()
+                    .any(|a| a == cgg_core::CLOJURE_LETFN_ATTR)
+            })
+            .map(|d| (d.simple_name.as_str(), d.qualified_name.as_str()))
+            .collect();
+        assert_eq!(
+            letfns,
+            vec![
+                ("ev?", "a/outer.ev?"),
+                ("od?", "a/outer.od?"),
+                ("multi", "a/outer.multi"),
+                ("top", "a/top"),
+                ("w", "a/w"),
+                ("sw", "a/g.sw"),
+            ]
+        );
+        let calls: Vec<&str> = f.references.iter().map(|r| r.name.as_str()).collect();
+        assert_eq!(
+            calls.iter().filter(|n| **n == "ev?").count(),
+            2,
+            "{calls:?}"
+        );
+        assert_eq!(
+            calls.iter().filter(|n| **n == "multi").count(),
+            1,
+            "{calls:?}"
+        );
+        // The file's locals are recorded by the plugin, once.
+        assert!(f.locals.iter().any(|b| b.name == "ev?"));
+        // A list in the body is a call, not a spec: its arguments are
+        // values, the local function among them.
+        let f =
+            extract_with_refs("(defn g [p] (letfn [(sw [x] x)] (walk (or p []) sw)))\n");
+        assert_eq!(value_names(&f), vec!["sw"]);
+        assert!(!f.locals.iter().any(|b| b.name == "p" && b.start_byte > 12));
     }
 
     /// WS27: the value filter reads the locals table. `binding` and

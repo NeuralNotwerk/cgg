@@ -49,14 +49,15 @@ pub use external::{
     ClassifyResult, FileAliases, build_alias_map, build_known_names, classify_external,
 };
 pub use facts::{
-    ARG_VAR_PREFIX, AssocCallLocal, AttributedContainer, CLOJURE_MULTIMETHOD_ATTR,
-    CLOJURE_PROTOCOL_ATTR, CLOJURE_REEXPORT_KIND, ClassDecl, ClassFieldDecl, ClosureArg,
-    DEREF_SUFFIX, DYN_MEMBERS_OF, DYN_MODULE_LOADERS, DefRecord, DefVariant, DynUse,
-    ExportRecord, FieldType, FileFacts, FnMacro, ImportRecord, LocalBinding, LocalType,
-    MacroAlias, MacroInvocation, MarkupBinding, MemberAlias, MemberPtrTake, NameMention,
-    OBJC_SELECTOR_RECEIVER, PARTIAL_DECLARATION, REASSIGNED_LOCAL, RefRecord,
-    STRING_REF_HINT, ScopedType, TestRole, TypeSpan, UnreachableRegion, VALUE_REF_HINT,
-    Vis, first_template_arg, last_scope_segment, looks_like_type_name, template_pointee,
+    ARG_VAR_PREFIX, AssocCallLocal, AttributedContainer, CLOJURE_LETFN_ATTR,
+    CLOJURE_MULTIMETHOD_ATTR, CLOJURE_PROTOCOL_ATTR, CLOJURE_REEXPORT_KIND, ClassDecl,
+    ClassFieldDecl, ClosureArg, DEREF_SUFFIX, DYN_MEMBERS_OF, DYN_MODULE_LOADERS,
+    DefRecord, DefVariant, DynUse, ExportRecord, FieldType, FileFacts, FnMacro,
+    ImportRecord, LocalBinding, LocalType, MacroAlias, MacroInvocation, MarkupBinding,
+    MemberAlias, MemberPtrTake, NameMention, OBJC_SELECTOR_RECEIVER, PARTIAL_DECLARATION,
+    REASSIGNED_LOCAL, RefRecord, STRING_REF_HINT, ScopedType, TestRole, TypeSpan,
+    UnreachableRegion, VALUE_REF_HINT, Vis, first_template_arg, last_scope_segment,
+    looks_like_type_name, template_pointee,
 };
 pub use frameworks::{
     EntryShape, FRAMEWORK_ENTRY_DISCLAIMER, FRAMEWORK_ENTRY_SENTINEL, FrameworkCoverage,

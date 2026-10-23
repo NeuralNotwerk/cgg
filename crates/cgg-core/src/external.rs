@@ -438,6 +438,11 @@ pub fn build_known_names(facts: &[crate::FileFacts]) -> HashSet<String> {
     let mut names = HashSet::new();
     for f in facts {
         for d in &f.definitions {
+            // A Clojure `letfn` function is local to its form (WS37): its
+            // name makes no other site's call known.
+            if d.attributes.iter().any(|a| a == crate::CLOJURE_LETFN_ATTR) {
+                continue;
+            }
             names.insert(d.simple_name.clone());
             // Also extract the type/struct name from qualified names
             // so receiver_hint matching works.

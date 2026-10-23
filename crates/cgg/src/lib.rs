@@ -493,7 +493,11 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                         // The plugin may already hold some: the C family's
                         // function-defining macro expansions record theirs
                         // (`c_macro::expand`), which the file's own join.
-                        if cgg_lang::longest_line_bytes(&bytes) <= MINIFIED_LINE_BYTES {
+                        // Clojure's plugin records its own (WS37): the
+                        // same table its value filter reads, built once.
+                        if f.language != "clojure"
+                            && cgg_lang::longest_line_bytes(&bytes) <= MINIFIED_LINE_BYTES
+                        {
                             let own =
                                 cgg_lang::locals::collect(&f.language, &out.tree, &bytes);
                             if f.locals.is_empty() {
@@ -784,6 +788,42 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // times to produce the identical set each pass.
     let known_refs: std::collections::HashSet<&str> =
         known_names.iter().map(|s| s.as_str()).collect();
+    // A Clojure file also knows the `letfn` functions it defines outside
+    // any callable (WS37): a call of one in the form's body has no caller,
+    // and stays a top-level invocation (a dead-code root) instead of
+    // passing for an external call. `build_known_names` leaves `letfn`
+    // names out, so that a local function's name classifies no other
+    // file's call.
+    let known_refs_by_file: HashMap<
+        cgg_core::ids::FileId,
+        std::collections::HashSet<&str>,
+    > = all_facts
+        .iter()
+        .filter(|f| f.language == "clojure")
+        .filter_map(|f| {
+            let toplevel: Vec<&str> = f
+                .definitions
+                .iter()
+                .filter(|d| {
+                    d.attributes
+                        .iter()
+                        .any(|a| a == cgg_core::CLOJURE_LETFN_ATTR)
+                        && !f.definitions.iter().any(|p| {
+                            p.start_byte <= d.start_byte
+                                && d.end_byte <= p.end_byte
+                                && (p.start_byte, p.end_byte)
+                                    != (d.start_byte, d.end_byte)
+                        })
+                })
+                .map(|d| d.simple_name.as_str())
+                .collect();
+            (!toplevel.is_empty()).then(|| {
+                let mut k = known_refs.clone();
+                k.extend(toplevel);
+                (f.file, k)
+            })
+        })
+        .collect();
     // Per-file and independent: `link_file` reads only its own facts
     // plus the shared `def_ids`, and `classify_external` is pure. Run
     // them in parallel and fold the results sequentially afterwards —
@@ -805,9 +845,10 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                 let aliases = FileAliases::from_facts(facts);
                 let mut per_file_aliases = std::collections::HashMap::new();
                 per_file_aliases.insert(facts.file, aliases);
+                let known = known_refs_by_file.get(&facts.file).unwrap_or(&known_refs);
                 let classified = classify_external(
                     outcome.unresolved,
-                    &known_refs,
+                    known,
                     &facts.language,
                     Some(&per_file_aliases),
                 );

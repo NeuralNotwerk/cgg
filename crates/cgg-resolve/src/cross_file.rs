@@ -1044,7 +1044,13 @@ pub fn resolve(
         // newtype would otherwise multiply every same-named candidate set
         // (14 generated `from`s pushing a 5-candidate set over the cap).
         let macro_generated = c.attributes.iter().any(|a| a.starts_with("macro:"));
-        if !macro_generated {
+        // A Clojure `letfn` function is reached only in its own form,
+        // which intra-file linking settles (WS37): never by name here.
+        let letfn = c.language == "clojure"
+            && c.attributes
+                .iter()
+                .any(|a| a == cgg_core::CLOJURE_LETFN_ATTR);
+        if !macro_generated && !letfn {
             by_simple
                 .entry((c.language.clone(), c.simple_name.clone()))
                 .or_default()
@@ -5225,6 +5231,21 @@ pub(crate) fn nested_function_ids(
         }
     }
     let mut out = std::collections::HashSet::new();
+    // Clojure (WS37): a `letfn` function is local to its form, wherever
+    // the form sits; no other Clojure definition nests.
+    out.extend(
+        graph
+            .callables
+            .values()
+            .filter(|c| {
+                !c.synthetic
+                    && c.language == "clojure"
+                    && c.attributes
+                        .iter()
+                        .any(|a| a == cgg_core::CLOJURE_LETFN_ATTR)
+            })
+            .map(|c| c.id),
+    );
     for v in by_file.values_mut() {
         v.sort_by(|a, b| {
             a.start_byte
