@@ -1,0 +1,92 @@
+[
+ {
+  "repo": "app-darkness-flame",
+  "old_ms": 117.14310699608177,
+  "new_ms": 114.80931704863906
+ },
+ {
+  "repo": "app-immich-nestjs",
+  "old_ms": 7336.0015919897705,
+  "new_ms": 7532.635490060784
+ },
+ {
+  "repo": "app-jabref-javafx",
+  "old_ms": 7585.111186024733,
+  "new_ms": 7537.436067010276
+ },
+ {
+  "repo": "app-kori-ktorclient",
+  "old_ms": 17913.931588991545,
+  "new_ms": 17753.572377958335
+ },
+ {
+  "repo": "app-kotlinconf-ktor",
+  "old_ms": 514.9421819951385,
+  "new_ms": 517.4971310188994
+ },
+ {
+  "repo": "app-libchecker-gradle",
+  "old_ms": 2471.5841519646347,
+  "new_ms": 2419.1922299796715
+ },
+ {
+  "repo": "app-nextcloud-android",
+  "old_ms": 3423.737469012849,
+  "new_ms": 3423.027782002464
+ },
+ {
+  "repo": "app-quack-oak",
+  "old_ms": 815.3171419398859,
+  "new_ms": 816.678705974482
+ },
+ {
+  "repo": "app-rn-expensify",
+  "old_ms": 47804.03649201617,
+  "new_ms": 48506.46171194967
+ },
+ {
+  "repo": "app-wordpress-android",
+  "old_ms": 13455.921382992528,
+  "new_ms": 13553.815232007764
+ },
+ {
+  "repo": "dart-flutter",
+  "old_ms": null,
+  "new_ms": null
+ },
+ {
+  "repo": "erlang-otp",
+  "old_ms": 50072.3651900189,
+  "new_ms": 44444.497304968536
+ },
+ {
+  "repo": "groovy-gradle",
+  "old_ms": 33577.30433391407,
+  "new_ms": 33726.205570972525
+ },
+ {
+  "repo": "hcl-terraform-aws",
+  "old_ms": null,
+  "new_ms": null
+ },
+ {
+  "repo": "java-okhttp",
+  "old_ms": 2017.89855689276,
+  "new_ms": 2070.6348849926144
+ },
+ {
+  "repo": "kotlin-okio",
+  "old_ms": 915.9693049732596,
+  "new_ms": 915.8599959919229
+ },
+ {
+  "repo": "rust-bat",
+  "old_ms": 6526.73156792298,
+  "new_ms": 6477.488483069465
+ },
+ {
+  "repo": "smithy-protocol-tests",
+  "old_ms": 5325.125561910681,
+  "new_ms": 5324.363104999065
+ }
+]

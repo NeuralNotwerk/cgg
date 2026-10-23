@@ -1,0 +1,7 @@
+repos 18 excluded []
+added 387
+  ('kotlin', '{"kind": "direct"}', 'high') 324
+  ('kotlin', '{"kind": "direct"}', 'medium') 63
+dropped 486
+  ('kotlin', '{"kind": "direct"}', 'high') 12
+  ('kotlin', '{"kind": "direct"}', 'medium') 474

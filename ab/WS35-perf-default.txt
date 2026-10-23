@@ -1,0 +1,19 @@
+app-darkness-flame                   51 ->       58 ms
+app-immich-nestjs                  1041 ->     1051 ms
+app-jabref-javafx                  1367 ->     1343 ms
+app-kori-ktorclient                3667 ->     3685 ms
+app-kotlinconf-ktor                 142 ->      143 ms
+app-libchecker-gradle               465 ->      479 ms
+app-nextcloud-android               641 ->      648 ms
+app-quack-oak                       149 ->      147 ms
+app-rn-expensify                   7461 ->     7510 ms
+app-wordpress-android              2376 ->     2362 ms
+dart-flutter                      11210 ->    11503 ms
+erlang-otp                         9775 ->     9631 ms
+groovy-gradle                     10827 ->    11053 ms
+hcl-terraform-aws                  9419 ->     9532 ms
+java-okhttp                         664 ->      625 ms
+kotlin-okio                         305 ->      328 ms
+rust-bat                           1664 ->     1665 ms
+smithy-protocol-tests              1526 ->     1409 ms
+total 62.8 -> 63.2 s (+0.7%)

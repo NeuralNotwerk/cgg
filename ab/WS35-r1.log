@@ -1,0 +1,18 @@
+old: cgg 0.11.1 (dev g3b86382)  sha256=69bacbea2ae9e045ac9d2a0f59413b2b99b4e6a635209d2b9cd6e4e6f86b09a3
+new: cgg 0.11.1 (dev g3b86382+dd254584)  sha256=45588dafad75647219b337036dcaec5a84dfddf6e8262a00427e64a6417caaf7
+old=target/remediation/bins/WS35-before
+new=target/remediation/bins/WS35-r1
+repos=18 elapsed=94s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 9
+  app-kori-ktorclient: edges 39989->39989 (-0 +0 ~1) callables 17146->17146 unresolved 82026->82025 files 358->358 deadhigh 0->0 
+  app-kotlinconf-ktor: edges 1987->1987 (-0 +0 ~1) callables 1050->1050 unresolved 254->254 files 276->276 deadhigh 0->0 
+  app-libchecker-gradle: edges 16443->16429 (-28 +14 ~28) callables 7183->7183 unresolved 3375->3379 files 1052->1052 deadhigh 0->0 
+  app-nextcloud-android: edges 20087->20085 (-9 +7 ~8) callables 10671->10671 unresolved 9758->9756 files 1247->1247 deadhigh 4->4 
+  app-wordpress-android: edges 109479->109450 (-44 +15 ~94) callables 40581->40581 unresolved 32418->32454 files 4260->4260 deadhigh 32->32 
+  dart-flutter: edges 577747->577747 (-0 +0 ~5) callables 120107->120107 unresolved 326594->326594 files 10871->10871 deadhigh 19->19 
+  groovy-gradle: edges 313147->313105 (-49 +7 ~57) callables 134667->134667 unresolved 228765->228771 files 24272->24272 deadhigh 43->43 
+  java-okhttp: edges 35124->35098 (-91 +65 ~74) callables 7951->7951 unresolved 9246->9193 files 647->647 deadhigh 0->0 
+  kotlin-okio: edges 22324->22338 (-1 +15 ~1) callables 4458->4458 unresolved 5285->5274 files 356->356 deadhigh 0->0 
+by language: see by_language.tsv
+

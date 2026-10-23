@@ -1,0 +1,22 @@
+[1/18] app-darkness-flame                       117.14310699608177 -> 114.80931704863906
+[2/18] app-immich-nestjs                        7336.0015919897705 -> 7532.635490060784
+[3/18] app-jabref-javafx                        7585.111186024733 -> 7537.436067010276
+[4/18] app-kori-ktorclient                      17913.931588991545 -> 17753.572377958335
+[5/18] app-kotlinconf-ktor                      514.9421819951385 -> 517.4971310188994
+[6/18] app-libchecker-gradle                    2471.5841519646347 -> 2419.1922299796715
+[7/18] app-nextcloud-android                    3423.737469012849 -> 3423.027782002464
+[8/18] app-quack-oak                            815.3171419398859 -> 816.678705974482
+[9/18] app-rn-expensify                         47804.03649201617 -> 48506.46171194967
+[10/18] app-wordpress-android                    13455.921382992528 -> 13553.815232007764
+[11/18] dart-flutter                             None -> None
+[12/18] erlang-otp                               50072.3651900189 -> 44444.497304968536
+[13/18] groovy-gradle                            33577.30433391407 -> 33726.205570972525
+[14/18] hcl-terraform-aws                        None -> None
+[15/18] java-okhttp                              2017.89855689276 -> 2070.6348849926144
+[16/18] kotlin-okio                              915.9693049732596 -> 915.8599959919229
+[17/18] rust-bat                                 6526.73156792298 -> 6477.488483069465
+[18/18] smithy-protocol-tests                    5325.125561910681 -> 5324.363104999065
+repos 16 total 199.9 -> 195.1 s -2.37 %
+timeouts/skips: [('dart-flutter', None, None, None), ('hcl-terraform-aws', None, None, None)]
+over runway max(20%,5s): []
+>=1s moves: [('erlang-otp', 50072, 44444)]
