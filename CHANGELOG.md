@@ -9,6 +9,45 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-10-23
+
+A correctness release: the cross-language remediation (WS19–WS31) of the
+parity audit run after 0.11.0. Every change fixes a wrong or missing
+result, so it ships as a patch even though the default graph and the
+dead-code report move substantially; nothing here is a new flag, output
+format, language or parser.
+
+> **0.11.0 reported some guesses as certain.** A receiver typed only
+> because the file declares a type spelled like the variable
+> (`service = mk(); service.run()` → `Service.run`) bound its same-file
+> candidate at `high` in 19 languages, and an include-style import (Bash
+> `source`, Ruby `require`, R `source()`, PowerShell dot-source, Solidity
+> `import`, Starlark `load`, CMake `include`, Lua `require`) bound
+> whichever same-named copy was indexed last — chosen by directory order,
+> not by the file the include names — also at `high`. A consumer
+> filtering on `high` in 0.11.0 and earlier kept these wrong edges. Fixed
+> by WS19 below; 0.11.1 drops 10,875 `high` edges across the corpus, of
+> which 9,005 are the same call re-bound to the right (renamed) callable
+> and the rest wrong bindings.
+
+Full corpus (282 repositories) against 0.11.0, default graph:
+
+| | 0.11.0 | 0.11.1 |
+| --- | ---: | ---: |
+| callables | 2,758,848 | 2,936,972 |
+| edges | 6,265,430 | 6,942,369 |
+| cross-file edges | 4,381,097 | 4,940,921 |
+| unresolved sites | 7,430,517 | 7,683,491 |
+| entry nodes | 271,065 | 426,549 |
+| `--dead-code` findings | 1,259,293 | 1,134,963 |
+
+183,062 edges are removed (10,875 `high`) and 854,729 added (344,287
+`high`). Under `--dead-code`, 6 `high` findings leave the report, 6 fall
+to `medium`, and 8 enter or rise to `high`: C# overloads that were only
+"called" by a call with another argument count (WS28), checked by hand
+to be uncalled. The per-workstream *Compatibility* blocks below give each
+change's own numbers.
+
 ### Fixed
 
 - **Groovy methods named by a string were lost, with most of their class
@@ -24,6 +63,109 @@ otherwise change the default graph.
   the `spock` rule enters every string-named method and the fixtures
   `setup`, `cleanup`, `setupSpec`, `cleanupSpec` of a `Specification` as
   test cases.
+- **Clojure `#_` discarded forms were extracted.** A `#_(defn …)` or
+  `#_(def …)` is commented-out code; it produced callables, calls and
+  values. It now produces nothing.
+- **Clojure method lists were calls.** In `deftype`, `defrecord`,
+  `reify`, `proxy`, `extend-type` and `extend-protocol`, each
+  `(m [this …] body)` is a method definition (`ns/Type.m`, or `ns/P.m`
+  for `reify`/`proxy`) owning the calls in its body, not a call to `m`;
+  each `defprotocol`/`definterface` signature is an abstract declaration
+  (`ns/m`, a var of the namespace). Both name their protocol, and
+  `--dynamic-dispatch` (forced on by `--dead-code`) links a declaration
+  to its implementations.
+- **Clojure schema-style `defn`s were not definitions.** `(s/defn f :- T
+  [x :- T] …)`, `(mu/defn- …)`, `(mu/defmethod …)` and `(core/defn …)`
+  are definitions when the head's namespace (through the file's aliases)
+  is a schema library listed in
+  `cgg_core::frameworks::rules::CLOJURE_DEFN_MACRO_NAMESPACES`
+  (`clojure.core`, `schema.core`, `malli.experimental`) or a namespace of
+  the tree that defines — or re-exports through potemkin's
+  `import-vars` — a `defn`-style macro; `:-` annotations are not part of
+  the name or parameters. Requires inside reader conditionals
+  (`#?@(:clj ([a.b :as x]))`) are now read, so their aliases resolve.
+- **Clojure calls inside `#(…)` were not calls.** An anonymous function
+  literal's body is now read like any list: `(map #(f %) xs)` calls `f`.
+- **Clojure multimethods were not linked.** A `defmethod` was a callable
+  named like its `defmulti`, so a call to the multimethod bound to an
+  arbitrary one of them and the others looked dead. Each `defmethod` is
+  now `ns/m[dispatch]`, carrying the multimethod it implements
+  (`multimethod:a.b/m`, through the file's aliases); the dispatch
+  fan-out links the `defmulti` to every `defmethod`, and a call to `m`
+  reaches the `defmulti` only. A type's protocol method is likewise
+  named `Type.m`, so a call to the protocol's var `m` never binds an
+  implementation directly.
+- **Clojure `import-vars` re-exports did not resolve.** `(p/import-vars
+  [a.b f])` in `x` makes `x/f` the var `a.b/f`; calls and `#'x/f` values
+  through `x` now reach it.
+- **Clojure dead code missed outside contracts and top-level qualified
+  calls.** A method implementing a protocol or interface the tree does
+  not declare (`(reify Runnable (run [_] …))`), and a `defmethod` of a
+  multimethod the tree does not declare (`print-method`), are roots
+  (`clojure:external-contract`); a top-level `(alias/f)` or `#'alias/f`
+  roots exactly `f` of the aliased namespace, through re-exports.
+- **A Clojure definition with name metadata was named after its
+  metadata.** `(defn ^:private f …)` was the callable `ns/^:private f`
+  (likewise `^{…}`, `#^Tag`, stacked metadata, and every def form:
+  `defn-`, `defmacro`, `defmulti`, `defmethod`, `defprotocol`,
+  `definterface`, `defrecord`, `deftype`, `defstruct`, `def`, `defonce`),
+  so no call or reference to `f` ever reached it and it was reported dead:
+  4,941 of Metabase's 28,974 Clojure callables, 164 of LIPAS's. Metadata
+  on a whole form is skipped too: `^:x (defn k …)` is a definition and a
+  hinted call `^String (f x)` is a call. A template's unquoted name
+  (`(defmulti ^:private ~n …)`) is not a definition.
+- **A bare Clojure call reached any namespace's same-named var.** Only a
+  var of the caller's namespace, one it `:refer`s, or one of a namespace
+  it refers whole (`:refer :all`, `:use`) is in scope bare; a
+  `:require`d namespace is reached through its alias (`sql/helper`). A
+  bare call to anything else is `clojure.core`'s or a local's, and was
+  bound by name to an unrelated namespace's var: `(for …)`, `(fn …)`,
+  `(format …)`, `(isa? …)` and clojure.test's `(is …)` to Metabase's
+  same-named macros and clj-kondo hooks, and — once the names above were
+  fixed — `(- a b)` to a SQL helper's `-`. A `:refer`'d name now binds
+  to its namespace's var at `high` (`refer` / `refer-all` import
+  records).
+- **`(get table k)` was a Compojure route.** A registrar verb that is
+  also a `clojure.core` function, written without a route string, no
+  longer captures its symbol arguments as handlers (107 false Metabase
+  entry points).
+- **`high` no longer reports a guess as certain, nor a certainty as a
+  guess (WS19).** Seven ways the `?` marker was wrong:
+  - *A guessed receiver type bound its same-file candidate at `high`*
+    (19 languages). `service = mk(); service.run()` was typed `Service`
+    only because the file declares a `Service`, and intra-file resolution
+    ignored the `weak_receiver_type` flag cross-file already honoured. The
+    single-candidate, arity-narrowed overload and clause arms now bind at
+    `medium` through such a receiver. The same flag now also gates the
+    cross-file module-alias arm.
+  - *A lone nested function was bound from any function at `high`*
+    (Python, JS, TS, Lua, OCaml, F#, Scala, Kotlin, Swift, Rust, Haskell,
+    Julia). Lexical narrowing ran only with two or more candidates; a
+    single function nested in another that does not enclose the call is
+    now kept (a returned closure may be called through a same-named local)
+    but at `medium`.
+  - *Lambda and closure parameters did not shadow* (`(go) => go()`,
+    `lambda go: go()`, `|go| go()`, `fun go -> go ()`, Kotlin
+    `{ go: T -> }`). `FileFacts::locals` now marks parameters
+    (`LocalBinding::param`); a call through one is never a function nested
+    in some other function, and is recorded `shadowed-by-local`.
+  - *The return-type map was keyed by bare name, first definition wins.*
+    A Swift `make() -> Service` typed a Python `service = make()`, and of
+    two Python `make`s the first read decided for both. It is now keyed by
+    `(language, name)`, a name is typed only when every definition of it
+    in the language declares the same type, and a name the calling file
+    defines is read from that definition.
+  - *Include-style imports bound an arbitrary same-named copy at `high`*
+    (Bash `source`, Ruby `require`, R `source()`, PowerShell dot-source,
+    Solidity `import`, Starlark `load`, CMake `include`, Lua `require`): the
+    last copy indexed won, whatever the include named. A call now binds the
+    copy in the file the include names (as `c_include_copies` does for C).
+    An include written as a path suffix several files share (`require
+    'helper'` with two `helper.rb`) expands each and binds at `medium`; a
+    bare imported name whose qualified name another file also carries
+    (vendored copies, `.pyi` stubs) is `medium` unless the copy is in the
+    caller's include closure. A Lua `local function` is no longer put in
+    a requiring file's scope.
 
   - *A Kotlin property's declared type read as a guess.* A class is
     recorded as a constructor spanning its body, so `lateinit var vm: Vm`,
@@ -996,6 +1138,33 @@ otherwise change the default graph.
   `T` declares under the `reflection` screen, capped at `medium` and
   never an edge. A value's type (`o.GetType()`, `getClass()`) is never
   read, and inherited members are not screened.
+
+### Performance
+
+- **Release measurement vs 0.11.0** (`scripts/compare-release.py`,
+  `--jobs 1`, 282 repositories, paired): total 271.6 s → 281.1 s
+  (+3.5%), median per repository +3.4%, 85 faster. This is not
+  like-for-like: 0.11.1 extracts 6.5% more callables and resolves 10.8%
+  more edges (recovered Groovy methods, F# definitions, value references
+  in 15 more languages, Go interface links under `--dead-code`), so most
+  of the delta is the cost of that work rather than overhead. Machine
+  load was not recorded by the run; the host also serves standing GPU
+  inference processes (load average 5–8 when this entry was written).
+- **One repository is over the max(10%, 1 s) runway:** `groovy-gradle`,
+  6.93 s → 8.18 s (+18%). WS30 now parses Gradle's Spock specifications
+  instead of discarding them as ERROR nodes: 18,952 → 44,425 Groovy
+  callables and 23,836 test entries, i.e. 2.3× the Groovy code analyzed.
+  Known cost, kept.
+- **`--dead-code`:** each workstream was timed paired against its own
+  baseline (full corpus, or every repository containing the languages it
+  changed); none exceeded the max(20%, 5 s) runway. The largest moves
+  were Metabase 53.3 → 56.1 s and Gradle 42.6 → 44.7 s (WS28 overload
+  narrowing) and pandoc 2.9 → 4.7 s, Concordium 3.3 → 4.8 s (WS26b
+  reference edges). `dart-flutter`, `hcl-terraform-aws`, `scala-spark`
+  and `zig-zig` exceed the 60 s per-repository cap under `--dead-code`
+  at `--jobs 1` on both 0.11.0 and 0.11.1.
+- **Tests and hook:** `cargo test --workspace` (already built) 12.8 s;
+  the pre-commit hook, including the release build, 73 s.
 
 ### Compatibility
 

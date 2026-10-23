@@ -41,15 +41,15 @@ Null test: run with OLD_BIN == NEW_BIN; every diff must be empty.
 from __future__ import annotations
 
 import argparse
-import hashlib
-import shutil
-import threading
 import collections
 import concurrent.futures as cf
+import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
+import threading
 import time
 
 BENCH = os.environ.get("CGG_BENCH_DIR", "/storage/cgg-test_repos")
@@ -80,6 +80,7 @@ def run(bin_, args, log):
     try:
         r = subprocess.run(
             ["timeout", str(TIMEOUT), bin_, *args],
+            check=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,
             text=True,
@@ -89,7 +90,7 @@ def run(bin_, args, log):
     except Exception as e:  # noqa: BLE001
         rc, err = -1, str(e)
     with open(log, "a") as f:
-        f.write(f"{bin_} {' '.join(args)} rc={rc} {time.time()-t0:.1f}s\n{err}\n")
+        f.write(f"{bin_} {' '.join(args)} rc={rc} {time.time() - t0:.1f}s\n{err}\n")
     return rc
 
 
@@ -100,7 +101,8 @@ def run(bin_, args, log):
 # repos that are not git checkouts are never cached, and only clean
 # (rc 0) results are stored. Files are hard-linked, so a hit costs no space.
 CACHE = os.environ.get("CGG_AB_CACHE") or os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "..", "target", "ab-cache")
+    os.path.dirname(os.path.abspath(__file__)), "..", "target", "ab-cache"
+)
 _sha_cache: dict = {}
 _state_cache: dict = {}
 _cache_lock = threading.Lock()
@@ -124,12 +126,12 @@ def bin_identity(bin_):
     be traced to the exact binary -- an interim build is never mistaken
     for a release."""
     try:
-        v = subprocess.run([bin_, "--version"], capture_output=True,
-                           text=True, timeout=30).stdout.strip()
+        v = subprocess.run(
+            [bin_, "--version"], capture_output=True, text=True, timeout=30, check=False
+        ).stdout.strip()
     except Exception as e:  # noqa: BLE001
         v = f"unknown ({e})"
-    return {"sha256": bin_sha_full(bin_), "version": v,
-            "path": os.path.abspath(bin_)}
+    return {"sha256": bin_sha_full(bin_), "version": v, "path": os.path.abspath(bin_)}
 
 
 def bin_sha_full(bin_):
@@ -156,11 +158,20 @@ def repo_state(path):
         if path in _state_cache:
             return _state_cache[path]
     try:
-        head = subprocess.run(["git", "-C", path, "rev-parse", "HEAD"],
-                              capture_output=True, text=True, timeout=60)
-        st = subprocess.run(["git", "-C", path, "status", "--porcelain",
-                             "--untracked-files=all"],
-                            capture_output=True, text=True, timeout=300)
+        head = subprocess.run(
+            ["git", "-C", path, "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+        st = subprocess.run(
+            ["git", "-C", path, "status", "--porcelain", "--untracked-files=all"],
+            capture_output=True,
+            text=True,
+            timeout=300,
+            check=False,
+        )
         if head.returncode or st.returncode:
             key = None
         else:
@@ -205,9 +216,17 @@ def run_repo(side, bin_, name, path, out, dead):
     if dead:
         rcd = run(
             bin_,
-            [path, "--no-graph", "--dead-code", "--dead-code-format", "json",
-             "--dead-code-report", dj,
-             "--jobs", "4"],
+            [
+                path,
+                "--no-graph",
+                "--dead-code",
+                "--dead-code-format",
+                "json",
+                "--dead-code-report",
+                dj,
+                "--jobs",
+                "4",
+            ],
             log,
         )
     if cdir and rc == 0 and os.path.exists(g):
@@ -257,8 +276,7 @@ def load_graph(p):
     for e in g["edges"]:
         s = node(e["src"])
         t = node(e["dst"])
-        k = (s[0], s[1], s[2], t[1], t[2], e.get("site_line"),
-             e["via"]["kind"])
+        k = (s[0], s[1], s[2], t[1], t[2], e.get("site_line"), e["via"]["kind"])
         edges[k] += 1
         meta.setdefault(k, []).append((e["confidence"], e["resolver"]))
     m = g.get("metrics", {})
@@ -273,8 +291,9 @@ def load_dead(p):
         return None
     out = {}
     for x in d.get("findings", []):
-        out[(x["language"], x["qualified_name"], x.get("path", ""),
-             x.get("start_line"))] = x["confidence"]
+        out[
+            (x["language"], x["qualified_name"], x.get("path", ""), x.get("start_line"))
+        ] = x["confidence"]
     return out
 
 
@@ -306,12 +325,30 @@ def main():
             status[name][side] = (rc, rcd)
     elapsed = time.time() - t0
 
-    fo = {k: open(os.path.join(a.out, f"{k}.jsonl"), "w")
-          for k in ("dropped", "added", "changed", "dead_changed")}
-    summary = [("repo", "edges_old", "edges_new", "dropped", "added",
-                "changed", "callables_old", "callables_new", "unres_old",
-                "unres_new", "files_old", "files_new", "deadhigh_old",
-                "deadhigh_new", "note")]
+    # Closed together after the diff loop below.
+    fo = {
+        k: open(os.path.join(a.out, f"{k}.jsonl"), "w")  # noqa: SIM115
+        for k in ("dropped", "added", "changed", "dead_changed")
+    }
+    summary = [
+        (
+            "repo",
+            "edges_old",
+            "edges_new",
+            "dropped",
+            "added",
+            "changed",
+            "callables_old",
+            "callables_new",
+            "unres_old",
+            "unres_new",
+            "files_old",
+            "files_new",
+            "deadhigh_old",
+            "deadhigh_new",
+            "note",
+        )
+    ]
     by_lang = collections.defaultdict(lambda: collections.Counter())
     excluded = []
     for name in sorted(repos):
@@ -325,23 +362,49 @@ def main():
         dropped = eo - en
         added = en - eo
         changed = 0
-        for k in (eo.keys() & en.keys()):
+        for k in eo.keys() & en.keys():
             if sorted(mo[k]) != sorted(mn[k]):
                 changed += 1
-                fo["changed"].write(json.dumps({
-                    "repo": name, "lang": k[0], "src": k[1], "dst": k[3],
-                    "dst_path": k[4], "site_path": k[2], "site_line": k[5],
-                    "via": k[6], "old": sorted(mo[k]), "new": sorted(mn[k]),
-                    "line": line_text(k[2], k[5])}) + "\n")
+                fo["changed"].write(
+                    json.dumps(
+                        {
+                            "repo": name,
+                            "lang": k[0],
+                            "src": k[1],
+                            "dst": k[3],
+                            "dst_path": k[4],
+                            "site_path": k[2],
+                            "site_line": k[5],
+                            "via": k[6],
+                            "old": sorted(mo[k]),
+                            "new": sorted(mn[k]),
+                            "line": line_text(k[2], k[5]),
+                        }
+                    )
+                    + "\n"
+                )
         for kind, cnt, meta in (("dropped", dropped, mo), ("added", added, mn)):
             for k, n in sorted(cnt.items()):
                 for i in range(n):
                     conf = meta[k][min(i, len(meta[k]) - 1)]
-                    fo[kind].write(json.dumps({
-                        "repo": name, "lang": k[0], "src": k[1], "dst": k[3],
-                        "dst_path": k[4], "site_path": k[2], "site_line": k[5],
-                        "via": k[6], "confidence": conf[0], "resolver": conf[1],
-                        "line": line_text(k[2], k[5])}) + "\n")
+                    fo[kind].write(
+                        json.dumps(
+                            {
+                                "repo": name,
+                                "lang": k[0],
+                                "src": k[1],
+                                "dst": k[3],
+                                "dst_path": k[4],
+                                "site_path": k[2],
+                                "site_line": k[5],
+                                "via": k[6],
+                                "confidence": conf[0],
+                                "resolver": conf[1],
+                                "line": line_text(k[2], k[5]),
+                            }
+                        )
+                        + "\n"
+                    )
                     by_lang[k[0]][f"edges_{kind}"] += 1
         for lang in set(meto.get("by_language", {})) | set(metn.get("by_language", {})):
             lo = meto.get("by_language", {}).get(lang, {})
@@ -361,44 +424,90 @@ def main():
                 for k in sorted(set(do) | set(dn)):
                     vo, vn = do.get(k), dn.get(k)
                     if vo != vn and "high" in (vo, vn):
-                        fo["dead_changed"].write(json.dumps({
-                            "repo": name, "lang": k[0], "qn": k[1],
-                            "path": k[2], "line": k[3], "old": vo,
-                            "new": vn}) + "\n")
-                        by_lang[k[0]]["deadhigh_delta"] += (vn == "high") - (vo == "high")
-        summary.append((name, sum(eo.values()), sum(en.values()),
-                        sum(dropped.values()), sum(added.values()), changed,
-                        co, cn, uo, un, meto.get("files_analyzed"),
-                        metn.get("files_analyzed"), dho, dhn, note))
+                        fo["dead_changed"].write(
+                            json.dumps(
+                                {
+                                    "repo": name,
+                                    "lang": k[0],
+                                    "qn": k[1],
+                                    "path": k[2],
+                                    "line": k[3],
+                                    "old": vo,
+                                    "new": vn,
+                                }
+                            )
+                            + "\n"
+                        )
+                        by_lang[k[0]]["deadhigh_delta"] += (vn == "high") - (
+                            vo == "high"
+                        )
+        summary.append(
+            (
+                name,
+                sum(eo.values()),
+                sum(en.values()),
+                sum(dropped.values()),
+                sum(added.values()),
+                changed,
+                co,
+                cn,
+                uo,
+                un,
+                meto.get("files_analyzed"),
+                metn.get("files_analyzed"),
+                dho,
+                dhn,
+                note,
+            )
+        )
     for f in fo.values():
         f.close()
     with open(os.path.join(a.out, "summary.tsv"), "w") as f:
-        for row in summary:
-            f.write("\t".join(str(x) for x in row) + "\n")
+        f.writelines("\t".join(str(x) for x in row) + "\n" for row in summary)
     with open(os.path.join(a.out, "by_language.tsv"), "w") as f:
-        cols = ["edges_dropped", "edges_added", "edges_delta",
-                "callables_delta", "unresolved_delta", "files_delta",
-                "deadhigh_delta"]
+        cols = [
+            "edges_dropped",
+            "edges_added",
+            "edges_delta",
+            "callables_delta",
+            "unresolved_delta",
+            "files_delta",
+            "deadhigh_delta",
+        ]
         f.write("lang\t" + "\t".join(cols) + "\n")
         for lang in sorted(by_lang):
             f.write(lang + "\t" + "\t".join(str(by_lang[lang][c]) for c in cols) + "\n")
-    changed_repos = [r for r in summary[1:] if r[3] or r[4] or r[5]
-                     or r[6] != r[7] or r[8] != r[9] or r[10] != r[11]
-                     or r[12] != r[13]]
+    changed_repos = [
+        r
+        for r in summary[1:]
+        if r[3]
+        or r[4]
+        or r[5]
+        or r[6] != r[7]
+        or r[8] != r[9]
+        or r[10] != r[11]
+        or r[12] != r[13]
+    ]
     with open(os.path.join(a.out, "report.txt"), "w") as f:
         for side in ("old", "new"):
-            f.write(f"{side}: {ident[side]['version']}  sha256={ident[side]['sha256']}\n")
-        f.write(f"old={a.old}\nnew={a.new}\nrepos={len(repos)} elapsed={elapsed:.0f}s\n")
+            f.write(
+                f"{side}: {ident[side]['version']}  sha256={ident[side]['sha256']}\n"
+            )
+        f.write(
+            f"old={a.old}\nnew={a.new}\nrepos={len(repos)} elapsed={elapsed:.0f}s\n"
+        )
         f.write(f"excluded (timeout/error, NOT diffed): {len(excluded)}\n")
-        for x in excluded:
-            f.write(f"  {x}\n")
+        f.writelines(f"  {x}\n" for x in excluded)
         f.write(f"repos changed: {len(changed_repos)}\n")
-        for r in changed_repos:
-            f.write(f"  {r[0]}: edges {r[1]}->{r[2]} (-{r[3]} +{r[4]} ~{r[5]}) "
-                    f"callables {r[6]}->{r[7]} unresolved {r[8]}->{r[9]} "
-                    f"files {r[10]}->{r[11]} deadhigh {r[12]}->{r[13]} {r[14]}\n")
+        f.writelines(
+            f"  {r[0]}: edges {r[1]}->{r[2]} (-{r[3]} +{r[4]} ~{r[5]}) "
+            f"callables {r[6]}->{r[7]} unresolved {r[8]}->{r[9]} "
+            f"files {r[10]}->{r[11]} deadhigh {r[12]}->{r[13]} {r[14]}\n"
+            for r in changed_repos
+        )
         f.write("by language: see by_language.tsv\n")
-    print(open(os.path.join(a.out, "report.txt")).read())
+    with open(os.path.join(a.out, "report.txt")) as f:
+        print(f.read())
 
 
 if __name__ == "__main__":
