@@ -119,6 +119,27 @@ otherwise change the default graph.
   its arguments are values again. The binding table is now built once
   per file and shared by the locals and the value filter (it was built
   twice under `--reference-edges`).
+- **Groovy shapes the grammar rejects dropped whole classes into ERROR
+  nodes (WS38).** tree-sitter-groovy cannot parse several common shapes.
+  Each one cost the methods and calls around it, often the rest of the
+  class: the empty string `''` and the empty map `[:]`, a closure that
+  opens with a declaration (`{ x ->` then `def y = …`), safe navigation
+  and spread-dot (`a?.b()`, `xs*.name`), `as` coercions inside
+  expressions (`(x as Foo).m()`, `g([] as Set)`), Spock's `_ * m.call()`,
+  spread arguments (`f(*args)`), one-line slashy strings, `for (def x in
+  xs)`, map keys it takes for keywords (`module:`, `with:`), `assert
+  a.b`, GPath attributes (`x.@name`), one-line method bodies
+  (`def f() { g() }`), and command expressions. The command expressions
+  fail when one appears in a method body of a type with a literal or
+  named first argument (`run "build"`, `exclude module: 'x'`), and
+  anywhere with a dotted or call first argument (`compileSdk
+  rootProject.ext.v`). The grammar now reads a same-length rewrite of
+  each shape (`plugins/groovy_rewrite.rs`, through the plugin's
+  `parse_source`), and extraction reads the original bytes, so names,
+  offsets and lines are the file's. Bytes inside a string, a GString
+  interpolation or a comment are never rewritten. A string's delimiters
+  change only for `''` and one-line slashy strings, whose content stays
+  as written.
 
 ### Compatibility
 
@@ -269,6 +290,33 @@ repositories, none excluded; 5 change):
   `low`) and 9 leave it (`medium`). None are `high`. Those entering are
   `letfn` functions of dead definitions, plus one used only as a map value
   in its form's body, which is not read as a value.
+
+WS38 Groovy ERROR shapes (every corpus repository containing Groovy, 19
+repositories, none excluded; 10 change). Only the Groovy plugin changes:
+
+- ERROR nodes in the corpus's 9,520 Groovy files fall from 26,212 (in
+  4,722 files, 8.6 MB of source inside them) to 12,411 (in 2,559 files,
+  2.2 MB). ERRORs over 2 KB, which swallow classes, fall from 757 to 153.
+  29 files end with more ERROR bytes than before (51 KB in all), where a
+  remaining shape now recovers differently.
+- 5,681 more Groovy callables (net), and 2,891 renamed to their class
+  (`gradlebuild.docs.getSourceFile` becomes
+  `gradlebuild.docs.UserGuideTransformTask.getSourceFile`). 404 callables
+  leave the graph: code inside a triple-quoted string, such as a build
+  script or Java source a test writes, which the grammar used to read
+  as code.
+- The default graph gains 56,768 edges (9,716 `high`) and loses 23,889
+  (1,262 `high`). Most removed edges are calls whose caller is now the
+  recovered method, or that now bind the method of their own class
+  instead of a same-named one elsewhere. 83 `high` edges leave with
+  nothing in their place. Their caller was code inside a string, or a
+  call such as `proxyServer?.stop()` that bound its own enclosing `stop`
+  because the receiver was lost. Spock feature entries: 4,708 added, 1,572
+  removed.
+- Under `--reference-edges`, the same changes.
+- Under `--dead-code`, 589 findings enter the report (536 `medium`, 53
+  `low`), 420 of them recovered callables, and 338 leave it (305
+  `medium`, 33 `low`). None are `high`.
 
 ## [0.11.1] - 2026-10-23
 

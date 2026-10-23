@@ -19,6 +19,7 @@ pub mod fsharp;
 pub mod go;
 pub mod graphql;
 pub mod groovy;
+mod groovy_rewrite;
 pub mod haskell;
 pub mod hcl;
 pub mod java;

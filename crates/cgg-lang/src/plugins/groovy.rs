@@ -24,8 +24,17 @@ impl LanguagePlugin for GroovyPlugin {
     /// the class — into an ERROR node. The grammar reads a copy with each
     /// such name an identifier of the same length (WS30); extraction reads
     /// the name as written.
+    ///
+    /// The same copy also carries the same-length rewrites of
+    /// [`super::groovy_rewrite`] (WS38): safe navigation and spread-dot,
+    /// Spock wildcard counts, spread arguments and `as` coercions, which
+    /// the grammar otherwise reads as ERROR nodes.
     fn parse_source(&self, source: &[u8]) -> Option<Vec<u8>> {
-        mask_string_method_names(source)
+        let masked = mask_string_method_names(source);
+        match super::groovy_rewrite::rewrite(masked.as_deref().unwrap_or(source)) {
+            Some(rewritten) => Some(rewritten),
+            None => masked,
+        }
     }
 
     fn extract(
@@ -805,11 +814,11 @@ mod tests {
         for c in ["prepare", "run", "check", "other"] {
             assert!(calls.contains(&c), "{c}: {calls:?}");
         }
-        // A file with no string-named method is parsed as is; the copy
-        // keeps every byte offset.
+        // A file with nothing to rewrite is parsed as is; the copy keeps
+        // every byte offset.
         assert!(
             GroovyPlugin
-                .parse_source(b"class A { def f() { 1 } }\n")
+                .parse_source(b"class A {\n  def f() {\n    1\n  }\n}\n")
                 .is_none()
         );
         let copy = GroovyPlugin.parse_source(src.as_bytes()).unwrap();

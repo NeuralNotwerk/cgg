@@ -5543,6 +5543,97 @@ fn same_file_preprocessor_alternatives_bind_at_medium() {
     }
 }
 
+/// WS38: Groovy shapes tree-sitter-groovy rejects — the empty string and
+/// map, a closure opening with a declaration, a command with a literal or
+/// named argument in a method body, safe navigation, `as` coercion, Spock
+/// wildcards, `assert a.b` — no longer drop a whole class into an ERROR.
+/// The grammar reads a same-length rewrite; names and lines are the
+/// file's.
+#[test]
+fn groovy_error_shapes_keep_their_class() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "Spec.groovy",
+        concat!(
+            "package app\n\n",
+            "class Helper {\n    String name() { '' }\n    def tidy(int x) { x }\n}\n\n",
+            "class FeatureSpec {\n    Helper helper = new Helper()\n\n",
+            "    def \"runs a build\"() {\n",
+            "        given:\n        def opts = [:]\n",
+            "        def items = ['a', 'b'].collect { s ->\n",
+            "            def t = s.trim()\n            check(t)\n        }\n\n",
+            "        when:\n        run \"build\", \"--info\"\n        exclude module: 'x'\n\n",
+            "        then:\n        helper?.name() == ''\n        assert opts.empty\n",
+            "        (helper as Helper).tidy(1)\n        1 * helper.tidy(_) >> ''\n",
+            "        _ * helper.name()\n    }\n\n",
+            "    def check(String s) { s }\n",
+            "}\n",
+        )
+        .as_bytes(),
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let c = g["callables"].as_object().unwrap();
+    let mut defs: Vec<(String, u64)> = c
+        .values()
+        .map(|v| {
+            (
+                v["qualified_name"].as_str().unwrap().to_string(),
+                v["start_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    defs.sort();
+    assert_eq!(
+        defs,
+        vec![
+            ("app.FeatureSpec.check".to_string(), 31),
+            ("app.FeatureSpec.runs a build".to_string(), 11),
+            ("app.Helper.name".to_string(), 4),
+            ("app.Helper.tidy".to_string(), 5),
+        ]
+    );
+    let qn = |id: &serde_json::Value| {
+        c[id.as_str().unwrap()]["qualified_name"].as_str().unwrap()
+    };
+    let edges: Vec<(String, String, u64)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            (
+                qn(&e["src"]).to_string(),
+                qn(&e["dst"]).to_string(),
+                e["site_line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    for (dst, line) in [
+        ("app.FeatureSpec.check", 16),
+        ("app.Helper.name", 24),
+        ("app.Helper.tidy", 26),
+        ("app.Helper.tidy", 27),
+        ("app.Helper.name", 28),
+    ] {
+        assert!(
+            edges
+                .iter()
+                .any(|(s, d, l)| s == "app.FeatureSpec.runs a build"
+                    && d == dst
+                    && *l == line),
+            "{dst} line {line}: {edges:?}"
+        );
+    }
+}
+
 /// WS35: Kotlin declares a return type after the parameter list (`fun
 /// make(): Tool`). A bare call's declared type types the call as a
 /// receiver and a `val` assigned from it; a member of the calling class
