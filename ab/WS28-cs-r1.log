@@ -1,0 +1,24 @@
+old: cgg 0.11.0 (dev g03dedf0)  sha256=e168fede257d8d5161c5dbe66174d08fc90640558e2040b03fe7a665bd9acb6c
+new: cgg 0.11.0 (dev g03dedf0+d09860a3)  sha256=89b2f6bf7e61318d9cb7b426048735b0fbb3d24ff76a35b680ddc3bc3e160198
+old=target/remediation/bins/WS28-before
+new=target/remediation/bins/WS28-cs-r1
+repos=283 elapsed=409s
+excluded (timeout/error, NOT diffed): 1
+  zig-zig: graph rc old=124 new=124
+repos changed: 14
+  app-aiproxy-hangfire: edges 26405->26386 (-40 +21 ~35) callables 11130->11130 unresolved 43370->43370 files 146->146 deadhigh 2->2 
+  app-avalonia-samples: edges 4132->4142 (-2 +12 ~14) callables 2374->2374 unresolved 1774->1774 files 309->309 deadhigh 0->0 
+  app-blazor-samples: edges 920->914 (-6 +0 ~6) callables 3132->3132 unresolved 830->830 files 1053->1053 deadhigh 0->0 
+  app-eshop-aspnet: edges 1196->1174 (-27 +5 ~21) callables 2584->2584 unresolved 746->746 files 542->542 deadhigh 2->2 
+  app-monogame-samples: edges 4418->4149 (-284 +15 ~240) callables 4570->4570 unresolved 2493->2493 files 506->506 deadhigh 6->7 
+  app-ombi-quartz: edges 11452->10927 (-554 +29 ~303) callables 16712->16712 unresolved 9038->9038 files 1710->1710 deadhigh 2->4 
+  app-orleans-samples: edges 15687->13872 (-1827 +12 ~1230) callables 20783->20783 unresolved 21183->21183 files 3175->3175 deadhigh 56->59 
+  app-tigerbeetle-zig: edges 24437->24475 (-6 +44 ~21) callables 6324->6324 unresolved 10822->10822 files 412->412 deadhigh 14->14 
+  app-unity-boat: edges 520->509 (-13 +2 ~13) callables 677->677 unresolved 116->116 files 89->89 deadhigh 9->11 
+  app-unity-gamekit: edges 1251->1075 (-176 +0 ~90) callables 824->824 unresolved 572->572 files 100->100 deadhigh 0->0 
+  csharp-mediatr: edges 870->844 (-56 +30 ~60) callables 949->949 unresolved 423->423 files 157->157 deadhigh 2->2 
+  csharp-newtonsoft: edges 101637->94852 (-15478 +8693 ~14374) callables 11666->11666 unresolved 7217->7217 files 950->950 deadhigh 6->6 
+  csharp-serilog: edges 5744->3998 (-1910 +164 ~353) callables 1649->1649 unresolved 1245->1245 files 218->218 deadhigh 0->5 
+  fsharp-paket: edges 9453->9285 (-174 +6 ~54) callables 3944->3944 unresolved 6519->6519 files 494->494 deadhigh 0->0 
+by language: see by_language.tsv
+

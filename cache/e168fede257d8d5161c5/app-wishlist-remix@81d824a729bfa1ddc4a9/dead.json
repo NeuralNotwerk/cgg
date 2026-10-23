@@ -1,0 +1,1502 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.0",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "javascript",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "full",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "toplevel:invocation"
+      ],
+      "files": 19,
+      "callables": 32,
+      "roots": 1,
+      "reachable": 1,
+      "reachable_pct": 3,
+      "findings": 30,
+      "blind_spots": [
+        "obj[expr] dynamic property access"
+      ]
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 32,
+    "edges": 2,
+    "unresolved_call_sites": 1,
+    "roots": 1,
+    "candidates": 31,
+    "reported": 30,
+    "regions": 29,
+    "withheld": [
+      {
+        "language": "javascript",
+        "category": "reachable-only-from-dead-code",
+        "reason": "low-root-coverage",
+        "would_have_reported": 1
+      }
+    ]
+  },
+  "roots": [
+    {
+      "id": "Cie5pclzd4v",
+      "qualified_name": "getConfig",
+      "language": "javascript",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-wishlist-remix/.graphqlrc.js:47"
+    }
+  ],
+  "regions": [
+    {
+      "id": 1,
+      "members": [
+        "C12z2y1r0u4a"
+      ],
+      "anchors": [
+        "C12z2y1r0u4a"
+      ],
+      "files": [
+        "Fb4041dto1k"
+      ],
+      "total_lines": 44,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 2,
+      "members": [
+        "C144wu0jon9k"
+      ],
+      "anchors": [
+        "C144wu0jon9k"
+      ],
+      "files": [
+        "Fb4041dto1k"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 3,
+      "members": [
+        "Cddrobwv2r8"
+      ],
+      "anchors": [
+        "Cddrobwv2r8"
+      ],
+      "files": [
+        "Fb4041dto1k"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 4,
+      "members": [
+        "C8l8ta8992j"
+      ],
+      "anchors": [
+        "C8l8ta8992j"
+      ],
+      "files": [
+        "Fbt2lw64lp1"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 5,
+      "members": [
+        "Cpidr2fwcar"
+      ],
+      "anchors": [
+        "Cpidr2fwcar"
+      ],
+      "files": [
+        "F1nos9sic08"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 6,
+      "members": [
+        "Cqdd5lr2rxl"
+      ],
+      "anchors": [
+        "Cqdd5lr2rxl"
+      ],
+      "files": [
+        "F1nos9sic08"
+      ],
+      "total_lines": 9,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 7,
+      "members": [
+        "C4tj0d5g3qu"
+      ],
+      "anchors": [
+        "C4tj0d5g3qu"
+      ],
+      "files": [
+        "F1nos9sic08"
+      ],
+      "total_lines": 36,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 8,
+      "members": [
+        "C5bmytshfpr"
+      ],
+      "anchors": [
+        "C5bmytshfpr"
+      ],
+      "files": [
+        "Fwfacx6ivoo"
+      ],
+      "total_lines": 33,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 9,
+      "members": [
+        "Cj8yulfwv3m"
+      ],
+      "anchors": [
+        "Cj8yulfwv3m"
+      ],
+      "files": [
+        "Fwfacx6ivoo"
+      ],
+      "total_lines": 58,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 10,
+      "members": [
+        "Cse87r7b8nq"
+      ],
+      "anchors": [
+        "Cse87r7b8nq"
+      ],
+      "files": [
+        "F45gbew7u78"
+      ],
+      "total_lines": 18,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 11,
+      "members": [
+        "Cd1sgd4f8mr"
+      ],
+      "anchors": [
+        "Cd1sgd4f8mr"
+      ],
+      "files": [
+        "F45gbew7u78"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 12,
+      "members": [
+        "C3q4kj7on8e"
+      ],
+      "anchors": [
+        "C3q4kj7on8e"
+      ],
+      "files": [
+        "F45gbew7u78"
+      ],
+      "total_lines": 163,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 13,
+      "members": [
+        "Cvyky6g6oxa"
+      ],
+      "anchors": [
+        "Cvyky6g6oxa"
+      ],
+      "files": [
+        "F184q2ubk4ql"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 14,
+      "members": [
+        "Cj4m09fuihi"
+      ],
+      "anchors": [
+        "Cj4m09fuihi"
+      ],
+      "files": [
+        "Fzke08d1hj5"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 15,
+      "members": [
+        "C556m4czi1v"
+      ],
+      "anchors": [
+        "C556m4czi1v"
+      ],
+      "files": [
+        "Fzke08d1hj5"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 16,
+      "members": [
+        "C92bxixucnr"
+      ],
+      "anchors": [
+        "C92bxixucnr"
+      ],
+      "files": [
+        "Fzke08d1hj5"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 17,
+      "members": [
+        "C136bog41itt"
+      ],
+      "anchors": [
+        "C136bog41itt"
+      ],
+      "files": [
+        "Fzke08d1hj5"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 18,
+      "members": [
+        "Cxaf6kfqk5q"
+      ],
+      "anchors": [
+        "Cxaf6kfqk5q"
+      ],
+      "files": [
+        "Fzke08d1hj5"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 19,
+      "members": [
+        "C181z6obvp28"
+      ],
+      "anchors": [
+        "C181z6obvp28"
+      ],
+      "files": [
+        "Fcduklai7fp"
+      ],
+      "total_lines": 29,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 20,
+      "members": [
+        "Cnki5rumro7"
+      ],
+      "anchors": [
+        "Cnki5rumro7"
+      ],
+      "files": [
+        "Fcduklai7fp"
+      ],
+      "total_lines": 90,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 21,
+      "members": [
+        "C6cwkxelwsr"
+      ],
+      "anchors": [
+        "C6cwkxelwsr"
+      ],
+      "files": [
+        "Ffnh0gtgie2"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 22,
+      "members": [
+        "Cnfqhi1wayu"
+      ],
+      "anchors": [
+        "Cnfqhi1wayu"
+      ],
+      "files": [
+        "Ffnh0gtgie2"
+      ],
+      "total_lines": 23,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 23,
+      "members": [
+        "Cnzrb7kqxl"
+      ],
+      "anchors": [
+        "Cnzrb7kqxl"
+      ],
+      "files": [
+        "Ffnh0gtgie2"
+      ],
+      "total_lines": 41,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 24,
+      "members": [
+        "Cou7f9vh0qa"
+      ],
+      "anchors": [
+        "Cou7f9vh0qa"
+      ],
+      "files": [
+        "Fba6zgogwfh"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 25,
+      "members": [
+        "Cgyrhcyb5jl"
+      ],
+      "anchors": [
+        "Cgyrhcyb5jl"
+      ],
+      "files": [
+        "F9y0u2hduua"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 26,
+      "members": [
+        "C14jdv6bbouz",
+        "Cie6fa4jb73",
+        "C1x5htxp7cw"
+      ],
+      "anchors": [
+        "Cie6fa4jb73",
+        "C1x5htxp7cw"
+      ],
+      "files": [
+        "F51rlzczt4r",
+        "Fd40jqyc2uc"
+      ],
+      "total_lines": 24,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 27,
+      "members": [
+        "C15n1oyyqqhq"
+      ],
+      "anchors": [
+        "C15n1oyyqqhq"
+      ],
+      "files": [
+        "Fd40jqyc2uc"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 30,
+      "members": [
+        "C3gwuklcnku"
+      ],
+      "anchors": [
+        "C3gwuklcnku"
+      ],
+      "files": [
+        "Fd40jqyc2uc"
+      ],
+      "total_lines": 33,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 31,
+      "members": [
+        "Cvs19mb1s0w"
+      ],
+      "anchors": [
+        "Cvs19mb1s0w"
+      ],
+      "files": [
+        "F10afwl364n7"
+      ],
+      "total_lines": 26,
+      "languages": [
+        "javascript"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "C3q4kj7on8e",
+      "qualified_name": "Index",
+      "simple_name": "Index",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F45gbew7u78",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/app._index.jsx",
+      "start_line": 45,
+      "end_line": 207,
+      "size_lines": 163,
+      "signature_hint": "function Index()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": 63,
+      "region": 12,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnki5rumro7",
+      "qualified_name": "PricingPage",
+      "simple_name": "PricingPage",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcduklai7fp",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/app.pricing.jsx",
+      "start_line": 85,
+      "end_line": 174,
+      "size_lines": 90,
+      "signature_hint": "function PricingPage()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -10,
+      "region": 20,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cj8yulfwv3m",
+      "qualified_name": "action",
+      "simple_name": "action",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fwfacx6ivoo",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/api.wishlist.jsx",
+      "start_line": 45,
+      "end_line": 102,
+      "size_lines": 58,
+      "signature_hint": "async function action({ request })",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -42,
+      "region": 9,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C12z2y1r0u4a",
+      "qualified_name": "handleRequest",
+      "simple_name": "handleRequest",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fb4041dto1k",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/entry.server.jsx",
+      "start_line": 10,
+      "end_line": 53,
+      "size_lines": 44,
+      "signature_hint": "async function handleRequest( request, responseStatusCode, responseHeaders, remixContext )",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -56,
+      "region": 1,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnzrb7kqxl",
+      "qualified_name": "SettingsPage",
+      "simple_name": "SettingsPage",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ffnh0gtgie2",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/app.settings.jsx",
+      "start_line": 59,
+      "end_line": 99,
+      "size_lines": 41,
+      "signature_hint": "function SettingsPage()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -59,
+      "region": 23,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C4tj0d5g3qu",
+      "qualified_name": "App",
+      "simple_name": "App",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1nos9sic08",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/_index/route.jsx",
+      "start_line": 18,
+      "end_line": 53,
+      "size_lines": 36,
+      "signature_hint": "function App()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -64,
+      "region": 7,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C5bmytshfpr",
+      "qualified_name": "loader",
+      "simple_name": "loader",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fwfacx6ivoo",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/api.wishlist.jsx",
+      "start_line": 8,
+      "end_line": 40,
+      "size_lines": 33,
+      "signature_hint": "async function loader({ request })",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -67,
+      "region": 8,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C3gwuklcnku",
+      "qualified_name": "Auth",
+      "simple_name": "Auth",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fd40jqyc2uc",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/auth.login/route.jsx",
+      "start_line": 36,
+      "end_line": 68,
+      "size_lines": 33,
+      "signature_hint": "function Auth()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -67,
+      "region": 30,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C181z6obvp28",
+      "qualified_name": "loader",
+      "simple_name": "loader",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fcduklai7fp",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/app.pricing.jsx",
+      "start_line": 21,
+      "end_line": 49,
+      "size_lines": 29,
+      "signature_hint": "async function loader({ request })",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -71,
+      "region": 19,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvs19mb1s0w",
+      "qualified_name": "action",
+      "simple_name": "action",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F10afwl364n7",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/webhooks.jsx",
+      "start_line": 4,
+      "end_line": 29,
+      "size_lines": 26,
+      "signature_hint": "action = async ({ request }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -74,
+      "region": 31,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnfqhi1wayu",
+      "qualified_name": "action",
+      "simple_name": "action",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ffnh0gtgie2",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/app.settings.jsx",
+      "start_line": 35,
+      "end_line": 57,
+      "size_lines": 23,
+      "signature_hint": "async function action({ request })",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -77,
+      "region": 22,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C8l8ta8992j",
+      "qualified_name": "App",
+      "simple_name": "App",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fbt2lw64lp1",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/root.jsx",
+      "start_line": 10,
+      "end_line": 27,
+      "size_lines": 18,
+      "signature_hint": "function App()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -82,
+      "region": 4,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cse87r7b8nq",
+      "qualified_name": "loader",
+      "simple_name": "loader",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F45gbew7u78",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/app._index.jsx",
+      "start_line": 22,
+      "end_line": 39,
+      "size_lines": 18,
+      "signature_hint": "loader = async ({ request }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -82,
+      "region": 10,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvyky6g6oxa",
+      "qualified_name": "loader",
+      "simple_name": "loader",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F184q2ubk4ql",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/app.cancel.jsx",
+      "start_line": 5,
+      "end_line": 21,
+      "size_lines": 17,
+      "signature_hint": "loader = async ({ request }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -83,
+      "region": 13,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C92bxixucnr",
+      "qualified_name": "App",
+      "simple_name": "App",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fzke08d1hj5",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/app.jsx",
+      "start_line": 16,
+      "end_line": 32,
+      "size_lines": 17,
+      "signature_hint": "function App()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -83,
+      "region": 16,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cou7f9vh0qa",
+      "qualified_name": "loader",
+      "simple_name": "loader",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fba6zgogwfh",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/app.upgrade.jsx",
+      "start_line": 5,
+      "end_line": 21,
+      "size_lines": 17,
+      "signature_hint": "loader = async ({ request }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -83,
+      "region": 24,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C6cwkxelwsr",
+      "qualified_name": "loader",
+      "simple_name": "loader",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Ffnh0gtgie2",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/app.settings.jsx",
+      "start_line": 19,
+      "end_line": 32,
+      "size_lines": 14,
+      "signature_hint": "async function loader({ request})",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -86,
+      "region": 21,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cqdd5lr2rxl",
+      "qualified_name": "loader",
+      "simple_name": "loader",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1nos9sic08",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/_index/route.jsx",
+      "start_line": 8,
+      "end_line": 16,
+      "size_lines": 9,
+      "signature_hint": "loader = async ({ request }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -91,
+      "region": 6,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cie6fa4jb73",
+      "qualified_name": "loader",
+      "simple_name": "loader",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fd40jqyc2uc",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/auth.login/route.jsx",
+      "start_line": 19,
+      "end_line": 26,
+      "size_lines": 8,
+      "signature_hint": "loader = async ({ request }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -92,
+      "region": 26,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C1x5htxp7cw",
+      "qualified_name": "action",
+      "simple_name": "action",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fd40jqyc2uc",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/auth.login/route.jsx",
+      "start_line": 28,
+      "end_line": 34,
+      "size_lines": 7,
+      "signature_hint": "action = async ({ request }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -93,
+      "region": 26,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C556m4czi1v",
+      "qualified_name": "loader",
+      "simple_name": "loader",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fzke08d1hj5",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/app.jsx",
+      "start_line": 10,
+      "end_line": 14,
+      "size_lines": 5,
+      "signature_hint": "loader = async ({ request }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 15,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cgyrhcyb5jl",
+      "qualified_name": "loader",
+      "simple_name": "loader",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F9y0u2hduua",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/auth.$.jsx",
+      "start_line": 3,
+      "end_line": 7,
+      "size_lines": 5,
+      "signature_hint": "loader = async ({ request }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -95,
+      "region": 25,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cddrobwv2r8",
+      "qualified_name": "onError",
+      "simple_name": "onError",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fb4041dto1k",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/entry.server.jsx",
+      "start_line": 44,
+      "end_line": 47,
+      "size_lines": 4,
+      "signature_hint": "onError(error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -96,
+      "region": 3,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C144wu0jon9k",
+      "qualified_name": "onShellError",
+      "simple_name": "onShellError",
+      "language": "javascript",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fb4041dto1k",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/entry.server.jsx",
+      "start_line": 41,
+      "end_line": 43,
+      "size_lines": 3,
+      "signature_hint": "onShellError(error)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 2,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cd1sgd4f8mr",
+      "qualified_name": "action",
+      "simple_name": "action",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F45gbew7u78",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/app._index.jsx",
+      "start_line": 41,
+      "end_line": 43,
+      "size_lines": 3,
+      "signature_hint": "action = async ({ request }) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 11,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C136bog41itt",
+      "qualified_name": "ErrorBoundary",
+      "simple_name": "ErrorBoundary",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fzke08d1hj5",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/app.jsx",
+      "start_line": 35,
+      "end_line": 37,
+      "size_lines": 3,
+      "signature_hint": "function ErrorBoundary()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -97,
+      "region": 17,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cpidr2fwcar",
+      "qualified_name": "links",
+      "simple_name": "links",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1nos9sic08",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/_index/route.jsx",
+      "start_line": 6,
+      "end_line": 6,
+      "size_lines": 1,
+      "signature_hint": "links = () => [{ rel: \"stylesheet\", href: indexStyles }]",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -99,
+      "region": 5,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cj4m09fuihi",
+      "qualified_name": "links",
+      "simple_name": "links",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fzke08d1hj5",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/app.jsx",
+      "start_line": 8,
+      "end_line": 8,
+      "size_lines": 1,
+      "signature_hint": "links = () => [{ rel: \"stylesheet\", href: polarisStyles }]",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -99,
+      "region": 14,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C15n1oyyqqhq",
+      "qualified_name": "links",
+      "simple_name": "links",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fd40jqyc2uc",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/auth.login/route.jsx",
+      "start_line": 17,
+      "end_line": 17,
+      "size_lines": 1,
+      "signature_hint": "links = () => [{ rel: \"stylesheet\", href: polarisStyles }]",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -99,
+      "region": 27,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxaf6kfqk5q",
+      "qualified_name": "headers",
+      "simple_name": "headers",
+      "language": "javascript",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fzke08d1hj5",
+      "path": "/storage/cgg-test_repos/app-wishlist-remix/app/routes/app.jsx",
+      "start_line": 39,
+      "end_line": 41,
+      "size_lines": 3,
+      "signature_hint": "headers = (headersArgs) =>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 18,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-collides-with-screened-site",
+          "screen": "external",
+          "sites": 1
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    }
+  ]
+}

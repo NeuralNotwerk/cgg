@@ -1,0 +1,16 @@
+old: cgg 0.11.0 (dev g03dedf0+d676b0ed)  sha256=495d5b23a1cd35a6cfaeffcb3b717eb2af27095f9790dba413d20e184fa7adc0
+new: cgg 0.11.0 (dev g03dedf0+dc3ce1bd)  sha256=51adb901af244a985726324c4ab7380799933f4dfef992299c59fbab17712c6f
+old=target/remediation/bins/WS28-kt-r1
+new=target/remediation/bins/WS28-sw-r1
+repos=283 elapsed=257s
+excluded (timeout/error, NOT diffed): 1
+  zig-zig: graph rc old=0 new=124
+repos changed: 6
+  app-alarik-vapor: edges 9510->9416 (-94 +0 ~36) callables 2580->2580 unresolved 3763->3763 files 255->255 deadhigh 0->0 
+  app-codeedit-combine: edges 2877->2695 (-182 +0 ~70) callables 1989->1989 unresolved 1891->1891 files 683->683 deadhigh 0->0 
+  app-ghostty-zig: edges 21938->21738 (-200 +0 ~104) callables 9954->9954 unresolved 39555->39555 files 1118->1118 deadhigh 0->0 
+  app-ora-swifttesting: edges 1201->1184 (-17 +0 ~14) callables 973->973 unresolved 856->856 files 184->184 deadhigh 0->0 
+  dart-flutter: edges 577748->577747 (-1 +0 ~1) callables 120107->120107 unresolved 326594->326594 files 10871->10871 deadhigh 19->19 
+  swift-alamofire: edges 8705->8421 (-284 +0 ~141) callables 2615->2615 unresolved 4180->4180 files 109->109 deadhigh 0->0 
+by language: see by_language.tsv
+

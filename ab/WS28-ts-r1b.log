@@ -1,0 +1,39 @@
+old: cgg 0.11.0 (dev g03dedf0+dc3ce1bd)  sha256=51adb901af244a985726324c4ab7380799933f4dfef992299c59fbab17712c6f
+new: cgg 0.11.0 (dev g03dedf0+d2d54f36)  sha256=43fdc8b3d9e08ac39852220a8f1bd5491c7b71572a76d18073254642bfb971f4
+old=target/remediation/bins/WS28-sw-r1
+new=target/remediation/bins/WS28-ts-r1b
+repos=283 elapsed=240s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 30
+  app-adocasts-adonisjs: edges 1834->1817 (-17 +0 ~0) callables 1538->1538 unresolved 942->942 files 561->561 deadhigh 0->0 
+  app-calcom-nextjs: edges 61886->60514 (-1585 +213 ~2) callables 26393->26393 unresolved 49371->49373 files 5077->5077 deadhigh 0->0 
+  app-casdoor-beego: edges 30991->30985 (-6 +0 ~0) callables 14588->14588 unresolved 42131->42131 files 1156->1156 deadhigh 0->0 
+  app-dartpad-shelf: edges 11276->11213 (-63 +0 ~16) callables 5773->5773 unresolved 11038->11038 files 328->328 deadhigh 0->0 
+  app-deno-std: edges 9417->9054 (-378 +15 ~7) callables 4038->4038 unresolved 34984->34985 files 1240->1240 deadhigh 0->0 
+  app-druid-jaxrs: edges 378837->378748 (-89 +0 ~11) callables 93679->93679 unresolved 143772->143772 files 9932->9932 deadhigh 19->19 
+  app-fastapi-dispatch: edges 5256->5234 (-22 +0 ~0) callables 4753->4753 unresolved 10183->10183 files 879->879 deadhigh 0->0 
+  app-ghost-express: edges 114302->113162 (-1858 +718 ~54) callables 44687->44687 unresolved 87263->87288 files 6018->6018 deadhigh 0->0 
+  app-ghostfolio-nestjs: edges 3572->3479 (-93 +0 ~7) callables 2173->2173 unresolved 1580->1580 files 832->832 deadhigh 0->0 
+  app-homebox-chi: edges 11027->11020 (-7 +0 ~0) callables 10330->10330 unresolved 6253->6253 files 482->482 deadhigh 0->0 
+  app-hono-examples: edges 192->181 (-11 +0 ~0) callables 374->374 unresolved 125->125 files 44->44 deadhigh 0->0 
+  app-html2rss-roda: edges 1310->1301 (-9 +0 ~0) callables 1004->1004 unresolved 1397->1397 files 197->197 deadhigh 0->0 
+  app-immich-nestjs: edges 32687->29908 (-2782 +3 ~6) callables 15674->15674 unresolved 20594->20594 files 1984->1984 deadhigh 1->1 
+  app-insights-feathers: edges 241->238 (-3 +0 ~0) callables 344->344 unresolved 155->155 files 168->168 deadhigh 0->0 
+  app-kubepi-iris: edges 3710->3714 (-0 +4 ~0) callables 2304->2304 unresolved 3788->3788 files 340->340 deadhigh 0->0 
+  app-kythe-bazel: edges 22135->22134 (-1 +0 ~0) callables 13543->13543 unresolved 8549->8549 files 2006->2006 deadhigh 4->4 
+  app-litestar-fullstack: edges 2787->2781 (-6 +0 ~6) callables 1822->1822 unresolved 1818->1818 files 362->362 deadhigh 0->0 
+  app-marktext-electron: edges 26977->25351 (-1631 +5 ~16) callables 10078->10078 unresolved 11282->11282 files 1159->1159 deadhigh 0->0 
+  app-metabase-compojure: edges 212140->193868 (-18472 +200 ~48) callables 94147->94147 unresolved 384047->384047 files 15860->15860 deadhigh 0->0 
+  app-ombi-quartz: edges 10927->10701 (-314 +88 ~0) callables 16712->16712 unresolved 9038->9038 files 1710->1710 deadhigh 4->4 
+  app-papercups-phoenix: edges 7301->7298 (-3 +0 ~0) callables 6202->6202 unresolved 8469->8469 files 627->627 deadhigh 0->0 
+  app-quack-oak: edges 1204->1150 (-54 +0 ~0) callables 969->969 unresolved 2128->2128 files 488->488 deadhigh 0->0 
+  app-rails-mastodon: edges 18906->18874 (-32 +0 ~0) callables 13114->13114 unresolved 50203->50203 files 4161->4161 deadhigh 0->0 
+  app-rn-expensify: edges 183829->183278 (-551 +0 ~1) callables 68752->68752 unresolved 172425->172425 files 8710->8710 deadhigh 0->0 
+  app-shopping-loopback: edges 539->533 (-7 +1 ~0) callables 437->437 unresolved 319->319 files 95->95 deadhigh 0->0 
+  app-thingsboard-concurrent: edges 167298->165963 (-1399 +64 ~51) callables 50160->50160 unresolved 85014->85023 files 6599->6599 deadhigh 17->17 
+  js-loopback: edges 36315->33344 (-3119 +148 ~167) callables 12259->12259 unresolved 16380->16381 files 1608->1608 deadhigh 0->0 
+  py-dash: edges 28698->28690 (-8 +0 ~1) callables 6299->6299 unresolved 9165->9165 files 984->984 deadhigh 10->10 
+  ts-typeorm: edges 61851->56626 (-5228 +3 ~130) callables 11179->11179 unresolved 26290->26290 files 3575->3575 deadhigh 0->0 
+  ts-zod: edges 19541->15490 (-4110 +59 ~1017) callables 3843->3843 unresolved 8291->8292 files 410->410 deadhigh 0->0 
+by language: see by_language.tsv
+

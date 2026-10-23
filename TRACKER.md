@@ -131,7 +131,7 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 | WS27 | Locals specs Go/C#/C/C++… | 27 | DONE | 55d7ebb f8a1e02 d867994 22b5749 7262471 042a062 752d05c e8d94af 9c44e55 c799a63 51a05c0 7a92bdc c160bb7 da420f5 2709f51 ac2f62f | Go, C#, C, C++, Groovy, R, Julia, Haskell, Clojure, Nix, Starlark, Solidity, F#, Fortran done; Perl no-op (plugin records no code-ref calls) — WS27 COMPLETE |
 | WS26b | Value refs OCaml/Haskell/F# + F# definition gap | — | DONE | 65f8da3 | F# +148 callables, F# operator-folded calls +2,066 edges, 10,317 ref edges, dead −4,184 (none high); FsAutoComplete +645 now reported (root coverage over threshold) |
 | WS31 | Go implicit interfaces (dead code + --dynamic-dispatch) | — | DONE | 03dedf08 | default graph unchanged; dyn +12,027 low; dead −15,737 Go (none high), +725 (Kratos/APISIX root coverage over threshold) |
-| WS28 | Arity narrowing C#/Kotlin/Swift/Groovy/TS | 29 | PLANNED | | |
+| WS28 | Arity narrowing C#/Kotlin/Swift/Groovy/TS | 29 | DONE | 2df1e014 | C#/Kotlin/TS join OVERLOAD_ARITY_LANGS, Swift labels; Groovy no-op; Java/Scala/C++/Groovy +50k high (single overload by arity); dead +920/−428, 11 new high (6 correct uncalled overloads, 5 Serilog reflection FPs → WS28b) |
 | WS29 | Doc corrections + re-score matrix | — | PLANNED | | orchestrator only |
 | WS30 | Groovy methods lost to parse errors (Spock string names) | new | DONE | 3d2a5a3 | Gradle groovy callables 18,952→44,425; spock entries 0→23,836 |
 
@@ -185,3 +185,5 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 - (2026-10-22, user) RELEASE AUTHORIZED: once WS28 is complete, do the full tag release of 0.11.1 and publish to all package registries — ONLY if everything looks good (all release.sh gates green) and there are no major regressions. Then run upgrade-local.sh. If anything is off, stop and report instead.
 - WS26b open: module-qualified F# calls among ~45 same-named `fix` functions unresolved (resolver gap, pre-existing); F# unresolved +4,775 (newly recorded library pipelines).
 - WS31 open: structural over-approximation (a type matching an interface it never stands in for is credited; e.g. a client matching a handler interface) — needs data flow, accepted.
+- WS28 open: Groovy `Object[]` last-param varargs not read; TRACKER 143 Kotlin `make().work()` untyped → WS29 docs. Agent ran `rm -rf` on its own stale ab/WS28-ts-r1 (rule breach, reported).
+- WS28b: C# whole-type reflection (`typeof(T).GetTypeInfo().DeclaredMethods`, `GetMethods()`) not screened → Serilog SurrogateConfigurationMethods 5 high dead FPs exposed by WS28. Fix before release.
