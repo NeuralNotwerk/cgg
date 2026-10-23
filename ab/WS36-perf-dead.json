@@ -1,0 +1,237 @@
+[
+ {
+  "repo": "app-apisix-openresty",
+  "old_ms": 2471.9004060607404,
+  "new_ms": 2319.0214900532737
+ },
+ {
+  "repo": "app-arduinoagent-goa",
+  "old_ms": 264.388534007594,
+  "new_ms": 264.4156019669026
+ },
+ {
+  "repo": "app-carvera-firmware-cpp",
+  "old_ms": 2117.438159068115,
+  "new_ms": 2068.8639329746366
+ },
+ {
+  "repo": "app-cdk-examples",
+  "old_ms": 1116.4154590805992,
+  "new_ms": 1065.9116649767384
+ },
+ {
+  "repo": "app-clashverge-tauri",
+  "old_ms": 1717.9671039339155,
+  "new_ms": 1718.0075789801776
+ },
+ {
+  "repo": "app-concordium-gotham",
+  "old_ms": 3822.6797769311816,
+  "new_ms": 3822.890221956186
+ },
+ {
+  "repo": "app-cuda-samples",
+  "old_ms": 3522.0860589761287,
+  "new_ms": 3671.884135925211
+ },
+ {
+  "repo": "app-darkness-flame",
+  "old_ms": 114.23589498735964,
+  "new_ms": 114.17036596685648
+ },
+ {
+  "repo": "app-fpm-fortran",
+  "old_ms": 565.2215549489483,
+  "new_ms": 615.435263956897
+ },
+ {
+  "repo": "app-ghostty-zig",
+  "old_ms": 10437.209813040681,
+  "new_ms": 10887.342836009338
+ },
+ {
+  "repo": "app-immich-nestjs",
+  "old_ms": 6529.086885042489,
+  "new_ms": 6377.575563034043
+ },
+ {
+  "repo": "app-kythe-bazel",
+  "old_ms": 3923.1382759753615,
+  "new_ms": 3973.49102597218
+ },
+ {
+  "repo": "app-libxev-zig",
+  "old_ms": 264.55720397643745,
+  "new_ms": 264.6581130102277
+ },
+ {
+  "repo": "app-neorv32-vhdl",
+  "old_ms": 565.2752260211855,
+  "new_ms": 565.5073409434408
+ },
+ {
+  "repo": "app-nextcloud-android",
+  "old_ms": 2970.4149399185553,
+  "new_ms": 2920.2725330833346
+ },
+ {
+  "repo": "app-ocamlorg-dream",
+  "old_ms": 22512.984446948394,
+  "new_ms": 21812.566553009674
+ },
+ {
+  "repo": "app-opam-cmdliner",
+  "old_ms": 1567.4348999746144,
+  "new_ms": 1567.466069944203
+ },
+ {
+  "repo": "app-orleans-samples",
+  "old_ms": 6479.413270950317,
+  "new_ms": 6378.766578040086
+ },
+ {
+  "repo": "app-rn-expensify",
+  "old_ms": 38760.1196320029,
+  "new_ms": 36790.48350604717
+ },
+ {
+  "repo": "app-smoothieware-cpp",
+  "old_ms": 1316.6108479490504,
+  "new_ms": 1366.5426711086184
+ },
+ {
+  "repo": "app-storm-starter",
+  "old_ms": 8582.360419095494,
+  "new_ms": 8732.539621996693
+ },
+ {
+  "repo": "app-tigerbeetle-zig",
+  "old_ms": 2470.2652860432863,
+  "new_ms": 2470.61004396528
+ },
+ {
+  "repo": "app-torch-ultralytics",
+  "old_ms": 1968.2221810799092,
+  "new_ms": 1969.8029030114412
+ },
+ {
+  "repo": "app-vernemq-cowboy",
+  "old_ms": 1016.0407079383731,
+  "new_ms": 1016.1631279624999
+ },
+ {
+  "repo": "app-waybar-catch2",
+  "old_ms": 915.4534940607846,
+  "new_ms": 966.10433596652
+ },
+ {
+  "repo": "app-zpool-opium",
+  "old_ms": 2218.573851045221,
+  "new_ms": 2218.6165490420535
+ },
+ {
+  "repo": "asm-xv6",
+  "old_ms": 164.44169299211353,
+  "new_ms": 164.34111294802278
+ },
+ {
+  "repo": "c-jq",
+  "old_ms": 414.95729400776327,
+  "new_ms": 464.982739998959
+ },
+ {
+  "repo": "c-redis",
+  "old_ms": 5174.823679029942,
+  "new_ms": 5475.43146694079
+ },
+ {
+  "repo": "cmake-kitware",
+  "old_ms": 21962.289524031803,
+  "new_ms": 22604.95489195455
+ },
+ {
+  "repo": "cpp-nlohmann-json",
+  "old_ms": 3320.036681019701,
+  "new_ms": 3471.011023968458
+ },
+ {
+  "repo": "cpp-spdlog",
+  "old_ms": 865.6402230262756,
+  "new_ms": 865.8228969434276
+ },
+ {
+  "repo": "dart-flutter",
+  "old_ms": null,
+  "new_ms": null
+ },
+ {
+  "repo": "erlang-otp",
+  "old_ms": 44105.78030801844,
+  "new_ms": 44154.802743927576
+ },
+ {
+  "repo": "fortran-stdlib",
+  "old_ms": 565.2661880012602,
+  "new_ms": 565.2703800005838
+ },
+ {
+  "repo": "groovy-gradle",
+  "old_ms": 33836.17814001627,
+  "new_ms": 33447.84943002742
+ },
+ {
+  "repo": "kivy-carvera",
+  "old_ms": 1266.8564500054345,
+  "new_ms": 1317.0167020289227
+ },
+ {
+  "repo": "kotlin-okio",
+  "old_ms": 916.1176140187308,
+  "new_ms": 916.2331080297008
+ },
+ {
+  "repo": "lua-neovim",
+  "old_ms": 8132.482883054763,
+  "new_ms": 8433.48667700775
+ },
+ {
+  "repo": "neurosymbolic_kb",
+  "old_ms": 8.045340073294938,
+  "new_ms": 15.993347973562777
+ },
+ {
+  "repo": "objc-afnetworking",
+  "old_ms": 265.69685607682914,
+  "new_ms": 264.5286750048399
+ },
+ {
+  "repo": "ocaml-dune",
+  "old_ms": 8130.2243690006435,
+  "new_ms": 8132.2757210582495
+ },
+ {
+  "repo": "rust-bat",
+  "old_ms": 6528.488975018263,
+  "new_ms": 6527.469367953017
+ },
+ {
+  "repo": "scala-spark",
+  "old_ms": null,
+  "new_ms": null
+ },
+ {
+  "repo": "starlark-skylib",
+  "old_ms": 164.87991402391344,
+  "new_ms": 164.32476800400764
+ },
+ {
+  "repo": "verilog-picorv32",
+  "old_ms": 314.49354405049235,
+  "new_ms": 314.78954397607595
+ },
+ {
+  "repo": "zig-zig",
+  "old_ms": null,
+  "new_ms": null
+ }
+]

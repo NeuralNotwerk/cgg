@@ -1,0 +1,9 @@
+repos 47 excluded [('zig-zig', (124, 124))]
+added 6160
+  ('c', '{"kind": "direct"}', 'medium') 6125
+  ('c', '{"kind": "reference"}', 'medium') 35
+dropped 293
+  ('c', '{"kind": "direct"}', 'high') 129
+  ('c', '{"kind": "direct"}', 'medium') 141
+  ('c', '{"kind": "reference"}', 'high') 15
+  ('c', '{"kind": "reference"}', 'medium') 8

@@ -1,0 +1,24 @@
+old: cgg 0.11.1 (dev g9800221)  sha256=bb9ddee19ea767c2204d347e884e09dbfebe553c59bc61bca5b8f538446bb138
+new: cgg 0.11.1 (dev g9800221+deb60b3f)  sha256=0a67f9bbdb5d2436108bf817b668ed6a776c45f68ac150020c76782ad82f773a
+old=target/remediation/bins/WS36-before
+new=target/remediation/bins/WS36-r1
+repos=47 elapsed=204s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 15
+  app-cuda-samples: edges 13349->13349 (-0 +0 ~4) callables 6813->6813 unresolved 6249->6249 files 800->800 deadhigh 0->0 
+  app-fpm-fortran: edges 3187->3187 (-0 +0 ~1) callables 1216->1216 unresolved 25->25 files 248->248 deadhigh 0->0 
+  app-ghostty-zig: edges 21735->21859 (-0 +124 ~0) callables 9954->9954 unresolved 39558->39496 files 1118->1118 deadhigh 0->0 
+  app-libxev-zig: edges 1440->1440 (-0 +0 ~4) callables 819->819 unresolved 863->863 files 55->55 deadhigh 0->0 
+  app-neorv32-vhdl: edges 3563->3563 (-0 +0 ~126) callables 911->911 unresolved 1->1 files 190->190 deadhigh 0->0 
+  app-smoothieware-cpp: edges 10691->10691 (-0 +0 ~50) callables 3961->3961 unresolved 1989->1989 files 553->553 deadhigh 0->0 
+  app-tigerbeetle-zig: edges 24455->24455 (-0 +0 ~7) callables 6324->6324 unresolved 10842->10842 files 412->412 deadhigh 14->14 
+  c-jq: edges 5656->5658 (-0 +2 ~46) callables 915->915 unresolved 909->908 files 69->69 deadhigh 0->0 
+  c-redis: edges 62364->63141 (-24 +801 ~209) callables 13922->13922 unresolved 9942->9644 files 948->948 deadhigh 0->0 
+  cmake-kitware: edges 131788->132623 (-10 +845 ~1017) callables 37480->37480 unresolved 125458->125146 files 17741->17741 deadhigh 0->0 
+  erlang-otp: edges 725263->729376 (-56 +4169 ~2274) callables 271239->271239 unresolved 220337->218670 files 5652->5652 deadhigh 2->2 
+  fortran-stdlib: edges 1112->1223 (-0 +111 ~0) callables 1477->1477 unresolved 597->553 files 518->518 deadhigh 0->0 
+  lua-neovim: edges 77466->77466 (-0 +0 ~66) callables 14824->14824 unresolved 83427->83427 files 1410->1410 deadhigh 0->0 
+  ocaml-dune: edges 14480->14532 (-0 +52 ~2) callables 29797->29797 unresolved 78672->78646 files 4759->4759 deadhigh 0->0 
+  zig-zig: edges 274794->277463 (-38 +2707 ~664) callables 362991->362991 unresolved 202212->201294 files 17351->17351 deadhigh -> dead rc old=124 new=124
+by language: see by_language.tsv
+
