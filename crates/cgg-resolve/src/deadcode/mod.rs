@@ -745,8 +745,17 @@ pub fn analyze(
     // file, not a callable, and is reported without a cap.
     let mut dyn_named: std::collections::HashMap<(&str, &str), &'static str> =
         std::collections::HashMap::new();
+    // A reflective enumeration of a named type's members
+    // (`typeof(T).GetMethods()`): every method `T` owns is under the
+    // reflection screen (WS28b).
+    let mut dyn_types: std::collections::HashSet<(&str, &str)> =
+        std::collections::HashSet::new();
     for f in facts {
         for d in &f.dyn_uses {
+            if d.via == cgg_core::DYN_MEMBERS_OF {
+                dyn_types.insert((f.language.as_str(), d.name.as_str()));
+                continue;
+            }
             let screen = if cgg_core::DYN_MODULE_LOADERS.contains(&d.via.as_str()) {
                 "module-load"
             } else {
@@ -1029,6 +1038,14 @@ pub fn analyze(
         {
             ev.push(Evidence::NameCollidesWithScreenedSite {
                 screen: (*screen).into(),
+                sites: 1,
+            });
+        } else if !dyn_types.is_empty()
+            && owner_stem(&nd.qualified_name)
+                .is_some_and(|o| dyn_types.contains(&(nd.language.as_str(), o)))
+        {
+            ev.push(Evidence::NameCollidesWithScreenedSite {
+                screen: "reflection".into(),
                 sites: 1,
             });
         }

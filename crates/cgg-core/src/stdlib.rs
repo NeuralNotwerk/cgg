@@ -530,6 +530,39 @@ pub const GO_BUILTIN_FUNCS: &[&str] = &[
     "make", "max", "min", "new", "panic", "print", "println", "real", "recover",
 ];
 
+/// Reflective APIs that enumerate a type's own members, per language
+/// (WS28b): written on a type the code names — C# `typeof(T).GetMethods()`
+/// and `typeof(T).GetTypeInfo().DeclaredMethods`, Java
+/// `T.class.getDeclaredMethods()`, PHP `get_class_methods(T::class)` and
+/// `(new ReflectionClass(T::class))->getMethods()`, Ruby
+/// `T.instance_methods`, Python `inspect.getmembers(T)` — they hand every
+/// method of `T` to code that may call it. Never on a value whose type
+/// is not written (`x.GetType()`, `getClass()`).
+pub const MEMBER_ENUMERATION_APIS: &[(&str, &[&str])] = &[
+    (
+        "csharp",
+        &[
+            "GetMethods",
+            "GetMembers",
+            "GetRuntimeMethods",
+            "DeclaredMethods",
+            "DeclaredMembers",
+        ],
+    ),
+    ("java", &["getDeclaredMethods", "getMethods"]),
+    ("php", &["get_class_methods", "getMethods"]),
+    (
+        "ruby",
+        &[
+            "instance_methods",
+            "public_instance_methods",
+            "private_instance_methods",
+            "protected_instance_methods",
+        ],
+    ),
+    ("python", &["getmembers"]),
+];
+
 /// Go standard-library interfaces a type satisfies by having the methods,
 /// with no declaration naming them (WS31): each as written in an embed
 /// (`io.Reader`), with its method set as (name, parameter count). The

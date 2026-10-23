@@ -185,6 +185,12 @@ pub enum TestRole {
 /// does not cap a same-named callable's dead-code finding.
 pub const DYN_MODULE_LOADERS: &[&str] = &["require", "importScripts", "import_module"];
 
+/// [`DynUse::via`] of a reflective enumeration of a whole type's members
+/// (`typeof(T).GetMethods()`, `cgg_core::stdlib::MEMBER_ENUMERATION_APIS`):
+/// the [`DynUse::name`] is the type, and every method it owns is under
+/// the `reflection` screen (WS28b).
+pub const DYN_MEMBERS_OF: &str = "members-of";
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DynUse {
     /// The identifier-shaped literal.

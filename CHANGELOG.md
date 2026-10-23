@@ -978,6 +978,24 @@ otherwise change the default graph.
   overload set is one callee: a single survivor is `high` when the
   lookup is otherwise certain. Copies of a qualified name in several
   files still are not.
+- **A type whose methods the code enumerates by reflection had them
+  reported dead at `high` (WS28b).** The reflection screen read only a
+  member looked up by a literal name (`GetMethod("M")`); a type handing
+  all its methods to reflection (`typeof(T).GetTypeInfo().DeclaredMethods`,
+  how Serilog's key-value settings find their configuration methods)
+  left them with no screen, and once WS28 dropped the wrong-overload
+  edges that had kept them live, 5 were reported dead at `high`. A
+  reflective enumeration of a type the code names — C#
+  `typeof(T).GetMethods()`/`GetMembers()`/`GetRuntimeMethods()` and
+  `typeof(T).GetTypeInfo().DeclaredMethods`/`DeclaredMembers`, Java
+  `T.class.getDeclaredMethods()`/`getMethods()`, PHP
+  `get_class_methods(T::class)` and `(new
+  ReflectionClass(T::class))->getMethods()`, Ruby `T.instance_methods`
+  and its visibility variants, Python `inspect.getmembers(T)`
+  (`cgg_core::stdlib::MEMBER_ENUMERATION_APIS`) — now puts every method
+  `T` declares under the `reflection` screen, capped at `medium` and
+  never an edge. A value's type (`o.GetType()`, `getClass()`) is never
+  read, and inherited members are not screened.
 
 ### Compatibility
 
@@ -1830,6 +1848,20 @@ the WS31 tree):
   (5), whose only edges were zero-argument calls bound to their
   one-parameter statics, and 6 C# methods in Orleans, Ombi, MonoGame and
   the Unity boat sample likewise.
+
+WS28b member-enumeration screen (full corpus, 283 repositories, none
+excluded):
+
+- The default graph is unchanged in every repository.
+- Under `--dead-code`, 5 findings move `high` → `medium` (Serilog's
+  `SurrogateConfigurationMethods`) and none enter or leave the report.
+  101 findings gain the `reflection` screen without changing confidence
+  (they were `medium` or `low` already): Serilog's `ILogger` (59, from
+  `typeof(ILogger)` method enumerations in its tests) and the rest of
+  `SurrogateConfigurationMethods` (10), Jekyll's `Drop` (19,
+  `Jekyll::Drops::Drop.instance_methods`), Dataverse's
+  `IngestableDataChecker` (8, which finds its test methods with
+  `getDeclaredMethods()`), and 5 in Spark and Spring Batch tests.
 
 ## [0.11.0] - 2026-10-16
 

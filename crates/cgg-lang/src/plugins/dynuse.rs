@@ -115,6 +115,16 @@ pub fn extract(tree: &Tree, source: &[u8], language: &str) -> Vec<DynUse> {
         let mut c = n.walk();
         stack.extend(n.children(&mut c));
 
+        if let Some((ty, at)) = member_enumeration(n, language, source) {
+            out.push(DynUse {
+                name: ty,
+                via: cgg_core::DYN_MEMBERS_OF.to_string(),
+                site_line: at.start_position().row as u32 + 1,
+                site_byte: at.start_byte() as u32,
+            });
+            continue;
+        }
+
         // Java's `method_invocation` and C#'s `invocation_expression`
         // are calls too; neither has "call" in its kind.
         if !(n.kind().contains("call")
@@ -168,6 +178,159 @@ pub fn extract(tree: &Tree, source: &[u8], language: &str) -> Vec<DynUse> {
     out.sort_by(|a, b| a.site_byte.cmp(&b.site_byte).then(a.name.cmp(&b.name)));
     out.dedup_by(|a, b| a.site_byte == b.site_byte && a.name == b.name);
     out
+}
+
+/// A reflective enumeration of a named type's members at `n`
+/// ([`cgg_core::stdlib::MEMBER_ENUMERATION_APIS`]): the type's simple
+/// name, and the node to anchor the record at. Only when the type is
+/// written: `typeof(T)`, `T.class`, `T::class` or `'T'`, a constant
+/// receiver, a class name argument.
+fn member_enumeration<'n>(
+    n: Node<'n>,
+    language: &str,
+    src: &[u8],
+) -> Option<(String, Node<'n>)> {
+    let apis = cgg_core::stdlib::MEMBER_ENUMERATION_APIS
+        .iter()
+        .find(|(l, _)| *l == language)
+        .map(|(_, a)| *a)?;
+    let text = |x: Node| std::str::from_utf8(&src[x.byte_range()]).unwrap_or("");
+    let simple = |t: &str| -> Option<String> {
+        let t = t.trim().trim_matches(['"', '\'']);
+        let t = t.split('<').next().unwrap_or(t);
+        let t = t.rsplit(['.', ':', '\\']).next().unwrap_or(t).trim();
+        (!t.is_empty()
+            && t.chars()
+                .next()
+                .is_some_and(|c| c.is_alphabetic() || c == '_'))
+        .then(|| t.to_string())
+    };
+    let named = |x: Node| apis.contains(&text(x).trim());
+    match language {
+        // `typeof(T).GetMethods()`, `typeof(T).GetTypeInfo().DeclaredMethods`.
+        "csharp" => {
+            if n.kind() != "member_access_expression"
+                || !n.child_by_field_name("name").is_some_and(named)
+            {
+                return None;
+            }
+            let mut recv = n.child_by_field_name("expression")?;
+            // Through `.GetTypeInfo()`.
+            if recv.kind() == "invocation_expression"
+                && let Some(f) = recv.child_by_field_name("function")
+                && f.kind() == "member_access_expression"
+                && f.child_by_field_name("name")
+                    .is_some_and(|x| text(x) == "GetTypeInfo")
+            {
+                recv = f.child_by_field_name("expression")?;
+            }
+            (recv.kind() == "typeof_expression")
+                .then(|| recv.child_by_field_name("type"))
+                .flatten()
+                .and_then(|t| simple(text(t)))
+                .map(|t| (t, n))
+        }
+        // `T.class.getDeclaredMethods()`.
+        "java" => {
+            if n.kind() != "method_invocation"
+                || !n.child_by_field_name("name").is_some_and(named)
+            {
+                return None;
+            }
+            let obj = n.child_by_field_name("object")?;
+            (obj.kind() == "class_literal")
+                .then(|| obj.named_child(0))
+                .flatten()
+                .and_then(|t| simple(text(t)))
+                .map(|t| (t, n))
+        }
+        // `get_class_methods(T::class)` / `get_class_methods('T')`;
+        // `(new ReflectionClass(T::class))->getMethods()`.
+        "php" => {
+            let class_arg = |args: Node<'n>| -> Option<String> {
+                let a = args.named_child(0)?;
+                let a = if a.kind() == "argument" {
+                    a.named_child(0)?
+                } else {
+                    a
+                };
+                match a.kind() {
+                    "class_constant_access_expression" => {
+                        let last = a
+                            .named_child(a.named_child_count().saturating_sub(1) as u32)?;
+                        if text(last) != "class" {
+                            return None;
+                        }
+                        simple(text(a.named_child(0)?))
+                    }
+                    k if k.contains("string") => simple(text(a)),
+                    _ => None,
+                }
+            };
+            match n.kind() {
+                "function_call_expression" => {
+                    let f = n.child_by_field_name("function")?;
+                    if text(f) != "get_class_methods" {
+                        return None;
+                    }
+                    class_arg(n.child_by_field_name("arguments")?).map(|t| (t, n))
+                }
+                "member_call_expression" => {
+                    if n.child_by_field_name("name")
+                        .is_none_or(|x| text(x) != "getMethods")
+                    {
+                        return None;
+                    }
+                    let mut o = n.child_by_field_name("object")?;
+                    if o.kind() == "parenthesized_expression" {
+                        o = o.named_child(0)?;
+                    }
+                    if o.kind() != "object_creation_expression" {
+                        return None;
+                    }
+                    let mut oc = o.walk();
+                    let kids: Vec<Node> = o.named_children(&mut oc).collect();
+                    let cls = kids.iter().find(|k| k.kind() == "name")?;
+                    if text(*cls) != "ReflectionClass" {
+                        return None;
+                    }
+                    let args = kids.iter().find(|k| k.kind() == "arguments")?;
+                    class_arg(*args).map(|t| (t, n))
+                }
+                _ => None,
+            }
+        }
+        // `T.instance_methods`, `A::T.instance_methods(false)`.
+        "ruby" => {
+            if n.kind() != "call" || !n.child_by_field_name("method").is_some_and(named) {
+                return None;
+            }
+            let r = n.child_by_field_name("receiver")?;
+            matches!(r.kind(), "constant" | "scope_resolution")
+                .then(|| simple(text(r)))
+                .flatten()
+                .map(|t| (t, n))
+        }
+        // `inspect.getmembers(T)` with a capitalized name.
+        "python" => {
+            if n.kind() != "call" {
+                return None;
+            }
+            let f = n.child_by_field_name("function")?;
+            let fname = text(f).rsplit('.').next().unwrap_or("");
+            if !apis.contains(&fname) {
+                return None;
+            }
+            let a = n.child_by_field_name("arguments")?.named_child(0)?;
+            (matches!(a.kind(), "identifier" | "attribute")
+                && simple(text(a))
+                    .is_some_and(|t| t.starts_with(|c: char| c.is_uppercase())))
+            .then(|| simple(text(a)))
+            .flatten()
+            .map(|t| (t, n))
+        }
+        _ => None,
+    }
 }
 
 #[cfg(test)]
@@ -322,5 +485,52 @@ mod tests {
                 "ByInvokeMember"
             ]
         );
+    }
+
+    /// WS28b: a reflective enumeration of a type the code names records
+    /// the type; one on a value (`o.GetType()`, `getClass()`) does not.
+    #[test]
+    fn member_enumerations_name_the_type() {
+        let cases: &[(&str, &str, &[&str])] = &[
+            (
+                "csharp",
+                "class A { void F(object o) { var a = typeof(S.Sur).GetTypeInfo().DeclaredMethods; var b = typeof(Gen<int>).GetMethods(); var c = o.GetType().GetMethods(); } }",
+                &["Gen", "Sur"],
+            ),
+            (
+                "java",
+                "class A { void f() { A.class.getDeclaredMethods(); getClass().getMethods(); } }",
+                &["A"],
+            ),
+            (
+                "php",
+                "<?php\n$a = get_class_methods(Foo::class);\n$b = get_class_methods('Bar');\n$c = (new ReflectionClass(Baz::class))->getMethods();\n$d = get_class_methods($x);\n",
+                &["Bar", "Baz", "Foo"],
+            ),
+            (
+                "ruby",
+                "x = Foo.instance_methods(false)\ny = obj.instance_methods\n",
+                &["Foo"],
+            ),
+            (
+                "python",
+                "import inspect\nm = inspect.getmembers(Handler)\nn = inspect.getmembers(obj)\n",
+                &["Handler"],
+            ),
+        ];
+        for (lang, src, want) in cases {
+            let t = parse(lang, src);
+            let mut got: Vec<String> = extract(&t, src.as_bytes(), lang)
+                .into_iter()
+                .filter(|d| d.via == cgg_core::DYN_MEMBERS_OF)
+                .map(|d| d.name)
+                .collect();
+            got.sort();
+            assert_eq!(
+                got,
+                want.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+                "{lang}"
+            );
+        }
     }
 }
