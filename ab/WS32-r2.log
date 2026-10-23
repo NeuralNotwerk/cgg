@@ -1,0 +1,16 @@
+old: cgg 0.11.1  sha256=123439305fec8c3f93ed29113ee09f2028ab8a14b48214c0b9d546c82eae47e2
+new: cgg 0.11.1 (dev g2a8ac50+d89304fd)  sha256=888f8ef6ffd4d8171f9c5bf19d42d803e83829b0a86d7c6cc22bcca1ab9b44ed
+old=target/remediation/bins/WS32-before
+new=target/remediation/bins/WS32-r2
+repos=7 elapsed=5s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 7
+  app-concordium-gotham: edges 19298->17698 (-5135 +3535 ~60) callables 20228->14212 unresolved 4111->4062 files 380->380 deadhigh 1->1 
+  app-hadolint-hspec: edges 2121->2113 (-11 +3 ~0) callables 1967->1875 unresolved 29->29 files 191->191 deadhigh 0->0 
+  app-realworld-scotty: edges 320->320 (-100 +100 ~0) callables 542->333 unresolved 25->25 files 34->34 deadhigh 0->0 
+  app-stackage-yesod: edges 862->766 (-211 +115 ~0) callables 1424->1074 unresolved 1025->1015 files 64->64 deadhigh 0->0 
+  haskell-hspec: edges 2895->2709 (-341 +155 ~3) callables 1898->1428 unresolved 290->262 files 188->188 deadhigh 0->0 
+  haskell-pandoc: edges 26687->25998 (-4775 +4086 ~1) callables 22984->17273 unresolved 7041->7197 files 434->434 deadhigh 0->0 
+  rust-bat: edges 2928->2928 (-0 +0 ~0) callables 1981->1979 unresolved 2078->2065 files 176->176 deadhigh 3->3 
+by language: see by_language.tsv
+

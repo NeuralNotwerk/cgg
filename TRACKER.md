@@ -190,3 +190,13 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 - WS28b: C# whole-type reflection (`typeof(T).GetTypeInfo().DeclaredMethods`, `GetMethods()`) not screened → Serilog SurrogateConfigurationMethods 5 high dead FPs exposed by WS28. Fix before release.
 - WS29 open: C same-file `#if/#else` alternative bodies → `ambiguous-in-file`, no edge (missed call, pre-existing; docs now say so). Stale rule `gap` prose (go-testing, eunit, common-test, xctest x2, fsharp-nunit, cpp-test-macros) — suppressed by has_matchers, so not printed; tidy later. Matrix re-score (02,05,06,07,11,12,14) after release.
 - (2026-10-23) RELEASED 0.11.1: release commit 2a8ac50, tag v0.11.1, main fast-forwarded; CI run 39893112634. Gates all green (cargo-deny not installed). vs 0.11.0: +3.5% default perf (groovy-gradle +18%, WS30 cost); 8 new high dead (verified correct C# overloads). CHANGELOG: restored 103 lines (Clojure + WS19) lost by WS30 commit. Post-release: matrix re-score, Groovy grammar, C same-file #if alternatives, Perl $handler, Fortran use'd arrays.
+- (2026-10-23) POST-RELEASE TRIAGE (agent, measured on 0.11.1). MAJOR → fix queue (patch, 0.11.2):
+  WS32 Haskell do-bind phantoms (11,743 phantom callables, 818 wrong high + 2,338 medium edges, 9.4k bogus findings);
+  WS33 intra_file closure-return rule (≈1,014 wrong high, ≈517 medium; JS/TS/Zig/Py/OCaml…);
+  WS34 F# module-qualified calls `Mod.f` unresolved (~5,850 sites, ~640 live fns dead medium);
+  WS35 Kotlin declared return types (`make().work()`, ≥118 wrong medium fan-outs, ~996 unresolved);
+  WS36 C same-file #if/#else alternatives (18,296 sites no edge, 978 live C dead at low);
+  WS37 Clojure letfn extraction (~491 forms) + double binding-table build;
+  WS38 Groovy ERROR spans: patch-able parse_source rewrites (Spock interactions, command exprs, `as` casts); fuller vendored grammar = new parser → 0.12.0, user decision.
+  MINOR (logged): Solidity Yul (0 corpus impact), C/C++ type-name refs (29 medium), Spock ProviderSpec (20 medium), Fortran use'd arrays (1), JS/TS coincidental roots (hides findings, vendor code), Dart method-less bases (393 medium).
+- WS32 open: Haskell cross-file lookup treats nested `where`/`let` helpers as candidates → 19 wrong high (e.g. record accessor reaching another module's local) — fold into WS33.

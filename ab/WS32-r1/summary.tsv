@@ -1,0 +1,8 @@
+repo	edges_old	edges_new	dropped	added	changed	callables_old	callables_new	unres_old	unres_new	files_old	files_new	deadhigh_old	deadhigh_new	note
+app-concordium-gotham	19298	17698	5135	3535	60	20228	14212	4111	4062	380	380	1	1	
+app-hadolint-hspec	2121	2113	11	3	0	1967	1875	29	29	191	191	0	0	
+app-realworld-scotty	320	320	100	100	0	542	333	25	25	34	34	0	0	
+app-stackage-yesod	862	766	211	115	0	1424	1074	1025	1015	64	64	0	0	
+haskell-hspec	2895	2709	341	155	3	1898	1428	290	262	188	188	0	0	
+haskell-pandoc	26687	25998	4775	4086	1	22984	17273	7041	7197	434	434	0	0	
+rust-bat	2928	2928	0	0	0	1981	1979	2078	2065	176	176	3	3	

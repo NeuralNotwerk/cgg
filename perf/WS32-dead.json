@@ -1,0 +1,37 @@
+[
+ {
+  "repo": "app-concordium-gotham",
+  "old_ms": 4285.7519360259175,
+  "new_ms": 4182.616938021965
+ },
+ {
+  "repo": "app-hadolint-hspec",
+  "old_ms": 366.5303969755769,
+  "new_ms": 368.69093601126224
+ },
+ {
+  "repo": "app-realworld-scotty",
+  "old_ms": 114.94984303135425,
+  "new_ms": 114.06624806113541
+ },
+ {
+  "repo": "app-stackage-yesod",
+  "old_ms": 566.8269579764456,
+  "new_ms": 517.1671280404553
+ },
+ {
+  "repo": "haskell-hspec",
+  "old_ms": 466.67282294947654,
+  "new_ms": 466.76361199934036
+ },
+ {
+  "repo": "haskell-pandoc",
+  "old_ms": 5149.926660931669,
+  "new_ms": 4950.579855008982
+ },
+ {
+  "repo": "rust-bat",
+  "old_ms": 7145.1357619371265,
+  "new_ms": 7411.4619720494375
+ }
+]

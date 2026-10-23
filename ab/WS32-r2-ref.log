@@ -1,0 +1,11 @@
+repos 7 excluded []
+added 9509
+  ('haskell', '{"kind": "direct"}', 'high') 5399
+  ('haskell', '{"kind": "direct"}', 'medium') 2658
+  ('haskell', '{"kind": "reference"}', 'high') 1343
+  ('haskell', '{"kind": "reference"}', 'medium') 109
+dropped 11532
+  ('haskell', '{"kind": "direct"}', 'high') 6127
+  ('haskell', '{"kind": "direct"}', 'medium') 4509
+  ('haskell', '{"kind": "reference"}', 'high') 791
+  ('haskell', '{"kind": "reference"}', 'medium') 105
