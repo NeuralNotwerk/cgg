@@ -28,6 +28,34 @@ otherwise change the default graph.
   (`M.insertWith f k v m` with `let f a b = …` in a `do`) is no longer
   dropped because some other module binds the same name as data, so
   local helpers the phantoms used to hide stay credited.
+- **A local named like another function's nested definition bound that
+  definition (WS33).** A bare call through a non-parameter local
+  (`close()` after `const { close } = props`, `f(self)` through a Zig
+  capture `|f|`, `scale()` after `var scale = d3.scale.linear()`) bound a
+  same-named function nested in some other function of the file, at
+  `high` where the name was unique. The rule exists for a local holding
+  a closure a factory returns (`teardown := setupDB(t)`, `is_valid =
+  is_valid_factory(x)`, `const { a } = await make()`); it now applies
+  only when the local's initializer calls the function the nested
+  definition sits in, and otherwise the local shadows
+  (`shadowed-by-local`). A type's members (a Kotlin primary
+  constructor's span) and a `let rec f … and g …` chain's own bindings
+  are unaffected, and Haskell, whose actions run without parentheses
+  (`(rec, r) <- mkAppend`), keeps the old reading.
+- **Another module's nested helpers were cross-file candidates
+  (WS33).** A function nested in another function — a Haskell `where`
+  or `let` helper, a Python nested `def`, a JavaScript inner function,
+  an OCaml or F# local `let` — is visible by name only inside it, yet a
+  bare call in another file could bind it: a Haskell record accessor
+  (`parties com`) reached another module's local `parties = …` at
+  `high`. In Python, Go, JavaScript, TypeScript, Lua, OCaml, F#,
+  Haskell, Julia, Nix and Starlark such a definition is no longer a
+  bare-name candidate from another file. A call through a receiver may
+  still reach one (a factory's returned object, a class declared in a
+  function), and the fan-out cap applies before the drop, so a set it
+  refused stays refused. Not Scala, Kotlin, Swift, Dart or Rust, where a
+  member's name carries its type and a span a parse recovered past
+  would make a type's members look nested.
 
 ### Compatibility
 
@@ -52,6 +80,30 @@ repositories, none excluded):
 - Under `--dead-code`, 10,419 findings leave the report (10,402
   `medium`, 17 `low`), nearly all of them phantoms, and 26 enter it (24
   `medium`, 2 `low`). None are `high` either way.
+
+WS33 nested definitions (full corpus, 283 repositories, none excluded):
+
+- The default graph loses 8,765 edges (200 `high`), all of them bindings
+  to a function nested in another function, and gains 18 (`medium`).
+- Locals: 553 intra-file edges are removed (78 `high`): JavaScript 354
+  (48 `high`, mostly minified bundles), TypeScript 92, Python 59, Zig 23
+  (`high`, captures), OCaml 19, C++ 2 (`high`: a lambda local
+  `is_drive_name` bound a class method), F# 2, Go 2. The intended
+  factory cases stay: Go `teardown := setupDB(t)`, Python
+  `is_valid_index = is_valid_index_factory(LL)`, Lua `check_events =
+  setup_eventcheck(…)`, R `dev = validate_device(…)`, TypeScript `const
+  { getOptions } = setup({…})`, and hspec's `(rec, retrieve) <-
+  mkAppend`.
+- Cross-file: 8,212 edges are removed (122 `high`): Haskell 2,367 (108
+  `high`, record accessors and local helpers of other modules), JavaScript
+  3,687, OCaml 1,534 (HTML combinators `p`, `a` bound to locals of other
+  modules), Python 501 (gettext `_(…)` bound to another file's nested
+  `_`), F# 67, TypeScript 56 (14 `high`).
+- Under `--reference-edges`, the same edges change, and 578 reference
+  edges into nested definitions are removed (1 `high`).
+- Under `--dead-code`, 213 `medium` findings leave the report and 329
+  enter it (266 `medium`, 63 `low`); 101 move `medium` → `low`. None are
+  `high` either way.
 
 ## [0.11.1] - 2026-10-23
 

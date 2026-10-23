@@ -119,7 +119,7 @@ impl Nesting {
 /// Go (WS27): a `name := func(…) {…}` closure is a definition nested in
 /// its function, visible by name only there; six tests of one file each
 /// declaring `httpStubs := func…` are six scopes, not one ambiguous name.
-fn lexically_scoped(language: &str) -> bool {
+pub(crate) fn lexically_scoped(language: &str) -> bool {
     matches!(
         language,
         "python"
@@ -205,6 +205,27 @@ pub fn link_file_with_cap(
 
     let locals = crate::scope::FileLocals::build(facts);
     let nesting = Nesting::build(&facts.definitions);
+    // Call sites by callee name, sorted by byte: what a local's
+    // initializer calls (WS33).
+    let mut calls_named: std::collections::HashMap<&str, Vec<u32>> =
+        std::collections::HashMap::new();
+    for r in &facts.references {
+        if !r.value_ref && !r.paren_less {
+            calls_named
+                .entry(r.name.as_str())
+                .or_default()
+                .push(r.site_byte);
+        }
+    }
+    for v in calls_named.values_mut() {
+        v.sort_unstable();
+    }
+    let calls_between = |name: &str, from: u32, to: u32| -> bool {
+        calls_named.get(name).is_some_and(|v| {
+            let i = v.partition_point(|&b| b < from);
+            v.get(i).is_some_and(|&b| b < to)
+        })
+    };
     for rref in &facts.references {
         let enclosing = enclosing_def_index(facts, rref);
         let src = enclosing.and_then(|i| def_ids.get(&(facts.file, i as u32)).copied());
@@ -311,12 +332,44 @@ pub fn link_file_with_cap(
                     .unwrap_or((ls, le))
             };
             let before = candidates.len();
+            // A local holds another function's nested definition only
+            // when its initializer calls that function: `teardown :=
+            // setupDB(t)`, `is_valid = is_valid_factory(x)`, `const {
+            // a } = await make()` (WS33). Destructured props (`const {
+            // close } = props`), a capture (`|f|`) or an unrelated call
+            // (`scale = d3.scale.linear()`) shadow instead.
+            //
+            // A member of a type (its parent spans a type, a Kotlin
+            // primary constructor) is no other function's closure: kept
+            // as before. Haskell runs an action without parentheses
+            // (`(rec, r) <- mkAppend`), which leaves no call record to
+            // read: there the old reading stands.
+            let returned_by_initializer = |i: u32| -> bool {
+                nesting.parent[i as usize].is_some_and(|p| {
+                    let parent = &facts.definitions[p];
+                    parent.variant == DefVariant::Constructor
+                        || facts.language == "haskell"
+                        || calls_between(&parent.simple_name, decl, ls.max(decl + 1))
+                })
+            };
+            // The local is that definition: a `let rec f … and g …`
+            // binding whose definition sits in its own scope, in the
+            // function that holds the declaration.
+            let is_the_binding = |i: u32, d: &DefRecord| -> bool {
+                decl <= d.start_byte
+                    && d.start_byte < le
+                    && nesting.parent[i as usize].is_some_and(|p| {
+                        let pd = &facts.definitions[p];
+                        pd.start_byte <= decl && decl < pd.end_byte
+                    })
+            };
             candidates.retain(|(i, d)| {
                 (fs <= d.start_byte && d.start_byte < fe)
                     // The function the declaration itself binds
                     // (`const lim = (v) => …`).
                     || (decl <= d.start_byte && d.start_byte < ls)
-                    || (!is_param && nesting.parent[*i as usize].is_some())
+                    || (!is_param && is_the_binding(*i, d))
+                    || (!is_param && returned_by_initializer(*i))
                     // A C-family function-like macro expands before any
                     // scope applies: `data(ctx)` beside a parameter `data`
                     // is the macro (WS27).
@@ -1294,20 +1347,52 @@ mod tests {
             ),
             mk_def("run", "m.run", DefVariant::FreeFunction, (200, 300)),
         ];
-        let mut facts = facts_with_lang("python", defs, vec![mk_ref("is_valid", 250)]);
-        facts.locals = vec![cgg_core::LocalBinding {
+        let binding = cgg_core::LocalBinding {
             name: "is_valid".into(),
             start_byte: 230,
             end_byte: 300,
             decl_byte: 210,
             param: false,
-        }];
+        };
+        // `is_valid = factory(x)`: the initializer calls the factory.
+        let mut facts = facts_with_lang(
+            "python",
+            defs.clone(),
+            vec![mk_ref("factory", 220), mk_ref("is_valid", 250)],
+        );
+        facts.locals = vec![binding.clone()];
         let map = mk_map(&facts);
         let out = link_file(&facts, &map);
-        let dsts: Vec<u32> = out.edges.iter().map(|e| e.dst.as_u32()).collect();
-        assert_eq!(dsts, vec![1], "{:?}", out);
+        let got: Vec<(u32, Confidence)> = out
+            .edges
+            .iter()
+            .filter(|e| e.site_byte == 250)
+            .map(|e| (e.dst.as_u32(), e.confidence))
+            .collect();
         // Kept, but `is_valid` is not visible by name in `run`: a guess.
-        assert_eq!(out.edges[0].confidence, Confidence::Medium);
+        assert_eq!(got, vec![(1, Confidence::Medium)], "{:?}", out);
+        // WS33 near miss: `is_valid = other(x)` (or destructured props,
+        // a capture) holds no closure of `factory`: the local shadows.
+        let mut facts = facts_with_lang(
+            "python",
+            defs,
+            vec![mk_ref("other", 220), mk_ref("is_valid", 250)],
+        );
+        facts.locals = vec![binding];
+        let out = link_file(&facts, &mk_map(&facts));
+        assert!(
+            out.edges.iter().all(|e| e.site_byte != 250),
+            "{:?}",
+            out.edges
+        );
+        assert!(
+            out.unresolved
+                .iter()
+                .any(|u| u.site_byte == 250
+                    && u.reason == UnresolvedReason::ShadowedByLocal),
+            "{:?}",
+            out.unresolved
+        );
     }
 
     /// WS19 gap 1: a receiver whose type propagation only guessed
@@ -1453,13 +1538,22 @@ mod tests {
                 "{lang}: {:?}",
                 out.unresolved
             );
-            // Near miss: `go = outer()` then `go()` — a local.
-            let mut facts = facts_with_lang(lang, defs, vec![mk_ref("go", 240)]);
-            facts.locals = vec![local("go", 220, 300)];
+            // Near miss: `go = outer()` then `go()` — a local whose
+            // initializer calls the function `go` is nested in.
+            let mut facts = facts_with_lang(
+                lang,
+                defs,
+                vec![mk_ref("outer", 215), mk_ref("go", 240)],
+            );
+            facts.locals = vec![cgg_core::LocalBinding {
+                decl_byte: 210,
+                ..local("go", 220, 300)
+            }];
             let out = link_file(&facts, &mk_map(&facts));
             let got: Vec<(u32, Confidence)> = out
                 .edges
                 .iter()
+                .filter(|e| e.site_byte == 240)
                 .map(|e| (e.dst.as_u32(), e.confidence))
                 .collect();
             assert_eq!(got, vec![(1, Confidence::Medium)], "{lang}");

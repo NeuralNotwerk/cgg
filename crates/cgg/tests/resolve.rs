@@ -8313,3 +8313,61 @@ fn overloads_narrow_by_argument_count_and_labels() {
         "{edges:?}"
     );
 }
+
+/// WS33: a function nested in another function is visible by name only
+/// inside it: a bare call in another file never binds it (a Python
+/// nested `def`, a Haskell `where` helper), and a local named like it
+/// binds it only when the local's initializer calls the function it is
+/// nested in (`check = make_checker()`); a local holding something else
+/// (`check = other()`) shadows.
+#[test]
+fn nested_functions_are_not_visible_outside_their_function() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "lib.py",
+        b"def make_checker():\n    def check(x):\n        return x\n    return check\n\ndef other():\n    return 1\n\ndef good():\n    check = make_checker()\n    return check(1)\n\ndef bad():\n    check = other()\n    return check(1)\n",
+    );
+    write(
+        tmp.path(),
+        "use.py",
+        b"def caller():\n    return check(2)\n",
+    );
+    write(
+        tmp.path(),
+        "A.hs",
+        b"module A where\nmk n = R { parties = ps }\n  where ps = n\n        parties = 1\n",
+    );
+    write(
+        tmp.path(),
+        "B.hs",
+        b"module B where\nimport A\ncount r = parties r\n",
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let edges: Vec<(String, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| (qn(&e["src"]), qn(&e["dst"])))
+        .collect();
+    let has =
+        |s: &str, d: &str| edges.iter().any(|(a, b)| a.ends_with(s) && b.ends_with(d));
+    assert!(has("good", "make_checker.check"), "{edges:?}");
+    assert!(!has("bad", "make_checker.check"), "{edges:?}");
+    assert!(!has("caller", "make_checker.check"), "{edges:?}");
+    assert!(!has("count", "parties"), "{edges:?}");
+}

@@ -1019,6 +1019,10 @@ pub fn resolve(
     let mut qn_files: HashMap<(String, String), FileId> = HashMap::new();
     let mut multi_file_qns: std::collections::HashSet<(String, String)> =
         std::collections::HashSet::new();
+    // Functions nested in another function, in the languages whose bare
+    // names are lexically scoped: visible only inside their enclosing
+    // function, so never a by-name candidate from another file (WS33).
+    let nested_fns = nested_function_ids(graph);
     for c in graph.callables.values() {
         let key = (c.language.clone(), c.qualified_name.clone());
         match qn_files.get(&key) {
@@ -2792,6 +2796,25 @@ pub fn resolve(
                     let cids = narrow_by_arity(graph, &lang, r.arity, cids);
                     narrow_by_labels(graph, &lang, &r.arg_labels, cids)
                 });
+                // A function nested in another function is visible by name
+                // only inside it, never from another file (WS33). A call
+                // through a receiver may still reach one — a factory's
+                // returned object, a class declared in a function — so
+                // only a bare call drops it. Dropped after the fan-out cap
+                // was applied, so a set the cap refused stays refused
+                // rather than binding its other members.
+                let bare = r.receiver_hint.is_empty() && !r.dot_call;
+                let resolved = if bare {
+                    resolved
+                        .map(|cids| {
+                            cids.into_iter()
+                                .filter(|c| !nested_fns.contains(c))
+                                .collect::<Vec<_>>()
+                        })
+                        .filter(|cids| !cids.is_empty())
+                } else {
+                    resolved
+                };
                 // Reading the whole overload set is a guess among its
                 // members, bounded by the cap like any other: a set the
                 // count cannot cut below it is refused, recorded with its
@@ -5165,6 +5188,66 @@ pub(crate) fn one_method(graph: &Graph, cids: &[CallableId], fanout_cap: usize) 
                     && n.qualified_name == first.qualified_name
             })
         })
+}
+
+/// The lexically scoped languages whose nested functions
+/// [`nested_function_ids`] reads off the spans. Not Scala, Kotlin, Swift,
+/// Dart or Rust: their member names carry their type, not the function a
+/// definition sits in, and a span a parse recovered past would make a
+/// type's members look nested in the method before them.
+const NESTED_SCOPE_LANGS: &[&str] = &[
+    "python",
+    "go",
+    "javascript",
+    "typescript",
+    "lua",
+    "ocaml",
+    "fsharp",
+    "haskell",
+    "julia",
+    "nix",
+    "starlark",
+];
+
+/// The functions (and named closures) defined inside another function or
+/// method of the same file, in [`NESTED_SCOPE_LANGS`]: a Haskell `where`
+/// helper, a Python nested `def`, a Go `name := func…`. Methods nested in
+/// a type declared inside a function are not functions and stay.
+pub(crate) fn nested_function_ids(
+    graph: &Graph,
+) -> std::collections::HashSet<CallableId> {
+    use cgg_core::graph::CallableKind as K;
+    let mut by_file: HashMap<FileId, Vec<&cgg_core::graph::CallableNode>> =
+        HashMap::new();
+    for c in graph.callables.values() {
+        if !c.synthetic && NESTED_SCOPE_LANGS.contains(&c.language.as_str()) {
+            by_file.entry(c.file).or_default().push(c);
+        }
+    }
+    let mut out = std::collections::HashSet::new();
+    for v in by_file.values_mut() {
+        v.sort_by(|a, b| {
+            a.start_byte
+                .cmp(&b.start_byte)
+                .then(b.end_byte.cmp(&a.end_byte))
+        });
+        let mut stack: Vec<&cgg_core::graph::CallableNode> = Vec::new();
+        for c in v.iter() {
+            while stack.last().is_some_and(|t| t.end_byte <= c.start_byte) {
+                stack.pop();
+            }
+            if let Some(p) = stack.last()
+                && c.end_byte <= p.end_byte
+                && (p.start_byte, p.end_byte) != (c.start_byte, c.end_byte)
+                && matches!(p.kind, K::Function | K::Method | K::Closure)
+                && matches!(c.kind, K::Function | K::Closure)
+            {
+                out.insert(c.id);
+            }
+            stack.push(c);
+        }
+    }
+    out
 }
 
 /// Overloading languages: the candidates whose declared parameter list can
