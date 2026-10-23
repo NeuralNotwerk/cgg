@@ -1,0 +1,4 @@
+{"repo": "rust-ntex", "lang": "rust", "qn": "ntex::web::middleware::logger::tests::render", "path": "/storage/cgg-test_repos/rust-ntex/ntex/src/web/middleware/logger.rs", "line": 458, "old": "low", "new": "high"}
+{"repo": "rust-ntex", "lang": "rust", "qn": "ntex::web::middleware::logger::tests::render", "path": "/storage/cgg-test_repos/rust-ntex/ntex/src/web/middleware/logger.rs", "line": 486, "old": "low", "new": "high"}
+{"repo": "rust-ntex", "lang": "rust", "qn": "ntex::web::middleware::logger::tests::render", "path": "/storage/cgg-test_repos/rust-ntex/ntex/src/web/middleware/logger.rs", "line": 515, "old": "low", "new": "high"}
+{"repo": "rust-ntex", "lang": "rust", "qn": "ntex::web::middleware::logger::tests::render", "path": "/storage/cgg-test_repos/rust-ntex/ntex/src/web/middleware/logger.rs", "line": 542, "old": "low", "new": "high"}

@@ -1,0 +1,9 @@
+old: cgg 0.11.1 (dev g157d514+d90ca38f)  sha256=b14b8a3534c89af28bcc7a57e0dc87f49bb35c30a45120baf572598bc962d06e
+new: cgg 0.11.1 (dev g157d514+d9fee002)  sha256=fca1179ded2c89b93036f2ee22902fccfc8f20125e81623fc7850b16d5044bca
+old=target/remediation/bins/WS33-r3
+new=target/remediation/bins/WS33-final
+repos=60 elapsed=95s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 1
+  scala-spark: edges 302770->302775 (-0 +5 ~0) callables 112369->112369 unresolved 743170->743165 files 9202->9202 deadhigh 68->68 
+by language: see by_language.tsv

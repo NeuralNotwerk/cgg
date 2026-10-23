@@ -1,0 +1,43 @@
+repos 283 excluded []
+added 67
+  ('javascript', '{"kind": "direct"}', 'high') 4
+  ('javascript', '{"kind": "direct"}', 'medium') 2
+  ('lua', '{"kind": "direct"}', 'medium') 1
+  ('python', '{"kind": "direct"}', 'high') 2
+  ('python', '{"kind": "direct"}', 'medium') 16
+  ('scala', '{"kind": "direct"}', 'high') 6
+  ('scala', '{"kind": "direct"}', 'medium') 35
+  ('typescript', '{"kind": "direct"}', 'high') 1
+dropped 72817
+  ('cpp', '{"kind": "direct"}', 'high') 2
+  ('fsharp', '{"kind": "direct"}', 'high') 218
+  ('fsharp', '{"kind": "direct"}', 'medium') 200
+  ('fsharp', '{"kind": "reference"}', 'high') 112
+  ('fsharp', '{"kind": "reference"}', 'medium') 6
+  ('go', '{"kind": "direct"}', 'medium') 69
+  ('haskell', '{"kind": "direct"}', 'high') 110
+  ('haskell', '{"kind": "direct"}', 'medium') 2328
+  ('haskell', '{"kind": "reference"}', 'medium') 244
+  ('javascript', '{"kind": "direct"}', 'high') 51
+  ('javascript', '{"kind": "direct"}', 'medium') 49095
+  ('javascript', '{"kind": "reference"}', 'medium') 1140
+  ('kotlin', '{"kind": "direct"}', 'high') 16
+  ('lua', '{"kind": "direct"}', 'high') 1
+  ('lua', '{"kind": "direct"}', 'medium') 589
+  ('lua', '{"kind": "reference"}', 'medium') 2
+  ('nix', '{"kind": "direct"}', 'medium') 64
+  ('ocaml', '{"kind": "direct"}', 'high') 3
+  ('ocaml', '{"kind": "direct"}', 'medium') 1550
+  ('ocaml', '{"kind": "reference"}', 'medium') 103
+  ('python', '{"kind": "direct"}', 'high') 4
+  ('python', '{"kind": "direct"}', 'medium') 5289
+  ('python', '{"kind": "reference"}', 'high') 1
+  ('python', '{"kind": "reference"}', 'medium') 72
+  ('rust', '{"kind": "direct"}', 'medium') 30
+  ('scala', '{"kind": "direct"}', 'high') 54
+  ('scala', '{"kind": "direct"}', 'medium') 1802
+  ('swift', '{"kind": "direct"}', 'medium') 2299
+  ('typescript', '{"kind": "direct"}', 'high') 14
+  ('typescript', '{"kind": "direct"}', 'medium') 7167
+  ('typescript', '{"kind": "reference"}', 'medium') 159
+  ('zig', '{"kind": "direct"}', 'high') 23
