@@ -181,18 +181,37 @@ pub fn prune(all_facts: &mut [FileFacts]) {
         // A/B: scoping it added ~200 wrong references).
         let c = f.language == "c";
         let scoped_fields = c;
-        let is_field = |name: &str| match seen {
-            Some((seen_fields, seen_functions, own_functions, seen_types)) => {
-                seen_types.contains(name)
-                    || if scoped_fields {
-                        (seen_fields.contains(name)
-                            && !(c && own_functions.contains(name)))
-                            || (fields.contains(name) && !seen_functions.contains(name))
-                    } else {
-                        fields.contains(name)
+        // Haskell (WS32): an argument-less binding is data
+        // language-wide, but a name this file defines only as a function
+        // (`f x = …` in a `where`, `let f a b = …` in a `do`) is that
+        // function here, whatever another module binds to it.
+        let own_fns: HashSet<String> = if f.language == "haskell" {
+            let data: HashSet<&str> = f.data_members.iter().map(String::as_str).collect();
+            f.definitions
+                .iter()
+                .map(|d| d.simple_name.as_str())
+                .filter(|n| !data.contains(n))
+                .map(str::to_string)
+                .collect()
+        } else {
+            HashSet::new()
+        };
+        let is_field = |name: &str| {
+            !own_fns.contains(name)
+                && match seen {
+                    Some((seen_fields, seen_functions, own_functions, seen_types)) => {
+                        seen_types.contains(name)
+                            || if scoped_fields {
+                                (seen_fields.contains(name)
+                                    && !(c && own_functions.contains(name)))
+                                    || (fields.contains(name)
+                                        && !seen_functions.contains(name))
+                            } else {
+                                fields.contains(name)
+                            }
                     }
-            }
-            None => fields.contains(name),
+                    None => fields.contains(name),
+                }
         };
         // Where a member read through a receiver is a field or getter read
         // (`tester.view`, `game.paused`), a member some class declares as

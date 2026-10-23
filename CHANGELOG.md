@@ -9,6 +9,50 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Haskell `do` binds and type-signature arrows were extracted as
+  functions (WS32).** The Haskell plugin took the first variable under
+  every `bind` and `function` node as a definition's name, so a `do`
+  statement's `x <- e` became a callable named `x`, and a type-level
+  arrow (`a -> m a`, which the grammar also calls `function`) became one
+  named after its first type variable. A quarter of the corpus's Haskell
+  callables were these phantoms. Calls through such a variable (a record
+  field accessor of the same name, often) bound to the phantom, at
+  `high` when the name was unique, and every phantom with no caller was
+  reported dead. A definition's name is now read from the node's `name`
+  field only: `f x = …`, `x = …` and a `let` or `where` binding define;
+  a pattern bind (`x <- e`, `(a, b) <- e`, `(a, b) = …`) and a type
+  never do. Its variables were already locals (`collect_haskell`).
+  Under `--dead-code`, a value naming a function the file defines
+  (`M.insertWith f k v m` with `let f a b = …` in a `do`) is no longer
+  dropped because some other module binds the same name as data, so
+  local helpers the phantoms used to hide stay credited.
+
+### Compatibility
+
+WS32 Haskell definitions (every corpus repository containing Haskell, 7
+repositories, none excluded):
+
+- 12,850 Haskell callables are removed: 11,745 `do`-statement pattern
+  binds, 1,102 type-level arrows and 3 constraint arrows (pandoc 5,711,
+  Concordium 6,016, hspec 470, Stackage 350, RealWorld 209, hadolint
+  92). No real definition is lost.
+- In the default graph, 3,141 edges into the phantoms are removed (809
+  `high`, 2,332 `medium`). 7,432 edges (5,304 `high`) change only their
+  caller: a call written in a bind statement belonged to the phantom
+  and now belongs to the function containing it. 562 edges are added
+  (19 `high`): calls that bound a phantom now bind by name, some to a
+  same-named `where`/`let` helper of another module (`cusLeaves
+  peerCUS`, a record-field accessor, reaching a local `cusLeaves = …`
+  elsewhere) — a residual of Haskell's by-name cross-file resolution,
+  which these phantoms had masked.
+- Under `--reference-edges`, 1,452 reference edges are added (1,343
+  `high`) and 896 removed (791 `high`).
+- Under `--dead-code`, 10,419 findings leave the report (10,402
+  `medium`, 17 `low`), nearly all of them phantoms, and 26 enter it (24
+  `medium`, 2 `low`). None are `high` either way.
+
 ## [0.11.1] - 2026-10-23
 
 A correctness release: the cross-language remediation (WS19–WS31) of the

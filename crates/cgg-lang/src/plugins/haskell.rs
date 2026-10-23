@@ -174,17 +174,16 @@ impl<'a> HaskellWalker<'a> {
     }
 
     fn extract_function(&mut self, node: Node) {
-        // function: name = expr or bind: pattern = expr
-        let mut name = String::new();
-
-        for i in 0..node.child_count() {
-            if let Some(child) = node.child(i as u32)
-                && child.kind() == "variable"
-            {
-                name = self.text(child).to_string();
-                break;
-            }
-        }
+        // `f x = …` (`function`) and `x = …` (`bind`) name what they
+        // define in their `name` field. A `bind` without one binds a
+        // pattern: a `do` statement's `x <- e` or `(a, b) <- e` (WS32),
+        // or a pattern binding `(a, b) = …`; its variables are locals
+        // (`locals::collect_haskell`), never callables.
+        let name = node
+            .child_by_field_name("name")
+            .filter(|n| n.kind() == "variable")
+            .map(|n| self.text(n).to_string())
+            .unwrap_or_default();
 
         if name.is_empty() {
             return;
@@ -481,6 +480,26 @@ mod tests {
             .collect();
         for n in ["pv", "rv", "sv", "gv"] {
             assert!(!values.contains(&n), "{n}: {values:?}");
+        }
+    }
+
+    /// WS32: a `do` statement's bind (`x <- e`, `(a, b) <- e`) and a
+    /// pattern binding define no callable; a `let` in `do` still does.
+    #[test]
+    fn do_binds_are_not_definitions() {
+        let f = extract(
+            "module M where\nf = do\n  x <- g\n  (a, b) <- h\n  let k y = y\n      v = 1\n  pure x\n(p, q) = (1, 2)\nr R{..} = 1\n",
+        );
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.simple_name.as_str())
+            .collect();
+        for n in ["f", "k", "v", "r"] {
+            assert!(names.contains(&n), "{n}: {names:?}");
+        }
+        for n in ["x", "a", "b", "p", "q"] {
+            assert!(!names.contains(&n), "{n}: {names:?}");
         }
     }
 }
