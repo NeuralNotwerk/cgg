@@ -1,0 +1,32 @@
+[
+ {
+  "repo": "scala-spark",
+  "old_ms": null,
+  "new_ms": null
+ },
+ {
+  "repo": "smithy-protocol-tests",
+  "old_ms": 6225.175934028812,
+  "new_ms": 5274.752489989623
+ },
+ {
+  "repo": "swift-alamofire",
+  "old_ms": 1467.2669230494648,
+  "new_ms": 1121.0982309421524
+ },
+ {
+  "repo": "verilog-picorv32",
+  "old_ms": 364.62304391898215,
+  "new_ms": 314.6627750247717
+ },
+ {
+  "repo": "vhdl-uvvm",
+  "old_ms": 2468.9791690325364,
+  "new_ms": 2118.2438420364633
+ },
+ {
+  "repo": "zig-zig",
+  "old_ms": null,
+  "new_ms": null
+ }
+]

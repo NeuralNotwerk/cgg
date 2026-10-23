@@ -1,0 +1,12 @@
+{
+ "old": {
+  "sha256": "eb3dbc971ef3eb4e90eb3cf62e66396bf5f24e67172a697a9a24b5ed7398cb98",
+  "version": "cgg 0.11.0",
+  "path": "/storage/cgg/target/release-prep/cgg-baseline"
+ },
+ "new": {
+  "sha256": "41199dd02fd07c8004aca4a894338b78625ffc7a57f5c5f55181492fdcab78ec",
+  "version": "cgg 0.11.1 (dev g36c0772+db9db39d)",
+  "path": "/storage/cgg/target/release/cgg"
+ }
+}

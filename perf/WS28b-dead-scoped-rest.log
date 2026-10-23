@@ -1,0 +1,10 @@
+[1/6] scala-spark                              None -> None
+[2/6] smithy-protocol-tests                    6225.175934028812 -> 5274.752489989623
+[3/6] swift-alamofire                          1467.2669230494648 -> 1121.0982309421524
+[4/6] verilog-picorv32                         364.62304391898215 -> 314.6627750247717
+[5/6] vhdl-uvvm                                2468.9791690325364 -> 2118.2438420364633
+[6/6] zig-zig                                  None -> None
+repos 4 total 10.5 -> 8.8 s -16.12 %
+timeouts/skips: [('scala-spark', None, None, None), ('zig-zig', None, None, None)]
+over runway max(20%,5s): []
+>=1s moves: []

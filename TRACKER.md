@@ -132,7 +132,8 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 | WS26b | Value refs OCaml/Haskell/F# + F# definition gap | — | DONE | 65f8da3 | F# +148 callables, F# operator-folded calls +2,066 edges, 10,317 ref edges, dead −4,184 (none high); FsAutoComplete +645 now reported (root coverage over threshold) |
 | WS31 | Go implicit interfaces (dead code + --dynamic-dispatch) | — | DONE | 03dedf08 | default graph unchanged; dyn +12,027 low; dead −15,737 Go (none high), +725 (Kratos/APISIX root coverage over threshold) |
 | WS28 | Arity narrowing C#/Kotlin/Swift/Groovy/TS | 29 | DONE | 2df1e014 | C#/Kotlin/TS join OVERLOAD_ARITY_LANGS, Swift labels; Groovy no-op; Java/Scala/C++/Groovy +50k high (single overload by arity); dead +920/−428, 11 new high (6 correct uncalled overloads, 5 Serilog reflection FPs → WS28b) |
-| WS29 | Doc corrections + re-score matrix | — | PLANNED | | orchestrator only |
+| WS28b | C#/Java/PHP/Ruby/Python member-enumeration reflection screen | — | DONE | 36c0772a | Serilog 5 high→medium; +101 screened (no confidence change); default graph unchanged |
+| WS29 | Doc corrections + re-score matrix | — | DOCS DONE (b19bc80); re-score deferred post-release | b19bc80 | CLAUDE.md: lexical-narrowing list +Python, heads +Scala, ModuleIndex Lua/Erlang, include alternatives, Kotlin import rule; README: value-ref 26, C macro expansion, dispatch langs; dynuse sentence pending WS28b |
 | WS30 | Groovy methods lost to parse errors (Spock string names) | new | DONE | 3d2a5a3 | Gradle groovy callables 18,952→44,425; spock entries 0→23,836 |
 
 ### Open items carried from WS23 (2026-10-18)
@@ -187,3 +188,5 @@ Plan: dev_docs/REMEDIATION_PLAN.md (top 30 gaps of dev_docs/PARITY_MATRIX.md).
 - WS31 open: structural over-approximation (a type matching an interface it never stands in for is credited; e.g. a client matching a handler interface) — needs data flow, accepted.
 - WS28 open: Groovy `Object[]` last-param varargs not read; TRACKER 143 Kotlin `make().work()` untyped → WS29 docs. Agent ran `rm -rf` on its own stale ab/WS28-ts-r1 (rule breach, reported).
 - WS28b: C# whole-type reflection (`typeof(T).GetTypeInfo().DeclaredMethods`, `GetMethods()`) not screened → Serilog SurrogateConfigurationMethods 5 high dead FPs exposed by WS28. Fix before release.
+- WS29 open: C same-file `#if/#else` alternative bodies → `ambiguous-in-file`, no edge (missed call, pre-existing; docs now say so). Stale rule `gap` prose (go-testing, eunit, common-test, xctest x2, fsharp-nunit, cpp-test-macros) — suppressed by has_matchers, so not printed; tidy later. Matrix re-score (02,05,06,07,11,12,14) after release.
+- (2026-10-23) RELEASED 0.11.1: release commit 2a8ac50, tag v0.11.1, main fast-forwarded; CI run 39893112634. Gates all green (cargo-deny not installed). vs 0.11.0: +3.5% default perf (groovy-gradle +18%, WS30 cost); 8 new high dead (verified correct C# overloads). CHANGELOG: restored 103 lines (Clojure + WS19) lost by WS30 commit. Post-release: matrix re-score, Groovy grammar, C same-file #if alternatives, Perl $handler, Fortran use'd arrays.
