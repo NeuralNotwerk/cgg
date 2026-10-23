@@ -1,0 +1,3005 @@
+{
+  "schema": "cgg.deadcode.v1",
+  "disclaimer": "BEST EFFORT — EVERY FINDING IS A HYPOTHESIS, NOT A FACT. This is a static over-approximation computed from an incomplete call graph. Reflection, string-keyed dispatch, dynamic imports, calls inside macro arguments, build-time codegen, conditional compilation, framework entry points, FFI consumers outside this tree, and any language whose signals cgg cannot extract are all invisible to it. cgg reports what it could not find a caller for, which is not the same as proving no caller exists. Every finding MUST be manually reviewed against the source before it is acted on. See the per-language capability table for what cgg could and could not see, each finding's evidence for why its confidence is what it is, and --why-live to check the reasoning in the opposite direction.",
+  "best_effort": true,
+  "cgg_version": "0.11.1",
+  "config": {
+    "confidence_threshold": "high",
+    "include_tests": false,
+    "reference_edges": true,
+    "dynamic_dispatch": true,
+    "root_reachability": "enabled:min-coverage-25pct"
+  },
+  "capabilities": [
+    {
+      "language": "fsharp",
+      "class": "degraded",
+      "visibility": "none",
+      "attributes": "full",
+      "value_references": "full",
+      "dispatch": "none",
+      "exports": "none",
+      "test_tagging": "none",
+      "max_confidence": "medium",
+      "root_rules_active": [
+        "builtin:main",
+        "toplevel:invocation"
+      ],
+      "files": 26,
+      "callables": 192,
+      "roots": 18,
+      "reachable": 132,
+      "reachable_pct": 68,
+      "findings": 60
+    }
+  ],
+  "summary": {
+    "review_required": true,
+    "callables": 192,
+    "edges": 279,
+    "unresolved_call_sites": 95,
+    "roots": 18,
+    "candidates": 60,
+    "reported": 60,
+    "regions": 36
+  },
+  "roots": [
+    {
+      "id": "C50ubzhe7y9",
+      "qualified_name": "SimpleProgramBuilder.SimpleProgramBuilder",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs:102"
+    },
+    {
+      "id": "Cu0mjjrepbn",
+      "qualified_name": "ProgramBuilder.ProgramBuilder",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs:101"
+    },
+    {
+      "id": "C158610tkoqi",
+      "qualified_name": "CardManagement.Api.Program.notFound",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs:108"
+    },
+    {
+      "id": "C17tvqsckius",
+      "qualified_name": "CardManagement.Api.Program.resultToHttpResponseAsync",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs:106"
+    },
+    {
+      "id": "Cn129cfznlj",
+      "qualified_name": "CardManagement.Api.Program.optionToHttpResponseAsync",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs:86"
+    },
+    {
+      "id": "C2nfj9eh1v7",
+      "qualified_name": "CardManagement.Api.Program.bindJsonForRoute",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs:105"
+    },
+    {
+      "id": "Cezp65emspj",
+      "qualified_name": "CardManagement.Api.Program.main",
+      "language": "fsharp",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Cu7q0dzbrr",
+      "qualified_name": "create",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/CommonTypes.fs:87"
+    },
+    {
+      "id": "C1188144d9qp",
+      "qualified_name": "CardManagement.Common.Errors.notFound",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs:108"
+    },
+    {
+      "id": "Cpf3dc5sdsc",
+      "qualified_name": "main",
+      "language": "fsharp",
+      "kind": "program-entry",
+      "rule": "builtin:main",
+      "detail": "entry point `main`"
+    },
+    {
+      "id": "Ci5jma7mzp3",
+      "qualified_name": "CardManagement.Data.CommandRepository.isDuplicateKeyException",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CommandRepository.fs:33"
+    },
+    {
+      "id": "Cdyxhb5dn7j",
+      "qualified_name": "CardManagement.Data.QueryRepository.runSingleQuery",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/QueryRepository.fs:54"
+    },
+    {
+      "id": "Cdu5mroh3m2",
+      "qualified_name": "CardManagement.Data.QueryRepository.getCardQuery",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/QueryRepository.fs:35"
+    },
+    {
+      "id": "C7iwbjg6qk2",
+      "qualified_name": "CardManagement.Data.QueryRepository.getAccountInfoQuery",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/QueryRepository.fs:36"
+    },
+    {
+      "id": "C175qatts5h",
+      "qualified_name": "CardManagement.Data.QueryRepository.getUserQuery",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/QueryRepository.fs:53"
+    },
+    {
+      "id": "C17eklssx1k3",
+      "qualified_name": "CardManagement.Data.QueryRepository.getUserCardsQuery",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/QueryRepository.fs:68"
+    },
+    {
+      "id": "C15lv004m6b4",
+      "qualified_name": "CardManagement.Data.QueryRepository.getUserAccountInfosQuery",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/QueryRepository.fs:69"
+    },
+    {
+      "id": "Cfh4ljuiksc",
+      "qualified_name": "CardManagement.Data.QueryRepository.getBalanceOperationsQuery",
+      "language": "fsharp",
+      "kind": "top-level-invocation",
+      "rule": "toplevel:invocation",
+      "detail": "called from module top level at /storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/QueryRepository.fs:88"
+    }
+  ],
+  "regions": [
+    {
+      "id": 7,
+      "members": [
+        "Cst19u6ohik",
+        "Cmxauhtbslj",
+        "C10smpv4o7yb"
+      ],
+      "anchors": [
+        "C10smpv4o7yb"
+      ],
+      "files": [
+        "F533r31sm5b",
+        "Fudior91vc7",
+        "Fjxk9gomcv0"
+      ],
+      "total_lines": 14,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 8,
+      "members": [
+        "C14yxu2tpjy7",
+        "Cbnkrc8qb2t",
+        "C139r6x6h5yt",
+        "Cd1u646v8c"
+      ],
+      "anchors": [
+        "Cd1u646v8c"
+      ],
+      "files": [
+        "F533r31sm5b",
+        "Fa5i1b9p4hv",
+        "Fudior91vc7",
+        "Fjxk9gomcv0"
+      ],
+      "total_lines": 16,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 9,
+      "members": [
+        "Ciksko8qul8",
+        "Cabufk080b1",
+        "C10o0nsqhzgd"
+      ],
+      "anchors": [
+        "C10o0nsqhzgd"
+      ],
+      "files": [
+        "F533r31sm5b",
+        "Fudior91vc7",
+        "Fjxk9gomcv0"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 12,
+      "members": [
+        "C14bpu1phi89"
+      ],
+      "anchors": [
+        "C14bpu1phi89"
+      ],
+      "files": [
+        "F13xm6c7r3xb"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 14,
+      "members": [
+        "Cjjnq943kjf"
+      ],
+      "anchors": [
+        "Cjjnq943kjf"
+      ],
+      "files": [
+        "F13xm6c7r3xb"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 20,
+      "members": [
+        "Cjmg7v1gp2e"
+      ],
+      "anchors": [
+        "Cjmg7v1gp2e"
+      ],
+      "files": [
+        "F1zxqzktgqj"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 22,
+      "members": [
+        "Cepz8iaozci",
+        "C8fhc9brr0k",
+        "C11yq9qhuqt9",
+        "Cbmlzv3sbmg",
+        "Cq0wmegtde1",
+        "Cv9eh6swb95",
+        "C12ho7mhg09o"
+      ],
+      "anchors": [
+        "C8fhc9brr0k"
+      ],
+      "files": [
+        "Fa5i1b9p4hv"
+      ],
+      "total_lines": 31,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 28,
+      "members": [
+        "Ckp1gz1swhd",
+        "Cxkj1f7h8kl",
+        "C5gp42ti73u",
+        "Crbew4rt9f7"
+      ],
+      "anchors": [
+        "C5gp42ti73u"
+      ],
+      "files": [
+        "Fa5i1b9p4hv",
+        "Fudior91vc7",
+        "Fjxk9gomcv0",
+        "F4ysrp6ack8"
+      ],
+      "total_lines": 17,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 35,
+      "members": [
+        "Chuydi0r3fu"
+      ],
+      "anchors": [
+        "Chuydi0r3fu"
+      ],
+      "files": [
+        "Fa5i1b9p4hv"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 36,
+      "members": [
+        "Cp822tg3lvg"
+      ],
+      "anchors": [
+        "Cp822tg3lvg"
+      ],
+      "files": [
+        "Fa5i1b9p4hv"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 43,
+      "members": [
+        "Cyyeha3nabr"
+      ],
+      "anchors": [
+        "Cyyeha3nabr"
+      ],
+      "files": [
+        "Fa5i1b9p4hv"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 55,
+      "members": [
+        "Cp3h1gj3ajl",
+        "Cgh4iph6tr8"
+      ],
+      "anchors": [
+        "Cgh4iph6tr8"
+      ],
+      "files": [
+        "Fudior91vc7",
+        "Fjxk9gomcv0"
+      ],
+      "total_lines": 8,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": 57,
+      "members": [
+        "C2tky5n8vkv",
+        "Chl8dr823rx"
+      ],
+      "anchors": [
+        "Chl8dr823rx"
+      ],
+      "files": [
+        "Fextwqtr74a"
+      ],
+      "total_lines": 19,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 59,
+      "members": [
+        "Crk1tjjjo8w"
+      ],
+      "anchors": [
+        "Crk1tjjjo8w"
+      ],
+      "files": [
+        "Fextwqtr74a"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 60,
+      "members": [
+        "C164aj9xfjej"
+      ],
+      "anchors": [
+        "C164aj9xfjej"
+      ],
+      "files": [
+        "Fextwqtr74a"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 72,
+      "members": [
+        "C13catg1miqm",
+        "Cnljd9ls43i",
+        "C632thtowpo"
+      ],
+      "anchors": [
+        "C632thtowpo"
+      ],
+      "files": [
+        "F8v8o2dn057",
+        "Fztl7334qj"
+      ],
+      "total_lines": 7,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 83,
+      "members": [
+        "C1472hwejqx5"
+      ],
+      "anchors": [
+        "C1472hwejqx5"
+      ],
+      "files": [
+        "F1629dxylhzo"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 86,
+      "members": [
+        "Cvspemjxey7"
+      ],
+      "anchors": [
+        "Cvspemjxey7"
+      ],
+      "files": [
+        "F1629dxylhzo"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 90,
+      "members": [
+        "C17nsk55zrlu"
+      ],
+      "anchors": [
+        "C17nsk55zrlu"
+      ],
+      "files": [
+        "F1629dxylhzo"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 91,
+      "members": [
+        "Cjna3cacivr",
+        "C175yxgnl1b0",
+        "C10pjna4z75w"
+      ],
+      "anchors": [
+        "C10pjna4z75w"
+      ],
+      "files": [
+        "F1629dxylhzo",
+        "Fct6jle6dkw"
+      ],
+      "total_lines": 29,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 98,
+      "members": [
+        "Crsv3wwuaub",
+        "Ctokxkvgaz8",
+        "Cjusirvkqvr"
+      ],
+      "anchors": [
+        "Crsv3wwuaub"
+      ],
+      "files": [
+        "F6uj6s5khp5",
+        "F13u2ltso4my"
+      ],
+      "total_lines": 11,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 105,
+      "members": [
+        "Cj5dcf79ig5"
+      ],
+      "anchors": [
+        "Cj5dcf79ig5"
+      ],
+      "files": [
+        "F12s3o81t2ol"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 106,
+      "members": [
+        "Cmxlos44nx1"
+      ],
+      "anchors": [
+        "Cmxlos44nx1"
+      ],
+      "files": [
+        "F12s3o81t2ol"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 107,
+      "members": [
+        "Cxkagpbv0f0"
+      ],
+      "anchors": [
+        "Cxkagpbv0f0"
+      ],
+      "files": [
+        "F12s3o81t2ol"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 108,
+      "members": [
+        "C551htp8l0d"
+      ],
+      "anchors": [
+        "C551htp8l0d"
+      ],
+      "files": [
+        "F12s3o81t2ol"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 109,
+      "members": [
+        "Cj12ze0zer2"
+      ],
+      "anchors": [
+        "Cj12ze0zer2"
+      ],
+      "files": [
+        "F12s3o81t2ol"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 110,
+      "members": [
+        "Czevw0f8xbp"
+      ],
+      "anchors": [
+        "Czevw0f8xbp"
+      ],
+      "files": [
+        "F12s3o81t2ol"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 111,
+      "members": [
+        "Cwr9w0ctjx2"
+      ],
+      "anchors": [
+        "Cwr9w0ctjx2"
+      ],
+      "files": [
+        "F12s3o81t2ol"
+      ],
+      "total_lines": 4,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 112,
+      "members": [
+        "Cr5bsj0nl3o"
+      ],
+      "anchors": [
+        "Cr5bsj0nl3o"
+      ],
+      "files": [
+        "F12s3o81t2ol"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 120,
+      "members": [
+        "C13jz6edjs2c"
+      ],
+      "anchors": [
+        "C13jz6edjs2c"
+      ],
+      "files": [
+        "Fztl7334qj"
+      ],
+      "total_lines": 3,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 121,
+      "members": [
+        "Cm0oj8rs2id"
+      ],
+      "anchors": [
+        "Cm0oj8rs2id"
+      ],
+      "files": [
+        "Fztl7334qj"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 122,
+      "members": [
+        "Cw4i6s8c74c"
+      ],
+      "anchors": [
+        "Cw4i6s8c74c"
+      ],
+      "files": [
+        "Fztl7334qj"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 123,
+      "members": [
+        "C10z8gwriliv"
+      ],
+      "anchors": [
+        "C10z8gwriliv"
+      ],
+      "files": [
+        "Fztl7334qj"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 124,
+      "members": [
+        "C114zb1xna87"
+      ],
+      "anchors": [
+        "C114zb1xna87"
+      ],
+      "files": [
+        "Fztl7334qj"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 144,
+      "members": [
+        "C187a5lq1kzs"
+      ],
+      "anchors": [
+        "C187a5lq1kzs"
+      ],
+      "files": [
+        "Fct6jle6dkw"
+      ],
+      "total_lines": 1,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": 189,
+      "members": [
+        "Cjomy5smyjl"
+      ],
+      "anchors": [
+        "Cjomy5smyjl"
+      ],
+      "files": [
+        "F3bo3s3nggp"
+      ],
+      "total_lines": 5,
+      "languages": [
+        "fsharp"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "findings": [
+    {
+      "id": "Cepz8iaozci",
+      "qualified_name": "CardManagement.CardProgramBuilder.bind",
+      "simple_name": "bind",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 54,
+      "end_line": 67,
+      "size_lines": 14,
+      "signature_hint": "let rec bind f instruction = match instruction with | GetCard (x, next) -> GetCard (x, (next >> bind f)) | GetCardWithAccountInfo (x, next) -> GetCardWithAccountInfo (x, (next >> bind f)) | CreateCard (x, next) -> CreateCard (x, (next >> bind f)) | ReplaceCard (x, next) -> ReplaceCard (x, (next >> bind f)) | GetUser (x, next) -> GetUser (x,(next >> bind f)) | CreateUser (x, next) -> CreateUser (x,(next >> bind f)) | GetBalanceOperations (x, next) -> GetBalanceOperations (x,(next >> bind f)) | SaveBalanceOperation (x, next) -> SaveBalanceOperation (x,(next >> bind f)) | Stop x -> f x // this is a set of basic functions. Use them in your expression tree builder to represent dependency call",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -386,
+      "region": 22,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 10,
+          "example": "Cepz8iaozci"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 8
+    },
+    {
+      "id": "Chl8dr823rx",
+      "qualified_name": "OptionConverter.ReadJson",
+      "simple_name": "ReadJson",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fextwqtr74a",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/OptionConverter.fs",
+      "start_line": 32,
+      "end_line": 43,
+      "size_lines": 12,
+      "signature_hint": "override x.ReadJson(reader, typ, existingValue, serializer) = let innerType = let innerType = typ.GetGenericArguments().[0] if innerType.IsValueType then typedefof<Nullable<_>>.MakeGenericType([|innerType|]) else innerType let cases = getUnionCasesFromCache typ if reader.TokenType = JsonToken.Null then FSharpValue.MakeUnion(cases.[0], Array.empty) else let value = serializer.Deserialize(reader, innerType) if isNull value then FSharpValue.MakeUnion(cases.[0], Array.empty) else FSharpValue.MakeUnion(cases.[1], [|value|])",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -388,
+      "region": 57,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cjna3cacivr",
+      "qualified_name": "CardManagement.Common.Result.combine",
+      "simple_name": "combine",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1629dxylhzo",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Errors.fs",
+      "start_line": 87,
+      "end_line": 97,
+      "size_lines": 11,
+      "signature_hint": "let combine results = let rec loop acc results = match results with | [] -> acc | result :: tail -> match result with | Error e -> Error e | Ok ok -> let acc = Result.map (fun oks -> ok :: oks) acc loop acc tail loop (Ok []) results",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -389,
+      "region": 91,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C10pjna4z75w"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C139r6x6h5yt",
+      "qualified_name": "CardManagement.CardWorkflow.activateCard",
+      "simple_name": "activateCard",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fudior91vc7",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardWorkflow.fs",
+      "start_line": 66,
+      "end_line": 74,
+      "size_lines": 9,
+      "signature_hint": "let activateCard activateCmd = program",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -391,
+      "region": 8,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cd1u646v8c"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 8
+    },
+    {
+      "id": "C175yxgnl1b0",
+      "qualified_name": "CardManagement.Common.Result.loop",
+      "simple_name": "loop",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1629dxylhzo",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Errors.fs",
+      "start_line": 88,
+      "end_line": 96,
+      "size_lines": 9,
+      "signature_hint": "let rec loop acc results = match results with | [] -> acc | result :: tail -> match result with | Error e -> Error e | Ok ok -> let acc = Result.map (fun oks -> ok :: oks) acc loop acc tail",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -391,
+      "region": 91,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "C175yxgnl1b0"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C10pjna4z75w",
+      "qualified_name": "CardManagement.Data.EntityToDomainMapping.mapUserEntity",
+      "simple_name": "mapUserEntity",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fct6jle6dkw",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/EntityToDomainMapping.fs",
+      "start_line": 95,
+      "end_line": 103,
+      "size_lines": 9,
+      "signature_hint": "let mapUserEntity (entity: UserEntity) (cardEntities: (CardEntity * CardAccountInfoEntity) list) = result",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -391,
+      "region": 91,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Crbew4rt9f7",
+      "qualified_name": "CardManagement.Infrastructure.CardProgramInterpreter.interpretSimple",
+      "simple_name": "interpretSimple",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F4ysrp6ack8",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardProgramInterpreter.fs",
+      "start_line": 67,
+      "end_line": 75,
+      "size_lines": 9,
+      "signature_hint": "let interpretSimple prog = try let interpret = interpretCardProgram (getMongoDb()) async",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -391,
+      "region": 28,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C5gp42ti73u"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cabufk080b1",
+      "qualified_name": "CardManagement.CardWorkflow.setDailyLimit",
+      "simple_name": "setDailyLimit",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fudior91vc7",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardWorkflow.fs",
+      "start_line": 47,
+      "end_line": 54,
+      "size_lines": 8,
+      "signature_hint": "let setDailyLimit (currentDate: DateTimeOffset, setDailyLimitCommand) = program",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -392,
+      "region": 9,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C10o0nsqhzgd"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 7
+    },
+    {
+      "id": "Cmxauhtbslj",
+      "qualified_name": "CardManagement.CardWorkflow.deactivateCard",
+      "simple_name": "deactivateCard",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fudior91vc7",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardWorkflow.fs",
+      "start_line": 76,
+      "end_line": 83,
+      "size_lines": 8,
+      "signature_hint": "let deactivateCard deactivateCmd = program",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -392,
+      "region": 7,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C10smpv4o7yb"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 6
+    },
+    {
+      "id": "Ciksko8qul8",
+      "qualified_name": "CardManagement.CardActions.setDailyLimit",
+      "simple_name": "setDailyLimit",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F533r31sm5b",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardActions.fs",
+      "start_line": 45,
+      "end_line": 51,
+      "size_lines": 7,
+      "signature_hint": "let setDailyLimit (currentDate: DateTimeOffset) limit card = if isCardExpired currentDate card then cardExpiredMessage card.CardNumber |> setDailyLimitNotAllowed else match card.AccountDetails with | Deactivated -> cardDeactivatedMessage card.CardNumber |> setDailyLimitNotAllowed | Active accInfo ->",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -393,
+      "region": 9,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cabufk080b1"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C2tky5n8vkv",
+      "qualified_name": "CardManagement.Api.CustomConverters.getUnionCasesFromCache",
+      "simple_name": "getUnionCasesFromCache",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fextwqtr74a",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/OptionConverter.fs",
+      "start_line": 12,
+      "end_line": 18,
+      "size_lines": 7,
+      "signature_hint": "let getUnionCasesFromCache typ = match unionCaseCache.TryGetValue typ with | (true, cases) -> cases | _ -> let cases = FSharpType.GetUnionCases typ unionCaseCache.TryAdd(typ, cases) |> ignore cases",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -393,
+      "region": 57,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Chl8dr823rx"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C164aj9xfjej",
+      "qualified_name": "OptionConverter.WriteJson",
+      "simple_name": "WriteJson",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fextwqtr74a",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/OptionConverter.fs",
+      "start_line": 24,
+      "end_line": 30,
+      "size_lines": 7,
+      "signature_hint": "override x.WriteJson(writer, value, serializer) = let value = if isNull value then null else let _,fields = FSharpValue.GetUnionFields(value, value.GetType()) fields.[0] serializer.Serialize(writer, value)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -393,
+      "region": 60,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cq0wmegtde1",
+      "qualified_name": "ProgramBuilder.Bind",
+      "simple_name": "Bind",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 91,
+      "end_line": 96,
+      "size_lines": 6,
+      "signature_hint": "member this.Bind((x: Program<Result<_,_>>), f) = let f x = match x with | Ok x -> this.ReturnFrom (f x) | Error e -> this.Return (Error e ) this.Bind(x, f)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 22,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cq0wmegtde1"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 4
+    },
+    {
+      "id": "Cp3h1gj3ajl",
+      "qualified_name": "CardManagement.CardWorkflow.getCard",
+      "simple_name": "getCard",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fudior91vc7",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardWorkflow.fs",
+      "start_line": 102,
+      "end_line": 107,
+      "size_lines": 6,
+      "signature_hint": "let getCard cardNumber = program",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -394,
+      "region": 55,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cgh4iph6tr8"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cxkj1f7h8kl",
+      "qualified_name": "CardManagement.CardWorkflow.getUser",
+      "simple_name": "getUser",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fudior91vc7",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardWorkflow.fs",
+      "start_line": 109,
+      "end_line": 113,
+      "size_lines": 5,
+      "signature_hint": "let getUser userId = simpleProgram",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 28,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C5gp42ti73u"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "C17nsk55zrlu",
+      "qualified_name": "CardManagement.Common.Errors.expectDataRelatedErrorAsync",
+      "simple_name": "expectDataRelatedErrorAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1629dxylhzo",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Errors.fs",
+      "start_line": 67,
+      "end_line": 71,
+      "size_lines": 5,
+      "signature_hint": "let expectDataRelatedErrorAsync asyncResult = async",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 90,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ctokxkvgaz8",
+      "qualified_name": "CardManagement.Data.CommandRepository.replaceUserAsync",
+      "simple_name": "replaceUserAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13u2ltso4my",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CommandRepository.fs",
+      "start_line": 73,
+      "end_line": 77,
+      "size_lines": 5,
+      "signature_hint": "let replaceUserAsync (mongoDb: MongoDb)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 98,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Crsv3wwuaub"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cjomy5smyjl",
+      "qualified_name": "CardManagement.Infrastructure.Logging.logifyResult",
+      "simple_name": "logifyResult",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F3bo3s3nggp",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/Logging.fs",
+      "start_line": 41,
+      "end_line": 45,
+      "size_lines": 5,
+      "signature_hint": "let logifyResult funcName func x = sprintf \"start %s with arg\\n%A\" funcName x |> Log.Information let result = func x logResult funcName result result",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -395,
+      "region": 189,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cst19u6ohik",
+      "qualified_name": "CardManagement.CardActions.deactivate",
+      "simple_name": "deactivate",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F533r31sm5b",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardActions.fs",
+      "start_line": 35,
+      "end_line": 38,
+      "size_lines": 4,
+      "signature_hint": "let deactivate card = match card.AccountDetails with | Deactivated -> card | Active _ ->",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -396,
+      "region": 7,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cmxauhtbslj"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14yxu2tpjy7",
+      "qualified_name": "CardManagement.CardActions.activate",
+      "simple_name": "activate",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F533r31sm5b",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardActions.fs",
+      "start_line": 40,
+      "end_line": 43,
+      "size_lines": 4,
+      "signature_hint": "let activate (cardAccountInfo: AccountInfo) card = match card.AccountDetails with | Active _ -> card | Deactivated ->",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -396,
+      "region": 8,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C139r6x6h5yt"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjjnq943kjf",
+      "qualified_name": "Default",
+      "simple_name": "Default",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F13xm6c7r3xb",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardDomain.fs",
+      "start_line": 78,
+      "end_line": 81,
+      "size_lines": 4,
+      "signature_hint": "static member Default userId",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -396,
+      "region": 14,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cjmg7v1gp2e",
+      "qualified_name": "CardManagement.CardDomainQueryModels.toCardDetailsModel",
+      "simple_name": "toCardDetailsModel",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1zxqzktgqj",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardDomainQueryModels.fs",
+      "start_line": 68,
+      "end_line": 71,
+      "size_lines": 4,
+      "signature_hint": "let toCardDetailsModel (cardDetails: CardDetails)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -396,
+      "region": 20,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cbmlzv3sbmg",
+      "qualified_name": "ProgramBuilder.Bind",
+      "simple_name": "Bind",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 87,
+      "end_line": 90,
+      "size_lines": 4,
+      "signature_hint": "member this.Bind (x, f) = match x with | Ok x -> this.ReturnFrom (f x) | Error e -> this.Return (Error e)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -396,
+      "region": 22,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cq0wmegtde1"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Crsv3wwuaub",
+      "qualified_name": "CardManagement.Data.CardDataPipeline.replaceUserAsync",
+      "simple_name": "replaceUserAsync",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F6uj6s5khp5",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDataPipeline.fs",
+      "start_line": 49,
+      "end_line": 52,
+      "size_lines": 4,
+      "signature_hint": "let replaceUserAsync (mongoDb: MongoDb)",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -396,
+      "region": 98,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cwr9w0ctjx2",
+      "qualified_name": "IdComparer",
+      "simple_name": "IdComparer",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F12s3o81t2ol",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDomainEntities.fs",
+      "start_line": 62,
+      "end_line": 65,
+      "size_lines": 4,
+      "signature_hint": "member this.IdComparer = <@ System.Func<_,_> (fun c -> c.UserId = this.UserId) @> // MongoDb allowes you to use objects as identifiers, so I used this instead of generating some GUID // which wouldn't mean anything other than something purely DB specific",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -396,
+      "region": 111,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C14bpu1phi89",
+      "qualified_name": "ofDecimal",
+      "simple_name": "ofDecimal",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F13xm6c7r3xb",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardDomain.fs",
+      "start_line": 52,
+      "end_line": 54,
+      "size_lines": 3,
+      "signature_hint": "static member ofDecimal dec = if dec > 0m then Money dec |> Limit else Unlimited",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 12,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cnljd9ls43i",
+      "qualified_name": "CardManagement.Common.Common.isNullOrEmpty",
+      "simple_name": "isNullOrEmpty",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8v8o2dn057",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Common.fs",
+      "start_line": 13,
+      "end_line": 15,
+      "size_lines": 3,
+      "signature_hint": "let inline isNullOrEmpty arg = if arg = null || (length arg) = 0 then true else false",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 72,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C632thtowpo"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cmxlos44nx1",
+      "qualified_name": "EntityId",
+      "simple_name": "EntityId",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F12s3o81t2ol",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDomainEntities.fs",
+      "start_line": 39,
+      "end_line": 41,
+      "size_lines": 3,
+      "signature_hint": "member this.EntityId = this.CardNumber.ToString() // we use this Id comparer quotation (F# alternative to C# Expression) for updating entity by id, // since for different entities identifier has different name and type",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 106,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C632thtowpo",
+      "qualified_name": "ConnectionString",
+      "simple_name": "ConnectionString",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fztl7334qj",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardMongoConfiguration.fs",
+      "start_line": 15,
+      "end_line": 17,
+      "size_lines": 3,
+      "signature_hint": "member this.ConnectionString = if this.User |> isNullOrEmpty then sprintf \"mongodb://%s:%i\" this.Host this.Port else sprintf \"mongodb://%s:%s@%s:%i\" this.User this.Password this.Host this.Port",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 72,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C13jz6edjs2c",
+      "qualified_name": "CardManagement.Data.CardMongoConfiguration.getSession",
+      "simple_name": "getSession",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fztl7334qj",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardMongoConfiguration.fs",
+      "start_line": 25,
+      "end_line": 27,
+      "size_lines": 3,
+      "signature_hint": "let getSession (config: MongoSettings) = let client = createClient config.ConnectionString client.StartSession()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -397,
+      "region": 120,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cjusirvkqvr",
+      "qualified_name": "CardManagement.Data.CommandRepository.replaceCommand",
+      "simple_name": "replaceCommand",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F13u2ltso4my",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CommandRepository.fs",
+      "start_line": 75,
+      "end_line": 76,
+      "size_lines": 2,
+      "signature_hint": "let replaceCommand (selector: Expression<_>, user, options) = mongoDb.GetCollection(userCollection).ReplaceOneAsync(selector, user, options)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -398,
+      "region": 98,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Ctokxkvgaz8"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cbnkrc8qb2t",
+      "qualified_name": "CardManagement.CardProgramBuilder.getCardWithAccountInfo",
+      "simple_name": "getCardWithAccountInfo",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 70,
+      "end_line": 70,
+      "size_lines": 1,
+      "signature_hint": "let getCardWithAccountInfo number = GetCardWithAccountInfo (number, stop)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 8,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "C139r6x6h5yt"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Ckp1gz1swhd",
+      "qualified_name": "CardManagement.CardProgramBuilder.getUserById",
+      "simple_name": "getUserById",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 73,
+      "end_line": 73,
+      "size_lines": 1,
+      "signature_hint": "let getUserById id = GetUser (id, stop)",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 28,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cxkj1f7h8kl"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "C8fhc9brr0k",
+      "qualified_name": "SimpleProgramBuilder.Bind",
+      "simple_name": "Bind",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 80,
+      "end_line": 80,
+      "size_lines": 1,
+      "signature_hint": "member __.Bind (x, f) = bind f x",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 22,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Chuydi0r3fu",
+      "qualified_name": "SimpleProgramBuilder.Zero",
+      "simple_name": "Zero",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 82,
+      "end_line": 82,
+      "size_lines": 1,
+      "signature_hint": "member __.Zero () = Stop ()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 35,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cp822tg3lvg",
+      "qualified_name": "SimpleProgramBuilder.ReturnFrom",
+      "simple_name": "ReturnFrom",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 83,
+      "end_line": 83,
+      "size_lines": 1,
+      "signature_hint": "member __.ReturnFrom x = x",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 36,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C11yq9qhuqt9",
+      "qualified_name": "ProgramBuilder.Bind",
+      "simple_name": "Bind",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 86,
+      "end_line": 86,
+      "size_lines": 1,
+      "signature_hint": "member __.Bind (x, f) = bind f x",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 22,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cq0wmegtde1"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 1
+    },
+    {
+      "id": "Cyyeha3nabr",
+      "qualified_name": "ProgramBuilder.Zero",
+      "simple_name": "Zero",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 98,
+      "end_line": 98,
+      "size_lines": 1,
+      "signature_hint": "member __.Zero () = Stop ()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 43,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C12ho7mhg09o",
+      "qualified_name": "ProgramBuilder.ReturnFrom",
+      "simple_name": "ReturnFrom",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 99,
+      "end_line": 99,
+      "size_lines": 1,
+      "signature_hint": "member __.ReturnFrom x = x",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 22,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cbmlzv3sbmg"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Crk1tjjjo8w",
+      "qualified_name": "OptionConverter.CanConvert",
+      "simple_name": "CanConvert",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fextwqtr74a",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/OptionConverter.fs",
+      "start_line": 22,
+      "end_line": 22,
+      "size_lines": 1,
+      "signature_hint": "override x.CanConvert(typ) = typ.IsGenericType && typ.GetGenericTypeDefinition() = typedefof<option<_>>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 59,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C13catg1miqm",
+      "qualified_name": "CardManagement.Common.Common.length",
+      "simple_name": "length",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F8v8o2dn057",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Common.fs",
+      "start_line": 11,
+      "end_line": 11,
+      "size_lines": 1,
+      "signature_hint": "let inline length (HasLength f) = f()",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 72,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 1,
+          "example": "Cnljd9ls43i"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C1472hwejqx5",
+      "qualified_name": "CardManagement.Common.Errors.bug",
+      "simple_name": "bug",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1629dxylhzo",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Errors.fs",
+      "start_line": 52,
+      "end_line": 52,
+      "size_lines": 1,
+      "signature_hint": "let bug exc = Bug exc |> Error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 83,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cvspemjxey7",
+      "qualified_name": "CardManagement.Common.Errors.entityInUse",
+      "simple_name": "entityInUse",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "F1629dxylhzo",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Common/Errors.fs",
+      "start_line": 58,
+      "end_line": 58,
+      "size_lines": 1,
+      "signature_hint": "let entityInUse name = EntityIsInUse name |> Error",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 86,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cj5dcf79ig5",
+      "qualified_name": "EntityId",
+      "simple_name": "EntityId",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F12s3o81t2ol",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDomainEntities.fs",
+      "start_line": 27,
+      "end_line": 27,
+      "size_lines": 1,
+      "signature_hint": "member this.EntityId = sprintf \"%A\" this",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 105,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cxkagpbv0f0",
+      "qualified_name": "IdComparer",
+      "simple_name": "IdComparer",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F12s3o81t2ol",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDomainEntities.fs",
+      "start_line": 42,
+      "end_line": 42,
+      "size_lines": 1,
+      "signature_hint": "member this.IdComparer = <@ System.Func<_,_> (fun c -> c.CardNumber = this.CardNumber) @>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 107,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C551htp8l0d",
+      "qualified_name": "EntityId",
+      "simple_name": "EntityId",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F12s3o81t2ol",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDomainEntities.fs",
+      "start_line": 51,
+      "end_line": 51,
+      "size_lines": 1,
+      "signature_hint": "member this.EntityId = this.CardNumber.ToString()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 108,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cj12ze0zer2",
+      "qualified_name": "IdComparer",
+      "simple_name": "IdComparer",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F12s3o81t2ol",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDomainEntities.fs",
+      "start_line": 52,
+      "end_line": 52,
+      "size_lines": 1,
+      "signature_hint": "member this.IdComparer = <@ System.Func<_,_> (fun c -> c.CardNumber = this.CardNumber) @>",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 109,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Czevw0f8xbp",
+      "qualified_name": "EntityId",
+      "simple_name": "EntityId",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F12s3o81t2ol",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDomainEntities.fs",
+      "start_line": 61,
+      "end_line": 61,
+      "size_lines": 1,
+      "signature_hint": "member this.EntityId = this.UserId.ToString()",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 110,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cr5bsj0nl3o",
+      "qualified_name": "EntityId",
+      "simple_name": "EntityId",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "F12s3o81t2ol",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardDomainEntities.fs",
+      "start_line": 78,
+      "end_line": 78,
+      "size_lines": 1,
+      "signature_hint": "member this.EntityId = sprintf \"%A\" this.Id",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 112,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cm0oj8rs2id",
+      "qualified_name": "CardManagement.Data.CardMongoConfiguration.internal",
+      "simple_name": "internal",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fztl7334qj",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardMongoConfiguration.fs",
+      "start_line": 31,
+      "end_line": 31,
+      "size_lines": 1,
+      "signature_hint": "let [<Literal>] internal cardCollection = \"Card\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 121,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "Cw4i6s8c74c",
+      "qualified_name": "CardManagement.Data.CardMongoConfiguration.internal",
+      "simple_name": "internal",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fztl7334qj",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardMongoConfiguration.fs",
+      "start_line": 32,
+      "end_line": 32,
+      "size_lines": 1,
+      "signature_hint": "let [<Literal>] internal userCollection = \"User\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 122,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C10z8gwriliv",
+      "qualified_name": "CardManagement.Data.CardMongoConfiguration.internal",
+      "simple_name": "internal",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fztl7334qj",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardMongoConfiguration.fs",
+      "start_line": 33,
+      "end_line": 33,
+      "size_lines": 1,
+      "signature_hint": "let [<Literal>] internal cardAccountInfoCollection = \"cardAccountInfo\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 123,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C114zb1xna87",
+      "qualified_name": "CardManagement.Data.CardMongoConfiguration.internal",
+      "simple_name": "internal",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fztl7334qj",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/CardMongoConfiguration.fs",
+      "start_line": 34,
+      "end_line": 34,
+      "size_lines": 1,
+      "signature_hint": "let [<Literal>] internal balanceOperationCollection = \"BalanceOperation\"",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 124,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 0
+    },
+    {
+      "id": "C187a5lq1kzs",
+      "qualified_name": "CardManagement.Data.EntityToDomainMapping.mapAddressEntity",
+      "simple_name": "mapAddressEntity",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fct6jle6dkw",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Data/EntityToDomainMapping.fs",
+      "start_line": 79,
+      "end_line": 79,
+      "size_lines": 1,
+      "signature_hint": "let mapAddressEntity entity = validateAddressEntity entity |> valueOrException",
+      "category": "never-referenced",
+      "confidence": "medium",
+      "rank": -399,
+      "region": 144,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "no-incoming-edges"
+        },
+        {
+          "kind": "no-unresolved-site-with-name"
+        }
+      ],
+      "out_degree": 2
+    },
+    {
+      "id": "Cv9eh6swb95",
+      "qualified_name": "ProgramBuilder.f",
+      "simple_name": "f",
+      "language": "fsharp",
+      "kind": "method",
+      "def_variant": "inherent_method",
+      "file": "Fa5i1b9p4hv",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+      "start_line": 92,
+      "end_line": 95,
+      "size_lines": 4,
+      "signature_hint": "let f x = match x with | Ok x -> this.ReturnFrom (f x) | Error e -> this.Return (Error e )",
+      "category": "reachable-only-from-dead-code",
+      "confidence": "low",
+      "rank": -896,
+      "region": 22,
+      "role": "downstream",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "f",
+          "sites": 5,
+          "reason": "shadowed-by-local",
+          "same_file_sites": 2,
+          "owner_match_sites": 0,
+          "example": {
+            "file": "Fa5i1b9p4hv",
+            "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement/CardProgramBuilder.fs",
+            "line": 64,
+            "name": "f"
+          }
+        },
+        {
+          "kind": "incoming-only-from-dead-code",
+          "callers": 2,
+          "example": "Cv9eh6swb95"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cd1u646v8c",
+      "qualified_name": "CardManagement.Infrastructure.CardApi.activateCard",
+      "simple_name": "activateCard",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjxk9gomcv0",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardApi.fs",
+      "start_line": 11,
+      "end_line": 12,
+      "size_lines": 2,
+      "signature_hint": "let activateCard arg = arg |> (CardWorkflow.activateCard >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.activateCard\")",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -898,
+      "region": 8,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "activateCard",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 1,
+          "example": {
+            "file": "Fgepfasscev",
+            "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs",
+            "line": 93,
+            "name": "activateCard",
+            "receiver_hint": "CardApi"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C10smpv4o7yb",
+      "qualified_name": "CardManagement.Infrastructure.CardApi.deactivateCard",
+      "simple_name": "deactivateCard",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjxk9gomcv0",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardApi.fs",
+      "start_line": 13,
+      "end_line": 14,
+      "size_lines": 2,
+      "signature_hint": "let deactivateCard arg = arg |> (CardWorkflow.deactivateCard >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.deactivateCard\")",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -898,
+      "region": 7,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "deactivateCard",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 1,
+          "example": {
+            "file": "Fgepfasscev",
+            "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs",
+            "line": 91,
+            "name": "deactivateCard",
+            "receiver_hint": "CardApi"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C10o0nsqhzgd",
+      "qualified_name": "CardManagement.Infrastructure.CardApi.setDailyLimit",
+      "simple_name": "setDailyLimit",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjxk9gomcv0",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardApi.fs",
+      "start_line": 19,
+      "end_line": 20,
+      "size_lines": 2,
+      "signature_hint": "let setDailyLimit arg = arg |> (CardWorkflow.setDailyLimit >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.setDailyLimit\")",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -898,
+      "region": 9,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "setDailyLimit",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 1,
+          "example": {
+            "file": "Fgepfasscev",
+            "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs",
+            "line": 95,
+            "name": "setDailyLimit",
+            "receiver_hint": "CardApi"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "Cgh4iph6tr8",
+      "qualified_name": "CardManagement.Infrastructure.CardApi.getCard",
+      "simple_name": "getCard",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjxk9gomcv0",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardApi.fs",
+      "start_line": 21,
+      "end_line": 22,
+      "size_lines": 2,
+      "signature_hint": "let getCard arg = arg |> (CardWorkflow.getCard >> CardProgramInterpreter.interpret |> logifyResultAsync \"CardApi.getCard\")",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -898,
+      "region": 55,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "getCard",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 1,
+          "example": {
+            "file": "Fgepfasscev",
+            "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs",
+            "line": 86,
+            "name": "getCard",
+            "receiver_hint": "CardApi"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 3
+    },
+    {
+      "id": "C5gp42ti73u",
+      "qualified_name": "CardManagement.Infrastructure.CardApi.getUser",
+      "simple_name": "getUser",
+      "language": "fsharp",
+      "kind": "function",
+      "def_variant": "free_function",
+      "file": "Fjxk9gomcv0",
+      "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Infrastructure/CardApi.fs",
+      "start_line": 23,
+      "end_line": 24,
+      "size_lines": 2,
+      "signature_hint": "let getUser arg = arg |> (CardWorkflow.getUser >> CardProgramInterpreter.interpretSimple |> logifyResultAsync \"CardApi.getUser\")",
+      "category": "never-referenced",
+      "confidence": "low",
+      "rank": -898,
+      "region": 28,
+      "role": "anchor",
+      "evidence": [
+        {
+          "kind": "language-lacks-dispatch-model"
+        },
+        {
+          "kind": "language-lacks-visibility"
+        },
+        {
+          "kind": "name-matches-unresolved-site",
+          "name": "getUser",
+          "sites": 1,
+          "reason": "no-candidate-in-file",
+          "same_file_sites": 0,
+          "owner_match_sites": 1,
+          "example": {
+            "file": "Fgepfasscev",
+            "path": "/storage/cgg-test_repos/app-cardmgmt-giraffe/CardManagement.Api/CardManagement.Api/Program.fs",
+            "line": 85,
+            "name": "getUser",
+            "receiver_hint": "CardApi"
+          }
+        },
+        {
+          "kind": "no-incoming-edges"
+        }
+      ],
+      "out_degree": 3
+    }
+  ]
+}

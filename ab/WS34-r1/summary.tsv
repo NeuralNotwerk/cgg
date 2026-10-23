@@ -1,0 +1,9 @@
+repo	edges_old	edges_new	dropped	added	changed	callables_old	callables_new	unres_old	unres_new	files_old	files_new	deadhigh_old	deadhigh_new	note
+app-avalonia-samples	4096	4096	1	1	0	2374	2374	1820	1821	309	309	0	0	
+app-cardmgmt-giraffe	160	190	152	182	0	192	192	102	74	26	26	0	0	
+app-fsautocomplete-expecto	5281	6397	3768	4884	5	2677	2677	4714	3719	378	378	0	0	
+app-fssnip-suave	157	178	91	112	0	266	266	495	491	36	36	0	0	
+app-orleans-samples	13860	13887	8	35	0	20783	20783	21195	21186	3175	3175	59	59	
+app-swate-saturn	11575	13979	8313	10717	14	5124	5124	9031	7900	649	649	0	0	
+fsharp-paket	9283	11454	6352	8523	1	3944	3944	6519	5320	494	494	0	0	
+rust-bat	2928	2928	12	12	0	1979	1979	2065	2076	176	176	3	3	

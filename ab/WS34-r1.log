@@ -1,0 +1,17 @@
+old: cgg 0.11.1 (dev gf5f4437)  sha256=53fac0aea86c977224d7c3e6ea7e96e7155444faecdc23611a3e80723e7f94e6
+new: cgg 0.11.1 (dev gf5f4437+deecac7a)  sha256=6c709d5ad56346ae736643e9f1267ee9c82ae4f8bff492cea2b7ff69535d42f3
+old=target/remediation/bins/WS34-before
+new=target/remediation/bins/WS34-r1
+repos=8 elapsed=8s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 8
+  app-avalonia-samples: edges 4096->4096 (-1 +1 ~0) callables 2374->2374 unresolved 1820->1821 files 309->309 deadhigh 0->0 
+  app-cardmgmt-giraffe: edges 160->190 (-152 +182 ~0) callables 192->192 unresolved 102->74 files 26->26 deadhigh 0->0 
+  app-fsautocomplete-expecto: edges 5281->6397 (-3768 +4884 ~5) callables 2677->2677 unresolved 4714->3719 files 378->378 deadhigh 0->0 
+  app-fssnip-suave: edges 157->178 (-91 +112 ~0) callables 266->266 unresolved 495->491 files 36->36 deadhigh 0->0 
+  app-orleans-samples: edges 13860->13887 (-8 +35 ~0) callables 20783->20783 unresolved 21195->21186 files 3175->3175 deadhigh 59->59 
+  app-swate-saturn: edges 11575->13979 (-8313 +10717 ~14) callables 5124->5124 unresolved 9031->7900 files 649->649 deadhigh 0->0 
+  fsharp-paket: edges 9283->11454 (-6352 +8523 ~1) callables 3944->3944 unresolved 6519->5320 files 494->494 deadhigh 0->0 
+  rust-bat: edges 2928->2928 (-12 +12 ~0) callables 1979->1979 unresolved 2065->2076 files 176->176 deadhigh 3->3 
+by language: see by_language.tsv
+

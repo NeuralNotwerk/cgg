@@ -1,0 +1,13 @@
+repos 8 excluded []
+added 26478
+  ('fsharp', '{"family": "fsharp-nunit", "kind": "framework_entry"}', 'low') 1201
+  ('fsharp', '{"kind": "direct"}', 'high') 13298
+  ('fsharp', '{"kind": "direct"}', 'medium') 9976
+  ('fsharp', '{"kind": "reference"}', 'high') 1435
+  ('fsharp', '{"kind": "reference"}', 'medium') 568
+dropped 20047
+  ('fsharp', '{"family": "fsharp-nunit", "kind": "framework_entry"}', 'low') 1201
+  ('fsharp', '{"kind": "direct"}', 'high') 6984
+  ('fsharp', '{"kind": "direct"}', 'medium') 10521
+  ('fsharp', '{"kind": "reference"}', 'high') 932
+  ('fsharp', '{"kind": "reference"}', 'medium') 409

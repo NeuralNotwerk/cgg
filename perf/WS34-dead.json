@@ -1,0 +1,42 @@
+[
+ {
+  "repo": "app-avalonia-samples",
+  "old_ms": 1116.6911750333384,
+  "new_ms": 1016.4586390601471
+ },
+ {
+  "repo": "app-cardmgmt-giraffe",
+  "old_ms": 114.07694697845727,
+  "new_ms": 114.30638609454036
+ },
+ {
+  "repo": "app-fsautocomplete-expecto",
+  "old_ms": 2020.9697580430657,
+  "new_ms": 2075.51701401826
+ },
+ {
+  "repo": "app-fssnip-suave",
+  "old_ms": 265.23479307070374,
+  "new_ms": 264.7553659044206
+ },
+ {
+  "repo": "app-orleans-samples",
+  "old_ms": 7685.753763071261,
+  "new_ms": 7494.876033975743
+ },
+ {
+  "repo": "app-swate-saturn",
+  "old_ms": 4428.049208014272,
+  "new_ms": 4626.112190890126
+ },
+ {
+  "repo": "fsharp-paket",
+  "old_ms": 2620.433771982789,
+  "new_ms": 2420.2122159767896
+ },
+ {
+  "repo": "rust-bat",
+  "old_ms": 6879.648010944948,
+  "new_ms": 7235.258394968696
+ }
+]
