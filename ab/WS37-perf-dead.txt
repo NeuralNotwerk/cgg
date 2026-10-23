@@ -1,0 +1,12 @@
+[1/8] app-cljdoc-pedestal                      664.9494500597939 -> 665.180450072512
+[2/8] app-lipas-reitit                         2769.877522950992 -> 2619.1957619739696
+[3/8] app-metabase-compojure                   53371.62694800645 -> 51968.50977407303
+[4/8] app-riemann-httpkit                      565.3155519394204 -> 515.0592350400984
+[5/8] app-storm-starter                        8832.858543959446 -> 8986.432738951407
+[6/8] clojure-compojure                        63.993809977546334 -> 64.00799995753914
+[7/8] clojure-ring                             264.3984080059454 -> 264.2011499265209
+[8/8] rust-bat                                 6690.67530205939 -> 6728.655893937685
+repos 8 total 73.2 -> 71.8 s -1.93 %
+timeouts/skips: []
+over runway max(20%,5s): []
+>=1s moves: [('app-metabase-compojure', 53372, 51969)]

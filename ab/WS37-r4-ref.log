@@ -1,0 +1,7 @@
+repos 8 excluded []
+added 1595
+  ('clojure', '{"kind": "direct"}', 'high') 1246
+  ('clojure', '{"kind": "reference"}', 'high') 349
+dropped 332
+  ('clojure', '{"kind": "direct"}', 'high') 276
+  ('clojure', '{"kind": "reference"}', 'high') 56

@@ -1,0 +1,9 @@
+repo	edges_old	edges_new	dropped	added	changed	callables_old	callables_new	unres_old	unres_new	files_old	files_new	deadhigh_old	deadhigh_new	note
+app-cljdoc-pedestal	1442	1442	0	0	0	1306	1306	682	682	216	216	0	0	
+app-lipas-reitit	4800	4804	4	8	0	4317	4323	4037	4041	724	724	0	0	
+app-metabase-compojure	193832	194792	271	1231	0	94147	94835	384066	384522	15860	15860	0	0	
+app-riemann-httpkit	1047	1049	1	3	0	1147	1149	2066	2066	153	153	0	0	
+app-storm-starter	62318	62318	0	0	0	31275	31275	34673	34673	2162	2162	11	11	
+clojure-compojure	135	139	0	4	0	138	140	133	133	12	12	0	0	
+clojure-ring	464	464	0	0	0	642	647	776	772	82	82	0	0	
+rust-bat	2928	2928	0	0	0	1979	1979	2076	2076	176	176	3	3	

@@ -1,0 +1,10 @@
+repos 8 excluded []
+added 1614
+  ('clojure', '{"family": "compojure", "kind": "framework_entry"}', 'low') 1
+  ('clojure', '{"kind": "direct"}', 'high') 1264
+  ('clojure', '{"kind": "reference"}', 'high') 348
+  ('clojure', '{"kind": "reference"}', 'medium') 1
+dropped 335
+  ('clojure', '{"family": "compojure", "kind": "framework_entry"}', 'low') 1
+  ('clojure', '{"kind": "direct"}', 'high') 278
+  ('clojure', '{"kind": "reference"}', 'high') 56

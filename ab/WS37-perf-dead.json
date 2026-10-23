@@ -1,0 +1,42 @@
+[
+ {
+  "repo": "app-cljdoc-pedestal",
+  "old_ms": 664.9494500597939,
+  "new_ms": 665.180450072512
+ },
+ {
+  "repo": "app-lipas-reitit",
+  "old_ms": 2769.877522950992,
+  "new_ms": 2619.1957619739696
+ },
+ {
+  "repo": "app-metabase-compojure",
+  "old_ms": 53371.62694800645,
+  "new_ms": 51968.50977407303
+ },
+ {
+  "repo": "app-riemann-httpkit",
+  "old_ms": 565.3155519394204,
+  "new_ms": 515.0592350400984
+ },
+ {
+  "repo": "app-storm-starter",
+  "old_ms": 8832.858543959446,
+  "new_ms": 8986.432738951407
+ },
+ {
+  "repo": "clojure-compojure",
+  "old_ms": 63.993809977546334,
+  "new_ms": 64.00799995753914
+ },
+ {
+  "repo": "clojure-ring",
+  "old_ms": 264.3984080059454,
+  "new_ms": 264.2011499265209
+ },
+ {
+  "repo": "rust-bat",
+  "old_ms": 6690.67530205939,
+  "new_ms": 6728.655893937685
+ }
+]

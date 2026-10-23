@@ -1,0 +1,8 @@
+old: cgg 0.11.1 (dev g695777b)  sha256=0e60469a9067f4567a785d79ea2562ca2e8ac95ad5d151256ff23d6460142f74
+new: cgg 0.11.1 (dev g695777b+d6a45701)  sha256=42dc8ac77b07d1c78a64b64b025036b5c42b675fe38b8f91618d2815b38848d7
+old=target/remediation/bins/WS37-before
+new=target/remediation/bins/WS37-share
+repos=8 elapsed=35s
+excluded (timeout/error, NOT diffed): 0
+repos changed: 0
+by language: see by_language.tsv

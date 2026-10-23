@@ -1,0 +1,9 @@
+app-cljdoc-pedestal                 178 ->      165 ms
+app-lipas-reitit                    384 ->      389 ms
+app-metabase-compojure             8608 ->     8111 ms
+app-riemann-httpkit                 123 ->      144 ms
+app-storm-starter                  2854 ->     3104 ms
+clojure-compojure                    36 ->       34 ms
+clojure-ring                         79 ->       89 ms
+rust-bat                           1462 ->     1440 ms
+total 13.7 -> 13.5 s (-1.8%)
