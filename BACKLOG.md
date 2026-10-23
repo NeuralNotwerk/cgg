@@ -11,6 +11,8 @@ Versioning: a new grammar, parse mechanism or language is a minor release
 
 ### Groovy: a fuller grammar
 
+Tracked in [issue #11](https://github.com/NeuralNotwerk/cgg/issues/11).
+
 `tree-sitter-groovy` rejects a number of everyday Groovy shapes, and every
 method and call inside the resulting ERROR span is lost or misread. 0.11.2
 (WS38) recovered what same-length `parse_source` rewrites can reach: ERROR
