@@ -403,6 +403,21 @@ pub struct Cli {
     #[arg(long = "guess-unique-names", action = ArgAction::SetTrue)]
     pub guess_unique_names: bool,
 
+    /// Bind calls written outside every definition (module top level:
+    /// script bodies, `if __name__ == "__main__"` blocks) to a synthetic
+    /// per-file `<module>` callable, so they become edges instead of
+    /// unresolved `no-enclosing-callable` sites.
+    ///
+    /// Off by default: a run without it is byte-identical to one from
+    /// before the flag existed, and the dead-code analyzer's
+    /// top-level-invocation rule still keeps such callees alive. On,
+    /// every language gains those edges at once — the module scope is
+    /// one extra definition per file that has top-level references,
+    /// marked `synthetic`, so it never counts as a dead-code candidate
+    /// and is never a framework target.
+    #[arg(long = "module-scope-calls", action = ArgAction::SetTrue)]
+    pub module_scope_calls: bool,
+
     /// Report callables that nothing in the analyzed source appears to
     /// call, marking them `unreferenced` in the normal graph output.
     ///

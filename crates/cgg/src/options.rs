@@ -146,6 +146,16 @@ pub struct RunOptions {
     /// Bind an unplaced Rust call whose name is unique in the tree, at
     /// `low` confidence (`--guess-unique-names`).
     pub guess_unique_names: bool,
+    /// Bind calls written outside every definition (module top level:
+    /// script bodies, `if __name__ == "__main__"` blocks) to a synthetic
+    /// per-file `<module>` callable, so they become edges instead of
+    /// unresolved `no-enclosing-callable` sites. Off by default: a run
+    /// without it is byte-identical to one from before the flag existed,
+    /// and the dead-code analyzer's top-level-invocation rule still
+    /// keeps such callees alive. The module scope is one extra
+    /// definition per file that has top-level references, marked
+    /// `synthetic`, so it never counts as a dead-code candidate.
+    pub module_scope_calls: bool,
     /// Suppress synthesized `<framework-entry>` nodes. Negative sense
     /// to match the flag; entry nodes are ON by default.
     pub no_entry_nodes: bool,
@@ -217,6 +227,7 @@ impl Default for RunOptions {
             dynamic_dispatch: false,
             reference_edges: false,
             guess_unique_names: false,
+            module_scope_calls: false,
             no_entry_nodes: false,
             no_test_entries: false,
             framework_coverage: false,
@@ -301,6 +312,7 @@ impl From<&crate::cli::Cli> for RunOptions {
             framework_coverage,
             reference_edges,
             guess_unique_names,
+            module_scope_calls,
             dead_code,
             dead_code_confidence,
             ignore_names,
@@ -363,6 +375,7 @@ impl From<&crate::cli::Cli> for RunOptions {
             dynamic_dispatch: *dynamic_dispatch,
             reference_edges: *reference_edges,
             guess_unique_names: *guess_unique_names,
+            module_scope_calls: *module_scope_calls,
             no_entry_nodes: *no_entry_nodes,
             no_test_entries: *no_test_entries,
             framework_coverage: *framework_coverage,

@@ -8533,6 +8533,97 @@ mod tests {
         );
     }
 
+    /// The synthetic module-scope definition must never make a file's
+    /// top-level functions read as *nested*: `nested_function_ids`
+    /// stacks callables by byte containment, and before the module
+    /// scope carried `synthetic` onto the graph, a whole-file module
+    /// definition made every top-level def in its file "nested" —
+    /// invisible to cross-file by-name binding (WS33). Found by the
+    /// Python call-graph benchmark: a file with top-level calls stopped
+    /// exporting its functions to every other file.
+    #[test]
+    fn module_scope_does_not_hide_its_files_functions() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "caller.py", "python"));
+        g.add_file(mk_file(1, "lib.py", "python"));
+        g.add_callable(mk_callable(
+            0,
+            "caller",
+            "caller.caller",
+            0,
+            "python",
+            (0, 20),
+        ));
+        g.add_callable(mk_callable(
+            1,
+            "helper",
+            "lib.helper",
+            1,
+            "python",
+            (100, 140),
+        ));
+        // The module scope as the driver mints it: synthetic, whole-file span.
+        let mut module_node =
+            mk_callable(2, "<module>", "<module>:./lib.py", 1, "python", (0, 200));
+        module_node.synthetic = true;
+        g.add_callable(module_node);
+
+        let caller_facts = facts_for(
+            0,
+            "caller.py",
+            "python",
+            vec![mk_def(
+                "caller",
+                "caller.caller",
+                DefVariant::FreeFunction,
+                (0, 20),
+            )],
+            vec![RefRecord {
+                name: "helper".into(),
+                receiver_hint: String::new(),
+                site_line: 2,
+                site_byte: 10,
+                ..Default::default()
+            }],
+            vec![ImportRecord {
+                kind: "from-import".into(),
+                path: "lib".into(),
+                alias: "helper".into(),
+                site_line: 1,
+                site_byte: 0,
+            }],
+        );
+        // lib.py carries the injected module-scope definition.
+        let mut module_def = mk_def(
+            "<module>",
+            "<module>:./lib.py",
+            DefVariant::FreeFunction,
+            (0, 200),
+        );
+        module_def.attributes = vec![cgg_core::MODULE_SCOPE_ATTR.into()];
+        let lib_facts = facts_for(
+            1,
+            "lib.py",
+            "python",
+            vec![
+                mk_def("helper", "lib.helper", DefVariant::FreeFunction, (100, 140)),
+                module_def,
+            ],
+            vec![],
+            vec![],
+        );
+
+        let out = resolve_default(&g, &[caller_facts, lib_facts]);
+        assert_eq!(
+            out.edges.len(),
+            1,
+            "caller's call binds to lib.helper: the module scope must \
+             not hide the file's functions"
+        );
+        assert_eq!(out.edges[0].src, CallableId::new(0));
+        assert_eq!(out.edges[0].dst, CallableId::new(1));
+    }
+
     /// A value ref with two same-name candidates in scope must land in
     /// the distinct `ValueRefAmbiguous` reason, not `AmbiguousInFile` —
     /// the latter is what every other consumer (the `ambiguous-in-file`

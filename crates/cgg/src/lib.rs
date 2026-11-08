@@ -665,6 +665,13 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                 if let Some(mut facts) = fr.facts {
                     // Fix the file ID (was placeholder 0 during parallel phase).
                     facts.file = file_id;
+                    // --module-scope-calls: give references outside every
+                    // real definition a caller. Before the minting loop,
+                    // so the module scope gets a CallableId like any
+                    // definition.
+                    if opts.module_scope_calls {
+                        facts.inject_module_scope_def();
+                    }
                     for (idx, d) in facts.definitions.iter().enumerate() {
                         let owner = cgg_resolve::names::owner_from_qn(&d.qualified_name);
                         // The signature is part of the key: without it,
@@ -706,7 +713,11 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                             synthetic: d
                                 .attributes
                                 .iter()
-                                .any(|a| a == "synthetic" || a.starts_with("derive:")),
+                                .any(|a| {
+                                    a == "synthetic"
+                                        || a.starts_with("derive:")
+                                        || a == cgg_core::MODULE_SCOPE_ATTR
+                                }),
                             trait_impl_target: trait_impl_target_from_qn(
                                 &d.qualified_name,
                             ),

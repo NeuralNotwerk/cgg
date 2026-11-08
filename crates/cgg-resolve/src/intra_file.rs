@@ -72,9 +72,31 @@ impl Nesting {
                 .then(defs[b].end_byte.cmp(&defs[a].end_byte))
                 .then(a.cmp(&b))
         });
+        // `innermost` must never return the module scope either — a
+        // caller of last resort is not a lexical container.
+        by_start.retain(|&i| {
+            !defs[i]
+                .attributes
+                .iter()
+                .any(|a| a == cgg_core::MODULE_SCOPE_ATTR)
+        });
         let mut parent = vec![None; defs.len()];
         let mut open: Vec<usize> = Vec::new();
         for &i in &by_start {
+            // The synthetic module-scope definition encloses every span
+            // by construction (see
+            // `FileFacts::inject_module_scope_def`). Nesting must not
+            // see it: a parent for every top-level definition would
+            // change what the parent-based rules below answer.
+            // `enclosing_def_index` is the only reader that must find
+            // it, and it walks `facts.definitions` directly.
+            if defs[i]
+                .attributes
+                .iter()
+                .any(|a| a == cgg_core::MODULE_SCOPE_ATTR)
+            {
+                continue;
+            }
             let (s, e) = (defs[i].start_byte, defs[i].end_byte);
             while open
                 .last()
@@ -207,6 +229,19 @@ pub fn link_file_with_cap(
 
     let locals = crate::scope::FileLocals::build(facts);
     let nesting = Nesting::build(&facts.definitions);
+    // The synthetic module-scope definition, when the run injected one
+    // (`--module-scope-calls`): the caller of last resort for references
+    // outside every real definition. Absent otherwise — every drop
+    // below then behaves exactly as it did before the flag existed.
+    let module_src = facts
+        .definitions
+        .iter()
+        .position(|d| {
+            d.attributes
+                .iter()
+                .any(|a| a == cgg_core::MODULE_SCOPE_ATTR)
+        })
+        .and_then(|i| def_ids.get(&(facts.file, i as u32)).copied());
     // Call sites by callee name, sorted by byte: what a local's
     // initializer calls (WS33).
     let mut calls_named: std::collections::HashMap<&str, Vec<u32>> =
@@ -247,7 +282,9 @@ pub fn link_file_with_cap(
         }
 
         if rref.receiver_hint == cgg_core::VALUE_REF_HINT {
-            let Some(src_id) = src else { continue };
+            let Some(src_id) = src.or(module_src) else {
+                continue;
+            };
             let matches: Vec<u32> = facts
                 .definitions
                 .iter()
@@ -765,21 +802,26 @@ pub fn link_file_with_cap(
                 ));
             }
             [(cand_idx, _)] => {
-                let Some(src_id) = src else {
-                    // No enclosing callable (e.g. ref at module top
-                    // level) — the edge has no source; record it as
-                    // unresolved with a specific reason so Task 6's
-                    // resolver can pick it up.
-                    out.unresolved.push(AuditUnresolvedCall::new(
-                        None,
-                        facts.file,
-                        rref.site_line,
-                        rref.site_byte,
-                        rref.name.clone(),
-                        rref.receiver_hint.clone(),
-                        UnresolvedReason::NoEnclosingCallable,
-                    ));
-                    continue;
+                let src_id = match src.or(module_src) {
+                    Some(id) => id,
+                    None => {
+                        // No enclosing callable and no module scope
+                        // (a ref at module top level without
+                        // `--module-scope-calls`) — the edge has no
+                        // source; record it as unresolved with a
+                        // specific reason so Task 6's resolver can
+                        // pick it up.
+                        out.unresolved.push(AuditUnresolvedCall::new(
+                            None,
+                            facts.file,
+                            rref.site_line,
+                            rref.site_byte,
+                            rref.name.clone(),
+                            rref.receiver_hint.clone(),
+                            UnresolvedReason::NoEnclosingCallable,
+                        ));
+                        continue;
+                    }
                 };
                 let dst_id = def_ids[&(facts.file, *cand_idx)];
                 // One candidate is certain only through a receiver whose
@@ -808,7 +850,7 @@ pub fn link_file_with_cap(
             // than being dropped as ambiguous. Bounded by the fan-out cap
             // like any other guess, so `--fanout-cap 0` still never guesses.
             [(_, first), rest @ ..]
-                if src.is_some()
+                if (src.is_some() || module_src.is_some())
                     && binds_same_name_set(&facts.language)
                     && rest
                         .iter()
@@ -855,7 +897,7 @@ pub fn link_file_with_cap(
                 if rref.weak_receiver_type {
                     confidence = Confidence::Medium;
                 }
-                let src_id = src.expect("guarded above");
+                let src_id = src.or(module_src).expect("guarded above");
                 for cand_idx in targets {
                     out.edges.push(CallEdge {
                         src: src_id,
@@ -878,7 +920,7 @@ pub fn link_file_with_cap(
             // or two in one branch, is a real duplicate and stays
             // ambiguous. `--fanout-cap 0` never guesses.
             [(_, first), rest @ ..]
-                if src.is_some()
+                if (src.is_some() || module_src.is_some())
                     && fanout_cap > 0
                     && PREPROC_ALTERNATIVE_LANGS.contains(&facts.language.as_str())
                     && rest
@@ -886,7 +928,7 @@ pub fn link_file_with_cap(
                         .all(|(_, d)| d.qualified_name == first.qualified_name)
                     && pairwise_preproc_exclusive(&candidates) =>
             {
-                let src_id = src.expect("guarded above");
+                let src_id = src.or(module_src).expect("guarded above");
                 // A call inside one branch reaches only the alternative of
                 // that configuration: an alternative in another branch of
                 // a chain the caller sits in is never compiled with it.
@@ -2267,6 +2309,101 @@ mod tests {
         assert_eq!(
             out.unresolved[0].reason,
             UnresolvedReason::NoEnclosingCallable
+        );
+    }
+
+    #[test]
+    fn module_scope_calls_bind_top_level_refs() {
+        // `--module-scope-calls`: the injected module scope is the
+        // caller of a top-level statement.
+        let defs = vec![mk_def(
+            "foo",
+            "m::foo",
+            DefVariant::FreeFunction,
+            (100, 200),
+        )];
+        let refs = vec![mk_ref("foo", 10)];
+        let mut facts = facts_with(defs, refs);
+        facts.inject_module_scope_def();
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        assert_eq!(out.edges.len(), 1);
+        let module_idx = (facts.definitions.len() - 1) as u32;
+        assert_eq!(out.edges[0].src, map[&(facts.file, module_idx)]);
+        assert_eq!(out.edges[0].dst, map[&(facts.file, 0)]);
+        assert_eq!(out.unresolved.len(), 0);
+    }
+
+    #[test]
+    fn module_scope_caller_takes_value_refs_too() {
+        // `register(handler)` at module top level: the Via::Reference
+        // edge gets the module scope as its source.
+        let defs = vec![mk_def(
+            "handler",
+            "m::handler",
+            DefVariant::FreeFunction,
+            (100, 200),
+        )];
+        let mut r = mk_ref("handler", 10);
+        r.receiver_hint = cgg_core::VALUE_REF_HINT.into();
+        let mut facts = facts_with(defs, vec![r]);
+        facts.inject_module_scope_def();
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        assert_eq!(out.edges.len(), 1);
+        assert_eq!(out.edges[0].via, Via::Reference);
+        let module_idx = (facts.definitions.len() - 1) as u32;
+        assert_eq!(out.edges[0].src, map[&(facts.file, module_idx)]);
+    }
+
+    #[test]
+    fn module_scope_injection_is_a_no_op_without_top_level_refs() {
+        // Every reference sits inside a definition: no module scope is
+        // minted, definition counts stay untouched.
+        let defs = vec![mk_def("f", "m::f", DefVariant::FreeFunction, (0, 100))];
+        let refs = vec![mk_ref("f", 20)];
+        let mut facts = facts_with(defs, refs);
+        facts.inject_module_scope_def();
+        assert_eq!(facts.definitions.len(), 1);
+    }
+
+    #[test]
+    fn module_scope_injection_is_idempotent() {
+        let defs = vec![mk_def(
+            "foo",
+            "m::foo",
+            DefVariant::FreeFunction,
+            (100, 200),
+        )];
+        let refs = vec![mk_ref("foo", 10)];
+        let mut facts = facts_with(defs, refs);
+        facts.inject_module_scope_def();
+        let after_first = facts.definitions.len();
+        facts.inject_module_scope_def();
+        assert_eq!(facts.definitions.len(), after_first);
+    }
+
+    #[test]
+    fn nesting_ignores_the_module_scope() {
+        // A top-level definition keeps parent None even with the module
+        // scope injected: no parent through the synthetic record.
+        let defs = vec![mk_def("f", "m::f", DefVariant::FreeFunction, (100, 200))];
+        let refs = vec![mk_ref("g", 10)];
+        let mut facts = facts_with(defs, refs);
+        facts.inject_module_scope_def();
+        let nesting = Nesting::build(&facts.definitions);
+        assert_eq!(nesting.parent[0], None);
+        // References inside `f` still resolve to `f`, not the module.
+        facts.references[0].site_byte = 150;
+        let map = mk_map(&facts);
+        let out = link_file(&facts, &map);
+        // `g` names nothing in the file, but the ref sits inside `f`
+        // now, so it files as an in-file unresolved with a caller —
+        // never as NoEnclosingCallable.
+        assert!(
+            out.unresolved
+                .iter()
+                .all(|u| u.reason != UnresolvedReason::NoEnclosingCallable)
         );
     }
 

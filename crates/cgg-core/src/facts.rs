@@ -47,6 +47,13 @@ pub const CLOJURE_MULTIMETHOD_ATTR: &str = "multimethod:";
 /// by a bare call in the form's scope and never from another file.
 pub const CLOJURE_LETFN_ATTR: &str = "letfn";
 
+/// Attribute on the synthetic module-scope definition injected by
+/// [`FileFacts::inject_module_scope_def`] (`--module-scope-calls`): the
+/// caller of last resort for references outside every real definition.
+/// Carries onto the graph node as `synthetic`, keeping it out of
+/// dead-code candidates and framework matching.
+pub const MODULE_SCOPE_ATTR: &str = "module-scope";
+
 /// `RefRecord::receiver_hint` of an Objective-C selector value
 /// (`@selector(tap:)`, `NSSelectorFromString(@"tap:")`): the method of
 /// that selector on whichever class receives the message — resolved
@@ -989,6 +996,75 @@ pub struct MemberPtrTake {
 }
 
 impl FileFacts {
+    /// Append the synthetic module-scope definition when the file has
+    /// references outside every real definition (top-level statements,
+    /// `if __name__ == "__main__"` blocks): a caller of last resort, so
+    /// those references can become edges instead of unresolved
+    /// `no-enclosing-callable` sites.
+    ///
+    /// The span covers the whole file. `enclosing_def_index` picks the
+    /// smallest containing definition, so real definitions keep their
+    /// own references and the module scope only catches what nothing
+    /// else claims; `Nesting` ignores the record entirely, so no real
+    /// definition gains a parent. `start_line` is the first unclaimed
+    /// reference's line, which is also the line downstream line-based
+    /// consumers see. A file whose references all sit inside
+    /// definitions gets nothing — definition counts stay untouched —
+    /// and the injection is idempotent.
+    pub fn inject_module_scope_def(&mut self) {
+        if self
+            .definitions
+            .iter()
+            .any(|d| d.attributes.iter().any(|a| a == MODULE_SCOPE_ATTR))
+        {
+            return;
+        }
+        let claimed = |site: u32| {
+            self.definitions
+                .iter()
+                .any(|d| d.start_byte <= site && site < d.end_byte)
+        };
+        let Some(first) = self
+            .references
+            .iter()
+            .filter(|r| !claimed(r.site_byte))
+            .min_by_key(|r| (r.site_byte, r.site_line))
+        else {
+            return;
+        };
+        let end_byte = self
+            .definitions
+            .iter()
+            .map(|d| d.end_byte)
+            .chain(self.references.iter().map(|r| r.site_byte))
+            .max()
+            .unwrap_or(first.site_byte)
+            + 1;
+        let end_line = self
+            .definitions
+            .iter()
+            .map(|d| d.end_line)
+            .chain(self.references.iter().map(|r| r.site_line))
+            .max()
+            .unwrap_or(first.site_line);
+        // The qualified name is unique per file: two files' module scopes
+        // must not land in the cross-file resolver's collision indexes
+        // (they are keyed by qualified name), and nothing downstream may
+        // mistake one file's module scope for another's.
+        let qn = format!("<module>:{}", self.path.display().to_string().replace('\\', "/"));
+        self.definitions.push(DefRecord {
+            simple_name: "<module>".into(),
+            qualified_name: qn,
+            variant: DefVariant::FreeFunction,
+            start_line: first.site_line,
+            end_line,
+            start_byte: 0,
+            end_byte,
+            attributes: vec![MODULE_SCOPE_ATTR.into()],
+            ..Default::default()
+        });
+    }
+
     pub fn new(file: FileId, path: PathBuf, language: impl Into<String>) -> Self {
         Self {
             file,
