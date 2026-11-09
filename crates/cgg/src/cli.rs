@@ -241,6 +241,21 @@ pub struct Cli {
     #[arg(long = "skip-minified", action = ArgAction::SetTrue)]
     pub skip_minified: bool,
 
+    /// Analyze a directory the built-in deny list would skip
+    /// (`vendor`, `build`, `dist`, `target`, …). Repeatable.
+    ///
+    /// The deny list exists because those names usually hold generated
+    /// or third-party build output; naming one here says this tree's
+    /// copy is real source you want in the graph. Match is by exact
+    /// directory-name component, the same match the list itself
+    /// applies, and a name the list does not contain is accepted and
+    /// ignored. `.git` cannot be enabled. Files inside an allowed
+    /// directory are still subject to every other layer: gitignore,
+    /// `.cggignore`, size, binary and minified checks. Off by default —
+    /// a run without it skips exactly what cgg has always skipped.
+    #[arg(long = "allow-dir", value_name = "NAME")]
+    pub allow_dir: Vec<String>,
+
     /// Number of parallel worker threads.
     ///
     /// `0` (the default) means auto: half the machine's **physical**
