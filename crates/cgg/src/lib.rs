@@ -298,6 +298,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         roots: opts.paths.clone(),
         extra_ignore_file: opts.ignore_file.clone(),
         skip_minified: opts.skip_minified,
+        allow_dirs: opts.allow_dirs.clone(),
         ..Default::default()
     };
     let walk_started = Instant::now();

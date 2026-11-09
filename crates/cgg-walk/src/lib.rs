@@ -10,6 +10,9 @@
 //!    `site-packages`, `vendor`, `target`, `build`, `bin`, `obj`,
 //!    `dist`, `.git`, `.gradle`, `.cargo`, `__pycache__`, `.next`,
 //!    `.nuxt`. Matched by exact directory name anywhere in the path.
+//!    A name listed in [`WalkConfig::allow_dirs`] is removed from the
+//!    list for this run — the caller's explicit decision to analyze
+//!    vendored or generated code it knows to be real source.
 //! 2. `.gitignore` walked up the tree (via [`ignore`] defaults).
 //! 3. `.cggignore` parsed at every directory boundary
 //!    (gitignore-syntax).
@@ -45,7 +48,7 @@ use std::path::{Path, PathBuf};
 use cgg_core::audit::SkipReason;
 
 /// Directory segments that are always excluded regardless of user
-/// configuration. Bypassable only via code changes.
+/// configuration, minus whatever [`WalkConfig::allow_dirs`] removes.
 pub const BUILTIN_DENY_DIRS: &[&str] = &[
     "node_modules",
     ".venv",
@@ -131,6 +134,16 @@ pub struct WalkConfig {
     /// So this one is opt-in, matching the rest of cgg's
     /// graph-content switches.
     pub skip_minified: bool,
+    /// Directory names removed from [`BUILTIN_DENY_DIRS`] for this
+    /// walk, by exact component match — the same match the deny list
+    /// itself applies. An allow-set is the caller's answer to a deny
+    /// list that has no per-project override: `vendor/` holds build
+    /// artifacts nine times out of ten, and vendored real source the
+    /// tenth. Naming a directory here is the caller vouching for that
+    /// tenth case. Names not on the deny list are no-ops; `.git`
+    /// stays denied regardless, since nothing in it is project
+    /// source under any convention.
+    pub allow_dirs: Vec<String>,
 }
 
 impl Default for WalkConfig {
@@ -143,6 +156,9 @@ impl Default for WalkConfig {
             max_file_size: Some(25 * 1024 * 1024),
             // Opt-in: the default walk analyzes every file it can parse.
             skip_minified: false,
+            // Empty: the deny list is intact unless the caller names
+            // directories to remove from it.
+            allow_dirs: Vec::new(),
         }
     }
 }
@@ -175,7 +191,7 @@ fn walk_one(
     // If the user passed a file directly, short-circuit: still apply
     // skip checks so single-file audits stay consistent.
     if display_root.is_file() {
-        if let Some(reason) = builtin_reason(display_root) {
+        if let Some(reason) = builtin_reason(display_root, &cfg.allow_dirs) {
             out.skips.push(Skip {
                 path: display_root.to_path_buf(),
                 reason,
@@ -246,7 +262,7 @@ fn walk_one(
 
         // Built-in deny check — belt-and-suspenders in case a path
         // bypassed ignore filtering (e.g. symlinks).
-        if let Some(reason) = builtin_reason(path) {
+        if let Some(reason) = builtin_reason(path, &cfg.allow_dirs) {
             out.skips.push(Skip {
                 path: path.to_path_buf(),
                 reason,
@@ -395,11 +411,16 @@ fn average_line_len(buf: &[u8]) -> usize {
     buf.len() / lines
 }
 
-/// Match any component of `path` against the built-in deny list.
-fn builtin_reason(path: &Path) -> Option<SkipReason> {
+/// Match any component of `path` against the built-in deny list,
+/// minus the names `allow_dirs` removes. `.git` is exempt from the
+/// allow-set: its contents are VCS internals, not project source
+/// under any convention, and the rest of the pipeline only gets
+/// noise from them.
+fn builtin_reason(path: &Path, allow_dirs: &[String]) -> Option<SkipReason> {
     for comp in path.components() {
         if let Some(name) = comp.as_os_str().to_str()
             && BUILTIN_DENY_DIRS.contains(&name)
+            && (name == ".git" || !allow_dirs.iter().any(|a| a == name))
         {
             return Some(SkipReason::Builtin(name.to_string()));
         }
@@ -476,6 +497,89 @@ mod tests {
             out.skips
                 .iter()
                 .any(|s| matches!(&s.reason, SkipReason::Builtin(d) if d == "target"))
+        );
+    }
+
+    #[test]
+    fn allow_dir_re_enables_a_denied_dir() {
+        let tmp = TempDir::new().unwrap();
+        write(tmp.path(), "src/a.rs", b"fn x() {}\n");
+        write(tmp.path(), "vendor/dep.rs", b"fn dep() {}\n");
+
+        let cfg = WalkConfig {
+            roots: vec![tmp.path().to_path_buf()],
+            allow_dirs: vec!["vendor".to_string()],
+            ..Default::default()
+        };
+        let out = walk(&cfg).unwrap();
+        assert!(out.candidates.iter().any(|c| c.path.ends_with("dep.rs")));
+        // No skip record at all: an allowed directory never ran the
+        // deny check, so there is nothing to report.
+        assert!(out.skips.is_empty());
+    }
+
+    #[test]
+    fn allow_dir_leaves_every_other_denied_dir_deny() {
+        let tmp = TempDir::new().unwrap();
+        write(tmp.path(), "vendor/dep.rs", b"fn dep() {}\n");
+        write(tmp.path(), "node_modules/lodash.js", b"module.exports={};\n");
+        write(tmp.path(), "target/debug/out.rs", b"fn out() {}\n");
+
+        let cfg = WalkConfig {
+            roots: vec![tmp.path().to_path_buf()],
+            allow_dirs: vec!["vendor".to_string()],
+            ..Default::default()
+        };
+        let out = walk(&cfg).unwrap();
+        assert!(out.candidates.iter().any(|c| c.path.ends_with("dep.rs")));
+        assert!(
+            out.skips.iter().any(
+                |s| matches!(&s.reason, SkipReason::Builtin(d) if d == "node_modules")
+            )
+        );
+        assert!(
+            out.skips
+                .iter()
+                .any(|s| matches!(&s.reason, SkipReason::Builtin(d) if d == "target"))
+        );
+    }
+
+    #[test]
+    fn allow_dir_cannot_re_enable_git() {
+        let tmp = TempDir::new().unwrap();
+        write(tmp.path(), ".git/config", b"[core]\n");
+
+        let cfg = WalkConfig {
+            roots: vec![tmp.path().to_path_buf()],
+            allow_dirs: vec![".git".to_string()],
+            ..Default::default()
+        };
+        let out = walk(&cfg).unwrap();
+        assert!(!out.candidates.iter().any(|c| c.path.ends_with("config")));
+        assert!(
+            out.skips
+                .iter()
+                .any(|s| matches!(&s.reason, SkipReason::Builtin(d) if d == ".git"))
+        );
+    }
+
+    #[test]
+    fn allow_dir_name_not_on_deny_list_is_a_noop() {
+        let tmp = TempDir::new().unwrap();
+        write(tmp.path(), "src/a.rs", b"fn x() {}\n");
+        write(tmp.path(), "vendor/dep.rs", b"fn dep() {}\n");
+
+        let cfg = WalkConfig {
+            roots: vec![tmp.path().to_path_buf()],
+            allow_dirs: vec!["third_party".to_string()],
+            ..Default::default()
+        };
+        let out = walk(&cfg).unwrap();
+        assert!(out.candidates.iter().any(|c| c.path.ends_with("a.rs")));
+        assert!(
+            out.skips.iter().any(
+                |s| matches!(&s.reason, SkipReason::Builtin(d) if d == "vendor")
+            )
         );
     }
 
