@@ -9,6 +9,14 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+### Added
+
+- `--allow-dir <NAME>` (repeatable): remove one name from the walker's
+  built-in deny list for this run (exact component match; `.git` stays
+  denied), so a tree whose `vendor/`-style directory holds real, tracked
+  source can be analyzed on demand. Off by default: a run without the
+  flag walks exactly what cgg has always walked, byte for byte.
+
 ## [0.11.2] - 2026-10-23
 
 A correctness release: the fixes (WS32–WS38) for the major issues a
