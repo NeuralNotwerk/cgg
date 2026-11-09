@@ -548,6 +548,11 @@ pub fn propagate_types_with_fields(
     // File-wide, last-write-wins map of ordinary locals: the lookup every
     // plugin except C++ was written against (see Strategy 3 below).
     let mut local_type_map: HashMap<&str, &str> = HashMap::new();
+    // The module qualifier each of those locals' types was written with
+    // (`sampler` → `comfy.samplers`); Python only — no other plugin
+    // records one. Travels with the rewrite so a same-named class in
+    // another module can be ruled out by where its file sits.
+    let mut local_module_map: HashMap<&str, &str> = HashMap::new();
     for lt in &facts.local_types {
         // A bare call's result (`make()`) is read where it is in scope,
         // by `lookup_call_local`.
@@ -571,6 +576,9 @@ pub fn propagate_types_with_fields(
             // the common short names repeat across functions.
         } else {
             local_type_map.insert(lt.var_name.as_str(), lt.type_name.as_str());
+            if !lt.type_module.is_empty() {
+                local_module_map.insert(lt.var_name.as_str(), lt.type_module.as_str());
+            }
         }
     }
 
@@ -657,6 +665,9 @@ pub fn propagate_types_with_fields(
     cgg_core::profile::count(t.defs, facts.definitions.len() as u64);
     let _s3 = cgg_core::profile::span("types::pass3");
     let mut rewrites: Vec<(usize, String)> = Vec::new();
+    // The module qualifier a rewrite's type was written with (Python
+    // constructors like `comfy.samplers.KSampler`): ref index → module.
+    let mut ref_modules: HashMap<usize, String> = HashMap::new();
     // The rewrites above that are guesses rather than a declaration in
     // scope (see `RefRecord::weak_receiver_type`): indices into `rewrites`'
     // reference positions.
@@ -1214,6 +1225,9 @@ pub fn propagate_types_with_fields(
                 weak.insert(i);
             }
             rewrites.push((i, ty.to_string()));
+            if let Some(m) = local_module_map.get(rh) {
+                ref_modules.insert(i, (*m).to_string());
+            }
             continue;
         }
         // Zig locals are typed from what is written (WS14b): the name
@@ -1397,6 +1411,11 @@ pub fn propagate_types_with_fields(
             facts.references[i].retyped_receiver = true;
         }
         facts.references[i].receiver_hint = ty;
+        // The module the type was written through (`sampler` retyped
+        // `KSampler` from `comfy.samplers.KSampler(...)`): carried beside
+        // the bare hint, which owner lookups key on. A ref rewritten from
+        // another strategy has no qualifier — cleared, not stale.
+        facts.references[i].receiver_module = ref_modules.remove(&i);
     }
 }
 
@@ -4122,6 +4141,7 @@ mod tests {
                 var_name: var.into(),
                 type_name: ty.into(),
                 scope_byte: 100,
+                type_module: String::new(),
             });
             user.assoc_call_locals.push(cgg_core::AssocCallLocal {
                 var_name: var.into(),
@@ -4134,6 +4154,7 @@ mod tests {
             var_name: "h".into(),
             type_name: "Loader".into(),
             scope_byte: 100,
+            type_module: String::new(),
         });
         let mut all = vec![lib, user];
         settle_assoc_call_locals(&mut all);
@@ -4223,6 +4244,7 @@ mod tests {
             var_name: "spec".into(),
             type_name: "ColorSpec".into(),
             scope_byte: 105,
+            type_module: String::new(),
         });
         propagate_types(&mut f);
         let hints: Vec<&str> = f
@@ -4249,6 +4271,7 @@ mod tests {
             var_name: "s".into(),
             type_name: "Store".into(),
             scope_byte: 5,
+            type_module: String::new(),
         });
         user.assoc_call_locals.push(cgg_core::AssocCallLocal {
             var_name: "s".into(),
@@ -4446,11 +4469,13 @@ mod tests {
                 var_name: "r".into(),
                 type_name: "jobs.NewRunner()".into(),
                 scope_byte: 10,
+                type_module: String::new(),
             },
             LocalType {
                 var_name: "r".into(),
                 type_name: "other.Open()".into(),
                 scope_byte: 110,
+                type_module: String::new(),
             },
         ];
         propagate_types(&mut facts);
@@ -4486,6 +4511,7 @@ mod tests {
             var_name: "property".into(),
             type_name: "make()".into(),
             scope_byte: 30,
+            type_module: String::new(),
         }];
         facts.locals = vec![cgg_core::LocalBinding {
             name: "property".into(),
@@ -4515,6 +4541,7 @@ mod tests {
             var_name: v.into(),
             type_name: ty.into(),
             scope_byte: at,
+            type_module: String::new(),
         };
         facts.local_types = vec![lt("v", "f()", 60), lt("c", "g()", 80)];
         facts.locals = vec![cgg_core::LocalBinding {
@@ -4584,11 +4611,13 @@ mod tests {
                 var_name: "pp".into(),
                 type_name: "pp.New()".into(),
                 scope_byte: 60,
+                type_module: String::new(),
             },
             LocalType {
                 var_name: "pp".into(),
                 type_name: String::new(),
                 scope_byte: 100,
+                type_module: String::new(),
             },
         ];
         propagate_types(&mut facts);
@@ -4837,6 +4866,7 @@ mod tests {
             var_name: "kernel".into(),
             type_name: "Kernel".into(),
             scope_byte: 0,
+            type_module: String::new(),
         });
         let mut fields: HashMap<String, HashMap<String, String>> = HashMap::new();
         fields
@@ -4882,11 +4912,13 @@ mod tests {
             var_name: "stream".into(),
             type_name: "StreamOutput".into(),
             scope_byte: 10,
+            type_module: String::new(),
         });
         facts.local_types.push(cgg_core::LocalType {
             var_name: "stream".into(),
             type_name: "Kernel".into(),
             scope_byte: 60,
+            type_module: String::new(),
         });
         propagate_types(&mut facts);
         assert_eq!(facts.references[0].receiver_hint, "StreamOutput");
@@ -4926,11 +4958,13 @@ mod tests {
             var_name: "stream".into(),
             type_name: "StreamOutput".into(),
             scope_byte: 10,
+            type_module: String::new(),
         });
         facts.local_types.push(cgg_core::LocalType {
             var_name: "stream".into(),
             type_name: "Kernel".into(),
             scope_byte: 60,
+            type_module: String::new(),
         });
         propagate_types(&mut facts);
         assert_eq!(facts.references[0].receiver_hint, "Kernel");
@@ -5822,6 +5856,7 @@ mod tests {
                 var_name: "map".into(),
                 type_name: ty.into(),
                 scope_byte: at,
+                type_module: String::new(),
             });
         }
         propagate_types(&mut facts);
@@ -5844,6 +5879,7 @@ mod tests {
             var_name: "self.controller".into(),
             type_name: "Controller".into(),
             scope_byte: 0,
+            type_module: String::new(),
         });
         propagate_types(&mut facts);
         assert_eq!(facts.references[0].receiver_hint, "Controller");
@@ -5931,16 +5967,19 @@ mod tests {
                 var_name: "m".into(),
                 type_name: marker.clone(),
                 scope_byte: 20,
+                type_module: String::new(),
             },
             LocalType {
                 var_name: "m".into(),
                 type_name: "Row".into(),
                 scope_byte: 120,
+                type_module: String::new(),
             },
             LocalType {
                 var_name: "m".into(),
                 type_name: marker,
                 scope_byte: 220,
+                type_module: String::new(),
             },
         ];
         propagate_types(&mut facts);
@@ -5993,6 +6032,7 @@ mod tests {
             var_name: "owned".into(),
             type_name: "String".into(),
             scope_byte: 30,
+            type_module: String::new(),
         }];
         propagate_types(&mut facts);
         let got: Vec<Option<&str>> = facts

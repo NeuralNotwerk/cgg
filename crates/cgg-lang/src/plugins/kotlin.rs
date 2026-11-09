@@ -490,6 +490,7 @@ impl<'a> KtWalker<'a> {
                 var_name,
                 type_name,
                 scope_byte: node.start_byte() as u32,
+                type_module: String::new(),
             });
             return;
         }
@@ -511,6 +512,7 @@ impl<'a> KtWalker<'a> {
                         var_name,
                         type_name: callee_text.to_string(),
                         scope_byte: node.start_byte() as u32,
+                        type_module: String::new(),
                     });
                 } else if callee.kind() == "simple_identifier"
                     && callee_text.starts_with(char::is_lowercase)
@@ -525,6 +527,7 @@ impl<'a> KtWalker<'a> {
                         var_name,
                         type_name: format!("{callee_text}()"),
                         scope_byte: node.start_byte() as u32,
+                        type_module: String::new(),
                     });
                 }
             }

@@ -462,6 +462,7 @@ impl<'a> Walker<'a> {
                     var_name,
                     type_name: format!("{}()", self.text(callee)),
                     scope_byte: node.start_byte() as u32,
+                    type_module: String::new(),
                 });
                 return;
             }
@@ -479,6 +480,7 @@ impl<'a> Walker<'a> {
                         var_name,
                         type_name: type_id,
                         scope_byte: node.start_byte() as u32,
+                        type_module: String::new(),
                     });
                 }
             }
@@ -490,6 +492,7 @@ impl<'a> Walker<'a> {
                     var_name,
                     type_name,
                     scope_byte: node.start_byte() as u32,
+                    type_module: String::new(),
                 });
             }
         }

@@ -160,6 +160,17 @@ pub(crate) struct ModuleIndex<'a> {
     py_module_of: HashMap<FileId, (&'a str, bool)>,
     /// Python: dotted module name → files, in walk order.
     py_by_module: HashMap<&'a str, Vec<FileId>>,
+    /// Python: normalized path (`comfy/sampler_helpers.py`) → file. The
+    /// fallback for implicit namespace packages (PEP 420: no
+    /// `__init__.py` anywhere above), whose dotted module names never
+    /// land in `py_by_module`. Keys are relative to [`Self::py_path_root`].
+    py_by_path: HashMap<String, FileId>,
+    /// The directory components every Python file's path shares — the
+    /// importable root those paths spell, whatever the invocation's root
+    /// argument looked like (`C:\tree\pkg\mod.py` beside
+    /// `C:\tree\main.py` share `C:\tree`, so the file answers to
+    /// `pkg.mod`).
+    py_path_root: Vec<String>,
     /// Python: each file's `from M import x [as y]` with `M` made
     /// absolute: `(local, module, orig)`, `orig` `*` for a star import.
     py_from: HashMap<FileId, Vec<(String, String, String)>>,
@@ -246,6 +257,10 @@ impl<'a> ModuleIndex<'a> {
                 open.push((s, e));
             }
         }
+        // Python file paths, for the namespace-package fallback below:
+        // their common directory prefix is the importable root the
+        // written dotted paths spell.
+        let mut py_paths: Vec<(FileId, Vec<String>)> = Vec::new();
         for f in facts {
             ix.paths.insert(f.file, f.path.as_path());
             ix.facts.insert(f.file, f);
@@ -265,6 +280,7 @@ impl<'a> ModuleIndex<'a> {
                 }
                 "javascript" | "typescript" => ix.add_js_file(f),
                 "python" => {
+                    py_paths.push((f.file, normal_components(&normalize(&f.path))));
                     if let Some(m) = f.packages.first() {
                         let is_init =
                             f.path.file_name().is_some_and(|n| n == "__init__.py");
@@ -393,6 +409,38 @@ impl<'a> ModuleIndex<'a> {
             }
             if !out.is_empty() {
                 ix.py_from.insert(f.file, out);
+            }
+        }
+        // The importable root the Python paths spell: the directory
+        // components they all share. `C:\tree\pkg\mod.py` beside
+        // `C:\tree\main.py` roots at `C:\tree`, so `pkg/mod.py` answers
+        // to `pkg.mod` whether the tree was invoked as `.` or by its
+        // absolute path. One Python file roots at its own directory —
+        // package paths then resolve through the module table alone.
+        let mut root: Vec<String> = py_paths
+            .first()
+            .map(|(_, c)| {
+                let stem = c.len().saturating_sub(1);
+                c[..stem].to_vec()
+            })
+            .unwrap_or_default();
+        for (_, comps) in &py_paths {
+            let stem = comps.len().saturating_sub(1);
+            let n = root
+                .iter()
+                .zip(comps[..stem].iter())
+                .take_while(|(a, b)| a == b)
+                .count();
+            root.truncate(n);
+            if root.is_empty() {
+                break;
+            }
+        }
+        ix.py_path_root = root;
+        for (file, comps) in py_paths {
+            let rel = &comps[ix.py_path_root.len()..];
+            if rel.len() >= 1 && rel.last().is_some_and(|l| l.ends_with(".py")) {
+                ix.py_by_path.insert(rel.join("/"), file);
             }
         }
         ix
@@ -1120,6 +1168,44 @@ impl<'a> ModuleIndex<'a> {
         })
     }
 
+    /// The module names a Python file answers to: its importable module
+    /// name (`packages`), and the module its root-relative path spells
+    /// (`comfy/samplers.py` → `comfy.samplers`). The two readings of
+    /// where a file sits — the second the only one an implicit namespace
+    /// package (no `__init__.py`) has, and the one a written constructor
+    /// path like `comfy.samplers.KSampler` names.
+    pub(crate) fn py_file_modules(&self, f: FileId) -> Vec<String> {
+        let mut out: Vec<String> = self
+            .facts
+            .get(&f)
+            .map(|facts| facts.packages.clone())
+            .unwrap_or_default();
+        if let Some(p) = self.paths.get(&f) {
+            let mut comps = normal_components(&normalize(p));
+            // Below the importable root (see `build`): `C:\tree\pkg\mod.py`
+            // names `pkg.mod`, not the machine it ran on.
+            if comps.len() >= self.py_path_root.len()
+                && comps[..self.py_path_root.len()] == self.py_path_root[..]
+            {
+                comps.drain(..self.py_path_root.len());
+            }
+            let Some(last) = comps.last() else {
+                return out;
+            };
+            if last == "__init__.py" {
+                if comps.len() > 1 {
+                    out.push(comps[..comps.len() - 1].join("."));
+                }
+            } else if let Some(stem) = last.strip_suffix(".py") {
+                let mut segs: Vec<&str> =
+                    comps[..comps.len() - 1].iter().map(String::as_str).collect();
+                segs.push(stem);
+                out.push(segs.join("."));
+            }
+        }
+        out
+    }
+
     /// The longest prefix of `segs` that is a module the tree has, with
     /// what remains of the path. Several files under one name (two
     /// script directories each with a `utils.py`) narrow to the caller's
@@ -1140,6 +1226,16 @@ impl<'a> ModuleIndex<'a> {
                     }
                 }
                 return Some((files.clone(), k));
+            }
+            // A path the module table does not know may still name a
+            // file: implicit namespace packages (PEP 420) carry no
+            // `__init__.py`, so `comfy.sampler_helpers` exists as
+            // `comfy/sampler_helpers.py` while `py_by_module` only holds
+            // the bare stem. A file at the *written* path is the module
+            // the call goes through.
+            let path = segs[..k].join("/");
+            if let Some(f) = self.py_by_path.get(&format!("{path}.py")) {
+                return Some((vec![*f], k));
             }
         }
         None
@@ -2464,5 +2560,55 @@ mod tests {
         assert_eq!(ix.py_abs(init, ".jobs").as_deref(), Some("pkg.sub.jobs"));
         assert_eq!(ix.py_abs(module, "....x"), None);
         assert_eq!(ix.py_abs(module, "abs.mod").as_deref(), Some("abs.mod"));
+    }
+
+    #[test]
+    fn py_split_falls_back_to_the_written_path_for_namespace_packages() {
+        // PEP 420: no `__init__.py` anywhere above `comfy/`, so the module
+        // table holds bare stems only (`sampler_helpers`) and a written
+        // `comfy.sampler_helpers` names a file the table never registered.
+        let mut ix = ModuleIndex::default();
+        let (caller, helper) = (FileId::new(1), FileId::new(2));
+        ix.paths.insert(caller, Path::new("main.py"));
+        ix.paths.insert(helper, Path::new("comfy/sampler_helpers.py"));
+        ix.py_module_of.insert(helper, ("sampler_helpers", false));
+        ix.py_by_module
+            .entry("sampler_helpers")
+            .or_default()
+            .push(helper);
+        ix.py_by_path
+            .insert("comfy/sampler_helpers.py".into(), helper);
+        assert_eq!(
+            ix.py_split(caller, &["comfy".into(), "sampler_helpers".into()]),
+            Some((vec![helper], 2)),
+            "the written path is the module the call goes through"
+        );
+        assert_eq!(
+            ix.py_split(caller, &["comfy".into(), "missing".into()]),
+            None,
+            "a path no file carries stays a miss"
+        );
+        assert_eq!(
+            ix.py_split(caller, &["comfy".into()]),
+            None,
+            "a package directory without `__init__.py` binds nothing"
+        );
+    }
+
+    #[test]
+    fn py_split_module_table_beats_the_path_fallback() {
+        // A proper package registers its module; the module hit wins over
+        // any path form, and the fallback only fills the table's gaps.
+        let mut ix = ModuleIndex::default();
+        let (caller, leaf) = (FileId::new(1), FileId::new(2));
+        ix.paths.insert(caller, Path::new("main.py"));
+        ix.paths.insert(leaf, Path::new("pkg/mod.py"));
+        ix.py_module_of.insert(leaf, ("pkg.mod", false));
+        ix.py_by_module.entry("pkg.mod").or_default().push(leaf);
+        ix.py_by_path.insert("pkg/mod.py".into(), leaf);
+        assert_eq!(
+            ix.py_split(caller, &["pkg".into(), "mod".into()]),
+            Some((vec![leaf], 2))
+        );
     }
 }

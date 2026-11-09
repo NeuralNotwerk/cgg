@@ -895,6 +895,7 @@ impl<'a> Walker<'a> {
                 var_name,
                 type_name: ty,
                 scope_byte: node.start_byte() as u32,
+                type_module: String::new(),
             });
             return;
         }
@@ -920,6 +921,7 @@ impl<'a> Walker<'a> {
                     var_name,
                     type_name: ty,
                     scope_byte: node.start_byte() as u32,
+                    type_module: String::new(),
                 });
             }
             return;
@@ -1000,6 +1002,7 @@ impl<'a> Walker<'a> {
                                     var_name: guard,
                                     type_name: inner_type.clone(),
                                     scope_byte,
+                                    type_module: String::new(),
                                 });
                             }
                             self.push_assoc_local(&var_name, scope_byte, &inner_fn);
@@ -1007,6 +1010,7 @@ impl<'a> Walker<'a> {
                                 var_name,
                                 type_name: inner_type,
                                 scope_byte,
+                                type_module: String::new(),
                             });
                         }
                         // <inner> isn't a `Type::assoc_fn()` call we can read.
@@ -1026,6 +1030,7 @@ impl<'a> Walker<'a> {
                                     var_name,
                                     type_name: known,
                                     scope_byte: node.start_byte() as u32,
+                                    type_module: String::new(),
                                 });
                             }
                         }
@@ -1046,6 +1051,7 @@ impl<'a> Walker<'a> {
                         var_name,
                         type_name: type_part.to_string(),
                         scope_byte: node.start_byte() as u32,
+                        type_module: String::new(),
                     });
                     return;
                 }
@@ -1065,6 +1071,7 @@ impl<'a> Walker<'a> {
                             var_name,
                             type_name: known,
                             scope_byte: node.start_byte() as u32,
+                            type_module: String::new(),
                         });
                     }
                 }
@@ -1315,6 +1322,7 @@ impl<'a> Walker<'a> {
             var_name: self.text(bound).to_string(),
             type_name: format!("{}{wrapper}:{src}", cgg_core::ARG_VAR_PREFIX),
             scope_byte: bound.start_byte() as u32,
+            type_module: String::new(),
         });
     }
 
@@ -2395,6 +2403,7 @@ impl<'a> Walker<'a> {
                 route: route.clone(),
                 kwargs: Vec::new(),
                 retyped_receiver: false,
+                receiver_module: None,
             });
         }
     }
@@ -2442,6 +2451,7 @@ fn emit_self_field_local_types(
                 var_name: format!("self.{fname}"),
                 type_name: ftype.clone(),
                 scope_byte: start_byte,
+                type_module: String::new(),
             });
         }
     }

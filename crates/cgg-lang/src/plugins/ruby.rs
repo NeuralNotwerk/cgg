@@ -613,6 +613,7 @@ impl<'a> RubyWalker<'a> {
                 route: route.clone(),
                 kwargs: Vec::new(),
                 retyped_receiver: false,
+                receiver_module: None,
             });
         }
     }

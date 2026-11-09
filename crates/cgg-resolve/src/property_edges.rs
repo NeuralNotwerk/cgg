@@ -425,6 +425,7 @@ mod tests {
             var_name: "pipeline".into(),
             type_name: "Trellis2".into(),
             scope_byte: 100,
+            type_module: String::new(),
         }];
         m.call_assignments = vec![CallAssign {
             var_name: "pbr_voxel".into(),
@@ -506,6 +507,7 @@ mod tests {
             var_name: "slat".into(),
             type_name: "SparseTensor".into(),
             scope_byte: 100,
+            type_module: String::new(),
         });
         facts[0].references = vec![read("shape", "slat", 300, 7)];
         emit(&mut graph, &facts);

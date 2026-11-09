@@ -262,6 +262,7 @@ impl<'a> JsWalker<'a> {
                             var_name: name,
                             type_name: cgg_core::REASSIGNED_LOCAL.to_string(),
                             scope_byte: node.start_byte() as u32,
+                            type_module: String::new(),
                         });
                     }
                 }
@@ -361,6 +362,7 @@ impl<'a> JsWalker<'a> {
                 var_name,
                 type_name,
                 scope_byte: node.start_byte() as u32,
+                type_module: String::new(),
             });
         }
     }
@@ -1718,6 +1720,7 @@ impl<'a> JsWalker<'a> {
                 route: route.clone(),
                 kwargs: Vec::new(),
                 retyped_receiver: false,
+                receiver_module: None,
             });
         }
     }

@@ -545,6 +545,7 @@ pub(crate) fn capture(
                 route: route.clone(),
                 kwargs: Vec::new(),
                 retyped_receiver: false,
+                receiver_module: None,
             });
             continue;
         }
@@ -717,6 +718,7 @@ fn collect_value_refs(
                 route: route.to_string(),
                 kwargs: Vec::new(),
                 retyped_receiver: false,
+                receiver_module: None,
             });
             return;
         }
@@ -748,6 +750,7 @@ fn collect_value_refs(
                     route: route.to_string(),
                     kwargs: Vec::new(),
                     retyped_receiver: false,
+                    receiver_module: None,
                 });
             } else {
                 collect_value_refs(ctx, child, source, context, route, line, out, depth);
@@ -801,6 +804,7 @@ fn collect_value_refs(
                     route: route.to_string(),
                     kwargs: Vec::new(),
                     retyped_receiver: false,
+                    receiver_module: None,
                 });
             } else {
                 collect_value_refs(ctx, child, source, context, route, line, out, depth);
@@ -880,6 +884,7 @@ fn collect_value_refs(
                 route: route.to_string(),
                 kwargs: Vec::new(),
                 retyped_receiver: false,
+                receiver_module: None,
             });
             // `SiteView.as_view()` is a class adapter: the callable the
             // framework ends up invoking is a *method of the qualifier*,
@@ -922,6 +927,7 @@ fn collect_value_refs(
                     route: route.to_string(),
                     kwargs: Vec::new(),
                     retyped_receiver: false,
+                    receiver_module: None,
                 });
             }
         }
@@ -981,6 +987,7 @@ fn collect_value_refs(
         route: route.to_string(),
         kwargs: Vec::new(),
         retyped_receiver: false,
+        receiver_module: None,
     });
 }
 

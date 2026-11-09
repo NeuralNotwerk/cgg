@@ -319,6 +319,7 @@ impl<'a> GroovyWalker<'a> {
                             var_name,
                             type_name,
                             scope_byte: node.start_byte() as u32,
+                            type_module: String::new(),
                         });
                     }
                 }

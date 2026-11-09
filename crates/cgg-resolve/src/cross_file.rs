@@ -7359,6 +7359,36 @@ fn try_resolve_ref(
                         } else {
                             cids
                         };
+                        // Python: a receiver typed from a module-qualified
+                        // constructor (`sampler = comfy.samplers.KSampler(...)`
+                        // carries the qualifier) names the class where that
+                        // module says it lives. Same-named classes pool into
+                        // one bare-owner bucket (`nodes.KSampler` beside
+                        // `comfy.samplers.KSampler`); the qualifier rules out
+                        // every copy whose file the written path cannot mean.
+                        // A qualifier that matches nothing (an aliased import,
+                        // a relocated tree) keeps every candidate.
+                        let cids = if lang == "python"
+                            && cids.len() > 1
+                            && let Some(q) = r.receiver_module.as_deref()
+                        {
+                            let hit: Vec<CallableId> = cids
+                                .iter()
+                                .copied()
+                                .filter(|c| {
+                                    graph.callables.get(c).is_some_and(|n| {
+                                        modix.py_file_modules(n.file).contains(&q.to_string())
+                                    })
+                                })
+                                .collect();
+                            if !hit.is_empty() && hit.len() < cids.len() {
+                                hit
+                            } else {
+                                cids
+                            }
+                        } else {
+                            cids
+                        };
                         // Several distinct classes sharing the receiver type's
                         // bare name (a `Builder` nested in each of forty
                         // classes) are a guess among them, bounded by the
@@ -7809,6 +7839,37 @@ fn try_resolve_ref(
                             )
                         })
                         .collect()
+                } else if lang == "python" {
+                    // An attribute call through a value (`demo.load_model()`)
+                    // can only dispatch to something owned by the value's
+                    // type. A module-level function of the same name is
+                    // unreachable through the receiver, and on cgg's corpora
+                    // it was exactly the false partner this fan-out dragged
+                    // in beside the right method (kimodo's `demo.load_model`
+                    // bound beside `kimodo/model/load_model.py::load_model`).
+                    // When the name match mixes methods and free functions,
+                    // keep the methods; an all-function set keeps today's
+                    // reading (the receiver may legitimately hold a module
+                    // object passed in as a value).
+                    let methods: Vec<CallableId> = cids
+                        .iter()
+                        .copied()
+                        .filter(|c| {
+                            graph.callables.get(c).is_some_and(|n| {
+                                matches!(
+                                    n.kind,
+                                    CallableKind::Method
+                                        | CallableKind::Constructor
+                                        | CallableKind::Property
+                                )
+                            })
+                        })
+                        .collect();
+                    if !methods.is_empty() && methods.len() < cids.len() {
+                        methods
+                    } else {
+                        cids
+                    }
                 } else {
                     cids
                 };
@@ -8862,7 +8923,7 @@ mod tests {
                 site_byte: 0,
             }],
         );
-        let helpers_facts = facts_for(
+        let mut helpers_facts = facts_for(
             0,
             "helpers.py",
             "python",
@@ -8875,6 +8936,8 @@ mod tests {
             vec![],
             vec![],
         );
+        // What every real Python file records: its importable module name.
+        helpers_facts.packages = vec!["helpers".to_string()];
 
         let out = resolve_default(&g, &[helpers_facts, main_facts]);
         assert_eq!(out.edges.len(), 1);
@@ -12192,8 +12255,327 @@ mod tests {
         );
     }
 
-    // ---- FINDINGS A1: external module / package heads ----------------
+    #[test]
+    fn python_fanout_keeps_methods_over_free_functions() {
+        // `demo.load_model(...)` through an untyped receiver: a
+        // module-level function of the same name is unreachable through a
+        // value — the method is the call. kimodo's ui.py bound both.
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "model.py", "python"));
+        g.add_file(mk_file(1, "app.py", "python"));
+        g.add_file(mk_file(2, "ui.py", "python"));
+        g.add_callable(mk_callable(
+            0,
+            "load_model",
+            "model.load_model",
+            0,
+            "python",
+            (0, 40),
+        ));
+        let mut method = mk_callable(
+            1,
+            "load_model",
+            "app.Demo.load_model",
+            1,
+            "python",
+            (0, 40),
+        );
+        method.kind = CallableKind::Method;
+        g.add_callable(method);
+        let mut caller = mk_callable(2, "run", "ui.run", 2, "python", (30, 120));
+        caller.kind = CallableKind::Method;
+        g.add_callable(caller);
 
+        let model = facts_for(
+            0,
+            "model.py",
+            "python",
+            vec![mk_def(
+                "load_model",
+                "model.load_model",
+                DefVariant::FreeFunction,
+                (0, 40),
+            )],
+            vec![],
+            vec![],
+        );
+        let app_facts = facts_for(
+            1,
+            "app.py",
+            "python",
+            vec![mk_def(
+                "load_model",
+                "app.Demo.load_model",
+                DefVariant::InherentMethod,
+                (0, 40),
+            )],
+            vec![],
+            vec![],
+        );
+        let ui = facts_for(
+            2,
+            "ui.py",
+            "python",
+            vec![mk_def(
+                "run",
+                "ui.run",
+                DefVariant::InherentMethod,
+                (30, 120),
+            )],
+            vec![RefRecord {
+                name: "load_model".into(),
+                receiver_hint: "demo".into(),
+                site_line: 5,
+                site_byte: 60,
+                ..Default::default()
+            }],
+            vec![],
+        );
+
+        let out = resolve_default(&g, &[model, app_facts, ui]);
+        let dsts: Vec<_> = out
+            .edges
+            .iter()
+            .filter(|e| e.src == CallableId::new(2))
+            .map(|e| e.dst)
+            .collect();
+        assert_eq!(
+            dsts,
+            vec![CallableId::new(1)],
+            "the method, never the same-named module function; edges: {dsts:?}"
+        );
+    }
+
+    #[test]
+    fn python_fanout_of_only_free_functions_is_untouched() {
+        // No method shares the name: the receiver may legitimately hold a
+        // module object passed in as a value, so the fan-out keeps its
+        // reading.
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "model.py", "python"));
+        g.add_file(mk_file(1, "ui.py", "python"));
+        g.add_callable(mk_callable(
+            0,
+            "load_model",
+            "model.load_model",
+            0,
+            "python",
+            (0, 40),
+        ));
+        let mut caller = mk_callable(1, "run", "ui.run", 1, "python", (30, 120));
+        caller.kind = CallableKind::Method;
+        g.add_callable(caller);
+
+        let model = facts_for(
+            0,
+            "model.py",
+            "python",
+            vec![mk_def(
+                "load_model",
+                "model.load_model",
+                DefVariant::FreeFunction,
+                (0, 40),
+            )],
+            vec![],
+            vec![],
+        );
+        let ui = facts_for(
+            1,
+            "ui.py",
+            "python",
+            vec![mk_def(
+                "run",
+                "ui.run",
+                DefVariant::InherentMethod,
+                (30, 120),
+            )],
+            vec![RefRecord {
+                name: "load_model".into(),
+                receiver_hint: "demo".into(),
+                site_line: 5,
+                site_byte: 60,
+                ..Default::default()
+            }],
+            vec![],
+        );
+
+        let out = resolve_default(&g, &[model, ui]);
+        let dsts: Vec<_> = out
+            .edges
+            .iter()
+            .filter(|e| e.src == CallableId::new(1))
+            .map(|e| e.dst)
+            .collect();
+        assert_eq!(dsts, vec![CallableId::new(0)], "edges: {dsts:?}");
+    }
+
+    #[test]
+    fn python_module_qualified_constructor_picks_its_class() {
+        // `sampler = comfy.samplers.KSampler(...)` types the receiver
+        // `KSampler` and carries the module it was written through. Two
+        // same-named classes pool into one bare-owner bucket; the
+        // qualifier rules the foreign copy out (comfy/sample.py bound
+        // nodes.py::KSampler.sample).
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "comfy/samplers.py", "python"));
+        g.add_file(mk_file(1, "nodes.py", "python"));
+        g.add_file(mk_file(2, "comfy/sample.py", "python"));
+        let mut m0 = mk_callable(
+            0,
+            "sample",
+            "samplers.KSampler.sample",
+            0,
+            "python",
+            (0, 40),
+        );
+        m0.kind = CallableKind::Method;
+        g.add_callable(m0);
+        let mut m1 = mk_callable(1, "sample", "nodes.KSampler.sample", 1, "python", (0, 40));
+        m1.kind = CallableKind::Method;
+        g.add_callable(m1);
+        let mut caller = mk_callable(2, "run", "sample.run", 2, "python", (30, 120));
+        caller.kind = CallableKind::Method;
+        g.add_callable(caller);
+
+        let mut samplers = facts_for(
+            0,
+            "comfy/samplers.py",
+            "python",
+            vec![mk_def(
+                "sample",
+                "samplers.KSampler.sample",
+                DefVariant::InherentMethod,
+                (0, 40),
+            )],
+            vec![],
+            vec![],
+        );
+        // Namespace reality: `comfy/` carries no `__init__.py`, so the
+        // importable module name is the bare stem; the file's path still
+        // spells `comfy.samplers`, which is what the qualifier names.
+        samplers.packages = vec!["samplers".to_string()];
+        let nodes_facts = facts_for(
+            1,
+            "nodes.py",
+            "python",
+            vec![mk_def(
+                "sample",
+                "nodes.KSampler.sample",
+                DefVariant::InherentMethod,
+                (0, 40),
+            )],
+            vec![],
+            vec![],
+        );
+        let sample_caller = facts_for(
+            2,
+            "comfy/sample.py",
+            "python",
+            vec![mk_def("run", "sample.run", DefVariant::InherentMethod, (30, 120))],
+            vec![RefRecord {
+                name: "sample".into(),
+                receiver_hint: "KSampler".into(),
+                receiver_module: Some("comfy.samplers".into()),
+                site_line: 5,
+                site_byte: 60,
+                ..Default::default()
+            }],
+            vec![],
+        );
+
+        let out = resolve_default(&g, &[samplers, nodes_facts, sample_caller]);
+        let dsts: Vec<_> = out
+            .edges
+            .iter()
+            .filter(|e| e.src == CallableId::new(2))
+            .map(|e| e.dst)
+            .collect();
+        assert_eq!(
+            dsts,
+            vec![CallableId::new(0)],
+            "the qualifier's module owns the class; edges: {dsts:?}"
+        );
+    }
+
+    #[test]
+    fn python_unqualified_constructor_keeps_the_owner_bucket() {
+        // No qualifier on the rewritten receiver (a bare `KSampler()`
+        // spelling, or a Strategy 4 return-type match): nothing rules a
+        // copy out, and the bucket still fans out to both classes.
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "comfy/samplers.py", "python"));
+        g.add_file(mk_file(1, "nodes.py", "python"));
+        g.add_file(mk_file(2, "comfy/sample.py", "python"));
+        let mut m0 = mk_callable(
+            0,
+            "sample",
+            "samplers.KSampler.sample",
+            0,
+            "python",
+            (0, 40),
+        );
+        m0.kind = CallableKind::Method;
+        g.add_callable(m0);
+        let mut m1 = mk_callable(1, "sample", "nodes.KSampler.sample", 1, "python", (0, 40));
+        m1.kind = CallableKind::Method;
+        g.add_callable(m1);
+        let mut caller = mk_callable(2, "run", "sample.run", 2, "python", (30, 120));
+        caller.kind = CallableKind::Method;
+        g.add_callable(caller);
+
+        let mut samplers = facts_for(
+            0,
+            "comfy/samplers.py",
+            "python",
+            vec![mk_def(
+                "sample",
+                "samplers.KSampler.sample",
+                DefVariant::InherentMethod,
+                (0, 40),
+            )],
+            vec![],
+            vec![],
+        );
+        samplers.packages = vec!["samplers".to_string()];
+        let nodes_facts = facts_for(
+            1,
+            "nodes.py",
+            "python",
+            vec![mk_def(
+                "sample",
+                "nodes.KSampler.sample",
+                DefVariant::InherentMethod,
+                (0, 40),
+            )],
+            vec![],
+            vec![],
+        );
+        let sample_caller = facts_for(
+            2,
+            "comfy/sample.py",
+            "python",
+            vec![mk_def("run", "sample.run", DefVariant::InherentMethod, (30, 120))],
+            vec![RefRecord {
+                name: "sample".into(),
+                receiver_hint: "KSampler".into(),
+                site_line: 5,
+                site_byte: 60,
+                ..Default::default()
+            }],
+            vec![],
+        );
+
+        let out = resolve_default(&g, &[samplers, nodes_facts, sample_caller]);
+        let dsts: Vec<_> = out
+            .edges
+            .iter()
+            .filter(|e| e.src == CallableId::new(2))
+            .map(|e| e.dst)
+            .collect();
+        assert_eq!(dsts.len(), 2, "both copies, no qualifier; edges: {dsts:?}");
+    }
+
+    // ---- FINDINGS A1: external module / package heads ----------------
     /// One target callable per entry `(path, qualified name, packages)`
     /// plus a caller file whose single callable `caller_qn` (with the
     /// given bases) holds `refs`; returns the destination qualified names
@@ -12297,10 +12679,14 @@ mod tests {
         );
         assert!(dsts.is_empty(), "{dsts:?}");
         assert_eq!(why, vec![external("requests")]);
-        // Near miss: the same call through a workspace module alias.
+        // Near miss: the same call through a workspace module alias. The
+        // target carries its module name (`app.util`) as every real
+        // Python file does — the module-scoped lookup then binds it
+        // through the file the import names, not by name across the tree.
+        let t_util: &[(&str, &str, &[&str])] = &[("app/util.py", "app.util.post", &["app.util"])];
         let (dsts, _) = ext_case(
             "python",
-            t,
+            t_util,
             caller,
             vec![call("post", "u")],
             vec![import("import", "app.util", "u")],
@@ -13897,6 +14283,7 @@ mod tests {
                     var_name: "c".into(),
                     type_name: ty.into(),
                     scope_byte: at,
+                    type_module: String::new(),
                 });
             }
         });

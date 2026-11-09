@@ -759,6 +759,7 @@ impl<'a> ZigWalker<'a> {
                                                 var_name: p.var,
                                                 type_name: format!("{r}.{method}()"),
                                                 scope_byte: p.at,
+                                                type_module: String::new(),
                                             },
                                         );
                                         continue;
@@ -792,6 +793,7 @@ impl<'a> ZigWalker<'a> {
                     var_name: p.var,
                     type_name: ty,
                     scope_byte: p.at,
+                    type_module: String::new(),
                 });
             }
         }

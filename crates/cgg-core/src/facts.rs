@@ -557,6 +557,18 @@ pub struct RefRecord {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub property_read: bool,
 
+    /// The module qualifier of the receiver's type, set by type
+    /// propagation alongside the [`RefRecord::receiver_hint`] rewrite:
+    /// `sampler = comfy.samplers.KSampler(...)` types `sampler` as
+    /// `KSampler` and carries `comfy.samplers` here. The hint must stay
+    /// a bare type name (owner lookups key on it), but two same-named
+    /// classes in different modules are told apart by where their
+    /// declaration file sits — the qualifier says which module the
+    /// written constructor path named. `None` when the type came from a
+    /// bare spelling or a non-constructor source.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub receiver_module: Option<String>,
+
     /// The type of the call's single argument, where its syntax states it
     /// (a literal, `format!`, a `.to_string()` call): `&str`, `String`,
     /// `char`, `u8`. A Rust type implementing one generic trait several
@@ -982,6 +994,13 @@ pub struct LocalType {
     pub type_name: String,
     /// Byte offset of the enclosing scope (function body start).
     pub scope_byte: u32,
+    /// The module qualifier the type was written with (`comfy.samplers`
+    /// for `x = comfy.samplers.KSampler(...)`), empty when the type
+    /// spelling was bare (`x = Demo(...)`). Lets the resolver tell two
+    /// same-named classes apart by where their declaration file sits.
+    /// Python only today.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub type_module: String,
 }
 
 /// A [`LocalType`] read off a path call (`let x = Type::f(…)`), typed as

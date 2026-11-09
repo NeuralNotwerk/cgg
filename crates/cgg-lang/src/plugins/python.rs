@@ -668,6 +668,7 @@ impl<'a> Walker<'a> {
                     var_name: var.to_string(),
                     type_name,
                     scope_byte: node.start_byte() as u32,
+                    type_module: String::new(),
                 });
             }
         }
@@ -783,10 +784,13 @@ impl<'a> Walker<'a> {
             {
                 self.facts.module_typed_locals.push(var_name.clone());
             }
+            let type_module =
+                constructor_module(self, func).unwrap_or_default();
             self.facts.local_types.push(LocalType {
                 var_name,
                 type_name,
                 scope_byte: node.start_byte() as u32,
+                type_module,
             });
             return;
         }
@@ -915,6 +919,7 @@ impl<'a> Walker<'a> {
                     var_name: format!("self.{fname}"),
                     type_name: ty.clone(),
                     scope_byte: start,
+                    type_module: String::new(),
                 });
             }
         }
@@ -1192,6 +1197,20 @@ fn constructor_type(func: Node, source: &[u8]) -> Option<String> {
     } else {
         None
     }
+}
+
+/// The module qualifier a constructor call is written with:
+/// `comfy.samplers.KSampler(...)` → `comfy.samplers`, `Demo(...)` →
+/// `None`. The qualifier travels with the assigned local's type so the
+/// resolver can tell two same-named classes apart by where their files
+/// sit (a bare spelling names no module and disambiguates nothing).
+fn constructor_module(walker: &Walker, func: Node) -> Option<String> {
+    if func.kind() != "attribute" {
+        return None;
+    }
+    let obj = func.child_by_field_name("object")?;
+    let module = walker.receiver_text(obj);
+    (!module.is_empty()).then_some(module)
 }
 
 /// The class an annotation types its value as: `Foo`, `mod.Foo`,
@@ -2039,6 +2058,40 @@ class C:
             .find(|r| r.name == "open")
             .expect("open");
         assert_eq!(open.receiver_hint, "self.controller");
+    }
+
+    #[test]
+    fn a_module_qualified_constructor_keeps_its_qualifier() {
+        // `sampler = comfy.samplers.KSampler(...)`: the local's type is
+        // the class stem (owner lookups key on it) with the module it was
+        // written through carried beside, so two same-named classes in
+        // different modules can be told apart by where their files sit.
+        let f = extract(
+            "def f(model):\n    sampler = comfy.samplers.KSampler(model, steps=10)\n    return sampler.sample(model)\n",
+        );
+        let t = f
+            .local_types
+            .iter()
+            .find(|t| t.var_name == "sampler")
+            .expect("sampler typed");
+        assert_eq!(t.type_name, "KSampler");
+        assert_eq!(t.type_module, "comfy.samplers");
+        assert!(
+            f.module_typed_locals.iter().any(|v| v == "sampler"),
+            "a module-qualified constructor is a weak rewrite: {:?}",
+            f.module_typed_locals
+        );
+        // A bare constructor spelling names no module and disambiguates
+        // nothing.
+        let g = extract("def f():\n    demo = Demo()\n    return demo.run()\n");
+        let t = g
+            .local_types
+            .iter()
+            .find(|t| t.var_name == "demo")
+            .expect("demo typed");
+        assert_eq!(t.type_name, "Demo");
+        assert_eq!(t.type_module, "");
+        assert!(g.module_typed_locals.is_empty());
     }
 
     #[test]

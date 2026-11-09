@@ -586,6 +586,7 @@ impl<'a> CppWalker<'a> {
                             var_name,
                             type_name: format!("{}()", self.text(f)),
                             scope_byte,
+                            type_module: String::new(),
                         });
                     }
                 }
@@ -604,6 +605,7 @@ impl<'a> CppWalker<'a> {
                     var_name: format!("{var_name}{DEREF_SUFFIX}"),
                     type_name: p.clone(),
                     scope_byte,
+                    type_module: String::new(),
                 });
             }
             if let Some(ty) = &ty {
@@ -611,6 +613,7 @@ impl<'a> CppWalker<'a> {
                     var_name,
                     type_name: ty.clone(),
                     scope_byte,
+                    type_module: String::new(),
                 });
             }
         }

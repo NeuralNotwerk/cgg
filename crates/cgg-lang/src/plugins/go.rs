@@ -855,6 +855,7 @@ impl<'a> Walker<'a> {
                 var_name,
                 type_name,
                 scope_byte: node.start_byte() as u32,
+                type_module: String::new(),
             });
         }
     }
@@ -907,6 +908,7 @@ impl<'a> Walker<'a> {
                 var_name: var_name.clone(),
                 type_name: ty,
                 scope_byte: node.end_byte() as u32,
+                type_module: String::new(),
             });
             // ...and out of scope where its block ends (an `if`/`for`
             // body, a `case` clause): an untyped entry there ends it, so a
@@ -916,6 +918,7 @@ impl<'a> Walker<'a> {
                     var_name,
                     type_name: String::new(),
                     scope_byte: scope.end_byte() as u32,
+                    type_module: String::new(),
                 });
             }
             return;
@@ -1007,6 +1010,7 @@ impl<'a> Walker<'a> {
             var_name,
             type_name,
             scope_byte: node.start_byte() as u32,
+            type_module: String::new(),
         });
     }
 
@@ -1074,11 +1078,13 @@ impl<'a> Walker<'a> {
             var_name: var_name.clone(),
             type_name,
             scope_byte: start,
+            type_module: String::new(),
         });
         self.facts.local_types.push(cgg_core::LocalType {
             var_name,
             type_name: String::new(),
             scope_byte: end,
+            type_module: String::new(),
         });
     }
 

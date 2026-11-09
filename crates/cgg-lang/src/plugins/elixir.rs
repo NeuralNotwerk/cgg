@@ -628,6 +628,7 @@ impl<'a> ElixirWalker<'a> {
             typed_receiver: false,
             weak_receiver_type: false,
             retyped_receiver: false,
+            receiver_module: None,
         });
     }
 

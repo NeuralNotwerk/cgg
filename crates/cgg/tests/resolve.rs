@@ -742,7 +742,9 @@ fn cpp_edges(tmp: &Path) -> Vec<(String, String, String)> {
     let file = |id: &serde_json::Value| {
         let f = c[id.as_str().unwrap()]["file"].as_str().unwrap();
         let p = g["files"][f]["path"].as_str().unwrap();
-        p.rsplit('/').next().unwrap().to_string()
+        // Windows emits backslash paths; either separator ends the file
+        // name.
+        p.rsplit(['/', '\\']).next().unwrap().to_string()
     };
     let qn = |id: &serde_json::Value| {
         c[id.as_str().unwrap()]["qualified_name"]
@@ -8849,4 +8851,97 @@ fn fsharp_module_qualified_calls_reach_their_module() {
     // the library's `List.map`.
     assert!(to("App.CodeFixes.AddB.fix").is_empty(), "{edges:?}");
     assert!(to("App.CodeFixes.AddA.map").is_empty(), "{edges:?}");
+}
+
+/// Same rendering as [`cpp_edges`]; the graph shape is language-agnostic.
+fn py_edges(tmp: &Path) -> Vec<(String, String, String)> {
+    cpp_edges(tmp)
+}
+
+#[test]
+fn namespace_package_import_binds_the_file_it_names() {
+    // PEP 420: no `__init__.py` anywhere above `pkg/`. The module table
+    // only knows bare stems, so `import pkg.helpers` +
+    // `pkg.helpers.f()` used to fall through to the same-name fan-out
+    // and bind `pkg/other.py`'s `f` beside the right one. The written
+    // path is the module the call goes through.
+    let tmp = TempDir::new().unwrap();
+    write(tmp.path(), "pkg/helpers.py", b"def f(x):\n    return x\n");
+    write(tmp.path(), "pkg/other.py", b"def f(y):\n    return y\n");
+    write(
+        tmp.path(),
+        "main.py",
+        b"import pkg.helpers\nimport pkg.other\n\ndef run():\n    return pkg.helpers.f(1)\n",
+    );
+    let edges = py_edges(tmp.path());
+    let to = |d: &str| -> Vec<&str> {
+        edges
+            .iter()
+            .filter(|(s, t, _)| s.ends_with("run") && t.contains(d))
+            .map(|(_, _, c)| c.as_str())
+            .collect()
+    };
+    assert_eq!(to("f@helpers.py"), vec!["high"], "edges: {edges:?}");
+    assert!(to("f@other.py").is_empty(), "edges: {edges:?}");
+}
+
+#[test]
+fn python_method_beats_same_named_free_function_in_fanout() {
+    // `demo.load_model(...)` through an untyped receiver: a module-level
+    // function of the same name is unreachable through a value, and it
+    // was exactly the false partner the duck-typed fan-out bound beside
+    // the method.
+    let tmp = TempDir::new().unwrap();
+    write(tmp.path(), "model.py", b"def load_model(name):\n    return name\n");
+    write(
+        tmp.path(),
+        "app.py",
+        b"class Demo:\n    def load_model(self, name):\n        return name\n",
+    );
+    write(
+        tmp.path(),
+        "ui.py",
+        b"def run(demo):\n    return demo.load_model('g1')\n",
+    );
+    let edges = py_edges(tmp.path());
+    let to = |d: &str| {
+        edges
+            .iter()
+            .filter(|(s, t, _)| s.ends_with("run") && t.contains(d))
+            .count()
+    };
+    assert_eq!(to("Demo.load_model@app.py"), 1, "edges: {edges:?}");
+    assert_eq!(to("load_model@model.py"), 0, "edges: {edges:?}");
+}
+
+#[test]
+fn constructor_qualifier_picks_its_own_class() {
+    // `sampler = pkg.samplers.KSampler(...)` types the receiver `KSampler`
+    // and carries the module. Two same-named classes pool into one
+    // bare-owner bucket; the qualifier rules the foreign copy out.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "pkg/samplers.py",
+        b"class KSampler:\n    def sample(self, noise):\n        return noise\n",
+    );
+    write(
+        tmp.path(),
+        "nodes.py",
+        b"class KSampler:\n    def sample(self, model):\n        return model\n",
+    );
+    write(
+        tmp.path(),
+        "main.py",
+        b"import pkg.samplers\n\ndef run(model):\n    sampler = pkg.samplers.KSampler(model)\n    return sampler.sample(model)\n",
+    );
+    let edges = py_edges(tmp.path());
+    let to = |d: &str| {
+        edges
+            .iter()
+            .filter(|(s, t, _)| s.ends_with("run") && t.contains(d))
+            .count()
+    };
+    assert_eq!(to("KSampler.sample@samplers.py"), 1, "edges: {edges:?}");
+    assert_eq!(to("KSampler.sample@nodes.py"), 0, "edges: {edges:?}");
 }

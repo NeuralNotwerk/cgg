@@ -832,6 +832,7 @@ impl<'a> ClojureWalker<'a> {
                         route: route.clone(),
                         kwargs: Vec::new(),
                         retyped_receiver: false,
+                        receiver_module: None,
                     });
                 }
                 "sym_lit" => {
@@ -871,6 +872,7 @@ impl<'a> ClojureWalker<'a> {
                         route: route.clone(),
                         kwargs: Vec::new(),
                         retyped_receiver: false,
+                        receiver_module: None,
                     });
                 }
                 "list_lit" | "anon_fn_lit" if Some(i) != binding_pos => {
@@ -952,6 +954,7 @@ impl<'a> ClojureWalker<'a> {
             route: route.to_string(),
             kwargs: Vec::new(),
             retyped_receiver: false,
+            receiver_module: None,
         });
     }
 }
