@@ -14,6 +14,7 @@ fn via_slug(via: &Via) -> &'static str {
         Via::Direct => "",
         Via::Dynamic => "dynamic",
         Via::Reference => "reference",
+        Via::Property => "property",
         Via::External => "external",
         Via::Stdlib => "stdlib",
         Via::Ffi(_) => "ffi",

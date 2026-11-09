@@ -1481,6 +1481,7 @@ pub fn why_live(
                         Via::Direct => "direct".into(),
                         Via::Dynamic => "dynamic".into(),
                         Via::Reference => "reference".into(),
+                        Via::Property => "property".into(),
                         Via::External => "external".into(),
                         Via::Stdlib => "stdlib".into(),
                         Via::Ffi(f) => format!("ffi:{f}"),

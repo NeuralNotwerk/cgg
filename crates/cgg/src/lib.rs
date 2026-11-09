@@ -294,7 +294,8 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // (`--reference-edges`, or `--dead-code`, which forces it) records them.
     let extract_ctx = cgg_lang::ExtractCtx::new(dead_mode, &extra_verbs)
         .with_reference_sites(opts.reference_edges)
-        .with_externals(opts.externals.is_some());
+        .with_externals(opts.externals.is_some())
+        .with_property_sites(opts.property_edges);
 
     if opts.profile {
         cgg_core::profile::enable();
@@ -975,6 +976,14 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     metrics.edges += cf_out.edges.len() as u64;
     graph.edges.extend(cf_out.edges);
 
+    // --- Phase 3c-bis: property edges --------------------------------------
+    // Attribute reads that run code (`x.shape` on a `@property`), minted
+    // here rather than inside `cross_file` because they need the call
+    // edges that already exist: a variable assigned from a call is typed
+    // through that call's edge and the callee's declared return type.
+    // Free when the run recorded no reads (`--property-edges` off).
+    cgg_resolve::property_edges::emit(&mut graph, &all_facts);
+
     // A call the cross-file pass refused because it is written through
     // a dependency (`UnresolvedReason::ExternalModule`) is external, not
     // a resolver gap. Intra-file already filed the site in one of the
@@ -1136,6 +1145,12 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     cgg_resolve::value_refs::tag_reference_edges(&mut graph, &all_facts);
     if !opts.reference_edges {
         graph.edges.retain(|e| !matches!(e.via, Via::Reference));
+    }
+    // Same belt for property edges: the pass above only mints when the
+    // run recorded reads, but the graph's shape must not depend on that
+    // being the only gate.
+    if !opts.property_edges {
+        graph.edges.retain(|e| !matches!(e.via, Via::Property));
     }
 
     // --- Phase 3e: audit reconciliation -----------------------------------

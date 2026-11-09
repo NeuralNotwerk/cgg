@@ -247,7 +247,10 @@ pub fn link_file_with_cap(
     let mut calls_named: std::collections::HashMap<&str, Vec<u32>> =
         std::collections::HashMap::new();
     for r in &facts.references {
-        if !r.value_ref && !r.paren_less {
+        // A property read is no more a call than a value ref is: it must
+        // not count as "a call to this name" for the local-initializer
+        // check either.
+        if !r.value_ref && !r.paren_less && !r.property_read {
             calls_named
                 .entry(r.name.as_str())
                 .or_default()
@@ -278,6 +281,14 @@ pub fn link_file_with_cap(
         // / external buckets either, where it would be reported as a
         // call into third-party code that does not exist.
         if rref.receiver_hint == cgg_core::STRING_REF_HINT {
+            continue;
+        }
+
+        // A property read (`pbr_voxel.feats`) is the property-edge pass's
+        // input (`--property-edges`), not an intra-file call. Resolving
+        // it here would bind the attribute name to any same-named
+        // callable in the file.
+        if rref.property_read {
             continue;
         }
 

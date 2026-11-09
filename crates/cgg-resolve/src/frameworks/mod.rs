@@ -2835,6 +2835,7 @@ mod tests {
         let g = graph_with(vec![handler]);
         let mut f = facts_with_import("javascript", "app.js", "express");
         f.references.push(RefRecord {
+            property_read: false,
             arg_labels: Vec::new(),
             arg_type: None,
             from_macro_arg: false,
@@ -2879,6 +2880,7 @@ mod tests {
 
         let mut bare = facts_with_import("rust", "s.rs", "axum");
         bare.references.push(RefRecord {
+            property_read: false,
             arg_labels: Vec::new(),
             arg_type: None,
             from_macro_arg: false,
@@ -2909,6 +2911,7 @@ mod tests {
         // so it needs no route of its own.
         let mut free = facts_with_import("rust", "s.rs", "axum");
         free.references.push(RefRecord {
+            property_read: false,
             arg_labels: Vec::new(),
             arg_type: None,
             from_macro_arg: false,
@@ -2946,6 +2949,7 @@ mod tests {
         let g = graph_with(vec![handler]);
         let mut f = facts_with_import("rust", "s.rs", "axum");
         f.references.push(RefRecord {
+            property_read: false,
             arg_labels: Vec::new(),
             arg_type: None,
             from_macro_arg: false,
@@ -3008,6 +3012,7 @@ mod tests {
         let g = graph_with(vec![node(0, "app.other", "other", "javascript")]);
         let mut f = facts_with_import("javascript", "app.js", "express");
         f.references.push(RefRecord {
+            property_read: false,
             arg_labels: Vec::new(),
             arg_type: None,
             from_macro_arg: false,
@@ -3054,6 +3059,7 @@ mod tests {
 
         let mut f = facts_with_import("python", "ui.py", "kivy");
         f.references.push(RefRecord {
+            property_read: false,
             arg_labels: Vec::new(),
             arg_type: None,
             from_macro_arg: false,
@@ -3712,6 +3718,7 @@ mod tests {
 
     fn block_ref(name: &str, context: &str, line: u32) -> RefRecord {
         RefRecord {
+            property_read: false,
             name: name.into(),
             receiver_hint: VALUE_REF_HINT.to_string(),
             site_line: line,
@@ -3736,6 +3743,7 @@ mod tests {
         let mut f0 =
             FileFacts::new(FileId::new(0), PathBuf::from("a.test.js"), "javascript");
         f0.references.push(RefRecord {
+            property_read: false,
             name: "it".into(),
             site_line: 3,
             site_byte: 30,

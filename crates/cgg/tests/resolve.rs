@@ -2211,6 +2211,96 @@ fn rust_reference_edges_are_opt_in() {
     assert!(g.contains("crate::tick"), "{g}");
 }
 
+/// Property edges (`--property-edges`): an attribute read on a typed
+/// receiver binds to the `@property` getter its type (or a base of it)
+/// declares — the edge a call would have drawn, spelled without
+/// parentheses. Opt-in like every other graph-content switch: the
+/// default graph is untouched, so `feat` stays in-degree zero when the
+/// flag is absent even though reading `s.feat` runs its getter.
+#[test]
+fn python_property_reads_are_opt_in_edges() {
+    let tmp = TempDir::new().unwrap();
+    let src = "class Pipeline:
+    @property
+    def device(self): return _dev
+
+
+class Pipe(Pipeline):
+    def run(self, pipeline: Pipe) -> None:
+        _use(pipeline.device)
+";
+    write(tmp.path(), "m.py", src.as_bytes());
+
+    // Default: no property edge; the getter is referenced only by its
+    // own body.
+    let plain = tmp.path().join("p.mmd");
+    cgg()
+        .args(["--stack-graphs", "off", "-o"])
+        .arg(&plain)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let p = fs::read_to_string(&plain).unwrap();
+    assert_eq!(p.matches("| prop
+").count() + p.matches("prop|").count(), 0, "{p}");
+
+    // --property-edges: run -[prop]-> Pipeline.device, through the base
+    // class, at high confidence (the parameter is annotated).
+    let props = tmp.path().join("pr.mmd");
+    cgg()
+        .args([
+            "--stack-graphs",
+            "off",
+            "--property-edges",
+            "-o",
+        ])
+        .arg(&props)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&props).unwrap();
+    assert!(
+        g.contains("prop|") || g.contains("| prop"),
+        "expected a property edge:
+{g}"
+    );
+    assert!(g.contains("Pipeline.device"), "{g}");
+}
+
+/// The return-type half: a variable assigned from a call whose target
+/// declares `-> SparseTensor` reads properties off that type.
+#[test]
+fn python_property_reads_type_from_declared_returns() {
+    let tmp = TempDir::new().unwrap();
+    let src = "class SparseTensor:
+    @property
+    def feats(self): return self.data
+
+
+class Codec:
+    def decode(self) -> SparseTensor:
+        return _mk()
+
+
+def load(c: Codec):
+    vox = c.decode()
+    _use(vox.feats)
+";
+    write(tmp.path(), "m.py", src.as_bytes());
+
+    let props = tmp.path().join("pr.mmd");
+    cgg()
+        .args(["--stack-graphs", "off", "--property-edges", "-o"])
+        .arg(&props)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g = fs::read_to_string(&props).unwrap();
+    assert!(g.contains("prop|") || g.contains("| prop"), "{g}");
+    assert!(g.contains("SparseTensor.feats"), "expected load -[prop]-> SparseTensor.feats:
+{g}");
+}
+
 /// WS26 (gap 25): a JavaScript function passed, stored or returned as a
 /// value is a reference — live in the dead-code report and a `ref` edge
 /// under `--reference-edges` — while the default graph is untouched. A

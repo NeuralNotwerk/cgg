@@ -544,6 +544,19 @@ pub struct RefRecord {
     #[serde(skip)]
     pub retyped_receiver: bool,
 
+    /// Set when the site *reads* an attribute off a receiver without
+    /// calling it (`pbr_voxel.feats`, `pipeline.device`) and the read is
+    /// a candidate for a property edge: an edge to the `@property`
+    /// getter the attribute resolves to, emitted only when the
+    /// receiver's type is known from a declaration and that type (or a
+    /// base of it) declares exactly one such property. Gated behind
+    /// `--property-edges`; plugins emit these only when the run asked
+    /// for property sites, so an ordinary run's facts are untouched.
+    /// Reads that resolve to nothing are dropped silently — a value
+    /// read that is not a property is not a miss.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub property_read: bool,
+
     /// The type of the call's single argument, where its syntax states it
     /// (a literal, `format!`, a `.to_string()` call): `&str`, `String`,
     /// `char`, `u8`. A Rust type implementing one generic trait several
@@ -667,6 +680,30 @@ pub struct FileFacts {
     /// of these names is a guess (`RefRecord::weak_receiver_type`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub module_typed_locals: Vec<String>,
+    /// Typed parameters (`pipeline: Trellis2ImageTo3DPipeline`), recorded
+    /// per enclosing definition so the property-edge pass can type a
+    /// receiver that is a parameter of the method it is read in.
+    /// Deliberately not in [`Self::local_types`]: the type propagator
+    /// reads that table for every call in the file, and feeding it
+    /// parameter types would rewrite receiver_hints of calls the run
+    /// never asked to retype. Consumed only by
+    /// `cgg_resolve::property_edges` (`--property-edges`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub param_types: Vec<LocalType>,
+    /// Functions and methods whose signature declares a named return
+    /// type (`-> SparseTensor`), as (qualified name, type stem). The
+    /// property-edge pass reads it to type a variable assigned from a
+    /// call (`pbr_voxel = pipeline.decode_tex_slat(…)`) through the edge
+    /// that call minted.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub function_returns: Vec<FunctionReturn>,
+    /// Assignments whose right-hand side is a call
+    /// (`pbr_voxel = pipeline.decode_tex_slat(texture_slat)`), as
+    /// (variable, call site line). The property-edge pass joins the site
+    /// against minted call edges to learn which callee produced the
+    /// value, then reads [`Self::function_returns`] for its type.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub call_assignments: Vec<CallAssign>,
     /// Package / namespace / module names under which this file's code
     /// is importable by the rest of the tree, as the language's own
     /// declarations or manifests state them: the Java or Kotlin
@@ -963,6 +1000,32 @@ pub struct AssocCallLocal {
     pub assoc_fn: String,
 }
 
+/// A function or method whose signature declares a named return type
+/// (`def decode_tex_slat(...) -> SparseTensor:`), with the type stem the
+/// annotation resolves to (`Optional[Foo]` → `Foo`; a union, container
+/// or primitive is not recorded). Python only today; the property-edge
+/// pass joins a call's edge to this through the callee's qualified name.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FunctionReturn {
+    /// Qualified name as the def records it (`module.Class.method`).
+    pub def_qn: String,
+    /// The declared return type's stem.
+    pub type_name: String,
+}
+
+/// An assignment whose right-hand side is a call
+/// (`pbr_voxel = pipeline.decode_tex_slat(texture_slat)`): the variable
+/// bound and the line the call sits on. The property-edge pass joins the
+/// line against that call's minted edge — the edge, not a re-parse, is
+/// the authority on which callee produced the value.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CallAssign {
+    /// The variable bound (`pbr_voxel`).
+    pub var_name: String,
+    /// The call's start line.
+    pub site_line: u32,
+}
+
 /// A field of a class or struct, recorded so `obj->field->method()` can
 /// be typed from the field's declaration rather than from the call site.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1091,6 +1154,9 @@ impl FileFacts {
             data_members: Vec::new(),
             type_names: Vec::new(),
             module_typed_locals: Vec::new(),
+            param_types: Vec::new(),
+            function_returns: Vec::new(),
+            call_assignments: Vec::new(),
             packages: Vec::new(),
             locals: Vec::new(),
             type_spans: Vec::new(),

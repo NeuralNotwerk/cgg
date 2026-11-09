@@ -2331,6 +2331,15 @@ pub fn resolve(
                     continue;
                 }
 
+                // A property read (`pbr_voxel.feats`) is the property-edge
+                // pass's input, not a call. Resolving it here would duck-
+                // type the attribute name across every same-named callable
+                // in the tree — call-syntax noise around a use that never
+                // had parentheses.
+                if r.property_read {
+                    continue;
+                }
+
                 // Compute enclosing callable up front so we can pass its
                 // qualified name into the resolver — needed for the
                 // intra-crate qualified-path retry (e.g., `crawl::foo()`
@@ -8323,7 +8332,7 @@ fn lookup_in_language(
 /// references against 344,808 callables, and it was 449s of a 128s
 /// wall-clock run (the span nests across 8 threads). Nothing else in
 /// the reference loop came close: the actual resolution was 1.8s.
-fn enclosing_callable_id(
+pub(crate) fn enclosing_callable_id(
     by_span: &HashMap<(FileId, u32, u32), CallableId>,
     facts: &FileFacts,
     byte: u32,

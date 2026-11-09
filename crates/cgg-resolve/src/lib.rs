@@ -25,6 +25,7 @@ pub mod intra_file;
 mod libscope;
 mod modules;
 pub mod names;
+pub mod property_edges;
 mod scope;
 pub mod stack_graphs_resolver;
 pub mod type_hints;

@@ -152,6 +152,7 @@ impl<'a> RubyWalker<'a> {
             return;
         }
         self.facts.references.push(RefRecord {
+            property_read: false,
             name: name.to_string(),
             site_line: (node.start_position().row as u32) + 1,
             site_byte: node.start_byte() as u32,
@@ -370,6 +371,7 @@ impl<'a> RubyWalker<'a> {
             return;
         };
         self.facts.references.push(RefRecord {
+            property_read: false,
             name,
             receiver_hint: "super".to_string(),
             site_line: (node.start_position().row as u32) + 1,
@@ -441,6 +443,7 @@ impl<'a> RubyWalker<'a> {
         // class and its ancestors.
         if let Some(ty) = crate::receiver::constructed_type("ruby", node, self.source) {
             self.facts.references.push(RefRecord {
+                property_read: false,
                 name: "initialize".to_string(),
                 receiver_hint: ty,
                 site_line: (node.start_position().row as u32) + 1,
@@ -453,6 +456,7 @@ impl<'a> RubyWalker<'a> {
             self.record_method_naming(node, &method, &recv, typed_receiver);
         }
         self.facts.references.push(RefRecord {
+            property_read: false,
             name: method,
             receiver_hint: recv,
             site_line: (node.start_position().row as u32) + 1,
@@ -536,6 +540,7 @@ impl<'a> RubyWalker<'a> {
             return;
         }
         self.facts.references.push(RefRecord {
+            property_read: false,
             name,
             receiver_hint: recv,
             site_line: (sym.start_position().row as u32) + 1,
@@ -584,6 +589,7 @@ impl<'a> RubyWalker<'a> {
                 ..Default::default()
             });
             self.facts.references.push(RefRecord {
+                property_read: false,
                 arg_labels: Vec::new(),
                 arg_type: None,
                 from_macro_arg: false,

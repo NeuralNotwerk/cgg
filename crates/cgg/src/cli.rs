@@ -418,6 +418,24 @@ pub struct Cli {
     #[arg(long = "module-scope-calls", action = ArgAction::SetTrue)]
     pub module_scope_calls: bool,
 
+    /// Emit an edge for an attribute read that runs code: `x.shape` when
+    /// the receiver's declared type — or a base of it — carries a
+    /// matching `@property` getter (Python; `@cached_property` counts).
+    /// Reading a property executes the getter, so the edge is as real as
+    /// a call's; the source just spells it without parentheses.
+    ///
+    /// Precision-first: the receiver's type must come from a declaration
+    /// (a typed parameter of the enclosing def, the enclosing class for
+    /// `self`, a class-field annotation, or a call whose declared return
+    /// type names the variable), and exactly one property may match in
+    /// the first defining class of the walk. Reads that resolve to
+    /// nothing are dropped silently — data is not a miss, and an
+    /// ambiguous name is not a guess this flag makes. Off by default: a
+    /// run without it is byte-identical to one from before the flag
+    /// existed.
+    #[arg(long = "property-edges", action = ArgAction::SetTrue)]
+    pub property_edges: bool,
+
     /// Report callables that nothing in the analyzed source appears to
     /// call, marking them `unreferenced` in the normal graph output.
     ///

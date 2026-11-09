@@ -552,6 +552,7 @@ impl<'a> JsWalker<'a> {
             return;
         }
         self.facts.references.push(RefRecord {
+            property_read: false,
             name,
             receiver_hint: recv,
             site_line: (name_node.start_position().row as u32) + 1,
@@ -1623,6 +1624,7 @@ impl<'a> JsWalker<'a> {
             })
             .flatten();
         self.facts.references.push(RefRecord {
+            property_read: false,
             name,
             receiver_hint: shaped.unwrap_or(recv),
             site_line: (node.start_position().row as u32) + 1,
@@ -1692,6 +1694,7 @@ impl<'a> JsWalker<'a> {
                 ..Default::default()
             });
             self.facts.references.push(RefRecord {
+                property_read: false,
                 arg_labels: Vec::new(),
                 arg_type: None,
                 from_macro_arg: false,

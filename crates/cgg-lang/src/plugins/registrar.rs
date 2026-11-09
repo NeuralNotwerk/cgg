@@ -521,6 +521,7 @@ pub(crate) fn capture(
                 continue;
             }
             out.push(RefRecord {
+                property_read: false,
                 arg_labels: Vec::new(),
                 arg_type: None,
                 from_macro_arg: false,
@@ -692,6 +693,7 @@ fn collect_value_refs(
         // `[C::class, 'method']` is one target, not two loose names.
         if let Some((owner, method)) = class_method_pair(arg, source) {
             out.push(RefRecord {
+                property_read: false,
                 arg_labels: Vec::new(),
                 arg_type: None,
                 from_macro_arg: false,
@@ -722,6 +724,7 @@ fn collect_value_refs(
         for child in arg.named_children(&mut cursor) {
             if let Some(s) = string_within(child, source) {
                 out.push(RefRecord {
+                    property_read: false,
                     arg_labels: Vec::new(),
                     arg_type: None,
                     from_macro_arg: false,
@@ -774,6 +777,7 @@ fn collect_value_refs(
             }
             if let Some(s) = string_within(child, source) {
                 out.push(RefRecord {
+                    property_read: false,
                     arg_labels: Vec::new(),
                     arg_type: None,
                     from_macro_arg: false,
@@ -852,6 +856,7 @@ fn collect_value_refs(
         }
         if out.len() == before {
             out.push(RefRecord {
+                property_read: false,
                 arg_labels: Vec::new(),
                 arg_type: None,
                 from_macro_arg: false,
@@ -893,6 +898,7 @@ fn collect_value_refs(
                 && let Some(owner) = qualifier_of(&callee)
             {
                 out.push(RefRecord {
+                    property_read: false,
                     arg_labels: Vec::new(),
                     arg_type: None,
                     from_macro_arg: false,
@@ -951,6 +957,7 @@ fn collect_value_refs(
         return;
     }
     out.push(RefRecord {
+        property_read: false,
         arg_labels: Vec::new(),
         arg_type: None,
         from_macro_arg: false,

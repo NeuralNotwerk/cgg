@@ -211,6 +211,7 @@ fn via_str(v: &cgg::Via) -> &'static str {
         cgg::Via::Direct => "direct",
         cgg::Via::Dynamic => "dynamic",
         cgg::Via::Reference => "reference",
+        cgg::Via::Property => "property",
         cgg::Via::External => "external",
         cgg::Via::Stdlib => "stdlib",
         // Tuple variants: the payload is the FFI kind / descriptor / entry

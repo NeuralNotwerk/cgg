@@ -727,6 +727,7 @@ impl<'a> ClojureWalker<'a> {
             let verb = super::registrar::last_segment(&name).to_string();
 
             self.facts.references.push(RefRecord {
+                property_read: false,
                 name,
                 receiver_hint: String::new(),
                 site_line: (node.start_position().row as u32) + 1,
@@ -807,6 +808,7 @@ impl<'a> ClojureWalker<'a> {
                         continue;
                     }
                     out.push(RefRecord {
+                        property_read: false,
                         arg_labels: Vec::new(),
                         arg_type: None,
                         from_macro_arg: false,
@@ -845,6 +847,7 @@ impl<'a> ClojureWalker<'a> {
                     }
                     named_target = true;
                     out.push(RefRecord {
+                        property_read: false,
                         arg_labels: Vec::new(),
                         arg_type: None,
                         from_macro_arg: false,
@@ -925,6 +928,7 @@ impl<'a> ClojureWalker<'a> {
             ..Default::default()
         });
         out.push(RefRecord {
+            property_read: false,
             arg_labels: Vec::new(),
             arg_type: None,
             from_macro_arg: false,
@@ -1177,6 +1181,7 @@ impl ClojureWalker<'_> {
             format!("{ns}/{name}")
         };
         self.facts.references.push(RefRecord {
+            property_read: false,
             name: full,
             site_line: (sym.start_position().row as u32) + 1,
             site_byte: sym.start_byte() as u32,

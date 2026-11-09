@@ -31,6 +31,7 @@ fn via_tag(via: &Via) -> &'static str {
         Via::Direct => "",
         Via::Dynamic => "dyn",
         Via::Reference => "ref",
+        Via::Property => "prop",
         Via::External => "ext",
         Via::Stdlib => "std",
         Via::Ffi(_) => "ffi",

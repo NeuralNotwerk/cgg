@@ -156,6 +156,12 @@ pub struct RunOptions {
     /// definition per file that has top-level references, marked
     /// `synthetic`, so it never counts as a dead-code candidate.
     pub module_scope_calls: bool,
+    /// Emit edges for attribute reads that run code (`x.shape` on a
+    /// `@property` getter; Python today). See
+    /// [`cgg_resolve::property_edges`]; `--property-edges` on the CLI.
+    /// Off by default: a run without it is byte-identical to one from
+    /// before the flag existed.
+    pub property_edges: bool,
     /// Suppress synthesized `<framework-entry>` nodes. Negative sense
     /// to match the flag; entry nodes are ON by default.
     pub no_entry_nodes: bool,
@@ -228,6 +234,7 @@ impl Default for RunOptions {
             reference_edges: false,
             guess_unique_names: false,
             module_scope_calls: false,
+            property_edges: false,
             no_entry_nodes: false,
             no_test_entries: false,
             framework_coverage: false,
@@ -313,6 +320,7 @@ impl From<&crate::cli::Cli> for RunOptions {
             reference_edges,
             guess_unique_names,
             module_scope_calls,
+            property_edges,
             dead_code,
             dead_code_confidence,
             ignore_names,
@@ -376,6 +384,7 @@ impl From<&crate::cli::Cli> for RunOptions {
             reference_edges: *reference_edges,
             guess_unique_names: *guess_unique_names,
             module_scope_calls: *module_scope_calls,
+            property_edges: *property_edges,
             no_entry_nodes: *no_entry_nodes,
             no_test_entries: *no_test_entries,
             framework_coverage: *framework_coverage,

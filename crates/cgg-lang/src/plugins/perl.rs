@@ -381,6 +381,7 @@ impl<'a> PerlWalker<'a> {
             let name = self.text(func_node).to_string();
             if !name.is_empty() {
                 self.facts.references.push(RefRecord {
+                    property_read: false,
                     name: name.clone(),
                     receiver_hint: String::new(),
                     site_line: (node.start_position().row as u32) + 1,
@@ -425,6 +426,7 @@ impl<'a> PerlWalker<'a> {
                     node.children(&mut c).any(|n| n.kind() == "super")
                 };
                 self.facts.references.push(RefRecord {
+                    property_read: false,
                     name: name.clone(),
                     receiver_hint: if is_super {
                         "SUPER".to_string()
@@ -555,6 +557,7 @@ impl<'a> PerlWalker<'a> {
                     continue;
                 }
                 out.push(RefRecord {
+                    property_read: false,
                     arg_labels: Vec::new(),
                     arg_type: None,
                     from_macro_arg: false,
@@ -584,6 +587,7 @@ impl<'a> PerlWalker<'a> {
 
             if let Some(name) = self.value_ref_name(*arg, i, &items) {
                 out.push(RefRecord {
+                    property_read: false,
                     arg_labels: Vec::new(),
                     arg_type: None,
                     from_macro_arg: false,
@@ -681,6 +685,7 @@ impl<'a> PerlWalker<'a> {
                 ..Default::default()
             });
             self.facts.references.push(RefRecord {
+                property_read: false,
                 arg_labels: Vec::new(),
                 arg_type: None,
                 from_macro_arg: false,

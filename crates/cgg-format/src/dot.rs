@@ -17,6 +17,9 @@ fn via_dot(via: &Via) -> (&'static str, &'static str) {
         Via::Direct => ("", ""),
         Via::Dynamic => ("dyn", ", style=dashed"),
         Via::Reference => ("ref", ", style=dotted"),
+        // Same family as `ref`: both are opt-in edges for a use of code
+        // the source spells without call syntax.
+        Via::Property => ("prop", ", style=dotted"),
         Via::External => ("ext", ", color=\"#2266cc\""),
         Via::Stdlib => ("std", ", color=\"#22aa66\""),
         Via::Ffi(_) => ("ffi", ", color=\"#cc6622\""),

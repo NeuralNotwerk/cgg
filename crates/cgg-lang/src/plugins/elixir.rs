@@ -192,6 +192,7 @@ impl<'a> ElixirWalker<'a> {
                         None => (self.text(target).to_string(), String::new(), false),
                     };
                 self.facts.references.push(RefRecord {
+                    property_read: false,
                     name,
                     receiver_hint,
                     site_line: (target.start_position().row as u32) + 1,
@@ -398,6 +399,7 @@ impl<'a> ElixirWalker<'a> {
             };
 
             self.facts.references.push(RefRecord {
+                property_read: false,
                 name,
                 receiver_hint,
                 site_line: (node.start_position().row as u32) + 1,
@@ -602,6 +604,7 @@ impl<'a> ElixirWalker<'a> {
         route: &str,
     ) {
         self.facts.references.push(RefRecord {
+            property_read: false,
             arg_labels: Vec::new(),
             arg_type: None,
             from_macro_arg: false,

@@ -22,7 +22,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use cgg_core::{
-    DefRecord, DefVariant, FileFacts, ImportRecord, LocalType, RefRecord, ids::FileId,
+    CallAssign, DefRecord, DefVariant, FileFacts, FunctionReturn, ImportRecord, LocalType,
+    RefRecord, ids::FileId,
 };
 use tree_sitter::{Node, Tree};
 
@@ -193,6 +194,9 @@ impl<'a> Walker<'a> {
     fn walk(&mut self, node: Node) {
         if self.ctx.reference_sites {
             self.capture_value_positions(node);
+        }
+        if self.ctx.property_sites {
+            self.capture_property_reads(node);
         }
         match node.kind() {
             "class_definition" => {
@@ -488,6 +492,195 @@ impl<'a> Walker<'a> {
         }
     }
 
+    /// Attribute reads that could run a property getter, when the run
+    /// records property sites: a call's arguments and keyword values
+    /// (`grid_sample_3d(pbr_voxel.feats, device=pipeline.device)`), the
+    /// right-hand side of an assignment (`uvs = mesh.uv`), and
+    /// `return`/`yield` values. The assignment arm also links a variable
+    /// to a call on the right (`pbr_voxel = pipeline.decode_tex_slat(…)`)
+    /// so the property-edge pass can type it from the callee's declared
+    /// return type.
+    ///
+    /// Only reads a declarative table can type are recorded: the object
+    /// is a plain identifier (a parameter or local), or a `self.`/`cls.`
+    /// path the class-field annotations already know. A call result
+    /// (`make().shape`), a subscript's tail (`rows[i].feats`), or a
+    /// chain off neither (`a.f.g`) has no declared type to read — the
+    /// pass would drop them anyway, so they are never captured.
+    fn capture_property_reads(&mut self, node: Node) {
+        let reads: Vec<Node> = match node.kind() {
+            "call" => {
+                let Some(args) = node.child_by_field_name("arguments") else {
+                    return;
+                };
+                let mut c = args.walk();
+                args.named_children(&mut c)
+                    .flat_map(|a| match a.kind() {
+                        "keyword_argument" => a
+                            .child_by_field_name("value")
+                            .into_iter()
+                            .collect::<Vec<_>>(),
+                        _ => vec![a],
+                    })
+                    .collect()
+            }
+            "assignment" => {
+                if let (Some(left), Some(right)) = (
+                    node.child_by_field_name("left"),
+                    node.child_by_field_name("right"),
+                ) && left.kind() == "identifier"
+                    && right.kind() == "call"
+                {
+                    let var_name = self.text(left).to_string();
+                    if !var_name.is_empty() {
+                        self.facts.call_assignments.push(CallAssign {
+                            var_name,
+                            site_line: right.start_position().row as u32 + 1,
+                        });
+                    }
+                }
+                node.child_by_field_name("right").into_iter().collect()
+            }
+            "return_statement" | "yield" => {
+                let mut c = node.walk();
+                node.named_children(&mut c).collect()
+            }
+            _ => return,
+        };
+        for v in reads {
+            self.property_read_ref(v, 0);
+        }
+    }
+
+    /// One candidate read: an `attribute` on a typeable object, or a
+    /// container to descend into. A call is *not* descended into — its
+    /// own arguments are captured when the walk reaches that node.
+    fn property_read_ref(&mut self, v: Node, depth: u8) {
+        if depth > 3 {
+            return;
+        }
+        match v.kind() {
+            "attribute" => {
+                let (Some(obj), Some(attr)) = (
+                    v.child_by_field_name("object"),
+                    v.child_by_field_name("attribute"),
+                ) else {
+                    return;
+                };
+                let obj_text = self.text(obj);
+                let typeable = obj.kind() == "identifier"
+                    || obj_text.starts_with("self.")
+                    || obj_text.starts_with("cls.");
+                if !typeable {
+                    return;
+                }
+                let name = self.text(attr);
+                if name.is_empty() {
+                    return;
+                }
+                self.facts.references.push(RefRecord {
+                    name: name.to_string(),
+                    receiver_hint: obj_text.to_string(),
+                    site_line: (attr.start_position().row as u32) + 1,
+                    site_byte: attr.start_byte() as u32,
+                    property_read: true,
+                    ..Default::default()
+                });
+            }
+            // `pbr_voxel.shape[1]`: the subscript does not change what
+            // is read — the getter runs either way. The grammar names the
+            // subscripted expression `value` (attributes use `object`).
+            "subscript" => {
+                let obj = v
+                    .child_by_field_name("value")
+                    .or_else(|| v.child_by_field_name("object"));
+                if let Some(obj) = obj {
+                    self.property_read_ref(obj, depth + 1);
+                }
+            }
+            "tuple" | "list" | "set" | "parenthesized_expression"
+            | "boolean_operator" | "list_splat" | "dictionary_splat" => {
+                let mut c = v.walk();
+                let parts: Vec<Node> = v.named_children(&mut c).collect();
+                for p in parts {
+                    self.property_read_ref(p, depth + 1);
+                }
+            }
+            "pair" => {
+                if let Some(val) = v.child_by_field_name("value") {
+                    self.property_read_ref(val, depth + 1);
+                }
+            }
+            "conditional_expression" => {
+                // `a.f if cond else b.g`: the condition is not a value.
+                let mut c = v.walk();
+                let parts: Vec<Node> = v.named_children(&mut c).collect();
+                for (i, p) in parts.into_iter().enumerate() {
+                    if i != 1 {
+                        self.property_read_ref(p, depth + 1);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Typed parameters and a declared return type, for the property-edge
+    /// pass only (`--property-edges`): `pipeline: Trellis2ImageTo3DPipeline`
+    /// types the receiver `pipeline` of every read in this def;
+    /// `-> SparseTensor` types whatever a call to this def is assigned
+    /// to. Deliberately not in `local_types` — the type propagator reads
+    /// that table for every call in the file, and these tables must not
+    /// move an edge an ordinary run resolves its own way.
+    fn record_declarative_types(&mut self, node: Node, qn: &str) {
+        if let Some(params) = node.child_by_field_name("parameters") {
+            let mut c = params.walk();
+            for p in params.named_children(&mut c) {
+                let (name_node, type_node) = match p.kind() {
+                    "typed_parameter" | "typed_default_parameter" => {
+                        // `typed_default_parameter` names its field
+                        // `name`; a bare `typed_parameter` (`a: Foo`)
+                        // does not — the name is its first identifier.
+                        let name = p
+                            .child_by_field_name("name")
+                            .or_else(|| {
+                                let mut c = p.walk();
+                                p.named_children(&mut c)
+                                    .find(|n| n.kind() == "identifier")
+                            });
+                        (name, p.child_by_field_name("type"))
+                    }
+                    _ => continue,
+                };
+                let (Some(name_node), Some(type_node)) = (name_node, type_node) else {
+                    continue;
+                };
+                // `self`/`cls` are typed by their class, never by an
+                // annotation someone hung on them.
+                let var = self.text(name_node);
+                if var.is_empty() || var == "self" || var == "cls" {
+                    continue;
+                }
+                let Some(type_name) = annotation_type_stem(self.text(type_node)) else {
+                    continue;
+                };
+                self.facts.param_types.push(LocalType {
+                    var_name: var.to_string(),
+                    type_name,
+                    scope_byte: node.start_byte() as u32,
+                });
+            }
+        }
+        if let Some(ret) = node.child_by_field_name("return_type")
+            && let Some(type_name) = annotation_type_stem(self.text(ret))
+        {
+            self.facts.function_returns.push(FunctionReturn {
+                def_qn: qn.to_string(),
+                type_name,
+            });
+        }
+    }
+
     fn record_function(&mut self, node: Node) {
         let Some(name_node) = node.child_by_field_name("name") else {
             return;
@@ -530,6 +723,10 @@ impl<'a> Walker<'a> {
         let qn = qualified_name(&self.scope, &simple);
         let (sl, el) = line_range(node);
         let simple_for_vis = simple.clone();
+
+        if self.ctx.property_sites {
+            self.record_declarative_types(node, &qn);
+        }
 
         self.facts.definitions.push(DefRecord {
             simple_name: simple,
@@ -1285,6 +1482,150 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    fn extract_props(src: &str) -> FileFacts {
+        let mut parser = Parser::new();
+        parser
+            .set_language(&tree_sitter_python::LANGUAGE.into())
+            .unwrap();
+        let tree = parser.parse(src, None).unwrap();
+        PythonPlugin.extract(
+            &crate::ExtractCtx::plain().with_property_sites(true),
+            FileId::new(0),
+            &PathBuf::from("m.py"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    /// Property reads in the positions that matter: call arguments,
+    /// keyword values, an assignment's right-hand side, a subscript's
+    /// object. Only typeable objects — a plain identifier or a
+    /// `self.`/`cls.` path — are recorded.
+    #[test]
+    fn property_reads_captured_from_typeable_objects() {
+        let src = "\
+import vendor.sparse as sp
+class Pipe:
+    @property
+    def device(self): ...
+def process(self, pipeline: Pipe, texture_slat: sp.SparseTensor):
+    grid_sample_3d(pbr_voxel.feats, pbr_voxel.coords, device=pipeline.device)
+    width = pbr_voxel.shape[1]
+    uvs = mesh.uv
+    return self.texture
+";
+        let f = extract_props(src);
+        let mut got: Vec<(String, String)> = f
+            .references
+            .iter()
+            .filter(|r| r.property_read)
+            .map(|r| (r.receiver_hint.clone(), r.name.clone()))
+            .collect();
+        got.sort();
+        assert_eq!(
+            got,
+            vec![
+                ("mesh".to_string(), "uv".to_string()),
+                ("pbr_voxel".to_string(), "coords".to_string()),
+                ("pbr_voxel".to_string(), "feats".to_string()),
+                ("pbr_voxel".to_string(), "shape".to_string()),
+                ("pipeline".to_string(), "device".to_string()),
+                ("self".to_string(), "texture".to_string()),
+            ]
+        );
+    }
+
+    /// Reads with no declarative type to consult are not captured: a
+    /// call result, a chained tail off neither self nor a name, a
+    /// subscript's tail.
+    #[test]
+    fn untypeable_property_reads_are_not_captured() {
+        let src = "\
+def f(make, rows, a):
+    g(make().shape)
+    h(rows[i].feats)
+    return a.f.g
+";
+        let f = extract_props(src);
+        assert!(
+            f.references.iter().all(|r| !r.property_read),
+            "{:?}",
+            f.references
+        );
+    }
+
+    /// Typed parameters land in `param_types` (self excepted, primitives
+    /// and containers untyped), a named return in `function_returns`.
+    #[test]
+    fn declarative_types_recorded_for_the_property_pass() {
+        let src = "\
+class Pipe:
+    def process(self, pipeline: Pipe, count: int, opt: Optional[Foo] = None) -> SparseTensor:
+    def other(self) -> int:
+        return count
+";
+        let f = extract_props(src);
+        let params: Vec<(String, String)> = f
+            .param_types
+            .iter()
+            .map(|lt| (lt.var_name.clone(), lt.type_name.clone()))
+            .collect();
+        assert_eq!(
+            params,
+            vec![
+                ("pipeline".to_string(), "Pipe".to_string()),
+                ("opt".to_string(), "Foo".to_string()),
+            ]
+        );
+        let rets: Vec<(String, String)> = f
+            .function_returns
+            .iter()
+            .map(|fr| (fr.def_qn.clone(), fr.type_name.clone()))
+            .collect();
+        assert_eq!(
+            rets,
+            vec![("m.Pipe.process".to_string(), "SparseTensor".to_string())]
+        );
+    }
+
+    /// An assignment whose right side is a call links the variable to the
+    /// call's line; non-calls are not linked.
+    #[test]
+    fn call_assignments_link_variable_to_call_line() {
+        let src = "\
+def f(obj, make):
+    pbr_voxel = obj.decode_tex_slat(slat)
+    plain = make()
+    count = 5
+    return pbr_voxel
+";
+        let f = extract_props(src);
+        let got: Vec<(String, u32)> = f
+            .call_assignments
+            .iter()
+            .map(|ca| (ca.var_name.clone(), ca.site_line))
+            .collect();
+        // The source literal starts with a newline, so these are lines 2 and 3.
+        assert_eq!(got, vec![("pbr_voxel".to_string(), 2), ("plain".to_string(), 3)]);
+    }
+
+    /// The flag-off contract: an ordinary run records none of this, so
+    /// its facts and its graph are byte-identical to before the feature.
+    #[test]
+    fn property_sites_off_records_nothing() {
+        let src = "\
+class Pipe:
+    def process(self, pipeline: Pipe) -> SparseTensor:
+        grid_sample_3d(pbr_voxel.feats, device=pipeline.device)
+        pbr_voxel = pipeline.decode_tex_slat(slat)
+";
+        let f = extract(src);
+        assert!(f.references.iter().all(|r| !r.property_read));
+        assert!(f.param_types.is_empty());
+        assert!(f.function_returns.is_empty());
+        assert!(f.call_assignments.is_empty());
     }
 
     /// B3: value positions no call encloses.

@@ -72,6 +72,13 @@ pub enum Via {
     /// callback slot) rather than called (Issue 4). Gated behind
     /// `--reference-edges`.
     Reference,
+    /// An attribute *read* that runs code: `x.shape` on a receiver whose
+    /// declared type (or a base of it) carries a matching `@property`
+    /// getter. Reading a property executes the getter's body, so the
+    /// edge is as real as a call's — Python just spells it without
+    /// parentheses. Gated behind `--property-edges`; a read that
+    /// resolves to no unique property is dropped, not guessed.
+    Property,
     /// An edge to a synthesized leaf "exit node" standing in for a call
     /// into third-party code, surfaced by `--include-external`.
     External,

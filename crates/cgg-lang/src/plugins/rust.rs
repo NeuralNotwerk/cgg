@@ -1472,6 +1472,7 @@ impl<'a> Walker<'a> {
         // (not to the closure body itself).
         let spawn_line = (spawn_call.start_position().row as u32) + 1;
         self.facts.references.push(RefRecord {
+            property_read: false,
             name: simple,
             receiver_hint: String::new(),
             site_line: spawn_line,
@@ -1667,6 +1668,7 @@ impl<'a> Walker<'a> {
                 let dot_call =
                     receiver_hint.is_empty() && i > 0 && kids[i - 1].kind() == ".";
                 self.facts.references.push(RefRecord {
+                    property_read: false,
                     name,
                     site_line: k.start_position().row as u32 + 1,
                     site_byte: k.start_byte() as u32,
@@ -1907,6 +1909,7 @@ impl<'a> Walker<'a> {
             return None;
         }
         Some(RefRecord {
+            property_read: false,
             name,
             site_line: node.start_position().row as u32 + 1,
             site_byte: node.start_byte() as u32,
@@ -2117,6 +2120,7 @@ impl<'a> Walker<'a> {
                     .or_else(|| self.variable_arg(arg))
             });
         Some(RefRecord {
+            property_read: false,
             name,
             path_receiver: path_receiver && !receiver_hint.is_empty(),
             receiver_hint,
@@ -2367,6 +2371,7 @@ impl<'a> Walker<'a> {
             // would win, which on axum was the context-less one — every
             // real route lost its path.
             self.facts.references.push(RefRecord {
+                property_read: false,
                 arg_labels: Vec::new(),
                 arg_type: None,
                 from_macro_arg: false,
