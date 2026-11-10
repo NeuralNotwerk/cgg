@@ -814,6 +814,15 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         });
     }
     cgg_resolve::type_hints::settle_implicit_receivers(&mut all_facts);
+    // Python (fork.5): `x = a.b.c` locals become the member calls they
+    // are, and dotted receivers type through the run-wide field table.
+    // Per-file and independent, like the propagation above.
+    {
+        let _s = cgg_core::profile::span("resolve::py-member-refs");
+        all_facts.par_iter_mut().for_each(|facts| {
+            cgg_resolve::type_hints::settle_python_member_refs(facts, &field_types);
+        });
+    }
     let known_names = build_known_names(&all_facts);
     // Hoisted out of the per-file loop below. It was rebuilt for every
     // file from the same `known_names`, which is O(files x names) — on

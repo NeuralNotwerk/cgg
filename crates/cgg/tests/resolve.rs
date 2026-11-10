@@ -142,6 +142,136 @@ fn audit_records_high_confidence_for_an_unambiguous_import() {
     );
 }
 
+/// fork.5: the test-spy idiom — `real_launch = window._download.launch_worker`
+/// then `real_launch(...)` — runs the real method. The chain types hop by
+/// hop through the field table (`self._download = DownloadController(...)`
+/// declared in `main.py`), so the call lands on the controller, not a
+/// same-named facade elsewhere.
+#[test]
+fn python_member_alias_through_a_field_chain_resolves() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "store.py",
+        b"class DownloadController:\n    def launch_worker(self, a):\n        return a\n",
+    );
+    write(
+        tmp.path(),
+        "main.py",
+        b"from store import DownloadController\n\nclass MainWindow:\n    def __init__(self):\n        self._download = DownloadController(self)\n",
+    );
+    write(
+        tmp.path(),
+        "test_x.py",
+        b"from main import MainWindow\n\ndef test_it():\n    window = MainWindow()\n    real_launch = window._download.launch_worker\n    real_launch(1)\n",
+    );
+
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let g: serde_json::Value = serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let callables = &g["callables"];
+    let qn = |id: &serde_json::Value| {
+        callables[id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap_or("")
+            .to_string()
+    };
+    let mut got = false;
+    for e in g["edges"].as_array().unwrap() {
+        let (s, d) = (qn(&e["src"]), qn(&e["dst"]));
+        if s.ends_with("test_it") && d.ends_with("DownloadController.launch_worker") {
+            got = true;
+        }
+    }
+    assert!(
+        got,
+        "the alias call must bind the real method; edges: {:?}",
+        g["edges"]
+    );
+}
+
+/// fork.5: `host.launch_worker(...)` through an untyped receiver when a
+/// facade and its delegatee both define the name — the call goes to the
+/// facade, whose body calls the controller one hop away. Both used to
+/// bind, putting the controller among the direct callers of a call that
+/// happens one hop away.
+#[test]
+fn python_facade_delegation_binds_the_facade_not_the_delegatee() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "store.py",
+        b"class DownloadController:
+    def launch_worker(self, a):
+        return a
+",
+    );
+    write(
+        tmp.path(),
+        "main.py",
+        b"from store import DownloadController
+
+class MainWindow:
+    def __init__(self):
+        self._download = DownloadController(self)
+
+    def launch_worker(self, a):
+        self._download.launch_worker(a)
+",
+    );
+    write(
+        tmp.path(),
+        "staging.py",
+        b"class StagingController:
+    def go(self, host):
+        host.launch_worker(1)
+",
+    );
+
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+
+    let g: serde_json::Value = serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let callables = &g["callables"];
+    let qn = |id: &serde_json::Value| {
+        callables[id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap_or("")
+            .to_string()
+    };
+    let edges: Vec<(String, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| (qn(&e["src"]), qn(&e["dst"])))
+        .collect();
+    assert!(
+        edges
+            .iter()
+            .any(|(s, d)| s.ends_with("StagingController.go")
+                && d.ends_with("MainWindow.launch_worker")),
+        "the call binds the facade; edges: {edges:?}"
+    );
+    assert!(
+        !edges
+            .iter()
+            .any(|(s, d)| s.ends_with("StagingController.go")
+                && d.ends_with("DownloadController.launch_worker")),
+        "the delegatee is not a direct caller; edges: {edges:?}"
+    );
+}
+
 #[test]
 fn rust_cross_crate_use_resolves() {
     // Two-crate workspace; upstream defines `helper`, downstream

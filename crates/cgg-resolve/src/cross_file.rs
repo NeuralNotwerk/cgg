@@ -368,6 +368,11 @@ fn is_std_type_local_trait_impl(lang: &str, qn: &str) -> bool {
 #[derive(Debug, Default)]
 pub struct CrossFileOutput {
     pub edges: Vec<CallEdge>,
+    /// Python duck-typed fan-outs as emitted, per (caller, site, name):
+    /// the candidate set before the facade/delegatee narrowing (fork.5),
+    /// which runs as a post-pass once every file's edges exist — the
+    /// delegating edge itself may be minted in this very pass.
+    pub py_fanout_sets: Vec<(CallableId, u32, String, Vec<CallableId>)>,
     /// Sites this pass saw but could not turn into an edge, and that no
     /// earlier pass recorded either. Currently only module-scope value
     /// references — see the `VALUE_REF_HINT` arm in [`resolve`].
@@ -2586,6 +2591,7 @@ pub fn resolve(
                 let _sp_ref = cgg_core::profile::span("xfile::resolve-ref");
                 let mut capped = 0u32;
                 let mut no_ctor = false;
+                let mut py_fanout: Option<Vec<CallableId>> = None;
                 let mut external: Option<String> = None;
                 let mut refused_module: Option<String> = None;
                 let mut module_certain = false;
@@ -2637,6 +2643,7 @@ pub fn resolve(
                     &mut module_certain,
                     &mut capped,
                     &mut no_ctor,
+                    &mut py_fanout,
                 )
                 .and_then(|cids| {
                     if super_recv {
@@ -2743,6 +2750,7 @@ pub fn resolve(
                                     &mut mc2,
                                     &mut c2,
                                     &mut n2,
+                                    &mut None,
                                 )
                             })
                             .inspect(|_| {
@@ -3015,6 +3023,12 @@ pub fn resolve(
                         },
                     ));
                 } else if let Some(cids) = resolved {
+                    if let Some(cands) = py_fanout.take()
+                        && let Some(src) = enclosing
+                    {
+                        out.py_fanout_sets
+                            .push((src, r.site_byte, r.name.clone(), cands));
+                    }
                     for cid in cids {
                         // Skip self-edges that coincide with intra-file's
                         // ones (they'd be duplicates with the same resolver).
@@ -3160,6 +3174,46 @@ pub fn resolve(
     for mut o in per_file {
         out.edges.append(&mut o.edges);
         out.unresolved.append(&mut o.unresolved);
+        out.py_fanout_sets.append(&mut o.py_fanout_sets);
+    }
+
+    // Python (fork.5): the facade/delegatee narrowing, over the merged
+    // output. When one candidate's body calls another candidate, the
+    // call written against the receiver goes to the facade — the
+    // delegatee is reached THROUGH it, and its edge for this site comes
+    // off. Sibling candidates stay: an untyped receiver may hold any of
+    // them. The narrowing runs here, after every file's edges exist,
+    // because the delegating edge itself may be minted in this pass.
+    if !out.py_fanout_sets.is_empty() {
+        let mut targets: HashMap<CallableId, std::collections::HashSet<CallableId>> =
+            HashMap::new();
+        for e in graph.edges.iter().chain(out.edges.iter()) {
+            targets.entry(e.src).or_default().insert(e.dst);
+        }
+        let mut drop: std::collections::HashSet<(CallableId, CallableId, u32)> =
+            std::collections::HashSet::new();
+        for (src, site, _, cands) in &out.py_fanout_sets {
+            let dropped: Vec<CallableId> = cands
+                .iter()
+                .copied()
+                .filter(|b| {
+                    cands.iter().any(|a| {
+                        *a != *b && targets.get(a).is_some_and(|ts| ts.contains(b))
+                    })
+                })
+                .collect();
+            if !dropped.is_empty() && dropped.len() < cands.len() {
+                for d in dropped {
+                    drop.insert((*src, d, *site));
+                }
+            }
+        }
+        if !drop.is_empty() {
+            let before = out.edges.len();
+            out.edges
+                .retain(|e| !drop.contains(&(e.src, e.dst, e.site_byte)));
+            cgg_core::profile::count("xfile::py-delegatee-dropped", (before - out.edges.len()) as u64);
+        }
     }
 
     // C++ virtual and member-pointer fan-out is `Via::Dynamic`, and every
@@ -5739,6 +5793,10 @@ fn try_resolve_ref(
     // Set when the call names a class cgg knows but that declares no
     // initializer, so the caller can say that rather than "no candidate".
     no_ctor: &mut bool,
+    // Set to the Python duck-typed candidate set when the fan-out
+    // produced it, for the post-resolution facade/delegatee narrowing
+    // (fork.5).
+    py_fanout: &mut Option<Vec<CallableId>>,
 ) -> Option<Vec<CallableId>> {
     let cert = CertainCtx {
         graph,
@@ -7865,11 +7923,23 @@ fn try_resolve_ref(
                             })
                         })
                         .collect();
-                    if !methods.is_empty() && methods.len() < cids.len() {
+                    let cids = if !methods.is_empty() && methods.len() < cids.len() {
                         methods
                     } else {
                         cids
-                    }
+                    };
+                    // Python (fork.5): the set is recorded and narrowed
+                    // in a post-pass — when one candidate's body calls
+                    // another, the pair is a facade and the method it
+                    // delegates to, and the delegatee is reached THROUGH
+                    // the facade, not directly by this call. The narrowing
+                    // waits for the merged output because the delegating
+                    // edge itself may be minted in this same pass. Sibling
+                    // candidates stay: an untyped receiver may hold any
+                    // of them, and the same-name set is where calls like
+                    // `host.route_error()` across a host protocol live.
+                    *py_fanout = Some(cids.clone());
+                    cids
                 } else {
                     cids
                 };
@@ -8222,7 +8292,10 @@ fn c_include_copies(
 /// `FileFacts::member_aliases`) that is the binding in scope at the site:
 /// the call `m.b(…)`, resolved by the module pass. `None` when no such
 /// alias is in scope or the module pass binds nothing — the shadowing
-/// refusal then stands.
+/// refusal then stands. Lua's table semantics: a member read resolves
+/// through the module of the head. Python's aliases (`x = a.b.c`,
+/// fork.5) are rewritten to that member call before resolution and go
+/// through the full ref pipeline instead, so this stays Lua-only.
 fn member_alias_call(
     graph: &Graph,
     facts: &FileFacts,
@@ -8232,6 +8305,9 @@ fn member_alias_call(
     file_mods: &crate::modules::FileModules,
     enclosing: Option<CallableId>,
 ) -> Option<(Vec<CallableId>, Confidence)> {
+    if facts.language != "lua" {
+        return None;
+    }
     if facts.member_aliases.is_empty() {
         return None;
     }
@@ -8601,6 +8677,281 @@ mod tests {
              dead-code correlation reads this field as a type and would \
              reject the site"
         );
+    }
+
+    /// Python (fork.5): when one candidate's body calls another
+    /// candidate, the pair is a facade and its delegatee. The call
+    /// written against the receiver goes to the facade; the delegatee
+    /// is reached THROUGH it and is dropped from the direct-caller set
+    /// (hfetch's `host.launch_worker` bound the controller beside the
+    /// facade that delegates to it).
+    #[test]
+    fn python_delegatee_partner_is_dropped() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "staging.py", "python"));
+        g.add_file(mk_file(1, "main_window.py", "python"));
+        g.add_file(mk_file(2, "download.py", "python"));
+        g.add_callable(mk_callable(
+            0,
+            "start_stage_download",
+            "StagingController.start_stage_download",
+            0,
+            "python",
+            (0, 60),
+        ));
+        g.add_callable(CallableNode {
+            kind: CallableKind::Method,
+            ..mk_callable(
+                1,
+                "launch_worker",
+                "MainWindow.launch_worker",
+                1,
+                "python",
+                (0, 60),
+            )
+        });
+        g.add_callable(CallableNode {
+            kind: CallableKind::Method,
+            ..mk_callable(
+                2,
+                "launch_worker",
+                "DownloadController.launch_worker",
+                2,
+                "python",
+                (0, 60),
+            )
+        });
+        // The facade's own body delegates to the controller (the
+        // intra-file edge cross-file starts from).
+        g.add_edge(CallEdge {
+            src: CallableId::new(1),
+            dst: CallableId::new(2),
+            site_line: 3,
+            site_byte: 90,
+            confidence: Confidence::High,
+            via: Via::Direct,
+            resolver: ResolverId::new("intra-file"),
+            weight: 1,
+        });
+        let staging = facts_for(
+            0,
+            "staging.py",
+            "python",
+            vec![mk_def(
+                "start_stage_download",
+                "StagingController.start_stage_download",
+                DefVariant::InherentMethod,
+                (0, 60),
+            )],
+            vec![RefRecord {
+                name: "launch_worker".into(),
+                receiver_hint: "host".into(),
+                dot_call: true,
+                site_line: 2,
+                site_byte: 30,
+                ..Default::default()
+            }],
+            vec![],
+        );
+        let main_f = facts_for(
+            1,
+            "main_window.py",
+            "python",
+            vec![mk_def(
+                "launch_worker",
+                "MainWindow.launch_worker",
+                DefVariant::InherentMethod,
+                (0, 60),
+            )],
+            vec![],
+            vec![],
+        );
+        let dl_f = facts_for(
+            2,
+            "download.py",
+            "python",
+            vec![mk_def(
+                "launch_worker",
+                "DownloadController.launch_worker",
+                DefVariant::InherentMethod,
+                (0, 60),
+            )],
+            vec![],
+            vec![],
+        );
+        let out = resolve_default(&g, &[staging, main_f, dl_f]);
+        assert_eq!(
+            out.edges.len(),
+            1,
+            "the facade survives, its delegatee is dropped: {:?}",
+            out.edges
+        );
+        assert_eq!(out.edges[0].dst, CallableId::new(1));
+    }
+
+    /// Owners one derives from the other stay a virtual call: the
+    /// fan-out is real dispatch, exactly what the set existed to bind.
+    #[test]
+    fn python_sibling_owner_fan_out_still_binds() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(0, "use.py", "python"));
+        g.add_file(mk_file(1, "base.py", "python"));
+        g.add_file(mk_file(2, "derived.py", "python"));
+        g.add_callable(mk_callable(0, "f", "f", 0, "python", (0, 60)));
+        g.add_callable(CallableNode {
+            kind: CallableKind::Method,
+            ..mk_callable(1, "harvest_crop", "Base.harvest_crop", 1, "python", (0, 60))
+        });
+        g.add_callable(CallableNode {
+            kind: CallableKind::Method,
+            ..mk_callable(2, "harvest_crop", "Derived.harvest_crop", 2, "python", (0, 60))
+        });
+        let derived_def = DefRecord {
+            base_types: vec!["Base".into()],
+            ..mk_def("harvest_crop", "Derived.harvest_crop", DefVariant::InherentMethod, (0, 60))
+        };
+        let use_f = facts_for(
+            0,
+            "use.py",
+            "python",
+            vec![mk_def("f", "f", DefVariant::FreeFunction, (0, 60))],
+            vec![RefRecord {
+                name: "harvest_crop".into(),
+                receiver_hint: "x".into(),
+                dot_call: true,
+                site_line: 2,
+                site_byte: 30,
+                ..Default::default()
+            }],
+            vec![],
+        );
+        let base_f = facts_for(
+            1,
+            "base.py",
+            "python",
+            vec![mk_def("harvest_crop", "Base.harvest_crop", DefVariant::InherentMethod, (0, 60))],
+            vec![],
+            vec![],
+        );
+        let derived_f = facts_for(
+            2,
+            "derived.py",
+            "python",
+            vec![derived_def],
+            vec![],
+            vec![],
+        );
+        // The base link lives on the class record, not the method.
+        let mut derived_f = derived_f;
+        derived_f.classes.push(cgg_core::ClassDecl {
+            class_qn: "Derived".into(),
+            base_types: vec!["Base".into()],
+            line: 1,
+        });
+        let out = resolve_default(&g, &[use_f, base_f, derived_f]);
+        assert_eq!(
+            out.edges.len(),
+            2,
+            "a base/derive family still binds every body: edges {:?} unresolved {:?}",
+            out.edges,
+            out.unresolved
+        );
+    }
+
+    /// Python (fork.5): `real_launch = window._download.launch_worker`
+    /// then `real_launch(...)` — the ref is rewritten to the member
+    /// call it names, and the dotted receiver types through the field
+    /// table (`self._download = DownloadController(...)` declared in
+    /// another file). A chain a declaration does not fully type stays
+    /// as written.
+    #[test]
+    fn python_member_alias_rewrites_to_the_typed_member_call() {
+        let mut f = facts_for(
+            0,
+            "test_x.py",
+            "python",
+            vec![mk_def(
+                "test_it",
+                "test_x.test_it",
+                DefVariant::FreeFunction,
+                (0, 200),
+            )],
+            vec![
+                RefRecord {
+                    name: "real_launch".into(),
+                    receiver_hint: String::new(),
+                    site_line: 4,
+                    site_byte: 120,
+                    ..Default::default()
+                },
+                RefRecord {
+                    name: "probe".into(),
+                    receiver_hint: String::new(),
+                    site_line: 5,
+                    site_byte: 170,
+                    ..Default::default()
+                },
+            ],
+            vec![],
+        );
+        f.local_types.push(cgg_core::LocalType {
+            var_name: "window".into(),
+            type_name: "MainWindow".into(),
+            scope_byte: 60,
+            type_module: String::new(),
+        });
+        f.field_types.push(cgg_core::FieldType {
+            owner: "MainWindow".into(),
+            field: "_download".into(),
+            type_name: "DownloadController".into(),
+        });
+        f.member_aliases.push(cgg_core::MemberAlias {
+            name: "real_launch".into(),
+            head: "window._download".into(),
+            member: "launch_worker".into(),
+            decl_byte: 90,
+        });
+        f.member_aliases.push(cgg_core::MemberAlias {
+            name: "probe".into(),
+            head: "window._missing".into(),
+            member: "ping".into(),
+            decl_byte: 140,
+        });
+        f.locals.push(cgg_core::LocalBinding {
+            name: "real_launch".into(),
+            start_byte: 100,
+            end_byte: 200,
+            decl_byte: 90,
+            param: false,
+        });
+        f.locals.push(cgg_core::LocalBinding {
+            name: "probe".into(),
+            start_byte: 150,
+            end_byte: 200,
+            decl_byte: 140,
+            param: false,
+        });
+        let mut fields: HashMap<String, HashMap<String, String>> = HashMap::new();
+        fields.insert(
+            "MainWindow".to_string(),
+            [("_download".to_string(), "DownloadController".to_string())]
+                .into_iter()
+                .collect(),
+        );
+        crate::type_hints::settle_python_member_refs(&mut f, &fields);
+        let r = &f.references[0];
+        assert_eq!(r.name, "launch_worker", "the alias becomes the member call");
+        assert_eq!(
+            r.receiver_hint, "DownloadController",
+            "the chain types through the declared field"
+        );
+        assert!(r.typed_receiver);
+        assert!(r.weak_receiver_type, "an inferred type is never certain");
+        // A hop no declaration types leaves the ref as written.
+        let r2 = &f.references[1];
+        assert_eq!(r2.name, "ping");
+        assert_eq!(r2.receiver_hint, "window._missing");
+        assert!(!r2.typed_receiver);
     }
 
     /// The synthetic module-scope definition must never make a file's

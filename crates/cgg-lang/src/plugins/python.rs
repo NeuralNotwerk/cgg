@@ -22,8 +22,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use cgg_core::{
-    CallAssign, DefRecord, DefVariant, FileFacts, FunctionReturn, ImportRecord, LocalType,
-    RefRecord, ids::FileId,
+    CallAssign, DefRecord, DefVariant, FieldType, FileFacts, FunctionReturn, ImportRecord,
+    LocalType, MemberAlias, RefRecord, ids::FileId,
 };
 use tree_sitter::{Node, Tree};
 
@@ -765,6 +765,32 @@ impl<'a> Walker<'a> {
         let (Some(left), Some(right)) = (left, right) else {
             return;
         };
+        // `x = a.b.c` — the local is another name for the member read;
+        // a bare call through it is that member's call (fork.5). The
+        // same-named read (`x = obj.x`) is no alias: the locals walk
+        // records no binding for it, so a bare `x()` still names `x`,
+        // and none is recorded here either. The decl byte is the
+        // statement's — the byte the locals walk reads as the binding's
+        // declaration (`scope::FileLocals` matches the two).
+        if right.kind() == "attribute" && left.kind() == "identifier" {
+            if let (Some(obj), Some(attr)) = (
+                right.child_by_field_name("object"),
+                right.child_by_field_name("attribute"),
+            ) {
+                let name = self.text(left).to_string();
+                let member = self.text(attr).to_string();
+                let head = self.text(obj).to_string();
+                if !name.is_empty() && !member.is_empty() && name != member && !head.is_empty() {
+                    self.facts.member_aliases.push(MemberAlias {
+                        name,
+                        head,
+                        member,
+                        decl_byte: node.start_byte() as u32,
+                    });
+                }
+            }
+            return;
+        }
         if right.kind() != "call" {
             return;
         }
@@ -902,6 +928,21 @@ impl<'a> Walker<'a> {
             .filter(|(_, v)| !v.is_empty())
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
+        // The same declarations into the run-wide field table (fork.5):
+        // the type propagator's member-chain reading types `window._download`
+        // in ANOTHER file through it — the per-method `self._download`
+        // local types below stay in this file. The owner is the bare
+        // class name, matching the owner segment of a method.
+        let owner = class_qn.rsplit('.').next().unwrap_or("").to_string();
+        if !owner.is_empty() {
+            for (fname, ty) in &fields {
+                self.facts.field_types.push(FieldType {
+                    owner: owner.clone(),
+                    field: fname.clone(),
+                    type_name: ty.clone(),
+                });
+            }
+        }
         let starts: Vec<u32> = self
             .facts
             .definitions
@@ -2058,6 +2099,53 @@ class C:
             .find(|r| r.name == "open")
             .expect("open");
         assert_eq!(open.receiver_hint, "self.controller");
+    }
+
+    #[test]
+    fn self_field_constructor_types_also_reach_the_field_table() {
+        // fork.5: the declarations the class copies onto its methods
+        // also enter the run-wide field table, so ANOTHER file's
+        // `window._download` chain can type hop by hop.
+        let f = extract(
+            "class App:\n    def __init__(self):\n        self.controller = Controller()\n",
+        );
+        let ft = f
+            .field_types
+            .iter()
+            .find(|t| t.field == "controller")
+            .expect("field type recorded");
+        assert_eq!(ft.owner, "App");
+        assert_eq!(ft.type_name, "Controller");
+    }
+
+    #[test]
+    fn a_member_read_alias_is_recorded_for_the_resolver() {
+        // fork.5: `real_launch = window._download.launch_worker` — a
+        // bare call through the local is the member's call. The decl
+        // byte is the statement's, the byte the locals walk reads as
+        // the binding's declaration, so the resolver can match the two.
+        let src = "def test_it():\n    window = MainWindow()\n    real_launch = window._download.launch_worker\n    real_launch(1)\n";
+        let f = extract(src);
+        let a = f
+            .member_aliases
+            .iter()
+            .find(|a| a.name == "real_launch")
+            .expect("alias recorded");
+        assert_eq!(a.head, "window._download");
+        assert_eq!(a.member, "launch_worker");
+        assert_eq!(
+            a.decl_byte,
+            src.find("real_launch =").unwrap() as u32,
+            "decl byte is the statement start"
+        );
+        // The same-named read is no alias: `x = obj.x` shadows nothing
+        // (the locals walk records no binding), so a bare `x()` still
+        // names `x` — none is recorded here either.
+        let g = extract("def run(obj):\n    handler = obj.handler\n    handler()\n");
+        assert!(
+            !g.member_aliases.iter().any(|a| a.name == "handler"),
+            "same-member read must not be recorded as an alias"
+        );
     }
 
     #[test]

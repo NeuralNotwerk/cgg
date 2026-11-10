@@ -159,6 +159,114 @@ pub fn field_index(all_facts: &[FileFacts]) -> HashMap<String, HashMap<String, S
     out
 }
 
+/// Python (fork.5), after per-file propagation, before cross-file
+/// resolution:
+///
+/// * `x = a.b.c` — the local is another name for the member read. The
+///   locals walk records it as a value binding, so a bare call through
+///   it is refused as shadowed; but the value it holds IS the member,
+///   and Python runs it (`real_launch = window._download.launch_worker`
+///   then `real_launch(...)` runs `DownloadController.launch_worker` —
+///   the test-spy idiom). The ref is rewritten to the member call it
+///   names, so the whole cross-file pipeline — typed lookups, the
+///   fan-out cap, the ambiguity refusal — resolves it exactly as it
+///   would the call written out. The same-named read (`x = obj.x`) is
+///   no alias: the locals walk records no binding for it, so a bare
+///   `x()` still names `x` — none is recorded here either.
+/// * A receiver written as a dotted chain (`window._download`) types
+///   through the run-wide field table when every hop is a declaration:
+///   the base is a constructor-typed local, each later segment a field
+///   some class declares (`self._download = DownloadController(...)`).
+///   A chain that does not fully resolve is left as written — a
+///   partial type would name the wrong receiver. The rewrite is marked
+///   `weak_receiver_type`: the type was inferred across files, not
+///   declared at the call, so it can raise a single candidate to no
+///   better than medium.
+pub fn settle_python_member_refs(
+    facts: &mut FileFacts,
+    fields: &HashMap<String, HashMap<String, String>>,
+) {
+    if facts.language != "python" {
+        return;
+    }
+    // Name → type, conflict-dropped: the same reading the resolver's
+    // `var_types` makes (cross_file.rs). A name bound to two types in
+    // one file types nothing.
+    let mut var_types: HashMap<String, String> = HashMap::new();
+    {
+        let mut conflicted: std::collections::HashSet<String> =
+            std::collections::HashSet::new();
+        for lt in &facts.local_types {
+            if lt.type_name.is_empty()
+                || lt.type_name.starts_with('<')
+                || conflicted.contains(&lt.var_name)
+            {
+                continue;
+            }
+            match var_types.get(&lt.var_name) {
+                Some(prev) if prev != &lt.type_name => {
+                    conflicted.insert(lt.var_name.clone());
+                    var_types.remove(&lt.var_name);
+                }
+                Some(_) => {}
+                None => {
+                    var_types.insert(lt.var_name.clone(), lt.type_name.clone());
+                }
+            }
+        }
+    }
+    let locals = crate::scope::FileLocals::build(facts);
+    for r in &mut facts.references {
+        // The alias rewrite. A value reference or a paren-less site is
+        // not a call; a typed local already routes through the call
+        // operator (step 7); and the alias must be the binding in scope
+        // at the site, not an outer or later one of the same name.
+        if r.receiver_hint.is_empty()
+            && !r.dot_call
+            && !r.value_ref
+            && !r.paren_less
+            && !r.typed_receiver
+            && var_types.get(&r.name).is_none()
+            && let Some(binding) = locals.binding_decl_at(&r.name, r.site_byte)
+            && let Some(alias) = facts.member_aliases.iter().find(|a| {
+                a.name == r.name && a.decl_byte == binding.decl
+            })
+        {
+            r.receiver_hint = alias.head.clone();
+            r.name = alias.member.clone();
+            r.dot_call = true;
+        }
+        // The chain typing. `self.a` receivers are the propagator's
+        // own `self_field_map` reading; a `self.`-headed chain types
+        // nothing here (its base names no local) and stays as written.
+        if r.receiver_hint.contains('.') && !r.receiver_hint.starts_with("self.") {
+            let mut segs = r.receiver_hint.split('.');
+            let base = segs.next().unwrap_or("");
+            let Some(mut ty) = var_types.get(base).cloned() else {
+                continue;
+            };
+            let mut resolved = true;
+            for seg in segs {
+                match fields.get(&ty).and_then(|f| f.get(seg)) {
+                    Some(next) => ty = next.clone(),
+                    None => {
+                        resolved = false;
+                        break;
+                    }
+                }
+            }
+            if resolved
+                && ty.chars().next().is_some_and(|c| c.is_uppercase())
+                && ty != r.receiver_hint
+            {
+                r.receiver_hint = ty;
+                r.typed_receiver = true;
+                r.weak_receiver_type = true;
+            }
+        }
+    }
+}
+
 /// C++ type alias → the class it names, run-wide, first definition wins.
 ///
 /// `using Rect = TRect<float>;` maps `Rect` to `TRect`: template arguments,
