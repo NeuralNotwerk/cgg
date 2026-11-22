@@ -601,6 +601,12 @@ pub struct FileFacts {
     /// attribute strings). Suppression-only; never becomes an edge.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub name_mentions: Vec<NameMention>,
+    /// Uses of things outside the tree the call graph does not carry
+    /// (`--externals` only): foreign declarations, process spawns,
+    /// library loads, syscalls, import forms `imports` omits. Never read
+    /// by a resolver, so recording one cannot change an in-tree edge.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub external_uses: Vec<crate::externals::ExternalUse>,
     /// Statements that control flow cannot reach.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub unreachable: Vec<UnreachableRegion>,
@@ -999,6 +1005,7 @@ impl FileFacts {
             exports: Vec::new(),
             dyn_uses: Vec::new(),
             name_mentions: Vec::new(),
+            external_uses: Vec::new(),
             unreachable: Vec::new(),
             class_fields: Vec::new(),
             classes: Vec::new(),

@@ -61,7 +61,7 @@ declare -a ENTRIES=(
     "ripgrep|rust-ripgrep|rust|crates"
     "flask|python-flask|python|src"
     "express|js-express|javascript|lib"
-    "zod|ts-zod|typescript|src"
+    "zod|ts-zod|typescript|packages/zod/src"
     "fzf|go-fzf|go|src"
     "gson|java-gson|java|gson/src/main"
     "okio|kotlin-okio|kotlin|okio/src"
@@ -103,7 +103,7 @@ declare -a ENTRIES=(
     "smithy/protocol-tests|smithy-protocol-tests|smithy|smithy-aws-protocol-tests/model"
     "grpc-proto|proto-grpc|proto|"
     "graphql-schema|graphql-github|graphql|"
-    "OpenAPI-Specification|openapi-spec|openapi|examples"
+    "OpenAPI-Specification|openapi-spec|openapi|_archive_/schemas"
     "asyncapi/spec|asyncapi-spec|asyncapi|examples"
 )
 

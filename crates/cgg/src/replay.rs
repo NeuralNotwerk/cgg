@@ -78,6 +78,14 @@ fn unsupported(opts: &RunOptions) -> Vec<(&'static str, &'static str)> {
              not part of the graph document; re-run the analysis with them on",
         ));
     }
+    if opts.externals.is_some() {
+        out.push((
+            "--externals",
+            "attributes calls from per-file import tables and call-site \
+             buckets that are not part of the graph document; re-run the \
+             analysis with it on",
+        ));
+    }
     if opts.dynamic_dispatch || opts.reference_edges || opts.guess_unique_names {
         out.push((
             "--dynamic-dispatch / --reference-edges / --guess-unique-names",
@@ -184,6 +192,7 @@ pub fn replay(opts: &RunOptions) -> Result<RunOutcome> {
         metrics,
         framework_coverage: Default::default(),
         dead_code: None,
+        externals: None,
         dead_code_marked: 0,
         dead_code_threshold: opts.dead_code_confidence,
         cross_file_edges: 0,

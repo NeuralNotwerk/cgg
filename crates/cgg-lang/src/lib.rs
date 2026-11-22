@@ -15,6 +15,7 @@
 
 pub mod closure_types;
 pub mod detect;
+pub mod externals;
 pub mod locals;
 pub mod notebook;
 pub mod parser;
@@ -56,6 +57,12 @@ pub struct ExtractCtx<'a> {
     /// reference edge, so recording these there would only add audit
     /// noise and extraction time.
     pub reference_sites: bool,
+
+    /// Record `--externals` side-channel facts (`FileFacts::external_uses`):
+    /// foreign declarations, process spawns, library loads, syscalls and
+    /// import forms `imports` does not carry. Off in an ordinary run, which
+    /// pays nothing for them.
+    pub externals: bool,
 
     /// Registrar verbs contributed by user-authored framework rules,
     /// pre-lowercased.
@@ -236,6 +243,7 @@ impl<'a> ExtractCtx<'a> {
         Self {
             deadcode_signals,
             reference_sites: false,
+            externals: false,
             extra_verbs,
             language: "",
             test_file: false,
@@ -248,6 +256,16 @@ impl<'a> ExtractCtx<'a> {
     pub fn with_reference_sites(self, on: bool) -> Self {
         Self {
             reference_sites: on,
+            ..self
+        }
+    }
+
+    /// The same context, recording `--externals` side-channel facts (see
+    /// [`ExtractCtx::externals`]).
+    #[must_use]
+    pub fn with_externals(self, on: bool) -> Self {
+        Self {
+            externals: on,
             ..self
         }
     }
@@ -314,6 +332,7 @@ impl<'a> ExtractCtx<'a> {
         ExtractCtx {
             deadcode_signals: false,
             reference_sites: false,
+            externals: false,
             extra_verbs: no_extra_verbs(),
             language: "",
             test_file: false,

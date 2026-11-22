@@ -21,6 +21,7 @@ pub mod audit;
 pub mod cpu;
 pub mod deadcode;
 pub mod external;
+pub mod externals;
 pub mod facts;
 pub mod frameworks;
 pub mod graph;
@@ -47,6 +48,10 @@ pub use deadcode::{
 };
 pub use external::{
     ClassifyResult, FileAliases, build_alias_map, build_known_names, classify_external,
+};
+pub use externals::{
+    EXTERNALS_DISCLAIMER, EXTERNALS_SCHEMA, ExternalEvidence, ExternalKind, ExternalUse,
+    ExternalUseKind, ExternalsReport, ExternalsSpec,
 };
 pub use facts::{
     ARG_VAR_PREFIX, AssocCallLocal, AttributedContainer, CLOJURE_LETFN_ATTR,

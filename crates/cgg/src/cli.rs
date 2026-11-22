@@ -284,6 +284,48 @@ pub struct Cli {
     #[arg(long = "include-stdlib", action = ArgAction::SetTrue)]
     pub include_stdlib: bool,
 
+    /// Inventory every library the tree reaches outside itself, and turn
+    /// the graph into the branches that end in calls to them.
+    ///
+    /// KINDS is `all`, or a comma list of `third-party`, `stdlib`,
+    /// `system` (syscalls, libc/POSIX/Win32), `native` (FFI and dynamically
+    /// loaded libraries), `process` (programs the code runs) and
+    /// `unattributed` (calls that leave the tree with no evidence naming a
+    /// library). Bare `--externals` is `third-party,system,native,process`;
+    /// the other kinds are counted as withheld, never hidden.
+    ///
+    /// The graph keeps every callable with a path to an external call,
+    /// ending in one leaf per library symbol, so `--filter`, `-n 0` and
+    /// `--rollup-by module` slice it like any graph. The inventory —
+    /// libraries, import sites, symbols, boundary callers, example
+    /// branches — goes to a sidecar (see `--externals-report`).
+    ///
+    /// BEST EFFORT: a call is attributed only from evidence in the tree
+    /// (the import it goes through, a declared receiver type, an FFI
+    /// declaration, a literal program or library name). Dependency
+    /// manifests are not read.
+    #[arg(
+        long = "externals",
+        value_name = "KINDS",
+        num_args = 0..=1,
+        require_equals = true,
+        default_missing_value = "default",
+        value_parser = parse_externals
+    )]
+    pub externals: Option<cgg_core::ExternalsSpec>,
+
+    /// Shape of the externals report. `text` = ranked and agent-readable
+    /// (default); `json` = the `cgg.externals.v1` document.
+    #[arg(long = "externals-format", value_enum, default_value_t = DeadCodeFormatArg::Text)]
+    pub externals_format: DeadCodeFormatArg,
+
+    /// Write the externals report to FILE. Defaults to a sidecar beside
+    /// `-o` (`<output>.externals.txt` or `.json`). With no `-o`, the text
+    /// report goes to stderr and the JSON report needs this flag or
+    /// `--no-graph`.
+    #[arg(long = "externals-report", value_name = "FILE")]
+    pub externals_report: Option<PathBuf>,
+
     /// Emit interface/trait dynamic-dispatch fan-out edges (declaration
     /// → each implementation), tagged `dynamic`/low-confidence. Also
     /// fans Python class overrides out from inherited methods of the
@@ -490,6 +532,10 @@ impl From<NodeIdsArg> for cgg_format::NodeIds {
             NodeIdsArg::Hash => cgg_format::NodeIds::Hash,
         }
     }
+}
+
+fn parse_externals(s: &str) -> Result<cgg_core::ExternalsSpec, String> {
+    cgg_core::ExternalsSpec::parse(s)
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]

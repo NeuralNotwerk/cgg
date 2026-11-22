@@ -60,7 +60,7 @@ REPOS=(
     "rust-ripgrep|https://github.com/BurntSushi/ripgrep.git|rust|crates|Rust|fPM"
     "python-flask|https://github.com/pallets/flask.git|python|src|Python|fm"
     "js-express|https://github.com/expressjs/express.git|javascript|lib|JavaScript|fmG"
-    "ts-zod|https://github.com/colinhacks/zod.git|typescript|src|TypeScript|fmG"
+    "ts-zod|https://github.com/colinhacks/zod.git|typescript|packages/zod/src|TypeScript|fmG"
     "go-fzf|https://github.com/junegunn/fzf.git|go|src|Go|f"
     "java-gson|https://github.com/google/gson.git|java|gson/src/main|Java|m"
     "kotlin-okio|https://github.com/square/okio.git|kotlin|okio/src|Kotlin|m"
@@ -102,7 +102,7 @@ REPOS=(
     "smithy-protocol-tests|https://github.com/smithy-lang/smithy.git|smithy|smithy-aws-protocol-tests/model||"
     "proto-grpc|https://github.com/grpc/grpc-proto.git|proto|||"
     "graphql-github|https://github.com/octokit/graphql-schema.git|graphql|||"
-    "openapi-spec|https://github.com/OAI/OpenAPI-Specification.git|openapi|examples||"
+    "openapi-spec|https://github.com/OAI/OpenAPI-Specification.git|openapi|_archive_/schemas||"
     "asyncapi-spec|https://github.com/asyncapi/spec.git|asyncapi|examples||"
 )
 

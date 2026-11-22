@@ -16,6 +16,7 @@ pub mod cross_file;
 pub mod deadcode;
 pub mod descriptor;
 pub mod dispatch;
+pub mod externals;
 pub mod ffi;
 pub mod frameworks;
 pub mod go_iface;

@@ -170,6 +170,10 @@ pub struct RunOptions {
     /// Show findings that live in test scope.
     pub include_tests: bool,
 
+    /// `--externals`: inventory the libraries the tree reaches and turn
+    /// the graph into the branches that end in them. `None` = off.
+    pub externals: Option<cgg_core::ExternalsSpec>,
+
     /// Collect per-phase timings. `cgg_core::profile`'s registry is
     /// process-global and accumulates, so a long-lived process would
     /// report the sum of every run so far.
@@ -217,6 +221,7 @@ impl Default for RunOptions {
             write_roots: false,
             why_live: Vec::new(),
             include_tests: false,
+            externals: None,
             profile: false,
         }
     }
@@ -293,6 +298,7 @@ impl From<&crate::cli::Cli> for RunOptions {
             write_roots,
             why_live,
             profile,
+            externals,
 
             // Read below as `node_ids` — presentation, except that the
             // `--rollup` budget is measured against the rendering.
@@ -308,6 +314,8 @@ impl From<&crate::cli::Cli> for RunOptions {
             audit_format: _,
             dead_code_format: _,
             dead_code_report: _,
+            externals_format: _,
+            externals_report: _,
             fail_on_dead: _,
             quiet: _,
             verbose: _,
@@ -354,6 +362,7 @@ impl From<&crate::cli::Cli> for RunOptions {
             write_roots: *write_roots,
             why_live: why_live.clone(),
             include_tests: *include_tests,
+            externals: externals.clone(),
             profile: *profile,
         }
     }

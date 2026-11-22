@@ -259,6 +259,50 @@ fn dead_code_report(
     Ok(())
 }
 
+/// Write the `--externals` report: the same placement rules as the
+/// dead-code report — an explicit `--externals-report`, else a sidecar
+/// beside `-o`, else text on stderr, JSON on stdout only under
+/// `--no-graph`.
+fn externals_report(cli: &Cli, report: &cgg_core::ExternalsReport) -> Result<()> {
+    use crate::externals_report::{render_json, render_text};
+    let ext = match cli.externals_format {
+        DeadCodeFormatArg::Text => ".externals.txt",
+        DeadCodeFormatArg::Json => ".externals.json",
+    };
+    match sidecar(cli, cli.externals_report.as_deref(), ext) {
+        Some(path) => {
+            let mut sink = open_sink(&path)?;
+            match cli.externals_format {
+                DeadCodeFormatArg::Text => render_text(report, &mut sink)?,
+                DeadCodeFormatArg::Json => render_json(report, &mut sink)?,
+            }
+            sink.flush()?;
+        }
+        None => match cli.externals_format {
+            DeadCodeFormatArg::Text if !cli.quiet => {
+                let mut err = io::stderr();
+                render_text(report, &mut err)?;
+                err.flush()?;
+            }
+            DeadCodeFormatArg::Json if cli.no_graph => {
+                let mut sink = io::stdout();
+                render_json(report, &mut sink)?;
+                sink.flush()?;
+            }
+            DeadCodeFormatArg::Json => {
+                anyhow::bail!(
+                    "--externals-format json has nowhere to go: stdout is \
+                     carrying the graph. Pass `-o FILE` (report lands at \
+                     FILE.externals.json), `--externals-report FILE`, or \
+                     `--no-graph` to send the report to stdout."
+                );
+            }
+            _ => {}
+        },
+    }
+    Ok(())
+}
+
 /// Write everything a `cgg` invocation writes, in the order it writes it.
 ///
 /// [`RunOutcome::transcript`] already *is* that order, so this makes no
@@ -294,6 +338,11 @@ pub fn all(cli: &Cli, outcome: &RunOutcome) -> Result<()> {
                     // The threshold the analysis applied, not one re-derived
                     // from `Cli` — see `RunOutcome::dead_code_threshold`.
                     dead_code_report(cli, report, outcome.dead_code_threshold)?;
+                }
+            }
+            Emission::ExternalsReport => {
+                if let Some(report) = &outcome.externals {
+                    externals_report(cli, report)?;
                 }
             }
             Emission::Audit => audit(cli, &outcome.events)?,

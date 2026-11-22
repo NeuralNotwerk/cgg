@@ -635,6 +635,14 @@ impl FileHeads {
         h
     }
 
+    /// `--externals`: what an import binds `name` to, as
+    /// `(module, external, module_binding)`.
+    pub(crate) fn binding(&self, name: &str) -> Option<(&str, bool, bool)> {
+        self.bound
+            .get(name)
+            .map(|b| (b.module.as_str(), b.external, b.module_binding))
+    }
+
     /// Solidity: the libraries whose functions a value of type `ty` can
     /// call as members here — `using L for ty;` and `using L for *;`.
     pub(crate) fn libraries_for(&self, ty: &str) -> Vec<&str> {

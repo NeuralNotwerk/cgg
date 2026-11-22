@@ -190,7 +190,7 @@ const QUALIFIER_SEPARATORS: [&str; 4] = ["::", ".", "/", "\\"];
 /// `qualifier` is true for a call's own receiver or qualifier (rule (a)).
 /// For an import's resolved module path it is false: only the exact path
 /// and its first `.` segment count, never a `::`/`/`/`\` head.
-fn module_is_stdlib(
+pub fn module_is_stdlib(
     path: &str,
     std: &HashSet<&str>,
     modules: &[&str],
@@ -237,7 +237,7 @@ fn module_is_stdlib(
 /// leading `\` (PHP's global namespace) is dropped first. The third
 /// value is the separator split at; a `.` in R and Julia is part of an
 /// ordinary name (`grid.draw`) rather than a module qualifier.
-fn split_qualified_name(name: &str) -> (&str, &str, Option<char>) {
+pub fn split_qualified_name(name: &str) -> (&str, &str, Option<char>) {
     let n = name.trim_start_matches('\\');
     let ident = |c: char| c.is_alphanumeric() || c == '_';
     let slash = n.rfind(['/', '\\']).filter(|&i| {

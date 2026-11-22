@@ -35,6 +35,7 @@ mod outcome;
 mod query;
 mod replay;
 mod since;
+pub mod externals_report;
 mod stable_ids;
 
 use stable_ids::StableIds;
@@ -210,6 +211,13 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     if opts.paths.is_empty() {
         return Err(anyhow::anyhow!("no input paths given"));
     }
+    if opts.externals.is_some() && (opts.include_external || opts.include_stdlib) {
+        return Err(anyhow::anyhow!(
+            "--externals replaces --include-external / --include-stdlib: it mints \
+             the same leaves, attributed to their library; pass only --externals \
+             (use --externals=all to include stdlib calls)"
+        ));
+    }
 
     // Diagnostics, in the order the run produces them. `emit::all` writes
     // these verbatim; nothing here touches a file descriptor.
@@ -285,7 +293,8 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // edges, which an ordinary run drops — so only a run that keeps them
     // (`--reference-edges`, or `--dead-code`, which forces it) records them.
     let extract_ctx = cgg_lang::ExtractCtx::new(dead_mode, &extra_verbs)
-        .with_reference_sites(opts.reference_edges);
+        .with_reference_sites(opts.reference_edges)
+        .with_externals(opts.externals.is_some());
 
     if opts.profile {
         cgg_core::profile::enable();
@@ -484,6 +493,14 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                             &out.tree,
                             &bytes,
                         );
+                        // `--externals`: process spawns and library loads,
+                        // in a side channel no resolver reads.
+                        if ctx.externals {
+                            let _s = cgg_core::profile::span("parse::externals");
+                            let mut uses =
+                                cgg_lang::externals::extract(&f.language, &out.tree, &bytes);
+                            f.external_uses.append(&mut uses);
+                        }
                         // Parameters and locals, from the same tree: a
                         // bare call through one is never another file's
                         // function (see `cgg_lang::locals`).
@@ -1300,6 +1317,15 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         metrics.confidence_histogram.medium += moved;
     }
 
+    // `--externals`: attribute every call that left the tree, from the
+    // post-reconciliation buckets — the same population the exit nodes
+    // read. Reads the buckets, the facts and the graph; writes none of
+    // them.
+    let mut externals_inventory = opts.externals.as_ref().map(|spec| {
+        let _s = cgg_core::profile::span("post::externals::attribute");
+        cgg_resolve::externals::inventory(&graph, &all_facts, &file_records, spec)
+    });
+
     // Synthesize external/stdlib exit nodes from the *post-reconciliation*
     // buckets, so calls that a later resolver bound are not surfaced.
     if opts.include_external || opts.include_stdlib {
@@ -1597,6 +1623,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
             metrics,
             framework_coverage,
             dead_code: None,
+            externals: None,
             dead_code_marked: 0,
             dead_code_threshold: opts.dead_code_confidence,
             cross_file_edges: cross_file,
@@ -1631,6 +1658,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                 metrics,
                 framework_coverage,
                 dead_code: None,
+                externals: None,
                 dead_code_marked: 0,
                 dead_code_threshold: opts.dead_code_confidence,
                 cross_file_edges: cross_file,
@@ -1666,6 +1694,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                 metrics,
                 framework_coverage,
                 dead_code: Some(dc.report),
+                externals: None,
                 dead_code_marked,
                 dead_code_threshold: opts.dead_code_confidence,
                 cross_file_edges: cross_file,
@@ -1675,6 +1704,19 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         // The marker was pushed inside `dead_code_analysis`, between the
         // note and the summary; doing it here would land after both.
         dead_code = Some(dc.report);
+    }
+
+    // `--externals`: example branches from the full graph, then the graph
+    // becomes the branches — every callable with a path to an external
+    // call, ending in one leaf per library symbol. After dead code, which
+    // must see the whole graph; before the query, which slices the result.
+    let mut externals_report: Option<cgg_core::ExternalsReport> = None;
+    if let Some(inv) = externals_inventory.take() {
+        let _s = cgg_core::profile::span("post::externals::branches");
+        let mut report = inv.report;
+        cgg_resolve::externals::fill_branches(&mut report, &graph);
+        graph = externals_graph(graph, &inv.leaves, &mut stable_ids);
+        externals_report = Some(report);
     }
 
     let (graph, query_stats) = {
@@ -1713,6 +1755,9 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // Here, before the run summary: without `-o` the graph goes to stdout
     // and the summary to stderr, so the position is visible to anyone piping
     // both. See `Emission`.
+    if externals_report.is_some() {
+        transcript.push(Emission::ExternalsReport);
+    }
     transcript.push(Emission::Graph);
     transcript.push(Emission::Audit);
 
@@ -1830,6 +1875,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         metrics,
         framework_coverage,
         dead_code,
+        externals: externals_report,
         dead_code_marked,
         dead_code_threshold: opts.dead_code_confidence,
         cross_file_edges: cross_file,
@@ -2491,6 +2537,127 @@ fn synthesize_exit_nodes(
     for e in edges {
         graph.add_edge(e);
     }
+}
+
+/// `--externals`: mint one leaf per `(kind, library, symbol)`, hang every
+/// shown site on it, and keep only the branches — every node with a path
+/// to a leaf.
+///
+/// Sites outside any callable (a script's top level) hang off one
+/// synthetic `<toplevel>::<path>` node per file, kept in that file so
+/// rollup by file or directory still places it. Leaves live in one
+/// sentinel file per kind; their qualified name is
+/// `<kind>::<library>::<symbol>`, which is what rollup groups by.
+fn externals_graph(
+    mut graph: Graph,
+    leaves: &[cgg_resolve::externals::LeafSite],
+    stable_ids: &mut StableIds,
+) -> Graph {
+    use cgg_core::ExternalKind;
+    let resolver = ResolverId::new("externals");
+    let mut sentinels: HashMap<ExternalKind, FileId> = HashMap::new();
+    let mut leaf_ids: HashMap<(ExternalKind, String, String), CallableId> = HashMap::new();
+    let mut toplevel: HashMap<FileId, CallableId> = HashMap::new();
+    let mut edges: Vec<CallEdge> = Vec::new();
+    for leaf in leaves {
+        let (lang, path) = graph
+            .files
+            .get(&leaf.file)
+            .map(|f| (f.language.clone(), f.path.display().to_string()))
+            .unwrap_or_default();
+        let src = match leaf.caller {
+            Some(id) if graph.callables.contains_key(&id) => id,
+            _ => *toplevel.entry(leaf.file).or_insert_with(|| {
+                let qn = format!("<toplevel>::{path}");
+                let id = stable_ids.callable(&lang, &path, None, &qn, "");
+                graph.add_callable(CallableNode {
+                    id,
+                    qualified_name: qn,
+                    simple_name: "<toplevel>".to_string(),
+                    kind: CallableKind::Function,
+                    language: lang.clone(),
+                    file: leaf.file,
+                    attributes: vec!["toplevel".to_string()],
+                    synthetic: true,
+                    ..Default::default()
+                });
+                id
+            }),
+        };
+        let key = (leaf.kind, leaf.library.clone(), leaf.symbol.clone());
+        let dst = if let Some(&id) = leaf_ids.get(&key) {
+            id
+        } else {
+            let sentinel = leaf.kind.sentinel();
+            let fid = *sentinels.entry(leaf.kind).or_insert_with(|| {
+                let fid = stable_ids.file(sentinel);
+                graph.add_file(sentinel_file(fid, sentinel, leaf.kind.slug()))
+            });
+            let qn = if leaf.symbol.is_empty() {
+                format!("{sentinel}::{}", leaf.library)
+            } else {
+                format!("{sentinel}::{}::{}", leaf.library, leaf.symbol)
+            };
+            let id = stable_ids.callable(&lang, sentinel, None, &qn, "");
+            graph.add_callable(CallableNode {
+                id,
+                qualified_name: qn,
+                simple_name: if leaf.symbol.is_empty() {
+                    leaf.library.clone()
+                } else {
+                    leaf.symbol.clone()
+                },
+                kind: CallableKind::Function,
+                language: lang.clone(),
+                file: fid,
+                attributes: vec![
+                    "external".to_string(),
+                    format!("ext-kind:{}", leaf.kind.slug()),
+                    format!("library:{}", leaf.library),
+                ],
+                synthetic: true,
+                ..Default::default()
+            });
+            leaf_ids.insert(key, id);
+            id
+        };
+        edges.push(CallEdge {
+            src,
+            dst,
+            site_line: leaf.line,
+            site_byte: leaf.byte,
+            confidence: leaf.confidence,
+            via: if leaf.kind == ExternalKind::Stdlib {
+                Via::Stdlib
+            } else {
+                Via::External
+            },
+            resolver: resolver.clone(),
+            weight: 1,
+        });
+    }
+    for e in edges {
+        graph.add_edge(e);
+    }
+    // The branches: reverse reachability from the leaves.
+    let mut callers_of: HashMap<CallableId, Vec<CallableId>> = HashMap::new();
+    for e in &graph.edges {
+        callers_of.entry(e.dst).or_default().push(e.src);
+    }
+    let mut keep: HashSet<CallableId> = leaf_ids.values().copied().collect();
+    let mut stack: Vec<CallableId> = keep.iter().copied().collect();
+    while let Some(n) = stack.pop() {
+        if let Some(cs) = callers_of.get(&n) {
+            for c in cs {
+                if keep.insert(*c) {
+                    stack.push(*c);
+                }
+            }
+        }
+    }
+    let mut out = query::prune(&graph, &keep);
+    out.unresolved = graph.unresolved;
+    out
 }
 
 /// Synthesize `<framework-entry>` nodes — the mirror of

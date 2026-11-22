@@ -332,7 +332,7 @@ fn dfs_paths(
     visited.remove(&node);
 }
 
-fn prune(graph: &Graph, keep: &HashSet<CallableId>) -> Graph {
+pub(crate) fn prune(graph: &Graph, keep: &HashSet<CallableId>) -> Graph {
     let mut out = Graph::new();
     // Copy files that have at least one kept callable.
     let kept_files: HashSet<_> = graph

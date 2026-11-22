@@ -50,6 +50,9 @@ pub enum Emission {
     /// [`RunOutcome::dead_code`] for library callers, and *where* it lands
     /// — a sidecar beside `-o`, or stderr — is an I/O decision.
     DeadCodeReport,
+    /// The `--externals` inventory; the data is on
+    /// [`RunOutcome::externals`].
+    ExternalsReport,
     /// The audit sidecar.
     ///
     /// Explicit rather than a side effect of writing the primary artifact.
@@ -113,6 +116,9 @@ pub struct RunOutcome {
 
     /// The dead-code findings, when dead-code mode ran.
     pub dead_code: Option<DeadCodeReport>,
+
+    /// The `--externals` inventory, when the run asked for one.
+    pub externals: Option<cgg_core::ExternalsReport>,
 
     /// Findings at or above the threshold, and so marked on the graph.
     /// Drives `--fail-on-dead`; `dead_code.findings.len()` counts all
