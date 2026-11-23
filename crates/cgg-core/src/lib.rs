@@ -59,11 +59,11 @@ pub use facts::{
     ClassDecl, ClassFieldDecl, ClosureArg, DEREF_SUFFIX, DYN_MEMBERS_OF,
     DYN_MODULE_LOADERS, DefRecord, DefVariant, DynUse, ExportRecord, FieldType,
     FileFacts, FnMacro, FunctionReturn, ImportRecord, LocalBinding, LocalType,
-    MODULE_SCOPE_ATTR, MacroAlias, MacroInvocation, MarkupBinding, MemberAlias,
-    MemberPtrTake, NameMention, OBJC_SELECTOR_RECEIVER, PARTIAL_DECLARATION,
-    REASSIGNED_LOCAL, RefRecord, STRING_REF_HINT, ScopedType, TestRole, TypeSpan,
-    UnreachableRegion, VALUE_REF_HINT, Vis, first_template_arg, last_scope_segment,
-    looks_like_type_name, template_pointee,
+    MODULE_SCOPE_ATTR, MODULE_SCOPE_DEF_INDEX, MacroAlias, MacroInvocation,
+    MarkupBinding, MemberAlias, MemberPtrTake, NameMention, OBJC_SELECTOR_RECEIVER,
+    PARTIAL_DECLARATION, REASSIGNED_LOCAL, RefRecord, STRING_REF_HINT, ScopedType,
+    TestRole, TypeSpan, UnreachableRegion, VALUE_REF_HINT, Vis, first_template_arg,
+    last_scope_segment, looks_like_type_name, template_pointee,
 };
 pub use frameworks::{
     EntryShape, FRAMEWORK_ENTRY_DISCLAIMER, FRAMEWORK_ENTRY_SENTINEL, FrameworkCoverage,

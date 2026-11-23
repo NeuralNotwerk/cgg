@@ -233,15 +233,11 @@ pub fn link_file_with_cap(
     // (`--module-scope-calls`): the caller of last resort for references
     // outside every real definition. Absent otherwise — every drop
     // below then behaves exactly as it did before the flag existed.
-    let module_src = facts
-        .definitions
-        .iter()
-        .position(|d| {
-            d.attributes
-                .iter()
-                .any(|a| a == cgg_core::MODULE_SCOPE_ATTR)
-        })
-        .and_then(|i| def_ids.get(&(facts.file, i as u32)).copied());
+    let module_src = facts.module_scope.as_ref().and_then(|_| {
+        def_ids
+            .get(&(facts.file, cgg_core::MODULE_SCOPE_DEF_INDEX))
+            .copied()
+    });
     // Call sites by callee name, sorted by byte: what a local's
     // initializer calls (WS33).
     let mut calls_named: std::collections::HashMap<&str, Vec<u32>> =
@@ -1416,12 +1412,19 @@ mod tests {
     }
 
     fn mk_map(facts: &FileFacts) -> DefIdMap {
-        facts
+        let mut m: DefIdMap = facts
             .definitions
             .iter()
             .enumerate()
             .map(|(i, _)| ((facts.file, i as u32), CallableId::new(i as u32)))
-            .collect()
+            .collect();
+        if facts.module_scope.is_some() {
+            m.insert(
+                (facts.file, cgg_core::MODULE_SCOPE_DEF_INDEX),
+                CallableId::new(facts.definitions.len() as u32),
+            );
+        }
+        m
     }
 
     fn local(name: &str, start: u32, end: u32) -> cgg_core::LocalBinding {
@@ -2339,8 +2342,10 @@ mod tests {
         let map = mk_map(&facts);
         let out = link_file(&facts, &map);
         assert_eq!(out.edges.len(), 1);
-        let module_idx = (facts.definitions.len() - 1) as u32;
-        assert_eq!(out.edges[0].src, map[&(facts.file, module_idx)]);
+        assert_eq!(
+            out.edges[0].src,
+            map[&(facts.file, cgg_core::MODULE_SCOPE_DEF_INDEX)]
+        );
         assert_eq!(out.edges[0].dst, map[&(facts.file, 0)]);
         assert_eq!(out.unresolved.len(), 0);
     }
@@ -2363,8 +2368,10 @@ mod tests {
         let out = link_file(&facts, &map);
         assert_eq!(out.edges.len(), 1);
         assert_eq!(out.edges[0].via, Via::Reference);
-        let module_idx = (facts.definitions.len() - 1) as u32;
-        assert_eq!(out.edges[0].src, map[&(facts.file, module_idx)]);
+        assert_eq!(
+            out.edges[0].src,
+            map[&(facts.file, cgg_core::MODULE_SCOPE_DEF_INDEX)]
+        );
     }
 
     #[test]
@@ -2376,6 +2383,7 @@ mod tests {
         let mut facts = facts_with(defs, refs);
         facts.inject_module_scope_def();
         assert_eq!(facts.definitions.len(), 1);
+        assert!(facts.module_scope.is_none());
     }
 
     #[test]
@@ -2389,9 +2397,12 @@ mod tests {
         let refs = vec![mk_ref("foo", 10)];
         let mut facts = facts_with(defs, refs);
         facts.inject_module_scope_def();
-        let after_first = facts.definitions.len();
+        let first = facts.module_scope.clone();
+        assert!(first.is_some());
         facts.inject_module_scope_def();
-        assert_eq!(facts.definitions.len(), after_first);
+        assert_eq!(facts.module_scope, first);
+        // Never one of the definitions.
+        assert_eq!(facts.definitions.len(), 1);
     }
 
     #[test]

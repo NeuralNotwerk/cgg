@@ -8553,11 +8553,7 @@ pub(crate) fn enclosing_callable_id(
     // when the file has one. Its span is empty, so it is never `best`.
     let d = match best {
         Some((d, _)) => d,
-        None => facts.definitions.iter().find(|d| {
-            d.attributes
-                .iter()
-                .any(|a| a == cgg_core::MODULE_SCOPE_ATTR)
-        })?,
+        None => facts.module_scope.as_ref()?,
     };
     by_span
         .get(&(facts.file, d.start_byte, d.end_byte))
@@ -9180,17 +9176,20 @@ mod tests {
             (0, 200),
         );
         module_def.attributes = vec![cgg_core::MODULE_SCOPE_ATTR.into()];
-        let lib_facts = facts_for(
+        let mut lib_facts = facts_for(
             1,
             "lib.py",
             "python",
-            vec![
-                mk_def("helper", "lib.helper", DefVariant::FreeFunction, (100, 140)),
-                module_def,
-            ],
+            vec![mk_def(
+                "helper",
+                "lib.helper",
+                DefVariant::FreeFunction,
+                (100, 140),
+            )],
             vec![],
             vec![],
         );
+        lib_facts.module_scope = Some(module_def);
 
         let out = resolve_default(&g, &[caller_facts, lib_facts]);
         assert_eq!(

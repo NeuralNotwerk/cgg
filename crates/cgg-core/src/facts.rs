@@ -54,6 +54,11 @@ pub const CLOJURE_LETFN_ATTR: &str = "letfn";
 /// dead-code candidates and framework matching.
 pub const MODULE_SCOPE_ATTR: &str = "module-scope";
 
+/// The `(file, index)` key under which a file's module scope
+/// ([`FileFacts::module_scope`]) is minted in the run's definition-id map.
+/// Past every index of [`FileFacts::definitions`], which never holds it.
+pub const MODULE_SCOPE_DEF_INDEX: u32 = u32::MAX;
+
 /// `RefRecord::receiver_hint` of an Objective-C selector value
 /// (`@selector(tap:)`, `NSSelectorFromString(@"tap:")`): the method of
 /// that selector on whichever class receives the message — resolved
@@ -763,6 +768,13 @@ pub struct FileFacts {
     /// one is the call `head.member(…)`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub member_aliases: Vec<MemberAlias>,
+    /// `--module-scope-calls`: the synthetic `<module>` caller of the
+    /// file's top-level references. Kept out of
+    /// [`FileFacts::definitions`] on purpose: every reader of that list
+    /// (nesting, containment, a module path read off qualified names)
+    /// would take it for a real definition spanning the file.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub module_scope: Option<DefRecord>,
     /// Containers whose own attribute exposes their members to a
     /// framework (`#[pymethods] impl`, `#[Object] impl`): the span of the
     /// container and its attributes as written. Read only by framework
@@ -1103,11 +1115,7 @@ impl FileFacts {
     /// not depend on where the tree was checked out or how it was named
     /// on the command line.
     pub fn inject_module_scope_def_as(&mut self, path: &str) {
-        if self
-            .definitions
-            .iter()
-            .any(|d| d.attributes.iter().any(|a| a == MODULE_SCOPE_ATTR))
-        {
+        if self.module_scope.is_some() {
             return;
         }
         let claimed = |site: u32| {
@@ -1143,20 +1151,20 @@ impl FileFacts {
         // (they are keyed by qualified name), and nothing downstream may
         // mistake one file's module scope for another's.
         let qn = format!("<module>:{}", path.replace('\\', "/"));
-        self.definitions.push(DefRecord {
+        self.module_scope = Some(DefRecord {
             simple_name: "<module>".into(),
             qualified_name: qn,
             variant: DefVariant::FreeFunction,
             start_line: first.site_line,
             end_line,
-            // An empty span past every site: the module scope contains
-            // nothing. It is the caller of last resort, found by name of
-            // its attribute (`intra_file`'s `module_src`,
-            // `cross_file::enclosing_callable_id`), never by containment.
-            // A file-wide span made every top-level definition look
-            // nested to each reader that asks "what contains this?" — the
-            // import index, Dart/Zig library scopes, Kotlin property and
-            // C++ per-site typing — and dropped their edges.
+            // An empty span past every site: the minted callable contains
+            // nothing either, for the readers of the graph's spans. It is
+            // the caller of last resort (`intra_file`'s `module_src`,
+            // `cross_file::enclosing_callable_id`), never a container: a
+            // file-wide scope made every top-level definition look nested
+            // (the import index, Dart/Zig library scopes, Kotlin
+            // properties, C++ typing, the Rust module path) and dropped
+            // their edges.
             start_byte: end_byte,
             end_byte,
             attributes: vec![MODULE_SCOPE_ATTR.into()],
@@ -1198,6 +1206,7 @@ impl FileFacts {
             type_spans: Vec::new(),
             module_returns: Vec::new(),
             member_aliases: Vec::new(),
+            module_scope: None,
             attributed_containers: Vec::new(),
             markup_bindings: Vec::new(),
             scoped_types: Vec::new(),

@@ -692,7 +692,21 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                     if opts.module_scope_calls {
                         facts.inject_module_scope_def_as(&relative_path);
                     }
-                    for (idx, d) in facts.definitions.iter().enumerate() {
+                    // The module scope (`--module-scope-calls`) is minted
+                    // like a definition, under its reserved index; it is
+                    // not one of `facts.definitions`.
+                    let defs_and_scope = facts
+                        .definitions
+                        .iter()
+                        .enumerate()
+                        .map(|(i, d)| (i as u32, d))
+                        .chain(
+                            facts
+                                .module_scope
+                                .iter()
+                                .map(|d| (cgg_core::MODULE_SCOPE_DEF_INDEX, d)),
+                        );
+                    for (idx, d) in defs_and_scope {
                         let owner = cgg_resolve::names::owner_from_qn(&d.qualified_name);
                         // The signature is part of the key: without it,
                         // overloads sharing a qualified name hash
@@ -705,7 +719,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                             &d.qualified_name,
                             &d.signature_hint,
                         );
-                        def_ids.insert((file_id, idx as u32), cid);
+                        def_ids.insert((file_id, idx), cid);
 
                         graph.add_callable(CallableNode {
                             id: cid,
