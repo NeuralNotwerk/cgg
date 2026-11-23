@@ -7,7 +7,9 @@ HTML-escaped angle brackets cgg emits, and strips the `crate::` prefix
 for readability), then patches `README.md` between
 `<!-- cgg:begin:<marker> -->` and `<!-- cgg:end:<marker> -->`.
 
-Prefix a marker with `raw:` to insert cgg's output verbatim instead.
+Prefix a marker with `raw:` to insert cgg's output verbatim instead, or
+`text:` to insert a text artifact (the `--externals` report) verbatim in a
+```text fence.
 That is the right mode for a block the README presents as "here is what
 this command prints": cleaning it would make the documented command and
 the documented output disagree.
@@ -87,16 +89,18 @@ def clean(mmd_text: str) -> str:
     return "\n".join(out)
 
 
-def patch(readme: str, marker: str, new_content: str) -> str:
+def patch(readme: str, marker: str, new_content: str, fence: str = "mermaid") -> str:
     """Replace the body between the marker comments with new_content."""
     begin = f"<!-- cgg:begin:{marker} -->"
     end = f"<!-- cgg:end:{marker} -->"
     pattern = re.compile(
-        re.escape(begin) + r"\n```mermaid\n.*?\n```\n" + re.escape(end),
+        re.escape(begin) + r"\n```" + fence + r"\n.*?\n```\n" + re.escape(end),
         re.DOTALL,
     )
-    replacement = f"{begin}\n```mermaid\n{new_content}\n```\n{end}"
-    patched, n = pattern.subn(replacement, readme)
+    replacement = f"{begin}\n```{fence}\n{new_content}\n```\n{end}"
+    # A callable, so backslashes in cgg's output are never read as
+    # group references.
+    patched, n = pattern.subn(lambda _m: replacement, readme)
     if n == 0:
         print(
             f"error: markers {begin!r}/{end!r} not found in README.md",
@@ -143,6 +147,11 @@ def main() -> None:
     # Process each (marker, mmd file) pair. `raw:` disables cleaning.
     for marker, mmd_path in zip(argv[0::2], argv[1::2]):
         mmd_text = Path(mmd_path).read_text()
+        if marker.startswith("text:"):
+            # A text artifact (the `--externals` report), verbatim, in a
+            # ```text fence.
+            readme = patch(readme, marker[5:], mmd_text.rstrip("\n"), fence="text")
+            continue
         if marker.startswith("raw:"):
             marker, body = marker[4:], mmd_text.rstrip("\n")
         else:

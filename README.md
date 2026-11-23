@@ -1069,6 +1069,125 @@ with in-degree zero is not an incomplete graph but a false claim. See
   degrades to name matching), paths into external crates, and test-module
   helpers called from production code.
 
+## External dependencies (`--externals`)
+
+`--externals` answers *what does this code reach outside itself, and
+how does control get there?* It lists every library the tree imports or
+calls, attributes every call that leaves the tree to one, and turns the
+graph into the branches that end in those calls: every callable with a
+path to an external call, ending in one leaf per library symbol
+(`<external>::requests::post`). Off by default; the default graph is
+byte-identical with or without this build.
+
+| Kind | What it covers |
+| --- | --- |
+| `third-party` | A package, crate, module or namespace imported from outside the tree |
+| `stdlib` | The language's standard library, runtime and builtins |
+| `system` | The OS interface: syscall instructions, POSIX/Win32 APIs, OS-binding modules (`libc`, `golang.org/x/sys`) |
+| `native` | FFI and dynamic loading: `DllImport`, `#[link]` blocks, `foreign import`, OCaml `external`, cgo, `dlopen`, `ctypes.CDLL`, `System.loadLibrary` |
+| `process` | Programs the code runs: shell commands, `subprocess`, `exec.Command`, `Runtime.exec`, `Process.Start`, `system()`, backticks, `execute_process` |
+| `unattributed` | Calls that leave the tree with no evidence naming the library |
+
+Bare `--externals` shows `third-party,system,native,process`;
+`--externals=all` adds `stdlib` and `unattributed`. A kind not shown is
+counted as **withheld**, never dropped: every call site that leaves the
+tree is accounted for exactly once.
+
+**Attribution is evidence, not guesswork.** Each call carries what it
+rests on and a confidence: the import it is written through
+(`qualified-import`, `selective-import`, high), a resolver refusal of an
+out-of-tree import (high), an FFI declaration or a literal program /
+library name (high), a receiver type bound by an import (medium), the
+head of a call chain (medium), a sole wildcard import (low). A call
+through a value whose type cgg cannot see is `unattributed`. Dependency
+manifests are **not** read: a library appears because the code imports
+or calls it.
+
+The inventory goes to a sidecar like the dead-code report
+(`<output>.externals.txt`, or `--externals-format json` for
+`cgg.externals.v1`; stderr when there is no `-o`). The graph composes
+with every query flag:
+
+```bash
+cgg . --externals                                   # branch graph + report
+cgg . --externals --filter '^<external>::requests::' -n 0   # every path into one library
+cgg . --externals --rollup-by module                # module → library map
+cgg . --externals=all --externals-format json --no-graph    # the whole inventory, as JSON
+```
+
+The report for this repository's `cgg-walk` crate, regenerated on every
+commit:
+
+<!-- cgg:begin:externals -->
+```text
+cgg externals report — cgg.externals.v1
+
+  BEST EFFORT — a call is attributed to a library only from evidence cgg
+  can see in this tree: the import or include the call is written through,
+  a declared receiver type, a foreign-function declaration, or a literal
+  program or library name. A call through a value whose type cgg cannot
+  see is counted as `unattributed`, never guessed. Calls cgg never sees at
+  all (reflection, string-built commands, generated code, macros it does
+  not expand) are absent. Dependency manifests are not read: a library
+  appears here because the code calls or imports it.
+
+kinds      third-party, system, native, process  (withheld: stdlib 93 · unattributed 122)
+libraries  5 third-party
+sites      55 shown of 270 that leave the tree (high 44 · medium 9 · low 2)
+
+── coverage — what cgg could attribute, per language ─────────────────
+  language      files  imports    sites attributed  forms
+  rust              1       16      270        55%  declares, use
+
+── third-party ─────────────────────────────────────────────────────────
+tempfile  rust · 1 import site(s) · 47 call site(s) · 11 caller(s)
+  modules  tempfile::TempDir
+  symbols  TempDir::path ×29 · TempDir(…)::unwrap ×9 · TempDir::new ×9
+  callers  cgg_walk::tests::gitignore_is_honored (./crates/cgg-walk/src/lib.rs:507) ×7
+           cgg_walk::tests::builtin_deny_skips_node_modules_and_target (./crates/cgg-walk/src/lib.rs:454) ×6
+           cgg_walk::tests::cggignore_is_honored (./crates/cgg-walk/src/lib.rs:483) ×6
+           cgg_walk::tests::discovers_plain_files (./crates/cgg-walk/src/lib.rs:439) ×5
+           cgg_walk::tests::minified_fixture (./crates/cgg-walk/src/lib.rs:567) ×5
+           … 6 more caller(s)
+  branch   <framework-entry>::test::cargo-test → cgg_walk::tests::gitignore_is_honored → tempfile::TempDir(…)::unwrap
+  branch   <framework-entry>::test::cargo-test → cgg_walk::tests::builtin_deny_skips_node_modules_and_target → tempfile::TempDir(…)::unwrap
+ignore  rust · 2 import site(s) · 5 call site(s) · 1 caller(s)
+  modules  ignore::Error, ignore::WalkBuilder
+  symbols  WalkBuilder::add_ignore ×1 · WalkBuilder::build ×1 · WalkBuilder::hidden ×1 · WalkBuilder::new ×1 · WalkBuilder::sort_by_file_path ×1
+  callers  cgg_walk::walk_one (./crates/cgg-walk/src/lib.rs:169) ×5
+  branch   <framework-entry>::test::cargo-test → cgg_walk::tests::discovers_plain_files → cgg_walk::walk → cgg_walk::walk_one → ignore::WalkBuilder::new
+cgg_core  rust · 1 import site(s) · 3 call site(s) · 2 caller(s)
+  modules  cgg_core::audit::SkipReason
+  symbols  audit::SkipReason::ParseError ×2 · audit::SkipReason::Builtin ×1
+  callers  cgg_walk::walk_one (./crates/cgg-walk/src/lib.rs:169) ×2
+           cgg_walk::builtin_reason (./crates/cgg-walk/src/lib.rs:399) ×1
+  branch   <framework-entry>::test::cargo-test → cgg_walk::tests::discovers_plain_files → cgg_walk::walk → cgg_walk::walk_one → cgg_core::audit::SkipReason::ParseError
+  branch   <framework-entry>::test::cargo-test → cgg_walk::tests::discovers_plain_files → cgg_walk::walk → cgg_walk::walk_one → cgg_walk::builtin_reason → cgg_core::audit::SkipReason::Builtin
+anyhow  rust · 2 import site(s) · 0 call site(s) · 0 caller(s)
+  modules  anyhow::Context, anyhow::Result
+  imported ./crates/cgg-walk/src/lib.rs:38
+  imported ./crates/cgg-walk/src/lib.rs:38
+serde  rust · 2 import site(s) · 0 call site(s) · 0 caller(s)
+  modules  serde::Deserialize, serde::Serialize
+  imported ./crates/cgg-walk/src/lib.rs:40
+  imported ./crates/cgg-walk/src/lib.rs:40
+
+── next ────────────────────────────────────────────────────────────────
+  branches into one library  cgg <path> --externals --filter '^<external>::tempfile::' -n 0
+  module → library map       cgg <path> --externals --rollup-by module
+  every kind, as json        cgg <path> --externals=all --externals-format json --no-graph
+```
+<!-- cgg:end:externals -->
+
+Python (`cgg.analyze(path, externals=True)` → `graph.externals`,
+`graph.externals_text()`), Node (`externals: true` → `externalsJson()`,
+`externalsText()`) and the C ABI (`"externals"` option,
+`cgg_graph_render(g, "externals-json")`) return the same document.
+Every one of the 46 languages has a fixture in
+`crates/cgg/tests/externals.rs` (GraphQL is recorded as having no import
+mechanism), and the per-language status lives in
+[`dev_docs/matrix/17-external-dependencies.md`](dev_docs/matrix/17-external-dependencies.md).
+
 ## Framework entry points
 
 `cgg` resolves calls it can see in source. Frameworks invoke user code by

@@ -249,7 +249,17 @@ fn library_of(lang: &str, module: &str, class: Class) -> String {
                 "gopkg.in" => 2,
                 _ => 2,
             };
-            s[..n.min(s.len())].join("/")
+            let mut end = n.min(s.len());
+            // A major-version suffix is part of the module path:
+            // `github.com/gdamore/tcell/v2`.
+            if s.get(end).is_some_and(|v| {
+                v.len() > 1
+                    && v.starts_with('v')
+                    && v[1..].chars().all(|c| c.is_ascii_digit())
+            }) {
+                end += 1;
+            }
+            s[..end].join("/")
         }
         "java" | "kotlin" | "scala" | "groovy" => {
             let mut s = segs(&['.']);
@@ -269,6 +279,16 @@ fn library_of(lang: &str, module: &str, class: Class) -> String {
         "php" => {
             let s = segs(&['\\']);
             s[..2.min(s.len())].join("\\")
+        }
+        "c" | "cpp" | "objc" if class == Class::System => {
+            cgg_core::stdlib::c_system_header_family(m).to_string()
+        }
+        "c" | "cpp" | "objc" if class == Class::Stdlib => {
+            if lang == "c" {
+                "libc".to_string()
+            } else {
+                "std".to_string()
+            }
         }
         "c" | "cpp" | "objc" => {
             let h = m.trim_matches(['<', '>']);
@@ -378,12 +398,19 @@ struct Pass {
 impl Pass {
     fn classify(&self, lang: &str, kind: &str, module: &str) -> Class {
         let m = module.trim().trim_matches(['"', '\'']);
-        if m.is_empty() || !m.chars().any(char::is_alphanumeric) {
+        // Nothing nameable, or a path built at run time (`source "$CONF"`):
+        // not a library cgg can name.
+        if m.is_empty()
+            || !m.chars().any(char::is_alphanumeric)
+            || m.starts_with('$')
+            || m.contains("${")
+        {
             return Class::Internal;
         }
         if matches!(lang, "c" | "cpp" | "objc") {
-            let quoted = kind == "include";
-            if quoted && self.tree.names_file(m) {
+            // A quoted include names the project's own header, found or
+            // not (a generated `config.h` is not in the source tree).
+            if kind == "include" {
                 return Class::Internal;
             }
             return match c_header_class(m) {
@@ -1797,6 +1824,10 @@ mod tests {
             "github.com/a/b"
         );
         assert_eq!(library_of("go", "net/http", Class::Stdlib), "net/http");
+        assert_eq!(
+            library_of("go", "github.com/gdamore/tcell/v2", Class::External),
+            "github.com/gdamore/tcell/v2"
+        );
         assert_eq!(
             library_of(
                 "java",

@@ -496,10 +496,10 @@ const ROWS: &[Row] = &[
             ),
             (
                 "src/Main.hs",
-                "module Main where\nimport Util\nimport qualified Data.Aeson as A\nmain = print (A.encode helper)\n",
+                "module Main where\nimport Util\nimport qualified Data.Aeson as A\nimport qualified Data.Text as T\nmain = print (A.encode helper)\nf x = T.pack x\n",
             ),
         ],
-        expect: &[("third-party", "Data.Aeson")],
+        expect: &[("third-party", "Data.Aeson"), ("stdlib", "Data.Text")],
         forbid: &["Util"],
     },
     Row {

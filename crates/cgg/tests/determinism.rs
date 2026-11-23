@@ -374,3 +374,59 @@ fn repeated_runs_agree() {
     let b = run_with_jobs(tmp.path(), "4");
     assert_eq!(a, b, "two identical runs disagreed");
 }
+
+/// `--externals`: the report and the branch graph are identical at every
+/// thread count. The pass itself is sequential, but it reads buckets the
+/// parallel phases fill, and orders libraries, callers and sites from them.
+#[test]
+fn the_externals_report_and_graph_are_identical_at_every_thread_count() {
+    let tmp = TempDir::new().unwrap();
+    fixture(tmp.path());
+    dispatch_fixture(tmp.path());
+    let run = |jobs: &str| -> (String, String) {
+        let out = Command::cargo_bin("cgg")
+            .unwrap()
+            .arg(tmp.path())
+            .args([
+                "--externals=all",
+                "--externals-format",
+                "json",
+                "--no-graph",
+                "-q",
+                "--jobs",
+                jobs,
+            ])
+            .output()
+            .unwrap();
+        assert!(out.status.success());
+        let graph = Command::cargo_bin("cgg")
+            .unwrap()
+            .arg(tmp.path())
+            .args([
+                "--externals=all",
+                "--externals-report",
+                "/dev/null",
+                "-q",
+                "--node-ids",
+                "hash",
+                "--jobs",
+                jobs,
+            ])
+            .output()
+            .unwrap();
+        assert!(graph.status.success());
+        (
+            String::from_utf8(out.stdout).unwrap(),
+            String::from_utf8(graph.stdout).unwrap(),
+        )
+    };
+    let first = run("1");
+    assert!(first.0.contains("cgg.externals.v1"));
+    for jobs in ["4", "16", "1"] {
+        assert_eq!(
+            first,
+            run(jobs),
+            "--externals output changed at --jobs {jobs}"
+        );
+    }
+}

@@ -253,6 +253,30 @@ pub fn extract(language: &str, tree: &Tree, src: &[u8]) -> Vec<ExternalUse> {
                 });
             }
         }
+        // Haskell: the plugin records no call for `T.pack x`, so the
+        // qualified head of an application is kept here, side channel
+        // only.
+        if language == "haskell"
+            && k == "qualified"
+            && let Some(parent) = n.parent()
+            && parent.kind() == "apply"
+            && parent
+                .child_by_field_name("function")
+                .is_some_and(|f| f.id() == n.id())
+            && let (Some(m), Some(id)) =
+                (n.child_by_field_name("module"), n.child_by_field_name("id"))
+        {
+            out.push(ExternalUse {
+                kind: ExternalUseKind::QualifiedCall,
+                module: text(m).to_string(),
+                symbol: text(id).to_string(),
+                alias: String::new(),
+                form: "qualified-apply".to_string(),
+                site_line: parent.start_position().row as u32 + 1,
+                site_byte: parent.start_byte() as u32,
+            });
+            continue;
+        }
         if !is_call(k) {
             continue;
         }

@@ -194,14 +194,19 @@ pub fn render_text(report: &ExternalsReport, out: &mut dyn Write) -> io::Result<
             writeln!(out)?;
             for (i, c) in l.callers.iter().take(CALLERS).enumerate() {
                 let label = if i == 0 { "callers " } else { "        " };
-                writeln!(
-                    out,
-                    "  {label} {} ({}:{}) ×{}",
-                    c.qualified_name,
-                    c.path,
-                    c.line,
-                    n(c.sites)
-                )?;
+                if c.callable.is_some() {
+                    writeln!(
+                        out,
+                        "  {label} {} ({}:{}) ×{}",
+                        c.qualified_name,
+                        c.path,
+                        c.line,
+                        n(c.sites)
+                    )?;
+                } else {
+                    // A file's top level: its name already is the path.
+                    writeln!(out, "  {label} {} ×{}", c.qualified_name, n(c.sites))?;
+                }
             }
             if l.callers.len() > CALLERS {
                 writeln!(

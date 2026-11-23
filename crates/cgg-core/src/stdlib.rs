@@ -1911,7 +1911,106 @@ pub const SYSTEM_HEADERS: &[&str] = &[
     "objbase.h",
     "ole2.h",
     "wincrypt.h",
+    // Windows SDK API-set headers.
+    "fileapi.h",
+    "processenv.h",
+    "wtypes.h",
+    "shlwapi.h",
+    "synchapi.h",
+    "handleapi.h",
+    "memoryapi.h",
+    "libloaderapi.h",
+    "sysinfoapi.h",
+    "errhandlingapi.h",
+    "processthreadsapi.h",
+    "timezoneapi.h",
+    "consoleapi.h",
+    "wincon.h",
+    "winerror.h",
+    "winreg.h",
+    "ntstatus.h",
+    "sddl.h",
+    "aclapi.h",
+    "userenv.h",
+    "lmcons.h",
+    "iphlpapi.h",
+    "winioctl.h",
+    "winsvc.h",
+    "wtsapi32.h",
+    "dbghelp.h",
+    "versionhelpers.h",
+    "winver.h",
+    "commctrl.h",
+    "commdlg.h",
+    "shellscalingapi.h",
+    "dwmapi.h",
+    "mmsystem.h",
+    "winhttp.h",
+    "wininet.h",
+    "bcrypt.h",
+    "ncrypt.h",
+    "ntsecapi.h",
+    "securitybaseapi.h",
+    "minwindef.h",
+    "basetsd.h",
+    "intsafe.h",
+    "tchar.h",
+    "stringapiset.h",
+    "heapapi.h",
+    "ioapiset.h",
+    "namedpipeapi.h",
+    "realtimeapiset.h",
+    "jobapi.h",
+    "wow64apiset.h",
 ];
+
+/// C-family OS headers of Windows; every other OS header is POSIX/Unix.
+pub fn c_system_header_family(header: &str) -> &'static str {
+    let h = header
+        .trim()
+        .trim_matches(['<', '>', '"'])
+        .to_ascii_lowercase();
+    let win = h.starts_with("win")
+        || h.ends_with("api.h")
+        || h.ends_with("apiset.h")
+        || matches!(
+            h.as_str(),
+            "ws2tcpip.h"
+                | "shellapi.h"
+                | "shlobj.h"
+                | "tlhelp32.h"
+                | "psapi.h"
+                | "io.h"
+                | "direct.h"
+                | "process.h"
+                | "conio.h"
+                | "objbase.h"
+                | "ole2.h"
+                | "wtypes.h"
+                | "shlwapi.h"
+                | "ntstatus.h"
+                | "sddl.h"
+                | "aclapi.h"
+                | "userenv.h"
+                | "lmcons.h"
+                | "iphlpapi.h"
+                | "dbghelp.h"
+                | "versionhelpers.h"
+                | "commctrl.h"
+                | "commdlg.h"
+                | "dwmapi.h"
+                | "mmsystem.h"
+                | "bcrypt.h"
+                | "ncrypt.h"
+                | "ntsecapi.h"
+                | "minwindef.h"
+                | "basetsd.h"
+                | "intsafe.h"
+                | "tchar.h"
+                | "wtsapi32.h"
+        );
+    if win { "win32" } else { "posix" }
+}
 
 /// ISO C / C++ standard headers.
 pub const ISO_C_HEADERS: &[&str] = &[

@@ -50,6 +50,9 @@ CONFIGS = [
     ("dynamic-dispatch", ["--dynamic-dispatch"]),
     ("reference-edges", ["--reference-edges"]),
     ("external+stdlib", ["--include-external", "--include-stdlib"]),
+    # The attributed external-branch graph; its report goes nowhere here,
+    # the graph is what the sweep compares.
+    ("externals", ["--externals=all", "--externals-report", "/dev/null"]),
     ("paths-truncated", ["-n", "0", "--max-paths", "7", "--filter", "e"]),
     ("neighborhood", ["-n", "2", "--filter", "e"]),
     ("no-entry-nodes", ["--no-entry-nodes"]),

@@ -98,6 +98,12 @@ echo "[cgg pre-commit] regenerating self-analysis graph"
 ./target/release/cgg ./crates --filter 'cgg::analyze_in_pool$' -n 1 \
     -o "$MERMAID_DIR/self.mmd" 2>"$MERMAID_DIR/self.stderr" >/dev/null
 
+echo "[cgg pre-commit] regenerating cgg-walk externals report"
+# The README's `--externals` example: the text report for one crate,
+# verbatim, so the section can never describe output cgg no longer makes.
+./target/release/cgg ./crates/cgg-walk --externals --no-graph -q \
+    --externals-report "$MERMAID_DIR/externals.txt"
+
 echo "[cgg pre-commit] patching README.md mermaid blocks"
 python3 scripts/update-readme-graphs.py --self-test
 # `raw:self` is verbatim on purpose — the README presents that block as
@@ -107,7 +113,8 @@ python3 scripts/update-readme-graphs.py --self-test
 python3 scripts/update-readme-graphs.py \
     walk "$MERMAID_DIR/walk.mmd" \
     lang "$MERMAID_DIR/lang.mmd" \
-    raw:self "$MERMAID_DIR/self.mmd"
+    raw:self "$MERMAID_DIR/self.mmd" \
+    text:externals "$MERMAID_DIR/externals.txt"
 
 echo "[cgg pre-commit] patching README.md self-analysis stats"
 python3 scripts/update-readme-stats.py < "$MERMAID_DIR/self.stderr"

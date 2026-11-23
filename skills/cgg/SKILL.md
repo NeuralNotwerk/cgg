@@ -257,6 +257,23 @@ it (open the call site, or rerun with `-t json` and read `resolver` /
 `confidence`) before relying on it for impact analysis. Unmarked arrows
 were bound through structure and can be trusted.
 
+### "What does this depend on, and where do we shell out or load native code?"
+
+```bash
+cgg . --externals -o /tmp/ext.mmd           # branch graph + /tmp/ext.mmd.externals.txt
+cgg . --externals=process,native --no-graph # just the report, to stderr
+cgg . --externals --filter '^<external>::requests::' -n 0   # every path into one library
+cgg . --externals --rollup-by module        # module → library dependency map
+```
+
+The report lists each library (third-party, system, native, process;
+`--externals=all` adds stdlib and unattributed) with its import sites,
+symbols, boundary callers and example branches from an entry point. The
+graph keeps only callables with a path to an external call, ending in
+`<external>::<library>::<symbol>` leaves. Each call's attribution carries
+its evidence and a confidence; calls through values of unknown type are
+counted as `unattributed`, never guessed. Manifests are not read.
+
 ## Framework entry points (on by default)
 
 Frameworks invoke user code by means that are not calls, so a route
