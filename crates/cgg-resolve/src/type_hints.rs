@@ -159,29 +159,6 @@ pub fn field_index(all_facts: &[FileFacts]) -> HashMap<String, HashMap<String, S
     out
 }
 
-/// Python (fork.5), after per-file propagation, before cross-file
-/// resolution:
-///
-/// * `x = a.b.c` — the local is another name for the member read. The
-///   locals walk records it as a value binding, so a bare call through
-///   it is refused as shadowed; but the value it holds IS the member,
-///   and Python runs it (`real_launch = window._download.launch_worker`
-///   then `real_launch(...)` runs `DownloadController.launch_worker` —
-///   the test-spy idiom). The ref is rewritten to the member call it
-///   names, so the whole cross-file pipeline — typed lookups, the
-///   fan-out cap, the ambiguity refusal — resolves it exactly as it
-///   would the call written out. The same-named read (`x = obj.x`) is
-///   no alias: the locals walk records no binding for it, so a bare
-///   `x()` still names `x` — none is recorded here either.
-/// * A receiver written as a dotted chain (`window._download`) types
-///   through the run-wide field table when every hop is a declaration:
-///   the base is a constructor-typed local, each later segment a field
-///   some class declares (`self._download = DownloadController(...)`).
-///   A chain that does not fully resolve is left as written — a
-///   partial type would name the wrong receiver. The rewrite is marked
-///   `weak_receiver_type`: the type was inferred across files, not
-///   declared at the call, so it can raise a single candidate to no
-///   better than medium.
 /// `const f = obj.load; f()`: in the languages `cgg_lang::member_aliases`
 /// reads (JS/TS, Go, Swift, Dart), a bare call through a local bound to a
 /// member read becomes that member call (`obj.load()`), so it resolves
@@ -221,6 +198,29 @@ pub fn rewrite_member_alias_calls(facts: &mut FileFacts) {
     facts.member_aliases = aliases;
 }
 
+/// Python (fork.5), after per-file propagation, before cross-file
+/// resolution:
+///
+/// * `x = a.b.c` — the local is another name for the member read. The
+///   locals walk records it as a value binding, so a bare call through
+///   it is refused as shadowed; but the value it holds IS the member,
+///   and Python runs it (`real_launch = window._download.launch_worker`
+///   then `real_launch(...)` runs `DownloadController.launch_worker` —
+///   the test-spy idiom). The ref is rewritten to the member call it
+///   names, so the whole cross-file pipeline — typed lookups, the
+///   fan-out cap, the ambiguity refusal — resolves it exactly as it
+///   would the call written out. The same-named read (`x = obj.x`) is
+///   no alias: the locals walk records no binding for it, so a bare
+///   `x()` still names `x` — none is recorded here either.
+/// * A receiver written as a dotted chain (`window._download`) types
+///   through the run-wide field table when every hop is a declaration:
+///   the base is a constructor-typed local, each later segment a field
+///   some class declares (`self._download = DownloadController(...)`).
+///   A chain that does not fully resolve is left as written — a
+///   partial type would name the wrong receiver. The rewrite is marked
+///   `weak_receiver_type`: the type was inferred across files, not
+///   declared at the call, so it can raise a single candidate to no
+///   better than medium.
 pub fn settle_python_member_refs(
     facts: &mut FileFacts,
     fields: &HashMap<String, HashMap<String, String>>,

@@ -9,11 +9,13 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-23
+
 Contributed work from TheWolfAround (PR #13 and the
 `fix/module-scope-calls` fork branch), integrated with original
 authorship and extended from Python to every language with the same
 constructs. **The default graph changes** (see *Compatibility*): duck-typed
-method calls no longer bind module-level functions in ten languages.
+method calls no longer bind module-level functions in eleven languages.
 
 ### Added
 

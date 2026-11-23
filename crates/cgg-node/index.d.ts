@@ -197,6 +197,21 @@ export interface AnalyzeOptions {
    * / `externalsText()`.
    */
   externals?: boolean | string | Array<string>
+  /**
+   * Remove names from the walker's built-in deny list (`vendor`,
+   * `third_party`, …) for this run; `.git` stays denied.
+   */
+  allowDirs?: Array<string>
+  /**
+   * Bind calls written at module/file scope to a synthetic per-file
+   * caller. Off by default.
+   */
+  moduleScopeCalls?: boolean
+  /**
+   * Emit edges for attribute reads that run a property getter. Off by
+   * default.
+   */
+  propertyEdges?: boolean
 }
 
 /**
