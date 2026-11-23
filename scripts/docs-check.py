@@ -307,7 +307,8 @@ def cgg_help_flags() -> set[str]:
     flags: set[str] = set()
     for m in re.finditer(
         # `[` for a flag with an optional value: `--externals[=<KINDS>]`.
-        r"(?<![A-Za-z0-9])(--[a-z][a-z0-9-]*|-[a-zA-Z])(?=[ ,\n\[])", out
+        r"(?<![A-Za-z0-9])(--[a-z][a-z0-9-]*|-[a-zA-Z])(?=[ ,\n\[])",
+        out,
     ):
         flags.add(m.group(1))
     return flags

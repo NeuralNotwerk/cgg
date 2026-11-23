@@ -77,9 +77,18 @@ def main() -> int:
         t0 = time.monotonic()
         try:
             p = subprocess.run(
-                [str(binary), str(repo), "--externals=all", "--externals-format", "json", "--no-graph", "-q"],
+                [
+                    str(binary),
+                    str(repo),
+                    "--externals=all",
+                    "--externals-format",
+                    "json",
+                    "--no-graph",
+                    "-q",
+                ],
                 capture_output=True,
                 timeout=per_repo,
+                check=False,
             )
         except subprocess.TimeoutExpired:
             timeouts.append(repo.name)
@@ -87,7 +96,9 @@ def main() -> int:
             continue
         ms = (time.monotonic() - t0) * 1000
         if p.returncode != 0:
-            failures.append((repo.name, p.returncode, p.stderr.decode(errors="replace")[-400:]))
+            failures.append(
+                (repo.name, p.returncode, p.stderr.decode(errors="replace")[-400:])
+            )
             print(f"  FAILED {repo.name} rc={p.returncode}", file=sys.stderr)
             continue
         doc = json.loads(p.stdout)
@@ -100,13 +111,25 @@ def main() -> int:
             lang[L]["unattributed"] += c["unattributed"]
             lang_repos[L].add(repo.name)
         for lib in doc["libraries"]:
-            lang_libs[lib["language"]][(lib["kind"], lib["name"])] += len(lib["sites"]) or 0
+            lang_libs[lib["language"]][(lib["kind"], lib["name"])] += (
+                len(lib["sites"]) or 0
+            )
             for s in lib["sites"]:
                 lang_evidence[lib["language"]][s["evidence"]] += 1
         for g in doc["unattributed"]:
             lang_unattr[g["language"]][g["name"]] += g["sites"]
-        rows.append({"repo": repo.name, "ms": round(ms, 1), "libraries": len(doc["libraries"]), "sites": doc["totals"]["sites"]})
-        print(f"  {repo.name:40s} {ms:8.0f} ms  {len(doc['libraries']):5d} libs  {doc['totals']['sites']:8d} sites", file=sys.stderr)
+        rows.append(
+            {
+                "repo": repo.name,
+                "ms": round(ms, 1),
+                "libraries": len(doc["libraries"]),
+                "sites": doc["totals"]["sites"],
+            }
+        )
+        print(
+            f"  {repo.name:40s} {ms:8.0f} ms  {len(doc['libraries']):5d} libs  {doc['totals']['sites']:8d} sites",
+            file=sys.stderr,
+        )
 
     out = {
         "binary": str(binary),
@@ -119,10 +142,16 @@ def main() -> int:
             L: {
                 **dict(v),
                 "repos": len(lang_repos[L]),
-                "attributed_pct": round(100 * v["attributed"] / v["sites"], 1) if v["sites"] else None,
+                "attributed_pct": round(100 * v["attributed"] / v["sites"], 1)
+                if v["sites"]
+                else None,
                 "evidence": dict(lang_evidence[L]),
-                "top_libraries": [f"{k}:{n} ({c})" for (k, n), c in lang_libs[L].most_common(12)],
-                "top_unattributed": [f"{n} ({c})" for n, c in lang_unattr[L].most_common(12)],
+                "top_libraries": [
+                    f"{k}:{n} ({c})" for (k, n), c in lang_libs[L].most_common(12)
+                ],
+                "top_unattributed": [
+                    f"{n} ({c})" for n, c in lang_unattr[L].most_common(12)
+                ],
             }
             for L, v in sorted(lang.items())
         },
@@ -138,9 +167,14 @@ def main() -> int:
     print("| --- | ---: | ---: | ---: | ---: | --- |")
     for L, v in out["languages"].items():
         pct = "—" if v["attributed_pct"] is None else f"{v['attributed_pct']}%"
-        libs = ", ".join(x.split(" (")[0].split(":", 1)[1] for x in v["top_libraries"][:5])
+        libs = ", ".join(
+            x.split(" (")[0].split(":", 1)[1] for x in v["top_libraries"][:5]
+        )
         print(f"| {L} | {v['repos']} | {v['files']} | {v['sites']} | {pct} | {libs} |")
-    for label, items in (("Timed out (excluded)", timeouts), ("Not run (budget)", not_run)):
+    for label, items in (
+        ("Timed out (excluded)", timeouts),
+        ("Not run (budget)", not_run),
+    ):
         if items:
             print(f"\n**{label}:** {', '.join(items)}")
     if failures:

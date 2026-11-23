@@ -580,13 +580,28 @@ def test_externals_inventory_matches_the_cli(tree: Path) -> None:
     assert doc is not None and doc["schema"] == "cgg.externals.v1"
     assert g.externals_text().startswith("cgg externals report")
     out = subprocess.run(
-        [str(_cli()), str(tree), "--externals=all", "--externals-format", "json", "--no-graph", "-q"],
+        [
+            str(_cli()),
+            str(tree),
+            "--externals=all",
+            "--externals-format",
+            "json",
+            "--no-graph",
+            "-q",
+        ],
         check=True,
         capture_output=True,
     ).stdout
     assert json.loads(out) == doc
     mermaid = subprocess.run(
-        [str(_cli()), str(tree), "--externals=all", "--externals-report", os.devnull, "-q"],
+        [
+            str(_cli()),
+            str(tree),
+            "--externals=all",
+            "--externals-report",
+            os.devnull,
+            "-q",
+        ],
         check=True,
         capture_output=True,
     ).stdout.decode()

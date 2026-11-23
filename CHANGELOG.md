@@ -16,6 +16,11 @@ reaches outside itself, shaped as the branches that end in those calls.
 It is off by default, and the default graph and dead-code report are
 byte-identical to 0.11.2 across the whole corpus.
 
+**Not included:** open PR #13 (`--allow-dir`) and the fork branch
+`TheWolfAround/cgg fix/module-scope-calls` (`--module-scope-calls`,
+`--property-edges`, Python binding fixes). Both are still under review
+and are left for a later release.
+
 ### Added
 
 - **`--externals[=KINDS]`: every library the tree reaches outside itself,

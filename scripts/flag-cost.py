@@ -67,7 +67,9 @@ def repos_rows() -> list[tuple[str, Path, str]]:
     j = src.index("\n)\n", i)
     bench = Path(os.environ.get("CGG_BENCH_DIR", "/storage/cgg-test_repos"))
     out = []
-    for name, lang, sub in re.findall(r'^\s*"([^"|]+)\|[^|]*\|([^|]*)\|([^|]*)\|', src[i:j], re.M):
+    for name, lang, sub in re.findall(
+        r'^\s*"([^"|]+)\|[^|]*\|([^|]*)\|([^|]*)\|', src[i:j], re.MULTILINE
+    ):
         d = "asm-xv6" if name == "asm-xv6-mixed" else name
         out.append((name, bench / d / sub, lang))
     return out
@@ -100,7 +102,14 @@ def run_once(cmd: list[str], timeout: int) -> tuple[float, int | None, int]:
         return ms, rss, p.returncode
 
 
-def measure(binary: Path, path: Path, lang: str | None, flags: list[str], runs: int, timeout: int):
+def measure(
+    binary: Path,
+    path: Path,
+    lang: str | None,
+    flags: list[str],
+    runs: int,
+    timeout: int,
+):
     base = [str(binary), str(path), "-t", "json", "--jobs", "1", "-q"]
     if lang:
         base += ["--lang", lang]
@@ -111,10 +120,16 @@ def measure(binary: Path, path: Path, lang: str | None, flags: list[str], runs: 
         b = base + flags + ["--externals-report", str(report)]
         # Probe: bounded, and it captures the sizes and the languages.
         probe = subprocess.run(
-            b + ["--externals-format", "json"], capture_output=True, timeout=timeout
+            b + ["--externals-format", "json"],
+            capture_output=True,
+            timeout=timeout,
+            check=False,
         )
         if probe.returncode != 0:
-            return {"error": probe.stderr.decode(errors="replace")[-300:], "rc": probe.returncode}
+            return {
+                "error": probe.stderr.decode(errors="replace")[-300:],
+                "rc": probe.returncode,
+            }
         graph.write_bytes(probe.stdout)
         try:
             doc = json.loads(report.read_text())
@@ -127,7 +142,9 @@ def measure(binary: Path, path: Path, lang: str | None, flags: list[str], runs: 
             by_lang = {}
         ta, tb, ra, rb = [], [], [], []
         for k in range(runs):
-            order = [(a, ta, ra), (b, tb, rb)] if k % 2 == 0 else [(b, tb, rb), (a, ta, ra)]
+            order = (
+                [(a, ta, ra), (b, tb, rb)] if k % 2 == 0 else [(b, tb, rb), (a, ta, ra)]
+            )
             for cmd, ts, rs in order:
                 ms, rss, rc = run_once(cmd, timeout)
                 if rc != 0:
@@ -137,7 +154,11 @@ def measure(binary: Path, path: Path, lang: str | None, flags: list[str], runs: 
                     rs.append(rss)
         rep_text = report.read_text() if report.exists() else ""
         dominant = max(
-            ((l, v.get("files", 0)) for l, v in by_lang.items() if not l.startswith("skip:")),
+            (
+                (l, v.get("files", 0))
+                for l, v in by_lang.items()
+                if not l.startswith("skip:")
+            ),
             key=lambda x: x[1],
             default=(lang or "?", 0),
         )[0]
@@ -178,7 +199,9 @@ def main() -> int:
     if args.corpus in ("repos", "both"):
         jobs += [("repos", n, p, l) for n, p, l in repos_rows()]
     if args.corpus in ("full", "both"):
-        jobs += [("full", p.name, p, None) for p in sorted(bench.iterdir()) if p.is_dir()]
+        jobs += [
+            ("full", p.name, p, None) for p in sorted(bench.iterdir()) if p.is_dir()
+        ]
     if want:
         jobs = [j for j in jobs if j[1] in want]
 
@@ -226,11 +249,15 @@ def main() -> int:
     path = dest / f"{out['binary_sha']}-{tag}.json"
     path.write_text(json.dumps(out, indent=2))
 
-    print(f"## Cost of `{' '.join(flags)}` (binary {out['binary_sha']}, --jobs 1, median of {args.runs})\n")
+    print(
+        f"## Cost of `{' '.join(flags)}` (binary {out['binary_sha']}, --jobs 1, median of {args.runs})\n"
+    )
     per = [r for r in results if r["table"] == "repos"]
     if per:
         print("### Per language (one benchmark repo each, `--lang`)\n")
-        print("| language | repo | base ms | flag ms | Δ ms | Δ% | RSS Δ MiB | report KiB | ~tokens | libraries |")
+        print(
+            "| language | repo | base ms | flag ms | Δ ms | Δ% | RSS Δ MiB | report KiB | ~tokens | libraries |"
+        )
         print("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
         for r in sorted(per, key=lambda r: r["dominant_language"]):
             rss = "—"
@@ -245,7 +272,9 @@ def main() -> int:
     full = [r for r in results if r["table"] == "full"]
     if full:
         print("\n### Full corpus, by dominant language\n")
-        print("| language | repos | median Δ% | p90 Δ% | max Δ% | worst repo | total Δ s |")
+        print(
+            "| language | repos | median Δ% | p90 Δ% | max Δ% | worst repo | total Δ s |"
+        )
         print("| --- | ---: | ---: | ---: | ---: | --- | ---: |")
         groups = collections.defaultdict(list)
         for r in full:
@@ -255,13 +284,22 @@ def main() -> int:
             p90 = ds[min(len(ds) - 1, int(0.9 * len(ds)))]
             worst = max(rs, key=lambda r: pct(r["base_ms"], r["flag_ms"]))
             tot = sum(r["flag_ms"] - r["base_ms"] for r in rs) / 1000
-            print(f"| {lang} | {len(rs)} | {statistics.median(ds):+.1f}% | {p90:+.1f}% | {ds[-1]:+.1f}% | {worst['repo']} | {tot:+.1f} |")
+            print(
+                f"| {lang} | {len(rs)} | {statistics.median(ds):+.1f}% | {p90:+.1f}% | {ds[-1]:+.1f}% | {worst['repo']} | {tot:+.1f} |"
+            )
         tb = sum(r["base_ms"] for r in full) / 1000
         tf = sum(r["flag_ms"] for r in full) / 1000
-        print(f"\nTotal: {tb:.1f} s → {tf:.1f} s ({pct(tb, tf):+.1f}%) over {len(full)} repos.")
+        print(
+            f"\nTotal: {tb:.1f} s → {tf:.1f} s ({pct(tb, tf):+.1f}%) over {len(full)} repos."
+        )
     over = [r for r in results if not runway(r)]
-    print(f"\nOutside the opt-in runway max(20%, 5 s): {', '.join(r['table'] + ':' + r['repo'] for r in over) or 'none'}")
-    for label, items in (("Timed out (excluded)", timeouts), ("Not run (budget)", not_run)):
+    print(
+        f"\nOutside the opt-in runway max(20%, 5 s): {', '.join(r['table'] + ':' + r['repo'] for r in over) or 'none'}"
+    )
+    for label, items in (
+        ("Timed out (excluded)", timeouts),
+        ("Not run (budget)", not_run),
+    ):
         if items:
             print(f"\n**{label}:** {', '.join(items)}")
     if failures:
