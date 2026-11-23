@@ -1094,6 +1094,15 @@ impl FileFacts {
     /// definitions gets nothing — definition counts stay untouched —
     /// and the injection is idempotent.
     pub fn inject_module_scope_def(&mut self) {
+        let path = self.path.display().to_string();
+        self.inject_module_scope_def_as(&path);
+    }
+
+    /// [`Self::inject_module_scope_def`], naming the scope by `path` —
+    /// the file's path relative to the analyzed root, so the name does
+    /// not depend on where the tree was checked out or how it was named
+    /// on the command line.
+    pub fn inject_module_scope_def_as(&mut self, path: &str) {
         if self
             .definitions
             .iter()
@@ -1133,10 +1142,7 @@ impl FileFacts {
         // must not land in the cross-file resolver's collision indexes
         // (they are keyed by qualified name), and nothing downstream may
         // mistake one file's module scope for another's.
-        let qn = format!(
-            "<module>:{}",
-            self.path.display().to_string().replace('\\', "/")
-        );
+        let qn = format!("<module>:{}", path.replace('\\', "/"));
         self.definitions.push(DefRecord {
             simple_name: "<module>".into(),
             qualified_name: qn,

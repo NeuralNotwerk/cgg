@@ -418,11 +418,13 @@ pub struct Cli {
     #[arg(long = "module-scope-calls", action = ArgAction::SetTrue)]
     pub module_scope_calls: bool,
 
-    /// Emit an edge for an attribute read that runs code: `x.shape` when
-    /// the receiver's declared type — or a base of it — carries a
-    /// matching `@property` getter (Python; `@cached_property` counts).
-    /// Reading a property executes the getter, so the edge is as real as
-    /// a call's; the source just spells it without parentheses.
+    /// Emit an edge for a member read that runs code: `x.shape` when the
+    /// receiver's declared type — or a base of it — carries a matching
+    /// getter: Python `@property`/`@cached_property`, JS/TS `get`, C#
+    /// property getters, Kotlin `get()`, Swift computed properties, Dart
+    /// `get`, Groovy `getX()`/`isX()`, Objective-C dot syntax. Reading a
+    /// property executes the getter, so the edge is as real as a call's;
+    /// the source just spells it without parentheses.
     ///
     /// Precision-first: the receiver's type must come from a declaration
     /// (a typed parameter of the enclosing def, the enclosing class for

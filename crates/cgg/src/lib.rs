@@ -506,6 +506,15 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                             );
                             f.external_uses.append(&mut uses);
                         }
+                        // `--property-edges` outside Python: getters and
+                        // the member reads that run them (Python's plugin
+                        // records its own).
+                        if ctx.property_sites {
+                            let lang = f.language.clone();
+                            cgg_lang::property_reads::collect(
+                                &lang, &out.tree, &bytes, &mut f,
+                            );
+                        }
                         // Parameters and locals, from the same tree: a
                         // bare call through one is never another file's
                         // function (see `cgg_lang::locals`).
@@ -681,7 +690,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                     // so the module scope gets a CallableId like any
                     // definition.
                     if opts.module_scope_calls {
-                        facts.inject_module_scope_def();
+                        facts.inject_module_scope_def_as(&relative_path);
                     }
                     for (idx, d) in facts.definitions.iter().enumerate() {
                         let owner = cgg_resolve::names::owner_from_qn(&d.qualified_name);

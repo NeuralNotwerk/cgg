@@ -21,6 +21,7 @@ pub mod member_aliases;
 pub mod notebook;
 pub mod parser;
 pub mod plugins;
+pub mod property_reads;
 pub mod receiver;
 
 use std::fmt;

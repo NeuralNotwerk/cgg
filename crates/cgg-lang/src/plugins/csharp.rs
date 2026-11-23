@@ -280,43 +280,58 @@ impl<'a> Walker<'a> {
                 return;
             }
             "property_declaration"
-                if node
-                    .children(&mut node.walk())
-                    .any(|c| c.kind() == "arrow_expression_clause") =>
+                if self.ctx.property_sites
+                    && node
+                        .children(&mut node.walk())
+                        .any(|c| c.kind() == "arrow_expression_clause") =>
             {
-                // `int N => 2;`: an expression-bodied property is its own
-                // getter, named by the property.
+                // `int N => 2;` under `--property-edges`: an
+                // expression-bodied property is its own getter, recorded
+                // as `A.N.get` like an accessor's.
                 if let Some(n) = node.child_by_field_name("name") {
-                    let name = self.text(n).to_string();
-                    if !name.is_empty() {
-                        self.record_named(node, &name, DefVariant::Property);
+                    let prop = self.text(n).to_string();
+                    if !prop.is_empty() {
+                        self.record_named_in(
+                            node,
+                            Some(&prop),
+                            "get",
+                            DefVariant::Property,
+                        );
                     }
                 }
                 self.walk_children(node);
                 return;
             }
             "accessor_declaration" => {
-                // get/set accessors inside a property. A getter is named by
-                // its property (`Size`), which is what a read of it
-                // (`a.Size`) names; `set`/`init` keep their keyword.
-                let keyword = node
+                // get/set accessors inside a property, named by their
+                // keyword. Under `--property-edges` the property's name
+                // joins the qualified name (`A.Size.get`), so a read of
+                // `a.Size` can find its getter; the simple name stays the
+                // keyword, so no call by name ever reaches an accessor.
+                let name = node
                     .children(&mut node.walk())
                     .find(|c| matches!(c.kind(), "get" | "set" | "init"))
-                    .map(|n| n.kind().to_string());
-                let property_name = node
-                    .parent()
-                    .filter(|p| p.kind() == "accessor_list")
-                    .and_then(|p| p.parent())
-                    .filter(|p| p.kind() == "property_declaration")
-                    .and_then(|p| p.child_by_field_name("name"))
-                    .map(|n| self.text(n).to_string())
-                    .filter(|n| !n.is_empty());
-                let name = match (keyword.as_deref(), property_name) {
-                    (Some("get"), Some(p)) => p,
-                    (Some(k), _) => k.to_string(),
-                    (None, _) => "accessor".to_string(),
-                };
-                self.record_named(node, &name, DefVariant::Property);
+                    .map(|n| n.kind().to_string())
+                    .unwrap_or_else(|| "accessor".to_string());
+                let property = self
+                    .ctx
+                    .property_sites
+                    .then(|| {
+                        node.parent()
+                            .filter(|p| p.kind() == "accessor_list")
+                            .and_then(|p| p.parent())
+                            .filter(|p| p.kind() == "property_declaration")
+                            .and_then(|p| p.child_by_field_name("name"))
+                            .map(|n| self.text(n).to_string())
+                            .filter(|n| !n.is_empty())
+                    })
+                    .flatten();
+                self.record_named_in(
+                    node,
+                    property.as_deref(),
+                    &name,
+                    DefVariant::Property,
+                );
                 self.walk_children(node);
                 return;
             }
@@ -390,6 +405,25 @@ impl<'a> Walker<'a> {
             return;
         }
         self.record_named(node, &simple, variant);
+    }
+
+    /// [`Self::record_named`] with an extra qualifier segment before the
+    /// simple name (a property's accessor: `A.Size.get`).
+    fn record_named_in(
+        &mut self,
+        node: Node,
+        inner: Option<&str>,
+        simple: &str,
+        variant: DefVariant,
+    ) {
+        let before = self.facts.definitions.len();
+        self.record_named(node, simple, variant);
+        if let Some(inner) = inner
+            && let Some(d) = self.facts.definitions.get_mut(before)
+            && let Some(cut) = d.qualified_name.len().checked_sub(simple.len())
+        {
+            d.qualified_name.insert_str(cut, &format!("{inner}."));
+        }
     }
 
     fn record_named(&mut self, node: Node, simple: &str, variant: DefVariant) {
@@ -1348,7 +1382,7 @@ namespace A.B.C {
         assert_eq!(vis_of(&f, "IRepo.FindAll"), Vis::Public);
         assert_eq!(vis_of(&f, "IRepo.Annotated"), Vis::Public);
         assert_eq!(vis_of(&f, "IRepo.WithBody"), Vis::Public);
-        assert_eq!(vis_of(&f, "IRepo.Count"), Vis::Public);
+        assert_eq!(vis_of(&f, "IRepo.get"), Vis::Public);
         // An explicit modifier still wins in an interface.
         assert_eq!(vis_of(&f, "IRepo.Helper"), Vis::Private);
         assert_eq!(vis_of(&f, "IRepo.Hook"), Vis::Protected);
@@ -1386,10 +1420,9 @@ namespace A.B.C {
                 .unwrap_or_else(|| panic!("{name}@{line}"))
                 .vis
         };
-        // A getter is named by its property; `set` keeps its keyword.
-        assert_eq!(acc("P", 2), Vis::Public);
+        assert_eq!(acc("get", 2), Vis::Public);
         assert_eq!(acc("set", 2), Vis::Private);
-        assert_eq!(acc("Q", 3), Vis::Private);
+        assert_eq!(acc("get", 3), Vis::Private);
     }
 
     #[test]

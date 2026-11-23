@@ -368,7 +368,8 @@ fn is_std_type_local_trait_impl(lang: &str, qn: &str) -> bool {
 #[derive(Debug, Default)]
 pub struct CrossFileOutput {
     pub edges: Vec<CallEdge>,
-    /// Python duck-typed fan-outs as emitted, per (caller, site, name):
+    /// Duck-typed fan-outs (`RECEIVER_METHOD_LANGS`) as emitted, per
+    /// (caller, site, name):
     /// the candidate set before the facade/delegatee narrowing (fork.5),
     /// which runs as a post-pass once every file's edges exist — the
     /// delegating edge itself may be minted in this very pass.

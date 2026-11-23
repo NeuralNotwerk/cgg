@@ -55,9 +55,53 @@ fn confidence_for(weak: bool) -> Confidence {
 /// → `SparseTensor`), i.e. the second-to-last segment. `None` for names
 /// too short to own the attribute — a property lives on a class.
 fn class_of(qualified_name: &str) -> Option<&str> {
-    let mut segs = qualified_name.split('.');
-    let _attr = segs.next_back()?;
-    segs.next_back()
+    // `.` or `::` (Dart, Objective-C) separates the segments.
+    let cut = |s: &str| -> Option<usize> {
+        let dot = s.rfind('.').map(|i| (i, i + 1));
+        let colons = s.rfind("::").map(|i| (i, i + 2));
+        match (dot, colons) {
+            (Some(a), Some(b)) => Some(if a.0 > b.0 { a } else { b }),
+            (a, b) => a.or(b),
+        }
+        .map(|(i, _)| i)
+    };
+    let head = &qualified_name[..cut(qualified_name)?];
+    let class = match cut(head) {
+        Some(i) => head[i..].trim_start_matches(['.', ':']),
+        None => head,
+    };
+    (!class.is_empty()).then_some(class)
+}
+
+/// The attribute a read names when it runs this method as a getter, in
+/// the languages whose getters are ordinary methods: Groovy reads
+/// `a.size` through a parameterless `getSize()`/`isSize()`, Objective-C
+/// dot syntax (`a.size`) sends the parameterless `size` message.
+fn method_as_getter(c: &cgg_core::CallableNode) -> Option<String> {
+    if c.kind != CallableKind::Method && c.kind != CallableKind::Property {
+        return None;
+    }
+    let parameterless = |sig: &str| {
+        sig.find('(')
+            .and_then(|i| sig[i + 1..].trim_start().strip_prefix(')'))
+            .is_some()
+    };
+    match c.language.as_str() {
+        "groovy" => {
+            let rest = c
+                .simple_name
+                .strip_prefix("get")
+                .or_else(|| c.simple_name.strip_prefix("is"))?;
+            let mut chars = rest.chars();
+            let first = chars.next().filter(|ch| ch.is_uppercase())?;
+            parameterless(&c.signature_hint)
+                .then(|| first.to_lowercase().chain(chars).collect())
+        }
+        // A selector with arguments carries `:` in its signature.
+        "objc" => (!c.signature_hint.contains(':') && !c.simple_name.contains(':'))
+            .then(|| c.simple_name.clone()),
+        _ => None,
+    }
 }
 
 /// The last segment of a (possibly dotted or generic) base type as
@@ -86,15 +130,44 @@ pub fn emit(graph: &mut Graph, all_facts: &[FileFacts]) {
     // two classes keeps both candidates: ambiguity is decided per
     // *defining* class during the walk, not by dropping the index.
     let mut prop_by_class_attr: HashMap<(&str, &str), Vec<CallableId>> = HashMap::new();
+    let mut getter_names: Vec<(CallableId, String)> = Vec::new();
     for c in graph.callables.values() {
-        if c.kind != CallableKind::Property {
-            continue;
+        if let Some(attr) = method_as_getter(c) {
+            getter_names.push((c.id, attr));
         }
-        let Some(class) = class_of(&c.qualified_name) else {
-            continue;
+    }
+    let getter_names: HashMap<CallableId, String> = getter_names.into_iter().collect();
+    for c in graph.callables.values() {
+        // A C# accessor is `A.Size.get` (`--property-edges` names it so):
+        // the property is the qualifier's last segment, the class the one
+        // before it. A setter or `init` runs on a write, never a read.
+        let (class, attr) = if c.language == "csharp" && c.kind == CallableKind::Property
+        {
+            if c.simple_name != "get" {
+                continue;
+            }
+            let Some(prop_qn) = c.qualified_name.strip_suffix(".get") else {
+                continue;
+            };
+            let (Some(class), Some(prop)) =
+                (class_of(prop_qn), prop_qn.rsplit('.').next())
+            else {
+                continue;
+            };
+            (class, prop)
+        } else {
+            let attr = match getter_names.get(&c.id) {
+                Some(a) => a.as_str(),
+                None if c.kind == CallableKind::Property => c.simple_name.as_str(),
+                None => continue,
+            };
+            let Some(class) = class_of(&c.qualified_name) else {
+                continue;
+            };
+            (class, attr)
         };
         prop_by_class_attr
-            .entry((class, c.simple_name.as_str()))
+            .entry((class, attr))
             .or_default()
             .push(c.id);
     }
@@ -284,7 +357,7 @@ fn receiver_type<'a>(
     let head = rh.split('.').next().unwrap_or(rh);
     // `self`/`cls` inside a def name the class the def belongs to — the
     // qualified name's second-to-last segment.
-    if head == "self" || head == "cls" {
+    if head == "self" || head == "cls" || head == "this" {
         let class = enclosing_def.and_then(|d| class_of(&d.qualified_name));
         return class.map(|c| (c.to_string(), false));
     }
