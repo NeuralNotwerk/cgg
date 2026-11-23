@@ -9,6 +9,12 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+Contributed work from TheWolfAround (PR #13 and the
+`fix/module-scope-calls` fork branch), integrated with original
+authorship and extended from Python to every language with the same
+constructs. **The default graph changes** (see *Compatibility*): duck-typed
+method calls no longer bind module-level functions in ten languages.
+
 ### Added
 
 - `--allow-dir <NAME>` (repeatable): remove one name from the walker's
@@ -16,6 +22,86 @@ otherwise change the default graph.
   denied), so a tree whose `vendor/`-style directory holds real, tracked
   source can be analyzed on demand. Off by default: a run without the
   flag walks exactly what cgg has always walked, byte for byte.
+- `--module-scope-calls`: calls and values written outside every
+  definition (script bodies, `if __name__ == "__main__"`, top-level
+  initializers) get a synthetic per-file caller, `<module>:<path>`, so
+  they become edges instead of `no-enclosing-callable` sites. Every
+  language with top-level code; `crates/cgg/tests/module_scope.rs` has a
+  row per language (or an N/A reason) and checks the flag keeps every
+  default edge. The module scope is a dead-code root
+  (`toplevel:module-scope`) and never a candidate. Off by default.
+- `--property-edges`: an edge (`prop`) for a member read that runs a
+  getter, when the receiver's type comes from a declaration — Python
+  `@property`/`@cached_property`, JS/TS `get`, C# property getters,
+  Kotlin `get()`, Swift computed properties, Dart `get`, Groovy
+  `getX()`/`isX()` and Objective-C dot syntax. `high` only when the
+  receiver's class and the getter's owner are each one class in the tree.
+  `crates/cgg/tests/property_edges.rs` has a row per language. Off by
+  default. Under the flag, C# accessors are named by their property
+  (`A.Size.get`) and Kotlin getters and Swift computed properties become
+  callables, so calls inside them move to those sources.
+- Node bindings: `allowDirs`, `moduleScopeCalls`, `propertyEdges`;
+  Python `.pyi` stubs for the same keywords.
+
+### Fixed
+
+- **Receiver calls reach methods, not module functions** (Python,
+  JS/TS, Go, Rust, C++, Swift, Dart, Groovy, PHP, Lua): a duck-typed
+  `x.m()` whose candidates mix methods and free functions keeps the
+  methods. Not Ruby (top-level `def`s are labelled methods), Scala
+  (members labelled functions), Perl, Kotlin (its own extension filter)
+  or Java/C# (every candidate is a method).
+- **Facade/delegatee narrowing** (same languages): when one candidate
+  of a site calls another through a `high` edge, the call goes to that
+  facade and the delegatee's edge for the site comes off. The calling
+  function is never the facade, and only targets the site actually
+  bound are considered.
+- Python: member-read aliases (`f = self.loader.load; f()`), field-chain
+  typing, PEP 420 namespace-package imports, and same-named classes told
+  apart by the module a constructor was written through.
+- Member-read aliases in JS/TS, Go, Swift and Dart (`const f = obj.load;
+  f()` is `obj.load()`), matched to the binding in scope and typed like
+  any receiver (Go `f := y.Load; f()` binds `A.Load` at `high`).
+
+### Compatibility
+
+- **The default graph changes.** Full corpus (282 repositories, 0
+  excluded), 0.12.0 vs this release: 121 repositories change; 38,169
+  edges dropped (38,111 `medium`), 8,391 added (312 `high`), 1,508
+  changed. Drops by language: TypeScript 11,391, Python 8,986,
+  JavaScript 8,251, C++ 2,928, Go 2,043, Dart 1,610, Lua 1,601, Groovy
+  1,212, Swift 84, PHP 63. Most are narrowings — the site keeps another
+  edge — of guessed bindings to free functions or forwarded-to
+  candidates. Sites that lose every edge are mostly free functions that
+  had been matched to method calls on outside objects, and minified
+  bundles; 7 Gradle sites lose real targets because the Groovy plugin
+  labels some class methods as functions. The dead-code report changes
+  by one finding (py-dash `_get_traceback`, now `high`).
+- With `--module-scope-calls --property-edges` on, the flags add only
+  their own edges, except where `--property-edges` renames C# accessors
+  or turns Kotlin/Swift getters into callables (713 edges move to those
+  sources).
+
+### Performance
+
+Default path, `scripts/perf-compare.sh v0.12.0 5` (median of 5 paired
+runs per repo, `--jobs 1`, all 282 corpus directories, none timed out;
+host load 13–18 during the run):
+
+| | 0.12.0 | this | delta |
+| --- | --- | --- | --- |
+| corpus total | 272.2 s | 278.7 s | +2.4% |
+| largest absolute | zig-zig 36.5 s | 38.6 s | +5.8% (+2.1 s) |
+| groovy-gradle | 9.5 s | 10.3 s | +8.6% |
+| scala-spark | 11.4 s | 11.3 s | -0.7% |
+
+Every repo is inside the default runway, max(10%, 1 s). The repos over
+10% are all under 1 s of absolute change (largest: app-basedosdados-prefect
++136 ms, +16.1%); the rest of the double-digit deltas are repos under
+150 ms, where a few ms of jitter reads as several percent. The cost is
+the member-alias pass and the facade narrowing, which run on every
+receiver-method language. `--module-scope-calls` and `--property-edges`
+are off by default and were not timed here.
 
 ## [0.12.0] - 2026-11-23
 
