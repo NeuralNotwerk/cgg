@@ -38,6 +38,7 @@ The sixteen categories, and the column labels used in the overview below:
 | 14 | Confidence & certainty | [matrix/14-confidence-certainty.md](matrix/14-confidence-certainty.md) |
 | 15 | Dynamic use & reflection | [matrix/15-dynamic-use-reflection.md](matrix/15-dynamic-use-reflection.md) |
 | 16 | Known gaps & limitations | [matrix/16-known-gaps-limitations.md](matrix/16-known-gaps-limitations.md) |
+| 17 | External dependencies (`--externals`) | [matrix/17-external-dependencies.md](matrix/17-external-dependencies.md) |
 
 ### Legend
 

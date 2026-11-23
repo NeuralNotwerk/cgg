@@ -92,6 +92,8 @@ struct TreeNames {
     names: HashSet<(String, String)>,
     /// Every analyzed file's path, `/`-separated, without extension.
     paths: Vec<String>,
+    /// PHP names, lowercased.
+    names_lower: HashSet<String>,
 }
 
 impl TreeNames {
@@ -160,11 +162,19 @@ impl TreeNames {
             t.paths.push(p.to_string_lossy().replace('\\', "/"));
         }
         t.paths.sort();
+        t.names_lower = t
+            .names
+            .iter()
+            .filter(|(l, _)| l == "php")
+            .map(|(_, n)| n.to_ascii_lowercase())
+            .collect();
         t
     }
 
     fn knows(&self, lang: &str, name: &str) -> bool {
         self.names.contains(&(lang.to_string(), name.to_string()))
+            // PHP namespaces and class names are case-insensitive.
+            || (lang == "php" && self.names_lower.contains(&name.to_ascii_lowercase()))
     }
 
     /// Whether an include-style path names an analyzed file.
@@ -315,8 +325,9 @@ fn library_of(lang: &str, module: &str, class: Class) -> String {
             s[..2.min(s.len())].join(".")
         }
         "smithy" => m.split('#').next().unwrap_or(m).to_string(),
+        "vhdl" => m.split('.').next().unwrap_or(m).to_string(),
         "proto" | "openapi" | "asyncapi" | "hcl" | "starlark" | "nix" | "cmake"
-        | "verilog" | "vhdl" | "solidity" | "asm" => {
+        | "verilog" | "solidity" | "asm" => {
             if lang == "solidity" && m.starts_with('@') {
                 let s = segs(&['/']);
                 return s[..2.min(s.len())].join("/");
@@ -400,10 +411,13 @@ impl Pass {
         let m = module.trim().trim_matches(['"', '\'']);
         // Nothing nameable, or a path built at run time (`source "$CONF"`):
         // not a library cgg can name.
+        let m = m.strip_prefix("global::").unwrap_or(m);
         if m.is_empty()
             || !m.chars().any(char::is_alphanumeric)
-            || m.starts_with('$')
+            || m.starts_with(['$', '(', '{'])
             || m.contains("${")
+            || m.starts_with("../")
+            || (lang == "vhdl" && (m == "work" || m.starts_with("work.")))
         {
             return Class::Internal;
         }
@@ -807,7 +821,7 @@ fn program_of(cmd: &str) -> String {
         .next()
         .unwrap_or("")
         .trim_matches(['"', '\'', '`']);
-    if w.is_empty() || w.starts_with('$') || w.contains("${") {
+    if w.is_empty() || w.starts_with(['$', '{', '(']) || w.contains("${") {
         return "<dynamic>".to_string();
     }
     w.rsplit(['/', '\\']).next().unwrap_or(w).to_string()
@@ -884,6 +898,20 @@ impl Pass {
                     ExternalEvidence::StdlibScreen,
                 );
             }
+            // A capitalized PowerShell command that is not Verb-Noun is a
+            // module's function (Pester `Should`, `It`), not a program.
+            if lang == "powershell"
+                && n.starts_with(char::is_uppercase)
+                && !n.contains('.')
+            {
+                return mk(
+                    ExternalKind::Unattributed,
+                    String::new(),
+                    String::new(),
+                    n.into(),
+                    ExternalEvidence::None,
+                );
+            }
             let prog = program_of(n);
             let ev = if prog == "<dynamic>" {
                 ExternalEvidence::None
@@ -956,8 +984,22 @@ impl Pass {
                 // Languages whose qualified call names its module outright,
                 // with no import needed: Erlang `m:f`, Elixir `Mod.f`, OCaml
                 // `M.f`, Perl `Pkg::f`, R `pkg::f`.
-                let names_module =
-                    matches!(lang, "erlang" | "elixir" | "ocaml" | "perl" | "r");
+                // Elixir/OCaml modules are capitalized (a lowercase head is
+                // a variable: `conn.assigns`); a Perl package is written
+                // with `::`, and `main`/`SUPER`/`shift` are not packages.
+                let capital = head.starts_with(char::is_uppercase);
+                let names_module = match lang {
+                    "erlang" | "r" => true,
+                    "elixir" | "ocaml" => capital,
+                    "perl" => {
+                        qual.contains("::")
+                            && !matches!(
+                                head.as_str(),
+                                "main" | "SUPER" | "CORE" | "__PACKAGE__"
+                            )
+                    }
+                    _ => false,
+                };
                 let path_written = plain_path
                     && !own
                     && crate_shaped
@@ -988,6 +1030,9 @@ impl Pass {
                     && head.starts_with(char::is_uppercase)
                     && !bucket_stdlib
                     && ctx.wildcards.len() == 1
+                    // Lean's prelude namespaces (`Option`, `List`) are
+                    // open everywhere; an import does not supply them.
+                    && lang != "lean"
                 {
                     // `JsonConvert.Serialize()` after `using Newtonsoft.Json;`
                     // as the file's only external wildcard import.
@@ -1099,6 +1144,19 @@ impl Pass {
                     ));
                 }
             }
+        }
+        // Verilog `$display`, `$finish`: system tasks are the language's own.
+        if found.is_none()
+            && qual.is_empty()
+            && lang == "verilog"
+            && name.starts_with('$')
+        {
+            found = Some((
+                ExternalKind::Stdlib,
+                "system-tasks".into(),
+                "system-tasks".into(),
+                ExternalEvidence::StdlibScreen,
+            ));
         }
         // Verilog/VHDL: an instance of a module the tree never defines is a
         // vendor primitive or IP core.
