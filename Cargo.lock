@@ -299,6 +299,7 @@ dependencies = [
  "cgg-format",
  "mimalloc",
  "pyo3",
+ "serde_json",
 ]
 
 [[package]]
