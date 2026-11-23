@@ -372,7 +372,7 @@ pub struct CrossFileOutput {
     /// the candidate set before the facade/delegatee narrowing (fork.5),
     /// which runs as a post-pass once every file's edges exist — the
     /// delegating edge itself may be minted in this very pass.
-    pub py_fanout_sets: Vec<(CallableId, u32, String, Vec<CallableId>)>,
+    pub fanout_sets: Vec<(CallableId, u32, String, Vec<CallableId>)>,
     /// Sites this pass saw but could not turn into an edge, and that no
     /// earlier pass recorded either. Currently only module-scope value
     /// references — see the `VALUE_REF_HINT` arm in [`resolve`].
@@ -2591,7 +2591,7 @@ pub fn resolve(
                 let _sp_ref = cgg_core::profile::span("xfile::resolve-ref");
                 let mut capped = 0u32;
                 let mut no_ctor = false;
-                let mut py_fanout: Option<Vec<CallableId>> = None;
+                let mut fanout_rec: Option<Vec<CallableId>> = None;
                 let mut external: Option<String> = None;
                 let mut refused_module: Option<String> = None;
                 let mut module_certain = false;
@@ -2643,7 +2643,7 @@ pub fn resolve(
                     &mut module_certain,
                     &mut capped,
                     &mut no_ctor,
-                    &mut py_fanout,
+                    &mut fanout_rec,
                 )
                 .and_then(|cids| {
                     if super_recv {
@@ -3023,10 +3023,10 @@ pub fn resolve(
                         },
                     ));
                 } else if let Some(cids) = resolved {
-                    if let Some(cands) = py_fanout.take()
+                    if let Some(cands) = fanout_rec.take()
                         && let Some(src) = enclosing
                     {
-                        out.py_fanout_sets
+                        out.fanout_sets
                             .push((src, r.site_byte, r.name.clone(), cands));
                     }
                     for cid in cids {
@@ -3174,17 +3174,17 @@ pub fn resolve(
     for mut o in per_file {
         out.edges.append(&mut o.edges);
         out.unresolved.append(&mut o.unresolved);
-        out.py_fanout_sets.append(&mut o.py_fanout_sets);
+        out.fanout_sets.append(&mut o.fanout_sets);
     }
 
-    // Python (fork.5): the facade/delegatee narrowing, over the merged
+    // The facade/delegatee narrowing (`RECEIVER_METHOD_LANGS`), over the merged
     // output. When one candidate's body calls another candidate, the
     // call written against the receiver goes to the facade — the
     // delegatee is reached THROUGH it, and its edge for this site comes
     // off. Sibling candidates stay: an untyped receiver may hold any of
     // them. The narrowing runs here, after every file's edges exist,
     // because the delegating edge itself may be minted in this pass.
-    if !out.py_fanout_sets.is_empty() {
+    if !out.fanout_sets.is_empty() {
         // Only a structurally certain edge is evidence that one candidate
         // delegates to another: a guessed (by-name) edge between two
         // candidates is exactly the ambiguity this pass is resolving, and
@@ -3199,7 +3199,30 @@ pub fn resolve(
         }
         let mut drop: std::collections::HashSet<(CallableId, CallableId, u32)> =
             std::collections::HashSet::new();
-        for (src, site, _, cands) in &out.py_fanout_sets {
+        // What each site actually emitted: later filters may have
+        // narrowed the recorded set, and a candidate the site never bound
+        // is no facade for it — dropping the one emitted target in favour
+        // of an unemitted one left the site with no edge at all.
+        let mut emitted: HashMap<
+            (CallableId, u32),
+            std::collections::HashSet<CallableId>,
+        > = HashMap::new();
+        for e in &out.edges {
+            emitted
+                .entry((e.src, e.site_byte))
+                .or_default()
+                .insert(e.dst);
+        }
+        for (src, site, _, recorded) in &out.fanout_sets {
+            let Some(bound) = emitted.get(&(*src, *site)) else {
+                continue;
+            };
+            let cands: Vec<CallableId> = recorded
+                .iter()
+                .copied()
+                .filter(|c| bound.contains(c))
+                .collect();
+            let cands = &cands;
             let dropped: Vec<CallableId> = cands
                 .iter()
                 .copied()
@@ -3225,7 +3248,7 @@ pub fn resolve(
             out.edges
                 .retain(|e| !drop.contains(&(e.src, e.dst, e.site_byte)));
             cgg_core::profile::count(
-                "xfile::py-delegatee-dropped",
+                "xfile::delegatee-dropped",
                 (before - out.edges.len()) as u64,
             );
         }
@@ -5491,6 +5514,29 @@ fn narrow_owner_paths(
         .collect()
 }
 
+/// Languages where a call through a value (`obj.m()`, `$o->m()`,
+/// `x.M()`) reaches only methods: a module-level function of the same
+/// name is unreachable through a receiver, and the plugin labels the two
+/// apart (`CallableKind::Method` vs `Function`). In these the duck-typed
+/// fan-out keeps the methods of a mixed set, and records the set for the
+/// facade/delegatee narrowing. Not Ruby (top-level `def`s are labelled
+/// methods), Scala (class members are labelled functions) or Perl (no
+/// method/function distinction); not Kotlin, which has its own extension
+/// filter; not Java/C#, where everything is a method.
+const RECEIVER_METHOD_LANGS: &[&str] = &[
+    "python",
+    "javascript",
+    "typescript",
+    "go",
+    "rust",
+    "cpp",
+    "swift",
+    "dart",
+    "groovy",
+    "php",
+    "lua",
+];
+
 /// Languages whose typed-owner lookups are capped when they land on
 /// several same-named classes (see the step 4 caller).
 const SAME_NAME_OWNER_CAP_LANGS: &[&str] = &[
@@ -5811,7 +5857,7 @@ fn try_resolve_ref(
     // Set to the Python duck-typed candidate set when the fan-out
     // produced it, for the post-resolution facade/delegatee narrowing
     // (fork.5).
-    py_fanout: &mut Option<Vec<CallableId>>,
+    fanout_rec: &mut Option<Vec<CallableId>>,
 ) -> Option<Vec<CallableId>> {
     let cert = CertainCtx {
         graph,
@@ -7914,7 +7960,7 @@ fn try_resolve_ref(
                             )
                         })
                         .collect()
-                } else if lang == "python" {
+                } else if RECEIVER_METHOD_LANGS.contains(&lang) {
                     // An attribute call through a value (`demo.load_model()`)
                     // can only dispatch to something owned by the value's
                     // type. A module-level function of the same name is
@@ -7945,7 +7991,7 @@ fn try_resolve_ref(
                     } else {
                         cids
                     };
-                    // Python (fork.5): the set is recorded and narrowed
+                    // The set is recorded and narrowed
                     // in a post-pass — when one candidate's body calls
                     // another, the pair is a facade and the method it
                     // delegates to, and the delegatee is reached THROUGH
@@ -7955,7 +8001,7 @@ fn try_resolve_ref(
                     // candidates stay: an untyped receiver may hold any
                     // of them, and the same-name set is where calls like
                     // `host.route_error()` across a host protocol live.
-                    *py_fanout = Some(cids.clone());
+                    *fanout_rec = Some(cids.clone());
                     cids
                 } else {
                     cids

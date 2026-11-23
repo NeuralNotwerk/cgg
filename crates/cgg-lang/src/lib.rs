@@ -17,6 +17,7 @@ pub mod closure_types;
 pub mod detect;
 pub mod externals;
 pub mod locals;
+pub mod member_aliases;
 pub mod notebook;
 pub mod parser;
 pub mod plugins;

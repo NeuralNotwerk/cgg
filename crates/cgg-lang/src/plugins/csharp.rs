@@ -279,13 +279,43 @@ impl<'a> Walker<'a> {
                 self.walk_children(node);
                 return;
             }
+            "property_declaration"
+                if node
+                    .children(&mut node.walk())
+                    .any(|c| c.kind() == "arrow_expression_clause") =>
+            {
+                // `int N => 2;`: an expression-bodied property is its own
+                // getter, named by the property.
+                if let Some(n) = node.child_by_field_name("name") {
+                    let name = self.text(n).to_string();
+                    if !name.is_empty() {
+                        self.record_named(node, &name, DefVariant::Property);
+                    }
+                }
+                self.walk_children(node);
+                return;
+            }
             "accessor_declaration" => {
-                // get/set accessors inside a property.
-                let name = node
+                // get/set accessors inside a property. A getter is named by
+                // its property (`Size`), which is what a read of it
+                // (`a.Size`) names; `set`/`init` keep their keyword.
+                let keyword = node
                     .children(&mut node.walk())
                     .find(|c| matches!(c.kind(), "get" | "set" | "init"))
-                    .map(|n| n.kind().to_string())
-                    .unwrap_or_else(|| "accessor".to_string());
+                    .map(|n| n.kind().to_string());
+                let property_name = node
+                    .parent()
+                    .filter(|p| p.kind() == "accessor_list")
+                    .and_then(|p| p.parent())
+                    .filter(|p| p.kind() == "property_declaration")
+                    .and_then(|p| p.child_by_field_name("name"))
+                    .map(|n| self.text(n).to_string())
+                    .filter(|n| !n.is_empty());
+                let name = match (keyword.as_deref(), property_name) {
+                    (Some("get"), Some(p)) => p,
+                    (Some(k), _) => k.to_string(),
+                    (None, _) => "accessor".to_string(),
+                };
                 self.record_named(node, &name, DefVariant::Property);
                 self.walk_children(node);
                 return;
@@ -1318,7 +1348,7 @@ namespace A.B.C {
         assert_eq!(vis_of(&f, "IRepo.FindAll"), Vis::Public);
         assert_eq!(vis_of(&f, "IRepo.Annotated"), Vis::Public);
         assert_eq!(vis_of(&f, "IRepo.WithBody"), Vis::Public);
-        assert_eq!(vis_of(&f, "IRepo.get"), Vis::Public);
+        assert_eq!(vis_of(&f, "IRepo.Count"), Vis::Public);
         // An explicit modifier still wins in an interface.
         assert_eq!(vis_of(&f, "IRepo.Helper"), Vis::Private);
         assert_eq!(vis_of(&f, "IRepo.Hook"), Vis::Protected);
@@ -1356,9 +1386,10 @@ namespace A.B.C {
                 .unwrap_or_else(|| panic!("{name}@{line}"))
                 .vis
         };
-        assert_eq!(acc("get", 2), Vis::Public);
+        // A getter is named by its property; `set` keeps its keyword.
+        assert_eq!(acc("P", 2), Vis::Public);
         assert_eq!(acc("set", 2), Vis::Private);
-        assert_eq!(acc("get", 3), Vis::Private);
+        assert_eq!(acc("Q", 3), Vis::Private);
     }
 
     #[test]

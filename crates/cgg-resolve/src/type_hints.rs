@@ -182,6 +182,45 @@ pub fn field_index(all_facts: &[FileFacts]) -> HashMap<String, HashMap<String, S
 ///   `weak_receiver_type`: the type was inferred across files, not
 ///   declared at the call, so it can raise a single candidate to no
 ///   better than medium.
+/// `const f = obj.load; f()`: in the languages `cgg_lang::member_aliases`
+/// reads (JS/TS, Go, Swift, Dart), a bare call through a local bound to a
+/// member read becomes that member call (`obj.load()`), so it resolves
+/// like one. Run before type propagation, so the receiver it writes is
+/// typed like any other. The alias must be the binding in scope at the
+/// call; a typed local, a value reference or a paren-less site is left.
+pub fn rewrite_member_alias_calls(facts: &mut FileFacts) {
+    if !cgg_lang::member_aliases::ALIAS_LANGS.contains(&facts.language.as_str())
+        || facts.member_aliases.is_empty()
+    {
+        return;
+    }
+    let typed: std::collections::HashSet<String> = facts
+        .local_types
+        .iter()
+        .map(|l| l.var_name.clone())
+        .collect();
+    let locals = crate::scope::FileLocals::build(facts);
+    let aliases = std::mem::take(&mut facts.member_aliases);
+    for r in &mut facts.references {
+        if r.receiver_hint.is_empty()
+            && !r.dot_call
+            && !r.value_ref
+            && !r.paren_less
+            && !r.typed_receiver
+            && !typed.contains(&r.name)
+            && let Some(binding) = locals.binding_decl_at(&r.name, r.site_byte)
+            && let Some(alias) = aliases
+                .iter()
+                .find(|a| a.name == r.name && a.decl_byte == binding.decl)
+        {
+            r.receiver_hint = alias.head.clone();
+            r.name = alias.member.clone();
+            r.dot_call = true;
+        }
+    }
+    facts.member_aliases = aliases;
+}
+
 pub fn settle_python_member_refs(
     facts: &mut FileFacts,
     fields: &HashMap<String, HashMap<String, String>>,
