@@ -2336,7 +2336,7 @@ pub fn resolve(
                     continue;
                 }
 
-                // A property read (`pbr_voxel.feats`) is the property-edge
+                // A property read (`voxel.feats`) is the property-edge
                 // pass's input, not a call. Resolving it here would duck-
                 // type the attribute name across every same-named callable
                 // in the tree — call-syntax noise around a use that never
@@ -3212,7 +3212,10 @@ pub fn resolve(
             let before = out.edges.len();
             out.edges
                 .retain(|e| !drop.contains(&(e.src, e.dst, e.site_byte)));
-            cgg_core::profile::count("xfile::py-delegatee-dropped", (before - out.edges.len()) as u64);
+            cgg_core::profile::count(
+                "xfile::py-delegatee-dropped",
+                (before - out.edges.len()) as u64,
+            );
         }
     }
 
@@ -7418,11 +7421,11 @@ fn try_resolve_ref(
                             cids
                         };
                         // Python: a receiver typed from a module-qualified
-                        // constructor (`sampler = comfy.samplers.KSampler(...)`
+                        // constructor (`sampler = pkg.samplers.Sampler(...)`
                         // carries the qualifier) names the class where that
                         // module says it lives. Same-named classes pool into
-                        // one bare-owner bucket (`nodes.KSampler` beside
-                        // `comfy.samplers.KSampler`); the qualifier rules out
+                        // one bare-owner bucket (`nodes.Sampler` beside
+                        // `pkg.samplers.Sampler`); the qualifier rules out
                         // every copy whose file the written path cannot mean.
                         // A qualifier that matches nothing (an aliased import,
                         // a relocated tree) keeps every candidate.
@@ -7435,7 +7438,9 @@ fn try_resolve_ref(
                                 .copied()
                                 .filter(|c| {
                                     graph.callables.get(c).is_some_and(|n| {
-                                        modix.py_file_modules(n.file).contains(&q.to_string())
+                                        modix
+                                            .py_file_modules(n.file)
+                                            .contains(&q.to_string())
                                     })
                                 })
                                 .collect();
@@ -8683,7 +8688,7 @@ mod tests {
     /// candidate, the pair is a facade and its delegatee. The call
     /// written against the receiver goes to the facade; the delegatee
     /// is reached THROUGH it and is dropped from the direct-caller set
-    /// (hfetch's `host.launch_worker` bound the controller beside the
+    /// (a GUI app's `host.launch_worker` bound the controller beside the
     /// facade that delegates to it).
     #[test]
     fn python_delegatee_partner_is_dropped() {
@@ -8804,11 +8809,23 @@ mod tests {
         });
         g.add_callable(CallableNode {
             kind: CallableKind::Method,
-            ..mk_callable(2, "harvest_crop", "Derived.harvest_crop", 2, "python", (0, 60))
+            ..mk_callable(
+                2,
+                "harvest_crop",
+                "Derived.harvest_crop",
+                2,
+                "python",
+                (0, 60),
+            )
         });
         let derived_def = DefRecord {
             base_types: vec!["Base".into()],
-            ..mk_def("harvest_crop", "Derived.harvest_crop", DefVariant::InherentMethod, (0, 60))
+            ..mk_def(
+                "harvest_crop",
+                "Derived.harvest_crop",
+                DefVariant::InherentMethod,
+                (0, 60),
+            )
         };
         let use_f = facts_for(
             0,
@@ -8829,18 +8846,17 @@ mod tests {
             1,
             "base.py",
             "python",
-            vec![mk_def("harvest_crop", "Base.harvest_crop", DefVariant::InherentMethod, (0, 60))],
+            vec![mk_def(
+                "harvest_crop",
+                "Base.harvest_crop",
+                DefVariant::InherentMethod,
+                (0, 60),
+            )],
             vec![],
             vec![],
         );
-        let derived_f = facts_for(
-            2,
-            "derived.py",
-            "python",
-            vec![derived_def],
-            vec![],
-            vec![],
-        );
+        let derived_f =
+            facts_for(2, "derived.py", "python", vec![derived_def], vec![], vec![]);
         // The base link lives on the class record, not the method.
         let mut derived_f = derived_f;
         derived_f.classes.push(cgg_core::ClassDecl {
@@ -12623,14 +12639,8 @@ mod tests {
             "python",
             (0, 40),
         ));
-        let mut method = mk_callable(
-            1,
-            "load_model",
-            "app.Demo.load_model",
-            1,
-            "python",
-            (0, 40),
-        );
+        let mut method =
+            mk_callable(1, "load_model", "app.Demo.load_model", 1, "python", (0, 40));
         method.kind = CallableKind::Method;
         g.add_callable(method);
         let mut caller = mk_callable(2, "run", "ui.run", 2, "python", (30, 120));
@@ -12762,26 +12772,21 @@ mod tests {
 
     #[test]
     fn python_module_qualified_constructor_picks_its_class() {
-        // `sampler = comfy.samplers.KSampler(...)` types the receiver
-        // `KSampler` and carries the module it was written through. Two
+        // `sampler = pkg.samplers.Sampler(...)` types the receiver
+        // `Sampler` and carries the module it was written through. Two
         // same-named classes pool into one bare-owner bucket; the
-        // qualifier rules the foreign copy out (comfy/sample.py bound
-        // nodes.py::KSampler.sample).
+        // qualifier rules the foreign copy out (pkg/sample.py bound
+        // nodes.py::Sampler.sample).
         let mut g = Graph::new();
-        g.add_file(mk_file(0, "comfy/samplers.py", "python"));
+        g.add_file(mk_file(0, "pkg/samplers.py", "python"));
         g.add_file(mk_file(1, "nodes.py", "python"));
-        g.add_file(mk_file(2, "comfy/sample.py", "python"));
-        let mut m0 = mk_callable(
-            0,
-            "sample",
-            "samplers.KSampler.sample",
-            0,
-            "python",
-            (0, 40),
-        );
+        g.add_file(mk_file(2, "pkg/sample.py", "python"));
+        let mut m0 =
+            mk_callable(0, "sample", "samplers.Sampler.sample", 0, "python", (0, 40));
         m0.kind = CallableKind::Method;
         g.add_callable(m0);
-        let mut m1 = mk_callable(1, "sample", "nodes.KSampler.sample", 1, "python", (0, 40));
+        let mut m1 =
+            mk_callable(1, "sample", "nodes.Sampler.sample", 1, "python", (0, 40));
         m1.kind = CallableKind::Method;
         g.add_callable(m1);
         let mut caller = mk_callable(2, "run", "sample.run", 2, "python", (30, 120));
@@ -12790,20 +12795,20 @@ mod tests {
 
         let mut samplers = facts_for(
             0,
-            "comfy/samplers.py",
+            "pkg/samplers.py",
             "python",
             vec![mk_def(
                 "sample",
-                "samplers.KSampler.sample",
+                "samplers.Sampler.sample",
                 DefVariant::InherentMethod,
                 (0, 40),
             )],
             vec![],
             vec![],
         );
-        // Namespace reality: `comfy/` carries no `__init__.py`, so the
+        // Namespace reality: `pkg/` carries no `__init__.py`, so the
         // importable module name is the bare stem; the file's path still
-        // spells `comfy.samplers`, which is what the qualifier names.
+        // spells `pkg.samplers`, which is what the qualifier names.
         samplers.packages = vec!["samplers".to_string()];
         let nodes_facts = facts_for(
             1,
@@ -12811,7 +12816,7 @@ mod tests {
             "python",
             vec![mk_def(
                 "sample",
-                "nodes.KSampler.sample",
+                "nodes.Sampler.sample",
                 DefVariant::InherentMethod,
                 (0, 40),
             )],
@@ -12820,13 +12825,18 @@ mod tests {
         );
         let sample_caller = facts_for(
             2,
-            "comfy/sample.py",
+            "pkg/sample.py",
             "python",
-            vec![mk_def("run", "sample.run", DefVariant::InherentMethod, (30, 120))],
+            vec![mk_def(
+                "run",
+                "sample.run",
+                DefVariant::InherentMethod,
+                (30, 120),
+            )],
             vec![RefRecord {
                 name: "sample".into(),
-                receiver_hint: "KSampler".into(),
-                receiver_module: Some("comfy.samplers".into()),
+                receiver_hint: "Sampler".into(),
+                receiver_module: Some("pkg.samplers".into()),
                 site_line: 5,
                 site_byte: 60,
                 ..Default::default()
@@ -12850,24 +12860,19 @@ mod tests {
 
     #[test]
     fn python_unqualified_constructor_keeps_the_owner_bucket() {
-        // No qualifier on the rewritten receiver (a bare `KSampler()`
+        // No qualifier on the rewritten receiver (a bare `Sampler()`
         // spelling, or a Strategy 4 return-type match): nothing rules a
         // copy out, and the bucket still fans out to both classes.
         let mut g = Graph::new();
-        g.add_file(mk_file(0, "comfy/samplers.py", "python"));
+        g.add_file(mk_file(0, "pkg/samplers.py", "python"));
         g.add_file(mk_file(1, "nodes.py", "python"));
-        g.add_file(mk_file(2, "comfy/sample.py", "python"));
-        let mut m0 = mk_callable(
-            0,
-            "sample",
-            "samplers.KSampler.sample",
-            0,
-            "python",
-            (0, 40),
-        );
+        g.add_file(mk_file(2, "pkg/sample.py", "python"));
+        let mut m0 =
+            mk_callable(0, "sample", "samplers.Sampler.sample", 0, "python", (0, 40));
         m0.kind = CallableKind::Method;
         g.add_callable(m0);
-        let mut m1 = mk_callable(1, "sample", "nodes.KSampler.sample", 1, "python", (0, 40));
+        let mut m1 =
+            mk_callable(1, "sample", "nodes.Sampler.sample", 1, "python", (0, 40));
         m1.kind = CallableKind::Method;
         g.add_callable(m1);
         let mut caller = mk_callable(2, "run", "sample.run", 2, "python", (30, 120));
@@ -12876,11 +12881,11 @@ mod tests {
 
         let mut samplers = facts_for(
             0,
-            "comfy/samplers.py",
+            "pkg/samplers.py",
             "python",
             vec![mk_def(
                 "sample",
-                "samplers.KSampler.sample",
+                "samplers.Sampler.sample",
                 DefVariant::InherentMethod,
                 (0, 40),
             )],
@@ -12894,7 +12899,7 @@ mod tests {
             "python",
             vec![mk_def(
                 "sample",
-                "nodes.KSampler.sample",
+                "nodes.Sampler.sample",
                 DefVariant::InherentMethod,
                 (0, 40),
             )],
@@ -12903,12 +12908,17 @@ mod tests {
         );
         let sample_caller = facts_for(
             2,
-            "comfy/sample.py",
+            "pkg/sample.py",
             "python",
-            vec![mk_def("run", "sample.run", DefVariant::InherentMethod, (30, 120))],
+            vec![mk_def(
+                "run",
+                "sample.run",
+                DefVariant::InherentMethod,
+                (30, 120),
+            )],
             vec![RefRecord {
                 name: "sample".into(),
-                receiver_hint: "KSampler".into(),
+                receiver_hint: "Sampler".into(),
                 site_line: 5,
                 site_byte: 60,
                 ..Default::default()
@@ -13034,7 +13044,8 @@ mod tests {
         // target carries its module name (`app.util`) as every real
         // Python file does — the module-scoped lookup then binds it
         // through the file the import names, not by name across the tree.
-        let t_util: &[(&str, &str, &[&str])] = &[("app/util.py", "app.util.post", &["app.util"])];
+        let t_util: &[(&str, &str, &[&str])] =
+            &[("app/util.py", "app.util.post", &["app.util"])];
         let (dsts, _) = ext_case(
             "python",
             t_util,

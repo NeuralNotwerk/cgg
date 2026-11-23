@@ -522,7 +522,11 @@ mod tests {
     fn allow_dir_leaves_every_other_denied_dir_deny() {
         let tmp = TempDir::new().unwrap();
         write(tmp.path(), "vendor/dep.rs", b"fn dep() {}\n");
-        write(tmp.path(), "node_modules/lodash.js", b"module.exports={};\n");
+        write(
+            tmp.path(),
+            "node_modules/lodash.js",
+            b"module.exports={};\n",
+        );
         write(tmp.path(), "target/debug/out.rs", b"fn out() {}\n");
 
         let cfg = WalkConfig {
@@ -577,9 +581,9 @@ mod tests {
         let out = walk(&cfg).unwrap();
         assert!(out.candidates.iter().any(|c| c.path.ends_with("a.rs")));
         assert!(
-            out.skips.iter().any(
-                |s| matches!(&s.reason, SkipReason::Builtin(d) if d == "vendor")
-            )
+            out.skips
+                .iter()
+                .any(|s| matches!(&s.reason, SkipReason::Builtin(d) if d == "vendor"))
         );
     }
 

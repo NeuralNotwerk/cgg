@@ -284,7 +284,7 @@ pub fn link_file_with_cap(
             continue;
         }
 
-        // A property read (`pbr_voxel.feats`) is the property-edge pass's
+        // A property read (`voxel.feats`) is the property-edge pass's
         // input (`--property-edges`), not an intra-file call. Resolving
         // it here would bind the attribute name to any same-named
         // callable in the file.

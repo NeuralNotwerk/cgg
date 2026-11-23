@@ -226,11 +226,12 @@ pub fn settle_python_member_refs(
             && !r.value_ref
             && !r.paren_less
             && !r.typed_receiver
-            && var_types.get(&r.name).is_none()
+            && !var_types.contains_key(&r.name)
             && let Some(binding) = locals.binding_decl_at(&r.name, r.site_byte)
-            && let Some(alias) = facts.member_aliases.iter().find(|a| {
-                a.name == r.name && a.decl_byte == binding.decl
-            })
+            && let Some(alias) = facts
+                .member_aliases
+                .iter()
+                .find(|a| a.name == r.name && a.decl_byte == binding.decl)
         {
             r.receiver_hint = alias.head.clone();
             r.name = alias.member.clone();
@@ -657,7 +658,7 @@ pub fn propagate_types_with_fields(
     // plugin except C++ was written against (see Strategy 3 below).
     let mut local_type_map: HashMap<&str, &str> = HashMap::new();
     // The module qualifier each of those locals' types was written with
-    // (`sampler` → `comfy.samplers`); Python only — no other plugin
+    // (`sampler` → `pkg.samplers`); Python only — no other plugin
     // records one. Travels with the rewrite so a same-named class in
     // another module can be ruled out by where its file sits.
     let mut local_module_map: HashMap<&str, &str> = HashMap::new();
@@ -774,7 +775,7 @@ pub fn propagate_types_with_fields(
     let _s3 = cgg_core::profile::span("types::pass3");
     let mut rewrites: Vec<(usize, String)> = Vec::new();
     // The module qualifier a rewrite's type was written with (Python
-    // constructors like `comfy.samplers.KSampler`): ref index → module.
+    // constructors like `pkg.samplers.Sampler`): ref index → module.
     let mut ref_modules: HashMap<usize, String> = HashMap::new();
     // The rewrites above that are guesses rather than a declaration in
     // scope (see `RefRecord::weak_receiver_type`): indices into `rewrites`'
@@ -1520,7 +1521,7 @@ pub fn propagate_types_with_fields(
         }
         facts.references[i].receiver_hint = ty;
         // The module the type was written through (`sampler` retyped
-        // `KSampler` from `comfy.samplers.KSampler(...)`): carried beside
+        // `Sampler` from `pkg.samplers.Sampler(...)`): carried beside
         // the bare hint, which owner lookups key on. A ref rewritten from
         // another strategy has no qualifier — cleared, not stale.
         facts.references[i].receiver_module = ref_modules.remove(&i);

@@ -22,8 +22,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use cgg_core::{
-    CallAssign, DefRecord, DefVariant, FieldType, FileFacts, FunctionReturn, ImportRecord,
-    LocalType, MemberAlias, RefRecord, ids::FileId,
+    CallAssign, DefRecord, DefVariant, FieldType, FileFacts, FunctionReturn,
+    ImportRecord, LocalType, MemberAlias, RefRecord, ids::FileId,
 };
 use tree_sitter::{Node, Tree};
 
@@ -494,10 +494,10 @@ impl<'a> Walker<'a> {
 
     /// Attribute reads that could run a property getter, when the run
     /// records property sites: a call's arguments and keyword values
-    /// (`grid_sample_3d(pbr_voxel.feats, device=pipeline.device)`), the
+    /// (`sample_grid(voxel.feats, device=pipeline.device)`), the
     /// right-hand side of an assignment (`uvs = mesh.uv`), and
     /// `return`/`yield` values. The assignment arm also links a variable
-    /// to a call on the right (`pbr_voxel = pipeline.decode_tex_slat(…)`)
+    /// to a call on the right (`voxel = pipeline.decode_tex_slat(…)`)
     /// so the property-edge pass can type it from the callee's declared
     /// return type.
     ///
@@ -587,7 +587,7 @@ impl<'a> Walker<'a> {
                     ..Default::default()
                 });
             }
-            // `pbr_voxel.shape[1]`: the subscript does not change what
+            // `voxel.shape[1]`: the subscript does not change what
             // is read — the getter runs either way. The grammar names the
             // subscripted expression `value` (attributes use `object`).
             "subscript" => {
@@ -598,8 +598,13 @@ impl<'a> Walker<'a> {
                     self.property_read_ref(obj, depth + 1);
                 }
             }
-            "tuple" | "list" | "set" | "parenthesized_expression"
-            | "boolean_operator" | "list_splat" | "dictionary_splat" => {
+            "tuple"
+            | "list"
+            | "set"
+            | "parenthesized_expression"
+            | "boolean_operator"
+            | "list_splat"
+            | "dictionary_splat" => {
                 let mut c = v.walk();
                 let parts: Vec<Node> = v.named_children(&mut c).collect();
                 for p in parts {
@@ -626,7 +631,7 @@ impl<'a> Walker<'a> {
     }
 
     /// Typed parameters and a declared return type, for the property-edge
-    /// pass only (`--property-edges`): `pipeline: Trellis2ImageTo3DPipeline`
+    /// pass only (`--property-edges`): `pipeline: ImagePipeline`
     /// types the receiver `pipeline` of every read in this def;
     /// `-> SparseTensor` types whatever a call to this def is assigned
     /// to. Deliberately not in `local_types` — the type propagator reads
@@ -641,13 +646,10 @@ impl<'a> Walker<'a> {
                         // `typed_default_parameter` names its field
                         // `name`; a bare `typed_parameter` (`a: Foo`)
                         // does not — the name is its first identifier.
-                        let name = p
-                            .child_by_field_name("name")
-                            .or_else(|| {
-                                let mut c = p.walk();
-                                p.named_children(&mut c)
-                                    .find(|n| n.kind() == "identifier")
-                            });
+                        let name = p.child_by_field_name("name").or_else(|| {
+                            let mut c = p.walk();
+                            p.named_children(&mut c).find(|n| n.kind() == "identifier")
+                        });
                         (name, p.child_by_field_name("type"))
                     }
                     _ => continue,
@@ -780,7 +782,11 @@ impl<'a> Walker<'a> {
                 let name = self.text(left).to_string();
                 let member = self.text(attr).to_string();
                 let head = self.text(obj).to_string();
-                if !name.is_empty() && !member.is_empty() && name != member && !head.is_empty() {
+                if !name.is_empty()
+                    && !member.is_empty()
+                    && name != member
+                    && !head.is_empty()
+                {
                     self.facts.member_aliases.push(MemberAlias {
                         name,
                         head,
@@ -810,8 +816,7 @@ impl<'a> Walker<'a> {
             {
                 self.facts.module_typed_locals.push(var_name.clone());
             }
-            let type_module =
-                constructor_module(self, func).unwrap_or_default();
+            let type_module = constructor_module(self, func).unwrap_or_default();
             self.facts.local_types.push(LocalType {
                 var_name,
                 type_name,
@@ -1241,7 +1246,7 @@ fn constructor_type(func: Node, source: &[u8]) -> Option<String> {
 }
 
 /// The module qualifier a constructor call is written with:
-/// `comfy.samplers.KSampler(...)` → `comfy.samplers`, `Demo(...)` →
+/// `pkg.samplers.Sampler(...)` → `pkg.samplers`, `Demo(...)` →
 /// `None`. The qualifier travels with the assigned local's type so the
 /// resolver can tell two same-named classes apart by where their files
 /// sit (a bare spelling names no module and disambiguates nothing).
@@ -1571,8 +1576,8 @@ class Pipe:
     @property
     def device(self): ...
 def process(self, pipeline: Pipe, texture_slat: sp.SparseTensor):
-    grid_sample_3d(pbr_voxel.feats, pbr_voxel.coords, device=pipeline.device)
-    width = pbr_voxel.shape[1]
+    sample_grid(voxel.feats, voxel.coords, device=pipeline.device)
+    width = voxel.shape[1]
     uvs = mesh.uv
     return self.texture
 ";
@@ -1588,11 +1593,11 @@ def process(self, pipeline: Pipe, texture_slat: sp.SparseTensor):
             got,
             vec![
                 ("mesh".to_string(), "uv".to_string()),
-                ("pbr_voxel".to_string(), "coords".to_string()),
-                ("pbr_voxel".to_string(), "feats".to_string()),
-                ("pbr_voxel".to_string(), "shape".to_string()),
                 ("pipeline".to_string(), "device".to_string()),
                 ("self".to_string(), "texture".to_string()),
+                ("voxel".to_string(), "coords".to_string()),
+                ("voxel".to_string(), "feats".to_string()),
+                ("voxel".to_string(), "shape".to_string()),
             ]
         );
     }
@@ -1656,10 +1661,10 @@ class Pipe:
     fn call_assignments_link_variable_to_call_line() {
         let src = "\
 def f(obj, make):
-    pbr_voxel = obj.decode_tex_slat(slat)
+    voxel = obj.decode_tex_slat(slat)
     plain = make()
     count = 5
-    return pbr_voxel
+    return voxel
 ";
         let f = extract_props(src);
         let got: Vec<(String, u32)> = f
@@ -1668,7 +1673,10 @@ def f(obj, make):
             .map(|ca| (ca.var_name.clone(), ca.site_line))
             .collect();
         // The source literal starts with a newline, so these are lines 2 and 3.
-        assert_eq!(got, vec![("pbr_voxel".to_string(), 2), ("plain".to_string(), 3)]);
+        assert_eq!(
+            got,
+            vec![("voxel".to_string(), 2), ("plain".to_string(), 3)]
+        );
     }
 
     /// The flag-off contract: an ordinary run records none of this, so
@@ -1678,8 +1686,8 @@ def f(obj, make):
         let src = "\
 class Pipe:
     def process(self, pipeline: Pipe) -> SparseTensor:
-        grid_sample_3d(pbr_voxel.feats, device=pipeline.device)
-        pbr_voxel = pipeline.decode_tex_slat(slat)
+        sample_grid(voxel.feats, device=pipeline.device)
+        voxel = pipeline.decode_tex_slat(slat)
 ";
         let f = extract(src);
         assert!(f.references.iter().all(|r| !r.property_read));
@@ -2150,20 +2158,20 @@ class C:
 
     #[test]
     fn a_module_qualified_constructor_keeps_its_qualifier() {
-        // `sampler = comfy.samplers.KSampler(...)`: the local's type is
+        // `sampler = pkg.samplers.Sampler(...)`: the local's type is
         // the class stem (owner lookups key on it) with the module it was
         // written through carried beside, so two same-named classes in
         // different modules can be told apart by where their files sit.
         let f = extract(
-            "def f(model):\n    sampler = comfy.samplers.KSampler(model, steps=10)\n    return sampler.sample(model)\n",
+            "def f(model):\n    sampler = pkg.samplers.Sampler(model, steps=10)\n    return sampler.sample(model)\n",
         );
         let t = f
             .local_types
             .iter()
             .find(|t| t.var_name == "sampler")
             .expect("sampler typed");
-        assert_eq!(t.type_name, "KSampler");
-        assert_eq!(t.type_module, "comfy.samplers");
+        assert_eq!(t.type_name, "Sampler");
+        assert_eq!(t.type_module, "pkg.samplers");
         assert!(
             f.module_typed_locals.iter().any(|v| v == "sampler"),
             "a module-qualified constructor is a weak rewrite: {:?}",

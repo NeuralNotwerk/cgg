@@ -174,7 +174,8 @@ fn python_member_alias_through_a_field_chain_resolves() {
         .assert()
         .success();
 
-    let g: serde_json::Value = serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
     let callables = &g["callables"];
     let qn = |id: &serde_json::Value| {
         callables[id.as_str().unwrap()]["qualified_name"]
@@ -242,7 +243,8 @@ class MainWindow:
         .assert()
         .success();
 
-    let g: serde_json::Value = serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
     let callables = &g["callables"];
     let qn = |id: &serde_json::Value| {
         callables[id.as_str().unwrap()]["qualified_name"]
@@ -2373,19 +2375,22 @@ class Pipe(Pipeline):
         .assert()
         .success();
     let p = fs::read_to_string(&plain).unwrap();
-    assert_eq!(p.matches("| prop
-").count() + p.matches("prop|").count(), 0, "{p}");
+    assert_eq!(
+        p.matches(
+            "| prop
+"
+        )
+        .count()
+            + p.matches("prop|").count(),
+        0,
+        "{p}"
+    );
 
     // --property-edges: run -[prop]-> Pipeline.device, through the base
     // class, at high confidence (the parameter is annotated).
     let props = tmp.path().join("pr.mmd");
     cgg()
-        .args([
-            "--stack-graphs",
-            "off",
-            "--property-edges",
-            "-o",
-        ])
+        .args(["--stack-graphs", "off", "--property-edges", "-o"])
         .arg(&props)
         .arg(tmp.path())
         .assert()
@@ -2429,8 +2434,11 @@ def load(c: Codec):
         .success();
     let g = fs::read_to_string(&props).unwrap();
     assert!(g.contains("prop|") || g.contains("| prop"), "{g}");
-    assert!(g.contains("SparseTensor.feats"), "expected load -[prop]-> SparseTensor.feats:
-{g}");
+    assert!(
+        g.contains("SparseTensor.feats"),
+        "expected load -[prop]-> SparseTensor.feats:
+{g}"
+    );
 }
 
 /// WS26 (gap 25): a JavaScript function passed, stored or returned as a
@@ -9022,7 +9030,11 @@ fn python_method_beats_same_named_free_function_in_fanout() {
     // was exactly the false partner the duck-typed fan-out bound beside
     // the method.
     let tmp = TempDir::new().unwrap();
-    write(tmp.path(), "model.py", b"def load_model(name):\n    return name\n");
+    write(
+        tmp.path(),
+        "model.py",
+        b"def load_model(name):\n    return name\n",
+    );
     write(
         tmp.path(),
         "app.py",
@@ -9046,24 +9058,24 @@ fn python_method_beats_same_named_free_function_in_fanout() {
 
 #[test]
 fn constructor_qualifier_picks_its_own_class() {
-    // `sampler = pkg.samplers.KSampler(...)` types the receiver `KSampler`
+    // `sampler = pkg.samplers.Sampler(...)` types the receiver `Sampler`
     // and carries the module. Two same-named classes pool into one
     // bare-owner bucket; the qualifier rules the foreign copy out.
     let tmp = TempDir::new().unwrap();
     write(
         tmp.path(),
         "pkg/samplers.py",
-        b"class KSampler:\n    def sample(self, noise):\n        return noise\n",
+        b"class Sampler:\n    def sample(self, noise):\n        return noise\n",
     );
     write(
         tmp.path(),
         "nodes.py",
-        b"class KSampler:\n    def sample(self, model):\n        return model\n",
+        b"class Sampler:\n    def sample(self, model):\n        return model\n",
     );
     write(
         tmp.path(),
         "main.py",
-        b"import pkg.samplers\n\ndef run(model):\n    sampler = pkg.samplers.KSampler(model)\n    return sampler.sample(model)\n",
+        b"import pkg.samplers\n\ndef run(model):\n    sampler = pkg.samplers.Sampler(model)\n    return sampler.sample(model)\n",
     );
     let edges = py_edges(tmp.path());
     let to = |d: &str| {
@@ -9072,6 +9084,6 @@ fn constructor_qualifier_picks_its_own_class() {
             .filter(|(s, t, _)| s.ends_with("run") && t.contains(d))
             .count()
     };
-    assert_eq!(to("KSampler.sample@samplers.py"), 1, "edges: {edges:?}");
-    assert_eq!(to("KSampler.sample@nodes.py"), 0, "edges: {edges:?}");
+    assert_eq!(to("Sampler.sample@samplers.py"), 1, "edges: {edges:?}");
+    assert_eq!(to("Sampler.sample@nodes.py"), 0, "edges: {edges:?}");
 }

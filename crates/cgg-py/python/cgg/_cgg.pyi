@@ -180,6 +180,9 @@ def analyze(
     locations: bool = ...,
     from_graph: str | os.PathLike[str] | None = ...,
     externals: bool | str | Sequence[str] | None = ...,
+    allow_dirs: Sequence[str] | None = ...,
+    module_scope_calls: bool = ...,
+    property_edges: bool = ...,
 ) -> Graph:
     """Raises CggError if the analysis fails, ValueError on a bad argument."""
 

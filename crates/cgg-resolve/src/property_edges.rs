@@ -1,7 +1,7 @@
 //! Property edges (`--property-edges`): attribute reads that run code.
 //!
 //! Reading a Python `@property` executes the getter's body, so
-//! `pbr_voxel.feats` reaches code exactly as `obj.method()` does — the
+//! `voxel.feats` reaches code exactly as `obj.method()` does — the
 //! source just spells it without parentheses. This pass mints those
 //! edges, mirroring what callgraph does for the same source and what
 //! `--reference-edges` did for value references: opt-in, precise or
@@ -13,7 +13,7 @@
 //!    inside its own class, a receiver the type propagator already
 //!    rewrote from a class-field annotation, or a variable assigned
 //!    from a call whose return type every same-named definition agrees
-//!    on (`pbr_voxel = pipeline.decode_tex_slat(…)`, joined through the
+//!    on (`voxel = pipeline.decode_tex_slat(…)`, joined through the
 //!    call's minted edge and `FileFacts::function_returns`).
 //! 2. The type — or, walking `base_types`, a base of it — declares
 //!    **exactly one** property under the attribute's name. Zero
@@ -67,11 +67,7 @@ fn base_head(base: &str) -> Option<&str> {
     let name = base.split('.').next_back()?;
     let name = name.split('[').next()?;
     let name = name.trim();
-    if name.is_empty() {
-        None
-    } else {
-        Some(name)
-    }
+    if name.is_empty() { None } else { Some(name) }
 }
 
 /// Mint `Via::Property` edges for every property read the declarative
@@ -107,11 +103,16 @@ pub fn emit(graph: &mut Graph, all_facts: &[FileFacts]) {
     // same-named classes pool their bases; that only widens a walk that
     // candidate uniqueness still gates.
     let mut bases_by_class: HashMap<&str, Vec<&str>> = HashMap::new();
+    // How many classes of each simple name the tree declares. The index
+    // is keyed by bare name, so an edge is structurally certain only when
+    // the receiver's class and the property's owner are each one class.
+    let mut class_decls: HashMap<&str, usize> = HashMap::new();
     for f in all_facts {
         for cls in &f.classes {
             let Some(name) = cls.class_qn.rsplit('.').next() else {
                 continue;
             };
+            *class_decls.entry(name).or_default() += 1;
             let entry = bases_by_class.entry(name).or_default();
             for b in &cls.base_types {
                 if let Some(head) = base_head(b)
@@ -150,7 +151,8 @@ pub fn emit(graph: &mut Graph, all_facts: &[FileFacts]) {
     // `(callee's file, call site line) -> callees`, for the assignment
     // join. More than one callee at a line leaves the variable untyped —
     // two calls on one line do not name one type.
-    let mut edge_targets_by_line: HashMap<(FileId, u32), Vec<CallableId>> = HashMap::new();
+    let mut edge_targets_by_line: HashMap<(FileId, u32), Vec<CallableId>> =
+        HashMap::new();
     for e in &graph.edges {
         let Some(src) = graph.callables.get(&e.src) else {
             continue;
@@ -181,7 +183,8 @@ pub fn emit(graph: &mut Graph, all_facts: &[FileFacts]) {
             params_by_scope.entry(lt.scope_byte).or_default().push(lt);
         }
         // Call assignments of this file, per variable, in source order.
-        let mut assigns_by_var: HashMap<&str, Vec<&cgg_core::CallAssign>> = HashMap::new();
+        let mut assigns_by_var: HashMap<&str, Vec<&cgg_core::CallAssign>> =
+            HashMap::new();
         for ca in &facts.call_assignments {
             assigns_by_var
                 .entry(ca.var_name.as_str())
@@ -189,6 +192,11 @@ pub fn emit(graph: &mut Graph, all_facts: &[FileFacts]) {
                 .push(ca);
         }
 
+        // Definitions by start byte, once per file: the innermost one
+        // around a read is found by binary search, not a scan per read.
+        let mut defs_by_start: Vec<&cgg_core::DefRecord> =
+            facts.definitions.iter().collect();
+        defs_by_start.sort_by_key(|d| (d.start_byte, std::cmp::Reverse(d.end_byte)));
         for r in &facts.references {
             if !r.property_read {
                 continue;
@@ -197,11 +205,7 @@ pub fn emit(graph: &mut Graph, all_facts: &[FileFacts]) {
             else {
                 continue;
             };
-            let enclosing_def = facts
-                .definitions
-                .iter()
-                .filter(|d| d.start_byte <= r.site_byte && r.site_byte < d.end_byte)
-                .min_by_key(|d| d.end_byte - d.start_byte);
+            let enclosing_def = innermost_def(&defs_by_start, r.site_byte);
 
             // --- Receiver type. ---
             let rh = r.receiver_hint.as_str();
@@ -224,9 +228,12 @@ pub fn emit(graph: &mut Graph, all_facts: &[FileFacts]) {
             };
 
             // --- Walk the class chain for the attribute. ---
-            let Some(dst) =
-                resolve_property(&type_name, r.name.as_str(), &prop_by_class_attr, &bases_by_class)
-            else {
+            let Some(dst) = resolve_property(
+                &type_name,
+                r.name.as_str(),
+                &prop_by_class_attr,
+                &bases_by_class,
+            ) else {
                 continue;
             };
             if dst == src || !minted.insert((src, dst, r.site_byte)) {
@@ -237,7 +244,14 @@ pub fn emit(graph: &mut Graph, all_facts: &[FileFacts]) {
                 dst,
                 site_line: r.site_line,
                 site_byte: r.site_byte,
-                confidence: confidence_for(weak),
+                confidence: confidence_for(
+                    weak || !unique_class(&class_decls, &type_name)
+                        || graph
+                            .callables
+                            .get(&dst)
+                            .and_then(|c| class_of(&c.qualified_name))
+                            .is_some_and(|owner| !unique_class(&class_decls, owner)),
+                ),
                 via: Via::Property,
                 resolver: resolver.clone(),
                 weight: 1,
@@ -318,6 +332,26 @@ fn receiver_type<'a>(
 /// return the property that exactly one candidate defines. Ambiguity
 /// inside the first defining class drops the read; a base class
 /// defining the attribute loses to the subclass that overrides it.
+/// Whether the tree declares exactly one class of this simple name.
+fn unique_class(class_decls: &HashMap<&str, usize>, type_name: &str) -> bool {
+    let name = type_name.rsplit('.').next().unwrap_or(type_name);
+    class_decls.get(name).copied().unwrap_or(0) <= 1
+}
+
+/// The innermost definition whose span holds `byte`: the latest-starting
+/// one that still contains it, since spans nest.
+fn innermost_def<'d>(
+    defs_by_start: &[&'d cgg_core::DefRecord],
+    byte: u32,
+) -> Option<&'d cgg_core::DefRecord> {
+    let upto = defs_by_start.partition_point(|d| d.start_byte <= byte);
+    defs_by_start[..upto]
+        .iter()
+        .rev()
+        .find(|d| byte < d.end_byte)
+        .copied()
+}
+
 fn resolve_property(
     type_name: &str,
     attr: &str,
@@ -336,7 +370,9 @@ fn resolve_property(
             None => {}
         }
         if let Some(bases) = bases_by_class.get(class) {
-            for b in bases {
+            // Reversed onto a stack: the leftmost base is searched first,
+            // as Python's method resolution order reads them.
+            for b in bases.iter().rev() {
                 queue.push(b);
             }
         }
@@ -347,9 +383,18 @@ fn resolve_property(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cgg_core::{CallAssign, CallableNode, ClassDecl, DefRecord, FunctionReturn, RefRecord};
+    use cgg_core::{
+        CallAssign, CallableNode, ClassDecl, DefRecord, FunctionReturn, RefRecord,
+    };
 
-    fn callable(id: u32, qn: &str, kind: CallableKind, file: u32, start: u32, end: u32) -> CallableNode {
+    fn callable(
+        id: u32,
+        qn: &str,
+        kind: CallableKind,
+        file: u32,
+        start: u32,
+        end: u32,
+    ) -> CallableNode {
         CallableNode {
             id: CallableId::new(id),
             qualified_name: qn.into(),
@@ -395,13 +440,55 @@ mod tests {
     /// 4 SparseTensor.feats, 5 SparseTensor.shape, 6 VarLenTensor.shape.
     fn fixture() -> (Graph, Vec<FileFacts>) {
         let mut graph = Graph::new();
-        graph.add_callable(callable(0, "Pipe.process", CallableKind::Method, 0, 100, 400));
-        graph.add_callable(callable(2, "Pipeline.device", CallableKind::Property, 1, 20, 60));
-        graph.add_callable(callable(3, "Trellis2.decode_tex_slat", CallableKind::Method, 1, 100, 200));
-        graph.add_callable(callable(4, "SparseTensor.feats", CallableKind::Property, 1, 220, 260));
-        graph.add_callable(callable(5, "SparseTensor.shape", CallableKind::Property, 1, 280, 320));
-        graph.add_callable(callable(6, "VarLenTensor.shape", CallableKind::Property, 1, 340, 380));
-        // The call the assignment join reads: `pbr_voxel = pipeline.decode_tex_slat(slat)`
+        graph.add_callable(callable(
+            0,
+            "Pipe.process",
+            CallableKind::Method,
+            0,
+            100,
+            400,
+        ));
+        graph.add_callable(callable(
+            2,
+            "Pipeline.device",
+            CallableKind::Property,
+            1,
+            20,
+            60,
+        ));
+        graph.add_callable(callable(
+            3,
+            "Model3D.decode_tex_slat",
+            CallableKind::Method,
+            1,
+            100,
+            200,
+        ));
+        graph.add_callable(callable(
+            4,
+            "SparseTensor.feats",
+            CallableKind::Property,
+            1,
+            220,
+            260,
+        ));
+        graph.add_callable(callable(
+            5,
+            "SparseTensor.shape",
+            CallableKind::Property,
+            1,
+            280,
+            320,
+        ));
+        graph.add_callable(callable(
+            6,
+            "VarLenTensor.shape",
+            CallableKind::Property,
+            1,
+            340,
+            380,
+        ));
+        // The call the assignment join reads: `voxel = pipeline.decode_tex_slat(slat)`
         // on line 5 of m.py, minted by the ordinary call pipeline.
         graph.add_edge(cgg_core::CallEdge {
             src: CallableId::new(0),
@@ -415,7 +502,12 @@ mod tests {
         });
 
         let mut m = FileFacts::new(FileId::new(0), "m.py".into(), "python");
-        m.definitions = vec![def("Pipe.process", cgg_core::DefVariant::InherentMethod, 100, 400)];
+        m.definitions = vec![def(
+            "Pipe.process",
+            cgg_core::DefVariant::InherentMethod,
+            100,
+            400,
+        )];
         m.classes = vec![ClassDecl {
             class_qn: "Pipe".into(),
             base_types: vec!["Pipeline".into()],
@@ -423,26 +515,46 @@ mod tests {
         }];
         m.param_types = vec![LocalType {
             var_name: "pipeline".into(),
-            type_name: "Trellis2".into(),
+            type_name: "Model3D".into(),
             scope_byte: 100,
             type_module: String::new(),
         }];
         m.call_assignments = vec![CallAssign {
-            var_name: "pbr_voxel".into(),
+            var_name: "voxel".into(),
             site_line: 5,
         }];
 
         let mut v = FileFacts::new(FileId::new(1), "v.py".into(), "python");
         v.definitions = vec![
             def("Pipeline.device", cgg_core::DefVariant::Property, 20, 60),
-            def("Trellis2.decode_tex_slat", cgg_core::DefVariant::InherentMethod, 100, 200),
-            def("SparseTensor.feats", cgg_core::DefVariant::Property, 220, 260),
-            def("SparseTensor.shape", cgg_core::DefVariant::Property, 280, 320),
-            def("VarLenTensor.shape", cgg_core::DefVariant::Property, 340, 380),
+            def(
+                "Model3D.decode_tex_slat",
+                cgg_core::DefVariant::InherentMethod,
+                100,
+                200,
+            ),
+            def(
+                "SparseTensor.feats",
+                cgg_core::DefVariant::Property,
+                220,
+                260,
+            ),
+            def(
+                "SparseTensor.shape",
+                cgg_core::DefVariant::Property,
+                280,
+                320,
+            ),
+            def(
+                "VarLenTensor.shape",
+                cgg_core::DefVariant::Property,
+                340,
+                380,
+            ),
         ];
         v.classes = vec![
             ClassDecl {
-                class_qn: "Trellis2".into(),
+                class_qn: "Model3D".into(),
                 base_types: vec!["ImageTo3D".into()],
                 line: 1,
             },
@@ -463,7 +575,7 @@ mod tests {
             },
         ];
         v.function_returns = vec![FunctionReturn {
-            def_qn: "Trellis2.decode_tex_slat".into(),
+            def_qn: "Model3D.decode_tex_slat".into(),
             type_name: "SparseTensor".into(),
         }];
         (graph, vec![m, v])
@@ -473,7 +585,7 @@ mod tests {
     fn typed_parameter_receiver_binds_through_the_base_chain() {
         let (mut graph, mut facts) = fixture();
         // `device=pipeline.device` inside process (byte 300, line 7):
-        // pipeline: Trellis2 → ImageTo3D → Pipeline.device.
+        // pipeline: Model3D → ImageTo3D → Pipeline.device.
         facts[0].references = vec![read("device", "pipeline", 300, 7)];
         emit(&mut graph, &facts);
         let props: Vec<_> = graph
@@ -482,7 +594,32 @@ mod tests {
             .filter(|e| e.via == Via::Property)
             .map(|e| (e.src, e.dst, e.confidence))
             .collect();
-        assert_eq!(props, vec![(CallableId::new(0), CallableId::new(2), Confidence::High)], "two base hops");
+        assert_eq!(
+            props,
+            vec![(CallableId::new(0), CallableId::new(2), Confidence::High)],
+            "two base hops"
+        );
+    }
+
+    /// The class index is keyed by bare name, so when the tree declares
+    /// two classes of the owner's name the edge is a guess, never `High`.
+    #[test]
+    fn a_class_name_declared_twice_binds_at_medium() {
+        let (mut graph, mut facts) = fixture();
+        facts[0].classes.push(ClassDecl {
+            class_qn: "other.Model3D".into(),
+            base_types: Vec::new(),
+            line: 90,
+        });
+        facts[0].references = vec![read("device", "pipeline", 300, 7)];
+        emit(&mut graph, &facts);
+        let conf: Vec<_> = graph
+            .edges
+            .iter()
+            .filter(|e| e.via == Via::Property)
+            .map(|e| e.confidence)
+            .collect();
+        assert_eq!(conf, vec![Confidence::Medium]);
     }
 
     #[test]
@@ -517,13 +654,17 @@ mod tests {
             .filter(|e| e.via == Via::Property)
             .map(|e| e.dst)
             .collect();
-        assert_eq!(props, vec![CallableId::new(5)], "SparseTensor.shape, not VarLenTensor's");
+        assert_eq!(
+            props,
+            vec![CallableId::new(5)],
+            "SparseTensor.shape, not VarLenTensor's"
+        );
     }
 
     #[test]
     fn return_typed_assignment_binds_the_read() {
         let (mut graph, mut facts) = fixture();
-        facts[0].references = vec![read("feats", "pbr_voxel", 300, 7)];
+        facts[0].references = vec![read("feats", "voxel", 300, 7)];
         emit(&mut graph, &facts);
         let props: Vec<_> = graph
             .edges
@@ -531,7 +672,7 @@ mod tests {
             .filter(|e| e.via == Via::Property)
             .map(|e| e.dst)
             .collect();
-        // `pbr_voxel = pipeline.decode_tex_slat(slat)` on line 5 → the
+        // `voxel = pipeline.decode_tex_slat(slat)` on line 5 → the
         // callee declares `-> SparseTensor` → SparseTensor.feats.
         assert_eq!(props, vec![CallableId::new(4)]);
     }
@@ -549,7 +690,7 @@ mod tests {
             220,
             260,
         ));
-        facts[0].references = vec![read("feats", "pbr_voxel", 300, 7)];
+        facts[0].references = vec![read("feats", "voxel", 300, 7)];
         emit(&mut graph, &facts);
         assert!(graph.edges.iter().all(|e| e.via != Via::Property));
     }

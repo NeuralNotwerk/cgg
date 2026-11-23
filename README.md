@@ -100,6 +100,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
               [--rollup BUDGET] [--rollup-by LEVEL]
               [--from-graph FILE]
               [--include-tests] [--ignore-file PATH] [--skip-minified]
+              [--allow-dir NAME]...
               [--exclude-partial SUBSTRING]...
               [--exclude-glob PATTERN]...
               [--exclude-regex PATTERN]...
@@ -114,6 +115,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
               [--externals[=KINDS]] [--externals-format text|json]
               [--externals-report FILE]
               [--dynamic-dispatch] [--reference-edges] [--guess-unique-names]
+              [--module-scope-calls] [--property-edges]
               [--no-entry-nodes] [--no-test-entries]
               [--framework-coverage] [--profile]
               [--no-graph] [--report-unreferenced]
@@ -139,6 +141,7 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--include-tests` | off | Show dead-code findings that live in test scope. Test code is always analyzed and always counts as a caller |
 | `--ignore-file` | (none) | Path to an additional ignore file (gitignore syntax) |
 | `--skip-minified` | off | Skip minified JS/CSS: `name.min.{js,mjs,cjs,css}`, or any file with one of those extensions averaging over 2,000 B/line on the first 8 KB. Bundled output has no callable structure worth graphing and dominates wall time on a mixed-language tree — but it is real source that parses, so the default walk analyzes it and dropping it is your call, not cgg's. Skips are audited as `skip_reason: minified` and counted in the run summary |
+| `--allow-dir` | (none) | Analyze a directory the built-in deny list would skip (`vendor`, `build`, `dist`, `target`, …). Repeatable; exact directory-name match; `.git` cannot be enabled. Every other layer (gitignore, `.cggignore`, size, binary, minified) still applies |
 | `--exclude-partial` | (none) | Exclude nodes containing substring |
 | `--exclude-glob` | (none) | Exclude nodes matching glob |
 | `--exclude-regex` | (none) | Exclude nodes matching regex |
@@ -163,6 +166,8 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--dynamic-dispatch` | off | Emit interface/trait declaration → implementation fan-out edges (tagged `dyn`, low confidence) |
 | `--reference-edges` | off | Emit reference edges for functions passed by name as values (tagged `ref`) |
 | `--guess-unique-names` | off | Rust: bind a call nothing else placed when exactly one callable carries its name — `low` confidence, resolver `cross-file:name-unique`. Never for std names, typed or `self` receivers, external paths, or test helpers from production code |
+| `--module-scope-calls` | off | Bind calls written outside every definition (script bodies, `if __name__ == "__main__"` blocks) to a synthetic per-file `<module>` callable, so they become edges instead of `no-enclosing-callable` sites. Every language; the synthetic caller is never a dead-code candidate or framework target |
+| `--property-edges` | off | Python: an edge for an attribute read that runs a `@property` / `@cached_property` getter, when the receiver's type comes from a declaration. `high` only when the receiver's class and the property's owner are each one class in the tree, else `medium`. Tagged `prop` |
 | `--no-entry-nodes` | off | Suppress synthesized `<framework-entry>` nodes. **Entry nodes are ON by default** |
 | `--no-test-entries` | off | Mint no `<framework-entry>::test::<harness>` nodes — one `entry` arrow per test, benchmark or fuzz case, a few percent of a whole-tree graph. Cases stay test roots for `--dead-code`; framework entries are kept |
 | `--framework-coverage` | off | Print the framework-coverage table even when nothing was recognised |
@@ -536,7 +541,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(4999 callables, 16321 edges, 4714 cross-file, 464ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(5070 callables, 16722 edges, 4868 cross-file, 530ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -582,69 +587,73 @@ flowchart LR
   N32["cgg_core::external::FileAliases::from_facts"]
   N33["cgg_core::external::classify_external"]
   N34["cgg_core::external::build_known_names"]
-  N35["cgg_core::graph::Graph::new"]
-  N36["cgg_core::graph::Graph::add_callable"]
-  N37["cgg_core::graph::Graph::add_file"]
-  N38["cgg_core::graph::Graph::add_edge"]
-  N39["cgg_core::ids::FileId::new"]
-  N40["cgg_core::lang_family::same_family"]
-  N41["cgg_core::profile::enable"]
-  N42["cgg_core::profile::span"]
-  N43["cgg_core::testfile::classify_test_file"]
-  N44["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
-  N45["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
-  N46["cgg_lang::externals::extract"]
-  N47["cgg_lang::ExtractCtx&lt;'a&gt;::new"]
-  N48["cgg_lang::ExtractCtx&lt;'a&gt;::with_reference_sites"]
-  N49["cgg_lang::ExtractCtx&lt;'a&gt;::with_externals"]
-  N50["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
-  N51["cgg_lang::ExtractCtx&lt;'a&gt;::for_test_file"]
-  N52["cgg_lang::longest_line_bytes"]
-  N53["cgg_lang::LanguagePlugin::max_line_bytes"]
-  N54["cgg_lang::LanguagePlugin::parse_source"]
-  N55["cgg_lang::PluginRegistry::with_v1_plugins"]
-  N56["cgg_lang::locals::collect"]
-  N57["cgg_lang::notebook::extract_python_source"]
-  N58["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
-  N59["cgg_lang::parser::ParserPool&lt;'r&gt;::parse_file"]
-  N60["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
-  N61["cgg_lang::parser::exceeds_depth"]
-  N62["cgg_lang::plugins::c_macro::expand"]
-  N63["cgg_lang::plugins::clojure::settle_defn_macros"]
-  N64["cgg_lang::plugins::cpp::unify_declarations"]
-  N65["cgg_lang::plugins::groovy::&lt;GroovyPlugin as LanguagePlugin&gt;::parse_source"]
-  N66["cgg_lang::plugins::kivy::&lt;KivyPlugin as LanguagePlugin&gt;::max_line_bytes"]
-  N67["cgg_resolve::cross_file::resolve"]
-  N68["cgg_resolve::descriptor::link_descriptors"]
-  N69["cgg_resolve::dispatch::fanout"]
-  N70["cgg_resolve::dispatch::inheritance_fanout"]
-  N71["cgg_resolve::externals::inventory"]
-  N72["cgg_resolve::externals::fill_branches"]
-  N73["cgg_resolve::ffi::link_ffi"]
-  N74["cgg_resolve::frameworks::detect"]
-  N75["cgg_resolve::go_iface::go_interface_fanout"]
-  N76["cgg_resolve::go_iface::go_interface_site_edges"]
-  N77["cgg_resolve::intra_file::link_file_with_cap"]
-  N78["cgg_resolve::names::owner_from_qn"]
-  N79["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
-  N80["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::with_kotlin_scoped"]
-  N81["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::with_go_results"]
-  N82["cgg_resolve::type_hints::field_index"]
-  N83["cgg_resolve::type_hints::type_alias_index"]
-  N84["cgg_resolve::type_hints::macro_index"]
-  N85["cgg_resolve::type_hints::resolve_macro_types"]
-  N86["cgg_resolve::type_hints::build_return_type_map"]
-  N87["cgg_resolve::type_hints::propagate_types_with_fields"]
-  N88["cgg_resolve::type_hints::settle_assoc_call_locals"]
-  N89["cgg_resolve::type_hints::settle_closure_args"]
-  N90["cgg_resolve::type_hints::settle_implicit_receivers"]
-  N91["cgg_resolve::type_hints::go_result_functions"]
-  N92["cgg_resolve::type_hints::kotlin_scoped_counts"]
-  N93["cgg_resolve::unreachable::cap_unreachable_edges"]
-  N94["cgg_resolve::value_refs::prune"]
-  N95["cgg_resolve::value_refs::prune_paren_less"]
-  N96["cgg_resolve::value_refs::tag_reference_edges"]
-  N97["cgg_walk::walk"]
+  N35["cgg_core::facts::FileFacts::inject_module_scope_def"]
+  N36["cgg_core::graph::Graph::new"]
+  N37["cgg_core::graph::Graph::add_callable"]
+  N38["cgg_core::graph::Graph::add_file"]
+  N39["cgg_core::graph::Graph::add_edge"]
+  N40["cgg_core::ids::FileId::new"]
+  N41["cgg_core::lang_family::same_family"]
+  N42["cgg_core::profile::enable"]
+  N43["cgg_core::profile::span"]
+  N44["cgg_core::testfile::classify_test_file"]
+  N45["cgg_lang::detect::LanguageDetector&lt;'r&gt;::new"]
+  N46["cgg_lang::detect::LanguageDetector&lt;'r&gt;::detect"]
+  N47["cgg_lang::externals::extract"]
+  N48["cgg_lang::ExtractCtx&lt;'a&gt;::new"]
+  N49["cgg_lang::ExtractCtx&lt;'a&gt;::with_reference_sites"]
+  N50["cgg_lang::ExtractCtx&lt;'a&gt;::with_externals"]
+  N51["cgg_lang::ExtractCtx&lt;'a&gt;::with_property_sites"]
+  N52["cgg_lang::ExtractCtx&lt;'a&gt;::for_language"]
+  N53["cgg_lang::ExtractCtx&lt;'a&gt;::for_test_file"]
+  N54["cgg_lang::longest_line_bytes"]
+  N55["cgg_lang::LanguagePlugin::max_line_bytes"]
+  N56["cgg_lang::LanguagePlugin::parse_source"]
+  N57["cgg_lang::PluginRegistry::with_v1_plugins"]
+  N58["cgg_lang::locals::collect"]
+  N59["cgg_lang::notebook::extract_python_source"]
+  N60["cgg_lang::parser::ParserPool&lt;'r&gt;::new"]
+  N61["cgg_lang::parser::ParserPool&lt;'r&gt;::parse_file"]
+  N62["cgg_lang::parser::ParserPool&lt;'r&gt;::plugin"]
+  N63["cgg_lang::parser::exceeds_depth"]
+  N64["cgg_lang::plugins::c_macro::expand"]
+  N65["cgg_lang::plugins::clojure::settle_defn_macros"]
+  N66["cgg_lang::plugins::cpp::unify_declarations"]
+  N67["cgg_lang::plugins::groovy::&lt;GroovyPlugin as LanguagePlugin&gt;::parse_source"]
+  N68["cgg_lang::plugins::kivy::&lt;KivyPlugin as LanguagePlugin&gt;::max_line_bytes"]
+  N69["cgg_resolve::cross_file::resolve"]
+  N70["cgg_resolve::descriptor::link_descriptors"]
+  N71["cgg_resolve::dispatch::fanout"]
+  N72["cgg_resolve::dispatch::inheritance_fanout"]
+  N73["cgg_resolve::externals::inventory"]
+  N74["cgg_resolve::externals::fill_branches"]
+  N75["cgg_resolve::ffi::link_ffi"]
+  N76["cgg_resolve::frameworks::detect"]
+  N77["cgg_resolve::go_iface::go_interface_fanout"]
+  N78["cgg_resolve::go_iface::go_interface_site_edges"]
+  N79["cgg_resolve::intra_file::link_file_with_cap"]
+  N80["cgg_resolve::names::owner_from_qn"]
+  N81["cgg_resolve::property_edges::emit"]
+  N82["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
+  N83["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::with_kotlin_scoped"]
+  N84["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::with_go_results"]
+  N85["cgg_resolve::type_hints::field_index"]
+  N86["cgg_resolve::type_hints::settle_python_member_refs"]
+  N87["cgg_resolve::type_hints::type_alias_index"]
+  N88["cgg_resolve::type_hints::macro_index"]
+  N89["cgg_resolve::type_hints::resolve_macro_types"]
+  N90["cgg_resolve::type_hints::build_return_type_map"]
+  N91["cgg_resolve::type_hints::propagate_types_with_fields"]
+  N92["cgg_resolve::type_hints::settle_assoc_call_locals"]
+  N93["cgg_resolve::type_hints::settle_closure_args"]
+  N94["cgg_resolve::type_hints::settle_implicit_receivers"]
+  N95["cgg_resolve::type_hints::go_result_functions"]
+  N96["cgg_resolve::type_hints::kotlin_scoped_counts"]
+  N97["cgg_resolve::unreachable::cap_unreachable_edges"]
+  N98["cgg_resolve::value_refs::prune"]
+  N99["cgg_resolve::value_refs::prune_paren_less"]
+  N100["cgg_resolve::value_refs::tag_reference_edges"]
+  N101["cgg_walk::walk"]
   N2 --> N3
   N3 --> N4
   N3 --> N13
@@ -667,121 +676,125 @@ flowchart LR
   N3 --> N21
   N3 --> N1
   N3 --> N0
+  N3 --> N51
+  N3 --> N50
   N3 --> N49
   N3 --> N48
-  N3 --> N47
-  N3 --> N41
-  N3 --> N97
-  N3 --> N55
-  N3 --> N44
-  N3 --> N58
+  N3 --> N42
+  N3 --> N101
+  N3 --> N57
+  N3 --> N45
+  N3 --> N60
   N3 --> N29
   N3 --> N28
-  N3 --> N35
-  N3 --> N45
-  N3 --> N57
-  N3 -->|22x| N42
-  N3 -->|3x| N60
-  N3 -->|?| N53
-  N3 -->|?| N66
-  N3 -->|2x| N52
-  N3 -->|?| N54
-  N3 -->|?| N65
-  N3 --> N59
-  N3 --> N61
-  N3 -->|?| N51
-  N3 --> N50
-  N3 -->|2x| N43
-  N3 --> N39
+  N3 --> N36
   N3 --> N46
-  N3 --> N56
-  N3 --> N40
-  N3 --> N62
-  N3 --> N64
+  N3 --> N59
+  N3 -->|23x| N43
+  N3 -->|3x| N62
+  N3 -->|?| N55
+  N3 -->|?| N68
+  N3 -->|2x| N54
+  N3 -->|?| N56
+  N3 -->|?| N67
+  N3 --> N61
   N3 --> N63
+  N3 -->|?| N53
+  N3 --> N52
+  N3 -->|2x| N44
+  N3 --> N40
+  N3 --> N47
+  N3 --> N58
+  N3 --> N41
+  N3 --> N64
+  N3 --> N66
+  N3 --> N65
   N3 --> N27
   N3 --> N30
-  N3 --> N37
-  N3 --> N78
+  N3 --> N38
+  N3 -->|?| N35
+  N3 --> N80
   N3 --> N31
-  N3 --> N36
-  N3 --> N94
-  N3 --> N95
-  N3 --> N86
-  N3 -->|?| N80
-  N3 --> N81
-  N3 --> N79
-  N3 --> N91
-  N3 --> N92
-  N3 --> N82
-  N3 --> N84
-  N3 --> N85
-  N3 --> N83
-  N3 --> N89
-  N3 --> N88
-  N3 --> N87
+  N3 --> N37
+  N3 --> N98
+  N3 --> N99
   N3 --> N90
+  N3 -->|?| N83
+  N3 --> N84
+  N3 --> N82
+  N3 --> N95
+  N3 --> N96
+  N3 --> N85
+  N3 --> N88
+  N3 --> N89
+  N3 --> N87
+  N3 --> N93
+  N3 --> N92
+  N3 --> N91
+  N3 --> N94
+  N3 --> N86
   N3 --> N34
-  N3 --> N77
+  N3 --> N79
   N3 --> N32
   N3 --> N33
-  N3 --> N67
-  N3 --> N73
-  N3 --> N68
-  N3 --> N96
-  N3 --> N93
-  N3 --> N71
-  N3 --> N74
   N3 --> N69
-  N3 -->|4x| N38
-  N3 --> N70
+  N3 --> N81
   N3 --> N75
+  N3 --> N70
+  N3 --> N100
+  N3 --> N97
+  N3 --> N73
   N3 --> N76
+  N3 --> N71
+  N3 -->|4x| N39
+  N3 --> N72
+  N3 --> N77
+  N3 --> N78
   N3 -->|5x| N22
   N3 --> N26
   N3 -->|2x| N23
-  N3 --> N72
+  N3 --> N74
   N3 --> N24
   N3 --> N25
-  N8 --> N42
+  N8 --> N43
   N8 --> N29
   N8 -->|3x| N23
   N8 --> N22
-  N9 --> N55
+  N9 --> N57
   N9 --> N23
   N9 --> N22
   N10 --> N23
   N15 -->|2x| N30
-  N15 -->|2x| N37
+  N15 -->|2x| N38
   N15 --> N31
-  N15 --> N36
-  N15 --> N38
+  N15 --> N37
+  N15 --> N39
   N16 -->|2x| N31
-  N16 -->|2x| N36
+  N16 -->|2x| N37
   N16 --> N30
-  N16 --> N37
   N16 --> N38
+  N16 --> N39
   N17 --> N30
-  N17 --> N37
-  N17 --> N31
-  N17 --> N36
   N17 --> N38
-  N24 --> N35
-  N62 --> N50
-  N64 -->|3x| N40
-  N67 -->|6x| N42
-  N67 -->|6x| N78
-  N67 --> N40
-  N68 -->|2x| N78
-  N69 --> N78
-  N70 -->|2x| N78
-  N71 -->|3x| N42
-  N73 --> N40
-  N74 -->|14x| N42
-  N77 -->|7x| N78
-  N87 -->|3x| N42
-  N88 --> N78
-  N90 --> N78
+  N17 --> N31
+  N17 --> N37
+  N17 --> N39
+  N24 --> N36
+  N64 --> N52
+  N66 -->|3x| N41
+  N69 -->|6x| N43
+  N69 -->|6x| N80
+  N69 --> N41
+  N70 -->|2x| N80
+  N71 --> N80
+  N72 -->|2x| N80
+  N73 -->|3x| N43
+  N75 --> N41
+  N76 -->|14x| N43
+  N79 -->|7x| N80
+  N91 -->|3x| N43
+  N92 --> N80
+  N94 --> N80
 ```
 <!-- cgg:end:self -->
 
@@ -1147,46 +1160,46 @@ cgg externals report — cgg.externals.v1
   not expand) are absent. Dependency manifests are not read: a library
   appears here because the code calls or imports it.
 
-kinds      third-party, system, native, process  (withheld: stdlib 93 · unattributed 122)
+kinds      third-party, system, native, process  (withheld: stdlib 118 · unattributed 137)
 libraries  5 third-party
-sites      55 shown of 270 that leave the tree (high 44 · medium 9 · low 2)
+sites      75 shown of 330 that leave the tree (high 60 · medium 13 · low 2)
 
 ── coverage — what cgg could attribute, per language ─────────────────
   language      files  imports    sites attributed  forms
-  rust              1       16      270        55%  declares, use
+  rust              1       16      330        58%  declares, use
 
 ── third-party ─────────────────────────────────────────────────────────
-tempfile  rust · 1 import site(s) · 47 call site(s) · 11 caller(s)
+tempfile  rust · 1 import site(s) · 67 call site(s) · 15 caller(s)
   modules  tempfile::TempDir
-  symbols  TempDir::path ×29 · TempDir(…)::unwrap ×9 · TempDir::new ×9
-  callers  cgg_walk::tests::gitignore_is_honored (./crates/cgg-walk/src/lib.rs:507) ×7
-           cgg_walk::tests::builtin_deny_skips_node_modules_and_target (./crates/cgg-walk/src/lib.rs:454) ×6
-           cgg_walk::tests::cggignore_is_honored (./crates/cgg-walk/src/lib.rs:483) ×6
-           cgg_walk::tests::discovers_plain_files (./crates/cgg-walk/src/lib.rs:439) ×5
-           cgg_walk::tests::minified_fixture (./crates/cgg-walk/src/lib.rs:567) ×5
-           … 6 more caller(s)
+  symbols  TempDir::path ×41 · TempDir(…)::unwrap ×13 · TempDir::new ×13
+  callers  cgg_walk::tests::gitignore_is_honored (./crates/cgg-walk/src/lib.rs:615) ×7
+           cgg_walk::tests::allow_dir_leaves_every_other_denied_dir_deny (./crates/cgg-walk/src/lib.rs:522) ×6
+           cgg_walk::tests::builtin_deny_skips_node_modules_and_target (./crates/cgg-walk/src/lib.rs:475) ×6
+           cgg_walk::tests::cggignore_is_honored (./crates/cgg-walk/src/lib.rs:591) ×6
+           cgg_walk::tests::allow_dir_name_not_on_deny_list_is_a_noop (./crates/cgg-walk/src/lib.rs:571) ×5
+           … 10 more caller(s)
   branch   <framework-entry>::test::cargo-test → cgg_walk::tests::gitignore_is_honored → tempfile::TempDir(…)::unwrap
-  branch   <framework-entry>::test::cargo-test → cgg_walk::tests::builtin_deny_skips_node_modules_and_target → tempfile::TempDir(…)::unwrap
+  branch   <framework-entry>::test::cargo-test → cgg_walk::tests::allow_dir_leaves_every_other_denied_dir_deny → tempfile::TempDir(…)::unwrap
 ignore  rust · 2 import site(s) · 5 call site(s) · 1 caller(s)
   modules  ignore::Error, ignore::WalkBuilder
   symbols  WalkBuilder::add_ignore ×1 · WalkBuilder::build ×1 · WalkBuilder::hidden ×1 · WalkBuilder::new ×1 · WalkBuilder::sort_by_file_path ×1
-  callers  cgg_walk::walk_one (./crates/cgg-walk/src/lib.rs:169) ×5
+  callers  cgg_walk::walk_one (./crates/cgg-walk/src/lib.rs:185) ×5
   branch   <framework-entry>::test::cargo-test → cgg_walk::tests::discovers_plain_files → cgg_walk::walk → cgg_walk::walk_one → ignore::WalkBuilder::new
 cgg_core  rust · 1 import site(s) · 3 call site(s) · 2 caller(s)
   modules  cgg_core::audit::SkipReason
   symbols  audit::SkipReason::ParseError ×2 · audit::SkipReason::Builtin ×1
-  callers  cgg_walk::walk_one (./crates/cgg-walk/src/lib.rs:169) ×2
-           cgg_walk::builtin_reason (./crates/cgg-walk/src/lib.rs:399) ×1
+  callers  cgg_walk::walk_one (./crates/cgg-walk/src/lib.rs:185) ×2
+           cgg_walk::builtin_reason (./crates/cgg-walk/src/lib.rs:419) ×1
   branch   <framework-entry>::test::cargo-test → cgg_walk::tests::discovers_plain_files → cgg_walk::walk → cgg_walk::walk_one → cgg_core::audit::SkipReason::ParseError
   branch   <framework-entry>::test::cargo-test → cgg_walk::tests::discovers_plain_files → cgg_walk::walk → cgg_walk::walk_one → cgg_walk::builtin_reason → cgg_core::audit::SkipReason::Builtin
 anyhow  rust · 2 import site(s) · 0 call site(s) · 0 caller(s)
   modules  anyhow::Context, anyhow::Result
-  imported ./crates/cgg-walk/src/lib.rs:38
-  imported ./crates/cgg-walk/src/lib.rs:38
+  imported ./crates/cgg-walk/src/lib.rs:41
+  imported ./crates/cgg-walk/src/lib.rs:41
 serde  rust · 2 import site(s) · 0 call site(s) · 0 caller(s)
   modules  serde::Deserialize, serde::Serialize
-  imported ./crates/cgg-walk/src/lib.rs:40
-  imported ./crates/cgg-walk/src/lib.rs:40
+  imported ./crates/cgg-walk/src/lib.rs:43
+  imported ./crates/cgg-walk/src/lib.rs:43
 
 ── next ────────────────────────────────────────────────────────────────
   branches into one library  cgg <path> --externals --filter '^<external>::tempfile::' -n 0

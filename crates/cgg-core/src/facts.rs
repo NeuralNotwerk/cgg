@@ -545,7 +545,7 @@ pub struct RefRecord {
     pub retyped_receiver: bool,
 
     /// Set when the site *reads* an attribute off a receiver without
-    /// calling it (`pbr_voxel.feats`, `pipeline.device`) and the read is
+    /// calling it (`voxel.feats`, `pipeline.device`) and the read is
     /// a candidate for a property edge: an edge to the `@property`
     /// getter the attribute resolves to, emitted only when the
     /// receiver's type is known from a declaration and that type (or a
@@ -559,8 +559,8 @@ pub struct RefRecord {
 
     /// The module qualifier of the receiver's type, set by type
     /// propagation alongside the [`RefRecord::receiver_hint`] rewrite:
-    /// `sampler = comfy.samplers.KSampler(...)` types `sampler` as
-    /// `KSampler` and carries `comfy.samplers` here. The hint must stay
+    /// `sampler = pkg.samplers.Sampler(...)` types `sampler` as
+    /// `Sampler` and carries `pkg.samplers` here. The hint must stay
     /// a bare type name (owner lookups key on it), but two same-named
     /// classes in different modules are told apart by where their
     /// declaration file sits — the qualifier says which module the
@@ -692,7 +692,7 @@ pub struct FileFacts {
     /// of these names is a guess (`RefRecord::weak_receiver_type`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub module_typed_locals: Vec<String>,
-    /// Typed parameters (`pipeline: Trellis2ImageTo3DPipeline`), recorded
+    /// Typed parameters (`pipeline: ImagePipeline`), recorded
     /// per enclosing definition so the property-edge pass can type a
     /// receiver that is a parameter of the method it is read in.
     /// Deliberately not in [`Self::local_types`]: the type propagator
@@ -705,12 +705,12 @@ pub struct FileFacts {
     /// Functions and methods whose signature declares a named return
     /// type (`-> SparseTensor`), as (qualified name, type stem). The
     /// property-edge pass reads it to type a variable assigned from a
-    /// call (`pbr_voxel = pipeline.decode_tex_slat(…)`) through the edge
+    /// call (`voxel = pipeline.decode_tex_slat(…)`) through the edge
     /// that call minted.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub function_returns: Vec<FunctionReturn>,
     /// Assignments whose right-hand side is a call
-    /// (`pbr_voxel = pipeline.decode_tex_slat(texture_slat)`), as
+    /// (`voxel = pipeline.decode_tex_slat(texture_slat)`), as
     /// (variable, call site line). The property-edge pass joins the site
     /// against minted call edges to learn which callee produced the
     /// value, then reads [`Self::function_returns`] for its type.
@@ -994,8 +994,8 @@ pub struct LocalType {
     pub type_name: String,
     /// Byte offset of the enclosing scope (function body start).
     pub scope_byte: u32,
-    /// The module qualifier the type was written with (`comfy.samplers`
-    /// for `x = comfy.samplers.KSampler(...)`), empty when the type
+    /// The module qualifier the type was written with (`pkg.samplers`
+    /// for `x = pkg.samplers.Sampler(...)`), empty when the type
     /// spelling was bare (`x = Demo(...)`). Lets the resolver tell two
     /// same-named classes apart by where their declaration file sits.
     /// Python only today.
@@ -1033,13 +1033,13 @@ pub struct FunctionReturn {
 }
 
 /// An assignment whose right-hand side is a call
-/// (`pbr_voxel = pipeline.decode_tex_slat(texture_slat)`): the variable
+/// (`voxel = pipeline.decode_tex_slat(texture_slat)`): the variable
 /// bound and the line the call sits on. The property-edge pass joins the
 /// line against that call's minted edge — the edge, not a re-parse, is
 /// the authority on which callee produced the value.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct CallAssign {
-    /// The variable bound (`pbr_voxel`).
+    /// The variable bound (`voxel`).
     pub var_name: String,
     /// The call's start line.
     pub site_line: u32,
@@ -1133,7 +1133,10 @@ impl FileFacts {
         // must not land in the cross-file resolver's collision indexes
         // (they are keyed by qualified name), and nothing downstream may
         // mistake one file's module scope for another's.
-        let qn = format!("<module>:{}", self.path.display().to_string().replace('\\', "/"));
+        let qn = format!(
+            "<module>:{}",
+            self.path.display().to_string().replace('\\', "/")
+        );
         self.definitions.push(DefRecord {
             simple_name: "<module>".into(),
             qualified_name: qn,

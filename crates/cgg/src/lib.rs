@@ -711,14 +711,11 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                                 test_role.map(|_| cgg_core::TestRole::Support)
                             }),
                             attributes: d.attributes.clone(),
-                            synthetic: d
-                                .attributes
-                                .iter()
-                                .any(|a| {
-                                    a == "synthetic"
-                                        || a.starts_with("derive:")
-                                        || a == cgg_core::MODULE_SCOPE_ATTR
-                                }),
+                            synthetic: d.attributes.iter().any(|a| {
+                                a == "synthetic"
+                                    || a.starts_with("derive:")
+                                    || a == cgg_core::MODULE_SCOPE_ATTR
+                            }),
                             trait_impl_target: trait_impl_target_from_qn(
                                 &d.qualified_name,
                             ),

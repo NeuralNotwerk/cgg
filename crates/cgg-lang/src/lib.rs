@@ -64,7 +64,7 @@ pub struct ExtractCtx<'a> {
     /// pays nothing for them.
     pub externals: bool,
     /// Record attribute reads that could run a property getter
-    /// (Python `grid_sample_3d(pbr_voxel.feats, device=pipeline.device)`)
+    /// (Python `sample_grid(voxel.feats, device=pipeline.device)`)
     /// plus the declarative type tables the property-edge pass reads:
     /// typed parameters and declared return types. The only consumer is
     /// `--property-edges`; an ordinary run neither captures these reads

@@ -160,7 +160,7 @@ pub(crate) struct ModuleIndex<'a> {
     py_module_of: HashMap<FileId, (&'a str, bool)>,
     /// Python: dotted module name → files, in walk order.
     py_by_module: HashMap<&'a str, Vec<FileId>>,
-    /// Python: normalized path (`comfy/sampler_helpers.py`) → file. The
+    /// Python: normalized path (`pkg/sampler_helpers.py`) → file. The
     /// fallback for implicit namespace packages (PEP 420: no
     /// `__init__.py` anywhere above), whose dotted module names never
     /// land in `py_by_module`. Keys are relative to [`Self::py_path_root`].
@@ -439,7 +439,7 @@ impl<'a> ModuleIndex<'a> {
         ix.py_path_root = root;
         for (file, comps) in py_paths {
             let rel = &comps[ix.py_path_root.len()..];
-            if rel.len() >= 1 && rel.last().is_some_and(|l| l.ends_with(".py")) {
+            if !rel.is_empty() && rel.last().is_some_and(|l| l.ends_with(".py")) {
                 ix.py_by_path.insert(rel.join("/"), file);
             }
         }
@@ -1170,10 +1170,10 @@ impl<'a> ModuleIndex<'a> {
 
     /// The module names a Python file answers to: its importable module
     /// name (`packages`), and the module its root-relative path spells
-    /// (`comfy/samplers.py` → `comfy.samplers`). The two readings of
+    /// (`pkg/samplers.py` → `pkg.samplers`). The two readings of
     /// where a file sits — the second the only one an implicit namespace
     /// package (no `__init__.py`) has, and the one a written constructor
-    /// path like `comfy.samplers.KSampler` names.
+    /// path like `pkg.samplers.Sampler` names.
     pub(crate) fn py_file_modules(&self, f: FileId) -> Vec<String> {
         let mut out: Vec<String> = self
             .facts
@@ -1197,8 +1197,10 @@ impl<'a> ModuleIndex<'a> {
                     out.push(comps[..comps.len() - 1].join("."));
                 }
             } else if let Some(stem) = last.strip_suffix(".py") {
-                let mut segs: Vec<&str> =
-                    comps[..comps.len() - 1].iter().map(String::as_str).collect();
+                let mut segs: Vec<&str> = comps[..comps.len() - 1]
+                    .iter()
+                    .map(String::as_str)
+                    .collect();
                 segs.push(stem);
                 out.push(segs.join("."));
             }
@@ -1229,8 +1231,8 @@ impl<'a> ModuleIndex<'a> {
             }
             // A path the module table does not know may still name a
             // file: implicit namespace packages (PEP 420) carry no
-            // `__init__.py`, so `comfy.sampler_helpers` exists as
-            // `comfy/sampler_helpers.py` while `py_by_module` only holds
+            // `__init__.py`, so `pkg.sampler_helpers` exists as
+            // `pkg/sampler_helpers.py` while `py_by_module` only holds
             // the bare stem. A file at the *written* path is the module
             // the call goes through.
             let path = segs[..k].join("/");
@@ -2564,32 +2566,32 @@ mod tests {
 
     #[test]
     fn py_split_falls_back_to_the_written_path_for_namespace_packages() {
-        // PEP 420: no `__init__.py` anywhere above `comfy/`, so the module
+        // PEP 420: no `__init__.py` anywhere above `pkg/`, so the module
         // table holds bare stems only (`sampler_helpers`) and a written
-        // `comfy.sampler_helpers` names a file the table never registered.
+        // `pkg.sampler_helpers` names a file the table never registered.
         let mut ix = ModuleIndex::default();
         let (caller, helper) = (FileId::new(1), FileId::new(2));
         ix.paths.insert(caller, Path::new("main.py"));
-        ix.paths.insert(helper, Path::new("comfy/sampler_helpers.py"));
+        ix.paths.insert(helper, Path::new("pkg/sampler_helpers.py"));
         ix.py_module_of.insert(helper, ("sampler_helpers", false));
         ix.py_by_module
             .entry("sampler_helpers")
             .or_default()
             .push(helper);
         ix.py_by_path
-            .insert("comfy/sampler_helpers.py".into(), helper);
+            .insert("pkg/sampler_helpers.py".into(), helper);
         assert_eq!(
-            ix.py_split(caller, &["comfy".into(), "sampler_helpers".into()]),
+            ix.py_split(caller, &["pkg".into(), "sampler_helpers".into()]),
             Some((vec![helper], 2)),
             "the written path is the module the call goes through"
         );
         assert_eq!(
-            ix.py_split(caller, &["comfy".into(), "missing".into()]),
+            ix.py_split(caller, &["pkg".into(), "missing".into()]),
             None,
             "a path no file carries stays a miss"
         );
         assert_eq!(
-            ix.py_split(caller, &["comfy".into()]),
+            ix.py_split(caller, &["pkg".into()]),
             None,
             "a package directory without `__init__.py` binds nothing"
         );

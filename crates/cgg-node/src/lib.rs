@@ -108,6 +108,15 @@ pub struct AnalyzeOptions {
     /// `["process", "native"]`. Read the inventory with `externalsJson()`
     /// / `externalsText()`.
     pub externals: Option<Either3<bool, String, Vec<String>>>,
+    /// Remove names from the walker's built-in deny list (`vendor`,
+    /// `third_party`, …) for this run; `.git` stays denied.
+    pub allow_dirs: Option<Vec<String>>,
+    /// Bind calls written at module/file scope to a synthetic per-file
+    /// caller. Off by default.
+    pub module_scope_calls: Option<bool>,
+    /// Emit edges for attribute reads that run a property getter. Off by
+    /// default.
+    pub property_edges: Option<bool>,
 }
 
 /// One callable in the graph.
@@ -323,6 +332,9 @@ fn build_options(
         },
         locations: o.locations.unwrap_or(false),
         from_graph: o.from_graph.map(Into::into),
+        allow_dirs: o.allow_dirs.unwrap_or_default(),
+        module_scope_calls: o.module_scope_calls.unwrap_or(false),
+        property_edges: o.property_edges.unwrap_or(false),
         externals: match o.externals {
             None | Some(Either3::A(false)) => None,
             Some(Either3::A(true)) => Some(cgg_core::ExternalsSpec::default()),
