@@ -230,7 +230,14 @@ impl<'a> LibIndex<'a> {
         // Top-level: a callable no other callable of its file contains,
         // with no owner in its qualified name.
         let mut spans: HashMap<FileId, Vec<(u32, u32)>> = HashMap::new();
-        for c in graph.callables.values().filter(|c| c.language == "dart") {
+        // Synthetic callables (`--module-scope-calls`' file-wide
+        // `<module>`) contain nothing: as a container they would make
+        // every top-level definition nested.
+        for c in graph
+            .callables
+            .values()
+            .filter(|c| c.language == "dart" && !c.synthetic)
+        {
             spans
                 .entry(c.file)
                 .or_default()
@@ -1322,7 +1329,14 @@ impl<'a> LibIndex<'a> {
             return;
         }
         let mut spans: HashMap<FileId, Vec<(u32, u32)>> = HashMap::new();
-        for c in graph.callables.values().filter(|c| c.language == "zig") {
+        // Synthetic callables (`--module-scope-calls`' file-wide
+        // `<module>`) contain nothing: as a container they would make
+        // every top-level definition nested.
+        for c in graph
+            .callables
+            .values()
+            .filter(|c| c.language == "zig" && !c.synthetic)
+        {
             spans
                 .entry(c.file)
                 .or_default()

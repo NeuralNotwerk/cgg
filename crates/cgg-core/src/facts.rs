@@ -1149,7 +1149,15 @@ impl FileFacts {
             variant: DefVariant::FreeFunction,
             start_line: first.site_line,
             end_line,
-            start_byte: 0,
+            // An empty span past every site: the module scope contains
+            // nothing. It is the caller of last resort, found by name of
+            // its attribute (`intra_file`'s `module_src`,
+            // `cross_file::enclosing_callable_id`), never by containment.
+            // A file-wide span made every top-level definition look
+            // nested to each reader that asks "what contains this?" — the
+            // import index, Dart/Zig library scopes, Kotlin property and
+            // C++ per-site typing — and dropped their edges.
+            start_byte: end_byte,
             end_byte,
             attributes: vec![MODULE_SCOPE_ATTR.into()],
             ..Default::default()

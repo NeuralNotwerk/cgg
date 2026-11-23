@@ -8549,7 +8549,16 @@ pub(crate) fn enclosing_callable_id(
             }
         }
     }
-    let (d, _) = best?;
+    // Outside every definition: the module scope (`--module-scope-calls`),
+    // when the file has one. Its span is empty, so it is never `best`.
+    let d = match best {
+        Some((d, _)) => d,
+        None => facts.definitions.iter().find(|d| {
+            d.attributes
+                .iter()
+                .any(|a| a == cgg_core::MODULE_SCOPE_ATTR)
+        })?,
+    };
     by_span
         .get(&(facts.file, d.start_byte, d.end_byte))
         .copied()

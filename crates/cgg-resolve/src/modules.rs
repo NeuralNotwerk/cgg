@@ -233,10 +233,17 @@ impl<'a> ModuleIndex<'a> {
             {
                 ix.js_owners.insert((c.file, owner));
             }
-            per_file
-                .entry(c.file)
-                .or_default()
-                .push((c.start_byte, c.end_byte, c.id));
+            // A synthetic callable (`--module-scope-calls`' `<module>`,
+            // which spans the whole file) encloses nothing: as a parent it
+            // would make every top-level definition "nested" and hide it
+            // from every importer.
+            if !c.synthetic {
+                per_file.entry(c.file).or_default().push((
+                    c.start_byte,
+                    c.end_byte,
+                    c.id,
+                ));
+            }
         }
         for spans in per_file.values_mut() {
             // Outermost first at equal starts. A span strictly inside the
