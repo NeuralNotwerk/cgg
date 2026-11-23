@@ -6,7 +6,7 @@ one binary on two *flag sets* — the question an opt-in feature has to
 answer ("what does `--externals` cost, per language?") and the default
 gates never ask, because the default never turns it on.
 
-    python3 scripts/flag-cost.py --flags "--externals=all" [--runs 5]
+    python3 scripts/flag-cost.py --flags="--externals=all" [--runs 5]
         [--corpus repos|full|both] [--bin target/release/cgg] [--repos a,b]
 
 Two tables:
@@ -40,6 +40,7 @@ import statistics
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -76,9 +77,20 @@ def run_once(cmd: list[str], timeout: int) -> tuple[float, int | None, int]:
     """Wall ms, peak RSS KiB (or None), return code."""
     with tempfile.NamedTemporaryFile() as tf:
         full = ([TIME, "-f", "%M", "-o", tf.name] if TIME else []) + cmd
+        # Not `subprocess.run(timeout=…)`: with a timeout, Python polls the
+        # child with sleeps of up to 50 ms, which quantizes every timing.
+        # A blocking wait plus a kill timer measures to the microsecond.
         t0 = time.monotonic()
-        p = subprocess.run(full, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=timeout)
+        p = subprocess.Popen(full, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        killer = threading.Timer(timeout, p.kill)
+        killer.start()
+        try:
+            p.wait()
+        finally:
+            killer.cancel()
         ms = (time.monotonic() - t0) * 1000
+        if p.returncode == -9:
+            raise subprocess.TimeoutExpired(cmd, timeout)
         rss = None
         if TIME:
             try:

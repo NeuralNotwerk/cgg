@@ -15,6 +15,19 @@ use cgg_core::externals::{ExternalUse, ExternalUseKind};
 use cgg_core::stdlib::{LIBRARY_LOAD_APIS, PROCESS_SPAWN_APIS, externals_table};
 use tree_sitter::{Node, Tree};
 
+/// Whether `needle` occurs in `hay`.
+fn memmem(hay: &[u8], needle: &[u8]) -> bool {
+    if needle.is_empty() {
+        return false;
+    }
+    // `str::contains` is Two-Way; the byte-window fallback only runs on a
+    // file that is not UTF-8.
+    match (std::str::from_utf8(hay), std::str::from_utf8(needle)) {
+        (Ok(h), Ok(n)) => h.contains(n),
+        _ => hay.windows(needle.len()).any(|w| w == needle),
+    }
+}
+
 /// Unify separators so `Command::new`, `os.system` and `os:cmd` compare
 /// alike.
 fn unify(s: &str) -> String {
@@ -27,6 +40,7 @@ fn unify(s: &str) -> String {
 }
 
 /// Whether the callee text, as written, ends with the table entry.
+#[cfg(test)]
 fn callee_matches(entry: &str, callee: &str) -> bool {
     let e = unify(entry);
     let c = unify(callee);
@@ -217,12 +231,51 @@ pub fn extract(language: &str, tree: &Tree, src: &[u8]) -> Vec<ExternalUse> {
     let spawn = externals_table(PROCESS_SPAWN_APIS, language);
     let load = externals_table(LIBRARY_LOAD_APIS, language);
     let shell_out = matches!(language, "ruby" | "perl" | "php" | "julia");
+    // The last segment of every entry: a call whose callee does not end in
+    // one is rejected on one set probe, before any string is built.
+    let last_seg = |e: &str| -> String {
+        unify(e)
+            .rsplit('.')
+            .next()
+            .unwrap_or("")
+            .trim_end_matches(')')
+            .to_string()
+    };
+    let tails: std::collections::HashSet<String> = spawn
+        .iter()
+        .chain(load.iter())
+        .map(|e| last_seg(e))
+        .collect();
+    // Rust is the one plugin that records no declaration for an `enum`
+    // or `struct` without an `impl`; the others' qualified names carry
+    // their types already.
+    let want_declares = language == "rust";
+    // A file that never spells an API's last identifier cannot call it.
+    let mentions_api = tails
+        .iter()
+        .any(|t| !t.is_empty() && memmem(src, t.as_bytes()));
+    let walk = want_declares || mentions_api || shell_out || language == "haskell";
+    let spawn_u: Vec<(String, &str)> = spawn.iter().map(|e| (unify(e), *e)).collect();
+    let load_u: Vec<(String, &str)> = load.iter().map(|e| (unify(e), *e)).collect();
     let text = |n: Node| std::str::from_utf8(&src[n.byte_range()]).unwrap_or("");
     let mut out = Vec::new();
-    let mut stack = vec![tree.root_node()];
-    while let Some(n) = stack.pop() {
-        let mut c = n.walk();
-        stack.extend(n.children(&mut c));
+    // Pre-order over one cursor: no per-node allocation. The cursor is
+    // advanced before the node is looked at, so the body may `continue`.
+    let mut cursor = tree.walk();
+    let mut done = !walk;
+    while !done {
+        let n = cursor.node();
+        if !cursor.goto_first_child() {
+            loop {
+                if cursor.goto_next_sibling() {
+                    break;
+                }
+                if !cursor.goto_parent() {
+                    done = true;
+                    break;
+                }
+            }
+        }
         let k = n.kind();
         if shell_out && SHELL_LITERALS.contains(&k) {
             let lit = literal_text(text(n).trim_start_matches("%x"));
@@ -237,7 +290,8 @@ pub fn extract(language: &str, tree: &Tree, src: &[u8]) -> Vec<ExternalUse> {
             });
             continue;
         }
-        if declares_type(k)
+        if want_declares
+            && declares_type(k)
             && let Some(name) = n.child_by_field_name("name")
         {
             let t = text(name);
@@ -277,10 +331,21 @@ pub fn extract(language: &str, tree: &Tree, src: &[u8]) -> Vec<ExternalUse> {
             });
             continue;
         }
-        if !is_call(k) {
+        if !mentions_api || !is_call(k) {
             continue;
         }
         let Some(f) = callee(n) else { continue };
+        // Cheap reject: the callee's own last identifier.
+        {
+            let t = text(f);
+            let tail = t
+                .rsplit(|c: char| !(c.is_alphanumeric() || c == '_' || c == '$'))
+                .find(|x| !x.is_empty())
+                .unwrap_or("");
+            if !tails.contains(tail) && !tails.contains(t.trim()) {
+                continue;
+            }
+        }
         let args_node = n
             .child_by_field_name("arguments")
             .or_else(|| n.child_by_field_name("args"));
@@ -300,14 +365,17 @@ pub fn extract(language: &str, tree: &Tree, src: &[u8]) -> Vec<ExternalUse> {
         if ftext.len() > 200 {
             continue;
         }
-        let (kind, entry) =
-            if let Some(e) = spawn.iter().find(|e| callee_matches(e, ftext)) {
-                (ExternalUseKind::ProcessSpawn, *e)
-            } else if let Some(e) = load.iter().find(|e| callee_matches(e, ftext)) {
-                (ExternalUseKind::LibraryLoad, *e)
-            } else {
-                continue;
-            };
+        let c = unify(ftext);
+        let hit = |(e, _): &&(String, &str)| {
+            c == *e || (c.ends_with(e.as_str()) && c[..c.len() - e.len()].ends_with('.'))
+        };
+        let (kind, entry) = if let Some((_, e)) = spawn_u.iter().find(hit) {
+            (ExternalUseKind::ProcessSpawn, *e)
+        } else if let Some((_, e)) = load_u.iter().find(hit) {
+            (ExternalUseKind::LibraryLoad, *e)
+        } else {
+            continue;
+        };
         let args = n
             .child_by_field_name("arguments")
             .or_else(|| n.child_by_field_name("args"))

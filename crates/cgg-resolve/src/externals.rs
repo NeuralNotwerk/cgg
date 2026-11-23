@@ -89,11 +89,13 @@ struct ClassifiedImport {
 struct TreeNames {
     /// (language, name): first segments of qualified names, declared
     /// packages and their heads, file stems and directory names.
-    names: HashSet<(String, String)>,
+    names: HashMap<String, HashSet<String>>,
     /// Every analyzed file's path, `/`-separated, without extension.
     paths: Vec<String>,
     /// PHP names, lowercased.
     names_lower: HashSet<String>,
+    /// `paths` by their last segment.
+    by_last: HashMap<String, Vec<String>>,
 }
 
 impl TreeNames {
@@ -104,7 +106,10 @@ impl TreeNames {
             let mut add = |n: &str| {
                 let n = n.trim();
                 if !n.is_empty() {
-                    t.names.insert((lang.to_string(), n.to_string()));
+                    t.names
+                        .entry(lang.to_string())
+                        .or_default()
+                        .insert(n.to_string());
                 }
             };
             for d in &f.definitions {
@@ -162,17 +167,22 @@ impl TreeNames {
             t.paths.push(p.to_string_lossy().replace('\\', "/"));
         }
         t.paths.sort();
+        for p in &t.paths {
+            let last = p.rsplit('/').next().unwrap_or(p).to_string();
+            t.by_last.entry(last).or_default().push(p.clone());
+        }
         t.names_lower = t
             .names
-            .iter()
-            .filter(|(l, _)| l == "php")
-            .map(|(_, n)| n.to_ascii_lowercase())
+            .get("php")
+            .into_iter()
+            .flatten()
+            .map(|n| n.to_ascii_lowercase())
             .collect();
         t
     }
 
     fn knows(&self, lang: &str, name: &str) -> bool {
-        self.names.contains(&(lang.to_string(), name.to_string()))
+        self.names.get(lang).is_some_and(|s| s.contains(name))
             // PHP namespaces and class names are case-insensitive.
             || (lang == "php" && self.names_lower.contains(&name.to_ascii_lowercase()))
     }
@@ -189,9 +199,14 @@ impl TreeNames {
         let m = m.replace('\\', "/");
         let stem = std::path::Path::new(&m).with_extension("");
         let stem = stem.to_string_lossy();
-        self.paths.iter().any(|p| {
-            p.ends_with(stem.as_ref())
-                && (p.len() == stem.len() || p[..p.len() - stem.len()].ends_with('/'))
+        // Only paths with the same last segment can match: indexed, so a
+        // lookup is not a scan of every file in the tree.
+        let last = stem.rsplit('/').next().unwrap_or(&stem);
+        self.by_last.get(last).is_some_and(|ps| {
+            ps.iter().any(|p| {
+                p.ends_with(stem.as_ref())
+                    && (p.len() == stem.len() || p[..p.len() - stem.len()].ends_with('/'))
+            })
         })
     }
 }
@@ -402,12 +417,46 @@ struct FileCtx<'a> {
 }
 
 struct Pass {
+    memo: std::cell::RefCell<HashMap<(String, bool, String), Class>>,
+    tails: std::cell::RefCell<HashMap<String, HashSet<String>>>,
     tree: TreeNames,
     vocab: WorkspaceVocab,
 }
 
 impl Pass {
+    /// [`Self::classify_uncached`], memoized: a module is judged once per
+    /// run however many call sites name it. Only C-family `include`
+    /// changes the answer, so it is the one part of `kind` in the key.
     fn classify(&self, lang: &str, kind: &str, module: &str) -> Class {
+        let key = (lang.to_string(), kind == "include", module.to_string());
+        if let Some(c) = self.memo.borrow().get(&key) {
+            return *c;
+        }
+        let c = self.classify_uncached(lang, kind, module);
+        self.memo.borrow_mut().insert(key, c);
+        c
+    }
+
+    /// The last identifier of every process / library-load API entry of
+    /// `lang`, built once per language.
+    fn api_tails(&self, lang: &str) -> std::cell::Ref<'_, HashSet<String>> {
+        if !self.tails.borrow().contains_key(lang) {
+            let set: HashSet<String> = externals_table(PROCESS_SPAWN_APIS, lang)
+                .iter()
+                .chain(externals_table(LIBRARY_LOAD_APIS, lang))
+                .filter_map(|e| {
+                    unify(e)
+                        .rsplit('.')
+                        .next()
+                        .map(|t| t.trim_end_matches(')').to_string())
+                })
+                .collect();
+            self.tails.borrow_mut().insert(lang.to_string(), set);
+        }
+        std::cell::Ref::map(self.tails.borrow(), |m| &m[lang])
+    }
+
+    fn classify_uncached(&self, lang: &str, kind: &str, module: &str) -> Class {
         let m = module.trim().trim_matches(['"', '\'']);
         // Nothing nameable, or a path built at run time (`source "$CONF"`):
         // not a library cgg can name.
@@ -1217,9 +1266,13 @@ impl Pass {
                 })
                 .map(|u| u.module.clone())
         };
-        if externals_table(PROCESS_SPAWN_APIS, lang)
-            .iter()
-            .any(|e| api_matches(e, &qual, &name, module))
+        // Only a call whose own name ends an API entry can be one.
+        let api_tail = name.rsplit(['.', ':', '/']).next().unwrap_or(&name);
+        let maybe_api = self.api_tails(lang).contains(api_tail);
+        if maybe_api
+            && externals_table(PROCESS_SPAWN_APIS, lang)
+                .iter()
+                .any(|e| api_matches(e, &qual, &name, module))
         {
             let prog = literal(ExternalUseKind::ProcessSpawn)
                 .map(|p| program_of(&p))
@@ -1236,9 +1289,10 @@ impl Pass {
             };
             return mk(ExternalKind::Process, prog.clone(), prog, via, ev);
         }
-        if externals_table(LIBRARY_LOAD_APIS, lang)
-            .iter()
-            .any(|e| api_matches(e, &qual, &name, module))
+        if maybe_api
+            && externals_table(LIBRARY_LOAD_APIS, lang)
+                .iter()
+                .any(|e| api_matches(e, &qual, &name, module))
         {
             let lib = literal(ExternalUseKind::LibraryLoad)
                 .unwrap_or_else(|| "<dynamic>".into());
@@ -1363,9 +1417,14 @@ pub fn inventory(
     records: &[AuditFileRecord],
     spec: &ExternalsSpec,
 ) -> ExternalsInventory {
-    let pass = Pass {
-        tree: TreeNames::build(facts),
-        vocab: WorkspaceVocab::build(graph, facts),
+    let pass = {
+        let _s = cgg_core::profile::span("post::externals::vocab");
+        Pass {
+            memo: Default::default(),
+            tails: Default::default(),
+            tree: TreeNames::build(facts),
+            vocab: WorkspaceVocab::build(graph, facts),
+        }
     };
     let by_file: HashMap<FileId, &FileFacts> =
         facts.iter().map(|f| (f.file, f)).collect();
@@ -1392,7 +1451,11 @@ pub fn inventory(
         let Some(f) = by_file.get(&rec.file) else {
             continue;
         };
-        let ctx = pass.file_ctx(f);
+        let ctx = {
+            let _s = cgg_core::profile::span("post::externals::file-ctx");
+            pass.file_ctx(f)
+        };
+        let _site_span = cgg_core::profile::span("post::externals::sites");
         let lang = f.language.clone();
         let path = rec.path.display().to_string();
         let cov = coverage.entry(lang.clone()).or_insert_with(|| {

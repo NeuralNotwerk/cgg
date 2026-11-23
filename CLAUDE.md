@@ -61,7 +61,7 @@ python3 scripts/graph-ab.py OLD_BIN NEW_BIN OUTDIR [--repos a,b]
 # What one opt-in flag costs: the same binary with and without it, paired,
 # per language (REPOS rows) and over the full corpus. Bounded like every
 # corpus script; not a release gate (the flag is off by default).
-python3 scripts/flag-cost.py --flags "--externals=all" [--runs 5]
+python3 scripts/flag-cost.py --flags="--externals=all" [--runs 5]
 
 # Per-language --externals attribution coverage over the full corpus
 python3 scripts/externals-coverage.py
