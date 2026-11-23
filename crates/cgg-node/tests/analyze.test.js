@@ -303,3 +303,22 @@ test("locations match the CLI", { skip: !haveBin }, async () => {
     cli([TREE, "-t", "graphml", "--locations"]),
   );
 });
+
+test("externals inventory matches the CLI", { skip: !haveBin }, async () => {
+  const g = await cgg.analyze(TREE, { externals: "all" });
+  const doc = JSON.parse(g.externalsJson());
+  assert.strictEqual(doc.schema, "cgg.externals.v1");
+  assert.ok(g.externalsText().startsWith("cgg externals report"));
+  const fromCli = JSON.parse(
+    cli([TREE, "--externals=all", "--externals-format", "json", "--no-graph", "-q"])
+  );
+  assert.deepStrictEqual(doc, fromCli);
+  assert.strictEqual(
+    g.toMermaid(),
+    cli([TREE, "--externals=all", "--externals-report", "/dev/null", "-q"])
+  );
+  const plain = await cgg.analyze(TREE);
+  assert.strictEqual(plain.externalsJson(), null);
+  const bare = await cgg.analyze(TREE, { externals: true });
+  assert.deepStrictEqual(JSON.parse(bare.externalsJson()).kinds, ["third-party", "system", "native", "process"]);
+});

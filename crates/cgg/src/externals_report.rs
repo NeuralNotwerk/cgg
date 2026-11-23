@@ -74,12 +74,20 @@ pub fn render_text(report: &ExternalsReport, out: &mut dyn Write) -> io::Result<
     writeln!(out)?;
     let libs: Vec<String> = ExternalKind::ALL
         .iter()
-        .filter_map(|k| t.libraries_by_kind.get(k.slug()).map(|v| format!("{} {}", n(*v), k.slug())))
+        .filter_map(|k| {
+            t.libraries_by_kind
+                .get(k.slug())
+                .map(|v| format!("{} {}", n(*v), k.slug()))
+        })
         .collect();
     writeln!(
         out,
         "libraries  {}",
-        if libs.is_empty() { "none".to_string() } else { libs.join(" · ") }
+        if libs.is_empty() {
+            "none".to_string()
+        } else {
+            libs.join(" · ")
+        }
     )?;
     let shown_sites: u64 = t.by_confidence.values().sum();
     let conf: Vec<String> = ["high", "medium", "low"]
@@ -91,7 +99,11 @@ pub fn render_text(report: &ExternalsReport, out: &mut dyn Write) -> io::Result<
         "sites      {} shown of {} that leave the tree ({})",
         n(shown_sites),
         n(t.sites),
-        if conf.is_empty() { "none".into() } else { conf.join(" · ") }
+        if conf.is_empty() {
+            "none".into()
+        } else {
+            conf.join(" · ")
+        }
     )?;
 
     rule("coverage — what cgg could attribute, per language", out)?;
@@ -144,9 +156,14 @@ pub fn render_text(report: &ExternalsReport, out: &mut dyn Write) -> io::Result<
                 n(callers)
             )?;
             if l.modules.len() > 1 || l.modules.first().is_some_and(|m| *m != l.name) {
-                let mut ms: Vec<&str> = l.modules.iter().take(4).map(String::as_str).collect();
+                let mut ms: Vec<&str> =
+                    l.modules.iter().take(4).map(String::as_str).collect();
                 let more = l.modules.len().saturating_sub(4);
-                let tail = if more > 0 { format!(" … {more} more") } else { String::new() };
+                let tail = if more > 0 {
+                    format!(" … {more} more")
+                } else {
+                    String::new()
+                };
                 ms.dedup();
                 writeln!(out, "  modules  {}{tail}", ms.join(", "))?;
             }
@@ -155,7 +172,11 @@ pub fn render_text(report: &ExternalsReport, out: &mut dyn Write) -> io::Result<
                     writeln!(out, "  imported {}:{}", i.path, i.line)?;
                 }
                 if l.imports.len() > IMPORTS {
-                    writeln!(out, "  … {} more import site(s)", l.imports.len() - IMPORTS)?;
+                    writeln!(
+                        out,
+                        "  … {} more import site(s)",
+                        l.imports.len() - IMPORTS
+                    )?;
                 }
                 continue;
             }
@@ -173,10 +194,21 @@ pub fn render_text(report: &ExternalsReport, out: &mut dyn Write) -> io::Result<
             writeln!(out)?;
             for (i, c) in l.callers.iter().take(CALLERS).enumerate() {
                 let label = if i == 0 { "callers " } else { "        " };
-                writeln!(out, "  {label} {} ({}:{}) ×{}", c.qualified_name, c.path, c.line, n(c.sites))?;
+                writeln!(
+                    out,
+                    "  {label} {} ({}:{}) ×{}",
+                    c.qualified_name,
+                    c.path,
+                    c.line,
+                    n(c.sites)
+                )?;
             }
             if l.callers.len() > CALLERS {
-                writeln!(out, "           … {} more caller(s)", l.callers.len() - CALLERS)?;
+                writeln!(
+                    out,
+                    "           … {} more caller(s)",
+                    l.callers.len() - CALLERS
+                )?;
             }
             for b in l.branches.iter().take(2) {
                 writeln!(out, "  branch   {}", b.join(" → "))?;
@@ -184,8 +216,13 @@ pub fn render_text(report: &ExternalsReport, out: &mut dyn Write) -> io::Result<
         }
     }
 
-    if report.kinds.contains(&ExternalKind::Unattributed) && !report.unattributed.is_empty() {
-        rule("unattributed — left the tree, no evidence names the library", out)?;
+    if report.kinds.contains(&ExternalKind::Unattributed)
+        && !report.unattributed.is_empty()
+    {
+        rule(
+            "unattributed — left the tree, no evidence names the library",
+            out,
+        )?;
         for g in report.unattributed.iter().take(UNATTRIBUTED) {
             let at = g
                 .sample
@@ -195,7 +232,11 @@ pub fn render_text(report: &ExternalsReport, out: &mut dyn Write) -> io::Result<
             writeln!(out, "  {:<10} {} ×{}{at}", g.language, g.name, n(g.sites))?;
         }
         if report.unattributed.len() > UNATTRIBUTED {
-            writeln!(out, "  … {} more name(s)", report.unattributed.len() - UNATTRIBUTED)?;
+            writeln!(
+                out,
+                "  … {} more name(s)",
+                report.unattributed.len() - UNATTRIBUTED
+            )?;
         }
     }
 
@@ -208,8 +249,14 @@ pub fn render_text(report: &ExternalsReport, out: &mut dyn Write) -> io::Result<
             regex_escape(&l.name)
         )?;
     }
-    writeln!(out, "  module → library map       cgg <path> --externals --rollup-by module")?;
-    writeln!(out, "  every kind, as json        cgg <path> --externals=all --externals-format json --no-graph")?;
+    writeln!(
+        out,
+        "  module → library map       cgg <path> --externals --rollup-by module"
+    )?;
+    writeln!(
+        out,
+        "  every kind, as json        cgg <path> --externals=all --externals-format json --no-graph"
+    )?;
     Ok(())
 }
 

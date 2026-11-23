@@ -570,3 +570,28 @@ def test_type_stubs_ship_with_the_package() -> None:
     pkg = Path(cgg.__file__).parent
     assert (pkg / "py.typed").exists(), "py.typed marker not installed"
     assert (pkg / "_cgg.pyi").exists(), "type stubs not installed"
+
+
+def test_externals_inventory_matches_the_cli(tree: Path) -> None:
+    """`externals=` returns the same `cgg.externals.v1` document the CLI
+    writes, and the graph is the CLI's external-branch graph."""
+    g = cgg.analyze(tree, externals="all")
+    doc = g.externals
+    assert doc is not None and doc["schema"] == "cgg.externals.v1"
+    assert g.externals_text().startswith("cgg externals report")
+    out = subprocess.run(
+        [str(_cli()), str(tree), "--externals=all", "--externals-format", "json", "--no-graph", "-q"],
+        check=True,
+        capture_output=True,
+    ).stdout
+    assert json.loads(out) == doc
+    mermaid = subprocess.run(
+        [str(_cli()), str(tree), "--externals=all", "--externals-report", os.devnull, "-q"],
+        check=True,
+        capture_output=True,
+    ).stdout.decode()
+    assert g.to_mermaid() == mermaid
+    assert cgg.analyze(tree).externals is None
+    assert cgg.analyze(tree, externals=False).externals is None
+    with pytest.raises(ValueError):
+        cgg.analyze(tree, externals="thirdparty")

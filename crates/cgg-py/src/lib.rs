@@ -418,6 +418,9 @@ pub struct Graph {
     metrics: Metrics,
     notices: Vec<String>,
     jobs: usize,
+    /// The `externals=` inventory, kept as the Rust value; converted on
+    /// access.
+    externals: Option<Arc<cgg_core::ExternalsReport>>,
 
     callables_cache: OnceLock<Py<PyTuple>>,
     edges_cache: OnceLock<Py<PyTuple>>,
@@ -461,6 +464,7 @@ impl Graph {
         // transcript, already stripped of trailing newlines.
         let notices = o.notices().map(str::to_string).collect();
         Self {
+            externals: o.externals.map(Arc::new),
             inner: Arc::new(o.graph),
             metrics,
             notices,
@@ -599,6 +603,27 @@ impl Graph {
     #[getter]
     fn jobs(&self) -> usize {
         self.jobs
+    }
+
+    /// The `externals=` inventory as a dict (the `cgg.externals.v1`
+    /// document), or `None` when the analysis did not ask for one.
+    #[getter]
+    fn externals<'py>(&self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyAny>>> {
+        let Some(r) = &self.externals else {
+            return Ok(None);
+        };
+        let s = serde_json::to_string(r.as_ref())
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        Ok(Some(py.import("json")?.call_method1("loads", (s,))?))
+    }
+
+    /// The `externals=` inventory as the ranked text report the CLI
+    /// prints, or `None` when the analysis did not ask for one.
+    fn externals_text(&self) -> Option<String> {
+        let r = self.externals.as_ref()?;
+        let mut buf = Vec::new();
+        cgg::externals_report::render_text(r, &mut buf).ok()?;
+        String::from_utf8(buf).ok()
     }
 
     /// Callable count. `len(graph)` is the same number.
@@ -852,6 +877,7 @@ fn confidence_from_str(s: &str) -> PyResult<cgg_core::graph::Confidence> {
     node_ids = None,
     locations = false,
     from_graph = None,
+    externals = None,
 ))]
 #[allow(clippy::too_many_arguments)]
 fn analyze(
@@ -889,7 +915,27 @@ fn analyze(
     node_ids: Option<&str>,
     locations: bool,
     from_graph: Option<PathBuf>,
+    externals: Option<&Bound<'_, PyAny>>,
 ) -> PyResult<Graph> {
+    // `True`, `"all"`, `"process,native"` or `["process", "native"]`;
+    // `None`/`False` leaves the feature off.
+    let externals = match externals {
+        None => None,
+        Some(v) if v.is_none() => None,
+        Some(v) => {
+            if let Ok(b) = v.extract::<bool>() {
+                b.then(cgg_core::ExternalsSpec::default)
+            } else if let Ok(s) = v.extract::<String>() {
+                Some(cgg_core::ExternalsSpec::parse(&s).map_err(PyValueError::new_err)?)
+            } else {
+                let kinds: Vec<String> = v.extract()?;
+                Some(
+                    cgg_core::ExternalsSpec::parse(&kinds.join(","))
+                        .map_err(PyValueError::new_err)?,
+                )
+            }
+        }
+    };
     let opts = cgg::RunOptions {
         paths: extract_paths(paths)?,
         filter: filter.unwrap_or_default(),
@@ -948,6 +994,7 @@ fn analyze(
         // methods take it again; this only sizes the budget.
         locations,
         from_graph,
+        externals,
     };
 
     // Pure Rust, touching no Python object: without releasing the GIL a

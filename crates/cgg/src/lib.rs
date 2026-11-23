@@ -30,12 +30,12 @@ pub mod rollup;
 // Private: consumers reach these types through the re-exports below, and
 // the modules themselves have no out-of-crate callers.
 mod deadcode;
+pub mod externals_report;
 mod options;
 mod outcome;
 mod query;
 mod replay;
 mod since;
-pub mod externals_report;
 mod stable_ids;
 
 use stable_ids::StableIds;
@@ -497,8 +497,11 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
                         // in a side channel no resolver reads.
                         if ctx.externals {
                             let _s = cgg_core::profile::span("parse::externals");
-                            let mut uses =
-                                cgg_lang::externals::extract(&f.language, &out.tree, &bytes);
+                            let mut uses = cgg_lang::externals::extract(
+                                &f.language,
+                                &out.tree,
+                                &bytes,
+                            );
                             f.external_uses.append(&mut uses);
                         }
                         // Parameters and locals, from the same tree: a
@@ -2556,7 +2559,8 @@ fn externals_graph(
     use cgg_core::ExternalKind;
     let resolver = ResolverId::new("externals");
     let mut sentinels: HashMap<ExternalKind, FileId> = HashMap::new();
-    let mut leaf_ids: HashMap<(ExternalKind, String, String), CallableId> = HashMap::new();
+    let mut leaf_ids: HashMap<(ExternalKind, String, String), CallableId> =
+        HashMap::new();
     let mut toplevel: HashMap<FileId, CallableId> = HashMap::new();
     let mut edges: Vec<CallEdge> = Vec::new();
     for leaf in leaves {

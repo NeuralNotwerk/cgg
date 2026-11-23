@@ -81,7 +81,8 @@ const char *cgg_version(void);
  *     "dead_code":         false, "dead_code_confidence": "high",
  *     "since":             "main..HEAD",
  *     "ignore_file": null, "roots": null,
- *     "ignore_names": [], "ignore_attributes": []
+ *     "ignore_names": [], "ignore_attributes": [],
+ *     "externals":         true                // or "all", or ["process", "native"]
  *   }
  *
  * Returns NULL on failure. Free the result with cgg_graph_free().
@@ -89,7 +90,9 @@ const char *cgg_version(void);
 cgg_graph *cgg_analyze(const char *options_json, char **err);
 
 /*
- * Render a graph. format is "mermaid", "json", "dot" or "graphml".
+ * Render a graph. format is "mermaid", "json", "dot" or "graphml" — or
+ * "externals-json" / "externals-text" for the inventory of a run whose
+ * options set "externals" (true, "all", or a list of kinds).
  * Does not consume the handle — all four are available from one analysis.
  * Returns NULL on failure. Free the result with cgg_string_free().
  */

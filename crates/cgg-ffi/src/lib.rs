@@ -230,6 +230,40 @@ pub unsafe extern "C" fn cgg_graph_render(
                 return ptr::null_mut();
             }
         };
+        // The `externals` inventory renders through the same entry point:
+        // a new report is a new format name, never a new function.
+        if let Some(kind) = name.strip_prefix("externals-") {
+            let Some(r) = g.outcome.externals.as_ref() else {
+                unsafe {
+                    set_err(
+                        err,
+                        "no externals inventory: analyze with \"externals\" set".into(),
+                    )
+                };
+                return ptr::null_mut();
+            };
+            let mut buf = Vec::new();
+            let res = match kind {
+                "json" => cgg::externals_report::render_json(r, &mut buf),
+                "text" => cgg::externals_report::render_text(r, &mut buf),
+                other => {
+                    unsafe {
+                        set_err(
+                            err,
+                            format!(
+                                "unknown format \"externals-{other}\" — expected externals-json or externals-text"
+                            ),
+                        )
+                    };
+                    return ptr::null_mut();
+                }
+            };
+            if let Err(e) = res {
+                unsafe { set_err(err, e.to_string()) };
+                return ptr::null_mut();
+            }
+            return into_c_string(String::from_utf8_lossy(&buf).into_owned());
+        }
         // Parsed here rather than as an int, so the C header cannot drift
         // out of step with the Rust enum's discriminants.
         let fmt = match name {
@@ -243,7 +277,7 @@ pub unsafe extern "C" fn cgg_graph_render(
                         err,
                         format!(
                             "unknown format {other:?} — expected one of \
-                             mermaid, json, dot, graphml"
+                             mermaid, json, dot, graphml, externals-json, externals-text"
                         ),
                     )
                 };

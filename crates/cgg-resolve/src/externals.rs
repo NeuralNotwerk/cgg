@@ -108,7 +108,7 @@ impl TreeNames {
             for d in &f.definitions {
                 let head = d
                     .qualified_name
-                    .split(|c| matches!(c, ':' | '.' | '/' | '\\' | '#'))
+                    .split([':', '.', '/', '\\', '#'])
                     .find(|s| !s.is_empty())
                     .unwrap_or("");
                 add(head);
@@ -128,7 +128,7 @@ impl TreeNames {
             for d in &f.definitions {
                 // Every type segment of a qualified name: `Node` in
                 // `crate::ast::Node::kind`.
-                for seg in d.qualified_name.split(|c| matches!(c, ':' | '.' | '/' | '\\' | '#')) {
+                for seg in d.qualified_name.split([':', '.', '/', '\\', '#']) {
                     if seg.starts_with(char::is_uppercase) {
                         add(seg.split('<').next().unwrap_or(seg));
                     }
@@ -142,6 +142,12 @@ impl TreeNames {
             }
             if let Some(stem) = f.path.file_stem().and_then(|s| s.to_str()) {
                 add(stem);
+                // OCaml, F#, Haskell, Elixir: `util.ml` is module `Util`.
+                let mut cap = stem.to_string();
+                if let Some(c) = cap.get_mut(0..1) {
+                    c.make_ascii_uppercase();
+                }
+                add(&cap);
             }
             for c in f.path.parent().into_iter().flat_map(|p| p.components()) {
                 if let std::path::Component::Normal(s) = c
@@ -173,16 +179,17 @@ impl TreeNames {
         let m = m.replace('\\', "/");
         let stem = std::path::Path::new(&m).with_extension("");
         let stem = stem.to_string_lossy();
-        self.paths
-            .iter()
-            .any(|p| p.ends_with(stem.as_ref()) && (p.len() == stem.len() || p[..p.len() - stem.len()].ends_with('/')))
+        self.paths.iter().any(|p| {
+            p.ends_with(stem.as_ref())
+                && (p.len() == stem.len() || p[..p.len() - stem.len()].ends_with('/'))
+        })
     }
 }
 
 /// The first segment of a module path.
 fn head_segment(m: &str) -> &str {
     let m = m.trim().trim_start_matches(['@', ':', '\\']);
-    m.split(|c| matches!(c, ':' | '.' | '/' | '\\' | '#'))
+    m.split([':', '.', '/', '\\', '#'])
         .find(|s| !s.is_empty())
         .unwrap_or("")
 }
@@ -237,8 +244,8 @@ fn library_of(lang: &str, module: &str, class: Class) -> String {
                 return m.to_string();
             }
             let n = match s[0] {
-                "github.com" | "gitlab.com" | "bitbucket.org" | "golang.org" | "codeberg.org"
-                | "gitee.com" | "sr.ht" | "git.sr.ht" => 3,
+                "github.com" | "gitlab.com" | "bitbucket.org" | "golang.org"
+                | "codeberg.org" | "gitee.com" | "sr.ht" | "git.sr.ht" => 3,
                 "gopkg.in" => 2,
                 _ => 2,
             };
@@ -246,7 +253,10 @@ fn library_of(lang: &str, module: &str, class: Class) -> String {
         }
         "java" | "kotlin" | "scala" | "groovy" => {
             let mut s = segs(&['.']);
-            while s.len() > 1 && s.last().is_some_and(|l| l.starts_with(char::is_uppercase) || *l == "*") {
+            while s.len() > 1
+                && s.last()
+                    .is_some_and(|l| l.starts_with(char::is_uppercase) || *l == "*")
+            {
                 s.pop();
             }
             let n = if class == Class::Stdlib { 2 } else { 3 };
@@ -280,7 +290,12 @@ fn library_of(lang: &str, module: &str, class: Class) -> String {
             }
         }
         "ruby" | "lean" => m.split(['/', '.']).next().unwrap_or(m).to_string(),
-        "proto" | "openapi" | "asyncapi" | "smithy" | "hcl" | "starlark" | "nix" | "cmake"
+        "haskell" => {
+            let s = segs(&['.']);
+            s[..2.min(s.len())].join(".")
+        }
+        "smithy" => m.split('#').next().unwrap_or(m).to_string(),
+        "proto" | "openapi" | "asyncapi" | "hcl" | "starlark" | "nix" | "cmake"
         | "verilog" | "vhdl" | "solidity" | "asm" => {
             if lang == "solidity" && m.starts_with('@') {
                 let s = segs(&['/']);
@@ -305,7 +320,10 @@ fn library_of(lang: &str, module: &str, class: Class) -> String {
         }
         _ => {
             let h = m.trim_start_matches('.');
-            h.split(['.', ':', '/']).find(|s| !s.is_empty()).unwrap_or(h).to_string()
+            h.split(['.', ':', '/'])
+                .find(|s| !s.is_empty())
+                .unwrap_or(h)
+                .to_string()
         }
     }
 }
@@ -349,33 +367,31 @@ struct FileCtx<'a> {
     c_headers: Vec<String>,
     refs: HashMap<(u32, &'a str), &'a RefRecord>,
     uses_at: HashMap<u32, Vec<&'a ExternalUse>>,
+    uses_by_line: HashMap<u32, Vec<&'a ExternalUse>>,
 }
 
-struct Pass<'a> {
-    graph: &'a Graph,
+struct Pass {
     tree: TreeNames,
     vocab: WorkspaceVocab,
 }
 
-impl<'a> Pass<'a> {
+impl Pass {
     fn classify(&self, lang: &str, kind: &str, module: &str) -> Class {
         let m = module.trim().trim_matches(['"', '\'']);
-        if m.is_empty() {
+        if m.is_empty() || !m.chars().any(char::is_alphanumeric) {
             return Class::Internal;
         }
-        if matches!(lang, "c" | "cpp" | "objc") || kind == "system-include" || kind == "include" {
-            if matches!(lang, "c" | "cpp" | "objc") {
-                let quoted = kind == "include";
-                if quoted && self.tree.names_file(m) {
-                    return Class::Internal;
-                }
-                return match c_header_class(m) {
-                    Some(false) => Class::Stdlib,
-                    Some(true) => Class::System,
-                    None if self.tree.names_file(m) => Class::Internal,
-                    None => Class::External,
-                };
+        if matches!(lang, "c" | "cpp" | "objc") {
+            let quoted = kind == "include";
+            if quoted && self.tree.names_file(m) {
+                return Class::Internal;
             }
+            return match c_header_class(m) {
+                Some(false) => Class::Stdlib,
+                Some(true) => Class::System,
+                None if self.tree.names_file(m) => Class::Internal,
+                None => Class::External,
+            };
         }
         if m.starts_with('.')
             || m.starts_with('/')
@@ -392,7 +408,10 @@ impl<'a> Pass<'a> {
             return Class::Internal;
         }
         if self.is_stdlib(lang, m) {
-            if externals_table(OS_BINDING_MODULES, lang).iter().any(|o| *o == m || m.starts_with(&format!("{o}."))) {
+            if externals_table(OS_BINDING_MODULES, lang)
+                .iter()
+                .any(|o| *o == m || m.starts_with(&format!("{o}.")))
+            {
                 return Class::System;
             }
             return Class::Stdlib;
@@ -405,7 +424,11 @@ impl<'a> Pass<'a> {
             _ => None,
         };
         if let Some(ws) = judged {
-            return if ws { Class::Internal } else { self.external_class(lang, m) };
+            return if ws {
+                Class::Internal
+            } else {
+                self.external_class(lang, m)
+            };
         }
         if self.tree.names_file(m) {
             return Class::Internal;
@@ -419,10 +442,12 @@ impl<'a> Pass<'a> {
 
     fn external_class(&self, lang: &str, m: &str) -> Class {
         let lib = library_of(lang, m, Class::External);
-        if externals_table(OS_BINDING_MODULES, lang)
-            .iter()
-            .any(|o| *o == m || *o == lib || m.starts_with(&format!("{o}/")) || m.starts_with(&format!("{o}::")))
-        {
+        if externals_table(OS_BINDING_MODULES, lang).iter().any(|o| {
+            *o == m
+                || *o == lib
+                || m.starts_with(&format!("{o}/"))
+                || m.starts_with(&format!("{o}::"))
+        }) {
             Class::System
         } else {
             Class::External
@@ -450,11 +475,19 @@ impl<'a> Pass<'a> {
         }
     }
 
-    fn file_ctx(&self, facts: &'a FileFacts) -> FileCtx<'a> {
+    fn file_ctx<'a>(&self, facts: &'a FileFacts) -> FileCtx<'a> {
         let lang = facts.language.as_str();
         let heads = matches!(
             lang,
-            "python" | "javascript" | "typescript" | "go" | "java" | "kotlin" | "scala" | "csharp" | "cpp"
+            "python"
+                | "javascript"
+                | "typescript"
+                | "go"
+                | "java"
+                | "kotlin"
+                | "scala"
+                | "csharp"
+                | "cpp"
         )
         .then(|| FileHeads::build(facts, &self.vocab));
         let mut ctx = FileCtx {
@@ -469,18 +502,28 @@ impl<'a> Pass<'a> {
                 .map(|r| ((r.site_byte, r.name.as_str()), r))
                 .collect(),
             uses_at: HashMap::new(),
+            uses_by_line: HashMap::new(),
         };
         for u in &facts.external_uses {
             ctx.uses_at.entry(u.site_byte).or_default().push(u);
+            ctx.uses_by_line.entry(u.site_line).or_default().push(u);
         }
-        let mut bind = |ctx: &mut FileCtx, local: &str, module: &str, class: Class, module_binding: bool| {
+        let bind = |ctx: &mut FileCtx,
+                    local: &str,
+                    module: &str,
+                    class: Class,
+                    module_binding: bool| {
             let local = local.trim();
             if local.is_empty() || local == "*" || local == "_" {
                 return;
             }
             // A heads-judged binding is the resolver's verdict.
             let class = match heads.as_ref().and_then(|h| h.binding(local)) {
-                Some((_, false, _)) if class != Class::Stdlib && class != Class::System => Class::Internal,
+                Some((_, false, _))
+                    if class != Class::Stdlib && class != Class::System =>
+                {
+                    Class::Internal
+                }
                 Some((_, true, _)) if class == Class::Internal => Class::External,
                 _ => class,
             };
@@ -501,10 +544,28 @@ impl<'a> Pass<'a> {
         let records = facts
             .imports
             .iter()
-            .map(|i| (i.kind.as_str(), i.path.as_str(), i.alias.as_str(), i.site_line))
-            .chain(facts.external_uses.iter().filter(|u| u.kind == ExternalUseKind::Import).map(
-                |u| ("side-import", u.module.as_str(), u.alias.as_str(), u.site_line),
-            ));
+            .map(|i| {
+                (
+                    i.kind.as_str(),
+                    i.path.as_str(),
+                    i.alias.as_str(),
+                    i.site_line,
+                )
+            })
+            .chain(
+                facts
+                    .external_uses
+                    .iter()
+                    .filter(|u| u.kind == ExternalUseKind::Import)
+                    .map(|u| {
+                        (
+                            "side-import",
+                            u.module.as_str(),
+                            u.alias.as_str(),
+                            u.site_line,
+                        )
+                    }),
+            );
         for (kind, path, alias, line) in records {
             if is_identity_kind(lang, kind) {
                 continue;
@@ -541,7 +602,10 @@ impl<'a> Pass<'a> {
                 _ => {
                     // Python keeps `import a, b as c` as one record.
                     let whole = if lang == "python" && path.contains(',') {
-                        path.split(',').map(str::trim).map(str::to_string).collect::<Vec<_>>()
+                        path.split(',')
+                            .map(str::trim)
+                            .map(str::to_string)
+                            .collect::<Vec<_>>()
                     } else {
                         vec![path.trim().to_string()]
                     };
@@ -570,14 +634,33 @@ impl<'a> Pass<'a> {
                         let wildcard = module.ends_with("::*")
                             || module.ends_with(".*")
                             || module.ends_with("._")
-                            || matches!(kind, "open" | "using" | "refer-all" | "module-use" | "use")
-                                && matches!(lang, "ocaml" | "fsharp" | "csharp" | "haskell" | "vhdl" | "lean" | "julia" | "elixir")
-                            || (lang == "haskell" && kind.starts_with("import") && local_alias.is_empty());
+                            || matches!(
+                                kind,
+                                "open" | "using" | "refer-all" | "module-use" | "use"
+                            ) && matches!(
+                                lang,
+                                "ocaml"
+                                    | "fsharp"
+                                    | "csharp"
+                                    | "haskell"
+                                    | "vhdl"
+                                    | "lean"
+                                    | "julia"
+                                    | "elixir"
+                            )
+                            || (lang == "haskell"
+                                && kind.starts_with("import")
+                                && local_alias.is_empty());
                         if wildcard && class != Class::Internal {
-                            ctx.wildcards.insert(module.trim_end_matches("::*").trim_end_matches(".*").to_string());
+                            ctx.wildcards.insert(
+                                module
+                                    .trim_end_matches("::*")
+                                    .trim_end_matches(".*")
+                                    .to_string(),
+                            );
                         }
                         let last = module
-                            .rsplit(|c| matches!(c, ':' | '.' | '/' | '\\'))
+                            .rsplit([':', '.', '/', '\\'])
                             .find(|s| !s.is_empty() && *s != "*")
                             .unwrap_or(&module)
                             .trim_end_matches(".h")
@@ -589,15 +672,44 @@ impl<'a> Pass<'a> {
                             // `import a.b` binds `a` in Python; most other
                             // languages bind the last segment.
                             let module_binding = !last.starts_with(char::is_uppercase)
-                                || matches!(lang, "go" | "ruby" | "elixir" | "haskell" | "ocaml" | "lua" | "perl" | "r" | "julia" | "erlang" | "lean");
+                                || matches!(
+                                    lang,
+                                    "go" | "ruby"
+                                        | "elixir"
+                                        | "haskell"
+                                        | "ocaml"
+                                        | "lua"
+                                        | "perl"
+                                        | "r"
+                                        | "julia"
+                                        | "erlang"
+                                        | "lean"
+                                );
                             if lang == "python" {
                                 bind(&mut ctx, &first, &first, class, true);
                             } else if lang == "go" {
-                                bind(&mut ctx, &last.replace('-', "_"), &module, class, true);
+                                bind(
+                                    &mut ctx,
+                                    &last.replace('-', "_"),
+                                    &module,
+                                    class,
+                                    true,
+                                );
                             } else {
                                 bind(&mut ctx, &last, &module, class, module_binding);
                             }
-                            if matches!(lang, "elixir" | "haskell" | "ocaml" | "fsharp" | "lean" | "julia" | "perl" | "ruby" | "lua") {
+                            if matches!(
+                                lang,
+                                "elixir"
+                                    | "haskell"
+                                    | "ocaml"
+                                    | "fsharp"
+                                    | "lean"
+                                    | "julia"
+                                    | "perl"
+                                    | "ruby"
+                                    | "lua"
+                            ) {
                                 bind(&mut ctx, &module, &module, class, true);
                             }
                         }
@@ -609,9 +721,37 @@ impl<'a> Pass<'a> {
     }
 }
 
+/// Languages whose stdlib calls name a module (`os.getcwd`, `string.format`,
+/// `lists:map`), so the module is a better library name than the
+/// language's stdlib as a whole.
+fn module_headed(lang: &str) -> bool {
+    matches!(
+        lang,
+        "python"
+            | "kivy"
+            | "lua"
+            | "ruby"
+            | "perl"
+            | "r"
+            | "julia"
+            | "elixir"
+            | "erlang"
+            | "ocaml"
+            | "haskell"
+            | "go"
+            | "clojure"
+            | "fsharp"
+            | "lean"
+            | "nix"
+            | "zig"
+    )
+}
+
 /// Unify a qualified API name for matching: every separator becomes `.`.
 fn unify(s: &str) -> String {
-    s.replace("::", ".").replace(['/', ':', '\\'], ".").replace("->", ".")
+    s.replace("::", ".")
+        .replace(['/', ':', '\\'], ".")
+        .replace("->", ".")
 }
 
 /// Whether an API table entry matches the call. A bare entry matches only
@@ -624,7 +764,9 @@ fn api_matches(entry: &str, qual: &str, name: &str, module: Option<&str>) -> boo
     }
     let candidates = [
         unify(&format!("{qual}.{name}")),
-        module.map(|m| unify(&format!("{m}.{name}"))).unwrap_or_default(),
+        module
+            .map(|m| unify(&format!("{m}.{name}")))
+            .unwrap_or_default(),
     ];
     candidates.iter().filter(|c| !c.is_empty()).any(|c| {
         c == &e || c.ends_with(&format!(".{e}")) || c.ends_with(&e) && e.contains('(')
@@ -633,7 +775,11 @@ fn api_matches(entry: &str, qual: &str, name: &str, module: Option<&str>) -> boo
 
 /// The program a shell command line runs: its first word, path stripped.
 fn program_of(cmd: &str) -> String {
-    let w = cmd.split_whitespace().next().unwrap_or("").trim_matches(['"', '\'', '`']);
+    let w = cmd
+        .split_whitespace()
+        .next()
+        .unwrap_or("")
+        .trim_matches(['"', '\'', '`']);
     if w.is_empty() || w.starts_with('$') || w.contains("${") {
         return "<dynamic>".to_string();
     }
@@ -651,7 +797,7 @@ struct Attributed {
     confidence: Confidence,
 }
 
-impl Pass<'_> {
+impl Pass {
     fn attribute(
         &self,
         ctx: &FileCtx,
@@ -669,12 +815,26 @@ impl Pass<'_> {
             (q.trim_end_matches(':').to_string(), n.to_string())
         };
         let sep = separator(lang);
-        let mk = |kind, library: String, module: String, symbol: String, evidence: ExternalEvidence| {
+        let mk = |kind,
+                  library: String,
+                  module: String,
+                  symbol: String,
+                  evidence: ExternalEvidence| {
             let mut confidence = evidence.confidence();
-            if evidence == ExternalEvidence::TypedReceiver && r.is_some_and(|r| r.weak_receiver_type) {
+            if evidence == ExternalEvidence::TypedReceiver
+                && r.is_some_and(|r| r.weak_receiver_type)
+            {
                 confidence = Confidence::Low;
             }
-            Attributed { kind, language: lang.to_string(), library, module, symbol, evidence, confidence }
+            Attributed {
+                kind,
+                language: lang.to_string(),
+                library,
+                module,
+                symbol,
+                evidence,
+                confidence,
+            }
         };
         let kind_of = |class: Class| match class {
             Class::Stdlib => ExternalKind::Stdlib,
@@ -685,12 +845,24 @@ impl Pass<'_> {
         if matches!(lang, "bash" | "powershell") && qual.is_empty() {
             let n = name.as_str();
             let builtin = lang == "bash" && SHELL_BUILTINS.contains(&n);
-            let cmdlet = lang == "powershell" && n.contains('-') && n.chars().next().is_some_and(char::is_uppercase);
+            let cmdlet = lang == "powershell"
+                && n.contains('-')
+                && n.chars().next().is_some_and(char::is_uppercase);
             if builtin || cmdlet {
-                return mk(ExternalKind::Stdlib, stdlib_library_name(lang).into(), String::new(), n.into(), ExternalEvidence::StdlibScreen);
+                return mk(
+                    ExternalKind::Stdlib,
+                    stdlib_library_name(lang).into(),
+                    String::new(),
+                    n.into(),
+                    ExternalEvidence::StdlibScreen,
+                );
             }
             let prog = program_of(n);
-            let ev = if prog == "<dynamic>" { ExternalEvidence::None } else { ExternalEvidence::LiteralArgument };
+            let ev = if prog == "<dynamic>" {
+                ExternalEvidence::None
+            } else {
+                ExternalEvidence::LiteralArgument
+            };
             return mk(ExternalKind::Process, prog.clone(), prog, String::new(), ev);
         }
         // Resolve the library the call goes through.
@@ -699,111 +871,317 @@ impl Pass<'_> {
         let mut found: Option<(ExternalKind, String, String, ExternalEvidence)> = None;
         if let UnresolvedReason::ExternalModule { module } = &c.reason {
             let class = self.classify(lang, "import", module);
-            let class = if class == Class::Internal { Class::External } else { class };
-            found = Some((kind_of(class), library_of(lang, module, class), module.clone(), ExternalEvidence::ResolverRefusal));
+            let class = if class == Class::Internal {
+                Class::External
+            } else {
+                class
+            };
+            found = Some((
+                kind_of(class),
+                library_of(lang, module, class),
+                module.clone(),
+                ExternalEvidence::ResolverRefusal,
+            ));
         }
         if found.is_none() && !qual.is_empty() && !head.is_empty() {
             if let Some(b) = ctx.binds.get(&head)
                 && b.class != Class::Internal
             {
-                let ev = if chain {
-                    ExternalEvidence::ChainHead
-                } else if r.is_some_and(|r| r.typed_receiver || r.weak_receiver_type || r.retyped_receiver) {
-                    ExternalEvidence::TypedReceiver
+                // A chained call is the dependency's only when the head is
+                // the module itself or a type (`requests.get(u).json()`,
+                // `Command::new(…).arg(…)`), never a symbol taken out of
+                // one: `verify(mock).run()` returns a workspace value.
+                let type_head = head.starts_with(char::is_uppercase);
+                if chain && !b.module_binding && !type_head {
+                    // fall through to the rungs below
                 } else {
-                    ExternalEvidence::QualifiedImport
-                };
-                found = Some((kind_of(b.class), library_of(lang, &b.module, b.class), b.module.clone(), ev));
+                    let ev = if chain {
+                        ExternalEvidence::ChainHead
+                    } else if r.is_some_and(|r| {
+                        r.typed_receiver || r.weak_receiver_type || r.retyped_receiver
+                    }) {
+                        ExternalEvidence::TypedReceiver
+                    } else {
+                        ExternalEvidence::QualifiedImport
+                    };
+                    found = Some((
+                        kind_of(b.class),
+                        library_of(lang, &b.module, b.class),
+                        b.module.clone(),
+                        ev,
+                    ));
+                }
             } else if !chain && !ctx.binds.contains_key(&head) {
                 // A path written whole, through no import: `std::fs::read`,
                 // `serde_json::from_str`, `os.path.join` (Python binds it).
                 let plain_path = qual
                     .chars()
                     .all(|ch| ch.is_alphanumeric() || matches!(ch, '_' | ':' | '.'));
-                let own = matches!(head.as_str(), "Self" | "self" | "super" | "crate" | "this" | "base")
-                    || self.tree.knows(lang, &head);
+                let own = matches!(
+                    head.as_str(),
+                    "Self" | "self" | "super" | "crate" | "this" | "base"
+                ) || self.tree.knows(lang, &head);
                 // Rust: a crate path starts lowercase; an unimported
                 // capitalized head is a type of this module or the
                 // prelude, never a dependency.
-                let crate_shaped = lang != "rust" || head.starts_with(|ch: char| ch.is_lowercase());
+                let crate_shaped =
+                    lang != "rust" || head.starts_with(|ch: char| ch.is_lowercase());
+                // Languages whose qualified call names its module outright,
+                // with no import needed: Erlang `m:f`, Elixir `Mod.f`, OCaml
+                // `M.f`, Perl `Pkg::f`, R `pkg::f`.
+                let names_module =
+                    matches!(lang, "erlang" | "elixir" | "ocaml" | "perl" | "r");
                 let path_written = plain_path
                     && !own
                     && crate_shaped
-                    && (r.is_some_and(|r| r.path_receiver) || qual.contains("::"));
+                    && (names_module
+                        || r.is_some_and(|r| r.path_receiver)
+                        || qual.contains("::"));
                 if path_written {
                     let class = self.classify(lang, "import", &qual);
                     if class != Class::Internal {
-                        found = Some((kind_of(class), library_of(lang, &qual, class), qual.clone(), ExternalEvidence::QualifiedImport));
+                        found = Some((
+                            kind_of(class),
+                            library_of(lang, &qual, class),
+                            qual.clone(),
+                            ExternalEvidence::QualifiedImport,
+                        ));
                     }
-                } else if self.is_stdlib(lang, &head) && bucket_stdlib {
-                    found = Some((ExternalKind::Stdlib, library_of(lang, &head, Class::Stdlib), head.clone(), ExternalEvidence::StdlibScreen));
+                } else if self.is_stdlib(lang, &head)
+                    && bucket_stdlib
+                    && module_headed(lang)
+                {
+                    found = Some((
+                        ExternalKind::Stdlib,
+                        library_of(lang, &head, Class::Stdlib),
+                        head.clone(),
+                        ExternalEvidence::StdlibScreen,
+                    ));
+                } else if !own
+                    && head.starts_with(char::is_uppercase)
+                    && !bucket_stdlib
+                    && ctx.wildcards.len() == 1
+                {
+                    // `JsonConvert.Serialize()` after `using Newtonsoft.Json;`
+                    // as the file's only external wildcard import.
+                    let m = ctx.wildcards.iter().next().cloned().unwrap_or_default();
+                    let class = self.classify(lang, "import", &m);
+                    found = Some((
+                        kind_of(class),
+                        library_of(lang, &m, class),
+                        m,
+                        ExternalEvidence::SoleWildcard,
+                    ));
+                } else if !own
+                    && head.starts_with(char::is_uppercase)
+                    && !bucket_stdlib
+                    && matches!(lang, "objc" | "swift")
+                    && ctx.c_headers.len() + ctx.wildcards.len() == 1
+                {
+                    let m = ctx
+                        .c_headers
+                        .first()
+                        .or(ctx.wildcards.iter().next())
+                        .cloned()
+                        .unwrap_or_default();
+                    let class = self.classify(lang, "import", &m);
+                    found = Some((
+                        kind_of(class),
+                        library_of(lang, &m, class),
+                        m,
+                        ExternalEvidence::SoleWildcard,
+                    ));
                 }
             }
         }
-        if found.is_none() && qual.is_empty()
+        // Assembly calls a C library function by its symbol.
+        if found.is_none() && qual.is_empty() && lang == "asm" {
+            let n = name.trim_start_matches('_');
+            if stdlib::stdlib_names("c").is_some_and(|s| s.contains(n)) {
+                found = Some((
+                    ExternalKind::Stdlib,
+                    "libc".into(),
+                    "libc".into(),
+                    ExternalEvidence::StdlibScreen,
+                ));
+            } else if ctx.binds.contains_key(name.as_str()) {
+                found = Some((
+                    ExternalKind::ThirdParty,
+                    "<extern>".into(),
+                    "<extern>".into(),
+                    ExternalEvidence::SelectiveImport,
+                ));
+            }
+        }
+        if found.is_none()
+            && qual.is_empty()
             && let Some(b) = ctx.binds.get(name.as_str())
             && b.class != Class::Internal
         {
-            found = Some((kind_of(b.class), library_of(lang, &b.module, b.class), b.module.clone(), ExternalEvidence::SelectiveImport));
+            found = Some((
+                kind_of(b.class),
+                library_of(lang, &b.module, b.class),
+                b.module.clone(),
+                ExternalEvidence::SelectiveImport,
+            ));
         }
         // C family: the OS interface, then a prefix of an included header.
-        if found.is_none() && qual.is_empty() && matches!(lang, "c" | "cpp" | "objc" | "asm") {
+        if found.is_none()
+            && qual.is_empty()
+            && matches!(lang, "c" | "cpp" | "objc" | "asm")
+        {
             if SYSTEM_APIS.contains(&name.as_str()) {
-                let lib = if name.starts_with(char::is_uppercase) { "win32" } else { "posix" };
-                found = Some((ExternalKind::System, lib.into(), lib.into(), ExternalEvidence::SystemInterface));
+                let lib = if name.starts_with(char::is_uppercase) {
+                    "win32"
+                } else {
+                    "posix"
+                };
+                found = Some((
+                    ExternalKind::System,
+                    lib.into(),
+                    lib.into(),
+                    ExternalEvidence::SystemInterface,
+                ));
             } else if !bucket_stdlib {
                 let lname = name.to_ascii_lowercase();
                 let hits: Vec<&String> = ctx
                     .c_headers
                     .iter()
                     .filter(|h| {
-                        let lib = library_of(lang, h, Class::External).to_ascii_lowercase();
+                        let lib =
+                            library_of(lang, h, Class::External).to_ascii_lowercase();
                         let lib = lib.trim_start_matches("lib");
                         lib.len() >= 2 && lname.starts_with(lib)
                     })
                     .collect();
                 if hits.len() == 1 {
                     let h = hits[0];
-                    found = Some((ExternalKind::ThirdParty, library_of(lang, h, Class::External), h.clone(), ExternalEvidence::NamePrefix));
+                    found = Some((
+                        ExternalKind::ThirdParty,
+                        library_of(lang, h, Class::External),
+                        h.clone(),
+                        ExternalEvidence::NamePrefix,
+                    ));
                 } else if ctx.c_headers.len() == 1 {
                     let h = &ctx.c_headers[0];
-                    found = Some((ExternalKind::ThirdParty, library_of(lang, h, Class::External), h.clone(), ExternalEvidence::SoleWildcard));
+                    found = Some((
+                        ExternalKind::ThirdParty,
+                        library_of(lang, h, Class::External),
+                        h.clone(),
+                        ExternalEvidence::SoleWildcard,
+                    ));
                 }
             }
         }
+        // Verilog/VHDL: an instance of a module the tree never defines is a
+        // vendor primitive or IP core.
+        if found.is_none()
+            && qual.is_empty()
+            && !bucket_stdlib
+            && matches!(lang, "verilog" | "vhdl")
+        {
+            found = Some((
+                ExternalKind::ThirdParty,
+                name.clone(),
+                name.clone(),
+                ExternalEvidence::UndefinedInstance,
+            ));
+        }
         if found.is_none() && bucket_stdlib {
             let lib = stdlib_library_name(lang).to_string();
-            found = Some((ExternalKind::Stdlib, lib.clone(), lib, ExternalEvidence::StdlibScreen));
+            found = Some((
+                ExternalKind::Stdlib,
+                lib.clone(),
+                lib,
+                ExternalEvidence::StdlibScreen,
+            ));
         }
         if found.is_none() && qual.is_empty() && ctx.wildcards.len() == 1 {
             let m = ctx.wildcards.iter().next().cloned().unwrap_or_default();
             let class = self.classify(lang, "import", &m);
-            found = Some((kind_of(class), library_of(lang, &m, class), m, ExternalEvidence::SoleWildcard));
+            found = Some((
+                kind_of(class),
+                library_of(lang, &m, class),
+                m,
+                ExternalEvidence::SoleWildcard,
+            ));
+        }
+        // cgo: `C.f()` through `import "C"` is a native call.
+        if lang == "go" && head == "C" && ctx.binds.contains_key("C") {
+            found = Some((
+                ExternalKind::Native,
+                "cgo".into(),
+                "C".into(),
+                ExternalEvidence::ForeignDeclaration,
+            ));
         }
         // Process and native boundaries override the library's kind.
         let module = found.as_ref().map(|f| f.2.as_str());
         let uses = ctx.uses_at.get(&c.site_byte);
+        // A plugin may anchor the site at the callee rather than the call
+        // node; then the record on the same line, naming this callee, is
+        // the one.
         let literal = |k: ExternalUseKind| {
-            uses.and_then(|v| v.iter().find(|u| u.kind == k)).map(|u| u.module.clone())
+            uses.and_then(|v| v.iter().find(|u| u.kind == k))
+                .or_else(|| {
+                    ctx.uses_by_line.get(&c.site_line).and_then(|v| {
+                        v.iter().find(|u| {
+                            u.kind == k && unify(&u.symbol).ends_with(&unify(&name))
+                        })
+                    })
+                })
+                .map(|u| u.module.clone())
         };
-        if externals_table(PROCESS_SPAWN_APIS, lang).iter().any(|e| api_matches(e, &qual, &name, module)) {
-            let prog = literal(ExternalUseKind::ProcessSpawn).map(|p| program_of(&p)).unwrap_or_else(|| "<dynamic>".into());
-            let ev = if prog == "<dynamic>" { ExternalEvidence::None } else { ExternalEvidence::LiteralArgument };
-            let via = if qual.is_empty() { name.clone() } else { format!("{qual}{sep}{name}") };
+        if externals_table(PROCESS_SPAWN_APIS, lang)
+            .iter()
+            .any(|e| api_matches(e, &qual, &name, module))
+        {
+            let prog = literal(ExternalUseKind::ProcessSpawn)
+                .map(|p| program_of(&p))
+                .unwrap_or_else(|| "<dynamic>".into());
+            let ev = if prog == "<dynamic>" {
+                ExternalEvidence::None
+            } else {
+                ExternalEvidence::LiteralArgument
+            };
+            let via = if qual.is_empty() {
+                name.clone()
+            } else {
+                format!("{qual}{sep}{name}")
+            };
             return mk(ExternalKind::Process, prog.clone(), prog, via, ev);
         }
-        if externals_table(LIBRARY_LOAD_APIS, lang).iter().any(|e| api_matches(e, &qual, &name, module)) {
-            let lib = literal(ExternalUseKind::LibraryLoad).unwrap_or_else(|| "<dynamic>".into());
-            let ev = if lib == "<dynamic>" { ExternalEvidence::None } else { ExternalEvidence::LiteralArgument };
-            let via = if qual.is_empty() { name.clone() } else { format!("{qual}{sep}{name}") };
+        if externals_table(LIBRARY_LOAD_APIS, lang)
+            .iter()
+            .any(|e| api_matches(e, &qual, &name, module))
+        {
+            let lib = literal(ExternalUseKind::LibraryLoad)
+                .unwrap_or_else(|| "<dynamic>".into());
+            let ev = if lib == "<dynamic>" {
+                ExternalEvidence::None
+            } else {
+                ExternalEvidence::LiteralArgument
+            };
+            let via = if qual.is_empty() {
+                name.clone()
+            } else {
+                format!("{qual}{sep}{name}")
+            };
             return mk(ExternalKind::Native, lib.clone(), lib, via, ev);
         }
         match found {
             Some((kind, library, module, evidence)) => {
-                let symbol = symbol_for(&library, &module, &qual, &head, &name, sep, evidence);
+                let symbol =
+                    symbol_for(&library, &module, &qual, &head, &name, sep, evidence);
                 mk(kind, library, module, symbol, evidence)
             }
-            None => mk(ExternalKind::Unattributed, String::new(), String::new(), name.clone(), ExternalEvidence::None),
+            None => mk(
+                ExternalKind::Unattributed,
+                String::new(),
+                String::new(),
+                name.clone(),
+                ExternalEvidence::None,
+            ),
         }
     }
 }
@@ -827,13 +1205,20 @@ fn symbol_for(
     };
     let mut parts: Vec<String> = Vec::new();
     match evidence {
-        ExternalEvidence::QualifiedImport | ExternalEvidence::TypedReceiver | ExternalEvidence::ResolverRefusal if !qual.is_empty() => {
+        ExternalEvidence::QualifiedImport
+        | ExternalEvidence::TypedReceiver
+        | ExternalEvidence::ResolverRefusal
+            if !qual.is_empty() =>
+        {
             let m = rel(module);
             if !m.is_empty() && module != qual {
                 parts.push(m);
             }
             // The qualifier past its head: `linalg` in `np.linalg`.
-            let tail = qual.strip_prefix(head).unwrap_or("").trim_start_matches(['.', ':', '/', '\\']);
+            let tail = qual
+                .strip_prefix(head)
+                .unwrap_or("")
+                .trim_start_matches(['.', ':', '/', '\\']);
             if module == qual {
                 let q = rel(qual);
                 if !q.is_empty() {
@@ -894,14 +1279,17 @@ pub fn inventory(
     spec: &ExternalsSpec,
 ) -> ExternalsInventory {
     let pass = Pass {
-        graph,
         tree: TreeNames::build(facts),
         vocab: WorkspaceVocab::build(graph, facts),
     };
-    let by_file: HashMap<FileId, &FileFacts> = facts.iter().map(|f| (f.file, f)).collect();
+    let by_file: HashMap<FileId, &FileFacts> =
+        facts.iter().map(|f| (f.file, f)).collect();
     let mut spans: HashMap<FileId, Vec<(u32, u32, CallableId)>> = HashMap::new();
     for c in graph.callables.values().filter(|c| !c.synthetic) {
-        spans.entry(c.file).or_default().push((c.start_byte, c.end_byte, c.id));
+        spans
+            .entry(c.file)
+            .or_default()
+            .push((c.start_byte, c.end_byte, c.id));
     }
     for v in spans.values_mut() {
         v.sort();
@@ -909,18 +1297,27 @@ pub fn inventory(
 
     let mut libs: BTreeMap<(ExternalKind, String, String), LibAcc> = BTreeMap::new();
     let mut unattributed: BTreeMap<(String, String), UnattributedGroup> = BTreeMap::new();
-    let mut coverage: BTreeMap<String, (LanguageCoverage, BTreeSet<String>)> = BTreeMap::new();
+    let mut coverage: BTreeMap<String, (LanguageCoverage, BTreeSet<String>)> =
+        BTreeMap::new();
     let mut totals = ExternalTotals::default();
     let mut leaves: Vec<LeafSite> = Vec::new();
     let mut accounted = 0u64;
 
     for rec in records {
-        let Some(f) = by_file.get(&rec.file) else { continue };
+        let Some(f) = by_file.get(&rec.file) else {
+            continue;
+        };
         let ctx = pass.file_ctx(f);
         let lang = f.language.clone();
         let path = rec.path.display().to_string();
         let cov = coverage.entry(lang.clone()).or_insert_with(|| {
-            (LanguageCoverage { language: lang.clone(), ..Default::default() }, BTreeSet::new())
+            (
+                LanguageCoverage {
+                    language: lang.clone(),
+                    ..Default::default()
+                },
+                BTreeSet::new(),
+            )
         });
         cov.0.files += 1;
         cov.0.imports += ctx.imports.len() as u64;
@@ -960,48 +1357,83 @@ pub fn inventory(
             });
         }
         let file_spans = spans.get(&rec.file).map(Vec::as_slice).unwrap_or(&[]);
-        let mut record = |a: Attributed, caller: Option<CallableId>, line: u32, byte: u32,
-                          libs: &mut BTreeMap<(ExternalKind, String, String), LibAcc>,
-                          unattributed: &mut BTreeMap<(String, String), UnattributedGroup>,
-                          cov: &mut LanguageCoverage| {
-            accounted += 1;
-            totals.sites += 1;
-            *totals.by_kind.entry(a.kind.slug().into()).or_default() += 1;
-            cov.sites += 1;
-            if a.kind == ExternalKind::Unattributed {
-                cov.unattributed += 1;
-            } else {
-                cov.attributed += 1;
-            }
-            if !spec.shows(a.kind) {
-                *totals.withheld.entry(a.kind.slug().into()).or_default() += 1;
-                return;
-            }
-            *totals.by_confidence.entry(conf_slug(a.confidence).into()).or_default() += 1;
-            let site = ExternalSite {
-                caller,
-                caller_qualified_name: caller_qn(caller),
-                path: path.clone(),
-                line,
-                symbol: a.symbol.clone(),
-                evidence: a.evidence,
-                confidence: a.confidence,
-            };
-            if a.kind == ExternalKind::Unattributed {
-                let g = unattributed
-                    .entry((a.language.clone(), a.symbol.clone()))
-                    .or_insert_with(|| UnattributedGroup {
-                        language: a.language.clone(),
-                        name: a.symbol.clone(),
-                        ..Default::default()
-                    });
-                g.sites += 1;
-                if g.sample.len() < 5 {
-                    g.sample.push(site);
+        let mut record =
+            |a: Attributed,
+             caller: Option<CallableId>,
+             line: u32,
+             byte: u32,
+             libs: &mut BTreeMap<(ExternalKind, String, String), LibAcc>,
+             unattributed: &mut BTreeMap<(String, String), UnattributedGroup>,
+             cov: &mut LanguageCoverage| {
+                accounted += 1;
+                totals.sites += 1;
+                *totals.by_kind.entry(a.kind.slug().into()).or_default() += 1;
+                cov.sites += 1;
+                if a.kind == ExternalKind::Unattributed {
+                    cov.unattributed += 1;
+                } else {
+                    cov.attributed += 1;
                 }
+                if !spec.shows(a.kind) {
+                    *totals.withheld.entry(a.kind.slug().into()).or_default() += 1;
+                    return;
+                }
+                *totals
+                    .by_confidence
+                    .entry(conf_slug(a.confidence).into())
+                    .or_default() += 1;
+                let site = ExternalSite {
+                    caller,
+                    caller_qualified_name: caller_qn(caller),
+                    path: path.clone(),
+                    line,
+                    symbol: a.symbol.clone(),
+                    evidence: a.evidence,
+                    confidence: a.confidence,
+                };
+                if a.kind == ExternalKind::Unattributed {
+                    let g = unattributed
+                        .entry((a.language.clone(), a.symbol.clone()))
+                        .or_insert_with(|| UnattributedGroup {
+                            language: a.language.clone(),
+                            name: a.symbol.clone(),
+                            ..Default::default()
+                        });
+                    g.sites += 1;
+                    if g.sample.len() < 5 {
+                        g.sample.push(site);
+                    }
+                    leaves.push(LeafSite {
+                        kind: a.kind,
+                        library: a.language.clone(),
+                        symbol: a.symbol,
+                        caller,
+                        file: rec.file,
+                        line,
+                        byte,
+                        confidence: a.confidence,
+                    });
+                    return;
+                }
+                let acc = libs
+                    .entry((a.kind, a.language.clone(), a.library.clone()))
+                    .or_default();
+                if !a.module.is_empty() {
+                    acc.modules.insert(a.module.clone());
+                }
+                *acc.symbols.entry(a.symbol.clone()).or_default() += 1;
+                let ck = (
+                    site.caller_qualified_name.clone(),
+                    path.clone(),
+                    caller
+                        .and_then(|id| graph.callables.get(&id))
+                        .map_or(0, |c| c.start_line),
+                );
+                acc.callers.entry(ck).or_insert((caller, 0)).1 += 1;
+                acc.sites.push(site);
                 leaves.push(LeafSite {
                     kind: a.kind,
-                    library: a.language.clone(),
+                    library: a.library,
                     symbol: a.symbol,
                     caller,
                     file: rec.file,
@@ -1009,81 +1441,154 @@ pub fn inventory(
                     byte,
                     confidence: a.confidence,
                 });
-                return;
-            }
-            let acc = libs.entry((a.kind, a.language.clone(), a.library.clone())).or_default();
-            if !a.module.is_empty() {
-                acc.modules.insert(a.module.clone());
-            }
-            *acc.symbols.entry(a.symbol.clone()).or_default() += 1;
-            let ck = (site.caller_qualified_name.clone(), path.clone(), caller.and_then(|id| graph.callables.get(&id)).map_or(0, |c| c.start_line));
-            acc.callers.entry(ck).or_insert((caller, 0)).1 += 1;
-            acc.sites.push(site);
-            leaves.push(LeafSite {
-                kind: a.kind,
-                library: a.library,
-                symbol: a.symbol,
-                caller,
-                file: rec.file,
-                line,
-                byte,
-                confidence: a.confidence,
-            });
-        };
+            };
         let mut bucket_bytes: HashSet<(u32, &str)> = HashSet::new();
         for (calls, is_std) in [(&rec.stdlib_calls, true), (&rec.external_calls, false)] {
             for c in calls {
                 bucket_bytes.insert((c.site_byte, c.name.as_str()));
                 let a = pass.attribute(&ctx, c, is_std);
                 let caller = c.src.or_else(|| enclosing(file_spans, c.site_byte));
-                record(a, caller, c.site_line, c.site_byte, &mut libs, &mut unattributed, &mut cov.0);
+                record(
+                    a,
+                    caller,
+                    c.site_line,
+                    c.site_byte,
+                    &mut libs,
+                    &mut unattributed,
+                    &mut cov.0,
+                );
+            }
+        }
+        // Java `native` / Kotlin `external` methods: implemented outside
+        // the tree, in whatever library `System.loadLibrary` loads.
+        if matches!(lang.as_str(), "java" | "kotlin" | "scala") {
+            for d in &f.definitions {
+                if d.attributes
+                    .iter()
+                    .any(|a| a == "native" || a == "external")
+                {
+                    let caller = enclosing(file_spans, d.start_byte);
+                    let a = Attributed {
+                        kind: ExternalKind::Native,
+                        language: lang.clone(),
+                        library: "<jni>".into(),
+                        module: "<jni>".into(),
+                        symbol: d.simple_name.clone(),
+                        evidence: ExternalEvidence::ForeignDeclaration,
+                        confidence: Confidence::High,
+                    };
+                    record(
+                        a,
+                        caller,
+                        d.start_line,
+                        d.start_byte,
+                        &mut libs,
+                        &mut unattributed,
+                        &mut cov.0,
+                    );
+                }
             }
         }
         // Side-channel sites the call graph does not carry.
         for u in &f.external_uses {
             let (kind, evidence) = match u.kind {
-                ExternalUseKind::ForeignDecl => (ExternalKind::Native, ExternalEvidence::ForeignDeclaration),
-                ExternalUseKind::Syscall => (ExternalKind::System, ExternalEvidence::SystemInterface),
+                ExternalUseKind::ForeignDecl => {
+                    (ExternalKind::Native, ExternalEvidence::ForeignDeclaration)
+                }
+                ExternalUseKind::Syscall => {
+                    (ExternalKind::System, ExternalEvidence::SystemInterface)
+                }
                 ExternalUseKind::Provider => {
                     let class = pass.classify(&lang, "provider", &u.module);
                     if class == Class::Internal {
                         continue;
                     }
-                    (if class == Class::Stdlib { ExternalKind::Stdlib } else { ExternalKind::ThirdParty }, ExternalEvidence::QualifiedImport)
+                    (
+                        if class == Class::Stdlib {
+                            ExternalKind::Stdlib
+                        } else {
+                            ExternalKind::ThirdParty
+                        },
+                        ExternalEvidence::QualifiedImport,
+                    )
                 }
                 ExternalUseKind::QualifiedCall => {
                     if bucket_bytes.contains(&(u.site_byte, u.symbol.as_str())) {
                         continue;
                     }
-                    let c = AuditUnresolvedCall::new(None, rec.file, u.site_line, u.site_byte, u.symbol.clone(), u.module.clone(), UnresolvedReason::NoCandidateInFile);
+                    let c = AuditUnresolvedCall::new(
+                        None,
+                        rec.file,
+                        u.site_line,
+                        u.site_byte,
+                        u.symbol.clone(),
+                        u.module.clone(),
+                        UnresolvedReason::NoCandidateInFile,
+                    );
                     // A qualified call through an in-tree module bound
                     // nothing only if the resolver never saw it; skip
                     // internal ones.
                     let head = leading_ident(&u.module).to_string();
-                    if ctx.binds.get(&head).is_some_and(|b| b.class == Class::Internal)
+                    if ctx
+                        .binds
+                        .get(&head)
+                        .is_some_and(|b| b.class == Class::Internal)
                         || pass.tree.knows(&lang, &head) && !pass.is_stdlib(&lang, &head)
                     {
                         continue;
                     }
                     let a = pass.attribute(&ctx, &c, pass.is_stdlib(&lang, &u.module));
                     let caller = enclosing(file_spans, u.site_byte);
-                    record(a, caller, u.site_line, u.site_byte, &mut libs, &mut unattributed, &mut cov.0);
+                    record(
+                        a,
+                        caller,
+                        u.site_line,
+                        u.site_byte,
+                        &mut libs,
+                        &mut unattributed,
+                        &mut cov.0,
+                    );
                     continue;
                 }
-                ExternalUseKind::Import | ExternalUseKind::ProcessSpawn | ExternalUseKind::LibraryLoad | ExternalUseKind::Declares => continue,
+                ExternalUseKind::Import
+                | ExternalUseKind::ProcessSpawn
+                | ExternalUseKind::LibraryLoad
+                | ExternalUseKind::Declares => continue,
             };
-            let library = if u.module.is_empty() { "<dynamic>".to_string() } else { u.module.clone() };
+            let library = if u.module.is_empty() {
+                "<dynamic>".to_string()
+            } else {
+                u.module.clone()
+            };
             let a = Attributed {
                 kind,
                 language: lang.clone(),
-                library: if kind == ExternalKind::ThirdParty || kind == ExternalKind::Stdlib { library_of(&lang, &library, Class::External) } else { library.clone() },
+                library: if kind == ExternalKind::ThirdParty
+                    || kind == ExternalKind::Stdlib
+                {
+                    library_of(&lang, &library, Class::External)
+                } else {
+                    library.clone()
+                },
                 module: library,
-                symbol: if u.symbol.is_empty() { u.form.clone() } else { u.symbol.clone() },
+                symbol: if u.symbol.is_empty() {
+                    u.form.clone()
+                } else {
+                    u.symbol.clone()
+                },
                 evidence,
                 confidence: evidence.confidence(),
             };
             let caller = enclosing(file_spans, u.site_byte);
-            record(a, caller, u.site_line, u.site_byte, &mut libs, &mut unattributed, &mut cov.0);
+            record(
+                a,
+                caller,
+                u.site_line,
+                u.site_byte,
+                &mut libs,
+                &mut unattributed,
+                &mut cov.0,
+            );
         }
     }
 
@@ -1096,7 +1601,9 @@ pub fn inventory(
                 .into_iter()
                 .map(|(symbol, sites)| SymbolUse { symbol, sites })
                 .collect();
-            symbols.sort_by(|a, b| b.sites.cmp(&a.sites).then_with(|| a.symbol.cmp(&b.symbol)));
+            symbols.sort_by(|a, b| {
+                b.sites.cmp(&a.sites).then_with(|| a.symbol.cmp(&b.symbol))
+            });
             let mut callers: Vec<CallerUse> = acc
                 .callers
                 .into_iter()
@@ -1108,7 +1615,11 @@ pub fn inventory(
                     sites,
                 })
                 .collect();
-            callers.sort_by(|a, b| b.sites.cmp(&a.sites).then_with(|| a.qualified_name.cmp(&b.qualified_name)));
+            callers.sort_by(|a, b| {
+                b.sites
+                    .cmp(&a.sites)
+                    .then_with(|| a.qualified_name.cmp(&b.qualified_name))
+            });
             Library {
                 id: String::new(),
                 kind,
@@ -1133,10 +1644,17 @@ pub fn inventory(
     });
     for (i, l) in libraries.iter_mut().enumerate() {
         l.id = format!("L{i}");
-        *totals.libraries_by_kind.entry(l.kind.slug().into()).or_default() += 1;
+        *totals
+            .libraries_by_kind
+            .entry(l.kind.slug().into())
+            .or_default() += 1;
     }
     let mut unattributed: Vec<UnattributedGroup> = unattributed.into_values().collect();
-    unattributed.sort_by(|a, b| b.sites.cmp(&a.sites).then_with(|| (&a.language, &a.name).cmp(&(&b.language, &b.name))));
+    unattributed.sort_by(|a, b| {
+        b.sites
+            .cmp(&a.sites)
+            .then_with(|| (&a.language, &a.name).cmp(&(&b.language, &b.name)))
+    });
 
     let coverage = coverage
         .into_values()
@@ -1163,7 +1681,10 @@ pub fn inventory(
 }
 
 fn kind_rank(k: ExternalKind) -> usize {
-    ExternalKind::ALL.iter().position(|x| *x == k).unwrap_or(usize::MAX)
+    ExternalKind::ALL
+        .iter()
+        .position(|x| *x == k)
+        .unwrap_or(usize::MAX)
 }
 
 fn conf_slug(c: Confidence) -> &'static str {
@@ -1187,7 +1708,11 @@ pub fn fill_branches(report: &mut ExternalsReport, graph: &Graph) {
         if e.src == e.dst {
             continue;
         }
-        if graph.callables.get(&e.dst).is_some_and(|c| c.synthetic && c.framework_entry.is_none()) {
+        if graph
+            .callables
+            .get(&e.dst)
+            .is_some_and(|c| c.synthetic && c.framework_entry.is_none())
+        {
             continue;
         }
         out.entry(e.src).or_default().push(e.dst);
@@ -1213,7 +1738,12 @@ pub fn fill_branches(report: &mut ExternalsReport, graph: &Graph) {
             }
         }
     }
-    let qn = |id: CallableId| graph.callables.get(&id).map_or_else(String::new, |c| c.qualified_name.clone());
+    let qn = |id: CallableId| {
+        graph
+            .callables
+            .get(&id)
+            .map_or_else(String::new, |c| c.qualified_name.clone())
+    };
     for lib in &mut report.libraries {
         let mut branches = Vec::new();
         for caller in lib.callers.iter().take(3) {
@@ -1250,20 +1780,58 @@ mod tests {
 
     #[test]
     fn libraries_normalize_per_language() {
-        assert_eq!(library_of("javascript", "@scope/pkg/sub", Class::External), "@scope/pkg");
-        assert_eq!(library_of("javascript", "lodash/fp", Class::External), "lodash");
-        assert_eq!(library_of("javascript", "node:fs/promises", Class::Stdlib), "node:fs");
-        assert_eq!(library_of("go", "github.com/a/b/c/d", Class::External), "github.com/a/b");
+        assert_eq!(
+            library_of("javascript", "@scope/pkg/sub", Class::External),
+            "@scope/pkg"
+        );
+        assert_eq!(
+            library_of("javascript", "lodash/fp", Class::External),
+            "lodash"
+        );
+        assert_eq!(
+            library_of("javascript", "node:fs/promises", Class::Stdlib),
+            "node:fs"
+        );
+        assert_eq!(
+            library_of("go", "github.com/a/b/c/d", Class::External),
+            "github.com/a/b"
+        );
         assert_eq!(library_of("go", "net/http", Class::Stdlib), "net/http");
-        assert_eq!(library_of("java", "com.google.common.collect.ImmutableMap", Class::External), "com.google.common");
-        assert_eq!(library_of("rust", "tree_sitter::Node", Class::External), "tree_sitter");
+        assert_eq!(
+            library_of(
+                "java",
+                "com.google.common.collect.ImmutableMap",
+                Class::External
+            ),
+            "com.google.common"
+        );
+        assert_eq!(
+            library_of("rust", "tree_sitter::Node", Class::External),
+            "tree_sitter"
+        );
         assert_eq!(library_of("python", "os.path", Class::Stdlib), "os");
         assert_eq!(library_of("c", "curl/curl.h", Class::External), "curl");
         assert_eq!(library_of("c", "zlib.h", Class::External), "zlib");
-        assert_eq!(library_of("dart", "package:http/http.dart", Class::External), "http");
-        assert_eq!(library_of("php", "GuzzleHttp\\Client", Class::External), "GuzzleHttp\\Client");
-        assert_eq!(library_of("starlark", "@rules_cc//cc:defs.bzl", Class::External), "@rules_cc");
-        assert_eq!(library_of("solidity", "@openzeppelin/contracts/token/ERC20.sol", Class::External), "@openzeppelin/contracts");
+        assert_eq!(
+            library_of("dart", "package:http/http.dart", Class::External),
+            "http"
+        );
+        assert_eq!(
+            library_of("php", "GuzzleHttp\\Client", Class::External),
+            "GuzzleHttp\\Client"
+        );
+        assert_eq!(
+            library_of("starlark", "@rules_cc//cc:defs.bzl", Class::External),
+            "@rules_cc"
+        );
+        assert_eq!(
+            library_of(
+                "solidity",
+                "@openzeppelin/contracts/token/ERC20.sol",
+                Class::External
+            ),
+            "@openzeppelin/contracts"
+        );
     }
 
     #[test]
@@ -1272,8 +1840,18 @@ mod tests {
         assert!(api_matches("subprocess.run", "", "run", Some("subprocess")));
         assert!(!api_matches("system", "obj", "system", None));
         assert!(api_matches("system", "", "system", None));
-        assert!(api_matches("Command::new", "Command", "new", Some("std::process::Command")));
-        assert!(api_matches("getRuntime().exec", "Runtime.getRuntime()", "exec", None));
+        assert!(api_matches(
+            "Command::new",
+            "Command",
+            "new",
+            Some("std::process::Command")
+        ));
+        assert!(api_matches(
+            "getRuntime().exec",
+            "Runtime.getRuntime()",
+            "exec",
+            None
+        ));
         assert_eq!(program_of("/usr/bin/git status"), "git");
         assert_eq!(program_of("$CURL -s"), "<dynamic>");
     }

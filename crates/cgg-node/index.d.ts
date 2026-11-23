@@ -25,6 +25,16 @@ export declare class Graph {
   get notices(): Array<string>
   /** Worker threads the run actually used. */
   get jobs(): number
+  /**
+   * The `externals` inventory as a `cgg.externals.v1` JSON string
+   * (`JSON.parse` it), or `null` when the run did not ask for one.
+   */
+  externalsJson(): string | null
+  /**
+   * The `externals` inventory as the ranked text report the CLI
+   * prints, or `null` when the run did not ask for one.
+   */
+  externalsText(): string | null
   /** Number of callables, without materializing them. */
   get callableCount(): number
   /**
@@ -179,6 +189,14 @@ export interface AnalyzeOptions {
    * instead of analyzing source. Pass `[]` for the paths.
    */
   fromGraph?: string
+  /**
+   * Inventory the libraries the tree reaches outside itself and turn
+   * the graph into the branches that end in them: `true` (third-party,
+   * system, native, process), `"all"`, `"process,native"` or
+   * `["process", "native"]`. Read the inventory with `externalsJson()`
+   * / `externalsText()`.
+   */
+  externals?: boolean | string | Array<string>
 }
 
 /**

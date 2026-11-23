@@ -102,6 +102,12 @@ pub struct AnalyzeOptions {
     /// Replay a graph written by an earlier `toJson()` / `-t json` run
     /// instead of analyzing source. Pass `[]` for the paths.
     pub from_graph: Option<String>,
+    /// Inventory the libraries the tree reaches outside itself and turn
+    /// the graph into the branches that end in them: `true` (third-party,
+    /// system, native, process), `"all"`, `"process,native"` or
+    /// `["process", "native"]`. Read the inventory with `externalsJson()`
+    /// / `externalsText()`.
+    pub externals: Option<Either3<bool, String, Vec<String>>>,
 }
 
 /// One callable in the graph.
@@ -316,8 +322,27 @@ fn build_options(
         },
         locations: o.locations.unwrap_or(false),
         from_graph: o.from_graph.map(Into::into),
+        externals: match o.externals {
+            None | Some(Either3::A(false)) => None,
+            Some(Either3::A(true)) => Some(cgg_core::ExternalsSpec::default()),
+            Some(Either3::B(s)) => Some(
+                cgg_core::ExternalsSpec::parse(&s)
+                    .map_err(|e| Error::new(Status::InvalidArg, e))?,
+            ),
+            Some(Either3::C(v)) => Some(
+                cgg_core::ExternalsSpec::parse(&v.join(","))
+                    .map_err(|e| Error::new(Status::InvalidArg, e))?,
+            ),
+        },
         ..d
     })
+}
+
+fn cgg_core_json(r: &cgg_core::ExternalsReport) -> Result<String> {
+    let mut buf = Vec::new();
+    cgg::externals_report::render_json(r, &mut buf)
+        .map_err(|e| Error::new(Status::GenericFailure, e.to_string()))?;
+    String::from_utf8(buf).map_err(|e| Error::new(Status::GenericFailure, e.to_string()))
 }
 
 /// An analyzed call graph.
@@ -484,6 +509,26 @@ impl Graph {
     #[napi(getter)]
     pub fn jobs(&self) -> u32 {
         self.outcome.jobs as u32
+    }
+
+    /// The `externals` inventory as a `cgg.externals.v1` JSON string
+    /// (`JSON.parse` it), or `null` when the run did not ask for one.
+    #[napi]
+    pub fn externals_json(&self) -> Result<Option<String>> {
+        match &self.outcome.externals {
+            None => Ok(None),
+            Some(r) => cgg_core_json(r).map(Some),
+        }
+    }
+
+    /// The `externals` inventory as the ranked text report the CLI
+    /// prints, or `null` when the run did not ask for one.
+    #[napi]
+    pub fn externals_text(&self) -> Option<String> {
+        let r = self.outcome.externals.as_ref()?;
+        let mut buf = Vec::new();
+        cgg::externals_report::render_text(r, &mut buf).ok()?;
+        String::from_utf8(buf).ok()
     }
 
     /// Number of callables, without materializing them.

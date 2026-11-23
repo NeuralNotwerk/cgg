@@ -33,7 +33,17 @@ code calls or imports it.";
 
 /// What kind of thing a call leaves the tree for.
 #[derive(
-    Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
 )]
 #[serde(rename_all = "kebab-case")]
 pub enum ExternalKind {
@@ -48,6 +58,7 @@ pub enum ExternalKind {
     /// An external program the code runs.
     Process,
     /// Left the tree, but no evidence names the library.
+    #[default]
     Unattributed,
 }
 
@@ -185,7 +196,9 @@ impl TryFrom<SpecRepr> for ExternalsSpec {
     fn try_from(r: SpecRepr) -> Result<Self, String> {
         match r {
             SpecRepr::Flag(true) => Ok(Self::default()),
-            SpecRepr::Flag(false) => Err("`externals: false` is spelled by omitting the key".into()),
+            SpecRepr::Flag(false) => {
+                Err("`externals: false` is spelled by omitting the key".into())
+            }
             SpecRepr::Text(s) => Self::parse(&s),
             SpecRepr::List(v) => Self::parse(&v.join(",")),
         }
@@ -225,6 +238,9 @@ pub enum ExternalEvidence {
     /// third-party header it could come from (`curl_easy_init`,
     /// `<curl/curl.h>`).
     NamePrefix,
+    /// An HDL instance of a module the tree never defines (vendor
+    /// primitives, IP cores).
+    UndefinedInstance,
     /// The language's stdlib vocabulary, with no import evidence.
     StdlibScreen,
     /// The only external wildcard import that could supply the name.
@@ -246,6 +262,7 @@ impl ExternalEvidence {
             ExternalEvidence::TypedReceiver
             | ExternalEvidence::ChainHead
             | ExternalEvidence::NamePrefix
+            | ExternalEvidence::UndefinedInstance
             | ExternalEvidence::StdlibScreen => Confidence::Medium,
             ExternalEvidence::SoleWildcard | ExternalEvidence::None => Confidence::Low,
         }
@@ -263,6 +280,7 @@ impl ExternalEvidence {
             ExternalEvidence::TypedReceiver => "typed-receiver",
             ExternalEvidence::ChainHead => "chain-head",
             ExternalEvidence::NamePrefix => "name-prefix",
+            ExternalEvidence::UndefinedInstance => "undefined-instance",
             ExternalEvidence::StdlibScreen => "stdlib-screen",
             ExternalEvidence::SoleWildcard => "sole-wildcard",
             ExternalEvidence::None => "none",
@@ -385,12 +403,6 @@ pub struct Library {
     pub branches: Vec<Vec<String>>,
 }
 
-impl Default for ExternalKind {
-    fn default() -> Self {
-        ExternalKind::Unattributed
-    }
-}
-
 /// Where a library is imported.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImportSite {
@@ -450,7 +462,10 @@ mod tests {
         assert_eq!(ExternalsSpec::parse("").unwrap(), ExternalsSpec::default());
         assert_eq!(ExternalsSpec::parse("all").unwrap(), ExternalsSpec::all());
         let s = ExternalsSpec::parse("process,third-party,process").unwrap();
-        assert_eq!(s.kinds(), &[ExternalKind::ThirdParty, ExternalKind::Process]);
+        assert_eq!(
+            s.kinds(),
+            &[ExternalKind::ThirdParty, ExternalKind::Process]
+        );
         assert!(ExternalsSpec::parse("thirdparty").is_err());
         let j: ExternalsSpec = serde_json::from_str("true").unwrap();
         assert_eq!(j, ExternalsSpec::default());
@@ -462,7 +477,10 @@ mod tests {
 
     #[test]
     fn evidence_confidence_follows_the_ladder() {
-        assert_eq!(ExternalEvidence::QualifiedImport.confidence(), Confidence::High);
+        assert_eq!(
+            ExternalEvidence::QualifiedImport.confidence(),
+            Confidence::High
+        );
         assert_eq!(ExternalEvidence::ChainHead.confidence(), Confidence::Medium);
         assert_eq!(ExternalEvidence::SoleWildcard.confidence(), Confidence::Low);
     }

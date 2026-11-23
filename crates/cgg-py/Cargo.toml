@@ -22,6 +22,7 @@ doctest    = false
 # holds no analysis logic of its own.
 cgg        = { workspace = true }
 cgg-core   = { workspace = true }
+serde_json = { workspace = true }
 cgg-format = { workspace = true }
 
 pyo3       = { workspace = true }

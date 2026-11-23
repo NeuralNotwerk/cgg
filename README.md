@@ -111,6 +111,8 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
               [--ignore-names PATTERN]... [--ignore-attributes PATTERN]...
               [--why-live PATTERN]... [--fail-on-dead]
               [--include-external] [--include-stdlib]
+              [--externals[=KINDS]] [--externals-format text|json]
+              [--externals-report FILE]
               [--dynamic-dispatch] [--reference-edges] [--guess-unique-names]
               [--no-entry-nodes] [--no-test-entries]
               [--framework-coverage] [--profile]
@@ -155,6 +157,9 @@ cgg <paths>... [-o FILE] [-t mermaid|json|dot|graphml]
 | `--lang` | (all) | Comma-separated language filter |
 | `--include-external` | off | Surface third-party calls as deduplicated leaf "exit nodes" (edges tagged `ext`) |
 | `--include-stdlib` | off | Surface standard-library calls as deduplicated leaf "exit nodes" (edges tagged `std`) |
+| `--externals` | off | Inventory every library the tree reaches outside itself, and turn the graph into the branches that end in calls to it — one leaf per library symbol. `KINDS` is `all` or a comma list of `third-party`, `stdlib`, `system`, `native`, `process`, `unattributed`; bare `--externals` shows `third-party,system,native,process` and counts the rest as withheld. Attribution comes only from evidence in the tree (the import a call goes through, a receiver type, an FFI declaration, a literal program or library name); manifests are not read. See [External dependencies](#external-dependencies---externals) |
+| `--externals-format` | text | `text` (ranked, agent-readable) or `json` (`cgg.externals.v1`). Sets the sidecar extension: `.externals.txt` / `.externals.json` |
+| `--externals-report` | sidecar | Force the externals report to a specific file. Without `-o`, `text` goes to stderr and `json` needs this flag or `--no-graph` |
 | `--dynamic-dispatch` | off | Emit interface/trait declaration → implementation fan-out edges (tagged `dyn`, low confidence) |
 | `--reference-edges` | off | Emit reference edges for functions passed by name as values (tagged `ref`) |
 | `--guess-unique-names` | off | Rust: bind a call nothing else placed when exactly one callable carries its name — `low` confidence, resolver `cross-file:name-unique`. Never for std names, typed or `self` receivers, external paths, or test helpers from production code |
