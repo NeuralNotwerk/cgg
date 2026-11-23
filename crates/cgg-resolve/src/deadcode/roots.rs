@@ -453,6 +453,31 @@ pub(crate) fn discover(
 ) -> RootSet {
     let mut set = RootSet::default();
     let mut seen: HashSet<CallableId> = HashSet::new();
+    // `--module-scope-calls`: a file's module scope runs when the file is
+    // loaded, so it is a root — what its top-level code calls or names is
+    // live, exactly as the top-level-invocation rule below credits those
+    // sites when no module scope gives them a caller.
+    for (id, node) in &graph.callables {
+        if node
+            .attributes
+            .iter()
+            .any(|a| a == cgg_core::MODULE_SCOPE_ATTR)
+        {
+            let path = graph
+                .files
+                .get(&node.file)
+                .map(|f| f.path.display().to_string())
+                .unwrap_or_default();
+            set.push(
+                graph,
+                *id,
+                RootKind::TopLevelInvocation,
+                "toplevel:module-scope",
+                format!("module top level of {path}"),
+                &mut seen,
+            );
+        }
+    }
     let returned_unwrapped = rust_returned_types(graph);
     // Clojure protocols and interfaces the tree declares (`defprotocol`,
     // `definterface`): their implementations are reached through the
@@ -1609,6 +1634,18 @@ mod tests {
     // with no enclosing callable. Relabelling that record must not cost
     // the callee its top-level root — measured on flask, it did: roots
     // fell 1024 -> 995 and 23 real uses became findings.
+    // `--module-scope-calls`: the file's `<module>` caller runs on load,
+    // so it is a root, and its callees are reached through it.
+    #[test]
+    fn the_module_scope_is_a_root() {
+        let mut m = node(0, "<module>:app.py", "<module>", "python");
+        m.synthetic = true;
+        m.attributes = vec![cgg_core::MODULE_SCOPE_ATTR.into()];
+        let set = discover(&graph_with(vec![m]), &[], &[], &[]);
+        assert_eq!(set.production.len(), 1, "{:?}", set.records);
+        assert_eq!(set.records[0].kind, RootKind::TopLevelInvocation);
+    }
+
     #[test]
     fn a_module_scope_value_ref_is_a_toplevel_root() {
         let mut g = graph_with(vec![node(0, "app._set_app", "_set_app", "python")]);
