@@ -9,7 +9,12 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
-Bundled into 0.12.0 (a new feature; not released on its own).
+## [0.12.0] - 2026-11-23
+
+A feature release: `--externals`, an inventory of everything the tree
+reaches outside itself, shaped as the branches that end in those calls.
+It is off by default, and the default graph and dead-code report are
+byte-identical to 0.11.2 across the whole corpus.
 
 ### Added
 
@@ -78,9 +83,34 @@ Bundled into 0.12.0 (a new feature; not released on its own).
 Machine: the usual 64-thread host, otherwise idle except for cgg; times
 are wall clock at `--jobs 1`, same binary for both columns.
 
-- **Default path:** no change by construction. The flag gates every new
-  code path; the A/B above shows identical output, and the default run
-  executes no new code beyond one `Option` check per seam.
+- **Default path (flag off), 0.11.2 vs 0.12.0.** Paired and
+  alternating, median of 3, default `--jobs`, over twelve repositories
+  that take 1–13 s, one or more per major language:
+
+  | Repository | 0.11.2 | 0.12.0 | Δ |
+  | --- | ---: | ---: | ---: |
+  | app-druid-jaxrs (Java) | 6.07 s | 5.97 s | −1.7% |
+  | app-metabase-compojure (Clojure) | 7.73 s | 7.80 s | +1.0% |
+  | app-ocamlorg-dream (OCaml) | 13.20 s | 13.19 s | −0.1% |
+  | app-rn-expensify (TypeScript) | 7.77 s | 7.61 s | −2.0% |
+  | app-ghost-express (JavaScript) | 2.54 s | 2.60 s | +2.3% |
+  | erlang-otp (Erlang) | 9.01 s | 8.85 s | −1.7% |
+  | app-humhub-yii (PHP) | 0.94 s | 0.91 s | −2.9% |
+  | app-ghostty-zig (Zig) | 5.25 s | 5.31 s | +1.2% |
+  | app-gin-photoprism (Go) | 1.22 s | 1.26 s | +3.1% |
+  | app-django-netbox (Python) | 3.52 s | 3.53 s | +0.1% |
+  | app-rails-mastodon (Ruby) | 1.74 s | 1.82 s | +4.3% |
+  | app-orleans-samples (C#) | 1.38 s | 1.40 s | +1.2% |
+  | **total** | **60.4 s** | **60.2 s** | **−0.2%** |
+
+  - The comparison is like-for-like: no new work runs by default. The
+    default run executes one `Option` check per seam and an empty
+    side-channel vector per file.
+  - Every move is under 5% and goes both ways. The largest is +80 ms on
+    a 1.7 s repository, which is noise.
+  - This is a sample, not the whole corpus. `perf-compare.sh` was not run
+    for this release; the A/B above proves the output is unchanged on all
+    282 repositories.
 - **`--externals=all`, per language** (`scripts/flag-cost.py --corpus
   repos --runs 3`, one benchmark repo per language, median of 3 paired
   runs):
@@ -120,6 +150,13 @@ are wall clock at `--jobs 1`, same binary for both columns.
   - a cursor walk;
   - tree paths indexed by last segment;
   - memoized module classification.
+- **Test suite:** `cargo test --workspace` takes 11.2 s with everything
+  already built (load average 4.2). The pre-commit hook additionally
+  builds the release binary and regenerates one more README block (the
+  externals example), a run of under a second.
+- **Benchmark table:** not re-measured. The default graph is
+  byte-identical to 0.11.2 on the corpus, so the per-language numbers
+  cannot have moved.
 
 ## [0.11.2] - 2026-10-23
 

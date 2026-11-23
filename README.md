@@ -536,7 +536,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(4999 callables, 16321 edges, 4714 cross-file, 474ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(4999 callables, 16321 edges, 4714 cross-file, 488ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -1608,6 +1608,14 @@ know](#adding-a-framework-cgg-does-not-know).
 
 ## Limitations
 
+- `--externals` attributes a call to a library only from evidence in the
+  tree. Calls through values whose type cgg cannot see are counted as
+  `unattributed`, which is the larger share in method-heavy languages
+  without receiver typing. On the corpus the share of leaving calls named
+  is lowest in Ruby (~8%), F# (~9%), Swift (~12%), Groovy (~14%) and C#
+  (~16%). A program or library name built at run time is `<dynamic>`, and
+  dependency manifests are never read, so a declared-but-unused
+  dependency does not appear.
 - Syntax trees deeper than 4,000 levels are not walked. The per-language
   extractors are recursive descent, so a file that nests deeper (roughly
   2,000 nested calls, or 4,000 nested brackets or operators —
