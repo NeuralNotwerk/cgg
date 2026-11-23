@@ -9,6 +9,118 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+Bundled into 0.12.0 (a new feature; not released on its own).
+
+### Added
+
+- **`--externals[=KINDS]`: every library the tree reaches outside itself,
+  and the branches that end in calls to it.** Off by default.
+  - **Graph:** the graph becomes every callable with a path to an
+    external call, ending in one leaf per library symbol
+    (`<external>::requests::post`). `--filter '^<external>::requests::'
+    -n 0` gives every path into one library; `--rollup-by module` gives a
+    module → library map.
+  - **Report:** the inventory goes to a sidecar, `cgg.externals.v1`
+    (`--externals-format text|json`, `--externals-report FILE`), following
+    the dead-code rules. Per library it lists the import sites, symbols,
+    boundary callers and example branches from an entry point.
+  - **Kinds:** `third-party`, `stdlib`, `system` (syscalls, POSIX/Win32,
+    OS-binding modules), `native` (FFI and dynamic loading: `DllImport`,
+    `#[link]`, `foreign import`, OCaml `external`, cgo, `dlopen`,
+    `ctypes`, `System.loadLibrary`) and `process` (programs the code runs:
+    shell commands, `subprocess`, `exec.Command`, `Runtime.exec`,
+    `system()`, backticks, `execute_process`), plus `unattributed`.
+  - **Defaults:** bare `--externals` shows `third-party`, `system`,
+    `native` and `process`. A kind not selected is counted as withheld;
+    every call site that leaves the tree is accounted for exactly once.
+  - **Evidence:** every attribution names what it rests on and its
+    confidence. That is the import the call goes through, a receiver
+    type, an FFI declaration, or a literal program or library name. A
+    call through a value of unknown type is `unattributed`, never
+    guessed. Dependency manifests are not read.
+  - **All 46 languages:** each has a fixture in
+    `crates/cgg/tests/externals.rs`, and a test fails if a new plugin
+    lands without one. GraphQL is recorded as having no import
+    mechanism. Status per language: `dev_docs/matrix/17-external-dependencies.md`.
+  - **Front ends:** Python `analyze(…, externals=…)` → `Graph.externals`
+    / `externals_text()`; Node `externals` → `externalsJson()` /
+    `externalsText()`; C ABI `"externals"` option and the
+    `externals-json` / `externals-text` render formats (no new symbol).
+- `scripts/flag-cost.py`: what one flag costs. It times the same binary
+  with and without the flag, paired, per language (the `REPOS` rows) and
+  over the full corpus, bounded like every corpus script. It is the first
+  flag A/B timer; `perf-compare.sh` compares two binaries.
+- `scripts/externals-coverage.py`: `--externals` attribution coverage
+  per language over the full corpus.
+
+### Fixed
+
+- `scripts/benchmark.sh` / `update-readme-stats.sh`: `ts-zod` and
+  `openapi-spec` pointed at source directories that moved upstream
+  (`packages/zod/src`, `_archive_/schemas`).
+- `scripts/docs-check.py` read a flag with an optional value
+  (`--externals[=<KINDS>]`) as missing from `--help`.
+
+### Compatibility
+
+- **The default output is unchanged.** On the full corpus (282
+  repositories) the default graph and the dead-code report are identical
+  to 0.11.2: `scripts/graph-ab.py` reports 0 added, 0 dropped and
+  0 changed edges, and 0 changed findings. The new extraction runs only
+  under `--externals`, into a side channel (`FileFacts::external_uses`)
+  that no resolver reads.
+- `--externals` refuses `--include-external` / `--include-stdlib` (it
+  mints the same leaves, attributed) and `--from-graph` (a saved graph
+  has no buckets to attribute).
+
+### Performance
+
+Machine: the usual 64-thread host, otherwise idle except for cgg; times
+are wall clock at `--jobs 1`, same binary for both columns.
+
+- **Default path:** no change by construction. The flag gates every new
+  code path; the A/B above shows identical output, and the default run
+  executes no new code beyond one `Option` check per seam.
+- **`--externals=all`, per language** (`scripts/flag-cost.py --corpus
+  repos --runs 3`, one benchmark repo per language, median of 3 paired
+  runs):
+  - median cost +11.5%; every language under +35%;
+  - worst absolute +329 ms (php-laravel, 1,854 → 2,183 ms);
+  - largest RSS increase +35 MiB (ocaml-dune).
+
+  Every repo is inside the opt-in runway of max(20%, 5 s).
+- **`--externals=all`, full corpus** (`--corpus full --runs 1`, 279 of
+  282 repositories at `--jobs 1`):
+  - total 716.2 s → 803.2 s (+12.1%);
+  - median cost per dominant language between −2.1% (proto) and +26.5%
+    (powershell, sub-second repos);
+  - none outside the runway.
+
+  Three repositories are larger than the 60 s per-repo cap at `--jobs 1`
+  *without* the flag (zig-zig 116 s, scala-spark 64 s, dart-flutter
+  55 s). At the default `--jobs` they cost:
+
+  | Repository | Without | With `--externals=all` | Δ |
+  | --- | ---: | ---: | ---: |
+  | zig-zig | 34.4 s | 37.8 s | +9.8% |
+  | scala-spark | 11.0 s | 13.4 s | +2.4 s |
+  | dart-flutter | 10.1 s | 11.7 s | +1.6 s |
+
+- **Cost by stage**, ocaml-dune, the slowest row before tuning (`--profile`):
+
+  | Stage | ms |
+  | --- | ---: |
+  | extraction walk | 116 |
+  | attribution | 80 |
+  | branches | 35 |
+
+  Tuning cut the walk from 283 ms and attribution from 374 ms. Changes:
+  - a last-identifier reject before any string is built;
+  - a source prefilter;
+  - a cursor walk;
+  - tree paths indexed by last segment;
+  - memoized module classification.
+
 ## [0.11.2] - 2026-10-23
 
 A correctness release: the fixes (WS32–WS38) for the major issues a
