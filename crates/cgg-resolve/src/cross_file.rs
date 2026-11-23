@@ -3185,10 +3185,17 @@ pub fn resolve(
     // them. The narrowing runs here, after every file's edges exist,
     // because the delegating edge itself may be minted in this pass.
     if !out.py_fanout_sets.is_empty() {
+        // Only a structurally certain edge is evidence that one candidate
+        // delegates to another: a guessed (by-name) edge between two
+        // candidates is exactly the ambiguity this pass is resolving, and
+        // reading it as delegation dropped the right target (a DataFrame
+        // method kept, its RDD twin dropped, or the reverse).
         let mut targets: HashMap<CallableId, std::collections::HashSet<CallableId>> =
             HashMap::new();
         for e in graph.edges.iter().chain(out.edges.iter()) {
-            targets.entry(e.src).or_default().insert(e.dst);
+            if e.confidence == Confidence::High {
+                targets.entry(e.src).or_default().insert(e.dst);
+            }
         }
         let mut drop: std::collections::HashSet<(CallableId, CallableId, u32)> =
             std::collections::HashSet::new();
@@ -3198,7 +3205,12 @@ pub fn resolve(
                 .copied()
                 .filter(|b| {
                     cands.iter().any(|a| {
-                        *a != *b && targets.get(a).is_some_and(|ts| ts.contains(b))
+                        // The calling function is never the facade: a
+                        // wrapper `Worker.stop()` calling `thread.stop()`
+                        // is delegation, and `thread.stop` is its target.
+                        *a != *b
+                            && *a != *src
+                            && targets.get(a).is_some_and(|ts| ts.contains(b))
                     })
                 })
                 .collect();
@@ -8792,6 +8804,80 @@ mod tests {
             out.edges
         );
         assert_eq!(out.edges[0].dst, CallableId::new(1));
+    }
+
+    /// A wrapper method calling the same-named method on an inner object
+    /// (`Worker.stop()` → `thread.stop()`) is delegation: the calling
+    /// function is never the facade, so its delegatee keeps the edge.
+    /// Reading the caller as the facade dropped 460 correct edges across
+    /// 299 call sites of the corpus, every one of them a site left with
+    /// no edge at all.
+    #[test]
+    fn python_wrapper_calling_its_delegatee_keeps_the_edge() {
+        let mut g = Graph::new();
+        g.add_file(mk_file(1, "worker.py", "python"));
+        g.add_file(mk_file(2, "thread.py", "python"));
+        g.add_callable(CallableNode {
+            kind: CallableKind::Method,
+            ..mk_callable(1, "stop", "Worker.stop", 1, "python", (0, 60))
+        });
+        g.add_callable(CallableNode {
+            kind: CallableKind::Method,
+            ..mk_callable(2, "stop", "ConsumerThread.stop", 2, "python", (0, 60))
+        });
+        // A certain edge from the wrapper to the thread's `stop`, from
+        // another site of the same body.
+        g.add_edge(CallEdge {
+            src: CallableId::new(1),
+            dst: CallableId::new(2),
+            site_line: 4,
+            site_byte: 50,
+            confidence: Confidence::High,
+            via: Via::Direct,
+            resolver: ResolverId::new("intra-file"),
+            weight: 1,
+        });
+        let worker = facts_for(
+            1,
+            "worker.py",
+            "python",
+            vec![mk_def(
+                "stop",
+                "Worker.stop",
+                DefVariant::InherentMethod,
+                (0, 60),
+            )],
+            vec![RefRecord {
+                name: "stop".into(),
+                receiver_hint: "thread".into(),
+                dot_call: true,
+                site_line: 2,
+                site_byte: 30,
+                ..Default::default()
+            }],
+            vec![],
+        );
+        let thread = facts_for(
+            2,
+            "thread.py",
+            "python",
+            vec![mk_def(
+                "stop",
+                "ConsumerThread.stop",
+                DefVariant::InherentMethod,
+                (0, 60),
+            )],
+            vec![],
+            vec![],
+        );
+        let out = resolve_default(&g, &[worker, thread]);
+        assert!(
+            out.edges.iter().any(|e| e.src == CallableId::new(1)
+                && e.dst == CallableId::new(2)
+                && e.site_byte == 30),
+            "the wrapper's call reaches the delegatee: {:?}",
+            out.edges
+        );
     }
 
     /// Owners one derives from the other stay a virtual call: the
