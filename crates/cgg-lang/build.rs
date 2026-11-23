@@ -10,6 +10,12 @@
 //!   directly and conflicts with the workspace runtime; vendor `parser.c`
 //!   + `scanner.c` (see `vendor/lean4/PROVENANCE.md`).
 //!
+//! * Groovy (next): the dekobon/tree-sitter-groovy grammar that is to
+//!   replace the `tree-sitter-groovy` crate, vendored ahead of the port
+//!   with its C symbols renamed to `tree_sitter_groovy_dekobon*` so that
+//!   both link into one binary (see `vendor/groovy/PROVENANCE.md`). No
+//!   plugin uses it yet; `plugins::groovy_next` tests it.
+//!
 //! Each grammar is a separate `cc` static lib. The C symbols
 //! `tree_sitter_smithy()` / `tree_sitter_kivy()` are bound in the plugins
 //! via `tree_sitter_language::LanguageFn`.
@@ -47,4 +53,15 @@ fn main() {
     println!("cargo:rerun-if-changed=vendor/lean4/parser.c");
     println!("cargo:rerun-if-changed=vendor/lean4/scanner.c");
     println!("cargo:rerun-if-changed=vendor/lean4/tree_sitter/parser.h");
+
+    let groovy = Path::new("vendor/groovy");
+    cc::Build::new()
+        .file(groovy.join("parser.c"))
+        .file(groovy.join("scanner.c"))
+        .include(groovy)
+        .warnings(false)
+        .compile("tree_sitter_groovy_dekobon");
+    println!("cargo:rerun-if-changed=vendor/groovy/parser.c");
+    println!("cargo:rerun-if-changed=vendor/groovy/scanner.c");
+    println!("cargo:rerun-if-changed=vendor/groovy/tree_sitter/parser.h");
 }

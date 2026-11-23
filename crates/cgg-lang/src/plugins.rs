@@ -19,6 +19,8 @@ pub mod fsharp;
 pub mod go;
 pub mod graphql;
 pub mod groovy;
+#[cfg(test)]
+mod groovy_next;
 mod groovy_rewrite;
 pub mod haskell;
 pub mod hcl;
