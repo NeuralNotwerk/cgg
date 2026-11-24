@@ -1,6 +1,6 @@
 {
   "name": "cgg-callgraphgenerator-darwin-arm64",
-  "version": "0.13.1",
+  "version": "0.13.2",
   "cpu": [
     "arm64"
   ],

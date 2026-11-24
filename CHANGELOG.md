@@ -9,6 +9,12 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+## [0.13.2] - 2026-11-24
+
+A resolver fix: calls through a module alias. **The default graph changes
+for Rust, C++ and F#** (see *Compatibility*); every change narrows a
+fan-out or raises an edge to `high`.
+
 ### Fixed
 
 - **A call through a module alias bound unrelated same-named functions.**
@@ -46,6 +52,18 @@ names: every one of their call sites keeps an edge to a same-named
 function, almost all now `high` (`oneshot::channel()` had reached five
 `channel` functions, `RegexMatcher::new` three types). 674 edges rise
 from `medium` to `high`; none falls.
+
+### Performance
+
+`scripts/release.sh` paired comparison against 0.13.1 over all 282
+corpus repositories (`--jobs 1`, machine load average 22–32 from other
+work, so single draws are noisy): total wall 269.7 s → 272.0 s (+0.8%),
+median per-repo delta +0.5%, 128 of 282 faster. One repository fell
+outside the max(10%, 1 s) runway in that pass, app-ocamlorg-dream
+(10.5 s → 12.6 s); the change does not touch OCaml, and five alternating
+re-runs put it at a median 17.7 s (0.13.1) vs 17.1 s (0.13.2) under the
+same load, so the move is noise. The rest of the gates (tests, clippy,
+packaging, Python and Node modules, determinism) passed unchanged.
 
 ## [0.13.1] - 2026-11-24
 
