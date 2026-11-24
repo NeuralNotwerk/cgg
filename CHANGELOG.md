@@ -9,8 +9,11 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
-**The default graph changes for Groovy** (see *Compatibility*): the
-Groovy plugin parses with a new grammar.
+## [0.13.1] - 2026-11-24
+
+A Groovy parsing release. **The default graph changes for Groovy** (see
+*Compatibility*): the Groovy plugin parses with a new grammar. No other
+language's graph changes.
 
 ### Changed
 
@@ -75,6 +78,9 @@ Groovy only (`--lang groovy -t json --jobs 1`), three alternating runs
 each, load average 7–8: groovy-gradle 14.6 s → 11.8 s (−20%),
 app-saplib-jenkins 0.75 s → 0.52 s (−30%). The rewrite pass is gone and
 error recovery runs far less often.
+No code outside the Groovy plugin, the Groovy locals walker and two
+Groovy arms of shared helpers changed, so the other languages were not
+re-timed; the corpus perf comparison was skipped for this release.
 
 ## [0.13.0] - 2026-11-23
 
