@@ -222,7 +222,7 @@ In this section, "doc" means `dev_docs/languages/<lang>.md` §02. Plugin paths a
   - NClo ✅: every R function is a lambda bound to a name (**fx-e** `fn = function(x) x` gives the node `fn`).
 - **groovy**:
   - Ctor ⬜: **fx-a** `Plain() { init() }` has no node.
-  - Closures: the `closure_expression` arm (groovy.rs:129) names a kind that the grammar does not have. `tree-sitter-groovy-0.1.2/src/node-types.json` has only `closure`.
+  - Closures: the `closure_expression` arm (groovy.rs:129) names a kind that the grammar does not have. `tree-sitter-groovy-0.1.2/src/node-types.json` has only `closure`. (Moot since `44c95b07`: the plugin parses with the dekobon grammar and has no such arm.)
   - Static ✅: groovy.rs:163.
   - Ovl ✅: in `binds_same_name_set`.
   - Vis ⬜: groovy.rs:187.

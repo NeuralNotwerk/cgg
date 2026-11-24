@@ -1,5 +1,11 @@
 # groovy
 
+> **Superseded grammar.** This audit describes the plugin as of 0.11.0, on the
+> `tree-sitter-groovy` 0.1 crate. Since commit `44c95b07` the plugin parses with
+> the vendored dekobon grammar (`crates/cgg-lang/vendor/groovy`), the rewrite
+> layer is gone, and closures, command chains and method pointers are nodes of
+> their own; the line references below are to the old file.
+
 The Groovy plugin is `GroovyPlugin` in `crates/cgg-lang/src/plugins/groovy.rs`. The file is 401 lines, of which 282 are the plugin and the rest are 8 inline tests. It parses `.groovy` and `.gradle` files (groovy.rs:15-17) with the crates.io grammar `tree-sitter-groovy` 0.1. The workspace pin is `Cargo.toml:106`; the lock resolves it to 0.1.2. The plugin calls `tree_sitter_groovy::LANGUAGE` (groovy.rs:18-20). Nothing is vendored. The plugin is registered at `crates/cgg-lang/src/plugins.rs:146`.
 
 The grammar is Java-derived. Its `node-types.json` holds Java node kinds (`method_declaration`, `constructor_declaration`, `record_declaration`, `method_reference`, `lambda_expression`) plus Groovy additions (`closure`, `juxt_function_call`, `function_definition`, `map_literal`, `shebang`). It has no `trait` keyword. It also misreads much idiomatic, semicolon-free Groovy: in fixture f1 both files parse as `parse_status: error`.
