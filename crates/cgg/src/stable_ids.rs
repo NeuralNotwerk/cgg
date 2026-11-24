@@ -176,7 +176,9 @@ pub fn id_roots(paths: &[std::path::PathBuf]) -> Vec<IdRoot> {
                     .unwrap_or_default()
             };
             IdRoot {
-                display: p.clone(),
+                // The walker reports file paths in portable form, so the
+                // root they are stripped against must be in it too.
+                display: cgg_walk::portable_path(p),
                 prefix,
             }
         })

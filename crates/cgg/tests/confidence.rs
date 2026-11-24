@@ -39,6 +39,7 @@ fn edges_of(dir: &Path) -> Vec<Edge> {
         String::from_utf8_lossy(&out.stderr)
     );
     let g: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let root = cgg_walk::portable_path(dir).to_string_lossy().into_owned();
     let qn = |id: &serde_json::Value| -> (String, String) {
         let c = &g["callables"][id.as_str().unwrap()];
         let file = c["file"].as_str().unwrap();
@@ -47,7 +48,9 @@ fn edges_of(dir: &Path) -> Vec<Edge> {
             g["files"][file]["path"]
                 .as_str()
                 .unwrap()
-                .trim_start_matches(dir.to_str().unwrap())
+                // cgg reports `/`-separated paths on every platform, so
+                // strip the root in that same portable form.
+                .trim_start_matches(root.as_str())
                 .trim_start_matches('/')
                 .to_string(),
         )

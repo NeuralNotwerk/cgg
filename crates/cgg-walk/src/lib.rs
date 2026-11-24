@@ -179,7 +179,59 @@ pub fn walk(cfg: &WalkConfig) -> Result<WalkOutcome> {
         walk_one(root, canon, cfg, &mut out)?;
     }
 
+    // One normalization point for every path cgg reports: everything
+    // downstream (graph, audit, ids, every output format and binding)
+    // takes its paths from here.
+    for c in &mut out.candidates {
+        c.path = portable_path(&c.path);
+    }
+    for s in &mut out.skips {
+        s.path = portable_path(&s.path);
+    }
+
     Ok(out)
+}
+
+/// The path as cgg reports it: `/`-separated on every platform.
+///
+/// On Windows the walker yields native `\` paths, so the same tree gave
+/// different paths in every output — and, because stable ids hash the
+/// relative path, different ids — than on Linux and macOS. Windows file
+/// APIs accept `/`, so the normalized path still opens. A `\\?\C:\…`
+/// verbatim prefix is dropped first, because verbatim paths are the one
+/// form that does not accept `/` (std re-adds it internally for long
+/// paths). `\\?\UNC\…` and device paths are left untouched.
+///
+/// Elsewhere this is the identity: `\` is an ordinary file-name byte on
+/// Unix and must not be rewritten.
+pub fn portable_path(path: &Path) -> PathBuf {
+    if cfg!(windows) {
+        match path.to_str() {
+            Some(s) => PathBuf::from(portable_windows_str(s)),
+            None => path.to_path_buf(),
+        }
+    } else {
+        path.to_path_buf()
+    }
+}
+
+/// The string half of [`portable_path`] for a Windows path, kept
+/// platform-independent so it is tested on every host.
+pub fn portable_windows_str(s: &str) -> String {
+    let s = match s.strip_prefix(r"\\?\") {
+        // `\\?\C:\…` — a plain drive path in verbatim form.
+        Some(rest)
+            if rest.len() >= 2
+                && rest.as_bytes()[0].is_ascii_alphabetic()
+                && rest.as_bytes()[1] == b':' =>
+        {
+            rest
+        }
+        // `\\?\UNC\…`, `\\?\Volume{…}` and friends must stay verbatim.
+        Some(_) => return s.to_string(),
+        None => s,
+    };
+    s.replace('\\', "/")
 }
 
 fn walk_one(
@@ -447,6 +499,32 @@ mod tests {
     use std::fs;
     use std::io::Write;
     use tempfile::TempDir;
+
+    #[test]
+    fn windows_paths_report_with_forward_slashes() {
+        let p = portable_windows_str;
+        assert_eq!(
+            p(r"C:\Users\me\repo\lib\one.sh"),
+            "C:/Users/me/repo/lib/one.sh"
+        );
+        assert_eq!(p(r"repo\src\main.rs"), "repo/src/main.rs");
+        assert_eq!(p(r".\src\main.rs"), "./src/main.rs");
+        assert_eq!(p("already/portable.rs"), "already/portable.rs");
+        // A verbatim drive path drops its prefix: verbatim forbids `/`.
+        assert_eq!(p(r"\\?\C:\repo\a.rs"), "C:/repo/a.rs");
+        // Verbatim UNC and device paths cannot be rewritten at all.
+        assert_eq!(p(r"\\?\UNC\srv\share\a.rs"), r"\\?\UNC\srv\share\a.rs");
+        assert_eq!(p(r"\\?\Volume{0}\a.rs"), r"\\?\Volume{0}\a.rs");
+        // A plain UNC path is fine with `/`.
+        assert_eq!(p(r"\\srv\share\a.rs"), "//srv/share/a.rs");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_backslash_is_a_file_name_byte_on_unix() {
+        let p = Path::new(r"dir/odd\name.rs");
+        assert_eq!(portable_path(p), p);
+    }
 
     fn write(dir: &Path, name: &str, body: &[u8]) {
         let p = dir.join(name);

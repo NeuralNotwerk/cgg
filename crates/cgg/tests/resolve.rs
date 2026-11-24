@@ -874,9 +874,9 @@ fn cpp_edges(tmp: &Path) -> Vec<(String, String, String)> {
     let file = |id: &serde_json::Value| {
         let f = c[id.as_str().unwrap()]["file"].as_str().unwrap();
         let p = g["files"][f]["path"].as_str().unwrap();
-        // Windows emits backslash paths; either separator ends the file
-        // name.
-        p.rsplit(['/', '\\']).next().unwrap().to_string()
+        // cgg reports `/`-separated paths on every platform (Windows
+        // included), so `/` alone ends the file name.
+        p.rsplit('/').next().unwrap().to_string()
     };
     let qn = |id: &serde_json::Value| {
         c[id.as_str().unwrap()]["qualified_name"]
