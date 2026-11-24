@@ -541,7 +541,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(5086 callables, 16747 edges, 4897 cross-file, 539ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(5090 callables, 16756 edges, 4902 cross-file, 552ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -1162,36 +1162,36 @@ cgg externals report — cgg.externals.v1
   not expand) are absent. Dependency manifests are not read: a library
   appears here because the code calls or imports it.
 
-kinds      third-party, system, native, process  (withheld: stdlib 118 · unattributed 137)
+kinds      third-party, system, native, process  (withheld: stdlib 126 · unattributed 150)
 libraries  5 third-party
-sites      75 shown of 330 that leave the tree (high 60 · medium 13 · low 2)
+sites      75 shown of 351 that leave the tree (high 60 · medium 13 · low 2)
 
 ── coverage — what cgg could attribute, per language ─────────────────
   language      files  imports    sites attributed  forms
-  rust              1       16      330        58%  declares, use
+  rust              1       16      351        57%  declares, use
 
 ── third-party ─────────────────────────────────────────────────────────
 tempfile  rust · 1 import site(s) · 67 call site(s) · 15 caller(s)
   modules  tempfile::TempDir
   symbols  TempDir::path ×41 · TempDir(…)::unwrap ×13 · TempDir::new ×13
-  callers  cgg_walk::tests::gitignore_is_honored (./crates/cgg-walk/src/lib.rs:615) ×7
-           cgg_walk::tests::allow_dir_leaves_every_other_denied_dir_deny (./crates/cgg-walk/src/lib.rs:522) ×6
-           cgg_walk::tests::builtin_deny_skips_node_modules_and_target (./crates/cgg-walk/src/lib.rs:475) ×6
-           cgg_walk::tests::cggignore_is_honored (./crates/cgg-walk/src/lib.rs:591) ×6
-           cgg_walk::tests::allow_dir_name_not_on_deny_list_is_a_noop (./crates/cgg-walk/src/lib.rs:571) ×5
+  callers  cgg_walk::tests::gitignore_is_honored (./crates/cgg-walk/src/lib.rs:693) ×7
+           cgg_walk::tests::allow_dir_leaves_every_other_denied_dir_deny (./crates/cgg-walk/src/lib.rs:600) ×6
+           cgg_walk::tests::builtin_deny_skips_node_modules_and_target (./crates/cgg-walk/src/lib.rs:553) ×6
+           cgg_walk::tests::cggignore_is_honored (./crates/cgg-walk/src/lib.rs:669) ×6
+           cgg_walk::tests::allow_dir_name_not_on_deny_list_is_a_noop (./crates/cgg-walk/src/lib.rs:649) ×5
            … 10 more caller(s)
   branch   <framework-entry>::test::cargo-test → cgg_walk::tests::gitignore_is_honored → tempfile::TempDir(…)::unwrap
   branch   <framework-entry>::test::cargo-test → cgg_walk::tests::allow_dir_leaves_every_other_denied_dir_deny → tempfile::TempDir(…)::unwrap
 ignore  rust · 2 import site(s) · 5 call site(s) · 1 caller(s)
   modules  ignore::Error, ignore::WalkBuilder
   symbols  WalkBuilder::add_ignore ×1 · WalkBuilder::build ×1 · WalkBuilder::hidden ×1 · WalkBuilder::new ×1 · WalkBuilder::sort_by_file_path ×1
-  callers  cgg_walk::walk_one (./crates/cgg-walk/src/lib.rs:185) ×5
+  callers  cgg_walk::walk_one (./crates/cgg-walk/src/lib.rs:237) ×5
   branch   <framework-entry>::test::cargo-test → cgg_walk::tests::discovers_plain_files → cgg_walk::walk → cgg_walk::walk_one → ignore::WalkBuilder::new
 cgg_core  rust · 1 import site(s) · 3 call site(s) · 2 caller(s)
   modules  cgg_core::audit::SkipReason
   symbols  audit::SkipReason::ParseError ×2 · audit::SkipReason::Builtin ×1
-  callers  cgg_walk::walk_one (./crates/cgg-walk/src/lib.rs:185) ×2
-           cgg_walk::builtin_reason (./crates/cgg-walk/src/lib.rs:419) ×1
+  callers  cgg_walk::walk_one (./crates/cgg-walk/src/lib.rs:237) ×2
+           cgg_walk::builtin_reason (./crates/cgg-walk/src/lib.rs:471) ×1
   branch   <framework-entry>::test::cargo-test → cgg_walk::tests::discovers_plain_files → cgg_walk::walk → cgg_walk::walk_one → cgg_core::audit::SkipReason::ParseError
   branch   <framework-entry>::test::cargo-test → cgg_walk::tests::discovers_plain_files → cgg_walk::walk → cgg_walk::walk_one → cgg_walk::builtin_reason → cgg_core::audit::SkipReason::Builtin
 anyhow  rust · 2 import site(s) · 0 call site(s) · 0 caller(s)

@@ -9,6 +9,50 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+## [0.13.3] - 2026-11-24
+
+A Windows release (issue #14). **Nothing changes on Linux or macOS.** On
+Windows, cgg now reports `/`-separated paths, so its output — and its
+node ids — match the other platforms byte for byte (see
+*Compatibility*). The analyzer itself is unchanged.
+
+### Fixed
+
+- **Windows output depended on the platform.** The walker reported native
+  `\` paths, so every output format and binding on Windows carried
+  different paths than Linux and macOS for the same tree — and, because
+  stable ids hash the relative path, a different id for every file and
+  callable. Paths are now normalized once, where the walker hands them
+  out: `\` becomes `/`, and a `\\?\C:\` verbatim prefix is dropped first
+  (verbatim paths are the one form that rejects `/`). `\\?\UNC\…` and
+  device paths are left as they are. On Unix this is the identity — `\`
+  is an ordinary file-name byte there. Checked on eight byte-identical
+  corpus repositories (11 languages, 18,293 callables) analyzed on
+  Windows 11 and Linux: the `-t json` documents are identical apart
+  from timings, where 0.13.2 on Windows disagreed on every file path
+  and on the ids of 7 of the 8.
+- **The test suite now passes on Windows.** `cargo test --workspace`
+  failed 7 of 1,769 tests on Windows 11 (MSVC); it now passes all 1,770.
+  The issue reported two; cargo stops at the first failing test binary,
+  which hid the rest. The path-separator failures (`confidence`,
+  `rollup`, `skip_minified`) are fixed by the change above; `determinism`,
+  `externals` and the Node suite wrote `--externals-report /dev/null`,
+  which does not exist on Windows, and now discard the report into a
+  tempdir (`os.devNull` in Node).
+
+### Compatibility
+
+- **Windows only:** paths in every output (`-t json` `files[].path`,
+  mermaid/dot/graphml labels, `--locations`, the audit log, the
+  externals report, and the Python, Node and C bindings) use `/`, and
+  file and callable ids change to the ones Linux and macOS already
+  produce for the same tree. A graph saved on Windows by an earlier
+  release will not match ids from this one; re-run it. Qualified names
+  and edges do not change (same eight repositories: 0 names, 0 edges),
+  so `--write-roots` baselines, which key on qualified names, still
+  apply.
+- Linux and macOS: no change to any output.
+
 ## [0.13.2] - 2026-11-24
 
 A resolver fix: calls through a module alias. **The default graph changes
