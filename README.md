@@ -541,7 +541,7 @@ through the Python plugin (`!`, `%`, `?` magics stripped automatically).
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(5110 callables, 16825 edges, 4902 cross-file, 502ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(5084 callables, 16731 edges, 4896 cross-file, 484ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -620,42 +620,41 @@ flowchart LR
   N65["cgg_lang::plugins::c_macro::expand"]
   N66["cgg_lang::plugins::clojure::settle_defn_macros"]
   N67["cgg_lang::plugins::cpp::unify_declarations"]
-  N68["cgg_lang::plugins::groovy::&lt;GroovyPlugin as LanguagePlugin&gt;::parse_source"]
-  N69["cgg_lang::plugins::kivy::&lt;KivyPlugin as LanguagePlugin&gt;::max_line_bytes"]
-  N70["cgg_lang::property_reads::collect"]
-  N71["cgg_resolve::cross_file::resolve"]
-  N72["cgg_resolve::descriptor::link_descriptors"]
-  N73["cgg_resolve::dispatch::fanout"]
-  N74["cgg_resolve::dispatch::inheritance_fanout"]
-  N75["cgg_resolve::externals::inventory"]
-  N76["cgg_resolve::externals::fill_branches"]
-  N77["cgg_resolve::ffi::link_ffi"]
-  N78["cgg_resolve::frameworks::detect"]
-  N79["cgg_resolve::go_iface::go_interface_fanout"]
-  N80["cgg_resolve::go_iface::go_interface_site_edges"]
-  N81["cgg_resolve::intra_file::link_file_with_cap"]
-  N82["cgg_resolve::names::owner_from_qn"]
-  N83["cgg_resolve::property_edges::emit"]
-  N84["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
-  N85["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::with_kotlin_scoped"]
-  N86["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::with_go_results"]
-  N87["cgg_resolve::type_hints::field_index"]
-  N88["cgg_resolve::type_hints::settle_python_member_refs"]
-  N89["cgg_resolve::type_hints::type_alias_index"]
-  N90["cgg_resolve::type_hints::macro_index"]
-  N91["cgg_resolve::type_hints::resolve_macro_types"]
-  N92["cgg_resolve::type_hints::build_return_type_map"]
-  N93["cgg_resolve::type_hints::propagate_types_with_fields"]
-  N94["cgg_resolve::type_hints::settle_assoc_call_locals"]
-  N95["cgg_resolve::type_hints::settle_closure_args"]
-  N96["cgg_resolve::type_hints::settle_implicit_receivers"]
-  N97["cgg_resolve::type_hints::go_result_functions"]
-  N98["cgg_resolve::type_hints::kotlin_scoped_counts"]
-  N99["cgg_resolve::unreachable::cap_unreachable_edges"]
-  N100["cgg_resolve::value_refs::prune"]
-  N101["cgg_resolve::value_refs::prune_paren_less"]
-  N102["cgg_resolve::value_refs::tag_reference_edges"]
-  N103["cgg_walk::walk"]
+  N68["cgg_lang::plugins::kivy::&lt;KivyPlugin as LanguagePlugin&gt;::max_line_bytes"]
+  N69["cgg_lang::property_reads::collect"]
+  N70["cgg_resolve::cross_file::resolve"]
+  N71["cgg_resolve::descriptor::link_descriptors"]
+  N72["cgg_resolve::dispatch::fanout"]
+  N73["cgg_resolve::dispatch::inheritance_fanout"]
+  N74["cgg_resolve::externals::inventory"]
+  N75["cgg_resolve::externals::fill_branches"]
+  N76["cgg_resolve::ffi::link_ffi"]
+  N77["cgg_resolve::frameworks::detect"]
+  N78["cgg_resolve::go_iface::go_interface_fanout"]
+  N79["cgg_resolve::go_iface::go_interface_site_edges"]
+  N80["cgg_resolve::intra_file::link_file_with_cap"]
+  N81["cgg_resolve::names::owner_from_qn"]
+  N82["cgg_resolve::property_edges::emit"]
+  N83["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::build"]
+  N84["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::with_kotlin_scoped"]
+  N85["cgg_resolve::type_hints::ReturnTypeIndex&lt;'a&gt;::with_go_results"]
+  N86["cgg_resolve::type_hints::field_index"]
+  N87["cgg_resolve::type_hints::settle_python_member_refs"]
+  N88["cgg_resolve::type_hints::type_alias_index"]
+  N89["cgg_resolve::type_hints::macro_index"]
+  N90["cgg_resolve::type_hints::resolve_macro_types"]
+  N91["cgg_resolve::type_hints::build_return_type_map"]
+  N92["cgg_resolve::type_hints::propagate_types_with_fields"]
+  N93["cgg_resolve::type_hints::settle_assoc_call_locals"]
+  N94["cgg_resolve::type_hints::settle_closure_args"]
+  N95["cgg_resolve::type_hints::settle_implicit_receivers"]
+  N96["cgg_resolve::type_hints::go_result_functions"]
+  N97["cgg_resolve::type_hints::kotlin_scoped_counts"]
+  N98["cgg_resolve::unreachable::cap_unreachable_edges"]
+  N99["cgg_resolve::value_refs::prune"]
+  N100["cgg_resolve::value_refs::prune_paren_less"]
+  N101["cgg_resolve::value_refs::tag_reference_edges"]
+  N102["cgg_walk::walk"]
   N2 --> N3
   N3 --> N4
   N3 --> N13
@@ -683,7 +682,7 @@ flowchart LR
   N3 --> N49
   N3 --> N48
   N3 --> N42
-  N3 --> N103
+  N3 --> N102
   N3 --> N57
   N3 --> N45
   N3 --> N61
@@ -695,10 +694,9 @@ flowchart LR
   N3 -->|23x| N43
   N3 -->|3x| N63
   N3 -->|?| N55
-  N3 -->|?| N69
+  N3 -->|?| N68
   N3 -->|2x| N54
   N3 -->|?| N56
-  N3 -->|?| N68
   N3 --> N62
   N3 --> N64
   N3 -->|?| N53
@@ -706,7 +704,7 @@ flowchart LR
   N3 -->|2x| N44
   N3 --> N40
   N3 --> N47
-  N3 --> N70
+  N3 --> N69
   N3 --> N58
   N3 --> N59
   N3 --> N41
@@ -717,47 +715,47 @@ flowchart LR
   N3 --> N30
   N3 --> N38
   N3 -->|?| N35
-  N3 --> N82
+  N3 --> N81
   N3 --> N31
   N3 --> N37
+  N3 --> N99
   N3 --> N100
-  N3 --> N101
-  N3 --> N92
-  N3 -->|?| N85
-  N3 --> N86
-  N3 --> N84
-  N3 --> N97
-  N3 --> N98
-  N3 --> N87
-  N3 --> N90
   N3 --> N91
+  N3 -->|?| N84
+  N3 --> N85
+  N3 --> N83
+  N3 --> N96
+  N3 --> N97
+  N3 --> N86
   N3 --> N89
-  N3 --> N95
+  N3 --> N90
+  N3 --> N88
   N3 --> N94
   N3 --> N93
-  N3 --> N96
-  N3 --> N88
+  N3 --> N92
+  N3 --> N95
+  N3 --> N87
   N3 --> N34
-  N3 --> N81
+  N3 --> N80
   N3 --> N32
   N3 --> N33
+  N3 --> N70
+  N3 --> N82
+  N3 --> N76
   N3 --> N71
-  N3 --> N83
+  N3 --> N101
+  N3 --> N98
+  N3 --> N74
   N3 --> N77
   N3 --> N72
-  N3 --> N102
-  N3 --> N99
-  N3 --> N75
-  N3 --> N78
-  N3 --> N73
   N3 -->|4x| N39
-  N3 --> N74
+  N3 --> N73
+  N3 --> N78
   N3 --> N79
-  N3 --> N80
   N3 -->|5x| N22
   N3 --> N26
   N3 -->|2x| N23
-  N3 --> N76
+  N3 --> N75
   N3 --> N24
   N3 --> N25
   N8 --> N43
@@ -786,19 +784,19 @@ flowchart LR
   N24 --> N36
   N65 --> N52
   N67 -->|3x| N41
-  N71 -->|6x| N43
-  N71 -->|6x| N82
-  N71 --> N41
-  N72 -->|2x| N82
-  N73 --> N82
-  N74 -->|2x| N82
-  N75 -->|3x| N43
-  N77 --> N41
-  N78 -->|14x| N43
-  N81 -->|7x| N82
-  N93 -->|3x| N43
-  N94 --> N82
-  N96 --> N82
+  N70 -->|6x| N43
+  N70 -->|6x| N81
+  N70 --> N41
+  N71 -->|2x| N81
+  N72 --> N81
+  N73 -->|2x| N81
+  N74 -->|3x| N43
+  N76 --> N41
+  N77 -->|14x| N43
+  N80 -->|7x| N81
+  N92 -->|3x| N43
+  N93 --> N81
+  N95 --> N81
 ```
 <!-- cgg:end:self -->
 

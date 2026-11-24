@@ -245,7 +245,6 @@ dependencies = [
  "tree-sitter-fsharp",
  "tree-sitter-go",
  "tree-sitter-graphql",
- "tree-sitter-groovy",
  "tree-sitter-haskell",
  "tree-sitter-hcl",
  "tree-sitter-java",
@@ -1540,16 +1539,6 @@ name = "tree-sitter-graphql"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "efedc4cac157161cc23a0adc4553a2cedc908e1cd754b6cd033a919bb81ce5d6"
-dependencies = [
- "cc",
- "tree-sitter-language",
-]
-
-[[package]]
-name = "tree-sitter-groovy"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a20016017f0865ba902ca50354f92429de5de8df994e64ab7fae087a13c40ed"
 dependencies = [
  "cc",
  "tree-sitter-language",

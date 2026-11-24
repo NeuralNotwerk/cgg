@@ -9,6 +9,73 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+**The default graph changes for Groovy** (see *Compatibility*): the
+Groovy plugin parses with a new grammar.
+
+### Changed
+
+- Groovy and Gradle files are parsed with the dekobon/tree-sitter-groovy
+  grammar (issue #11), vendored in `crates/cgg-lang/vendor/groovy` from a
+  fork branch that carries five fixes filed upstream (dekobon issues
+  #112–#114, #119 and #92; PRs #115–#117, #120, #121). It replaces the
+  unmaintained `tree-sitter-groovy` 0.1 crate and the same-length source
+  rewrites cgg ran in front of it (`groovy_rewrite.rs`, deleted). The
+  grammar reads command expressions (`println x`, `foo 'a', b: 1`,
+  `obj.m arg`, `def r = sh script: 'x'`), closures, `?.`/`*.`, method
+  pointers, slashy strings, `def (a, b) = …` and string-named methods as
+  nodes of their own, so the plugin and the Groovy locals walker
+  (`locals::collect_groovy`) read the tree instead of recovering from
+  error nodes and parameter text. Over 21,667 real Groovy files the
+  grammar leaves 21,156 without an `ERROR`.
+- A Groovy member call's site is its method name, so each link of a
+  chain written over several lines (`rule.reset()` then `.with(a)` then
+  `.with(b)`) is its own site on its own line.
+- A command chain the grammar splits into statements
+  (`module('a') tries('1')`, Groovy's `module('a').tries('1')`) records the
+  later calls as method calls (`dot_call`), not bare ones.
+- `import a.b.C as D` records the alias `D`; `import static a.b.U.*` the
+  alias `*`, as Java's does.
+
+### Compatibility
+
+Measured with `scripts/graph-ab.py` over every corpus repository holding
+a `.groovy` or `.gradle` file (19), against 0.13.0:
+
+| Repository | Edges | Callables | Unresolved sites |
+| --- | --- | --- | --- |
+| groovy-gradle | 343,003 → 385,262 (−45,139 +87,398) | 139,593 → 141,940 | 231,966 → 240,445 |
+| app-saplib-jenkins | 27,727 → 28,420 (−712 +1,405) | 8,828 → 8,942 | 5,635 → 6,418 |
+| app-streama-grails | 6,985 → 7,036 (−57 +108) | 3,881 → 3,955 | 8,543 → 8,790 |
+
+Eight other repositories change only in unresolved sites, from their
+`.gradle` files' calls the old grammar lost; their edges are unchanged.
+No high-confidence dead-code finding changes in any of the 19.
+
+- Most removed edges are the same call with a new target name: methods
+  of a class whose header the old grammar lost were named after the
+  package (`org.gradle.integtests.fixtures.run`), and are now named after
+  their class. Spock feature methods are the bulk of these.
+- 4,323 edges bound Spock's `Mock(…)` to one unrelated test class's
+  `Mock` method by name; `Mock` is now an external call, as Spock's
+  `Specification` is outside the tree.
+- Duck-typed calls that reach more same-named methods than
+  `--fanout-cap` now that more classes are extracted
+  (`module.assertPublished()`, 6 candidates) are refused instead of
+  bound to the few the old grammar kept.
+- `task updateDependencies() { … }` in a Gradle script is a call of
+  `task`, not a function definition.
+- The added edges are mostly calls the old grammar dropped: command
+  expressions in Spock specifications and Gradle scripts
+  (`succeeds 'checkDeps'`, `fails ':a:build'`, `run 'sync'`) and calls in
+  members of the classes it lost.
+
+### Performance
+
+Groovy only (`--lang groovy -t json --jobs 1`), three alternating runs
+each, load average 7–8: groovy-gradle 14.6 s → 11.8 s (−20%),
+app-saplib-jenkins 0.75 s → 0.52 s (−30%). The rewrite pass is gone and
+error recovery runs far less often.
+
 ## [0.13.0] - 2026-11-23
 
 Contributed work from TheWolfAround (PR #13 and the

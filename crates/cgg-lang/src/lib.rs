@@ -535,10 +535,10 @@ pub trait LanguagePlugin: Send + Sync + fmt::Debug {
 
     /// A same-length copy of `source` for the grammar to parse in its
     /// place — byte offsets and lines unchanged — when the language has a
-    /// construct the grammar cannot read but a local rewrite can (Groovy's
-    /// string method names, WS30). Extraction still reads the original
-    /// bytes, so a node's text is what the file says. `None` (the default)
-    /// parses the source as is.
+    /// construct the grammar cannot read but a local rewrite can. Extraction
+    /// still reads the original bytes, so a node's text is what the file
+    /// says. `None` (the default) parses the source as is. No plugin uses
+    /// it today; Groovy did until it moved to the dekobon grammar.
     fn parse_source(&self, _source: &[u8]) -> Option<Vec<u8>> {
         None
     }

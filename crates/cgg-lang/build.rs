@@ -10,11 +10,9 @@
 //!   directly and conflicts with the workspace runtime; vendor `parser.c`
 //!   + `scanner.c` (see `vendor/lean4/PROVENANCE.md`).
 //!
-//! * Groovy (next): the dekobon/tree-sitter-groovy grammar that is to
-//!   replace the `tree-sitter-groovy` crate, vendored ahead of the port
-//!   with its C symbols renamed to `tree_sitter_groovy_dekobon*` so that
-//!   both link into one binary (see `vendor/groovy/PROVENANCE.md`). No
-//!   plugin uses it yet; `plugins::groovy_next` tests it.
+//! * Groovy: the dekobon/tree-sitter-groovy grammar, from a fork branch
+//!   with fixes not yet released upstream; its C symbols are renamed to
+//!   `tree_sitter_groovy_dekobon*` (see `vendor/groovy/PROVENANCE.md`).
 //!
 //! Each grammar is a separate `cc` static lib. The C symbols
 //! `tree_sitter_smithy()` / `tree_sitter_kivy()` are bound in the plugins

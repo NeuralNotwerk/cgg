@@ -191,8 +191,9 @@ fn is_value_like(kind: &str) -> bool {
 fn shape_type<'t>(lang: &str, n: Node<'t>, src: &'t [u8]) -> Option<String> {
     let ty: Node<'t> = match n.kind() {
         // Java / C# / C / C++ `(Foo) o`, Go `o.(Foo)`, C/C++ `Foo{…}`, Go
-        // `Foo{…}`.
+        // `Foo{…}`; Groovy `o as Foo` and `(Foo) o`.
         "cast_expression"
+        | "parenthesized_type_cast"
         | "type_assertion_expression"
         | "compound_literal_expression"
         | "composite_literal" => n.child_by_field_name("type")?,

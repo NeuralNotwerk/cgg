@@ -1,24 +1,11 @@
-//! The vendored dekobon/tree-sitter-groovy grammar (`vendor/groovy`), which
-//! is to replace the `tree-sitter-groovy` crate the Groovy plugin parses with
-//! today (issue #11). No plugin uses it yet. These tests pin what it is
-//! vendored for: it loads beside the current grammar, and every Groovy shape
-//! cgg knows the current grammar to reject parses without an `ERROR`.
+//! The vendored dekobon/tree-sitter-groovy grammar (`vendor/groovy`) the
+//! Groovy plugin parses with (issue #11). These tests pin what it was
+//! vendored for: every Groovy shape the `tree-sitter-groovy` crate rejected,
+//! and the gaps found in the dekobon grammar itself, parse without an
+//! `ERROR`.
 
-use tree_sitter::{Language, Node, Parser};
-use tree_sitter_language::LanguageFn;
-
-unsafe extern "C" {
-    fn tree_sitter_groovy_dekobon() -> *const ();
-}
-
-/// Raw binding to the vendored grammar's C entry point, renamed from
-/// `tree_sitter_groovy` so that it does not collide with the crate's.
-const GROOVY_NEXT_LANGUAGE: LanguageFn =
-    unsafe { LanguageFn::from_raw(tree_sitter_groovy_dekobon) };
-
-fn language() -> Language {
-    GROOVY_NEXT_LANGUAGE.into()
-}
+use super::groovy::language;
+use tree_sitter::{Node, Parser};
 
 fn first_error(node: Node<'_>) -> Option<(usize, usize, &'static str)> {
     if node.is_error() || node.is_missing() {
@@ -119,20 +106,4 @@ fn vendored_groovy_grammar_parses_every_known_gap() {
         })
         .collect();
     assert!(failures.is_empty(), "shapes with an error: {failures:#?}");
-}
-
-#[test]
-fn vendored_groovy_grammar_links_beside_the_current_one() {
-    // Both grammars in one binary, each answering with its own root node
-    // kind: a symbol clash would bind both to one grammar.
-    let src = "def f(x) { x }\n";
-    let mut parser = Parser::new();
-    parser.set_language(&language()).unwrap();
-    let next = parser.parse(src, None).unwrap();
-    parser
-        .set_language(&tree_sitter_groovy::LANGUAGE.into())
-        .unwrap();
-    let current = parser.parse(src, None).unwrap();
-    assert_eq!(next.root_node().kind(), "source_file");
-    assert_eq!(current.root_node().kind(), "program");
 }

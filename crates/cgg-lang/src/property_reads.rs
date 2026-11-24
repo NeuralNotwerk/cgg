@@ -92,6 +92,10 @@ fn not_a_read(n: Node) -> bool {
     let field_is = |f: &str| p.child_by_field_name(f).is_some_and(|c| c.id() == n.id());
     match p.kind() {
         "call_expression" | "invocation_expression" => field_is("function") || first,
+        // Groovy: `obj.m()` holds `obj.m` as its `function`, and `obj.m x`
+        // as its `receiver`.
+        "method_invocation" => field_is("function"),
+        "command_chain" => field_is("receiver"),
         "assignment_expression" | "augmented_assignment_expression" | "assignment" => {
             field_is("left") || first
         }
