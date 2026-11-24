@@ -9,6 +9,44 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A call through a module alias bound unrelated same-named functions.**
+  In Rust, `use llm_v2 as llm;` in a crate root, then `use crate::llm;`
+  and `llm::classify(…)` in a submodule (or `crate::llm::f`,
+  `super::llm::f`), bound `llm_v2::classify` *and* every other
+  `classify` in the crate, all at `medium`; C++ `namespace llm =
+  bot::llm_v2;` then `llm::classify(…)` did the same. Both now bind only
+  the aliased module's function, at `high`. A path headed by a
+  `pub use`-re-exported type (`grep_regex::RegexMatcher::new`, written
+  `RegexMatcher::new` after `use grep_regex::RegexMatcher;`) also resolves
+  through the re-export now, instead of fanning out to every type of that
+  name. F# `module L = Llm_v2` then `L.classify x` bound nothing and now
+  binds `Llm_v2.classify`. Test:
+  `crates/cgg/tests/confidence.rs::a_module_alias_binds_only_the_module_it_names`.
+
+### Compatibility
+
+Measured with `scripts/graph-ab.py` over all 282 corpus repositories
+against 0.13.1. Ten change; no dead-code finding changes in any.
+
+| Repository | Edges | Changed confidence |
+| --- | --- | --- |
+| rust-ripgrep | 8,678 → 8,371 | 122 |
+| rust-ntex | 19,661 → 19,598 | 273 |
+| app-salvo-examples | 35,295 → 35,241 | 198 |
+| app-cloudflare-workers | 3,820 → 3,810 | 1 |
+| cmake-kitware | 132,064 → 132,065 | 2 |
+| cpp-nlohmann-json | 14,042 → 14,044 | 0 |
+
+app-axum-cratesio, app-clashverge-tauri, app-pydantic-core and
+app-tigerbeetle-zig change only in confidence (`medium` → `high`). All
+439 removed edges are fan-outs narrowed to the module or type the call
+names: every one of their call sites keeps an edge to a same-named
+function, almost all now `high` (`oneshot::channel()` had reached five
+`channel` functions, `RegexMatcher::new` three types). 674 edges rise
+from `medium` to `high`; none falls.
+
 ## [0.13.1] - 2026-11-24
 
 A Groovy parsing release. **The default graph changes for Groovy** (see

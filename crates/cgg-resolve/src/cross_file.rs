@@ -883,7 +883,7 @@ fn rewrite_rust_use_path(path: &str, crate_root: &str, own_module: &str) -> Stri
 /// Rust 2018 uniform paths: in a module that declares `mod expand;`,
 /// `use expand::run;` and `pub use expand::run;` name the child module,
 /// `<own module>::expand::run` — the qualified name the definition
-/// carries. `None` when the path's head is a crate root (an external or
+/// carries; `use expand as e;` names the module itself. `None` when the path's head is a crate root (an external or
 /// workspace crate, which wins) or names no child module of `own_module`.
 fn rust_child_module_path(
     path: &str,
@@ -891,11 +891,7 @@ fn rust_child_module_path(
     vocab: &RustPathVocab,
 ) -> Option<String> {
     let head = path.split("::").next()?;
-    if own_module.is_empty()
-        || head.is_empty()
-        || !path.contains("::")
-        || vocab.crate_roots.contains(head)
-    {
+    if own_module.is_empty() || head.is_empty() || vocab.crate_roots.contains(head) {
         return None;
     }
     vocab
@@ -1447,10 +1443,14 @@ pub fn resolve(
             .unwrap_or_else(|| "crate".to_string());
         let own_module = rust_own_module(f, &crate_root);
         for imp in &f.imports {
-            if imp.kind != "pub-use" {
+            if imp.kind != "pub-use" && imp.kind != "use" {
                 continue;
             }
-            let target = rewrite_rust_use_path(imp.path.trim(), &crate_root, &own_module);
+            let path = imp.path.trim();
+            if path.contains('*') || path.contains('{') {
+                continue;
+            }
+            let target = rewrite_rust_use_path(path, &crate_root, &own_module);
             let target = rust_child_module_path(&target, &own_module, &rust_path_heads)
                 .unwrap_or(target);
             let exported_name = if imp.alias.is_empty() {
@@ -1458,8 +1458,29 @@ pub fn resolve(
             } else {
                 imp.alias.clone()
             };
-            let alias_qn = format!("{crate_root}::{exported_name}");
-            reexports.insert(("rust".to_string(), alias_qn), target);
+            if imp.kind == "pub-use" {
+                let alias_qn = format!("{crate_root}::{exported_name}");
+                reexports.insert(("rust".to_string(), alias_qn), target.clone());
+            }
+            // A `use` of a module (private too) names the module inside
+            // the module that writes it: `use llm_v2 as llm;` in the crate
+            // root makes `crate::llm` a path, which its submodules reach
+            // through `use crate::llm;` and `llm::f()`. Only modules
+            // (`module_paths` also holds type owners, so the last segment
+            // must be snake_case as rustc's lint has it): a function or
+            // type keeps the import-table reading, which binds every
+            // `#[cfg]` twin and never leaks into a sibling file. An
+            // earlier `pub use` at the crate root wins.
+            let local_qn = format!("{own_module}::{exported_name}");
+            let names_a_module = rust_path_heads.module_paths.contains(&target)
+                && target.rsplit("::").next().is_some_and(|s| {
+                    s.starts_with(|c: char| c.is_lowercase() || c == '_')
+                });
+            if local_qn != target && names_a_module {
+                reexports
+                    .entry(("rust".to_string(), local_qn))
+                    .or_insert(target);
+            }
         }
     }
 
@@ -1828,6 +1849,18 @@ pub fn resolve(
                             .entry(alias)
                             .or_default()
                             .push(full.to_string());
+                    }
+                    "namespace-alias" if lang == "cpp" => {
+                        // C++: `namespace llm = bot::llm_v2;` — a call
+                        // `llm::f()` is `bot::llm_v2::f()`, looked up
+                        // exactly by the head rewrite, never by name.
+                        let full = imp.path.trim();
+                        if !imp.alias.is_empty() && !full.is_empty() {
+                            direct_imports
+                                .entry(imp.alias.clone())
+                                .or_default()
+                                .push(full.to_string());
+                        }
                     }
                     "using" if lang == "csharp" => {
                         // C#: `using X.Y.Z;`                 -> module alias Z -> X.Y.Z
@@ -8519,7 +8552,18 @@ fn lookup_in_language(
             current = next.clone();
             continue;
         }
-        return None;
+        // A re-exported or aliased module heading the path:
+        // `crate::llm::f` where `crate::llm` is `use llm_v2 as llm`.
+        // Longest prefix first.
+        let aliased = current.rmatch_indices("::").find_map(|(i, _)| {
+            reexports
+                .get(&(lang.to_string(), current[..i].to_string()))
+                .map(|t| format!("{t}{}", &current[i..]))
+        });
+        match aliased {
+            Some(next) if next != current => current = next,
+            _ => return None,
+        }
     }
     None
 }

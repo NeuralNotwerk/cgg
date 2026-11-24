@@ -75,6 +75,37 @@ impl<'a> FsharpWalker<'a> {
             format!("{}.{simple}", self.scope.join("."))
         }
     }
+    /// Records `module L = A.B` as a `module-abbrev` import; false for
+    /// any other module definition.
+    fn record_module_abbrev(&mut self, node: Node) -> bool {
+        let mut c = node.walk();
+        let blocks: Vec<Node> = node.children_by_field_name("block", &mut c).collect();
+        let [block] = blocks.as_slice() else {
+            return false;
+        };
+        if !matches!(block.kind(), "long_identifier_or_op" | "long_identifier") {
+            return false;
+        }
+        let Some(id) = self.child_kind(node, "identifier") else {
+            return false;
+        };
+        let (alias, path) = (
+            self.text(id).trim().to_string(),
+            self.text(*block).trim().to_string(),
+        );
+        if alias.is_empty() || path.is_empty() {
+            return false;
+        }
+        self.facts.imports.push(ImportRecord {
+            kind: "module-abbrev".into(),
+            path,
+            alias,
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+        });
+        true
+    }
+
     fn child_kind<'n>(&self, node: Node<'n>, kind: &str) -> Option<Node<'n>> {
         let mut c = node.walk();
         if c.goto_first_child() {
@@ -126,6 +157,12 @@ impl<'a> FsharpWalker<'a> {
             "member_defn" => {
                 self.record_member(node);
                 self.walk_children(node);
+                return;
+            }
+            // `module L = A.B`, a module abbreviation (the grammar reads it
+            // as a `module_defn` whose block is one long identifier, or as
+            // a `module_abbrev`): `L.f` is `A.B.f`.
+            "module_defn" | "module_abbrev" if self.record_module_abbrev(node) => {
                 return;
             }
             // `namespace A.B` / `module A.B.Mod` (the file's) and a nested

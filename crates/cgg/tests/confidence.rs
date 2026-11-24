@@ -1148,3 +1148,78 @@ fn a_variable_named_like_an_imported_package_is_no_module_alias() {
         "{edges:#?}"
     );
 }
+
+/// A module alias (`use llm_v2 as llm;` in a Rust crate root, reached
+/// from a submodule through `use crate::llm;`; C++ `namespace llm =
+/// bot::llm_v2;`; F# `module L = Llm_v2`) names exactly one module: a call
+/// through it binds that module's function at `high`, never a same-named
+/// function in another module.
+#[test]
+fn a_module_alias_binds_only_the_module_it_names() {
+    let e = graph(&[
+        (
+            "Cargo.toml",
+            "[package]\nname = \"bot\"\nversion = \"0.1.0\"\n",
+        ),
+        (
+            "src/main.rs",
+            "mod llm_v2;\nmod attachments;\nmod router;\nuse llm_v2 as llm;\n\
+             fn main() { router::route(); llm::classify(0); }\n",
+        ),
+        ("src/llm_v2.rs", "pub fn classify(x: u32) -> u32 { x }\n"),
+        (
+            "src/attachments.rs",
+            "pub fn classify(x: u32) -> u32 { x }\n",
+        ),
+        (
+            "src/router.rs",
+            "use crate::llm;\npub fn route() { llm::classify(1); super::llm::classify(2); }\n",
+        ),
+    ]);
+    for (src, sites) in [("bot::router::route", 2), ("bot::main", 1)] {
+        assert_eq!(
+            conf(&e, src, "bot::llm_v2::classify"),
+            vec!["high".to_string(); sites],
+            "{src}: {e:#?}"
+        );
+        assert!(
+            conf(&e, src, "bot::attachments::classify").is_empty(),
+            "{e:#?}"
+        );
+    }
+
+    let e = graph(&[
+        (
+            "llm.cpp",
+            "namespace bot { namespace llm_v2 { int classify(int x) { return x; } }\n\
+             namespace attachments { int classify(int x) { return x; } } }\n",
+        ),
+        (
+            "router.cpp",
+            "namespace llm = bot::llm_v2;\nint route() { return llm::classify(1); }\n",
+        ),
+    ]);
+    assert_eq!(conf(&e, "route", "bot::llm_v2::classify"), high(), "{e:#?}");
+    assert!(
+        conf(&e, "route", "bot::attachments::classify").is_empty(),
+        "{e:#?}"
+    );
+
+    let e = graph(&[
+        ("Llm_v2.fs", "module Llm_v2\nlet classify x = x\n"),
+        ("Attachments.fs", "module Attachments\nlet classify x = x\n"),
+        (
+            "Router.fs",
+            "module Router\nmodule L = Llm_v2\nlet route () = L.classify 2\n",
+        ),
+    ]);
+    assert_eq!(
+        conf(&e, "Router.route", "Llm_v2.classify"),
+        high(),
+        "{e:#?}"
+    );
+    assert!(
+        conf(&e, "Router.route", "Attachments.classify").is_empty(),
+        "{e:#?}"
+    );
+}

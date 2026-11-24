@@ -167,8 +167,8 @@ Ranked by how many languages a gap affects and how many wrong or high edges it p
    - Kotlin object and member aliases bind nothing (kotlin.md f1, f8).
    - Solidity `import * as L`/`import "x" as L`: the alias is dropped (solidity.rs:126).
    - Nix `h = import ./x.nix`: the alias is always empty (nix.rs:199).
-   - Fortran renames, Julia `import A.f as g`, OCaml `module X = B`, F# `module U = …`, C++ namespace aliases to workspace namespaces (cpp.md f3: binds two candidates), Clojure `:as-alias`, R `box::use(alias = pkg)` and Lean `renaming` are also unhandled.
-   - *Comparable:* Python, JS/TS, Go, C#, Dart, Elixir, Lua and Zig aliases all bind high. **S** per language.
+   - Fortran renames, Julia `import A.f as g`, OCaml `module X = B`, Clojure `:as-alias`, R `box::use(alias = pkg)` and Lean `renaming` are also unhandled.
+   - *Comparable:* Python, JS/TS, Go, C#, Dart, Elixir, Lua and Zig aliases all bind high, as do Rust module aliases (`use m as a;`, reached as `crate::a::f`), C++ namespace aliases and F# `module U = …`. **S** per language.
 
 9. **Manifest reading is limited to Rust, JS/TS, Go, Dart and Zig** (plugins/manifest.rs).
    - Missing where a manifest names modules: Python (`pyproject`, which leaves the `py-setuptools-entrypoints` rule a declared gap at rules.rs:6900), Java/Kotlin/Groovy (Gradle/Maven), PHP (composer PSR-4), Solidity (`remappings.txt`/`foundry.toml`, solidity.md f5 unresolved), Elixir (umbrella `apps/*`), Swift (`Package.swift`), Haskell (`.cabal`), Julia (`Project.toml`), Erlang (`rebar.config`), PowerShell (`.psd1` `RootModule`), C# (`.csproj` `RootNamespace`), Zig (`build.zig.zon`) and Bazel (`MODULE.bazel`).

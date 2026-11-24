@@ -214,6 +214,8 @@ pub(crate) struct LibIndex<'a> {
     /// relative to: its own namespaces and modules (every prefix) and its
     /// `open`s, nearest first.
     fs_contexts: HashMap<FileId, Vec<String>>,
+    /// F# `module L = A.B` per file: `(file, "L") -> "A.B"`.
+    fs_abbrevs: HashMap<(FileId, String), String>,
 }
 
 impl<'a> LibIndex<'a> {
@@ -1126,6 +1128,12 @@ impl<'a> LibIndex<'a> {
                 }
             }
             self.fs_contexts.insert(f.file, ctx);
+            for i in f.imports.iter().filter(|i| i.kind == "module-abbrev") {
+                self.fs_abbrevs.insert(
+                    (f.file, i.alias.trim().to_string()),
+                    i.path.trim().to_string(),
+                );
+            }
         }
     }
 
@@ -1151,13 +1159,28 @@ impl<'a> LibIndex<'a> {
             return None;
         }
         let name = r.name.as_str();
-        let mut paths: Vec<String> = vec![rh.to_string()];
-        for p in self
+        let ctx = self
             .fs_contexts
             .get(&caller_file)
             .map(Vec::as_slice)
-            .unwrap_or(&[])
-        {
+            .unwrap_or(&[]);
+        // A module abbreviation heading the path (`module L = A.B`, then
+        // `L.f`) stands for its target, itself read whole or relative to
+        // the file's scopes; an abbreviation shadows a module of its name.
+        let (head, rest) = rh.split_once('.').map_or((rh, ""), |(h, t)| (h, t));
+        let rh_full = self
+            .fs_abbrevs
+            .get(&(caller_file, head.to_string()))
+            .map(|t| {
+                if rest.is_empty() {
+                    t.clone()
+                } else {
+                    format!("{t}.{rest}")
+                }
+            });
+        let rh = rh_full.as_deref().unwrap_or(rh);
+        let mut paths: Vec<String> = vec![rh.to_string()];
+        for p in ctx {
             paths.push(format!("{p}.{rh}"));
         }
         // The first path that names an in-tree `f`: the nearest scope wins,
