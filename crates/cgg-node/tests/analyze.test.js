@@ -315,7 +315,7 @@ test("externals inventory matches the CLI", { skip: !haveBin }, async () => {
   assert.deepStrictEqual(doc, fromCli);
   assert.strictEqual(
     g.toMermaid(),
-    cli([TREE, "--externals=all", "--externals-report", "/dev/null", "-q"])
+    cli([TREE, "--externals=all", "--externals-report", require("node:os").devNull, "-q"])
   );
   const plain = await cgg.analyze(TREE);
   assert.strictEqual(plain.externalsJson(), null);

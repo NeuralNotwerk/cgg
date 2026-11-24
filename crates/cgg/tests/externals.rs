@@ -771,7 +771,14 @@ fn default_run_is_unchanged_and_in_tree_edges_survive_the_flag() {
         serde_json::from_slice(&out.stdout).unwrap()
     };
     let plain = run(&[]);
-    let ext = run(&["--externals=all", "--externals-report", "/dev/null"]);
+    // Discarded; `/dev/null` does not exist on Windows.
+    let sink = TempDir::new().unwrap();
+    let report = sink.path().join("externals.txt");
+    let ext = run(&[
+        "--externals=all",
+        "--externals-report",
+        report.to_str().unwrap(),
+    ]);
     let key = |e: &serde_json::Value| {
         (
             e["src"].as_str().unwrap().to_string(),

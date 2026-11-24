@@ -76,7 +76,10 @@ fn nine_language_sample_all_detect() {
         ("cs1.cs", "csharp"),
     ];
     for (name, expected_lang) in expected {
-        let path_str = tmp.path().join(name).to_string_lossy().to_string();
+        // cgg reports `/`-separated paths on every platform.
+        let path_str = cgg_walk::portable_path(&tmp.path().join(name))
+            .to_string_lossy()
+            .to_string();
         let actual = analyzed
             .get(&path_str)
             .unwrap_or_else(|| panic!("no file_analyzed for {name}"));

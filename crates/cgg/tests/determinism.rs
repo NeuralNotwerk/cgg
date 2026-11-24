@@ -383,6 +383,10 @@ fn the_externals_report_and_graph_are_identical_at_every_thread_count() {
     let tmp = TempDir::new().unwrap();
     fixture(tmp.path());
     dispatch_fixture(tmp.path());
+    // The report is discarded; `/dev/null` does not exist on Windows, and
+    // a file inside `tmp` would join the tree being analyzed.
+    let sink = TempDir::new().unwrap();
+    let report = sink.path().join("externals.txt");
     let run = |jobs: &str| -> (String, String) {
         let out = Command::cargo_bin("cgg")
             .unwrap()
@@ -402,16 +406,9 @@ fn the_externals_report_and_graph_are_identical_at_every_thread_count() {
         let graph = Command::cargo_bin("cgg")
             .unwrap()
             .arg(tmp.path())
-            .args([
-                "--externals=all",
-                "--externals-report",
-                "/dev/null",
-                "-q",
-                "--node-ids",
-                "hash",
-                "--jobs",
-                jobs,
-            ])
+            .args(["--externals=all", "--externals-report"])
+            .arg(&report)
+            .args(["-q", "--node-ids", "hash", "--jobs", jobs])
             .output()
             .unwrap();
         assert!(graph.status.success());
