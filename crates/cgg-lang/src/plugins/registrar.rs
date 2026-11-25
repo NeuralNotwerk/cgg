@@ -446,6 +446,13 @@ fn class_method_pair(node: Node, source: &[u8]) -> Option<(String, String)> {
         if depth > 4 {
             return;
         }
+        // `[new Searcher(), 'search']`: the object's class.
+        if n.kind() == "object_creation_expression" {
+            if let Some(class) = php_new_class(n, source) {
+                *class_name = Some(class);
+            }
+            return;
+        }
         if (n.kind() == "class_constant_access_expression"
             || n.kind() == "scoped_property_access_expression")
             && let Ok(t) = n.utf8_text(source)
@@ -470,6 +477,18 @@ fn class_method_pair(node: Node, source: &[u8]) -> Option<(String, String)> {
         (Some(c), Some(m)) => Some((c, m)),
         _ => None,
     }
+}
+
+/// The class a PHP `new C(…)` constructs, last segment (`new \\App\\C`
+/// -> `C`); `None` for `new class { … }` or `new $name`.
+fn php_new_class(node: Node, source: &[u8]) -> Option<String> {
+    let mut c = node.walk();
+    let n = node
+        .named_children(&mut c)
+        .find(|n| matches!(n.kind(), "name" | "qualified_name"))?;
+    let t = n.utf8_text(source).ok()?.trim();
+    let class = last_segment(t.trim_start_matches('\\'));
+    (!class.is_empty()).then(|| class.to_string())
 }
 
 /// Route identity for a call: its own first string argument, or — when
@@ -920,6 +939,23 @@ fn collect_value_refs(
     depth: u8,
 ) {
     let kind = arg.kind();
+
+    // PHP `new LookupTool()` handed over as the handler: an invokable
+    // object, which the framework calls through `__invoke`.
+    if kind == "object_creation_expression" && ctx.language == "php" {
+        if let Some(class) = php_new_class(arg, source) {
+            out.push(RefRecord {
+                name: format!("{class}::__invoke"),
+                receiver_hint: STRING_REF_HINT.to_string(),
+                site_line: line,
+                site_byte: arg.start_byte() as u32,
+                context: context.to_string(),
+                route: route.to_string(),
+                ..Default::default()
+            });
+        }
+        return;
+    }
 
     // Composite argument: descend into the literal containers that hold
     // a target — an array, a keyword pair, PHP's `argument` wrapper.
