@@ -140,15 +140,20 @@ match nothing, so verify every rule with the coverage table (Step 3).
 
 **Get `kind` right.** It is part of the entry node's name and therefore
 of every `--filter '<framework-entry>::network::'` query someone runs to
-enumerate attack surface. The nine values are `network`, `queue`,
-`schedule`, `cli`, `ffi`, `lifecycle` (the default), `test`, `ui` and
-`public`. Use `network` only for things reachable from outside the
-process. A worker that trusted internal code enqueues is `queue`; a
+enumerate attack surface. The ten values are `network`, `queue`,
+`schedule`, `cli`, `ffi`, `lifecycle` (the default), `test`, `ui`,
+`public` and `tool`. Use `network` only for things reachable from outside
+the process. A worker that trusted internal code enqueues is `queue`; a
 `forward`/`onCreate`/lifecycle hook is `lifecycle`; `ui` is an event
 handler wired in markup or an editor menu; `test` makes the rule a
 harness (one `<framework-entry>::test::<id>` node, its cases test
 roots); `public` is for a callable the *language* exposes to anyone
-with no framework involved (a Solidity `public`/`external` function).
+with no framework involved (a Solidity `public`/`external` function);
+`tool` is for a callable an LLM host invokes with arguments the model
+chose (an agent tool, an MCP tool, resource or prompt), a
+prompt-injection boundary. Hooks, guardrails and callbacks around the
+model are `lifecycle` (usually `node = false`); a deployed agent
+runtime's own entry point is `network`.
 
 **Shape E needs `string_targets = true`.** `registrars` alone matches
 the registration call but will not decode a string argument into a

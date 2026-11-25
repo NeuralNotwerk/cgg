@@ -10245,11 +10245,12 @@ pub const SPECS: &[RuleSpec] = &[
         handler_on_enclosing_owner: false,
     },
     // WS18. rmcp (Model Context Protocol): `#[tool]` / `#[prompt]` methods are
-    // invoked by the MCP client over the transport.
+    // invoked by the MCP client over the transport, with arguments the model
+    // chose: kind `tool`.
     RuleSpec {
         id: "rmcp",
         language: "rust",
-        kind: TrustKind::Network,
+        kind: TrustKind::Tool,
         detect: &["rmcp"],
         detect_paths: NONE,
         detect_calls: NONE,
