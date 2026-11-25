@@ -574,6 +574,12 @@ APPS=(
     "app-pelican-filament|https://github.com/pelican/panel.git|filament,laravel,laravel-lifecycle,livewire,pest,phpunit"
     "app-cospend-nextcloud|https://github.com/julien-nc/cospend-nc.git|nextcloud,nextcloud-lifecycle,phpunit"
     "app-partdb-apiplatform|https://github.com/Part-DB/Part-DB-server.git|api-platform,doctrine-lifecycle,phpunit,symfony"
+    # 0.14.0 phase C: Ruby and PHP AI tool frameworks (2026-11-25).
+    "app-rubyevents-rubyllm|https://github.com/rubyevents/rubyevents.git|ar-migration,minitest,rails,rails-callbacks,ruby-llm,sidekiq,thor,view-component,~actioncable,~active-model-validators,~puma"
+    "app-canine-mcpruby|https://github.com/CanineHQ/canine.git|actioncable,ar-migration,mcp-ruby,pundit,py-argparse,py-threading,py-unittest,rails,rails-callbacks,sidekiq,view-component,~active-model-validators,~puma,~py-context-manager,~py-signal,~rspec"
+    "app-relaticle-laravelmcp|https://github.com/relaticle/relaticle.git|filament,laravel,laravel-ai,laravel-ai-agent,laravel-lifecycle,laravel-mcp,livewire,pest,phpunit,~bash-dispatch,~js-test-globals,~laravel-events,~py-argparse,~symfony"
+    "app-agentfleet-prism|https://github.com/escapeboy/agent-fleet-o.git|express,laravel,laravel-ai,laravel-ai-agent,laravel-lifecycle,laravel-mcp,livewire,phpunit,prism-php,py-signal,~go-runtime,~js-test-globals,~laravel-events,~py-argparse,~py-threading,~symfony"
+    "app-solidinvoice-mcpphp|https://github.com/SolidInvoice/SolidInvoice.git|api-platform,doctrine-lifecycle,go-testing,laravel,makepkg,mcp-php,phpunit,symfony,symfony-messenger,~cobra,~go-encoding,~go-runtime,~react,~react-hooks,~symfony-ai"
     # 0.14.0 framework rows: Elixir, Haskell, OCaml and Solidity (2026-11-25).
     "app-sequin-oban|https://github.com/sequinstream/sequin.git|broadway,ecto-migration,ecto-type,express,genstage,go-testing,js-test-globals,mix-task,oban,otp,otp-application,phoenix,phoenix-liveview,plug,~go-encoding,~go-runtime,~go-signal,~gorilla-mux,~net-http,~phoenix-channel,~svelte"
     "app-hexpm-ecto|https://github.com/hexpm/hexpm.git|broadway,ecto-migration,ecto-type,mix-task,otp,otp-application,phoenix,phoenix-liveview,plug"
@@ -629,6 +635,7 @@ APPS_UNVERIFIED=(
     "ansys-user-material|ANSYS USERMAT sources found on GitHub are single-file course exercises, not applications"
     "lsdyna-user-material|no public LS-DYNA user-material application found; the UMAT4x names are fixed by the solver"
     "apisix-plugin|no third-party APISIX plugin repository with real use was found (searches for custom-plugin repos over 30 stars returned none); measured on APISIX itself (app-apisix-openresty): 317 phase-function entries"
+    "symfony-ai|no application using Symfony AI's #[AsTool] was found: a GitHub code search (2026-11-25) returned only symfony/ai, its demo, tool and MCP bundles and a fork; detected (no tools) on app-solidinvoice-mcpphp; the row is verified by crates/cgg/tests/frameworks_ruby_php.rs"
     "oxygen|no real Oxygen.jl application found: a GitHub search for apps using Oxygen returned only examples and projects with one star or fewer (0.14.0 audit); the row is verified by crates/cgg/tests/frameworks_perl_r_julia_ps.rs"
 )
 
