@@ -871,8 +871,11 @@ impl<'a> RegistrarIndex<'a> {
             if f.language != language {
                 continue;
             }
+            let value_refs = VALUE_REF_REGISTRAR_LANGS.contains(&language);
             for r in &f.references {
-                if r.receiver_hint != VALUE_REF_HINT && r.receiver_hint != STRING_REF_HINT
+                if r.receiver_hint != VALUE_REF_HINT
+                    && r.receiver_hint != STRING_REF_HINT
+                    && !(value_refs && r.value_ref)
                 {
                     continue;
                 }
@@ -1101,6 +1104,17 @@ fn base_type_matches(wanted: &[String], declared: &str) -> bool {
     matches_ci_or_pattern(wanted, last)
 }
 
+/// Languages whose [`cgg_core::RefRecord::value_ref`] sites carry the
+/// registrar context of the call they are an argument of (Rust: a system
+/// in a tuple, `add_systems(Update, (a, b))`, or a combinator's receiver,
+/// `a.run_if(c)`), so a registrar rule reads them like a bare argument.
+const VALUE_REF_REGISTRAR_LANGS: &[&str] = &["rust"];
+
+/// Languages whose callable's qualified name is its attribute path
+/// (Nix: `nodes = { machine = …; }` is `nodes.machine`), so a rule's
+/// method pattern may name the path (`nodes.*`) as well as the binding.
+const ATTR_PATH_QN_LANGS: &[&str] = &["nix"];
+
 /// A method-name rule with no base type — the structural-typing escape
 /// hatch.
 ///
@@ -1137,7 +1151,11 @@ fn match_methods(
         if rule.kind == TrustKind::Test && !harness_file {
             continue;
         }
-        if !method_name_matches(rule, &node.simple_name) {
+        let path_match = || {
+            ATTR_PATH_QN_LANGS.contains(&node.language.as_str())
+                && method_name_matches(rule, &node.qualified_name)
+        };
+        if !(method_name_matches(rule, &node.simple_name) || path_match()) {
             continue;
         }
         // Arduino's core calls the sketch's free `setup()`/`loop()`, never
@@ -1545,7 +1563,7 @@ fn match_registrars(
             continue;
         }
         {
-            let is_value = r.receiver_hint == VALUE_REF_HINT;
+            let is_value = r.receiver_hint == VALUE_REF_HINT || r.value_ref;
             let is_string = r.receiver_hint == STRING_REF_HINT;
             let verb = r
                 .context

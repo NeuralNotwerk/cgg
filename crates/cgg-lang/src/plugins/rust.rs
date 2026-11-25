@@ -117,6 +117,41 @@ impl LanguagePlugin for RustPlugin {
             .classes
             .extend(rust_type_links(tree.root_node(), source));
 
+        // Without reference sites, only values handed to a registrar
+        // verb (`add_systems(Update, (a, b))`) are recorded: the framework
+        // matcher reads them as it reads a bare argument; a file calling
+        // no registrar verb is not walked again.
+        if ctx.reference_sites
+            || facts.references.iter().any(|r| {
+                r.receiver_hint != cgg_core::VALUE_REF_HINT
+                    && ctx.is_registrar_verb(&r.name)
+            })
+        {
+            // A method-call receiver is data far more often than a
+            // function (`contexts.filter(…)` over a diesel table, imported
+            // by name or by glob): only a free function this file defines
+            // is read there.
+            let in_scope: std::collections::HashSet<String> = facts
+                .definitions
+                .iter()
+                .filter(|d| d.variant == DefVariant::FreeFunction)
+                .map(|d| d.simple_name.clone())
+                .collect();
+            let registrar_only = !ctx.reference_sites;
+            let keep = |context: &str| {
+                !registrar_only || {
+                    let verb = context.rsplit(['.', ':']).next().unwrap_or(context);
+                    !context.is_empty() && ctx.is_registrar_verb(verb.trim())
+                }
+            };
+            value_positions(
+                tree.root_node(),
+                source,
+                &in_scope,
+                &keep,
+                &mut facts.references,
+            );
+        }
         if ctx.deadcode_signals {
             facts.unreachable =
                 super::cfg::unreachable_after_terminator(tree, &super::cfg::RUST);
@@ -144,6 +179,222 @@ impl LanguagePlugin for RustPlugin {
             .collect();
         facts
     }
+}
+
+/// Function values written outside a call's argument list, recorded as
+/// [`RefRecord::value_ref`] sites (only under
+/// [`crate::ExtractCtx::reference_sites`]): tuple and array elements
+/// (`add_systems(Update, (a, b))`), struct-expression field values
+/// (`Entry { render: settings::render_x }`), `let`/`const`/`static`
+/// initialisers, `return` values, the bare receiver of a method call
+/// (`sys.run_if(cond)`, Bevy's system combinators) when the file defines
+/// a free function of that name, and the elements of
+/// `vec![…]`. A cast (`f as fn()`) or a borrow (`&f`) is read through.
+/// Direct call arguments keep their own legacy record (`refs_from_args`).
+/// Locals, parameters and names no callable carries are pruned by
+/// `cgg_resolve::value_refs::prune`.
+fn value_positions(
+    root: Node,
+    source: &[u8],
+    receiver_names: &std::collections::HashSet<String>,
+    keep: &dyn Fn(&str) -> bool,
+    out: &mut Vec<RefRecord>,
+) {
+    fn peel(mut n: Node) -> Node {
+        loop {
+            match n.kind() {
+                "type_cast_expression" => match n.child_by_field_name("value") {
+                    Some(v) => n = v,
+                    None => return n,
+                },
+                "reference_expression" | "parenthesized_expression" => {
+                    match n.named_child(0) {
+                        Some(v) => n = v,
+                        None => return n,
+                    }
+                }
+                _ => return n,
+            }
+        }
+    }
+    fn push(
+        n: Node,
+        source: &[u8],
+        keep: &dyn Fn(&str) -> bool,
+        out: &mut Vec<RefRecord>,
+    ) {
+        let n = peel(n);
+        if !matches!(n.kind(), "identifier" | "scoped_identifier") {
+            return;
+        }
+        let Ok(text) = n.utf8_text(source) else {
+            return;
+        };
+        let (receiver, name) = match text.rfind("::") {
+            Some(i) => (&text[..i], &text[i + 2..]),
+            None => ("", text),
+        };
+        // Functions are snake_case; a capitalised name is a unit struct,
+        // a constant or an enum variant.
+        if !name.starts_with(|c: char| c.is_lowercase() || c == '_') {
+            return;
+        }
+        // `<T as Trait>::f` and generic paths are left to the call reader.
+        if receiver.contains(['<', '>', ' ']) {
+            return;
+        }
+        let (context, route) = enclosing_argument_call(n, source)
+            .map(|call| {
+                let ctx = call
+                    .child_by_field_name("function")
+                    .and_then(|f| f.utf8_text(source).ok())
+                    .unwrap_or_default()
+                    .to_string();
+                (ctx, super::registrar::route_of(call, source))
+            })
+            .unwrap_or_default();
+        if !keep(&context) {
+            return;
+        }
+        // Outside any function (`static ENTRIES: &[E] = &[E { render:
+        // settings::render_x }]`) there is no caller to hang an edge on
+        // and no local to shadow the name: the site is recorded the way a
+        // top-level argument value always has been (`VALUE_REF_HINT`), so
+        // the dead-code pass credits the name from module level.
+        let mut up = n.parent();
+        let in_function = loop {
+            match up {
+                Some(p) if matches!(p.kind(), "function_item" | "closure_expression") => {
+                    break true;
+                }
+                Some(p) => up = p.parent(),
+                None => break false,
+            }
+        };
+        let (receiver_hint, path_receiver) = if in_function {
+            (receiver.to_string(), !receiver.is_empty())
+        } else {
+            (cgg_core::VALUE_REF_HINT.to_string(), false)
+        };
+        out.push(RefRecord {
+            name: name.to_string(),
+            context,
+            route,
+            path_receiver,
+            receiver_hint,
+            site_line: n.start_position().row as u32 + 1,
+            site_byte: n.start_byte() as u32,
+            value_ref: in_function,
+            ..Default::default()
+        });
+    }
+    /// The call whose argument the value sits in, climbing only through
+    /// the shapes that keep it the same argument: a tuple or array
+    /// element (`add_systems(Update, (a, b))`), a cast, borrow or
+    /// parentheses, and a method call's receiver (`a.run_if(c)`,
+    /// `(a, b).chain()`). Gives the value the registrar context
+    /// `refs_from_args` gives a bare argument.
+    fn enclosing_argument_call<'t>(n: Node<'t>, _source: &[u8]) -> Option<Node<'t>> {
+        let mut cur = n;
+        loop {
+            let parent = cur.parent()?;
+            match parent.kind() {
+                "tuple_expression"
+                | "array_expression"
+                | "parenthesized_expression"
+                | "reference_expression"
+                | "type_cast_expression" => {}
+                "field_expression"
+                    if parent
+                        .child_by_field_name("value")
+                        .is_some_and(|v| v == cur) => {}
+                "call_expression"
+                    if parent
+                        .child_by_field_name("function")
+                        .is_some_and(|f| f == cur) => {}
+                "arguments" => {
+                    return parent.parent().filter(|c| c.kind() == "call_expression");
+                }
+                _ => return None,
+            }
+            cur = parent;
+        }
+    }
+    let mut found = Vec::new();
+    let out_final = out;
+    let out = &mut found;
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        let mut cur = node.walk();
+        for k in node.children(&mut cur) {
+            stack.push(k);
+        }
+        match node.kind() {
+            "tuple_expression" | "array_expression" => {
+                let mut cur = node.walk();
+                for k in node.named_children(&mut cur) {
+                    push(k, source, keep, out);
+                }
+            }
+            "field_initializer" | "let_declaration" | "const_item" | "static_item" => {
+                if let Some(v) = node.child_by_field_name("value") {
+                    push(v, source, keep, out);
+                }
+            }
+            "return_expression" => {
+                if let Some(v) = node.named_child(0) {
+                    push(v, source, keep, out);
+                }
+            }
+            "call_expression" => {
+                if let Some(recv) = node
+                    .child_by_field_name("function")
+                    .filter(|f| f.kind() == "field_expression")
+                    .and_then(|f| f.child_by_field_name("value"))
+                    .filter(|v| {
+                        v.kind() == "identifier"
+                            && v.utf8_text(source)
+                                .is_ok_and(|t| receiver_names.contains(t))
+                    })
+                {
+                    push(recv, source, keep, out);
+                }
+            }
+            "macro_invocation" => {
+                let is_vec = node
+                    .child_by_field_name("macro")
+                    .and_then(|m| m.utf8_text(source).ok())
+                    .is_some_and(|m| m == "vec" || m.ends_with("::vec"));
+                if !is_vec {
+                    continue;
+                }
+                let mut cur = node.walk();
+                let Some(tt) = node
+                    .named_children(&mut cur)
+                    .find(|c| c.kind() == "token_tree")
+                else {
+                    continue;
+                };
+                let mut cur = tt.walk();
+                let kids: Vec<Node> = tt.children(&mut cur).collect();
+                for (i, k) in kids.iter().enumerate() {
+                    if k.kind() == "identifier"
+                        && i > 0
+                        && matches!(kids[i - 1].kind(), "[" | "(" | ",")
+                        && kids
+                            .get(i + 1)
+                            .is_some_and(|nx| matches!(nx.kind(), "]" | ")" | ","))
+                    {
+                        push(*k, source, keep, out);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    // Source order, like every other reference the walker records.
+    found.sort_by_key(|r| r.site_byte);
+    out_final.extend(found);
 }
 
 /// Compute `(crate_root, [module_segment, ...])` for a Rust source file.
