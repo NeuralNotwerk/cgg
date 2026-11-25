@@ -7105,6 +7105,60 @@ pub const SPECS: &[RuleSpec] = &[
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
+    // ---------------------------------------------------------------
+    // Lean 4 — attributes the compiler and elaborator act on
+    // ---------------------------------------------------------------
+    // Marker-only, as CUDA's `__global__` is: the attribute is core Lean
+    // and needs no import. `@[export sym]` is called from C under `sym`,
+    // `@[extern "sym"]` has a C body the Lean side calls through.
+    RuleSpec {
+        id: "lean-ffi",
+        language: "lean",
+        kind: TrustKind::Ffi,
+        detect: NONE,
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &["export", "extern"],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Run at module initialisation (`@[init f]`), substituted by the
+    // compiler (`@[implemented_by f]`, `@[csimp]`), or entered through the
+    // elaborator's dispatch tables (`@[command_elab k]`, `@[term_elab k]`,
+    // `@[tactic k]`, `@[macro k]`, and the `builtin_*` forms core uses).
+    // The `implemented_by` target is a value reference of the plugin.
+    RuleSpec {
+        id: "lean-attributes",
+        language: "lean",
+        kind: TrustKind::Lifecycle,
+        detect: NONE,
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &[
+            "init",
+            "implemented_by",
+            "csimp",
+            "command_elab",
+            "term_elab",
+            "tactic",
+            "macro",
+            "builtin_*",
+        ],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
     RuleSpec {
         id: "py-atexit",
         language: "python",
@@ -13384,6 +13438,9 @@ mod tests {
                     | "razor"
                     // WS20: a fixed engine-called symbol, by its exact name.
                     | "libfuzzer"
+                    // Lean attributes are core syntax, needing no import.
+                    | "lean-ffi"
+                    | "lean-attributes"
             );
             assert!(
                 detectable || marker_is_the_evidence,

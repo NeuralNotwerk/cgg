@@ -299,6 +299,8 @@ pub fn attribute_key(attr: &str) -> &str {
     let a = a.strip_prefix("#[").unwrap_or(a);
     let a = a.strip_prefix('[').unwrap_or(a);
     let a = a.strip_prefix('@').unwrap_or(a);
+    // Lean writes `@[export sym]`, stored as `@[export]`.
+    let a = a.strip_prefix('[').unwrap_or(a);
     let a = a.strip_suffix(']').unwrap_or(a);
     let a = a.split('(').next().unwrap_or(a);
     let a = a.split('=').next().unwrap_or(a);
@@ -1407,6 +1409,9 @@ mod tests {
         assert_eq!(attribute_key("@app.route('/x')"), "app.route");
         assert_eq!(attribute_key("[Fact]"), "Fact");
         assert_eq!(attribute_key("#[export_name = \"x\"]"), "export_name");
+        // Lean: `@[export]` read `[export` until 0.14.0.
+        assert_eq!(attribute_key("@[export]"), "export");
+        assert_eq!(attribute_key("@[builtin_tactic]"), "builtin_tactic");
     }
 
     // WS18: a `::`-qualified attribute is read by its last segment, and

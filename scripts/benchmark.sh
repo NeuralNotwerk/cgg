@@ -321,6 +321,8 @@ APPS=(
     "app-tigerbeetle-zig|https://github.com/tigerbeetle/tigerbeetle.git|csharp-disposable,java-closeable,java-concurrent,junit,minitest,mstest,py-threading,rust-std-traits,~go-encoding,~zig-test"
     "app-neorv32-vhdl|https://github.com/stnolting/neorv32.git|~vhdl-toplevel"
     "app-fpm-fortran|https://github.com/fortran-lang/fpm.git|~fortran-program"
+    "app-leancopilot-lean|https://github.com/lean-dojo/LeanCopilot.git|fastapi,lean-ffi,~cpp-runtime,~pydantic,~torch"
+    "app-loogle-lean|https://github.com/nomeata/loogle.git|lean-attributes,lean-ffi,py-threading,py-unittest,~c-runtime,~py-argparse,~py-signal"
     "app-waybar-catch2|https://github.com/Alexays/Waybar.git|py-signal,~py-argparse,~cpp-test-macros"
     "app-kythe-bazel|https://github.com/kythe/kythe.git|gtest,gtest-fixture,go-encoding,java-closeable,junit,net-http,~cocoa-delegate,~java-concurrent,~py-argparse,~py-context-manager,~bazel"
     # Every corpus directory is an APPS entry, so framework coverage and the
