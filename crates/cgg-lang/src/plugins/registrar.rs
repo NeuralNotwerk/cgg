@@ -39,6 +39,8 @@ const ARG_LIST_KINDS: &[&str] = &[
 /// Node kinds that are a bare reference to something nameable.
 const IDENT_KINDS: &[&str] = &[
     "identifier",
+    // JS/TS `{ onStart }`: the value is the function of that name.
+    "shorthand_property_identifier",
     "scoped_identifier",
     "qualified_identifier",
     "field_expression",
@@ -99,6 +101,8 @@ const CALL_KINDS: &[&str] = &[
 const CLOSURE_KINDS: &[&str] = &[
     "arrow_function",
     "function_expression",
+    // JS/TS `async function* () {}` as a value.
+    "generator_function",
     "function",
     "lambda",
     "lambda_expression",
@@ -262,12 +266,9 @@ pub(crate) fn is_registration_shape(call: Node, source: &[u8]) -> Option<String>
     let has_closure = named.iter().skip(scan_from).any(|n| {
         is_kind(*n, CLOSURE_KINDS)
             || (n.kind() == "object" && {
-                let mut c = n.walk();
-                n.named_children(&mut c).any(|pair| {
-                    let mut v = pair.walk();
-                    pair.named_children(&mut v)
-                        .any(|x| is_kind(x, CLOSURE_KINDS))
-                })
+                let mut found = Vec::new();
+                options_handlers(*n, 0, &mut found);
+                !found.is_empty()
             })
     });
     if !has_closure && trailing_block(call).is_none() {
@@ -305,20 +306,14 @@ pub(crate) fn inline_closures<'t>(call: Node<'t>) -> Vec<Node<'t>> {
                 out.push(arg);
                 continue;
             }
-            // An options object's pairs, or Swift's labelled slot
-            // (`handler: { … }`).
-            if matches!(arg.kind(), "object" | "value_argument") {
+            // An options object's handlers.
+            if arg.kind() == "object" {
+                options_handlers(arg, 0, &mut out);
+            }
+            // Swift's labelled slot (`handler: { … }`).
+            if arg.kind() == "value_argument" {
                 let mut pc = arg.walk();
-                for pair in arg.named_children(&mut pc) {
-                    if arg.kind() == "value_argument" {
-                        if is_closure(pair) {
-                            out.push(pair);
-                        }
-                        continue;
-                    }
-                    let mut vc = pair.walk();
-                    out.extend(pair.named_children(&mut vc).filter(|n| is_closure(*n)));
-                }
+                out.extend(arg.named_children(&mut pc).filter(|n| is_closure(*n)));
             }
         }
     }
@@ -338,6 +333,60 @@ pub(crate) fn inline_closures<'t>(call: Node<'t>) -> Vec<Node<'t>> {
         );
     }
     out
+}
+
+/// The handlers a JS/TS options object hands off, in source order.
+///
+/// A handler is written as a closure value (`handler: async () => …`),
+/// as method shorthand (`async execute() {}`, `async *execute() {}`),
+/// through one wrapping call (`execute: wrap(async () => …)`), or one
+/// level further down, in a nested object or an array of objects
+/// (`lifecycle: { onStart() {} }`, `functions: [{ func: () => … }]`).
+/// Shorthand read as an ordinary object method no rule could reach, so
+/// a Vercel AI SDK `tool({ async execute() {} })` read dead with a rule
+/// naming `tool`. Deeper nesting is configuration, not the thing being
+/// registered.
+fn options_handlers<'t>(obj: Node<'t>, depth: u8, out: &mut Vec<Node<'t>>) {
+    let mut c = obj.walk();
+    for member in obj.named_children(&mut c) {
+        match member.kind() {
+            "method_definition" => out.push(member),
+            "pair" => {
+                if let Some(v) = member.child_by_field_name("value") {
+                    handler_value(v, depth, out);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// One options-object value, read as [`options_handlers`] describes.
+fn handler_value<'t>(v: Node<'t>, depth: u8, out: &mut Vec<Node<'t>>) {
+    if is_closure(v) {
+        out.push(v);
+        return;
+    }
+    match v.kind() {
+        "call_expression" => {
+            if let Some(args) = arguments_of(v) {
+                let mut c = args.walk();
+                out.extend(args.named_children(&mut c).filter(|a| is_closure(*a)));
+            }
+        }
+        "object" if depth == 0 => options_handlers(v, depth + 1, out),
+        "array" if depth == 0 => {
+            let mut c = v.walk();
+            for el in v.named_children(&mut c) {
+                if el.kind() == "object" {
+                    options_handlers(el, depth + 1, out);
+                } else if is_closure(el) {
+                    out.push(el);
+                }
+            }
+        }
+        _ => {}
+    }
 }
 
 /// First string-literal argument of `call`, if any.
@@ -554,6 +603,7 @@ pub(crate) fn capture(
                 retyped_receiver: false,
                 receiver_module: None,
                 name_arg: String::new(),
+                slot: String::new(),
             });
             continue;
         }
@@ -905,6 +955,15 @@ fn collect_value_refs(
             | "object"
             | "boolean_operator"
             | "parenthesized_expression"
+            // Dart `tools: [t]`, and the list literals of Swift, Dart and
+            // C# (`[t]`, `new[] { T }`), which hold a tool list as often
+            // as an array does.
+            | "named_argument"
+            | "array_literal"
+            | "list_literal"
+            | "implicit_array_creation_expression"
+            | "initializer_expression"
+            | "collection_expression"
     ) {
         // `[C::class, 'method']` is one target, not two loose names.
         if let Some((owner, method)) = class_method_pair(arg, source) {
@@ -935,9 +994,16 @@ fn collect_value_refs(
                 retyped_receiver: false,
                 receiver_module: None,
                 name_arg: String::new(),
+                slot: String::new(),
             });
             return;
         }
+        // A keyword or labelled argument (`tools=[t]`, `tools: [t]`):
+        // what the value holds was passed under the label. The label's
+        // own record (a bare identifier) keeps the reading it always had
+        // and no slot, so a slotted rule never takes it.
+        let label = slot_label(arg);
+        let before = out.len();
         let mut cursor = arg.walk();
         for child in arg.named_children(&mut cursor) {
             if let Some(s) = string_within(child, source) {
@@ -968,9 +1034,21 @@ fn collect_value_refs(
                     retyped_receiver: false,
                     receiver_module: None,
                     name_arg: String::new(),
+                    slot: String::new(),
                 });
             } else {
                 collect_value_refs(ctx, child, source, context, route, line, out, depth);
+            }
+        }
+        // The outermost label wins: `Agent(tools=[{"f": f}])` passed `f`
+        // under `tools`.
+        if let Some(l) = label {
+            let slot = slot_text(l, source);
+            let at = l.start_byte() as u32;
+            if !slot.is_empty() {
+                for r in out[before..].iter_mut().filter(|r| r.site_byte != at) {
+                    r.slot.clone_from(&slot);
+                }
             }
         }
         return;
@@ -1023,6 +1101,7 @@ fn collect_value_refs(
                     retyped_receiver: false,
                     receiver_module: None,
                     name_arg: String::new(),
+                    slot: String::new(),
                 });
             } else {
                 collect_value_refs(ctx, child, source, context, route, line, out, depth);
@@ -1104,6 +1183,7 @@ fn collect_value_refs(
                 retyped_receiver: false,
                 receiver_module: None,
                 name_arg: String::new(),
+                slot: String::new(),
             });
             // `SiteView.as_view()` is a class adapter: the callable the
             // framework ends up invoking is a *method of the qualifier*,
@@ -1148,6 +1228,7 @@ fn collect_value_refs(
                     retyped_receiver: false,
                     receiver_module: None,
                     name_arg: String::new(),
+                    slot: String::new(),
                 });
             }
         }
@@ -1209,7 +1290,70 @@ fn collect_value_refs(
         retyped_receiver: false,
         receiver_module: None,
         name_arg: String::new(),
+        slot: String::new(),
     });
+}
+
+/// The label of a keyword or labelled argument, or of an options-object
+/// member: Python `keyword_argument`, C#/PHP `argument` (`tools: x`),
+/// Swift `value_argument` (`tools: x`), Kotlin `value_argument`
+/// (`tools = x`), Dart `named_argument`, a JS/TS or Python `pair` key, a
+/// JS/TS method shorthand's name.
+fn slot_label<'t>(node: Node<'t>) -> Option<Node<'t>> {
+    match node.kind() {
+        "keyword_argument" | "argument" | "method_definition" => {
+            node.child_by_field_name("name")
+        }
+        "pair" => node.child_by_field_name("key"),
+        "value_argument" => node.child_by_field_name("name").or_else(|| {
+            // Kotlin writes the label first, then an `=` token.
+            let mut c = node.walk();
+            let named_eq = node
+                .children(&mut c)
+                .any(|t| !t.is_named() && t.kind() == "=");
+            if named_eq { node.named_child(0) } else { None }
+        }),
+        "named_argument" => {
+            let mut c = node.walk();
+            node.named_children(&mut c).find(|n| n.kind() == "label")
+        }
+        _ => None,
+    }
+}
+
+/// A label's keyword: quotes, a Ruby symbol's `:` and a Dart label's
+/// trailing `:` dropped.
+fn slot_text(label: Node, source: &[u8]) -> String {
+    let t = label.utf8_text(source).unwrap_or("").trim();
+    let t = unquote(t.trim_end_matches(':').trim_start_matches(':').trim());
+    if t.chars().all(|c| c.is_alphanumeric() || c == '_') {
+        t
+    } else {
+        String::new()
+    }
+}
+
+/// The slot an inline handler minted from `call` was passed under: the
+/// outermost label between the closure and the call (`tool({ execute:
+/// wrap(async () => …) })` and `tool({ async execute() {} })` give
+/// `execute`, Swift `Agent(handler: { … })` gives `handler`). Empty for
+/// a positional closure or a trailing block.
+pub(crate) fn handler_slot(closure: Node, call: Node, source: &[u8]) -> String {
+    let mut slot = String::new();
+    let mut cur = Some(closure);
+    while let Some(n) = cur {
+        if n.id() == call.id() {
+            break;
+        }
+        if let Some(l) = slot_label(n) {
+            let t = slot_text(l, source);
+            if !t.is_empty() {
+                slot = t;
+            }
+        }
+        cur = n.parent();
+    }
+    slot
 }
 
 /// Whether a node is an inline anonymous function.
@@ -1220,6 +1364,92 @@ pub(crate) fn is_closure(node: Node) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Capture the first call to `Agent` in `src` as a registrar call.
+    fn agent_slots(lang: tree_sitter::Language, src: &str) -> Vec<(String, String)> {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&lang).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        fn find<'t>(n: Node<'t>, src: &[u8]) -> Option<Node<'t>> {
+            if is_kind(n, CALL_KINDS) || n.kind() == "object_creation_expression" {
+                let callee = n
+                    .child_by_field_name("type")
+                    .or_else(|| callee_of(n))
+                    .and_then(|c| c.utf8_text(src).ok());
+                if callee == Some("Agent") {
+                    return Some(n);
+                }
+            }
+            let mut c = n.walk();
+            let kids: Vec<Node> = n.children(&mut c).collect();
+            kids.into_iter().find_map(|k| find(k, src))
+        }
+        let call = find(tree.root_node(), src.as_bytes()).expect("a call to Agent");
+        let verbs: std::collections::HashSet<String> = ["agent".to_string()].into();
+        let ctx = crate::ExtractCtx::new(false, &verbs);
+        capture(&ctx, call, src.as_bytes(), "Agent")
+            .into_iter()
+            .filter(|r| r.receiver_hint == VALUE_REF_HINT)
+            .map(|r| (r.name, r.slot))
+            .collect()
+    }
+
+    #[test]
+    fn keyword_arguments_carry_their_slot() {
+        let want = |got: Vec<(String, String)>, lang: &str| {
+            let has = |n: &str, s: &str| got.iter().any(|(a, b)| a == n && b == s);
+            assert!(has("t", "tools"), "{lang}: {got:?}");
+            assert!(has("p", "prompt"), "{lang}: {got:?}");
+            assert!(has("model", ""), "{lang}: {got:?}");
+            assert!(
+                !got.iter()
+                    .any(|(n, s)| (n == "tools" || n == "prompt") && !s.is_empty()),
+                "{lang}: a keyword's own record is passed under no slot: {got:?}"
+            );
+        };
+        want(
+            agent_slots(
+                tree_sitter_python::LANGUAGE.into(),
+                "Agent(model, tools=[t], prompt=p)\n",
+            ),
+            "python",
+        );
+        want(
+            agent_slots(
+                tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
+                "Agent(model, { tools: [t], prompt: p });\n",
+            ),
+            "typescript",
+        );
+        want(
+            agent_slots(
+                tree_sitter_swift::LANGUAGE.into(),
+                "let a = Agent(model, tools: [t], prompt: p)\n",
+            ),
+            "swift",
+        );
+        want(
+            agent_slots(
+                tree_sitter_c_sharp::LANGUAGE.into(),
+                "class C { void M() { var a = Agent(model, tools: new[] { t }, prompt: p); } }\n",
+            ),
+            "csharp",
+        );
+        want(
+            agent_slots(
+                tree_sitter_kotlin_sg::LANGUAGE.into(),
+                "val a = Agent(model, tools = t, prompt = p)\n",
+            ),
+            "kotlin",
+        );
+        want(
+            agent_slots(
+                tree_sitter_dart::LANGUAGE.into(),
+                "var a = Agent(model, tools: [t], prompt: p);\n",
+            ),
+            "dart",
+        );
+    }
 
     #[test]
     fn unquote_strips_every_quoting_style() {

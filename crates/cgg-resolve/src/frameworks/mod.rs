@@ -1453,10 +1453,15 @@ impl<'a> RegistrarIndex<'a> {
         let mut seen: HashSet<*const cgg_core::RefRecord> = HashSet::new();
         let mut out = Vec::new();
         for reg in &rule.registrars {
+            // `Agent:tools` takes only what is passed under `tools`.
+            let (reg, slot) = cgg_core::frameworks::split_registrar_slot(reg);
             let Some(hits) = self.by_verb.get(&reg.to_ascii_lowercase()) else {
                 continue;
             };
             for (f, r) in hits {
+                if slot.is_some_and(|s| r.slot != s) {
+                    continue;
+                }
                 if seen.insert(*r as *const _) {
                     out.push((*f, *r));
                 }
@@ -1482,17 +1487,118 @@ impl BaseTypeIndex {
             if f.language != language {
                 continue;
             }
+            let php = (language == "php").then(|| PhpNames::of(f));
+            let expand = |declared: &[String]| -> Vec<String> {
+                match &php {
+                    Some(names) => names.expand(declared),
+                    None => declared.to_vec(),
+                }
+            };
             for d in &f.definitions {
                 if d.base_types.is_empty() {
                     continue;
                 }
-                bases.insert((f.file, d.start_byte), d.base_types.clone());
+                let declared = expand(&d.base_types);
+                bases.insert((f.file, d.start_byte), declared.clone());
                 if let Some(owner) = crate::names::owner_from_qn(&d.qualified_name) {
-                    by_owner.insert(owner.to_string(), (d.base_types.clone(), f.file));
+                    by_owner.insert(owner.to_string(), (declared, f.file));
                 }
             }
         }
+        // Class records, after every method: a class with no method
+        // (`class ApplicationTool < RubyLLM::Tool; end`, `class
+        // Middle(Base): pass`) carries its bases only here, and the chain
+        // through it ended at it. A class some method already speaks for
+        // keeps that reading.
+        for f in facts {
+            if f.language != language {
+                continue;
+            }
+            let php = (language == "php").then(|| PhpNames::of(f));
+            for c in &f.classes {
+                if c.base_types.is_empty() {
+                    continue;
+                }
+                let owner = c.class_qn.rsplit(['.', ':', '\\']).next().unwrap_or("");
+                if owner.is_empty() {
+                    continue;
+                }
+                by_owner
+                    .entry(owner.to_string())
+                    .or_insert_with(|| {
+                        let declared = match &php {
+                            Some(names) => names.expand(&c.base_types),
+                            None => c.base_types.clone(),
+                        };
+                        (declared, f.file)
+                    });
+            }
+        }
         Self { bases, by_owner }
+    }
+}
+
+/// A PHP file's `use` aliases and namespace, to read a base type the
+/// way PHP does: `extends BaseTool` under `use NeuronAI\Tools\Tool as
+/// BaseTool` is `NeuronAI\Tools\Tool`, and an unqualified `extends Tool`
+/// in `namespace App` is `App\Tool`. Written names are kept beside the
+/// expanded ones, so a rule naming either form matches.
+struct PhpNames {
+    /// lowercased alias (or last segment) -> fully qualified path.
+    uses: HashMap<String, String>,
+    namespace: Option<String>,
+}
+
+impl PhpNames {
+    fn of(f: &FileFacts) -> Self {
+        let mut uses = HashMap::new();
+        let mut namespace = None;
+        for imp in &f.imports {
+            let path = imp.path.trim().trim_start_matches('\\');
+            if path.is_empty() {
+                continue;
+            }
+            match imp.kind.as_str() {
+                "package" => {
+                    namespace.get_or_insert_with(|| path.to_string());
+                }
+                "use" => {
+                    let alias = match imp.alias.trim() {
+                        "" => path.rsplit('\\').next().unwrap_or(path),
+                        a => a,
+                    };
+                    uses.insert(alias.to_ascii_lowercase(), path.to_string());
+                }
+                _ => {}
+            }
+        }
+        Self { uses, namespace }
+    }
+
+    fn expand(&self, declared: &[String]) -> Vec<String> {
+        let mut out = declared.to_vec();
+        for d in declared {
+            let full = if let Some(abs) = d.strip_prefix('\\') {
+                abs.to_string()
+            } else {
+                let (head, rest) = match d.split_once('\\') {
+                    Some((h, r)) => (h, Some(r)),
+                    None => (d.as_str(), None),
+                };
+                match (self.uses.get(&head.to_ascii_lowercase()), rest) {
+                    (Some(path), Some(rest)) => format!("{path}\\{rest}"),
+                    (Some(path), None) => path.clone(),
+                    (None, _) => match &self.namespace {
+                        Some(ns) => format!("{ns}\\{d}"),
+                        None => continue,
+                    },
+                }
+            };
+            if !out.contains(&full) {
+                out.push(full);
+            }
+        }
+        out
     }
 }
 
@@ -3579,6 +3685,7 @@ mod tests {
             retyped_receiver: false,
             receiver_module: None,
             name_arg: String::new(),
+            slot: String::new(),
         });
         let out = detect(&g, &f_vec(f), &[]);
         assert_eq!(out.entries.len(), 1, "{:?}", out.entries);
@@ -3626,6 +3733,7 @@ mod tests {
             retyped_receiver: false,
             receiver_module: None,
             name_arg: String::new(),
+            slot: String::new(),
         });
         assert!(detect(&g, &f_vec(bare), &[]).entries.is_empty());
 
@@ -3659,6 +3767,7 @@ mod tests {
             retyped_receiver: false,
             receiver_module: None,
             name_arg: String::new(),
+            slot: String::new(),
         });
         assert_eq!(detect(&g, &f_vec(free), &[]).entries.len(), 1);
     }
@@ -3699,6 +3808,7 @@ mod tests {
             retyped_receiver: false,
             receiver_module: None,
             name_arg: String::new(),
+            slot: String::new(),
         });
         assert!(detect(&g, &f_vec(f), &[]).entries.is_empty());
         // Rails, which does route by string, keeps the behaviour.
@@ -3764,6 +3874,7 @@ mod tests {
             retyped_receiver: false,
             receiver_module: None,
             name_arg: String::new(),
+            slot: String::new(),
         });
         let out = detect(&g, &f_vec(f), &[]);
         assert!(out.entries.is_empty());
@@ -3813,6 +3924,7 @@ mod tests {
             retyped_receiver: false,
             receiver_module: None,
             name_arg: String::new(),
+            slot: String::new(),
         });
         let out = detect(&g, &f_vec(f), &[]);
         let names: Vec<&str> =

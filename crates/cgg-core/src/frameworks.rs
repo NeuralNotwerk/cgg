@@ -310,6 +310,32 @@ fn default_true() -> bool {
     true
 }
 
+/// A registrar as a rule writes it, split into the call and the keyword
+/// slot it is limited to: `Agent:tools` -> (`Agent`, `Some("tools")`),
+/// `create_react_agent` -> (`create_react_agent`, `None`).
+///
+/// The slot is the text after a single `:` that is neither part of a
+/// `::` path (`Route::get`) nor leading (an Erlang atom, `:telemetry`),
+/// and is an identifier. A slotted registrar matches only arguments
+/// passed under that keyword, option key or label
+/// ([`crate::RefRecord::slot`]), so one call can register tools under
+/// `tools=` as one kind and callbacks under `before_model_callback=` as
+/// another.
+pub fn split_registrar_slot(spec: &str) -> (&str, Option<&str>) {
+    let bytes = spec.as_bytes();
+    let Some(i) = spec.rfind(':') else {
+        return (spec, None);
+    };
+    let single = i > 0 && bytes[i - 1] != b':' && bytes.get(i + 1) != Some(&b':');
+    let slot = &spec[i + 1..];
+    if single && !slot.is_empty() && slot.chars().all(|c| c.is_alphanumeric() || c == '_')
+    {
+        (&spec[..i], Some(slot))
+    } else {
+        (spec, None)
+    }
+}
+
 impl FrameworkRule {
     /// Whether this rule can produce entries at all, as opposed to only
     /// identifying that the framework is present. A rule with no
@@ -677,6 +703,25 @@ fn wrap_field(label: &str, body: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn registrar_slots_split_on_a_single_colon_only() {
+        assert_eq!(
+            split_registrar_slot("Agent:tools"),
+            ("Agent", Some("tools"))
+        );
+        assert_eq!(
+            split_registrar_slot("a.Agent:before_model_callback"),
+            ("a.Agent", Some("before_model_callback"))
+        );
+        assert_eq!(split_registrar_slot("Route::get"), ("Route::get", None));
+        assert_eq!(split_registrar_slot("tool"), ("tool", None));
+        assert_eq!(
+            split_registrar_slot(":telemetry.attach"),
+            (":telemetry.attach", None)
+        );
+        assert_eq!(split_registrar_slot("Agent:"), ("Agent:", None));
+    }
 
     #[test]
     fn disclaimer_states_the_inference() {

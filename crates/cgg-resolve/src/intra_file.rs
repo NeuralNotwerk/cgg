@@ -979,6 +979,37 @@ pub fn link_file_with_cap(
         }
     }
 
+    // A closure minted as its own callable (`handler_at_<line>`) is still
+    // written in, and handed off by, the function around it. Without this
+    // edge an unclaimed one (no rule enters it) left its callees with no
+    // caller at all: `bus.get('/y', () => helperC())` made `helperC`
+    // dead, though written inline its call belonged to `setup`. A
+    // reference, so the default graph is unchanged; a closure at top
+    // level hangs off the module scope when the run has one, and is a
+    // dead-code root otherwise.
+    for (i, d) in facts.definitions.iter().enumerate() {
+        if !d.is_minted_closure() {
+            continue;
+        }
+        let src = match nesting.parent[i] {
+            Some(p) => def_ids.get(&(facts.file, p as u32)).copied(),
+            None => module_src,
+        };
+        let (Some(src), Some(&dst)) = (src, def_ids.get(&(facts.file, i as u32))) else {
+            continue;
+        };
+        out.edges.push(CallEdge {
+            src,
+            dst,
+            site_line: d.start_line,
+            site_byte: d.start_byte,
+            confidence: Confidence::High,
+            via: Via::Reference,
+            resolver: resolver_id.clone(),
+            weight: 1,
+        });
+    }
+
     out
 }
 

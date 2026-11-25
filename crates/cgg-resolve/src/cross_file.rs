@@ -1282,6 +1282,13 @@ pub fn resolve(
     let mut exact_classes: std::collections::HashSet<(String, String)> =
         std::collections::HashSet::new();
     for f in facts {
+        // Ruby's class records serve framework base matching; its
+        // methods already carry their class's bases here, and reading
+        // the records too moved bare calls between same-named members
+        // of a class and its base (rubygems `render_forbidden`).
+        if f.language == "ruby" {
+            continue;
+        }
         for c in &f.classes {
             let Some(owner) = c.class_qn.rsplit('.').next() else {
                 continue;
@@ -1409,9 +1416,13 @@ pub fn resolve(
     // inheritance chain that finds nothing prove the method is outside the
     // tree: elsewhere a class with no methods carries no bases, and the
     // chain stops at it although the method lives one level further up.
+    // Ruby records its classes too (for framework base matching), but a
+    // method no recorded ancestor declares can still come from a module
+    // mixed in at run time, a reopened class in a gem or
+    // `method_missing`: a chain finding nothing proves nothing there.
     let class_record_langs: std::collections::BTreeSet<String> = facts
         .iter()
-        .filter(|f| !f.classes.is_empty())
+        .filter(|f| !f.classes.is_empty() && f.language != "ruby")
         .map(|f| f.language.clone())
         .collect();
 

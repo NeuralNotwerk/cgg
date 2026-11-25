@@ -104,6 +104,8 @@ pub struct ExtractCtx<'a> {
 /// IPC from every other `.handle(…)`; the extraction gate sees only the
 /// callee's last segment, so that is what it must be keyed on.
 fn registrar_verb(v: &str) -> String {
+    // `Agent:tools` gates on `Agent`; the slot is the matcher's business.
+    let v = cgg_core::frameworks::split_registrar_slot(v).0;
     v.rsplit(['.', ':'])
         .next()
         .unwrap_or(v)
@@ -221,6 +223,7 @@ fn builtin_registrar_paths_for(
                 }
                 let e = m.entry(spec.language).or_default();
                 for v in spec.registrars {
+                    let v = cgg_core::frameworks::split_registrar_slot(v).0;
                     if v.contains(['.', ':']) {
                         e.0.push(v.to_ascii_lowercase());
                     } else {

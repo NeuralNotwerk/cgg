@@ -286,11 +286,14 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         .frameworks
         .iter()
         .flat_map(|r| r.registrars.iter())
-        // The gate asks the callee's last segment (`tool` of
-        // `server.tool`), so a dotted user registrar is keyed by that too;
-        // the rule engine still checks the receiver.
+        // The slot (`Agent:tools`) is not part of the verb. The gate asks
+        // the callee's last segment (`tool` of `server.tool`), so a dotted
+        // user registrar is keyed by that too; the rule engine still checks
+        // the receiver.
         .flat_map(|v| {
-            let lower = v.to_ascii_lowercase();
+            let lower = cgg_core::frameworks::split_registrar_slot(v)
+                .0
+                .to_ascii_lowercase();
             let verb = lower
                 .rsplit(['.', ':'])
                 .next()

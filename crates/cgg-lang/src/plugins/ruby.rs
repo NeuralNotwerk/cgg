@@ -186,6 +186,17 @@ impl<'a> RubyWalker<'a> {
                     .into_iter()
                     .collect::<Vec<_>>();
                 bases.extend(self.included_modules(node));
+                // A class record, bodiless ones included: an empty
+                // `class ApplicationTool < RubyLLM::Tool; end` has no
+                // method to carry its base, and without it a chain
+                // through it (`WeatherTool < ApplicationTool`) ends there.
+                if node.kind() == "class" && !name.is_empty() {
+                    self.facts.classes.push(cgg_core::ClassDecl {
+                        class_qn: self.qn(&name),
+                        base_types: bases.clone(),
+                        line: (node.start_position().row as u32) + 1,
+                    });
+                }
                 self.bases.push(bases);
                 self.in_scope(false, None, |w| {
                     if !name.is_empty() {
@@ -615,6 +626,7 @@ impl<'a> RubyWalker<'a> {
                 retyped_receiver: false,
                 receiver_module: None,
                 name_arg: super::registrar::name_arg_of(node, self.source),
+                slot: String::new(),
             });
         }
     }
@@ -677,6 +689,25 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    #[test]
+    fn every_named_class_is_recorded_with_its_bases() {
+        let f = extract(
+            "module App\n  class ApplicationTool < RubyLLM::Tool\n  end\n  class Plain\n    include Helpers\n  end\nend\nclass << self\nend\n",
+        );
+        let got: Vec<(&str, Vec<String>)> = f
+            .classes
+            .iter()
+            .map(|c| (c.class_qn.as_str(), c.base_types.clone()))
+            .collect();
+        assert_eq!(
+            got,
+            vec![
+                ("App::ApplicationTool", vec!["RubyLLM::Tool".to_string()]),
+                ("App::Plain", vec!["Helpers".to_string()]),
+            ]
+        );
     }
 
     #[test]

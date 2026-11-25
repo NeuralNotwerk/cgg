@@ -990,6 +990,7 @@ pub fn propagate_types_with_fields(
     };
     let local_index: std::cell::OnceCell<LocalIndex<'_>> = std::cell::OnceCell::new();
     let local_index_of = || local_index.get_or_init(|| LocalIndex::build(facts));
+    let has_minted = facts.definitions.iter().any(DefRecord::is_minted_closure);
     for (i, rref) in facts.references.iter().enumerate() {
         let rh = rref.receiver_hint.as_str();
         // A cast or construction receiver is already its type.
@@ -1181,6 +1182,19 @@ pub fn propagate_types_with_fields(
         // what its `operator->` returns, recorded under `p#deref`; `p.f()`
         // and a raw pointer's `p->f()` reach the declared type itself.
         let deref_key = (cpp && rref.arrow).then(|| format!("{rh}{DEREF_SUFFIX}"));
+
+        // A minted closure's own typed parameter (`func(r *http.Request)`
+        // handed to a registrar) shadows the calling function's.
+        if has_minted
+            && let Some(own) = innermost_minted(facts, rref.site_byte, enclosing)
+            && let Some(&ty) = type_map.get(&(own.start_byte, rh))
+        {
+            if go {
+                fallback.insert(i);
+            }
+            rewrites.push((i, ty.to_string()));
+            continue;
+        }
 
         // Strategy 1: parameter type annotations. A Rust parameter a
         // later `let` re-binds no longer has its declared type there.
@@ -3918,10 +3932,17 @@ fn lookup_local_type_where<'a>(
     best_fn.or(best_file)
 }
 
+/// The calling function at `byte`: the innermost definition containing
+/// it, minted closures ([`DefRecord::is_minted_closure`]) skipped. A
+/// closure handed to a registration call is written in the function
+/// around it and sees that function's parameters and locals; read as
+/// its own scope, it lost them (`files.CreateVersion` in a Go handler
+/// stopped resolving). Its own parameters are read first where they
+/// matter ([`innermost_minted`]).
 fn enclosing_def(facts: &FileFacts, byte: u32) -> Option<&DefRecord> {
     let mut best: Option<(&DefRecord, u32)> = None;
     for d in &facts.definitions {
-        if d.start_byte <= byte && byte < d.end_byte {
+        if d.start_byte <= byte && byte < d.end_byte && !d.is_minted_closure() {
             let span = d.end_byte - d.start_byte;
             match best {
                 None => best = Some((d, span)),
@@ -3931,6 +3952,25 @@ fn enclosing_def(facts: &FileFacts, byte: u32) -> Option<&DefRecord> {
         }
     }
     best.map(|(d, _)| d)
+}
+
+/// The innermost minted closure containing `byte`, when it is inside the
+/// calling function [`enclosing_def`] found (or at top level): the scope
+/// whose own parameters shadow that function's.
+fn innermost_minted<'f>(
+    facts: &'f FileFacts,
+    byte: u32,
+    calling: Option<&DefRecord>,
+) -> Option<&'f DefRecord> {
+    facts
+        .definitions
+        .iter()
+        .filter(|d| d.is_minted_closure() && d.start_byte <= byte && byte < d.end_byte)
+        .filter(|d| {
+            calling
+                .is_none_or(|c| c.start_byte <= d.start_byte && d.end_byte <= c.end_byte)
+        })
+        .min_by_key(|d| (d.end_byte - d.start_byte, std::cmp::Reverse(d.start_byte)))
 }
 
 /// The declared return type of `sig`, read as the type a method call on

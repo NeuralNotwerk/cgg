@@ -630,6 +630,7 @@ impl<'a> ElixirWalker<'a> {
             retyped_receiver: false,
             receiver_module: None,
             name_arg: String::new(),
+            slot: String::new(),
         });
     }
 

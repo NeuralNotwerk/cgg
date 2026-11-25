@@ -351,6 +351,17 @@ pub struct DefRecord {
 }
 
 impl DefRecord {
+    /// Whether this is an inline closure a plugin minted as its own
+    /// callable because a registration call hands it off
+    /// (`handler_at_<line>`): a `NamedClosure` carrying the `synthetic`
+    /// attribute. Its body is still part of the function that writes it,
+    /// which hands it off: the resolver links that function to it and
+    /// types its calls with that function's scope.
+    pub fn is_minted_closure(&self) -> bool {
+        self.variant == DefVariant::NamedClosure
+            && self.attributes.iter().any(|a| a == "synthetic")
+    }
+
     /// Whether `self` and `other` sit in different branches of one
     /// preprocessor chain, so that no configuration compiles both
     /// ([`DefRecord::preproc_branches`]).
@@ -596,6 +607,16 @@ pub struct RefRecord {
     /// reads where the call is and writes here — or clears.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub arg_type: Option<String>,
+
+    /// The keyword, option key or argument label a registrar argument was
+    /// passed under: `tools` for `create_react_agent(m, tools=[t])` (Python
+    /// `tools=`, a JS/TS options object's `tools:`, a Swift, Kotlin or
+    /// Dart label, a C# `tools:` named argument). Empty for a positional
+    /// argument. A rule's registrar written `Agent:tools`
+    /// ([`crate::frameworks::split_registrar_slot`]) matches only the
+    /// arguments passed under that slot, so `prompt=p` is not a tool.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub slot: String,
 }
 
 /// Marks a [`RefRecord::arg_type`] that names a variable to be typed,

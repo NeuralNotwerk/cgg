@@ -75,9 +75,9 @@ fn collect_inner(node: Node, source: &[u8], scan_preceding: bool) -> Vec<String>
     let mut out = Vec::new();
     let mut push = |n: Node| {
         if let Ok(t) = n.utf8_text(source) {
-            let t = t.trim();
-            if !t.is_empty() && t.len() <= 512 && !out.iter().any(|e: &String| e == t) {
-                out.push(t.to_string());
+            let t = bounded(t.trim());
+            if !t.is_empty() && !out.contains(&t) {
+                out.push(t);
             }
         }
     };
@@ -151,6 +151,67 @@ fn collect_inner(node: Node, source: &[u8], scan_preceding: bool) -> Vec<String>
         }
     }
 
+    out
+}
+
+/// Longest attribute text stored verbatim, in bytes.
+const MAX_ATTR_BYTES: usize = 512;
+
+/// An attribute's stored text: verbatim up to [`MAX_ATTR_BYTES`], and
+/// past that cut short but still well formed.
+///
+/// A longer attribute used to be dropped whole, and tool descriptions
+/// are prose: a Spring AI `@Tool(description = "…")` over 512 bytes
+/// lost its marker and read dead at `high` with a rule naming it. The
+/// key and the start of the first argument are what every consumer
+/// reads (`attribute_key`, `attribute_string_arg`), so the text is cut
+/// on a character boundary, an open string literal is closed with `…`
+/// inside it, and the brackets left open are closed.
+fn bounded(t: &str) -> String {
+    if t.len() <= MAX_ATTR_BYTES {
+        return t.to_string();
+    }
+    let mut cut = MAX_ATTR_BYTES - 16;
+    while !t.is_char_boundary(cut) {
+        cut -= 1;
+    }
+    let head = &t[..cut];
+    let mut quote: Option<char> = None;
+    let mut closers: Vec<char> = Vec::new();
+    let mut escaped = false;
+    for c in head.chars() {
+        if let Some(q) = quote {
+            if escaped {
+                escaped = false;
+            } else if c == '\\' {
+                escaped = true;
+            } else if c == q {
+                quote = None;
+            }
+            continue;
+        }
+        match c {
+            '"' | '\'' => quote = Some(c),
+            '(' => closers.push(')'),
+            '[' => closers.push(']'),
+            '{' => closers.push('}'),
+            ')' | ']' | '}' => {
+                if closers.last() == Some(&c) {
+                    closers.pop();
+                }
+            }
+            _ => {}
+        }
+    }
+    let mut out = head.to_string();
+    if escaped {
+        out.pop();
+    }
+    out.push('…');
+    if let Some(q) = quote {
+        out.push(q);
+    }
+    out.extend(closers.iter().rev());
     out
 }
 
@@ -360,13 +421,16 @@ fn split_type_list(raw: &str) -> Vec<String> {
     let mut parts: Vec<String> = Vec::new();
     let mut depth = 0i32;
     let mut cur = String::new();
+    let mut prev = ' ';
     for c in s.chars() {
+        let arrow = is_arrow_head(prev, c);
+        prev = c;
         match c {
-            '<' | '[' | '(' => {
+            '<' | '[' | '(' | '{' => {
                 depth += 1;
                 cur.push(c);
             }
-            '>' | ']' | ')' => {
+            '>' | ']' | ')' | '}' if !arrow => {
                 depth -= 1;
                 cur.push(c);
             }
@@ -429,8 +493,7 @@ fn trim_unbalanced_close(s: &str) -> &str {
         if !matches!(last, ')' | ']' | '>') {
             break;
         }
-        let opens = t.chars().filter(|c| matches!(c, '(' | '[' | '<')).count();
-        let closes = t.chars().filter(|c| matches!(c, ')' | ']' | '>')).count();
+        let (opens, closes) = bracket_counts(t);
         if closes <= opens {
             break;
         }
@@ -439,22 +502,42 @@ fn trim_unbalanced_close(s: &str) -> &str {
     t
 }
 
+/// The `>` of an arrow (`=>`, `->`) inside a type argument, which
+/// closes nothing: `Agent<Env, { f: () => void }>`.
+fn is_arrow_head(prev: char, c: char) -> bool {
+    c == '>' && matches!(prev, '=' | '-')
+}
+
+/// Openers and closers in `s` (`(`, `[`, `<`), arrow heads not counted.
+fn bracket_counts(s: &str) -> (usize, usize) {
+    let (mut opens, mut closes) = (0, 0);
+    let mut prev = ' ';
+    for c in s.chars() {
+        if matches!(c, '(' | '[' | '<') {
+            opens += 1;
+        } else if matches!(c, ')' | ']') || (c == '>' && !is_arrow_head(prev, c)) {
+            closes += 1;
+        }
+        prev = c;
+    }
+    (opens, closes)
+}
+
 /// Whether a token looks like a type name rather than a keyword
 /// argument, a literal, or grammar noise.
+///
+/// The name before any type arguments is held to identifier characters;
+/// the type arguments themselves may hold any type expression, because
+/// TypeScript writes object and function types there
+/// (`extends Agent<Env, { n: number }>`), and rejecting those lost the
+/// class's base outright.
 fn is_type_name(s: &str) -> bool {
     let s = s.trim();
-    if s.is_empty() || s.len() > 128 {
-        return false;
-    }
-    // `metaclass=Meta` and `**kwargs` are not base types.
-    if s.contains('=') || s.starts_with('*') {
-        return false;
-    }
-    // A space is legal *inside* generic arguments — `Map<String, Long>`,
-    // `RequestHandler<S3Event, String>` — and nowhere else. Outside them
-    // it means the splitter handed over two types it could not separate
-    // (`A implements B`), which is not one type with a space in it.
-    if s.split(['<', '[']).next().unwrap_or(s).contains(' ') {
+    let (head, args) = match s.find(['<', '[']) {
+        Some(i) => (&s[..i], &s[i..]),
+        None => (s, ""),
+    };
+    if head.is_empty() || head.len() > 128 || args.len() > 512 {
         return false;
     }
     if matches!(
@@ -463,17 +546,24 @@ fn is_type_name(s: &str) -> bool {
     ) {
         return false;
     }
-    s.starts_with(|c: char| c.is_alphabetic() || c == '_')
-        && s.chars().all(|c| {
-            c.is_alphanumeric()
-                // `[` / `]`: Scala writes generics that way
-                // (`RequestHandler[String, String]`), and omitting them
-                // rejected every generic Scala supertype outright.
-                || matches!(
-                    c,
-                    '_' | '.' | ':' | '<' | '>' | '[' | ']' | ',' | '\\' | ' '
-                )
-        })
+    // `metaclass=Meta` and `**kwargs` are not base types; a space before
+    // the type arguments means the splitter handed over two types it
+    // could not separate (`A implements B`), not one type with a space
+    // in it.
+    let head_ok = head.starts_with(|c: char| c.is_alphabetic() || c == '_')
+        && head
+            .chars()
+            .all(|c| c.is_alphanumeric() || matches!(c, '_' | '.' | ':' | '\\'));
+    if !head_ok {
+        return false;
+    }
+    if args.is_empty() {
+        return true;
+    }
+    // Type arguments close where they end (`[` / `]`: Scala writes
+    // generics that way) and balance.
+    let (opens, closes) = bracket_counts(args);
+    (args.ends_with('>') || args.ends_with(']')) && opens == closes
 }
 
 #[cfg(test)]
@@ -541,6 +631,49 @@ mod tests {
         assert!(is_type_name("IRequestHandler<GetUser, UserDto>"));
         // Two types the splitter could not separate are still not one.
         assert!(!is_type_name("A implements B"));
+    }
+
+    #[test]
+    fn long_attribute_text_keeps_its_key_and_first_argument() {
+        // REGRESSION: an attribute over 512 bytes was dropped whole, so
+        // a `@Tool(description = "…")` with a long description lost the
+        // marker every tool rule reads.
+        let prose = "Return the weather. ".repeat(40);
+        let raw = format!("@Tool(description = \"{prose}\")");
+        let t = bounded(&raw);
+        assert!(t.len() <= MAX_ATTR_BYTES, "{} bytes", t.len());
+        assert!(t.starts_with("@Tool(description = \"Return the weather."));
+        assert!(t.ends_with("…\")"), "{t}");
+        // C#: the closing bracket comes back too.
+        let raw = format!("[Description(\"{prose}\", Name = \"x\")]");
+        assert!(bounded(&raw).ends_with("…\")]"));
+        // A multi-byte character at the cut is not split.
+        let raw = format!("@Tool(\"{}\")", "é".repeat(400));
+        assert!(bounded(&raw).ends_with("…\")"));
+        // Short text is untouched.
+        assert_eq!(bounded("@Tool(\"x\")"), "@Tool(\"x\")");
+    }
+
+    #[test]
+    fn object_and_function_type_arguments_keep_their_base() {
+        // REGRESSION: `{`, `;` and `=>` in a TypeScript type argument
+        // rejected the whole base, so `class MyAgent extends Agent<Env,
+        // { n: number }>` matched no `Agent` rule.
+        assert_eq!(
+            split_type_list("extends Agent<Env, { n: number; m: string }>"),
+            vec!["Agent<Env, { n: number; m: string }>"]
+        );
+        assert!(is_type_name("Agent<Env, { n: number; m: string }>"));
+        assert_eq!(
+            split_type_list("extends Base<{ f: () => void }, X>, Other"),
+            vec!["Base<{ f: () => void }, X>", "Other"]
+        );
+        assert!(is_type_name("Base<{ f: () => void }, X>"));
+        assert!(is_type_name("Base<(Int) -> Unit>"));
+        // Unbalanced or trailing junk is still not a type.
+        assert!(!is_type_name("Base<A"));
+        assert!(!is_type_name("A<B> implements C"));
+        assert!(!is_type_name("x=y[1]"));
     }
 
     #[test]

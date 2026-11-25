@@ -1456,3 +1456,368 @@ fn every_cloud_platform_and_language_pair_enumerates() {
         failures.join("\n---\n")
     );
 }
+
+// ---------------------------------------------------------------------
+// Engine and extraction (0.14.0, packet A2)
+// ---------------------------------------------------------------------
+
+#[test]
+fn an_attribute_over_512_bytes_still_marks_its_entry() {
+    // REGRESSION: attribute text over 512 bytes was dropped whole, so a
+    // Spring AI `@Tool` with a long description lost its marker and read
+    // dead at `high` with a rule naming it.
+    let tmp = TempDir::new().unwrap();
+    let prose = "Return the weather. ".repeat(40);
+    write(
+        tmp.path(),
+        "src/Tools.java",
+        &format!(
+            "import org.springframework.ai.tool.annotation.Tool;\n\
+             public class Tools {{\n\
+             \x20   @Tool(description = \"short one\")\n\
+             \x20   String shortTool(String c) {{ return c; }}\n\
+             \x20   @Tool(description = \"{prose}\")\n\
+             \x20   String longTool(String c) {{ return c; }}\n}}\n"
+        ),
+    );
+    write(
+        tmp.path(),
+        "rules.toml",
+        "[[framework]]\nid = \"t-spring-ai\"\nlanguage = \"java\"\nkind = \"network\"\n\
+         detect = [\"org.springframework.ai\"]\nattributes = [\"Tool\"]\nnode = true\n",
+    );
+    let rules = tmp.path().join("rules.toml");
+    let (g, _) = run(tmp.path(), &["--roots", rules.to_str().unwrap()]);
+    assert_eq!(
+        g.matches("network::t-spring-ai::").count(),
+        2,
+        "both tools are entries:\n{g}"
+    );
+}
+
+/// One `[[framework]]` row naming a base type and its entry methods.
+fn base_rule(id: &str, lang: &str, detect: &str, base: &str, methods: &str) -> String {
+    format!(
+        "[[framework]]\nid = \"{id}\"\nlanguage = \"{lang}\"\nkind = \"network\"\n\
+         detect = [\"{detect}\"]\nbase_types = [\"{base}\"]\nmethods = [\"{methods}\"]\n\
+         node = true\n\n"
+    )
+}
+
+#[test]
+fn base_types_the_plugins_used_to_lose_reach_their_rules() {
+    // REGRESSION, one case per language:
+    // - TypeScript: an object type argument made `Agent<Env, {…}>` no
+    //   type name;
+    // - C#: a primary constructor's base arguments did the same;
+    // - Ruby: a bodiless intermediate class carried no base, so the
+    //   chain `WeatherTool < ApplicationTool < RubyLLM::Tool` ended;
+    // - PHP: a base written through a `use … as` alias never matched a
+    //   rule naming the class's full name.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "a.ts",
+        "import { Agent } from \"agents\";\n\
+         export class MyAgent extends Agent<Env, { n: number; f: () => void }> {\n\
+         \x20 onRequest(r: Request) { return r; }\n}\n",
+    );
+    write(
+        tmp.path(),
+        "X.cs",
+        "using Microsoft.Agents.AI.Workflows;\nnamespace N {\n\
+         \x20 class X(string s) : Executor<Msg>(\"id\") {\n\
+         \x20   public void HandleAsync(Msg m) { }\n  }\n}\n",
+    );
+    write(
+        tmp.path(),
+        "tools.rb",
+        "require \"ruby_llm\"\nclass ApplicationTool < RubyLLM::Tool\nend\n\
+         class WeatherTool < ApplicationTool\n  def execute(city:)\n    city\n  end\nend\n",
+    );
+    write(
+        tmp.path(),
+        "Tool.php",
+        "<?php\nnamespace App;\nuse NeuronAI\\Tools\\Tool as BaseTool;\n\
+         class Weather extends BaseTool {\n  public function __invoke($city) { return $city; }\n}\n",
+    );
+    let rules = [
+        base_rule("t-agents", "typescript", "agents", "Agent", "onRequest"),
+        base_rule(
+            "t-maf",
+            "csharp",
+            "Microsoft.Agents.AI",
+            "Executor",
+            "HandleAsync",
+        ),
+        base_rule("t-rubyllm", "ruby", "ruby_llm", "RubyLLM::Tool", "execute"),
+        base_rule(
+            "t-neuron",
+            "php",
+            "NeuronAI",
+            "NeuronAI\\\\Tools\\\\Tool",
+            "__invoke",
+        ),
+    ]
+    .concat();
+    write(tmp.path(), "rules.toml", &rules);
+    let path = tmp.path().join("rules.toml");
+    let (g, _) = run(tmp.path(), &["--roots", path.to_str().unwrap()]);
+    for id in ["t-agents", "t-maf", "t-rubyllm", "t-neuron"] {
+        assert!(
+            g.contains(&format!("network::{id}")),
+            "{id} has an entry:\n{g}"
+        );
+    }
+}
+
+#[test]
+fn a_keyword_slot_registrar_takes_only_that_slot() {
+    // `create_react_agent(m, tools=[t], prompt=p)`: a plain registrar
+    // made `my_prompt` a tool; `create_react_agent:tools` takes only what
+    // is passed under `tools`, and a second row can give `prompt` its own
+    // kind.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "app.py",
+        "from langgraph.prebuilt import create_react_agent\n\n\
+         def search(q):\n    return q\n\n\
+         def my_prompt(state):\n    return \"be nice\"\n\n\
+         def build():\n    return create_react_agent(\"m\", tools=[search], prompt=my_prompt)\n",
+    );
+    write(
+        tmp.path(),
+        "rules.toml",
+        "[[framework]]\nid = \"t-lg\"\nlanguage = \"python\"\nkind = \"network\"\n\
+         detect = [\"langgraph\"]\nregistrars = [\"create_react_agent:tools\"]\nnode = true\n\n\
+         [[framework]]\nid = \"t-lg-hooks\"\nlanguage = \"python\"\nkind = \"lifecycle\"\n\
+         detect = [\"langgraph\"]\nregistrars = [\"create_react_agent:prompt\"]\nnode = true\n",
+    );
+    let rules = tmp.path().join("rules.toml");
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .args(["--roots", rules.to_str().unwrap()])
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let names: std::collections::HashMap<String, String> = g["callables"]
+        .as_object()
+        .unwrap()
+        .iter()
+        .map(|(id, c)| {
+            (
+                id.clone(),
+                c["qualified_name"].as_str().unwrap_or("").to_string(),
+            )
+        })
+        .collect();
+    let mut entries: Vec<(String, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| names[e["src"].as_str().unwrap()].contains("framework-entry"))
+        .map(|e| {
+            let from = &names[e["src"].as_str().unwrap()];
+            let kind = if from.contains("::network::") {
+                "network"
+            } else {
+                "lifecycle"
+            };
+            (kind.to_string(), names[e["dst"].as_str().unwrap()].clone())
+        })
+        .collect();
+    entries.sort();
+    assert_eq!(
+        entries,
+        vec![
+            ("lifecycle".to_string(), "app.my_prompt".to_string()),
+            ("network".to_string(), "app.search".to_string()),
+        ],
+        "{g:#}"
+    );
+}
+
+#[test]
+fn options_object_handlers_are_inline_handlers() {
+    // Method shorthand (plain, async, generator), a handler behind one
+    // wrapping call, and handlers one level down (a nested object, an
+    // array of objects, a shorthand property naming a function) were no
+    // handlers, and shorthand read dead with a rule naming `tool`.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "agent.ts",
+        "import { tool } from \"ai\";\n\
+         function a() { return 1; }\nfunction b() { return 2; }\nfunction c() { return 3; }\n\
+         function d() { return 4; }\nfunction e() { return 5; }\nfunction onStart() { return 6; }\n\
+         function wrap(f: any) { return f; }\n\
+         export const t1 = tool({ description: \"x\", async execute() { return a(); } });\n\
+         export const t2 = tool({ async *execute() { yield b(); } });\n\
+         export const t3 = tool({ execute: wrap(async () => c()) });\n\
+         export const t4 = tool({ lifecycle: { onEnd: () => d() } });\n\
+         export const t5 = tool({ functions: [{ func: () => e() }] });\n\
+         export const t6 = tool({ lifecycle: { onStart } });\n",
+    );
+    write(
+        tmp.path(),
+        "rules.toml",
+        "[[framework]]\nid = \"t-ai\"\nlanguage = \"typescript\"\nkind = \"network\"\n\
+         detect = [\"ai\"]\nregistrars = [\"tool\"]\nnode = true\n",
+    );
+    let rules = tmp.path().join("rules.toml");
+    let (g, _) = run(tmp.path(), &["--roots", rules.to_str().unwrap()]);
+    assert_eq!(
+        g.matches("network::t-ai::").count(),
+        6,
+        "one entry per handler:\n{g}"
+    );
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .arg(tmp.path())
+        .args(["--roots", rules.to_str().unwrap()])
+        .args(["--dead-code", "--dead-code-confidence", "low"])
+        .args(["--dead-code-format", "json", "--dead-code-report"])
+        .arg(&report)
+        .assert()
+        .success();
+    let v: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&report).unwrap()).unwrap();
+    let dead: Vec<&str> = v["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| f["qualified_name"].as_str().unwrap())
+        .collect();
+    assert!(
+        dead.is_empty(),
+        "every handler and its callees are live: {dead:?}"
+    );
+}
+
+/// Dead-code findings (qualified names) of a run over `dir`.
+fn dead_findings(dir: &Path, extra: &[&str]) -> Vec<String> {
+    let report = dir.join("dead.json");
+    cgg()
+        .arg(dir)
+        .args(["--dead-code", "--dead-code-confidence", "low"])
+        .args(["--dead-code-format", "json", "--dead-code-report"])
+        .arg(&report)
+        .args(extra)
+        .assert()
+        .success();
+    let v: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&report).unwrap()).unwrap();
+    v["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| f["qualified_name"].as_str().unwrap().to_string())
+        .collect()
+}
+
+#[test]
+fn a_minted_closure_no_rule_claims_keeps_its_callees_live() {
+    // REGRESSION: an inline closure handed to a registrar verb is minted
+    // as `handler_at_<line>` whether or not a rule claims it. Unclaimed,
+    // nothing reached it, and its callees read dead: written inline they
+    // belonged to the enclosing function (or the top level). One case
+    // per language that mints them.
+    let tmp = TempDir::new().unwrap();
+    let d = tmp.path();
+    write(
+        d,
+        "a.js",
+        "function helperJs() { return 1; }\nexport function setup(bus) {\n\
+         \x20 bus.get(\"/y\", () => helperJs());\n}\nsetup({});\n\
+         app.post(\"/z\", () => helperJs2());\nfunction helperJs2() { return 2; }\n",
+    );
+    write(
+        d,
+        "main.go",
+        "package main\n\nfunc renderGo() string { return \"x\" }\n\n\
+         func setup(m *Mux) {\n\tm.Get(\"/\", func() string {\n\t\treturn renderGo()\n\t})\n}\n\n\
+         func main() { setup(nil) }\n",
+    );
+    write(
+        d,
+        "app.rb",
+        "def helper_rb\n  1\nend\n\ndef boot_rb\n  2\nend\n\nboot_rb()\n\n\
+         get \"/x\" do\n  helper_rb\nend\n",
+    );
+    write(
+        d,
+        "main.swift",
+        "func greetSw(_ n: String) -> String { n }\nfunc bootSw() {}\nbootSw()\n\
+         Lambda.run { (c, n: String, cb) in\n  greetSw(n)\n}\n",
+    );
+    write(
+        d,
+        "app.clj",
+        "(ns app)\n(defn home-page [] \"hi\")\n(defn routes [] (GET \"/\" [] (home-page)))\n(routes)\n",
+    );
+    write(
+        d,
+        "router.ex",
+        "defmodule MyApp.Router do\n  def helper_ex, do: :ok\n  def boot_ex, do: :ok\n\n\
+         \x20 boot_ex()\n\n  get \"/health\" do\n    helper_ex()\n  end\nend\n",
+    );
+    let dead = dead_findings(d, &[]);
+    assert!(dead.is_empty(), "every helper is live: {dead:?}");
+}
+
+#[test]
+fn a_minted_closure_sees_the_enclosing_functions_parameter_types() {
+    // REGRESSION: a minted closure was its own scope for type
+    // propagation, so the enclosing function's typed parameter `files`
+    // was unknown inside it and the call bound by name at `medium`.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "main.go",
+        "package main\n\ntype Files struct{}\n\nfunc (f *Files) CreateVersion() {}\n\n\
+         type Other struct{}\n\nfunc (o *Other) CreateVersion() {}\n\n\
+         func setup(m *Mux, files *Files) {\n\tm.Get(\"/\", func() string {\n\
+         \t\tfiles.CreateVersion()\n\t\treturn \"\"\n\t})\n}\n",
+    );
+    write(
+        tmp.path(),
+        "a.ts",
+        "class Files { createVersion() {} }\nclass Other { createVersion() {} }\n\
+         export function setup(app, files: Files) {\n  app.get(\"/\", () => { files.createVersion(); });\n}\n",
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let mut got: Vec<(String, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| qn(&e["src"]).contains("handler_at_"))
+        .map(|e| (qn(&e["dst"]), e["confidence"].as_str().unwrap().to_string()))
+        .collect();
+    got.sort();
+    assert_eq!(
+        got,
+        vec![
+            ("Files.createVersion".to_string(), "high".to_string()),
+            ("main.Files.CreateVersion".to_string(), "high".to_string()),
+        ]
+    );
+}

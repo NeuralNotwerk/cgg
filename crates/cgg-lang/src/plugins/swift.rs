@@ -421,6 +421,7 @@ impl<'a> SwiftWalker<'a> {
                 context: context.to_string(),
                 route: route.clone(),
                 name_arg: super::registrar::name_arg_of(node, self.source),
+                slot: super::registrar::handler_slot(closure, node, self.source),
                 ..Default::default()
             });
         }

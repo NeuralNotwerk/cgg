@@ -583,6 +583,7 @@ impl<'a> PerlWalker<'a> {
                     retyped_receiver: false,
                     receiver_module: None,
                     name_arg: String::new(),
+                    slot: String::new(),
                 });
                 continue;
             }
@@ -615,6 +616,7 @@ impl<'a> PerlWalker<'a> {
                     retyped_receiver: false,
                     receiver_module: None,
                     name_arg: String::new(),
+                    slot: String::new(),
                 });
             }
         }
@@ -715,6 +717,7 @@ impl<'a> PerlWalker<'a> {
                 retyped_receiver: false,
                 receiver_module: None,
                 name_arg: String::new(),
+                slot: String::new(),
             });
         }
     }

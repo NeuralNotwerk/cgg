@@ -834,6 +834,7 @@ impl<'a> ClojureWalker<'a> {
                         retyped_receiver: false,
                         receiver_module: None,
                         name_arg: String::new(),
+                        slot: String::new(),
                     });
                 }
                 "sym_lit" => {
@@ -875,6 +876,7 @@ impl<'a> ClojureWalker<'a> {
                         retyped_receiver: false,
                         receiver_module: None,
                         name_arg: String::new(),
+                        slot: String::new(),
                     });
                 }
                 "list_lit" | "anon_fn_lit" if Some(i) != binding_pos => {
@@ -958,6 +960,7 @@ impl<'a> ClojureWalker<'a> {
             retyped_receiver: false,
             receiver_module: None,
             name_arg: String::new(),
+            slot: String::new(),
         });
     }
 }

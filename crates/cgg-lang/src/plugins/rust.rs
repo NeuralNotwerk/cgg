@@ -2405,6 +2405,7 @@ impl<'a> Walker<'a> {
                 retyped_receiver: false,
                 receiver_module: None,
                 name_arg: super::registrar::name_arg_of(call, self.source),
+                slot: String::new(),
             });
         }
     }
