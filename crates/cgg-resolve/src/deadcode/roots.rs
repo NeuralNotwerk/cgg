@@ -390,12 +390,13 @@ pub fn attribute_string_arg(attr: &str) -> Option<String> {
     None
 }
 
-/// Last `.`/`::`-separated segment of an attribute key: the verb.
+/// Last `.`/`::`/`\`-separated segment of an attribute key: the verb.
 /// `app.route` -> `route`, `org.springframework.GetMapping` ->
-/// `GetMapping`, `get` -> `get`.
+/// `GetMapping`, `get` -> `get`, PHP `ORM\PrePersist` and
+/// `\Doctrine\ORM\Mapping\PreUpdate` -> `PrePersist`, `PreUpdate`.
 pub fn attribute_verb(attr: &str) -> &str {
     let key = attribute_key(attr);
-    key.rsplit(['.', ':']).next().unwrap_or(key)
+    key.rsplit(['.', ':', '\\']).next().unwrap_or(key)
 }
 
 fn has_attr(attrs: &[String], wanted: &[&str]) -> Option<String> {

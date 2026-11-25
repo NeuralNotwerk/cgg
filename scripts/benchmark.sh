@@ -160,7 +160,7 @@ APPS=(
     "app-lemmy-actix|https://github.com/LemmyNet/lemmy.git|actix-web,rust-std-traits"
     "app-actix-examples|https://github.com/actix/examples.git|actix-actor,actix-web,rust-std-traits,~py-argparse,~py-context-manager,~py-signal,async-graphql,juniper,cargo-test"
     "app-vaultwarden-rocket|https://github.com/dani-garcia/vaultwarden.git|rocket,rust-std-traits,~node-event-emitter,~py-argparse"
-    "app-rails-mastodon|https://github.com/mastodon/mastodon.git|express,rails,rails-callbacks,react,sidekiq,~actioncable,~aws-lambda"
+    "app-rails-mastodon|https://github.com/mastodon/mastodon.git|active-model-serializers,active-model-validators,ar-migration,express,pundit,rails,rails-callbacks,react,sidekiq,thor,~actioncable,~aws-lambda"
     "app-resque-sinatra|https://github.com/resque/resque.git|minitest,rails,sinatra,~actioncable,~rails-callbacks"
     "app-grape-swagger|https://github.com/ruby-grape/grape-swagger.git|grape,rails-callbacks"
     "app-monica-laravel|https://github.com/monicahq/monica.git|laravel,laravel-lifecycle,phpunit,~symfony"
@@ -307,7 +307,7 @@ APPS=(
     "app-bamboobsc-struts|https://github.com/billchen198318/bamboobsc.git|jakarta-rs,java-concurrent,junit,servlet,swing,~hibernate-listeners,~java-closeable,~jpa-lifecycle,~spring,~spring-jobs,~struts,jpa-mapping"
     "app-fssnip-suave|https://github.com/fssnippets/fssnip-website.git|~suave"
     "app-ora-swifttesting|https://github.com/the-ora/browser.git|cocoa-delegate,uikit-appdelegate,uikit-lifecycle,~py-argparse,~swift-testing"
-    "app-mineadmin-swoole|https://github.com/mineadmin/MineAdmin.git|phpunit,~swoole"
+    "app-mineadmin-swoole|https://github.com/mineadmin/MineAdmin.git|hyperf,phpunit,~swoole"
     "app-clashverge-tauri|https://github.com/clash-verge-rev/clash-verge-rev.git|react,rust-std-traits,tauri"
     "app-realworld-tide|https://github.com/colinbankier/realworld-tide.git|rust-std-traits,~tide"
     "app-jupyterhub-tornado|https://github.com/jupyterhub/jupyterhub.git|fastapi,flask,py-signal,pydantic,~py-argparse,~py-context-manager,~py-threading,~py-unittest,~react,~tornado"
@@ -416,7 +416,7 @@ APPS=(
     "app-caninclude-polka|https://github.com/CyberLight/caninclude-v2.git|~polka"
     "app-crnn-flux|https://github.com/DENG-MIT/CRNN.git|~julia-base-dispatch,~julia-module-init"
     "app-dailynotes-quart|https://github.com/djedi/DailyNotes.git|quart"
-    "app-domainwatchdog-symfony|https://github.com/maelgangloff/domain-watchdog.git|phpunit,symfony,~react,~symfony-messenger"
+    "app-domainwatchdog-symfony|https://github.com/maelgangloff/domain-watchdog.git|api-platform,doctrine-lifecycle,phpunit,symfony,~react,~symfony-messenger"
     "app-edrys-oak|https://github.com/edrys-org/edrys.git|~deno-http"
     "app-hadolint-hspec|https://github.com/hadolint/hadolint.git|hspec"
     "app-libchecker-gradle|https://github.com/LibChecker/LibChecker.git|android-broadcastreceiver,android-service-bind,android-service-start,java-closeable,junit,py-unittest,android-activity,android-application,~android-contentprovider,android-fragment,android-service,~py-argparse"
@@ -447,6 +447,15 @@ APPS=(
     "app-pyenv-bats|https://github.com/pyenv/pyenv.git|bats,~bash-dispatch,~c-runtime,~py-argparse"
     "app-snkrx-love2d|https://github.com/a327ex/SNKRX.git|love2d"
     "app-yq-shunit2|https://github.com/mikefarah/yq.git|go-encoding,go-testing,shunit2,~cobra,~go-runtime"
+    # 0.14.0: applications for the Ruby and PHP rules (2026-11-25).
+    "app-rubygems-rails|https://github.com/rubygems/rubygems.org.git|active-model-validators,ar-migration,minitest,pundit,rails,rails-callbacks,sidekiq,view-component"
+    "app-chaskiq-graphql|https://github.com/chaskiq/chaskiq.git|actioncable,active-model-validators,ar-migration,graphql-ruby,js-test-globals,pundit,rails,rails-callbacks,react,sidekiq"
+    "app-kamal-thor|https://github.com/basecamp/kamal.git|minitest,thor"
+    "app-casa-pundit|https://github.com/rubyforgood/casa.git|active-model-validators,ar-migration,jest,pundit,rails,rails-callbacks,view-component"
+    "app-coolify-livewire|https://github.com/coollabsio/coolify.git|laravel,laravel-lifecycle,livewire,node-test,pest,phpunit,playwright"
+    "app-pelican-filament|https://github.com/pelican/panel.git|filament,laravel,laravel-lifecycle,livewire,pest,phpunit"
+    "app-cospend-nextcloud|https://github.com/julien-nc/cospend-nc.git|nextcloud,nextcloud-lifecycle,phpunit"
+    "app-partdb-apiplatform|https://github.com/Part-DB/Part-DB-server.git|api-platform,doctrine-lifecycle,phpunit,symfony"
 )
 
 # Framework rules with NO application in the APPS manifest above.
