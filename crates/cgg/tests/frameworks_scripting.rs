@@ -24,7 +24,8 @@ fn write(dir: &Path, rel: &str, body: &str) {
 }
 
 /// Run `--dead-code` over `dir` and return (qualified names reported,
-/// root qualified names with their labels, stderr).
+/// each also as `<path>@<qualified name>`; root qualified names with
+/// their labels; stderr).
 fn dead_code(dir: &Path) -> (BTreeSet<String>, Vec<(String, String)>, String) {
     let out = cgg()
         .args([
@@ -47,7 +48,17 @@ fn dead_code(dir: &Path) -> (BTreeSet<String>, Vec<(String, String)>, String) {
         .as_array()
         .unwrap()
         .iter()
-        .map(|f| f["qualified_name"].as_str().unwrap().to_string())
+        .flat_map(|f| {
+            let qn = f["qualified_name"].as_str().unwrap().to_string();
+            let root = dir.to_string_lossy();
+            let path = f["path"].as_str().unwrap_or_default();
+            let path = path
+                .strip_prefix(root.as_ref())
+                .unwrap_or(path)
+                .trim_start_matches(['.', '/']);
+            let at = format!("{path}@{qn}");
+            [qn, at]
+        })
         .collect();
     let roots = doc["roots"]
         .as_array()
@@ -203,4 +214,131 @@ fn luanti_definition_callbacks_are_roots() {
         "{dead:?}"
     );
     assert!(dead.contains("unused_helper"), "{dead:?}");
+}
+
+#[test]
+fn busted_blocks_are_test_entries_of_one_harness_node() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/calc.lua",
+        "local M = {}\nfunction M.add(a, b) return a + b end\nfunction M.unused() end\nreturn M\n",
+    );
+    write(
+        tmp.path(),
+        "spec/calc_spec.lua",
+        "local calc = require('calc')\n\
+         describe('calc', function()\n\
+         \x20 before_each(function() end)\n\
+         \x20 it('adds', function()\n    assert.equals(3, calc.add(1, 2))\n  end)\n\
+         end)\n",
+    );
+    let (names, err) = entries(tmp.path());
+    assert!(err.contains("busted (test"), "{err}");
+    assert!(
+        names.iter().any(|n| n.contains("test::busted")),
+        "one harness node: {names:?}"
+    );
+}
+
+// ---------------------------------------------------------------------
+// Bash
+// ---------------------------------------------------------------------
+
+#[test]
+fn bats_test_blocks_are_entries_and_their_callees_live() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "lib/calc.sh",
+        "add() { echo $(( $1 + $2 )); }\nunused() { :; }\n",
+    );
+    write(
+        tmp.path(),
+        "test/calc.bats",
+        "#!/usr/bin/env bats\n\
+         setup() {\n  source lib/calc.sh\n}\n\
+         @test \"adds two numbers\" {\n  run add 1 2\n  [ \"$output\" = 3 ]\n}\n",
+    );
+    let (names, err) = entries(tmp.path());
+    assert!(err.contains("bats (test"), "{err}");
+    assert!(
+        names.iter().any(|n| n.contains("test::bats")),
+        "one harness node: {names:?}"
+    );
+    let (dead, _, _) = dead_code(tmp.path());
+    assert!(!dead.contains("add"), "called from the @test: {dead:?}");
+    assert!(dead.contains("unused"), "{dead:?}");
+}
+
+#[test]
+fn shunit2_cases_are_entries_where_its_asserts_are_called() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "acceptance_tests/basic.sh",
+        "#!/bin/bash\n\
+         setUp() { rm -f out; }\n\
+         testBasicEval() {\n  assertEquals 1 1\n}\n\
+         test_other() {\n  assertTrue true\n}\n\
+         testing_helper() { :; }\n\
+         source ./scripts/shunit2\n",
+    );
+    write(
+        tmp.path(),
+        "scripts/release.sh",
+        "#!/bin/bash\ntestRelease() { :; }\n",
+    );
+    let (names, err) = entries(tmp.path());
+    assert!(err.contains("shunit2 (test"), "{err}");
+    let (dead, _, _) = dead_code(tmp.path());
+    for live in ["setUp", "testBasicEval", "test_other"] {
+        assert!(!dead.contains(live), "{live}: {dead:?} {names:?}");
+    }
+    assert!(dead.contains("testing_helper"), "{dead:?}");
+    assert!(
+        dead.contains("testRelease"),
+        "a file without shUnit2's asserts is no suite: {dead:?}"
+    );
+}
+
+#[test]
+fn makepkg_functions_are_roots_only_in_a_pkgbuild() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "linux/PKGBUILD",
+        "pkgname=x\npkgver() { echo 1; }\nprepare() { :; }\nbuild() { make; }\npackage_x-headers() { :; }\nhelper() { :; }\n",
+    );
+    write(
+        tmp.path(),
+        "linux/x.install",
+        "#!/bin/bash\npost_install() { :; }\n",
+    );
+    write(
+        tmp.path(),
+        "scripts/ci.sh",
+        "#!/bin/bash\nbuild() { make; }\n",
+    );
+    write(
+        tmp.path(),
+        "initcpio/hooks/myhook",
+        "#!/usr/bin/ash\nrun_hook() { :; }\n",
+    );
+    let (dead, _, err) = dead_code(tmp.path());
+    assert!(err.contains("makepkg"), "{err}");
+    for live in [
+        "pkgver",
+        "prepare",
+        "package_x-headers",
+        "post_install",
+        "run_hook",
+    ] {
+        assert!(!dead.contains(live), "{live}: {dead:?}");
+    }
+    assert!(dead.contains("helper"), "{dead:?}");
+    // `build` is defined twice; only the PKGBUILD one is a makepkg hook,
+    // so one copy is still reported.
+    assert!(dead.contains("scripts/ci.sh@build"), "{dead:?}");
+    assert!(!dead.contains("linux/PKGBUILD@build"), "{dead:?}");
 }

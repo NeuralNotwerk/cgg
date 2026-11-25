@@ -32,6 +32,7 @@ impl LanguagePlugin for LuaPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "lua");
         let mut w = LuaWalker {
+            ctx: *ctx,
             reference_sites: ctx.reference_sites,
             source,
             facts: &mut facts,
@@ -119,6 +120,8 @@ fn chunk_bindings(root: Node, source: &[u8], facts: &mut FileFacts) {
 }
 
 struct LuaWalker<'a> {
+    /// Per-run extraction switches: which calls are registrations.
+    ctx: crate::ExtractCtx<'a>,
     /// Record functions used as values; see
     /// `crate::ExtractCtx::reference_sites`.
     reference_sites: bool,
@@ -204,6 +207,7 @@ impl<'a> LuaWalker<'a> {
             }
             "function_call" => {
                 self.record_call(node);
+                self.capture_registration(node);
                 self.walk_children(node);
                 return;
             }
@@ -406,6 +410,63 @@ impl<'a> LuaWalker<'a> {
         });
     }
 
+    /// Shape B/C for a call some rule registers through (busted's
+    /// `describe`/`it`/`before_each` in a spec file): the argument slots
+    /// as value and string references, and each anonymous `function … end`
+    /// argument minted as a `handler_at_<line>` callable carrying the call
+    /// as its context and the leading string as its route. Gated on the
+    /// verb, so an ordinary `pcall(function() … end)` mints nothing.
+    fn capture_registration(&mut self, node: Node) {
+        let Some(callee) = node.child_by_field_name("name") else {
+            return;
+        };
+        let context: String = self.text(callee).split_whitespace().collect();
+        if !super::registrar::admits(&self.ctx, &context) {
+            return;
+        }
+        let extra = super::registrar::capture(&self.ctx, node, self.source, &context);
+        self.facts.references.extend(extra);
+        let Some(args) = node.child_by_field_name("arguments") else {
+            return;
+        };
+        let named: Vec<Node> = args.named_children(&mut args.walk()).collect();
+        if named.len() > 4 {
+            return;
+        }
+        let route = named
+            .first()
+            .filter(|n| n.kind() == "string")
+            .map(|n| super::registrar::unquote(self.text(*n)))
+            .unwrap_or_default();
+        for closure in named.iter().filter(|n| n.kind() == "function_definition") {
+            let line = (closure.start_position().row as u32) + 1;
+            let simple = format!("handler_at_{line}");
+            let qn = self.qn(&simple);
+            self.facts.definitions.push(DefRecord {
+                simple_name: simple.clone(),
+                qualified_name: qn,
+                variant: DefVariant::NamedClosure,
+                start_line: line,
+                end_line: (closure.end_position().row as u32) + 1,
+                start_byte: closure.start_byte() as u32,
+                end_byte: closure.end_byte() as u32,
+                signature_hint: super::extract_signature(self.text(*closure)),
+                visibility: String::new(),
+                attributes: vec!["synthetic".to_string()],
+                ..Default::default()
+            });
+            self.facts.references.push(RefRecord {
+                name: simple,
+                receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                site_line: line,
+                site_byte: closure.start_byte() as u32,
+                context: context.clone(),
+                route: route.clone(),
+                ..Default::default()
+            });
+        }
+    }
+
     fn record_call(&mut self, node: Node) {
         let Some(callee) = node.child_by_field_name("name") else {
             return;
@@ -484,6 +545,52 @@ mod tests {
     use cgg_core::ids::FileId;
     use std::path::PathBuf;
     use tree_sitter::Parser;
+
+    fn extract_spec(src: &str) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_lua::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        LuaPlugin.extract(
+            &crate::ExtractCtx::plain()
+                .for_language("lua")
+                .for_test_file(true),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x_spec.lua"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    #[test]
+    fn busted_blocks_in_a_spec_file_are_minted_as_handlers() {
+        let src = "describe('calc', function()\n  before_each(function() end)\n  it('adds', function() add(1, 2) end)\nend)\npcall(function() end)\n";
+        let f = extract_spec(src);
+        let handlers: Vec<&str> = f
+            .definitions
+            .iter()
+            .filter(|d| d.simple_name.starts_with("handler_at_"))
+            .map(|d| d.simple_name.as_str())
+            .collect();
+        assert_eq!(
+            handlers,
+            vec!["handler_at_1", "handler_at_2", "handler_at_3"]
+        );
+        let it = f
+            .references
+            .iter()
+            .find(|r| r.name == "handler_at_3")
+            .expect("the it block's handler reference");
+        assert_eq!(it.context, "it");
+        assert_eq!(it.route, "adds");
+        // Outside a spec file the same verbs register nothing.
+        let plain = extract(src);
+        assert!(
+            !plain
+                .definitions
+                .iter()
+                .any(|d| d.simple_name.starts_with("handler_at_"))
+        );
+    }
 
     fn extract(src: &str) -> FileFacts {
         let mut p = Parser::new();

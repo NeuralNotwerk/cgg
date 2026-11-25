@@ -3563,6 +3563,44 @@ pub const SPECS: &[RuleSpec] = &[
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
+    // busted's blocks in a `*_spec.lua` (busted's own default pattern):
+    // each anonymous `function … end` handed to a block verb is minted as
+    // a `handler_at_<line>` test case. Spec files call the verbs as
+    // globals, so the spec file name is the evidence.
+    RuleSpec {
+        id: "busted",
+        language: "lua",
+        kind: TrustKind::Test,
+        detect: &["busted", "luassert"],
+        detect_paths: &["*_spec.lua"],
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: &[
+            "describe",
+            "context",
+            "it",
+            "spec",
+            "test",
+            "pending",
+            "insulate",
+            "expose",
+            "setup",
+            "teardown",
+            "lazy_setup",
+            "lazy_teardown",
+            "strict_setup",
+            "strict_teardown",
+            "before_each",
+            "after_each",
+        ],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
     RuleSpec {
         id: "openresty",
         language: "lua",
@@ -7052,6 +7090,135 @@ pub const SPECS: &[RuleSpec] = &[
         string_targets: false,
         node: true,
         gap: "A module's public surface is invoked from the shell, never from source: functions named in the manifest's `FunctionsToExport` array (a list of string literals in the .psd1, not calls) or in `Export-ModuleMember -Function`, and advanced functions marked by a `[CmdletBinding()]` + `param([Parameter(Mandatory)]...)` block. The PowerShell plugin records neither definition attributes nor visibility (26 [CmdletBinding( and 167 [Parameter( in PowerShellGet are all dropped), so exported cmdlets are indistinguishable from private helpers. Read the .psd1 FunctionsToExport list.",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // shUnit2 runs every `test*` function of a script that sources it,
+    // around `setUp`/`tearDown` and `oneTimeSetUp`/`oneTimeTearDown`, and
+    // `suite` when defined. Projects source it by any relative path
+    // (`. ./scripts/shunit2`), so its assert commands are the evidence;
+    // the rule applies in test files and in files that call them.
+    RuleSpec {
+        id: "shunit2",
+        language: "bash",
+        kind: TrustKind::Test,
+        detect: &["shunit2"],
+        detect_paths: NONE,
+        detect_calls: &[
+            "assertEquals",
+            "assertNotEquals",
+            "assertSame",
+            "assertNotSame",
+            "assertContains",
+            "assertNotContains",
+            "assertNull",
+            "assertNotNull",
+            "assertTrue",
+            "assertFalse",
+            "failNotEquals",
+            "failSame",
+            "failNotSame",
+        ],
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &[
+            "test*",
+            "setUp",
+            "tearDown",
+            "oneTimeSetUp",
+            "oneTimeTearDown",
+            "suite",
+        ],
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // bats-core: each `@test "description" { … }` block of a `.bats` file
+    // (minted `handler_at_<line>` by the Bash plugin), plus the hooks bats
+    // calls around them, read only in `.bats` files and `setup_suite.bash`.
+    RuleSpec {
+        id: "bats",
+        language: "bash",
+        kind: TrustKind::Test,
+        detect: &["bats-support", "bats-assert"],
+        detect_paths: &["*.bats"],
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: &["@test"],
+        base_types: NONE,
+        methods: &[
+            "setup",
+            "teardown",
+            "setup_file",
+            "teardown_file",
+            "setup_suite",
+            "teardown_suite",
+        ],
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // makepkg calls a PKGBUILD's `pkgver`/`prepare`/`build`/`check`/
+    // `package` (`package_<name>` per split package); pacman runs the
+    // `pre_*`/`post_*` functions of a package's `.install` scriptlet. Read
+    // only in those files: an ordinary script's `build` is no such hook.
+    RuleSpec {
+        id: "makepkg",
+        language: "bash",
+        kind: TrustKind::Lifecycle,
+        detect: NONE,
+        detect_paths: &["PKGBUILD", "*.install"],
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &[
+            "pkgver",
+            "prepare",
+            "build",
+            "check",
+            "package",
+            "package_*",
+            "pre_install",
+            "post_install",
+            "pre_upgrade",
+            "post_upgrade",
+            "pre_remove",
+            "post_remove",
+        ],
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // mkinitcpio sources a runtime hook and calls its `run_*hook`
+    // functions by these exact names; defining one is the evidence.
+    RuleSpec {
+        id: "mkinitcpio",
+        language: "bash",
+        kind: TrustKind::Lifecycle,
+        detect: NONE,
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &[
+            "run_hook",
+            "run_earlyhook",
+            "run_latehook",
+            "run_cleanuphook",
+            "run_emergencyhook",
+        ],
+        string_targets: false,
+        node: false,
+        gap: "",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
@@ -13452,7 +13619,11 @@ pub fn signature_methods_for(id: &str, language: &str) -> &'static [SignatureMet
 pub fn methods_case_sensitive(id: &str, language: &str) -> bool {
     matches!(
         (id, language),
-        ("gtest", "cpp") | ("gtest-fixture", "cpp") | ("libfuzzer", "c" | "cpp")
+        ("gtest", "cpp")
+            | ("gtest-fixture", "cpp")
+            | ("libfuzzer", "c" | "cpp")
+            // Shell functions are called by their exact names.
+            | ("shunit2" | "makepkg" | "mkinitcpio", "bash")
     )
 }
 
@@ -13475,6 +13646,8 @@ pub fn method_paths_for(id: &str, language: &str) -> &'static [&'static str] {
             &["apisix/plugins/*.lua", "apisix/stream/plugins/*.lua"]
         }
         ("neovim-plugin", "lua") => &["lua/*/init.lua", "lua/*/health.lua", "lua/*.lua"],
+        ("bats", "bash") => &["*.bats", "setup_suite.bash"],
+        ("makepkg", "bash") => &["PKGBUILD", "*.install"],
         _ => NONE,
     }
 }
@@ -13605,8 +13778,10 @@ mod tests {
                     | "razor"
                     // WS20: a fixed engine-called symbol, by its exact name.
                     | "libfuzzer"
-                    // 0.14.0: LÖVE's owner-qualified callbacks (`love.load`).
+                    // 0.14.0: LÖVE's owner-qualified callbacks (`love.load`)
+                    // and mkinitcpio's `run_*hook` functions.
                     | "love2d"
+                    | "mkinitcpio"
             );
             assert!(
                 detectable || marker_is_the_evidence,
