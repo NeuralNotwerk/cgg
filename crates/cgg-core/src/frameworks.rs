@@ -224,6 +224,7 @@ impl EntryShape {
 /// rule contributes nothing until an import in `detect` (or a path in
 /// `detect_paths`) has been seen somewhere in that language.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FrameworkRule {
     /// Framework id — the `flask` in
     /// `<framework-entry>::network::flask::route("/users")`.

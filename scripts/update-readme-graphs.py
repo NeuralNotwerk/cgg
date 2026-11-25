@@ -54,11 +54,15 @@ def clean(mmd_text: str) -> str:
     edges: dict[tuple[str, str], str] = {}
     keep: set[str] = set()
     edge_re = re.compile(r"^(\S+)\s*-->\s*(?:\|([^|]*)\|\s*)?(\S+)$")
+    node_re = re.compile(r"^[A-Za-z0-9_]+\[")
     for line in mmd_text.splitlines():
         s = line.strip()
         if not s or s.startswith(("flowchart", "%%")):
             continue
-        if s.startswith("C") and "[" in s:
+        # A node line is `<id>["label"]`. Ids were `C…` hashes before
+        # 0.8.2 and are `N0`, `N1`, … since; matching only `C` emptied
+        # both README graphs without an error.
+        if node_re.match(s):
             nid, rest = s.split("[", 1)
             label = rest.rsplit("]", 1)[0].strip('"')
             if "::tests::" in label or label.endswith("::tests"):
@@ -77,10 +81,9 @@ def clean(mmd_text: str) -> str:
         return lbl.replace("crate::", "").replace("&lt;", "<").replace("&gt;", ">")
 
     out = ["flowchart LR"]
-    # Node ids are content-derived base36 hashes now, not sequential
-    # integers, so there's no numeric value to sort by — `nodes` already
-    # preserves cgg's own (deterministic) emission order, which is what
-    # we want anyway.
+    # `nodes` preserves cgg's own (deterministic) emission order, which
+    # is what we want; ids may be numbered (`N0`) or hashed, so they are
+    # never sorted.
     for nid, label in nodes.items():
         out.append(f'  {nid}["{tidy(label)}"]')
     for (s, d), lbl in sorted(edges.items()):
@@ -129,6 +132,9 @@ def self_test() -> None:
     assert "C1 -->|3x| C0" in out, f"multiplicity label dropped:\n{out}"
     assert "C0 --> C1" in out, f"bare edge dropped:\n{out}"
     assert "C2" not in out, f"test node kept:\n{out}"
+    # Numbered ids (mermaid's default since 0.8.2) must survive too.
+    out = clean(src.replace("C", "N"))
+    assert 'N0["a::f"]' in out and "N0 --> N1" in out, f"N ids dropped:\n{out}"
     print("[update-readme-graphs] self-test ok")
 
 

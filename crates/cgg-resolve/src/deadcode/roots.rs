@@ -601,7 +601,7 @@ pub(crate) fn discover(
         );
     }
 
-    // --- Rule: top-level invocation (all 45 languages) -------------------
+    // --- Rule: top-level invocation (all languages) -------------------
     //
     // `intra_file` narrows a call to exactly one definition and then
     // discards the edge when there is no enclosing callable to hang it

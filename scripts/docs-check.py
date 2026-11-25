@@ -8,8 +8,8 @@ When this runs:
   - Safe to run by hand from the repo root any time:
     `python3 scripts/docs-check.py`
 
-Fourteen check functions. The numbered discussion below runs 0-12; the
-unnumbered `check_framework_apps` is the fourteenth. Check 12 asserts
+Sixteen check functions. The numbered discussion below runs 0-14; the
+unnumbered `check_framework_apps` is the sixteenth. Check 12 asserts
 this count against the skills, so adding a check means updating any
 skill that states the number.
 

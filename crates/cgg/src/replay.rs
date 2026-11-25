@@ -92,6 +92,27 @@ fn unsupported(opts: &RunOptions) -> Vec<(&'static str, &'static str)> {
             "adds edges during resolution; re-run the analysis with them on",
         ));
     }
+    if opts.property_edges || opts.module_scope_calls {
+        out.push((
+            "--property-edges / --module-scope-calls",
+            "adds edges during extraction and resolution; re-run the \
+             analysis with them on",
+        ));
+    }
+    if opts.fanout_cap != cgg_resolve::cross_file::DEFAULT_FANOUT_CAP as u32 {
+        out.push((
+            "--fanout-cap",
+            "bounds candidate sets during resolution; the saved graph \
+             already holds whatever the original run bound",
+        ));
+    }
+    if !opts.allow_dirs.is_empty() {
+        out.push((
+            "--allow-dir",
+            "decides which directories are walked; the saved graph \
+             already holds whatever the original run analyzed",
+        ));
+    }
     if opts.skip_minified {
         out.push((
             "--skip-minified",
@@ -481,13 +502,55 @@ mod tests {
         assert!(err.contains("--dead-code"), "{err}");
 
         let err = replay(&RunOptions {
-            from_graph: Some(p),
+            from_graph: Some(p.clone()),
             include_external: true,
             ..RunOptions::default()
         })
         .unwrap_err()
         .to_string();
         assert!(err.contains("--include-external"), "{err}");
+
+        // REGRESSION: these four used to be accepted and silently ignored.
+        for (opts, flag) in [
+            (
+                RunOptions {
+                    property_edges: true,
+                    ..RunOptions::default()
+                },
+                "--property-edges",
+            ),
+            (
+                RunOptions {
+                    module_scope_calls: true,
+                    ..RunOptions::default()
+                },
+                "--module-scope-calls",
+            ),
+            (
+                RunOptions {
+                    fanout_cap: 0,
+                    ..RunOptions::default()
+                },
+                "--fanout-cap",
+            ),
+            (
+                RunOptions {
+                    allow_dirs: vec!["node_modules".into()],
+                    ..RunOptions::default()
+                },
+                "--allow-dir",
+            ),
+        ] {
+            let err = replay(&RunOptions {
+                from_graph: Some(p.clone()),
+                ..opts
+            })
+            .unwrap_err()
+            .to_string();
+            assert!(err.contains(flag), "{flag}: {err}");
+        }
+        // The default fan-out cap is not a choice the user made.
+        assert!(unsupported(&RunOptions::default()).is_empty());
     }
 
     #[test]

@@ -624,6 +624,23 @@ fn a_user_rule_covers_a_framework_cgg_does_not_ship() {
 }
 
 #[test]
+fn a_misspelled_key_in_a_user_rule_is_an_error() {
+    // REGRESSION: `atributes` was silently ignored, so the rule matched
+    // nothing and the run looked healthy.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "cgg-deadcode.toml",
+        "[[framework]]\nid = \"myfw\"\nlanguage = \"python\"\nkind = \"network\"\n\
+         detect = [\"myfw\"]\natributes = [\"endpoint\"]\n",
+    );
+    write(tmp.path(), "svc.py", "def handle():\n    return 1\n");
+    let out = cgg().arg("--dead-code").arg(tmp.path()).assert().failure();
+    let err = String::from_utf8_lossy(&out.get_output().stderr).to_string();
+    assert!(err.contains("atributes"), "{err}");
+}
+
+#[test]
 fn the_attack_surface_query_from_the_docs_actually_works() {
     let tmp = TempDir::new().unwrap();
     write(

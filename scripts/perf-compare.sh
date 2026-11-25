@@ -65,7 +65,7 @@ WORKTREE="$(mktemp -d -t cgg-perf-baseline-XXXXXX)"
 # where the 0.6.8 quadratics lived, so it would have reported "flat" for
 # a fix that took erlang-otp from 3h40m to 24.5s.
 #
-# cgg spans 44 languages and several hundred framework rules. A subset
+# cgg spans 46 languages and several hundred framework rules. A subset
 # is an anecdote with digits in it. CGG_REPO_TIMEOUT and
 # CGG_TOTAL_BUDGET keep the full sweep bounded; override REPOS only for
 # a deliberate one-off.

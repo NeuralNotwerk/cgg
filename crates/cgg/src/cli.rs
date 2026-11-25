@@ -157,10 +157,12 @@ pub struct Cli {
     /// BUDGET IS AN ESTIMATE. cgg ships no tokenizer (it would cost more
     /// than the rest of the binary), so the count is
     /// `max(words * 2.5, bytes / 1.8)`. The divisor is measured, not a
-    /// rule of thumb: cgg's own mermaid runs 1.78-2.25 bytes per token
-    /// because 40% of it is base36 node ids and `::`-dense names. It sits
-    /// at the bottom of that range deliberately, so the estimate is a
-    /// bound with 10-25% slack rather than a midpoint you can land over.
+    /// rule of thumb: measured mermaid runs 1.76-2.14 bytes per token with
+    /// hashed node ids and 2.08-2.51 with numbered ones, because node ids
+    /// and `::`-dense names dominate it. It sits near the bottom of that
+    /// range deliberately, so the estimate is usually a bound with slack
+    /// rather than a midpoint you can land over (the densest documents
+    /// can under-count by about 2%).
     ///
     /// Every run that rolls up says so on stderr, in the graph itself,
     /// and in the audit log.
@@ -343,8 +345,10 @@ pub struct Cli {
 
     /// Emit interface/trait dynamic-dispatch fan-out edges (declaration
     /// → each implementation), tagged `dynamic`/low-confidence. Also
-    /// fans Python class overrides out from inherited methods of the
-    /// same name. The exact call-site → declaration edge is always
+    /// fans class overrides out from inherited methods of the same name
+    /// (Python, Java, C#, Kotlin, Scala, Groovy, TS, JS, Swift, Dart, PHP,
+    /// Ruby), Go interface methods to the types that satisfy them, and
+    /// Clojure protocols and multimethods to their implementations. The exact call-site → declaration edge is always
     /// emitted; this flag adds the over-approximated fan-out. Off by
     /// default; `--dead-code` turns it on.
     #[arg(long = "dynamic-dispatch", action = ArgAction::SetTrue)]
@@ -592,7 +596,8 @@ fn parse_externals(s: &str) -> Result<cgg_core::ExternalsSpec, String> {
 pub enum DeadCodeFormatArg {
     /// Ranked, agent-readable text report.
     Text,
-    /// `cgg.deadcode.v1` JSON document.
+    /// Stable JSON document (`cgg.deadcode.v1` for `--dead-code-format`,
+    /// `cgg.externals.v1` for `--externals-format`).
     Json,
 }
 

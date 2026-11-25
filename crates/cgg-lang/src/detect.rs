@@ -23,9 +23,11 @@
 //!    config/data YAML/JSON is left alone). `detected_via = "content:<id>"`.
 //! 4. **Extension** — case-insensitive match against each plugin's
 //!    extension list. `detected_via = "extension:<ext>"`.
-//! 5. **`.h` ambiguity** — if the extension is `.h`, look for a
+//! 5. **`.h` ambiguity** — if the extension is `.h`, C++-only syntax in
+//!    the first 8 KiB (e.g. a line beginning `virtual`) picks C++
+//!    (`detected_via = "header-content:cpp"`). Otherwise look for a
 //!    sibling file with the same stem and a C++ extension
-//!    (`.cpp`, `.cc`, `.cxx`, `.hpp`, `.hh`, `.hxx`) inside the same
+//!    (`.cpp`, `.cc`, `.cxx`, `.hpp`, `.hh`, `.hxx`, `.C`) inside the same
 //!    directory. If present, pick C++; else C.
 //!    `detected_via = "header-heuristic:cpp"` or `"header-heuristic:c"`.
 //! 6. **Unknown** — returns [`DetectVerdict::Unknown`], which callers
