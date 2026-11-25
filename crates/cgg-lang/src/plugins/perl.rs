@@ -392,6 +392,9 @@ impl<'a> PerlWalker<'a> {
                 // sub { … }` — so the handler sits in argument position
                 // of a receiver-less call.
                 self.capture_registrar(node, &name);
+                if name == "plugin" {
+                    self.record_plugin_import(node);
+                }
             }
         }
     }
@@ -444,13 +447,54 @@ impl<'a> PerlWalker<'a> {
                 // dotted segment, so a receiver too complex to name —
                 // the previous link of a `->` chain — is dropped rather
                 // than pasted into the context verbatim.
+                let is_plugin = name == "plugin";
                 let context = match receiver_hint.as_str() {
                     r if r.is_empty() || !is_simple_receiver(r) => name,
                     r => format!("{r}.{name}"),
                 };
                 self.capture_registrar(node, &context);
+                if is_plugin {
+                    self.record_plugin_import(node);
+                }
             }
         }
+    }
+
+    /// `$app->plugin(Minion => {…})`, `plugin 'Minion';`: Mojolicious
+    /// loads the named plugin module, which no `use` line states. Recorded
+    /// as a `perl-plugin` import of the name as written, so framework
+    /// detection sees the plugin the app loads.
+    fn record_plugin_import(&mut self, node: Node) {
+        let Some(args) = Self::arg_list(node) else {
+            return;
+        };
+        let mut c = args.walk();
+        let Some(first) = args.named_children(&mut c).next() else {
+            return;
+        };
+        let raw = match first.kind() {
+            k if k.starts_with("string_") => super::registrar::unquote(self.text(first)),
+            "call_expression_with_bareword"
+            | "identifier"
+            | "bareword"
+            | "package_name" => self.text(first).trim().to_string(),
+            _ => return,
+        };
+        let path = raw.trim_start_matches('+');
+        if !path.starts_with(|c: char| c.is_ascii_uppercase())
+            || !path
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '_' || c == ':')
+        {
+            return;
+        }
+        self.facts.imports.push(ImportRecord {
+            kind: "perl-plugin".into(),
+            path: path.to_string(),
+            alias: String::new(),
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+        });
     }
 
     /// The argument list of a call, whichever spelling the grammar used.
@@ -493,6 +537,12 @@ impl<'a> PerlWalker<'a> {
         if let Some(s) = self.first_string(args) {
             return s;
         }
+        // `add_task(resize => sub { … })`: a bareword before a fat comma
+        // is an autoquoted string, and the name the job (or route) is
+        // registered under.
+        if let Some(s) = self.bareword_key(args) {
+            return s;
+        }
         let mut recv = node.child_by_field_name("object_return_value");
         // Two links is enough for every router chain in the wild and
         // keeps an unrelated string further up from being claimed.
@@ -509,6 +559,29 @@ impl<'a> PerlWalker<'a> {
             recv = r.child_by_field_name("object_return_value");
         }
         String::new()
+    }
+
+    /// The leading `name =>` of an argument list, when the name is a
+    /// bareword (autoquoted by the fat comma).
+    fn bareword_key(&self, args: Node) -> Option<String> {
+        let mut c = args.walk();
+        let mut kids = args.children(&mut c).filter(|n| n.kind() != ",");
+        let first = kids.next()?;
+        if !matches!(
+            first.kind(),
+            "call_expression_with_bareword"
+                | "identifier"
+                | "bareword"
+                | "autoquoted_bareword"
+        ) {
+            return None;
+        }
+        if kids.next()?.kind() != "fat_comma" {
+            return None;
+        }
+        let t = self.text(first).trim();
+        (!t.is_empty() && t.chars().all(|c| c.is_alphanumeric() || c == '_'))
+            .then(|| t.to_string())
     }
 
     fn first_string(&self, args: Node) -> Option<String> {
@@ -917,6 +990,34 @@ mod tests {
             "refs: {:?}",
             f.references
         );
+    }
+
+    #[test]
+    fn a_bareword_named_task_mints_its_inline_handler() {
+        let f = extract("$app->minion->add_task(resize => sub { my $job = shift; });\n");
+        assert!(
+            f.references
+                .iter()
+                .any(|r| r.name.starts_with("handler_at_")
+                    && r.route == "resize"
+                    && r.context == "add_task"),
+            "refs: {:?}",
+            f.references
+        );
+    }
+
+    #[test]
+    fn a_mojolicious_plugin_load_is_an_import() {
+        let f = extract(
+            "sub startup { my $self = shift; $self->plugin(Minion => {Pg => 1}); }\nplugin 'Config';\n",
+        );
+        let plugins: Vec<&str> = f
+            .imports
+            .iter()
+            .filter(|i| i.kind == "perl-plugin")
+            .map(|i| i.path.as_str())
+            .collect();
+        assert_eq!(plugins, vec!["Minion", "Config"], "{:?}", f.imports);
     }
 
     #[test]
