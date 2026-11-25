@@ -961,6 +961,21 @@ fn marker_head(marker: &str) -> &str {
     m.split(['.', ':']).next().unwrap_or(m).trim()
 }
 
+/// Whether one of `rule`'s registrars names `context` with its receiver:
+/// `server.resource` matches `server.resource` and `app.server.resource`,
+/// never a bare `resource` entry.
+fn names_receiver(rule: &FrameworkRule, context: &str) -> bool {
+    let ctx = context.to_ascii_lowercase();
+    rule.registrars.iter().any(|reg| {
+        let reg = reg.to_ascii_lowercase();
+        reg.contains(['.', ':'])
+            && (ctx == reg
+                || ctx
+                    .strip_suffix(reg.as_str())
+                    .is_some_and(|head| head.ends_with(['.', ':'])))
+    })
+}
+
 /// Registrar verbs that collide with ordinary vocabulary.
 ///
 /// `get`, `add` and `use` name HTTP routes *and* map lookups, list
@@ -2084,14 +2099,13 @@ fn match_registrars(
             {
                 continue;
             }
-            if contains_ci(
-                &AMBIGUOUS_VERBS
-                    .iter()
-                    .map(|s| s.to_string())
-                    .collect::<Vec<_>>(),
-                verb,
-            ) && r.route.is_empty()
+            // A rule naming the receiver (`server.resource`,
+            // `ipcMain.handle`) has had it confirmed: that is the
+            // corroboration, not the route.
+            if AMBIGUOUS_VERBS.iter().any(|v| v.eq_ignore_ascii_case(verb))
+                && r.route.is_empty()
                 && !receiverless
+                && !names_receiver(rule, &r.context)
             {
                 continue;
             }
@@ -4533,6 +4547,47 @@ mod tests {
             out.entries.iter().any(|e| e.framework == "myflask"),
             "{:?}",
             out.entries
+        );
+    }
+
+    // An ambiguous verb needs a route or a bare call — unless the rule
+    // names the receiver it was called on, which confirms it already:
+    // `server.resource(handler)` for a rule registering `server.resource`.
+    #[test]
+    fn a_rule_naming_the_receiver_corroborates_an_ambiguous_verb() {
+        let h = node(0, "srv.read_config", "read_config", "python");
+        let g = graph_with(vec![h]);
+        let mk = |context: &str| {
+            let mut f = facts_with_import("python", "srv.py", "mytools");
+            f.references.push(RefRecord {
+                name: "read_config".into(),
+                receiver_hint: VALUE_REF_HINT.to_string(),
+                site_line: 4,
+                site_byte: 40,
+                context: context.into(),
+                ..Default::default()
+            });
+            f
+        };
+        let mut qualified = user_rule("q", "python", "mytools");
+        qualified.registrars = vec!["server.resource".into()];
+        let mut bare = user_rule("b", "python", "mytools");
+        bare.registrars = vec!["resource".into()];
+        assert_eq!(
+            detect(&g, &[mk("app.server.resource")], &[qualified.clone()])
+                .entries
+                .len(),
+            1
+        );
+        assert!(
+            detect(&g, &[mk("cache.resource")], &[qualified])
+                .entries
+                .is_empty()
+        );
+        assert!(
+            detect(&g, &[mk("server.resource")], &[bare])
+                .entries
+                .is_empty()
         );
     }
 

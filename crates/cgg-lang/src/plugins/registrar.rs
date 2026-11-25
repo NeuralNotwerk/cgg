@@ -221,6 +221,13 @@ pub(crate) fn arguments_of<'t>(call: Node<'t>) -> Option<Node<'t>> {
     Some(found)
 }
 
+/// The most arguments a registration that hands off an inline handler
+/// takes. MCP's `server.tool(name, description, schema, annotations,
+/// handler)` and the Claude Agent SDK's `tool(name, description, schema,
+/// handler, extras)` pass five; a call with more is a computation, not a
+/// registration.
+const MAX_REGISTRATION_ARGS: usize = 6;
+
 /// Whether a call has the shape of a registration that hands off an
 /// inline handler: `verb("identity", ...closure)` or `verb(closure)`.
 ///
@@ -241,7 +248,7 @@ pub(crate) fn is_registration_shape(call: Node, source: &[u8]) -> Option<String>
     let args = arguments_of(call)?;
     let mut cursor = args.walk();
     let named: Vec<Node> = args.named_children(&mut cursor).collect();
-    if named.len() > 4 {
+    if named.len() > MAX_REGISTRATION_ARGS {
         return None;
     }
     let route = string_within(*named.first()?, source).unwrap_or_default();
@@ -557,6 +564,91 @@ pub(crate) fn capture(
     if !name.is_empty() {
         for r in &mut out {
             r.name_arg = name.clone();
+        }
+    }
+    out
+}
+
+/// File-level aliases of a registrar: `const useAction = useCopilotAction
+/// as any;` (JS/TS, `as`/`satisfies`/`!`/parentheses peeled), `tool =
+/// mcp.tool` (Python). Local name → the registrar as written, for every
+/// alias whose target passes the registrar gate, so a call through the
+/// alias is captured as a call of the registrar.
+pub(crate) fn file_aliases(
+    ctx: &crate::ExtractCtx<'_>,
+    root: Node,
+    source: &[u8],
+) -> std::collections::HashMap<String, String> {
+    let mut out = std::collections::HashMap::new();
+    let mut cursor = root.walk();
+    for stmt in root.named_children(&mut cursor) {
+        let stmt = if stmt.kind() == "export_statement" {
+            match stmt.child_by_field_name("declaration") {
+                Some(d) => d,
+                None => continue,
+            }
+        } else {
+            stmt
+        };
+        let mut pairs: Vec<(Node, Node)> = Vec::new();
+        match stmt.kind() {
+            "lexical_declaration" | "variable_declaration" => {
+                let mut c = stmt.walk();
+                for d in stmt.named_children(&mut c) {
+                    if d.kind() == "variable_declarator"
+                        && let (Some(n), Some(v)) = (
+                            d.child_by_field_name("name"),
+                            d.child_by_field_name("value"),
+                        )
+                    {
+                        pairs.push((n, v));
+                    }
+                }
+            }
+            "expression_statement" => {
+                if let Some(a) = stmt.named_child(0)
+                    && a.kind() == "assignment"
+                    && let (Some(n), Some(v)) = (
+                        a.child_by_field_name("left"),
+                        a.child_by_field_name("right"),
+                    )
+                {
+                    pairs.push((n, v));
+                }
+            }
+            _ => {}
+        }
+        for (name, mut value) in pairs {
+            if name.kind() != "identifier" {
+                continue;
+            }
+            while matches!(
+                value.kind(),
+                "as_expression"
+                    | "satisfies_expression"
+                    | "non_null_expression"
+                    | "parenthesized_expression"
+                    | "type_assertion"
+            ) {
+                match value.named_child(0) {
+                    Some(v) => value = v,
+                    None => break,
+                }
+            }
+            if !matches!(
+                value.kind(),
+                "identifier" | "member_expression" | "attribute"
+            ) {
+                continue;
+            }
+            let (Ok(local), Ok(target)) =
+                (name.utf8_text(source), value.utf8_text(source))
+            else {
+                continue;
+            };
+            if local != target && admits(ctx, target) {
+                out.insert(local.to_string(), target.to_string());
+            }
         }
     }
     out

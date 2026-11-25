@@ -91,6 +91,7 @@ impl LanguagePlugin for PythonPlugin {
             class_field_types: Vec::new(),
             class_field_annotated: Vec::new(),
             function_local_classes: BTreeSet::new(),
+            registrar_aliases: std::collections::HashMap::new(),
         };
         walker.walk(tree.root_node());
         let local_classes = std::mem::take(&mut walker.function_local_classes);
@@ -160,6 +161,9 @@ fn module_name(path: &Path) -> String {
 }
 
 struct Walker<'a> {
+    /// File-level aliases of a registrar (`tool = mcp.tool`), read at the
+    /// module node: see `registrar::file_aliases`.
+    registrar_aliases: std::collections::HashMap<String, String>,
     source: &'a [u8],
     /// Per-run extraction switches; see `crate::ExtractCtx`.
     ctx: crate::ExtractCtx<'a>,
@@ -192,6 +196,10 @@ impl<'a> Walker<'a> {
     }
 
     fn walk(&mut self, node: Node) {
+        if node.parent().is_none() && node.kind() == "module" {
+            self.registrar_aliases =
+                super::registrar::file_aliases(&self.ctx, node, self.source);
+        }
         if self.ctx.reference_sites {
             self.capture_value_positions(node);
         }
@@ -293,6 +301,11 @@ impl<'a> Walker<'a> {
                             format!("{}.{}", r.receiver_hint, r.name)
                         };
                         self.facts.references.push(r);
+                        let context = self
+                            .registrar_aliases
+                            .get(&context)
+                            .cloned()
+                            .unwrap_or(context);
                         let extra = super::registrar::capture(
                             &self.ctx,
                             node,
@@ -1834,6 +1847,25 @@ class Pipe:
         assert!(
             strings.is_empty(),
             "an ordinary call must not emit string refs; got {strings:?}"
+        );
+    }
+
+    /// A registrar called through a file-level alias is captured as the
+    /// registrar it stands for.
+    #[test]
+    fn a_registrar_alias_is_captured_as_the_registrar() {
+        let f = extract(
+            "def index():\n    pass\n\n\
+             register = app.add_url_rule\n\
+             register('/x', view_func=index)\n",
+        );
+        assert!(
+            f.references.iter().any(|r| r.name == "index"
+                && r.receiver_hint == cgg_core::VALUE_REF_HINT
+                && r.context == "app.add_url_rule"
+                && r.route == "/x"),
+            "{:?}",
+            f.references
         );
     }
 

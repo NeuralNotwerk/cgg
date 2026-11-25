@@ -286,7 +286,18 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         .frameworks
         .iter()
         .flat_map(|r| r.registrars.iter())
-        .map(|v| v.to_ascii_lowercase())
+        // The gate asks the callee's last segment (`tool` of
+        // `server.tool`), so a dotted user registrar is keyed by that too;
+        // the rule engine still checks the receiver.
+        .flat_map(|v| {
+            let lower = v.to_ascii_lowercase();
+            let verb = lower
+                .rsplit(['.', ':'])
+                .next()
+                .unwrap_or(&lower)
+                .to_string();
+            [lower, verb]
+        })
         .collect();
     // Every worker shares this by reference; extraction pays a pointer.
     // Receiver-carrying value references only ever become reference

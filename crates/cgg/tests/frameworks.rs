@@ -206,6 +206,36 @@ fn rmcp_tools_are_tool_entries_named_by_the_tool() {
     assert!(err.contains("prompt injection"), "{err}");
 }
 
+// 0.14.0 registrar capture limits: a five-argument registration
+// (`server.tool(name, description, schema, annotations, handler)`), a
+// registrar called through a file-level alias (`const f =
+// useCopilotAction as any`), and a user rule's dotted registrar all hand
+// their handler to the rule.
+#[test]
+fn registrar_capture_reaches_long_calls_aliases_and_dotted_user_verbs() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "cgg-deadcode.toml",
+        "[[framework]]\nid = \"mytools\"\nlanguage = \"typescript\"\nkind = \"tool\"\n\
+         detect = [\"mytools\"]\nregistrars = [\"server.tool\", \"useAction\"]\n",
+    );
+    write(
+        tmp.path(),
+        "src/server.ts",
+        "import { Server, useAction } from 'mytools';\n\
+         const server = new Server();\n\
+         const useActionTyped = useAction as any;\n\
+         server.tool('get_weather', 'Weather now', {}, { readOnly: true }, async () => probe());\n\
+         useActionTyped({ name: 'open_page', handler: async () => probe() });\n\
+         function probe() { return 1; }\n",
+    );
+    let toml = tmp.path().join("cgg-deadcode.toml");
+    let (g, err) = run(tmp.path(), &["--roots", toml.to_str().unwrap()]);
+    assert!(g.contains("tool::mytools::get_weather"), "{g}\n{err}");
+    assert!(g.contains("tool::mytools::open_page"), "{g}\n{err}");
+}
+
 #[test]
 fn shape_c_go_inline_martini_route_is_an_entry() {
     // Martini's README writes every route as an inline `func_literal`,
