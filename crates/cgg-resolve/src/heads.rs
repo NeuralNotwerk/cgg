@@ -263,7 +263,7 @@ impl WorkspaceVocab {
         if p.is_empty() {
             return false;
         }
-        let under = |declared: &str, sep: char| {
+        let under = |p: &str, declared: &str, sep: char| {
             p == declared || p.strip_prefix(declared).is_some_and(|r| r.starts_with(sep))
         };
         match language {
@@ -284,14 +284,14 @@ impl WorkspaceVocab {
                         .iter()
                         .any(|a| p.starts_with(a.as_str()))
             }
-            "go" => self.go_modules.iter().any(|m| under(m, '/')),
+            "go" => self.go_modules.iter().any(|m| under(p, m, '/')),
             "java" | "kotlin" | "scala" => {
                 let p = p.trim_end_matches(".*").trim_end_matches("._");
-                self.jvm_packages.iter().any(|d| under(d, '.'))
+                self.jvm_packages.iter().any(|d| under(p, d, '.'))
             }
             "csharp" => {
                 let p = p.trim_start_matches("global::");
-                self.cs_declared.iter().any(|d| under(d, '.'))
+                self.cs_declared.iter().any(|d| under(p, d, '.'))
             }
             "rust" => {
                 let head = p.split("::").next().unwrap_or(p).trim();
@@ -1142,18 +1142,16 @@ fn py_module_keys(
     };
     let dir = segs.join("/");
     let stem = last.strip_suffix(".py").unwrap_or(&last);
-    let top_dir;
-    if stem == "__init__" {
+    let top_dir = if stem == "__init__" {
         // The package itself: `a/b/__init__.py` is `a.b`.
-        top_dir = segs
-            .len()
+        segs.len()
             .checked_sub(1)
             .map(|n| segs[..n].join("/"))
-            .unwrap_or_default();
+            .unwrap_or_default()
     } else {
         segs.push(stem.to_string());
-        top_dir = dir;
-    }
+        dir
+    };
     for i in 0..segs.len().saturating_sub(1) {
         out.insert(segs[i..].join("."));
     }
