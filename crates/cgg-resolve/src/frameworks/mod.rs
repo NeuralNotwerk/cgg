@@ -66,7 +66,8 @@ pub fn detect(
     let _sp = cgg_core::profile::span("frameworks::total");
     let evidence = {
         let _s = cgg_core::profile::span("frameworks::detect-scan");
-        Detection::scan(graph, facts, &all)
+        let vocab = crate::heads::WorkspaceVocab::build(graph, facts);
+        Detection::scan(graph, facts, &all, &vocab)
     };
     let called_in_file = callees_within_their_file(graph);
     let in_tree_imports = {
@@ -202,10 +203,17 @@ struct Detection {
 }
 
 impl Detection {
-    fn scan(graph: &Graph, facts: &[FileFacts], all: &[FrameworkRule]) -> Self {
+    fn scan(
+        graph: &Graph,
+        facts: &[FileFacts],
+        all: &[FrameworkRule],
+        vocab: &crate::heads::WorkspaceVocab,
+    ) -> Self {
         let mut hits: BTreeMap<(String, String), u32> = BTreeMap::new();
         let mut files_by_language: BTreeMap<String, u32> = BTreeMap::new();
         let mut file_hits: HashSet<(String, String, FileId)> = HashSet::new();
+
+        let own_vocabulary = OwnVocabulary::build(graph);
 
         // Index rules by language so each file is compared only against
         // the rules that could possibly apply to it.
@@ -279,9 +287,21 @@ impl Detection {
             let mut import_hits: HashSet<usize> = HashSet::new();
             for imp in &f.imports {
                 let raw = imp.path.trim().trim_matches(|c| c == '"' || c == '\'');
+                // An import of the tree's own module is not a framework,
+                // whatever it is called: ai-doc-gen's `agents/` package is
+                // not the OpenAI Agents SDK (`agents`). Python only: its
+                // top-level module names are not globally unique the way
+                // a JVM or C# package, a Go module path, an npm or a crate
+                // name is — one of those the tree declares IS the
+                // framework (its own repository).
+                let in_tree =
+                    f.language == "python" && vocab.declares_import(&f.language, raw);
+                let head = raw.split('.').next().unwrap_or(raw);
                 for key in prefix_keys(raw) {
                     if let Some(ids) = prefix_index.get(&(f.language.as_str(), key)) {
-                        import_hits.extend(ids.iter().copied());
+                        import_hits.extend(ids.iter().copied().filter(|i| {
+                            !in_tree || own_vocabulary.defines(head, &all[*i])
+                        }));
                     }
                 }
                 // A Rust crate re-exporting a framework (`use
@@ -571,6 +591,67 @@ impl Detection {
         cov.nodes_minted = entries.iter().filter(|e| e.node).count() as u32;
         cov.root_marks_only = entries.iter().filter(|e| !e.node).count() as u32;
         cov
+    }
+}
+
+/// The names a Python tree defines under each module name, for telling a
+/// framework's own repository from a package that merely shares a
+/// framework's name: `src/flask/` defines `route` and `View`, the names
+/// the flask rule looks for; ai-doc-gen's `agents/` defines none of the
+/// Agents SDK's.
+struct OwnVocabulary {
+    /// Directory name or file stem → simple names and owner types
+    /// defined in a file under it.
+    by_segment: HashMap<String, HashSet<String>>,
+}
+
+impl OwnVocabulary {
+    fn build(graph: &Graph) -> Self {
+        let mut by_segment: HashMap<String, HashSet<String>> = HashMap::new();
+        let mut segs_of: HashMap<FileId, Vec<String>> = HashMap::new();
+        for c in graph.callables.values() {
+            if c.language != "python" || c.synthetic {
+                continue;
+            }
+            let segs = segs_of.entry(c.file).or_insert_with(|| {
+                graph
+                    .files
+                    .get(&c.file)
+                    .map(|f| {
+                        let p = normalize_path(&f.path.to_string_lossy());
+                        p.trim_end_matches(".py")
+                            .split('/')
+                            .filter(|s| !s.is_empty())
+                            .map(str::to_string)
+                            .collect()
+                    })
+                    .unwrap_or_default()
+            });
+            let owner = crate::names::owner_from_qn(&c.qualified_name)
+                .map(|o| last_segment(o).to_string());
+            for seg in segs.iter() {
+                let e = by_segment.entry(seg.clone()).or_default();
+                e.insert(c.simple_name.clone());
+                if let Some(o) = &owner {
+                    e.insert(o.clone());
+                }
+            }
+        }
+        Self { by_segment }
+    }
+
+    /// Whether the tree's module `head` defines one of `rule`'s marker
+    /// names: an attribute or registrar verb, or a base type.
+    fn defines(&self, head: &str, rule: &FrameworkRule) -> bool {
+        let Some(names) = self.by_segment.get(head) else {
+            return false;
+        };
+        rule.attributes
+            .iter()
+            .chain(&rule.registrars)
+            .chain(&rule.base_types)
+            .map(|m| last_segment(m))
+            .any(|m| !m.contains('*') && names.contains(m))
     }
 }
 
@@ -4372,6 +4453,86 @@ mod tests {
         assert_eq!(
             rooted(&out),
             vec!["org.acme.batch.core.RunIdIncrementer.getNext"]
+        );
+    }
+
+    // Detection asks the tree first: an import of the project's own
+    // `agents` package is not the OpenAI Agents SDK, while a module that
+    // merely shares a framework's name (`proj/celery.py`) leaves the real
+    // `celery` import detected.
+    #[test]
+    fn an_in_tree_module_named_like_a_framework_does_not_detect_it() {
+        let mut tool = node(0, "src.agents.documenter.run", "run", "python");
+        tool.attributes = vec!["@function_tool".into()];
+        let mut task = node(1, "proj.tasks.send", "send", "python");
+        task.attributes = vec!["@shared_task".into()];
+        task.file = FileId::new(3);
+        let g = graph_with(vec![tool, task]);
+        let facts = vec![
+            py_import(
+                0,
+                "src/handlers/readme.py",
+                "from-import",
+                "agents.documenter",
+                "Doc",
+            ),
+            py_import(1, "src/agents/__init__.py", "import", "os", ""),
+            py_import(2, "src/agents/documenter.py", "import", "os", ""),
+            py_import(3, "proj/tasks.py", "from-import", "celery", "shared_task"),
+            py_import(4, "proj/__init__.py", "import", "os", ""),
+            py_import(5, "proj/celery.py", "from-import", "celery", "Celery"),
+            py_import(6, "src/__init__.py", "import", "os", ""),
+        ];
+        let mut sdk = user_rule("agents-sdk", "python", "agents");
+        sdk.attributes = vec!["function_tool".into()];
+        let mut celery = user_rule("mycelery", "python", "celery");
+        celery.attributes = vec!["shared_task".into()];
+        let out = detect(&g, &facts, &[sdk, celery]);
+        let ids: Vec<&str> = out.entries.iter().map(|e| e.framework.as_str()).collect();
+        assert!(!ids.contains(&"agents-sdk"), "{ids:?}");
+        assert!(ids.contains(&"mycelery"), "{ids:?}");
+        assert!(
+            !out.coverage
+                .seen_no_rules
+                .iter()
+                .any(|f| f.id == "agents-sdk"),
+            "not detected at all: {:?}",
+            out.coverage
+        );
+    }
+
+    // A framework's own repository: its in-tree `flask` package defines
+    // the rule's own vocabulary (`route`), so its tests' `from flask
+    // import Flask` still detects flask.
+    #[test]
+    fn a_frameworks_own_repository_still_detects_it() {
+        let mut g = Graph::new();
+        for (id, path) in [(0u32, "src/flask/app.py"), (1, "tests/test_basic.py")] {
+            g.add_file(cgg_core::graph::FileRecord {
+                id: FileId::new(id),
+                path: PathBuf::from(path),
+                language: "python".into(),
+                ..Default::default()
+            });
+        }
+        let mut route = node(0, "flask.app.Flask.route", "route", "python");
+        route.file = FileId::new(0);
+        let mut view = node(1, "test_basic.index", "index", "python");
+        view.file = FileId::new(1);
+        view.attributes = vec!["@app.route(\"/\")".into()];
+        g.add_callable(route);
+        g.add_callable(view);
+        let facts = vec![
+            py_import(0, "src/flask/app.py", "import", "os", ""),
+            py_import(1, "tests/test_basic.py", "from-import", "flask", "Flask"),
+        ];
+        let mut rule = user_rule("myflask", "python", "flask");
+        rule.attributes = vec!["route".into()];
+        let out = detect(&g, &facts, &[rule]);
+        assert!(
+            out.entries.iter().any(|e| e.framework == "myflask"),
+            "{:?}",
+            out.entries
         );
     }
 

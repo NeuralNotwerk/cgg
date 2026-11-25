@@ -89,6 +89,17 @@ pub(crate) struct WorkspaceVocab {
     /// a Scala relative import (`import util.Helpers` inside `a.b`, for
     /// `a.b.util`) can start with.
     jvm_segments: HashSet<String>,
+    /// Python: dotted module paths the tree's own files are importable
+    /// under — every path suffix of two or more segments
+    /// (`agents.documenter` for `src/agents/documenter.py`), and the
+    /// single name of a top-level module or package (one whose directory
+    /// is no package). Strict, unlike `py_names`: read by framework
+    /// detection, where a wrongly in-tree import loses a framework.
+    py_modules: HashSet<String>,
+    /// C#: namespaces the tree declares (not their ancestors).
+    cs_declared: HashSet<String>,
+    /// Rust: crate names of the tree's own crates.
+    rust_crates: HashSet<String>,
     /// Scala: the name of every class, trait and object a Scala callable
     /// is declared in, and every member value a Scala type declares
     /// (`val io = …`): a name a receiver can be headed by in some class.
@@ -101,9 +112,24 @@ impl WorkspaceVocab {
         let mut go_modules: HashSet<String> = HashSet::new();
         let mut cs_global: HashSet<String> = HashSet::new();
         let mut js_alias: HashSet<String> = HashSet::new();
+        let py_package_dirs: HashSet<String> = facts
+            .iter()
+            .filter(|f| f.language == "python")
+            .filter(|f| f.path.file_name().is_some_and(|n| n == "__init__.py"))
+            .filter_map(|f| f.path.parent())
+            .map(|d| normal_components(d).join("/"))
+            .collect();
         for f in facts {
             match f.language.as_str() {
-                "python" => path_names(&f.path, &mut v.py_names),
+                "python" => {
+                    path_names(&f.path, &mut v.py_names);
+                    py_module_keys(&f.path, &py_package_dirs, &mut v.py_modules);
+                }
+                "rust" => {
+                    for imp in f.imports.iter().filter(|i| i.kind == "crate-root") {
+                        v.rust_crates.insert(imp.path.trim().to_string());
+                    }
+                }
                 "javascript" | "typescript" => {
                     path_names(&f.path, &mut v.js_names);
                     for p in &f.packages {
@@ -150,6 +176,7 @@ impl WorkspaceVocab {
                     }
                 }
                 "csharp" => {
+                    v.cs_declared.extend(f.packages.iter().cloned());
                     for ns in &f.packages {
                         insert_prefixes(ns, &mut v.cs_prefixes);
                         if let Some(root) = ns.split('.').next() {
@@ -223,6 +250,55 @@ impl WorkspaceVocab {
         g.sort();
         v.cs_global_usings = g;
         v
+    }
+
+    /// Whether an import names one of the tree's own modules, judged
+    /// strictly: framework detection asks this, so a package of the tree
+    /// named like a framework (`agents/`) is not taken for it, while a
+    /// module merely sharing a name with one (`proj/celery.py`, importable
+    /// only as `proj.celery`) does not hide the real one. `false` for a
+    /// language it cannot judge.
+    pub(crate) fn declares_import(&self, language: &str, path: &str) -> bool {
+        let p = path.trim().trim_matches(|c| c == '"' || c == '\'');
+        if p.is_empty() {
+            return false;
+        }
+        let under = |declared: &str, sep: char| {
+            p == declared || p.strip_prefix(declared).is_some_and(|r| r.starts_with(sep))
+        };
+        match language {
+            "python" => {
+                !p.starts_with('.')
+                    && self
+                        .py_modules
+                        .contains(p.split(" as ").next().unwrap_or(p).trim())
+            }
+            "javascript" | "typescript" => {
+                let pkg = npm_package_of(p);
+                self.npm_packages.contains(pkg)
+                    || self.npm_packages.contains(p)
+                    || p.starts_with("@/")
+                    || p.starts_with(['~', '#', '$'])
+                    || self
+                        .js_alias_prefixes
+                        .iter()
+                        .any(|a| p.starts_with(a.as_str()))
+            }
+            "go" => self.go_modules.iter().any(|m| under(m, '/')),
+            "java" | "kotlin" | "scala" => {
+                let p = p.trim_end_matches(".*").trim_end_matches("._");
+                self.jvm_packages.iter().any(|d| under(d, '.'))
+            }
+            "csharp" => {
+                let p = p.trim_start_matches("global::");
+                self.cs_declared.iter().any(|d| under(d, '.'))
+            }
+            "rust" => {
+                let head = p.split("::").next().unwrap_or(p).trim();
+                self.rust_crates.contains(head)
+            }
+            _ => false,
+        }
     }
 
     pub(crate) fn py_workspace(&self, module: &str) -> bool {
@@ -1053,6 +1129,43 @@ fn normal_components(p: &Path) -> Vec<String> {
         .collect()
 }
 
+/// The dotted module paths a Python file is importable under, for
+/// [`WorkspaceVocab::declares_import`].
+fn py_module_keys(
+    path: &Path,
+    package_dirs: &HashSet<String>,
+    out: &mut HashSet<String>,
+) {
+    let mut segs = normal_components(path);
+    let Some(last) = segs.pop() else {
+        return;
+    };
+    let dir = segs.join("/");
+    let stem = last.strip_suffix(".py").unwrap_or(&last);
+    let top_dir;
+    if stem == "__init__" {
+        // The package itself: `a/b/__init__.py` is `a.b`.
+        top_dir = segs
+            .len()
+            .checked_sub(1)
+            .map(|n| segs[..n].join("/"))
+            .unwrap_or_default();
+    } else {
+        segs.push(stem.to_string());
+        top_dir = dir;
+    }
+    for i in 0..segs.len().saturating_sub(1) {
+        out.insert(segs[i..].join("."));
+    }
+    // A module whose directory is no package is importable by its bare
+    // name (a source root: `src/agents/` beside no `src/__init__.py`).
+    if let Some(name) = segs.last()
+        && !package_dirs.contains(&top_dir)
+    {
+        out.insert(name.clone());
+    }
+}
+
 /// Directory names along `path`, plus its file stem.
 fn path_names(path: &Path, out: &mut HashSet<String>) {
     if let Some(dir) = path.parent() {
@@ -1123,6 +1236,57 @@ mod tests {
             })
             .collect();
         f
+    }
+
+    // Framework detection's in-tree test is strict: the tree's own
+    // `agents` package is in-tree, a `proj/celery.py` (importable only as
+    // `proj.celery`) does not make `celery` the tree's.
+    #[test]
+    fn declares_import_is_strict_about_what_the_tree_names() {
+        let mut pkgs = vec![
+            facts("python", "src/__init__.py", &[]),
+            facts("python", "src/agents/__init__.py", &[]),
+            facts("python", "src/agents/documenter.py", &[]),
+            facts("python", "proj/__init__.py", &[]),
+            facts("python", "proj/celery.py", &[]),
+            facts("python", "lib/mypkg/__init__.py", &[]),
+            facts(
+                "rust",
+                "crates/app/src/lib.rs",
+                &[("crate-root", "my_app", "")],
+            ),
+        ];
+        let mut java = facts("java", "A.java", &[]);
+        java.packages = vec!["org.example.shop".into()];
+        let mut cs = facts("csharp", "A.cs", &[]);
+        cs.packages = vec!["Contoso.Api".into()];
+        let mut go = facts("go", "main.go", &[]);
+        go.packages = vec!["github.com/acme/svc".into()];
+        let mut js = facts("typescript", "src/a.ts", &[]);
+        js.packages = vec!["@acme/ui".into()];
+        pkgs.extend([java, cs, go, js]);
+        let v = WorkspaceVocab::build(&Graph::new(), &pkgs);
+        assert!(v.declares_import("python", "agents.documenter"));
+        assert!(v.declares_import("python", "src.agents"));
+        assert!(v.declares_import("python", "mypkg"), "a top-level package");
+        assert!(
+            !v.declares_import("python", "agents"),
+            "only as `src.agents`"
+        );
+        assert!(!v.declares_import("python", "celery"));
+        assert!(v.declares_import("python", "proj.celery"));
+        assert!(v.declares_import("java", "org.example.shop.Cart"));
+        assert!(!v.declares_import("java", "org.springframework.web.Get"));
+        assert!(!v.declares_import("java", "org.example"));
+        assert!(v.declares_import("csharp", "Contoso.Api.Models"));
+        assert!(!v.declares_import("csharp", "Contoso"));
+        assert!(v.declares_import("go", "github.com/acme/svc/internal/x"));
+        assert!(!v.declares_import("go", "github.com/acme/svcx"));
+        assert!(v.declares_import("typescript", "@acme/ui/button"));
+        assert!(v.declares_import("typescript", "@/lib/ai"));
+        assert!(!v.declares_import("typescript", "ai"));
+        assert!(v.declares_import("rust", "my_app::tools"));
+        assert!(!v.declares_import("rust", "rig::tool::Tool"));
     }
 
     fn call(name: &str, recv: &str) -> RefRecord {
