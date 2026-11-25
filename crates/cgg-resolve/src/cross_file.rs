@@ -7828,11 +7828,13 @@ fn try_resolve_ref(
             // method, and a Kotlin `x::m` or a Swift or Dart `x.m` value as
             // often a property: each binds only through a typed receiver
             // (WS26).
+            // A C# method group through a variable (`Create(_svc.M)`)
+            // binds only through the variable's declared type too.
             && (!r.value_ref
-                || !matches!(
+                || !(matches!(
                     lang,
                     "go" | "kotlin" | "swift" | "dart" | "scala" | "lua" | "zig" | "groovy"
-                ))
+                ) || (lang == "csharp" && rh != "this")))
             // A typed receiver is never fanned out by name: its type's
             // own lookup (step 4) was the answer, hit or miss.
             && !r.typed_receiver

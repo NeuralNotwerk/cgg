@@ -436,6 +436,138 @@ const CASES: &[Case] = &[
         present: &["r.getUser"],
         absent: &[],
     },
+    // ------------------------------------------------- agents and tools
+    Case {
+        name: "mcp-csharp-sdk/csharp",
+        files: &[(
+            "Tools.cs",
+            "using ModelContextProtocol.Server;\n[McpServerToolType]\npublic static class EchoTool {\n  [McpServerTool] public static string Echo(string m) => m;\n  [McpServerTool(Name = \"reverse_echo\")] public static string Rev(string m) => m;\n  [McpServerPrompt] public static string Greeting() => \"hi\";\n  public static string Helper() => \"h\";\n}\n",
+        )],
+        coverage: "mcp-csharp-sdk (tool, 3 entries)",
+        present: &[
+            "tool::mcp-csharp-sdk::Echo",
+            "tool::mcp-csharp-sdk::reverse_echo",
+        ],
+        absent: &["mcp-csharp-sdk::Helper"],
+    },
+    Case {
+        name: "mcp-csharp-sdk/fsharp",
+        files: &[(
+            "Tools.fs",
+            "module Tools\nopen ModelContextProtocol.Server\n[<McpServerToolType>]\ntype EchoTool() =\n    [<McpServerTool>]\n    static member Echo(m: string) = m\n    static member Helper() = 1\n",
+        )],
+        coverage: "mcp-csharp-sdk (tool, 1 entry)",
+        present: &["tool::mcp-csharp-sdk::Echo"],
+        absent: &[],
+    },
+    Case {
+        name: "semantic-kernel/csharp",
+        files: &[(
+            "Lights.cs",
+            "using Microsoft.SemanticKernel;\npublic class LightsPlugin {\n  [KernelFunction(\"get_lights\")] public string GetLights() => \"on\";\n  public string Helper() => \"h\";\n}\npublic sealed class Log : IFunctionInvocationFilter {\n  public async Task OnFunctionInvocationAsync(FunctionInvocationContext c, Func<FunctionInvocationContext, Task> next) { await next(c); }\n}\n",
+        )],
+        coverage: "semantic-kernel (tool, 1 entry)",
+        present: &["tool::semantic-kernel::get_lights"],
+        absent: &["semantic-kernel::Helper", "Log.OnFunctionInvocationAsync ⟨"],
+    },
+    Case {
+        name: "semantic-kernel-hooks/csharp",
+        files: &[(
+            "Log.cs",
+            "using Microsoft.SemanticKernel;\npublic sealed class Log : IFunctionInvocationFilter {\n  public async Task OnFunctionInvocationAsync(FunctionInvocationContext c, Func<FunctionInvocationContext, Task> next) { await next(c); }\n  private void Helper() {}\n}\n",
+        )],
+        coverage: "semantic-kernel-hooks (lifecycle, 1 entry)",
+        present: &[],
+        absent: &[],
+    },
+    Case {
+        name: "semantic-kernel/fsharp",
+        files: &[(
+            "Plugin.fs",
+            "module Plugin\nopen Microsoft.SemanticKernel\ntype MathPlugin() =\n    [<KernelFunction>]\n    member _.Add(a: int, b: int) = a + b\n",
+        )],
+        coverage: "semantic-kernel (tool, 1 entry)",
+        present: &["tool::semantic-kernel::Add"],
+        absent: &[],
+    },
+    Case {
+        name: "microsoft-agent-framework-workflows/csharp",
+        files: &[(
+            "Exec.cs",
+            "using Microsoft.Agents.AI.Workflows;\ninternal sealed partial class Upper() : Executor(\"Upper\") {\n  [MessageHandler] private ValueTask<string> HandleAsync(string m, IWorkflowContext c) => default;\n}\ninternal sealed class Proc() : Executor<Req>(\"Proc\") {\n  public override ValueTask HandleAsync(Req m, IWorkflowContext c, CancellationToken ct = default) => default;\n  private void Helper() {}\n}\n",
+        )],
+        coverage: "microsoft-agent-framework-workflows (queue, 2 entries)",
+        present: &["Upper.HandleAsync", "Proc.HandleAsync"],
+        absent: &["Proc.Helper ⟨"],
+    },
+    Case {
+        name: "microsoft-agent-framework/csharp",
+        files: &[(
+            "Agent.cs",
+            "using Microsoft.Agents.AI;\npublic sealed class MyAgent : AIAgent {\n  protected override Task<AgentRunResponse> RunCoreAsync(IEnumerable<ChatMessage> m) => null;\n  private void Helper() {}\n}\n",
+        )],
+        coverage: "microsoft-agent-framework (lifecycle, 1 entry)",
+        present: &[],
+        absent: &[],
+    },
+    Case {
+        name: "microsoft-extensions-ai/csharp-field-method-group",
+        files: &[(
+            "Chat.cs",
+            "using Microsoft.Extensions.AI;\npublic class Clock { public string GetCurrentTime() => \"now\"; }\npublic class Chat {\n  private readonly Clock _clock = new Clock();\n  public object Tools() => AIFunctionFactory.Create(_clock.GetCurrentTime);\n}\n",
+        )],
+        coverage: "microsoft-extensions-ai (tool, 1 entry)",
+        present: &["tool::microsoft-extensions-ai::GetCurrentTime"],
+        absent: &[],
+    },
+    Case {
+        name: "mcp-go-sdk/go",
+        files: &[(
+            "s.go",
+            "package main\nimport \"github.com/modelcontextprotocol/go-sdk/mcp\"\nfunc greet(ctx any, req any, in any) (any, any, error) { return nil, nil, nil }\nfunc logMW(h any) any { return h }\nfunc main() {\n\tserver := mcp.NewServer(nil, nil)\n\tmcp.AddTool(server, &mcp.Tool{Name: \"greet\"}, greet)\n\tserver.AddReceivingMiddleware(logMW)\n}\n",
+        )],
+        coverage: "mcp-go-sdk (tool, 1 entry)",
+        present: &["tool::mcp-go-sdk::"],
+        absent: &[],
+    },
+    Case {
+        name: "mcp-go/go",
+        files: &[(
+            "s.go",
+            "package main\nimport (\n\t\"github.com/mark3labs/mcp-go/mcp\"\n\t\"github.com/mark3labs/mcp-go/server\"\n)\nfunc helloHandler(ctx any, r mcp.CallToolRequest) (*mcp.CallToolResult, error) { return nil, nil }\nfunc main() {\n\ts := server.NewMCPServer(\"x\", \"1\")\n\ts.AddTool(mcp.NewTool(\"hello\"), helloHandler)\n}\n",
+        )],
+        coverage: "mcp-go (tool, 1 entry)",
+        present: &["tool::mcp-go::"],
+        absent: &[],
+    },
+    // Both Go MCP libraries register with `s.AddTool`: a repository that
+    // imports the other one somewhere does not take these sites.
+    Case {
+        name: "mcp-go/go-beside-the-official-sdk",
+        files: &[
+            (
+                "s.go",
+                "package main\nimport (\n\t\"github.com/mark3labs/mcp-go/mcp\"\n\t\"github.com/mark3labs/mcp-go/server\"\n)\nfunc helloHandler(ctx any, r mcp.CallToolRequest) (*mcp.CallToolResult, error) { return nil, nil }\nfunc main() {\n\ts := server.NewMCPServer(\"x\", \"1\")\n\ts.AddTool(mcp.NewTool(\"hello\"), helloHandler)\n}\n",
+            ),
+            (
+                "loadtest/l.go",
+                "package loadtest\nimport \"github.com/modelcontextprotocol/go-sdk/mcp\"\nvar _ = mcp.NewServer\n",
+            ),
+        ],
+        coverage: "mcp-go (tool, 1 entry)",
+        present: &["tool::mcp-go::"],
+        absent: &["tool::mcp-go-sdk::"],
+    },
+    Case {
+        name: "eino/go",
+        files: &[(
+            "e.go",
+            "package main\nimport (\n\t\"github.com/cloudwego/eino/components/tool/utils\"\n\t\"github.com/cloudwego/eino/compose\"\n)\nfunc add(ctx any, in any) (any, error) { return nil, nil }\nfunc prepare(ctx any, in string) (string, error) { return in, nil }\ntype Search struct{}\nfunc (s *Search) InvokableRun(ctx any, args string) (string, error) { return \"\", nil }\nfunc main() {\n\tt, _ := utils.InferTool(\"add\", \"adds\", add)\n\t_ = t\n\t_ = compose.InvokableLambda(prepare)\n}\n",
+        )],
+        coverage: "eino (tool, 2 entries)",
+        present: &["tool::eino::"],
+        absent: &[],
+    },
 ];
 
 #[test]
@@ -493,4 +625,56 @@ fn go_method_rules_are_case_sensitive() {
     assert!(err.contains("net-http (network, 1 entry)"), "{err}\n{g}");
     assert!(g.contains("net-http::main.h.ServeHTTP"), "{g}");
     assert!(!g.contains("net-http::main.h.serveHTTP"), "{g}");
+}
+
+/// A method group through a field, parameter or `this.` field is a value
+/// reference bound through the variable's declared type (an interface's
+/// implementation stays live through the inheritance fan-out), and a
+/// property read through an untyped variable in the same place binds
+/// nothing by name. A field's declared type also types calls through it.
+#[test]
+fn csharp_method_groups_through_a_receiver_are_value_references() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "A.cs",
+        "public interface ITime { string Now(); }\n\
+         public class Time : ITime { public string Now() => \"x\"; }\n\
+         public class Weather { public string Forecast(string c) => c; }\n\
+         public class Other { public string Label() => \"y\"; }\n\
+         public class Reg { public static object Create(System.Delegate d) => d; }\n\
+         public class Svc {\n\
+         \x20 private readonly ITime _time;\n\
+         \x20 private readonly Weather _w = new Weather();\n\
+         \x20 public Svc(ITime t) { _time = t; }\n\
+         \x20 public void Setup(Weather w, dynamic x) {\n\
+         \x20   Reg.Create(_time.Now);\n\
+         \x20   Reg.Create(this._w.Forecast);\n\
+         \x20   Log(x.Label);\n\
+         \x20 }\n\
+         \x20 private void Log(object o) {}\n\
+         }\n\
+         public static class Program { public static void Main() { new Svc(new Time()).Setup(null, null); } }\n",
+    );
+    let out = Command::cargo_bin("cgg")
+        .unwrap()
+        .args([
+            "--jobs",
+            "1",
+            "--dead-code",
+            "--dead-code-confidence",
+            "low",
+            "--no-graph",
+        ])
+        .arg(tmp.path())
+        .output()
+        .unwrap();
+    let report = String::from_utf8_lossy(&out.stderr).to_string();
+    for live in ["Time.Now", "ITime.Now", "Weather.Forecast"] {
+        assert!(
+            !report.contains(&format!("'{live}'")),
+            "{live} should be live:\n{report}"
+        );
+    }
+    assert!(report.contains("'Other.Label'"), "{report}");
 }

@@ -342,7 +342,11 @@ impl<'a> Walker<'a> {
                 self.record_using(node);
                 return;
             }
-            "local_declaration_statement" => {
+            // A field's declared type types calls and method groups
+            // through it (`_svc.M()`, `Create(_svc.M)`): recorded with the
+            // locals, whose file-wide reading applies where no local of
+            // the name is declared in the calling function.
+            "local_declaration_statement" | "field_declaration" => {
                 self.record_local_type(node);
                 self.walk_children(node);
                 return;
@@ -615,8 +619,9 @@ impl<'a> Walker<'a> {
                 node.named_children(&mut c).collect()
             }
         };
+        let in_argument = node.kind() == "argument";
         for v in values {
-            self.record_method_group(v, 0);
+            self.record_method_group(v, 0, in_argument);
         }
     }
 
@@ -625,7 +630,7 @@ impl<'a> Walker<'a> {
     /// and marked [`RefRecord::value_ref`]. The resolver binds it only
     /// where a callable of that name exists, so a variable, field or
     /// property in the same position costs nothing.
-    fn record_method_group(&mut self, v: Node, depth: u8) {
+    fn record_method_group(&mut self, v: Node, depth: u8, in_argument: bool) {
         let (name_node, recv) = match v.kind() {
             "identifier" => (v, String::new()),
             "member_access_expression" => {
@@ -661,6 +666,23 @@ impl<'a> Walker<'a> {
                     {
                         self.text(expr).to_string()
                     }
+                    // Through a field, parameter or local (`_svc.M`,
+                    // `svc.M`, `this._svc.M`), only as a call argument:
+                    // `AIFunctionFactory.Create(_clock.Now)` hands the
+                    // method over. Recorded with the variable as its
+                    // receiver, so it binds only where that variable's
+                    // declared type finds a method of the name; an untyped
+                    // one is never fanned out by name (`cross_file`), so a
+                    // property read in the same place binds nothing.
+                    "identifier" | "member_access_expression"
+                        if in_argument && self.is_variable_path(expr) =>
+                    {
+                        let r = self.shaped_receiver(expr).0;
+                        match r.strip_prefix("this.") {
+                            Some(field) => field.to_string(),
+                            None => r,
+                        }
+                    }
                     _ => return,
                 };
                 (name, recv)
@@ -668,7 +690,7 @@ impl<'a> Walker<'a> {
             // `(Del) F`: a cast of a method group to a delegate type.
             "cast_expression" if depth < 4 => {
                 if let Some(val) = v.child_by_field_name("value") {
-                    self.record_method_group(val, depth + 1);
+                    self.record_method_group(val, depth + 1, in_argument);
                 }
                 return;
             }
@@ -684,7 +706,7 @@ impl<'a> Walker<'a> {
                     v.named_children(&mut c).collect()
                 };
                 for p in parts {
-                    self.record_method_group(p, depth + 1);
+                    self.record_method_group(p, depth + 1, in_argument);
                 }
                 return;
             }
@@ -702,6 +724,21 @@ impl<'a> Walker<'a> {
             value_ref: true,
             ..Default::default()
         });
+    }
+
+    /// A receiver that names a variable: a lowercase or `_` identifier
+    /// (`svc`, `_svc`), or one member of `this` (`this._svc`).
+    fn is_variable_path(&self, expr: Node) -> bool {
+        let var = |t: &str| {
+            t.starts_with(|c: char| c.is_ascii_lowercase() || c == '_')
+                && t.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+        };
+        let t = self.text(expr);
+        match expr.kind() {
+            "identifier" => var(t),
+            "member_access_expression" => t.strip_prefix("this.").is_some_and(var),
+            _ => false,
+        }
     }
 
     /// A call of type `ty`'s constructor at `node`: the constructor is
@@ -1180,20 +1217,23 @@ mod tests {
         assert!(!got.iter().any(|(_, n)| n == "h" || n == "f" || n == "a"));
     }
 
-    /// Near miss: a member read through a variable (`value.Value`) is a
-    /// property far more often than a method group, so it is not one.
+    /// A member read through a variable is recorded only as a call
+    /// argument (`Create(_svc.M)` hands a method group over), with the
+    /// variable as its receiver, so it binds only through that variable's
+    /// declared type; an initializer or assignment (`var n = x.Name`) is
+    /// a property read far more often, and is not recorded.
     #[test]
     fn member_reads_through_a_variable_are_not_method_groups() {
         let f = extract_refs(
-            "class P { void Run(J value, K x) { Use(value.Value); var n = x.Name; Use(this.H); } }",
+            "class P { void Run(J value, K x) { Use(value.Value); var n = x.Name; Use(this.H); Use(this._f.G); Use(Other().M); } }",
         );
-        let got: Vec<&str> = f
+        let got: Vec<(&str, &str)> = f
             .references
             .iter()
             .filter(|r| r.value_ref)
-            .map(|r| r.name.as_str())
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
             .collect();
-        assert_eq!(got, vec!["H"]);
+        assert_eq!(got, vec![("Value", "value"), ("H", "this"), ("G", "_f")]);
     }
 
     #[test]
