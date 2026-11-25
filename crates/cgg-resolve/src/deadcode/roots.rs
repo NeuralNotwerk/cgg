@@ -24,10 +24,12 @@ const LANG_ENTRY: &[(&str, &[&str])] = &[
     ("go", &["init", "TestMain"]),
     ("elixir", &["start", "start_link", "init"]),
     ("erlang", &["start", "start_link", "init"]),
-    ("c", &["_start", "WinMain", "DllMain"]),
-    ("cpp", &["_start", "WinMain", "DllMain"]),
+    // `Reset_Handler` is the CMSIS linker-script entry (`ENTRY(Reset_Handler)`)
+    // of every Cortex-M startup file, written in C or assembly.
+    ("c", &["_start", "WinMain", "DllMain", "Reset_Handler"]),
+    ("cpp", &["_start", "WinMain", "DllMain", "Reset_Handler"]),
     ("zig", &["_start"]),
-    ("asm", &["_start"]),
+    ("asm", &["_start", "Reset_Handler"]),
     ("rust", &["_start"]),
 ];
 

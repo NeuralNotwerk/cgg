@@ -24,7 +24,7 @@ impl LanguagePlugin for FortranPlugin {
 
     fn extract(
         &self,
-        _ctx: &crate::ExtractCtx<'_>,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -35,6 +35,7 @@ impl LanguagePlugin for FortranPlugin {
             source,
             facts: &mut facts,
             module: String::new(),
+            ctx: *ctx,
         };
         w.walk(tree.root_node());
         facts
@@ -45,6 +46,10 @@ struct FortranWalker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
     module: String,
+    /// The registrar-verb gate: ESMF/NUOPC hand a component's phase
+    /// routines to the framework by name
+    /// (`call NUOPC_CompSpecialize(m, specLabel=l, specRoutine=Advance)`).
+    ctx: crate::ExtractCtx<'a>,
 }
 
 impl<'a> FortranWalker<'a> {
@@ -199,6 +204,8 @@ impl<'a> FortranWalker<'a> {
             if n.kind() == "identifier" {
                 let name = self.text(n).to_string();
                 if !name.is_empty() {
+                    let extra =
+                        super::registrar::capture(&self.ctx, node, self.source, &name);
                     self.facts.references.push(RefRecord {
                         name,
                         receiver_hint: String::new(),
@@ -206,6 +213,7 @@ impl<'a> FortranWalker<'a> {
                         site_byte: node.start_byte() as u32,
                         ..Default::default()
                     });
+                    self.facts.references.extend(extra);
                 }
                 return;
             }

@@ -34,7 +34,7 @@ use cgg_core::frameworks::{
     EntryShape, FrameworkCoverage, FrameworkEntry, FrameworkRule, RecognisedFramework,
     SeenFramework, TrustKind, UncoveredLanguage,
 };
-use cgg_core::graph::Graph;
+use cgg_core::graph::{CallableKind, Graph};
 use cgg_core::ids::{CallableId, FileId};
 use cgg_core::{FileFacts, STRING_REF_HINT, VALUE_REF_HINT};
 
@@ -118,7 +118,7 @@ pub fn detect(
             }
             {
                 let _s = cgg_core::profile::span("frameworks::match-base-types");
-                match_base_types(graph, bases, rule, &mut entries);
+                match_base_types(graph, bases, rule, &evidence, &mut entries);
             }
             {
                 let _s = cgg_core::profile::span("frameworks::match-methods");
@@ -323,14 +323,25 @@ impl Detection {
                     // Nor does a rule whose methods are fixed symbols an
                     // engine calls (libFuzzer's `LLVMFuzzerTestOneInput`):
                     // defining one, by its exact name, is the evidence.
-                    if !hit
-                        && !rule.methods.is_empty()
-                        && rule.methods.iter().all(|m| !m.contains('*'))
-                    {
-                        hit = f
-                            .definitions
-                            .iter()
-                            .any(|d| rule.methods.contains(&d.simple_name));
+                    // Only the exact names count: a pattern a rule carries
+                    // beside them (`*_IRQHandler` beside CMSIS's
+                    // `SysTick_Handler`) rides on that detection but is
+                    // never evidence on its own.
+                    if !hit && rule.methods.iter().any(|m| !m.contains('*')) {
+                        // Case as the matcher compares it: Fortran's
+                        // `subroutine umat` is Abaqus's `UMAT`.
+                        let exact =
+                            rules::methods_case_sensitive(&rule.id, &rule.language);
+                        hit = f.definitions.iter().any(|d| {
+                            rule.methods.iter().any(|m| {
+                                !m.contains('*')
+                                    && if exact {
+                                        *m == d.simple_name
+                                    } else {
+                                        m.eq_ignore_ascii_case(&d.simple_name)
+                                    }
+                            })
+                        });
                     }
                     // A visibility rule has nothing to import either: the
                     // keyword on the definition is the evidence.
@@ -615,6 +626,17 @@ fn method_name_matches(rule: &FrameworkRule, name: &str) -> bool {
 }
 
 pub(crate) fn name_pattern_matches(pattern: &str, name: &str) -> bool {
+    // `sqlite3_*_init`, `HAL_*Callback`: an infix pattern needs both ends
+    // and a non-empty middle. Case-sensitive, like the other patterns.
+    if let Some((head, tail)) = pattern.split_once('*')
+        && !head.is_empty()
+        && !tail.is_empty()
+        && !tail.contains('*')
+    {
+        return name.len() > head.len() + tail.len()
+            && name.starts_with(head)
+            && name.ends_with(tail);
+    }
     if let Some(prefix) = pattern.strip_suffix('*') {
         // `test_*` already ends at a word boundary; `test*` must not run
         // on into a longer lowercase word.
@@ -748,6 +770,13 @@ fn match_container_attributes(
         else {
             continue;
         };
+        if node
+            .attributes
+            .iter()
+            .any(|a| rules::container_member_skipped(&rule.id, &rule.language, a))
+        {
+            continue;
+        }
         out.push(FrameworkEntry {
             framework: rule.id.clone(),
             kind: rule.kind,
@@ -942,6 +971,7 @@ fn match_base_types(
     graph: &Graph,
     idx: &BaseTypeIndex,
     rule: &FrameworkRule,
+    evidence: &Detection,
     out: &mut Vec<FrameworkEntry>,
 ) {
     if rule.base_types.is_empty() || idx.bases.is_empty() {
@@ -965,6 +995,17 @@ fn match_base_types(
         let Some(hit) = find_in_base_chain(types, by_owner, &rule.base_types) else {
             continue;
         };
+        // QtTest's base is plain `QObject`: a test class is one only
+        // where the harness runs it, a test file or one including QTest.
+        if rules::base_types_need_harness_file(&rule.id, &rule.language)
+            && !graph
+                .files
+                .get(&node.file)
+                .is_some_and(|f| f.test_role.is_some())
+            && !evidence.file_carries(&rule.id, &rule.language, node.file)
+        {
+            continue;
+        }
         let named =
             rule.methods.is_empty() || method_name_matches(rule, &node.simple_name);
         // In the languages of `TEST_CLASS_MEMBERS_ARE_ROOTS`, a test
@@ -1042,18 +1083,22 @@ fn find_in_base_chain(
 
 fn base_type_matches(wanted: &[String], declared: &str) -> bool {
     let d = declared.trim();
-    if contains_ci(wanted, d) {
+    if matches_ci_or_pattern(wanted, d) {
         return true;
     }
     // `nn.Module` should match a rule written as `Module`, and
     // `Sidekiq::Job` a rule written as `Sidekiq::Job` — compare the last
     // segment too, and strip generic arguments (`IConsumer<OrderPlaced>`).
+    // A pattern (`I*` for godot-rust's engine classes, `*::Service` for a
+    // protoc-generated gRPC base) is compared against the whole written
+    // name and its last segment, so `*::Service` needs the qualifier and
+    // never takes a bare `Service`.
     let bare = d.split(['<', '[']).next().unwrap_or(d).trim();
-    if contains_ci(wanted, bare) {
+    if matches_ci_or_pattern(wanted, bare) {
         return true;
     }
     let last = bare.rsplit(['.', ':', '\\']).next().unwrap_or(bare);
-    contains_ci(wanted, last)
+    matches_ci_or_pattern(wanted, last)
 }
 
 /// A method-name rule with no base type — the structural-typing escape
@@ -1093,6 +1138,13 @@ fn match_methods(
             continue;
         }
         if !method_name_matches(rule, &node.simple_name) {
+            continue;
+        }
+        // Arduino's core calls the sketch's free `setup()`/`loop()`, never
+        // a class's `GPS::setup()`.
+        if rules::methods_are_free_functions(&rule.id, &rule.language)
+            && (node.kind != CallableKind::Function || node.qualified_name.contains("::"))
+        {
             continue;
         }
         out.push(FrameworkEntry {
@@ -2027,7 +2079,7 @@ fn is_module_surface(
     file: FileId,
     called_in_file: &HashSet<CallableId>,
 ) -> bool {
-    if node.kind != cgg_core::graph::CallableKind::Function {
+    if node.kind != CallableKind::Function {
         return false;
     }
     if let Some(f) = facts.iter().find(|f| f.file == file)
@@ -2513,6 +2565,31 @@ mod tests {
             name_pattern_matches("Fact", "fact"),
             "plain names stay case-insensitive"
         );
+    }
+
+    #[test]
+    fn infix_patterns_need_both_ends_and_a_middle() {
+        assert!(name_pattern_matches("sqlite3_*_init", "sqlite3_vec_init"));
+        assert!(!name_pattern_matches("sqlite3_*_init", "sqlite3__init"));
+        assert!(!name_pattern_matches("sqlite3_*_init", "sqlite3_helper"));
+        assert!(name_pattern_matches(
+            "HAL_*Callback",
+            "HAL_UART_RxCpltCallback"
+        ));
+        assert!(!name_pattern_matches("HAL_*Callback", "hal_x_callback"));
+    }
+
+    #[test]
+    fn base_type_patterns_read_the_written_name_and_its_last_segment() {
+        let w = |xs: &[&str]| xs.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        assert!(base_type_matches(&w(&["I*"]), "godot::classes::INode2D"));
+        assert!(!base_type_matches(&w(&["I*"]), "Iterator"));
+        assert!(base_type_matches(
+            &w(&["*::Service"]),
+            "PredictionService::Service"
+        ));
+        assert!(!base_type_matches(&w(&["*::Service"]), "Service"));
+        assert!(base_type_matches(&w(&["Plugin"]), "bevy::app::Plugin"));
     }
 
     fn rust_facts() -> FileFacts {

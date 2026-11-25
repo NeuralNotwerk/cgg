@@ -833,12 +833,17 @@ fn collect_value_refs(
         // wrapped handler always sits beside the path it is registered
         // at, so requiring the route costs no real case and removes the
         // false ones.
-        if route.is_empty() || depth >= MAX_WRAPPER_DEPTH {
-            return;
-        }
         let callee = callee_of(arg)
             .map(|n| n.utf8_text(source).unwrap_or("").trim().to_string())
             .unwrap_or_default();
+        // An ALL-CAPS wrapper is a cast macro (`G_CALLBACK(cb)`,
+        // `G_SOURCE_FUNC(cb)`): it names no function of its own, and it
+        // wraps the handler whether or not the registration carries a
+        // route (`g_idle_add(G_SOURCE_FUNC(cb), data)`).
+        let macro_wrapper = is_macro_name(&callee);
+        if (route.is_empty() && !macro_wrapper) || depth >= MAX_WRAPPER_DEPTH {
+            return;
+        }
         if callee.is_empty() || ctx.is_registrar_verb(last_segment(&callee)) {
             return;
         }
@@ -858,7 +863,7 @@ fn collect_value_refs(
                 );
             }
         }
-        if out.len() == before {
+        if out.len() == before && !macro_wrapper {
             out.push(RefRecord {
                 property_read: false,
                 arg_labels: Vec::new(),
@@ -934,6 +939,27 @@ fn collect_value_refs(
         return;
     }
 
+    // C-family: `&handler` and `(GSourceFunc) handler` hand over the
+    // function itself (`esp_event_handler_register(…, &on_event, …)`,
+    // `g_idle_add((GSourceFunc) tick, …)`). Java and C# casts read the
+    // same: a cast's operand is the value.
+    if kind == "pointer_expression"
+        && arg
+            .child_by_field_name("operator")
+            .is_some_and(|o| o.kind() == "&")
+    {
+        if let Some(inner) = arg.child_by_field_name("argument") {
+            collect_value_refs(ctx, inner, source, context, route, line, out, depth);
+        }
+        return;
+    }
+    if kind == "cast_expression" {
+        if let Some(inner) = arg.child_by_field_name("value") {
+            collect_value_refs(ctx, inner, source, context, route, line, out, depth);
+        }
+        return;
+    }
+
     if !is_kind(arg, IDENT_KINDS) {
         return;
     }
@@ -989,6 +1015,16 @@ fn collect_value_refs(
         retyped_receiver: false,
         receiver_module: None,
     });
+}
+
+/// Whether a callee is written as a C preprocessor macro: an ALL-CAPS
+/// identifier with at least one letter (`G_CALLBACK`, `G_SOURCE_FUNC`).
+fn is_macro_name(callee: &str) -> bool {
+    !callee.is_empty()
+        && callee.chars().any(|c| c.is_ascii_uppercase())
+        && callee
+            .chars()
+            .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_')
 }
 
 /// Whether a node is an inline anonymous function.
