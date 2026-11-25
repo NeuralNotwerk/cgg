@@ -22,7 +22,9 @@ const UNIVERSAL_ENTRY: &[&str] = &["main"];
 /// Language-specific entry points, keyed by plugin id.
 const LANG_ENTRY: &[(&str, &[&str])] = &[
     ("go", &["init", "TestMain"]),
-    ("elixir", &["start", "start_link", "init"]),
+    // `child_spec/1`: a supervisor calls it on every module its
+    // children list names (`{Mod, opts}`), `use GenServer` or not.
+    ("elixir", &["start", "start_link", "init", "child_spec"]),
     ("erlang", &["start", "start_link", "init"]),
     // `Reset_Handler` is the CMSIS linker-script entry (`ENTRY(Reset_Handler)`)
     // of every Cortex-M startup file, written in C or assembly.

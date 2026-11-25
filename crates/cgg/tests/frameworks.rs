@@ -2075,3 +2075,43 @@ fn a_connexion_operation_id_keeps_its_handler_live() {
     let err = dead_count(tmp.path());
     assert!(err.contains("0 callable(s) marked unreferenced"), "{err}");
 }
+
+/// BACKLOG P1 (agent / Elixir): `use Mod, opts` detects `Mod`, and the
+/// contract rows match a module's callbacks only where the module `use`s
+/// the contract or declares its `@behaviour`: a `run/1` elsewhere is not
+/// a Mix task, a `load/1` elsewhere not an Ecto type.
+#[test]
+fn elixir_contract_rows_match_the_modules_that_use_the_contract() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "lib/w.ex",
+        "defmodule MyApp.Mailer do\n  use Oban.Worker, queue: :mail, max_attempts: 3\n  def perform(_job), do: :ok\nend\n",
+    );
+    write(
+        tmp.path(),
+        "lib/t.ex",
+        "defmodule MyApp.Money do\n  @behaviour Ecto.Type\n  def type, do: :integer\n  def load(x), do: {:ok, x}\nend\n",
+    );
+    write(
+        tmp.path(),
+        "lib/mix/tasks/seed.ex",
+        "defmodule Mix.Tasks.Seed do\n  use Mix.Task\n  def run(_args), do: :ok\nend\n",
+    );
+    write(
+        tmp.path(),
+        "lib/other.ex",
+        "defmodule MyApp.Runner do\n  def run(x), do: x\n  def load(x), do: x\n  def perform(x), do: x\nend\n",
+    );
+    let (g, err) = run(tmp.path(), &["--framework-coverage"]);
+    assert!(err.contains("oban (queue, 1 entry)"), "{err}");
+    assert!(err.contains("ecto-type (lifecycle, 2 entries)"), "{err}");
+    assert!(err.contains("mix-task (cli, 1 entry)"), "{err}");
+    // The counts above already exclude `MyApp.Runner`; and no entry
+    // node names it.
+    assert!(
+        !g.lines()
+            .any(|l| l.contains("<framework-entry>") && l.contains("MyApp.Runner")),
+        "{g}"
+    );
+}

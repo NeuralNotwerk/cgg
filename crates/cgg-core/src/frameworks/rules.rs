@@ -3823,7 +3823,9 @@ pub const SPECS: &[RuleSpec] = &[
         detect_calls: NONE,
         attributes: NONE,
         registrars: NONE,
-        base_types: NONE,
+        // The module `use`s it or declares its `@behaviour` (the
+        // plugin records those as the bases of its definitions).
+        base_types: &["GenServer", "Supervisor", "DynamicSupervisor", "Agent"],
         methods: &[
             "init",
             "handle_call",
@@ -3850,7 +3852,9 @@ pub const SPECS: &[RuleSpec] = &[
         detect_calls: NONE,
         attributes: NONE,
         registrars: NONE,
-        base_types: NONE,
+        // The module `use`s it or declares its `@behaviour` (the
+        // plugin records those as the bases of its definitions).
+        base_types: &["Application"],
         methods: &["start", "prep_stop", "config_change", "start_phase"],
         string_targets: false,
         node: false,
@@ -3867,7 +3871,9 @@ pub const SPECS: &[RuleSpec] = &[
         detect_calls: NONE,
         attributes: NONE,
         registrars: NONE,
-        base_types: NONE,
+        // The module `use`s it or declares its `@behaviour` (the
+        // plugin records those as the bases of its definitions).
+        base_types: &["Mix.Task"],
         methods: &["run"],
         string_targets: false,
         node: true,
@@ -4005,7 +4011,9 @@ pub const SPECS: &[RuleSpec] = &[
         detect_calls: NONE,
         attributes: NONE,
         registrars: NONE,
-        base_types: NONE,
+        // The module `use`s it or declares its `@behaviour` (the
+        // plugin records those as the bases of its definitions).
+        base_types: &["Oban.Worker", "Oban.Pro.Worker"],
         methods: &["perform", "backoff", "timeout"],
         string_targets: false,
         node: true,
@@ -4024,7 +4032,9 @@ pub const SPECS: &[RuleSpec] = &[
         detect_calls: NONE,
         attributes: NONE,
         registrars: NONE,
-        base_types: NONE,
+        // The module `use`s it or declares its `@behaviour` (the
+        // plugin records those as the bases of its definitions).
+        base_types: &["Ecto.Migration"],
         methods: &["change", "up", "down"],
         string_targets: false,
         node: false,
@@ -4043,7 +4053,9 @@ pub const SPECS: &[RuleSpec] = &[
         detect_calls: NONE,
         attributes: NONE,
         registrars: NONE,
-        base_types: NONE,
+        // The module `use`s it or declares its `@behaviour` (the
+        // plugin records those as the bases of its definitions).
+        base_types: &["Ecto.Type", "Ecto.ParameterizedType"],
         methods: &[
             "type",
             "cast",
@@ -4069,7 +4081,9 @@ pub const SPECS: &[RuleSpec] = &[
         detect_calls: NONE,
         attributes: NONE,
         registrars: NONE,
-        base_types: NONE,
+        // The module `use`s it or declares its `@behaviour` (the
+        // plugin records those as the bases of its definitions).
+        base_types: &["Broadway"],
         methods: &[
             "handle_message",
             "handle_batch",
@@ -4092,7 +4106,9 @@ pub const SPECS: &[RuleSpec] = &[
         detect_calls: NONE,
         attributes: NONE,
         registrars: NONE,
-        base_types: NONE,
+        // The module `use`s it or declares its `@behaviour` (the
+        // plugin records those as the bases of its definitions).
+        base_types: &["GenStage"],
         methods: &[
             "handle_demand",
             "handle_events",

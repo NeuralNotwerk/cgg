@@ -171,7 +171,7 @@ APPS=(
     "solidity-openzeppelin|https://github.com/OpenZeppelin/openzeppelin-contracts.git|solidity-public"
     "app-pydantic-core|https://github.com/pydantic/pydantic-core.git|ffi-export,py-unittest,pydantic,rust-std-traits"
     "app-nextcloud-android|https://github.com/nextcloud/android.git|android-activity,android-application,android-broadcastreceiver,android-contentprovider,android-fragment,android-service,android-service-bind,android-service-start,android-worker,compose,java-concurrent,junit,~java-closeable,~py-argparse,dagger,eventbus,jsr330-inject"
-    "app-plausible-phoenix|https://github.com/plausible/analytics.git|express,mix-task,otp,otp-application,phoenix,phoenix-liveview,plug,react,~phoenix-channel"
+    "app-plausible-phoenix|https://github.com/plausible/analytics.git|ecto-migration,ecto-type,express,mix-task,oban,otp,otp-application,phoenix,phoenix-liveview,plug,react,~phoenix-channel"
     "app-hono-examples|https://github.com/honojs/examples.git|hono,cloudflare-workers,~react"
     "app-unity-gamekit|https://github.com/Unity-Technologies/EndlessRunnerSampleGame.git|csharp-disposable,unity"
     # AWS Lambda spans six languages and two registration mechanisms, so
@@ -460,7 +460,7 @@ APPS=(
     "app-nanocl-ntex|https://github.com/next-hat/nanocl.git|ntex,rust-std-traits"
     "app-newscrawl-storm|https://github.com/commoncrawl/news-crawl.git|junit,storm,~java-closeable"
     "app-oncall-falcon|https://github.com/linkedin/oncall.git|falcon"
-    "app-papercups-phoenix|https://github.com/papercups-io/papercups.git|mix-task,otp,otp-application,phoenix,phoenix-channel,phoenix-socket,plug,react"
+    "app-papercups-phoenix|https://github.com/papercups-io/papercups.git|ecto-migration,mix-task,oban,otp,otp-application,phoenix,phoenix-channel,phoenix-socket,plug,react"
     "app-perlmaven-dancer2|https://github.com/szabgab/Perl-Maven.git|dancer2"
     # 0.14.0 scripting hosts (B6): real applications of each new row.
     "app-chocolateypackages-au|https://github.com/chocolatey-community/chocolatey-packages.git|chocolatey-au"
@@ -576,7 +576,7 @@ APPS=(
     "app-partdb-apiplatform|https://github.com/Part-DB/Part-DB-server.git|api-platform,doctrine-lifecycle,phpunit,symfony"
     # 0.14.0 framework rows: Elixir, Haskell, OCaml and Solidity (2026-11-25).
     "app-sequin-oban|https://github.com/sequinstream/sequin.git|broadway,ecto-migration,ecto-type,express,genstage,go-testing,js-test-globals,mix-task,oban,otp,otp-application,phoenix,phoenix-liveview,plug,~go-encoding,~go-runtime,~go-signal,~gorilla-mux,~net-http,~phoenix-channel,~svelte"
-    "app-hexpm-ecto|https://github.com/hexpm/hexpm.git|broadway,ecto-migration,ecto-type,mix-task,otp,otp-application,phoenix,phoenix-liveview,plug"
+    "app-hexpm-ecto|https://github.com/hexpm/hexpm.git|broadway,ecto-migration,ecto-type,mix-task,oban,otp,otp-application,phoenix,phoenix-liveview,plug"
     "app-shellcheck-quickcheck|https://github.com/koalaman/shellcheck.git|quickcheck,~haskell-main"
     "app-hackage-hedgehog|https://github.com/haskell/hackage-server.git|hedgehog,quickcheck,tasty,~c-runtime,~haskell-main,~nix"
     "app-predimarkt-ihp|https://github.com/avitkauskas/predimarkt.git|ihp,~hspec,~nix,~quickcheck,~wai"
