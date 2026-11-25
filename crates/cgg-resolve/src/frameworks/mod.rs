@@ -998,10 +998,10 @@ fn match_base_types(
         // QtTest's base is plain `QObject`: a test class is one only
         // where the harness runs it, a test file or one including QTest.
         if rules::base_types_need_harness_file(&rule.id, &rule.language)
-            && !graph
+            && graph
                 .files
                 .get(&node.file)
-                .is_some_and(|f| f.test_role.is_some())
+                .is_none_or(|f| f.test_role.is_none())
             && !evidence.file_carries(&rule.id, &rule.language, node.file)
         {
             continue;
