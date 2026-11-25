@@ -624,41 +624,41 @@ pub(crate) fn discover(
         u.src.is_none()
             && own_file_sites.contains(&(u.file, u.site_byte, u.name.as_str()))
     };
-    let mut toplevel: HashSet<(String, String)> = HashSet::new();
-    for u in &graph.unresolved {
-        if matches!(
+    // A site outside any callable, and its language. An assembly table
+    // (`.word Reset_Handler`) also names C and C++ functions, which the
+    // asm resolver never binds (`no-candidate-in-file`): the linker joins
+    // them, so every unbound asm site outside a label counts.
+    let top_site = |u: &AuditUnresolvedCall| -> Option<String> {
+        if own_file(u) {
+            return None;
+        }
+        let lang = graph
+            .files
+            .get(&u.file)
+            .map(|f| f.language.clone())
+            .unwrap_or_default();
+        let top = matches!(
             u.reason,
             UnresolvedReason::NoEnclosingCallable | UnresolvedReason::ValueRefNoEnclosing
-        ) && !own_file(u)
-        {
-            let lang = graph
-                .files
-                .get(&u.file)
-                .map(|f| f.language.clone())
-                .unwrap_or_default();
-            toplevel.insert((lang, u.name.clone()));
-        }
-    }
-    if !toplevel.is_empty() {
-        let by_site: HashMap<(String, String), &AuditUnresolvedCall> = graph
-            .unresolved
-            .iter()
-            .filter(|u| {
-                matches!(
-                    u.reason,
-                    UnresolvedReason::NoEnclosingCallable
-                        | UnresolvedReason::ValueRefNoEnclosing
-                ) && !own_file(u)
-            })
-            .map(|u| {
-                let lang = graph
-                    .files
-                    .get(&u.file)
-                    .map(|f| f.language.clone())
-                    .unwrap_or_default();
-                ((lang, u.name.clone()), u)
-            })
-            .collect();
+        ) || (lang == "asm" && u.src.is_none());
+        top.then_some(lang)
+    };
+    let by_site: HashMap<(String, String), &AuditUnresolvedCall> = graph
+        .unresolved
+        .iter()
+        .flat_map(|u| {
+            let Some(lang) = top_site(u) else {
+                return Vec::new();
+            };
+            let linked: &[&str] = if lang == "asm" { ASM_LINKED_LANGS } else { &[] };
+            linked
+                .iter()
+                .map(|l| ((l.to_string(), u.name.clone()), u))
+                .chain(std::iter::once(((lang, u.name.clone()), u)))
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    if !by_site.is_empty() {
         for (id, node) in &graph.callables {
             if node.synthetic {
                 continue;
@@ -1361,6 +1361,10 @@ fn clojure_qualified_toplevel(
         }
     }
 }
+
+/// Languages whose functions an assembly file's top-level symbol
+/// references (vector and syscall tables) may name.
+const ASM_LINKED_LANGS: &[&str] = &["c", "cpp"];
 
 /// Languages whose class- or module-level value references name the
 /// declaring file's own callables (see the top-level rule in

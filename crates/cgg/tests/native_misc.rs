@@ -146,3 +146,47 @@ fn fortran_fixed_form_file_with_c_comments_has_its_routines() {
     assert!(g.contains("UMAT"), "{g}");
     assert!(g.contains("HELPER"), "{g}");
 }
+
+// ---------------------------------------------------------------------
+// Assembly
+// ---------------------------------------------------------------------
+
+// A RISC-V `j`/`tail`/branch target, an address taken with `lla`, a
+// vector table naming asm and C handlers: all were dead, and the local
+// and data labels were reported as dead callables of their own.
+#[test]
+fn asm_jumps_addresses_and_tables_keep_their_targets_live() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "start.S",
+        "\t.globl _start\n\
+         _start:\n\
+         \tj _start_real\n\
+         _start_real:\n\
+         \tbnez a0, 1f\n\
+         \tlla a4, _trap_handler\n\
+         \tcsrw mtvec, a4\n\
+         \ttail boot_main\n\
+         1:\n\
+         \tj 1b\n\
+         .Lspin:\n\
+         \tj .Lspin\n\
+         _trap_handler:\n\
+         \tmret\n\
+         boot_main:\n\
+         \tret\n\
+         \t.section .rodata\n\
+         vectors:\n\
+         \t.word asm_isr\n\
+         \t.word c_isr\n\
+         \t.text\n\
+         asm_isr:\n\
+         \tmret\n\
+         orphan:\n\
+         \tret\n",
+    );
+    write(tmp.path(), "isr.c", "void c_isr(void) {}\n");
+    let found = dead(tmp.path());
+    assert_eq!(found, vec!["orphan".to_string()], "{found:?}");
+}
