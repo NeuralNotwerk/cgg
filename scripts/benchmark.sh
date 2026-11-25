@@ -179,7 +179,7 @@ APPS=(
     # that matters most: it is the only app in this list where the entry
     # points are named by a *string in the infrastructure code* rather
     # than by anything in the handler's own file.
-    "app-powertools-lambda|https://github.com/aws-powertools/powertools-lambda-python.git|aws-cdk,aws-lambda,aws-lambda-powertools,py-context-manager,py-threading,pydantic,~py-unittest"
+    "app-powertools-lambda|https://github.com/aws-powertools/powertools-lambda-python.git|aws-cdk,aws-lambda-powertools,py-context-manager,py-threading,pydantic,~py-unittest"
     "app-awslambda-go|https://github.com/aws/aws-lambda-go.git|aws-lambda-go,go-encoding,net-http"
     "app-cdk-examples|https://github.com/aws-samples/aws-cdk-examples.git|aws-cdk,aws-lambda,aws-lambda-go,express,flask,junit,worker-threads,~csharp-disposable,~go-encoding,~java-closeable,~py-argparse"
     # The other clouds. Every one of these was detect-only or absent
@@ -582,6 +582,10 @@ APPS=(
     "app-predimarkt-ihp|https://github.com/avitkauskas/predimarkt.git|ihp,~hspec,~nix,~quickcheck,~wai"
     "app-qubesfirewall-mirage|https://github.com/mirage/qubes-mirage-firewall.git|mirage,~alcotest,~cmdliner"
     "app-frankencoin-chainlink|https://github.com/Frankencoin-ZCHF/Frankencoin.git|chainlink,js-test-globals,solidity-public"
+    # 0.14.0: a real Python Lambda application (AWS Solutions). Powertools
+    # itself declares `aws_lambda_powertools` in-tree, so it no longer detects
+    # aws-lambda; this app carries that claim.
+    "app-instancescheduler-lambda|https://github.com/aws-solutions/instance-scheduler-on-aws.git|aws-lambda,aws-lambda-powertools,jest,py-argparse,py-context-manager,py-threading,pytest,~aws-cdk,~py-unittest,~pydantic"
 )
 
 # Framework rules with NO application in the APPS manifest above.

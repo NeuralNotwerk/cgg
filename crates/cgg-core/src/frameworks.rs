@@ -251,7 +251,10 @@ pub struct FrameworkRule {
     pub kind: TrustKind,
 
     /// Import path prefixes proving the framework is in use
-    /// (`flask`, `org.springframework.web.bind.annotation`).
+    /// (`flask`, `org.springframework.web.bind.annotation`). An entry
+    /// holding a `*` is a name pattern matched against each segment of an
+    /// import instead (`*GrpcKt`, `*_pb2_grpc`): a generated stub's naming
+    /// convention, for services whose files import only the stub.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub detect: Vec<String>,
     /// Path suffixes that prove it instead, for frameworks discovered by
