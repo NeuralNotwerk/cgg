@@ -783,6 +783,80 @@ pub fn stdlib_names(lang: &str) -> Option<&'static HashSet<&'static str>> {
     all.iter().find(|(id, _)| *id == lang).map(|(_, set)| set)
 }
 
+/// How a function-defining macro from outside the tree names the function
+/// its body defines (`MACRO(args) { body }`). See
+/// [`C_FN_DEFINING_MACROS`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FnMacroNaming {
+    /// The first argument is the function's name: `BPF_KPROBE(name, …)`.
+    First,
+    /// `MACRO(Class, method)`: the method `method` of `Class`.
+    OwnerMethod,
+    /// `MACRO(suite, case)`: the test `case`, qualified `suite::case`.
+    SuiteCase,
+    /// `MACRO("description", …)`: no identifier names it; the callable is
+    /// `MACRO_at_<line>` and the description rides in the attribute.
+    Described,
+}
+
+/// Function-defining macros of C libraries and test harnesses whose
+/// `#define` is outside the tree (`c_macro` expands in-tree ones). The
+/// grammar reads `PHP_METHOD(Redis, get) { … }` as a call followed by a
+/// stray block, or as a function named for the macro, so without this
+/// table the body belongs to no callable (or to one named `PHP_METHOD`).
+/// The callable carries the invocation text (`ZTEST(suite, case)`) as an
+/// attribute, so a framework rule can match the macro by name.
+///
+/// The third field is whether C++ files read it too: `TEST` and `Test` in
+/// C++ are gtest's (named for the macro, matched by the `gtest` rule) or
+/// an in-class constructor, so they stay C-only; Catch2 and doctest share
+/// the string-described `TEST_CASE` shape.
+pub const C_FN_DEFINING_MACROS: &[(&str, FnMacroNaming, bool)] = &[
+    // PHP / Zend extensions.
+    ("PHP_METHOD", FnMacroNaming::OwnerMethod, true),
+    ("ZEND_METHOD", FnMacroNaming::OwnerMethod, true),
+    // libbpf program macros (bpf_tracing.h, bpf_core_read.h, usdt.bpf.h).
+    ("BPF_PROG", FnMacroNaming::First, false),
+    ("BPF_PROG2", FnMacroNaming::First, false),
+    ("BPF_KPROBE", FnMacroNaming::First, false),
+    ("BPF_KRETPROBE", FnMacroNaming::First, false),
+    ("BPF_KSYSCALL", FnMacroNaming::First, false),
+    ("BPF_KPROBE_SYSCALL", FnMacroNaming::First, false),
+    ("BPF_UPROBE", FnMacroNaming::First, false),
+    ("BPF_URETPROBE", FnMacroNaming::First, false),
+    ("BPF_USDT", FnMacroNaming::First, false),
+    // Zephyr ztest.
+    ("ZTEST", FnMacroNaming::SuiteCase, true),
+    ("ZTEST_F", FnMacroNaming::SuiteCase, true),
+    ("ZTEST_USER", FnMacroNaming::SuiteCase, true),
+    ("ZTEST_USER_F", FnMacroNaming::SuiteCase, true),
+    // Criterion.
+    ("Test", FnMacroNaming::SuiteCase, false),
+    ("ParameterizedTest", FnMacroNaming::SuiteCase, false),
+    // Unity Fixture.
+    ("TEST", FnMacroNaming::SuiteCase, false),
+    ("IGNORE_TEST", FnMacroNaming::SuiteCase, false),
+    // ESP-IDF / Unity test cases, Catch2 and doctest.
+    ("TEST_CASE", FnMacroNaming::Described, true),
+    ("TEST_CASE_MULTIPLE_STAGES", FnMacroNaming::Described, false),
+    (
+        "TEST_CASE_MULTIPLE_DEVICES",
+        FnMacroNaming::Described,
+        false,
+    ),
+    ("SCENARIO", FnMacroNaming::Described, true),
+    ("TEST_CASE_METHOD", FnMacroNaming::Described, true),
+];
+
+/// The naming rule of a function-defining macro, if `name` is one in
+/// `language` (`c`, or `cpp`/`objc` reading the C++-safe entries).
+pub fn fn_defining_macro(name: &str, cpp: bool) -> Option<FnMacroNaming> {
+    C_FN_DEFINING_MACROS
+        .iter()
+        .find(|(m, _, in_cpp)| *m == name && (!cpp || *in_cpp))
+        .map(|(_, n, _)| *n)
+}
+
 /// C and C++ type keywords and the standard library's type names: never a
 /// value, though a macro argument (`va_arg(ap, int)`, `luaM_newvector(L,
 /// n, int)`) puts one where a value stands (WS27).

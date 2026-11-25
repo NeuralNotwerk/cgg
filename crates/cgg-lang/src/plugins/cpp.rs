@@ -42,6 +42,12 @@ impl LanguagePlugin for CppPlugin {
         }
     }
 
+    /// Blanks the export and calling-convention macros the grammar cannot
+    /// read (see [`super::c_family::parse_rewrite`]).
+    fn parse_source(&self, source: &[u8]) -> Option<Vec<u8>> {
+        super::c_family::parse_rewrite(source, true)
+    }
+
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_cpp::LANGUAGE.into()
     }
@@ -62,6 +68,7 @@ impl LanguagePlugin for CppPlugin {
             scope: Vec::new(),
             class_stack: Vec::new(),
             bases: Vec::new(),
+            extra_attrs: Vec::new(),
         };
         w.walk(tree.root_node());
         let mut out = facts;
@@ -103,6 +110,7 @@ pub(super) fn extract_fragment(
         scope: scope.to_vec(),
         class_stack: scope[scope.len() - classes..].to_vec(),
         bases: vec![Vec::new(); classes],
+        extra_attrs: Vec::new(),
     };
     w.walk(tree.root_node());
     facts
@@ -124,6 +132,9 @@ struct CppWalker<'a> {
     /// the one entry point an aws-lambda-cpp binary has — referenced
     /// nothing and read as dead.
     ctx: crate::ExtractCtx<'a>,
+    /// Attributes for the next definition pushed: the invocation of the
+    /// function-defining macro that names it.
+    extra_attrs: Vec<String>,
 }
 
 impl<'a> CppWalker<'a> {
@@ -181,6 +192,19 @@ impl<'a> CppWalker<'a> {
                     self.bases.pop();
                 }
                 return;
+            }
+            "expression_statement" => {
+                // `TEST_CASE("adds") { … }`, `PHP_METHOD(C, m) { … }` at
+                // item position: the invocation heads a definition.
+                if let Some(d) = super::c_family::fn_macro_block(node, self.source, true)
+                    && let Some(body) = node.next_sibling()
+                {
+                    self.push_fn_macro_block(node, body, d);
+                    if let Some(call) = node.named_child(0) {
+                        self.walk_children(call);
+                    }
+                    return;
+                }
             }
             "field_initializer" => {
                 self.record_field_initializer(node);
@@ -326,7 +350,25 @@ impl<'a> CppWalker<'a> {
         let Some(fn_decl) = unwrap_function_declarator(decl) else {
             return;
         };
-        let info = self.fn_info_from_declarator(fn_decl);
+        let mut info = self.fn_info_from_declarator(fn_decl);
+        // `ZTEST(suite, case) { … }`, `PHP_METHOD(C, m) { … }`: a
+        // function-defining macro from outside the tree names the function
+        // by its arguments.
+        if let Some(params) = super::c_family::macro_params(decl)
+            && let Some(d) = super::c_family::fn_macro_def(
+                &info.simple,
+                self.text(params),
+                node.start_position().row as u32 + 1,
+                true,
+            )
+        {
+            info = FnInfo {
+                simple: d.simple,
+                qual_tail: d.qualified,
+                variant: d.variant,
+            };
+            self.extra_attrs.push(d.attribute);
+        }
         // `= default` / `= delete` is the definition even though it has
         // no compound statement. `= 0` is not: the body, if any, is
         // elsewhere, and this declaration must stay a prototype so the
@@ -352,6 +394,8 @@ impl<'a> CppWalker<'a> {
         if !has_body && is_pure_virtual(node, self.source) {
             attributes.push(super::attrs::ABSTRACT_MARKER.to_string());
         }
+        attributes.extend(self.member_macros(node));
+        attributes.extend(std::mem::take(&mut self.extra_attrs));
         let attributes = super::attrs::with_override_marker(node, attributes);
         self.facts.definitions.push(DefRecord {
             simple_name: info.simple,
@@ -657,6 +701,9 @@ impl<'a> CppWalker<'a> {
                     return;
                 }
                 let info = self.fn_info_from_declarator(fn_decl);
+                if self.is_class_body_macro(node, &info) {
+                    return;
+                }
                 // A declaration-only kernel (`__global__ void saxpy(...);`
                 // in a header) is an entry point just as much as its
                 // definition. `has_body` stays false so a later definition
@@ -665,6 +712,141 @@ impl<'a> CppWalker<'a> {
                 return;
             }
         }
+    }
+
+    /// `GENERATED_BODY()`, `TF_DISALLOW_COPY_AND_ASSIGN(X);`,
+    /// `METHOD_ADD(C::m, "/x", Get);` or `Q_OBJECT Q_PROPERTY(…)` in a
+    /// class body: a macro invocation the grammar read as a member
+    /// prototype. A declaration with no type that does not name the class
+    /// (a constructor) or start with `~`/`operator` is not C++; a
+    /// macro-cased name under a macro-cased type is a macro run into
+    /// another. An in-tree macro of the name is expanded by `c_macro`;
+    /// an unexpanded one's identifier arguments go to `name_mentions`.
+    fn is_class_body_macro(&self, node: Node, info: &FnInfo) -> bool {
+        if node.parent().map(|p| p.kind()) != Some("field_declaration_list") {
+            return false;
+        }
+        if info.variant != DefVariant::InherentMethod
+            && info.variant != DefVariant::FreeFunction
+        {
+            return false;
+        }
+        if info.simple.starts_with("operator") || info.qual_tail.contains("::") {
+            return false;
+        }
+        match node.child_by_field_name("type") {
+            None => self.class_stack.last() != Some(&info.simple),
+            Some(t) => {
+                t.kind() == "type_identifier"
+                    && super::c_family::is_macro_case(self.text(t))
+                    && super::c_family::is_macro_case(&info.simple)
+            }
+        }
+    }
+
+    /// The annotation macros written in front of a class member
+    /// (`UFUNCTION(BlueprintCallable)`, `UPROPERTY()`, `Q_INVOKABLE`),
+    /// as written, nearest last. Read from the text: the grammar folds an
+    /// invocation with no `;` into whatever it can, often the member
+    /// before.
+    fn member_macros(&self, node: Node) -> Vec<String> {
+        let head = match node.parent() {
+            Some(p) if p.kind() == "template_declaration" => p,
+            _ => node,
+        };
+        if head.parent().map(|p| p.kind()) != Some("field_declaration_list") {
+            return Vec::new();
+        }
+        let src = self.source;
+        let mut out = Vec::new();
+        // `Q_INVOKABLE void go();` reads `Q_INVOKABLE` as the type and
+        // the real type as an error.
+        if let Some(t) = node.child_by_field_name("type")
+            && t.kind() == "type_identifier"
+            && super::c_family::is_macro_case(self.text(t))
+            && t.next_sibling().is_some_and(|n| n.is_error())
+        {
+            out.push(self.text(t).to_string());
+        }
+        let floor = head.parent().map_or(0, |p| p.start_byte());
+        let mut i = head.start_byte();
+        let mut before = Vec::new();
+        loop {
+            while i > floor && src[i - 1].is_ascii_whitespace() {
+                i -= 1;
+            }
+            if i <= floor || src[i - 1] != b')' {
+                break;
+            }
+            let close = i - 1;
+            let mut depth = 0i32;
+            let mut j = close;
+            let open = loop {
+                match src[j] {
+                    b')' => depth += 1,
+                    b'(' => {
+                        depth -= 1;
+                        if depth == 0 {
+                            break Some(j);
+                        }
+                    }
+                    b';' | b'{' | b'}' => break None,
+                    _ => {}
+                }
+                if j <= floor {
+                    break None;
+                }
+                j -= 1;
+            };
+            let Some(open) = open else { break };
+            let mut k = open;
+            while k > floor && src[k - 1].is_ascii_whitespace() {
+                k -= 1;
+            }
+            let name_end = k;
+            while k > floor && (src[k - 1].is_ascii_alphanumeric() || src[k - 1] == b'_')
+            {
+                k -= 1;
+            }
+            let name = std::str::from_utf8(&src[k..name_end]).unwrap_or("");
+            if !super::c_family::is_macro_case(name) {
+                break;
+            }
+            let text = std::str::from_utf8(&src[k..=close]).unwrap_or("");
+            let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
+            if text.len() <= 512 {
+                before.push(text);
+            }
+            i = k;
+        }
+        before.reverse();
+        before.extend(out);
+        before
+    }
+
+    /// The definition `MACRO(args) { body }` heads (see
+    /// [`super::c_family::fn_macro_block`]).
+    fn push_fn_macro_block(
+        &mut self,
+        node: Node,
+        body: Node,
+        d: super::c_family::FnMacroDef,
+    ) {
+        let qn = self.qualified_name(&d.qualified);
+        self.facts.definitions.push(DefRecord {
+            simple_name: d.simple,
+            qualified_name: qn,
+            variant: d.variant,
+            start_line: node.start_position().row as u32 + 1,
+            end_line: body.end_position().row as u32 + 1,
+            start_byte: node.start_byte() as u32,
+            end_byte: body.end_byte() as u32,
+            signature_hint: super::extract_signature(self.text(node)),
+            visibility: String::new(),
+            attributes: vec![d.attribute],
+            has_body: true,
+            ..Default::default()
+        });
     }
 
     fn record_function_macro(&mut self, node: Node) {
@@ -1475,7 +1657,7 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
     }
     let mut drop_at: Vec<(usize, usize)> = Vec::new();
     let mut unified: Vec<(usize, String, String)> = Vec::new();
-    let mut merges: Vec<(usize, usize, Vec<&'static str>, Vec<String>)> = Vec::new();
+    let mut merges: Vec<(usize, usize, Vec<String>, Vec<String>)> = Vec::new();
     for (file_idx, facts) in files.iter().enumerate() {
         if !cgg_core::same_family(&facts.language, "c") {
             continue;
@@ -1527,9 +1709,12 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
             }
             // `virtual` and `override` are written on the in-class
             // declaration only; the out-of-class body inherits them.
-            let carried: Vec<&'static str> = ["virtual", super::attrs::OVERRIDE_MARKER]
-                .into_iter()
-                .filter(|m| def.attributes.iter().any(|a| a == m))
+            // So are annotation macros (`UFUNCTION(…)`, `Q_INVOKABLE`).
+            let carried: Vec<String> = def
+                .attributes
+                .iter()
+                .filter(|a| a.as_str() != super::attrs::ABSTRACT_MARKER)
+                .cloned()
                 .collect();
             let bases = def.base_types.clone();
             for h in &hits {
@@ -1550,8 +1735,8 @@ pub fn unify_declarations(files: &mut [&mut FileFacts]) {
     for (file, def_idx, carried, bases) in merges {
         let def = &mut files[file].definitions[def_idx];
         for m in carried {
-            if !def.attributes.iter().any(|a| a == m) {
-                def.attributes.push(m.into());
+            if !def.attributes.contains(&m) {
+                def.attributes.push(m);
             }
         }
         for b in bases {

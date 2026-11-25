@@ -32,6 +32,12 @@ impl LanguagePlugin for CPlugin {
         }
     }
 
+    /// Blanks the export and calling-convention macros the grammar cannot
+    /// read (see [`super::c_family::parse_rewrite`]).
+    fn parse_source(&self, source: &[u8]) -> Option<Vec<u8>> {
+        super::c_family::parse_rewrite(source, false)
+    }
+
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_c::LANGUAGE.into()
     }
@@ -125,6 +131,14 @@ impl<'a> CWalker<'a> {
                 self.skip_call = prev;
                 return;
             }
+            "expression_statement" if self.record_fn_macro_block(node) => {
+                // `PHP_METHOD(Redis, get) { … }`: the invocation is the
+                // definition's header, not a call.
+                if let Some(call) = node.named_child(0) {
+                    self.walk_children(call);
+                }
+                return;
+            }
             "declaration" => {
                 // Prototype: `int foo(int a, int b);`
                 self.try_record_prototype(node);
@@ -194,6 +208,24 @@ impl<'a> CWalker<'a> {
         if name.is_empty() {
             return;
         }
+        // `int BPF_KPROBE(do_unlinkat, int dfd) { … }`: a function-defining
+        // macro from outside the tree names the function by its arguments.
+        let macro_def = swallowed
+            .is_none()
+            .then(|| super::c_family::macro_params(decl))
+            .flatten()
+            .and_then(|params| {
+                super::c_family::fn_macro_def(
+                    &name,
+                    self.text(params),
+                    node.start_position().row as u32 + 1,
+                    false,
+                )
+            });
+        let (name, qualified, variant, attributes) = match macro_def {
+            Some(d) => (d.simple, d.qualified, d.variant, vec![d.attribute]),
+            None => (name.clone(), name, DefVariant::FreeFunction, Vec::new()),
+        };
         // The definition starts at its own header's return type, not at
         // the invocations the grammar folded in front of it: those are
         // items of their own (see `c_macro`).
@@ -211,16 +243,16 @@ impl<'a> CWalker<'a> {
         let (_, el) = line_range(node);
         let sl = start.start_position().row as u32 + 1;
         self.facts.definitions.push(DefRecord {
-            simple_name: name.clone(),
-            qualified_name: name,
-            variant: DefVariant::FreeFunction,
+            simple_name: name,
+            qualified_name: qualified,
+            variant,
             start_line: sl,
             end_line: el,
             start_byte: start.start_byte() as u32,
             end_byte: node.end_byte() as u32,
             signature_hint: super::extract_signature(self.text(node)),
             visibility: String::new(),
-            attributes: Vec::new(),
+            attributes,
             // `function_definition` is the body. Prototypes stay at the
             // default `has_body: false`, which is what
             // `unify_declarations` tells a declaration from a definition.
@@ -239,7 +271,7 @@ impl<'a> CWalker<'a> {
                 && !self.fn_name_from_declarator(child).is_empty()
             {
                 let name = self.fn_name_from_declarator(child);
-                if !name.is_empty() {
+                if !name.is_empty() && !is_macro_misparse(node, &name, self.source) {
                     let (sl, el) = line_range(node);
                     self.facts.definitions.push(DefRecord {
                         simple_name: name.clone(),
@@ -258,6 +290,31 @@ impl<'a> CWalker<'a> {
                 return;
             }
         }
+    }
+
+    /// `MACRO(args) { body }` at item position, `MACRO` a function-defining
+    /// macro from outside the tree: the grammar reads an invocation with no
+    /// `;` and the block after it. Records the function and returns true.
+    fn record_fn_macro_block(&mut self, node: Node) -> bool {
+        let Some(d) = super::c_family::fn_macro_block(node, self.source, false) else {
+            return false;
+        };
+        let body = node.next_sibling().expect("checked by fn_macro_block");
+        self.facts.definitions.push(DefRecord {
+            simple_name: d.simple,
+            qualified_name: d.qualified,
+            variant: d.variant,
+            start_line: node.start_position().row as u32 + 1,
+            end_line: body.end_position().row as u32 + 1,
+            start_byte: node.start_byte() as u32,
+            end_byte: body.end_byte() as u32,
+            signature_hint: super::extract_signature(self.text(node)),
+            visibility: String::new(),
+            attributes: vec![d.attribute],
+            has_body: true,
+            ..Default::default()
+        });
+        true
     }
 
     /// See [`fn_name_from_declarator`].
@@ -403,6 +460,32 @@ pub(crate) fn call_ref(node: Node, src: &[u8]) -> Option<RefRecord> {
         site_byte: node.start_byte() as u32,
         ..Default::default()
     })
+}
+
+/// A "prototype" that is a macro invocation the grammar misread:
+/// `GENERATED_BODY()` (no type; implicit `int` is long gone), or, inside a
+/// function body, `Z_PARAM_STR(key)` / `ZEND_PARSE_PARAMETERS_END_EX(…)`
+/// run into the next line (a macro-cased name or type). A block-scope
+/// prototype of a macro-cased function is not worth the phantom callable
+/// every such invocation would otherwise become.
+fn is_macro_misparse(node: Node, name: &str, src: &[u8]) -> bool {
+    use super::c_family::is_macro_case;
+    let ty = node.child_by_field_name("type");
+    if ty.is_none() && is_macro_case(name) {
+        return true;
+    }
+    let mut a = node.parent();
+    while let Some(p) = a {
+        if p.kind() == "compound_statement" {
+            return is_macro_case(name)
+                || ty.is_some_and(|t| {
+                    t.kind() == "type_identifier"
+                        && is_macro_case(t.utf8_text(src).unwrap_or(""))
+                });
+        }
+        a = p.parent();
+    }
+    false
 }
 
 fn line_range(n: Node) -> (u32, u32) {
