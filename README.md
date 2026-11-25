@@ -519,11 +519,11 @@ OpenAPI/AsyncAPI root key for `.yaml`/`.yml`/`.json`, then its extension.
 | C | `#include` transitive (depth 8) | — | Macros as callables | `.c` `.h` |
 | C++ | `#include` transitive | params, locals, fields (one hop), `new T()`, object-like macro receivers | Templates, operators; prototypes unify with out-of-line bodies; virtual and member-pointer-table fan-out with `--dynamic-dispatch`; a `.h` is parsed as C++ when its first 8 KB has C++-only syntax (`namespace`, `template<`, `::`, `virtual`, a C++ standard header…) or a same-stem C++ file sits beside it, otherwise as C | `.cc` `.cpp` `.cxx` `.C` `.hpp` `.hh` `.hxx`, C++ `.h` |
 | C# | using, using static, alias | params, `Type var`, `new Foo()` | Accessors | `.cs` `.csx` |
-| Bash | `source ./file.sh` | — | Builtin filter | `.sh` `.bash` |
+| Bash | `source ./file.sh` | — | Builtin filter; bats `@test` blocks are test-case callables | `.sh` `.bash` `.bats`, `PKGBUILD` |
 | Ruby | require/require_relative | — | initialize → Constructor | `.rb` `.rake` `.gemspec`, `Gemfile`, `Rakefile`, `config.ru` |
 | PHP | require_once/include | params | — | `.php` `.phtml` |
 | Objective-C | #import | — | Message expressions | `.m` `.mm` |
-| R | library(), source() | — | `<-` and `=` assignment | `.r` `.R` `.Rmd` |
+| R | library(), source(), `tar_source()` | — | `<-` and `=` assignment; only the R chunks of `.Rmd`/`.qmd` are read | `.r` `.R` `.Rmd` `.qmd` |
 | Swift | import Module | params | init → Constructor | `.swift` |
 | Lua | require('mod') | — | Colon method syntax | `.lua` |
 | Dart | import 'file.dart' | params | — | `.dart` |
@@ -535,7 +535,7 @@ OpenAPI/AsyncAPI root key for `.yaml`/`.yml`/`.json`, then its extension.
 | Perl | use, require | — | Subs and packages | `.pl` `.pm` `.t` |
 | Elixir | alias, import, require | — | def/defp/defmacro | `.ex` `.exs` |
 | Erlang | -include, -import | — | OTP modules | `.erl` `.hrl` |
-| Fortran | use module | — | Subroutines and functions | `.f90` `.f95` `.f03` `.f08` `.f` `.for` `.fpp` |
+| Fortran | use module | — | Subroutines and functions | `.f90` `.f95` `.f03` `.f08` `.f` `.for` `.f77` `.ftn` `.fpp` |
 | Clojure | (ns :require ...) | — | defn/defmacro/deftype/defprotocol | `.clj` `.cljs` `.cljc` `.edn` |
 | Haskell | import | — | Top-level bindings | `.hs` `.lhs` |
 | OCaml | open, include | — | let/let rec, modules | `.ml` `.mli` |
@@ -1457,6 +1457,8 @@ is part of the qualified name, so it is filterable:
 | **`lifecycle`** | `forward`, `onCreate`, `ServeHTTP` on an internal type | no |
 | **`test`** | test harness entry | no |
 | **`public`** | Solidity `public`/`external` contract function | yes — any address on the chain can call it |
+| **`ui`** | an event handler wired in markup or an editor menu (XAML `Click="OnSave"`, Unity `[MenuItem]`) | no |
+| **`tool`** | agent or MCP tool, MCP resource or prompt, VS Code language-model tool (`@tool`, `#[tool]`, `server.tool(…)`) | **yes** — the model chooses the arguments (prompt injection) |
 
 ```bash
 # Attack surface plus its blast radius
@@ -1480,6 +1482,15 @@ import actually being present — without that gate, every decorator named
 | **D** base class / interface | `nn.Module.forward`, `IJob.Execute` | PyTorch, Quartz, MassTransit, Sidekiq, Akka, `BackgroundService`, `Runnable` |
 | **E** string names the target | `'photos#index'`, `"App\C@method"`, `handler="app.lambda_handler"` | Rails, Laravel (both the `@` string and the `[C::class,'m']` array), WordPress, AWS CDK |
 | **F** separate unit by path/pragma | `new Worker('./w.js')`, CUDA `__global__` | `worker_threads`, piscina, CUDA |
+
+Agent and MCP tool SDKs use the same shapes and get the kind `tool`:
+37 rule ids, among them the MCP SDKs for Python, TypeScript, C#, Go,
+Ruby and PHP, rmcp, LangChain (Python and JS), LangGraph, LlamaIndex,
+CrewAI, DSPy, Pydantic AI, Strands, the OpenAI Agents and Claude Agent
+SDKs, Vercel AI, Mastra, Spring AI, LangChain4j, Koog, Semantic Kernel,
+Eino, Rig and VS Code language-model tools. A tool's entry is named by
+the tool (its `name` argument, else the function or type name), so
+`--filter '<framework-entry>::tool::'` lists every tool a model can call.
 
 Bucket **D** usually marks a root without minting a node: one
 `torch:Module.forward` node fanning out to every model in a repository
@@ -1557,7 +1568,7 @@ framework coverage
   recognised     laravel (network, 281 entries) · symfony (network, 1 entry)
   seen, no rules wordpress — found in 5 file(s), entries NOT enumerated
                    (cgg has no entry rules for this framework)
-  no rules      1 file(s) in languages with no framework rules (bash)
+  no rules      1 file(s) in languages with no framework rules (verilog)
 
   Entry-node coverage is PARTIAL. Handlers of the frameworks listed under
   "seen, no rules" are not represented and will still appear unreferenced.
@@ -1580,11 +1591,11 @@ therefore exercise nothing:
 
 | app | framework | entries found |
 | --- | --- | --- |
-| [NetBox](https://github.com/netbox-community/netbox) | Django | 339 `network` · 22 `cli` |
-| [Netflix Dispatch](https://github.com/Netflix/dispatch) | FastAPI | 318 `network` · 38 `cli` |
-| [Mastodon](https://github.com/mastodon/mastodon) | Rails + Sidekiq | 559 `network` · 109 `queue` |
+| [NetBox](https://github.com/netbox-community/netbox) | Django | 338 `network` · 22 `cli` |
+| [Netflix Dispatch](https://github.com/Netflix/dispatch) | FastAPI | 293 `network` · 38 `cli` |
+| [Mastodon](https://github.com/mastodon/mastodon) | Rails + Sidekiq | 809 `network` · 109 `queue` |
 | [mall](https://github.com/macrozheng/mall) | Spring Boot | 250 `network` · 1 `schedule` · 1 `queue` |
-| [PhotoPrism](https://github.com/photoprism/photoprism) | Gin + Chi | 175 `network` from each rule |
+| [PhotoPrism](https://github.com/photoprism/photoprism) | Gin + Chi | 173 `network` (Gin) · 172 (Chi) |
 | [crates.io](https://github.com/rust-lang/crates.io) | Axum | 70 `network` |
 | [Ultralytics](https://github.com/ultralytics/ultralytics) | PyTorch | 159 `lifecycle` (root-marked, no nodes) |
 
@@ -1616,7 +1627,7 @@ release.
 [[framework]]
 id       = "myfw"
 language = "python"
-kind     = "network"          # network | queue | schedule | cli | ffi | lifecycle | test | public
+kind     = "network"          # network | queue | schedule | cli | ffi | lifecycle | test | public | ui | tool
 detect   = ["myfw"]           # import prefixes proving the framework is in use
 attributes = ["endpoint"]     # shape A
 # registrars = ["get", "post"]      # shape B/C/E
@@ -1834,13 +1845,16 @@ know](#adding-a-framework-cgg-does-not-know).
 - C/C++ preprocessing is partial. A function-defining `#define` invoked at
   file, namespace or class scope is expanded one level (`#`, `##`,
   `__VA_ARGS__`; no nested expansion), and object-like `#define NAME expr` is
-  followed one level only to type a receiver (`THE_APP->run()`); nothing else
-  is preprocessed, and calls written inside an unexpanded macro body are not
-  recorded
+  followed one level only to type a receiver (`THE_APP->run()`). Known
+  function-defining macros of test and extension frameworks (`PHP_METHOD`,
+  `BPF_*`, `ZTEST`, Criterion, Unity, `TEST_CASE`) name the function they
+  define, and class-body macros (`Q_OBJECT`, `GENERATED_BODY()`,
+  `UFUNCTION(…)`) are rewritten same-length before parsing; nothing else is preprocessed,
+  and calls written inside an unexpanded macro body are not recorded
 - Type inference is partial — handles parameters, constructors, return types,
   and (opt-in via `--dynamic-dispatch`) dispatch to known implementors and
   overrides: Rust traits, C++ virtuals, class inheritance in Python, Java, C#,
-  Kotlin, Scala, Groovy, TS, JS, Swift, Dart, PHP and Ruby, Go interfaces
+  Kotlin, Scala, Groovy, TS, JS, Swift, Dart, PHP, Ruby and Solidity, Go interfaces
   (satisfied structurally) and Clojure protocols and multimethods; does not
   handle generics or fully dynamic typing
 - No daemon / watch mode, and **no on-disk cache**. Every run re-walks,
@@ -1874,7 +1888,7 @@ know](#adding-a-framework-cgg-does-not-know).
   where to look, never to conclude something is exploitable.
 - Dead-code signal coverage is very uneven across languages. `visibility` is
   extracted for 7 of 46 plugins, real attributes for 9, and value-reference
-  capture for 26. Every report prints a per-language capability table so a "no"
+  capture for 29. Every report prints a per-language capability table so a "no"
   column is visible before the findings are.
 
 ## Potential future improvements
@@ -1891,10 +1905,10 @@ flight.
 - **Dynamic-dispatch fan-out across remaining languages.** The declaration →
   implementation fan-out (`--dynamic-dispatch`) is wired for Rust traits,
   C++ virtual methods and member-pointer tables, class inheritance in
-  Python, Java, C#, Kotlin, Scala, Groovy, TS, JS, Swift, Dart, PHP and
-  Ruby, Go interfaces, and Clojure protocols and multimethods; other
-  interface-bearing plugins (Objective-C protocols, Solidity interfaces)
-  still need the per-plugin capture. (Function-as-value capture covers 26
+  Python, Java, C#, Kotlin, Scala, Groovy, TS, JS, Swift, Dart, PHP,
+  Ruby and Solidity, Go interfaces, and Clojure protocols and
+  multimethods; other interface-bearing plugins (Objective-C protocols)
+  still need the per-plugin capture. (Function-as-value capture covers 29
   plugins.)
 - **File-system-routed frameworks.** Next.js and Blazor put the route in
   the file layout or in markup cgg does not parse, so both are detected

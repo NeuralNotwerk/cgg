@@ -11,7 +11,7 @@ Internal reference docs for cgg's language parity work. These are not user docum
 | [PARITY_MATRIX.md](PARITY_MATRIX.md) | Combined overview matrix, top 30 gaps, legend, coverage notes |
 | [REMEDIATION_PLAN.md](REMEDIATION_PLAN.md) | Workstream plan for the top 30 gaps, written from the matrix on 2026-10-17 |
 | [languages/](languages/) | 46 language catalogues, one per registered plugin (`rust.md`, `python.md`, …). Each has sections 01–16 matching the categories below, plus a summary scorecard |
-| [frameworks/](frameworks/) | `rules-part-1.md` to `rules-part-4.md`: every `RuleSpec` in `crates/cgg-core/src/frameworks/rules.rs` (475 specs at the snapshot; the file has 507 now), with its triggers, matching semantics and enumerating or gap-only status |
+| [frameworks/](frameworks/) | `rules-part-1.md` to `rules-part-4.md`: every `RuleSpec` in `crates/cgg-core/src/frameworks/rules.rs` as of 0.13.4 (475 specs at the snapshot, 507 at 0.13.4), with its triggers, matching semantics and enumerating or gap-only status; `rules-part-5.md`: the 345 rows added and the 18 rows changed in 0.14.0 (852 specs) |
 | [matrix/](matrix/) | 17 category files. Each has a per-language capability matrix, a ranked **Parity gaps** list (with S/M/L effort), doc corrections and the fixtures run |
 
 ## Categories (`matrix/`)

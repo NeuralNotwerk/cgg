@@ -1,6 +1,8 @@
 # Framework rules, part 2 — `rules.rs` lines 2976–5860
 
 > **Re-checked against 0.13.3 (2026-11-25).** This part was extracted from `rules.rs` as it stood on 2026-10-17 (0.11.0). The slice boundaries, the line numbers and the counts in the prose refer to that snapshot; at 0.13.3 `rules.rs` is 13,527 lines and `SPECS` holds 507 `RuleSpec`s with 390 distinct ids. Re-checked mechanically at 0.13.3: every `(id, language)` pair in `SPECS` has a row in one of the four parts; kind, node and the detection-only/enumerating split match the code (helper-table matchers counted); every trigger string in the code appears in its row; the benchmark-app column is regenerated from the `APPS` array in `scripts/benchmark.sh`. A row whose triggers changed says "updated for 0.13.3" and gives its current line; a row added since says "added in 0.11.1". A Java rule whose Kotlin twin (identical fields) was added in 0.11.1 lists both languages. The fixture-based observations were not re-run unless a note says otherwise.
+>
+> **0.14.0:** the rows added in 0.14.0 (345 `(id, language)` pairs, including the new `tool` kind) and the 18 rows whose triggers or kind changed are listed in [`rules-part-5.md`](rules-part-5.md); the matching semantics described here gained per-file framework evidence and new pattern forms, summarised at the top of that part. Line numbers here still refer to the snapshot.
 
 Source: `crates/cgg-core/src/frameworks/rules.rs` (`SPECS`). This slice starts at the first
 `RuleSpec` at or after line 2976 (`mix-task`, line 2990) and ends with the `RuleSpec` that

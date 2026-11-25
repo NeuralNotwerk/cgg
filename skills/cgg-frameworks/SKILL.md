@@ -17,8 +17,9 @@ work. Step 4 is the upstream offer, and has rules of its own.
 
 ## Step 0 — read the coverage table first
 
-cgg ships a built-in rule table (about 390 rule ids across 36
-languages, test harnesses included), and **tells you which ones it
+cgg ships a built-in rule table (about 650 rule ids across 38
+languages, test harnesses and agent/MCP tool SDKs
+included), and **tells you which ones it
 recognised in your tree**.
 Run it and read stderr before writing anything:
 
@@ -111,7 +112,7 @@ table stops listing the framework as a gap.
 [[framework]]
 id       = "myfw"        # appears in the node name and coverage table
 language = "python"      # plugin id: python, javascript, typescript, java, ...
-kind     = "network"     # see below — nine values
+kind     = "network"     # see below — ten values
 
 # DETECTION — the gate for registrars/base_types/methods. See the
 # hazard note below: it is NOT a gate for `attributes`.
@@ -178,9 +179,27 @@ matches on the last segment with generic arguments stripped, walking
 the in-tree base chain, so `base_types = ["Module"]` matches
 `class Net(nn.Module)` and its subclasses — and also any unrelated
 class named `Module`. `attributes` and `methods` also take naming
-patterns, `prefix*` and `*suffix`, which compare **case-sensitively**
-(`test*` takes `test_x` and `testFoo`, not `tests`; `Test*` not
-`Testing`).
+patterns, `prefix*`, `*suffix` and `prefix*suffix`, which compare
+**case-sensitively** (`test*` takes `test_x` and `testFoo`, not
+`tests`; `Test*` not `Testing`; `get*R` takes `getHomeR`, not `getR`).
+`base_types` take the same patterns, against the whole written base and
+its last segment (`*Servicer`, `*::Service`), and a `methods` entry
+written `owner.name` matches by owner (`love.update`, not
+`Player:update`). A registrar may name the keyword, option key or
+argument label its value is passed under: `registrars =
+["create_react_agent:tools"]` takes only what is passed as `tools=`.
+A `detect` entry holding `*` is a name pattern matched against each
+segment of an import (`*Grpc` for a generated gRPC stub).
+
+**In Python, JavaScript/TypeScript, Java, Kotlin, Go, Rust and Swift,
+framework evidence is per file.** A decorator or annotation (Python,
+JS/TS, Java, Kotlin), a bare registrar call and a base type count only
+in a file that imports the framework, writes the marker qualified under
+a `detect` prefix, or (Python, JS/TS) imports the name from a project
+module that does. A base type the language imports implicitly
+(`Runnable`, Rust prelude traits) needs no import. So a rule whose
+handlers live in files that never import the framework themselves
+enters nothing there: point `detect` at what those files do import.
 
 ### The `detect` hazard, in both directions
 
@@ -431,7 +450,9 @@ Be honest rather than writing a rule that silently does nothing:
   catches `nn.Module` and every unrelated `Module` in the tree. Write
   the most specific segment you can. A rule with `methods` and no
   `base_types` is weaker still — the structural-typing escape hatch for
-  Go interfaces and Elixir behaviours, matching on method name alone.
+  Go interfaces, matching on method name alone. (An Elixir module's
+  `use Mod` and `@behaviour Mod` are its base types, so Elixir rules
+  can use `base_types`.)
 - **Attribute capture does not cover every language.** `attributes` and
   `root_attributes` work on the nine plugins listed in Step 2 and match
   nothing on the rest. Don't guess the list from memory — a run whose
