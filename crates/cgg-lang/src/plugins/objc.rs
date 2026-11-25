@@ -15,6 +15,12 @@ impl LanguagePlugin for ObjcPlugin {
     fn extensions(&self) -> &'static [&'static str] {
         &[".m", ".mm"]
     }
+    /// Blanks the export and calling-convention macros the grammar cannot
+    /// read (see [`super::c_family::parse_rewrite`]).
+    fn parse_source(&self, _path: &Path, source: &[u8]) -> Option<Vec<u8>> {
+        super::c_family::parse_rewrite(source, false)
+    }
+
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_objc::LANGUAGE.into()
     }

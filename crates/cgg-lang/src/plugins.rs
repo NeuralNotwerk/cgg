@@ -3,6 +3,7 @@ pub mod asyncapi;
 pub(crate) mod attrs;
 pub mod bash;
 pub mod c;
+pub(crate) mod c_family;
 pub mod c_macro;
 mod c_values;
 pub mod cfg;
