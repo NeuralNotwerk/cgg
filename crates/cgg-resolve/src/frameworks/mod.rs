@@ -593,7 +593,9 @@ fn contains_ci(list: &[String], needle: &str) -> bool {
 /// stem. Patterns compare case-sensitively — the case IS the convention
 /// (`go test` runs `TestFoo`, never `testFoo`) — and a prefix pattern
 /// refuses a continuation that starts with a lowercase letter, so `Test*`
-/// does not take `Testing` and `test*` does not take `tests`.
+/// does not take `Testing` and `test*` does not take `tests`. An infix
+/// pattern `get*R` needs both ends around a non-empty middle, with the
+/// prefix's word boundary (`getHomeR`, never `getter` or `getR`).
 fn matches_ci_or_pattern(list: &[String], needle: &str) -> bool {
     list.iter().any(|m| name_pattern_matches(m, needle))
 }
@@ -604,7 +606,7 @@ fn matches_ci_or_pattern(list: &[String], needle: &str) -> bool {
 fn method_name_matches(rule: &FrameworkRule, name: &str) -> bool {
     if rules::methods_case_sensitive(&rule.id, &rule.language) {
         return rule.methods.iter().any(|m| {
-            if m.starts_with('*') || m.ends_with('*') {
+            if m.contains('*') {
                 name_pattern_matches(m, name)
             } else {
                 m == name
@@ -615,6 +617,17 @@ fn method_name_matches(rule: &FrameworkRule, name: &str) -> bool {
 }
 
 pub(crate) fn name_pattern_matches(pattern: &str, name: &str) -> bool {
+    if let Some((prefix, suffix)) = pattern.split_once('*')
+        && !prefix.is_empty()
+        && !suffix.is_empty()
+    {
+        let bounded = !prefix.ends_with(|c: char| c.is_ascii_alphanumeric());
+        return name
+            .strip_prefix(prefix)
+            .and_then(|rest| rest.strip_suffix(suffix))
+            .and_then(|middle| middle.chars().next())
+            .is_some_and(|c| bounded || !c.is_ascii_lowercase());
+    }
     if let Some(prefix) = pattern.strip_suffix('*') {
         // `test_*` already ends at a word boundary; `test*` must not run
         // on into a longer lowercase word.
@@ -2509,6 +2522,13 @@ mod tests {
         assert!(name_pattern_matches("*_test", "add_test"));
         assert!(!name_pattern_matches("*_test", "_test"));
         assert!(!name_pattern_matches("*_test", "latest"));
+        // Infix: both ends, a non-empty middle, the prefix's boundary.
+        assert!(name_pattern_matches("get*R", "getHomeR"));
+        assert!(name_pattern_matches("handle*R", "handleStaticR"));
+        assert!(!name_pattern_matches("get*R", "getR"));
+        assert!(!name_pattern_matches("get*R", "getterR"));
+        assert!(!name_pattern_matches("get*R", "getHome"));
+        assert!(!name_pattern_matches("get*R", "sdistR"));
         assert!(
             name_pattern_matches("Fact", "fact"),
             "plain names stay case-insensitive"
