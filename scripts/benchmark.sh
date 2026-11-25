@@ -339,7 +339,7 @@ APPS=(
     "app-keepassxc-qttest|https://github.com/keepassxreboot/keepassxc.git|cmake-codecoverage,cocoa-delegate,py-signal,qt-widgets,qtest,~c-runtime,~cmake,~cpp-callbacks,~cpp-runtime,~go-encoding,~go-runtime,~objc-main,~objc-selector,~py-argparse,~uikit-appdelegate,~uikit-lifecycle"
     "app-pdns-boosttest|https://github.com/PowerDNS/pdns.git|boost-test,cargo-test,cpp-callbacks,libfuzzer,py-threading,py-unittest,pytest,rust-std-traits,~c-runtime,~clap,~cpp-runtime,~cpp-test-macros,~hyper,~js-test-globals,~py-argparse,~py-setuptools-entrypoints,~rust-runtime,~serde"
     "app-navigation2-ros2|https://github.com/ros-navigation/navigation2.git|behaviortree-cpp,behaviortree-register,gtest,gtest-fixture,py-threading,py-unittest,pytest,qt-widgets,ros2-rclcpp,~c-runtime,~cmake,~cpp-runtime,~py-argparse,~py-setuptools-entrypoints,~py-signal"
-    "app-dexed-juce|https://github.com/asb2m10/dexed.git|juce,~cpp-runtime,~juce-plugin"
+    "app-dexed-juce|https://github.com/asb2m10/dexed.git|juce,juce-plugin,~cpp-runtime"
     "app-tfserving-grpc|https://github.com/tensorflow/serving.git|cpp-callbacks,grpc-cpp,gtest,gtest-fixture,~bazel,~cpp-runtime,~py-argparse,~py-atexit,~py-setuptools-entrypoints,~py-threading"
     "app-meshtastic-arduino|https://github.com/meshtastic/firmware.git|arduino,c-callbacks,cmsis-vectors,cpp-callbacks,esp-idf,freertos,libfuzzer,py-argparse,~c-runtime,~cpp-runtime,~py-threading"
     "app-geany-glib|https://github.com/geany/geany.git|c-callbacks,glib-signals,uikit-lifecycle,~c-runtime,~cocoa-delegate,~cpp-runtime,~csharp-disposable,~csharp-runtime,~django,~go-runtime,~java-closeable,~java-runtime,~jsr250-lifecycle,~julia-base-dispatch,~julia-module-init,~objc-main,~py-argparse,~rust-runtime,~rust-std-traits,~uikit-appdelegate,~vhdl-toplevel"
@@ -347,7 +347,7 @@ APPS=(
     "app-redisbloom-redismodule|https://github.com/RedisBloom/RedisBloom.git|c-callbacks,py-unittest,redis-module,~bash-dispatch,~c-runtime,~py-argparse,~py-context-manager,~py-signal"
     "app-sqlitevec-sqlite|https://github.com/asg017/sqlite-vec.git|c-callbacks,cargo-test,libfuzzer,pytest,sqlite-ext,~bun-serve,~c-runtime,~criterion,~go-runtime,~py-argparse,~py-context-manager,~py-unittest,~vue"
     "app-squeezelite-espidf|https://github.com/sle118/squeezelite-esp32.git|c-callbacks,cpp-callbacks,esp-idf,freertos,gtest,js-test-globals,libfuzzer,py-argparse,py-context-manager,py-threading,~c-runtime,~cmake,~cpp-runtime,~cpp-test-macros,~gtest-fixture,~py-setuptools-entrypoints,~rake,~zephyr"
-    "app-crazyflie-cmsis|https://github.com/bitcraze/crazyflie-firmware.git|c-callbacks,ffi-export,freertos,glib-signals,py-threading,pytest,qt-widgets,~c-runtime,~cpp-runtime,~py-argparse,~py-setuptools-entrypoints,~rake"
+    "app-crazyflie-cmsis|https://github.com/bitcraze/crazyflie-firmware.git|c-callbacks,cmsis-vectors,ffi-export,freertos,glib-signals,py-threading,pytest,qt-widgets,~c-runtime,~cpp-runtime,~py-argparse,~py-setuptools-entrypoints,~rake"
     "app-hoverboard-stm32hal|https://github.com/EFeru/hoverboard-firmware-hack-FOC.git|cmsis-vectors,stm32-hal,~c-runtime"
     "app-maiden-httpz|https://github.com/monome/maiden.git|jest,react,vitest,zig-httpz,~react-hooks,~zig-build,~zig-export,~zig-main,~zig-test,~zig-websocket"
     "app-nullclaw-websocket|https://github.com/nullclaw/nullclaw.git|py-threading,zig-websocket,~zig-build,~zig-export,~zig-main,~zig-test"
@@ -359,6 +359,7 @@ APPS=(
     "app-mom6-esmf|https://github.com/mom-ocean/MOM6.git|esmf-nuopc,~fortran-program,~py-argparse"
     "app-microwatt-vunit|https://github.com/antonblanchard/microwatt.git|c-callbacks,cpp-callbacks,ffi-export,vunit,~c-runtime,~cpp-runtime,~py-argparse,~py-signal,~rust-runtime,~rust-std-traits,~vhdl-toplevel"
     "app-dvbfpga-vunit|https://github.com/OpenResearchInstitute/dvb_fpga.git|vunit,~py-argparse,~py-threading,~vhdl-toplevel"
+    "app-orbfirmware-zephyr|https://github.com/worldcoin/orb-firmware.git|py-threading,zephyr,ztest,~c-runtime,~cmake,~nix,~py-argparse"
     # Every corpus directory is an APPS entry, so framework coverage and the
     # manifest sync measure all of them. Claims are measured, not hand-written
     # (scripts/sync-app-manifest.py).
