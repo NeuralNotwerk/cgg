@@ -124,6 +124,57 @@ Other resolver and extraction gaps:
   (`git::`); dot-source paths written with `\` do not resolve.
 - Perl: `POSIX::floor` records an extra `POSIX` external site.
 
+## 0.14.0 partials and follow-ups (2026-11-25)
+
+The audit's P1 items shipped in 0.14.0 (see `CHANGELOG.md`). These parts
+of them did not, or surfaced while merging; P2/P3 items below stay
+scheduled for 0.14.x.
+
+- Kotlin and Dart record registrar slots but do not capture registrar
+  arguments, so registrar rows (slotted or not) are inert there.
+- Elixir `use MyAppWeb, :live_view` does not expand `__using__`; the
+  Phoenix rows stay name-matched tree-wide.
+- JS/TS: Cloudflare Agents `schedule(…, "method")` (target in the second
+  string); nested options-object slots (Claude Agent SDK
+  `query({ options: { canUseTool, hooks } })`, a Vercel AI tool's name
+  from its object key); typed literals (`const g: InputGuardrail = {…}`);
+  a renamed import used only as a module-level value.
+- Prism and MCP PHP tool names set in an earlier chained call
+  (`Tool::as('weather')->…->using(fn)`) route by the function name;
+  mcp-ruby methods inside `class << self`; C# `Create(_svc.M)` and
+  `MapGrpcService<T>` mint no entry node.
+- Base-type rows with no method list root private helpers too (netty,
+  grpc-java/kotlin/dotnet, slick, abp-appservice, graphql-ruby, thor;
+  Thor `no_commands`).
+- Detect-only or partial rows: `jane-street-command`, `targets` (a
+  top-level call into a sourced script does not bind), `zig-httpz` route
+  nodes, Spring AI `FunctionToolCallback`, Room migrations as anonymous
+  objects, Hubitat `subscribe`/`runIn` handlers, Temporal Java
+  interface-only methods, Forge `addListener(this::m)`, Vapor route
+  closures, React Native's Swift `RCT_EXTERN_METHOD`, Boost.Test cases
+  still named after the macro, ESMF spellings, `.ino` sketches,
+  fixed-form Fortran continuation lines, assembly include closures.
+- A Dash app's `@app.server.route`/`@app.server.errorhandler` are Flask
+  decorators in a file importing only `dash`; per-file evidence drops
+  them (py-dash: one false high). Let `dash` count as Flask evidence for
+  attributes reached through `.server`, or add a dash row.
+- C#: calls inside a lambda in a field initializer
+  (`static readonly … = Register(…, (o, x) => o.M(x))`) are not recorded
+  (predates 0.14.0; app-openkh-mcmaster `SetDebugLayoutRenderer` is now a
+  false high because field typing removed the doubt that hid it).
+- Dart: after `with`-clause bases are recorded, the facade narrowing
+  drops a mixin delegatee's direct edge for an untyped receiver
+  (dart-flutter −398 edges, reachability kept). Consider exempting a
+  delegatee that is a mixin.
+- C++: a namespace closed by a macro (`NLOHMANN_JSON_NAMESPACE_END`)
+  leaks an `(anonymous)::` scope to the rest of the file (json.hpp: 337
+  qnames; edges resolve).
+- C++: Catch2 `TEMPLATE_TEST_CASE("d", "[t]", types…)` bodies are not
+  callables (doctest's forms are).
+- `zig-zig` runs ~38 s alone, within ~20 s of the 60 s corpus cap; under
+  parallel load it trips it. deer-flow runs 21–45 s under load.
+- app-pfr-lean has no APPS row (a formalization, not an application).
+
 ## Framework audit and research (2026-11-25)
 
 Per-language audit agents read the rule table at HEAD (0.13.4) and ran the
@@ -588,46 +639,6 @@ minor. MCP and LLM-tool rows are in the AI agent section.
 
 New coverage (ranked):
 
-- **P1 blender-addon** (lifecycle; rows; `bpy`) Operator/Panel/Menu/UIList
-  `execute`/`invoke`/`poll`/`draw`, module `register`/`unregister` (node false).
-  ucupaint: 622 entries, medium findings 1,224 -> 210.
-- **P1 qt** (lifecycle; row; `PyQt5`/`PyQt6`/`PySide2`/`PySide6`)
-  `@Slot`/`@pyqtSlot`, `connect`, `*Event`, `QThread.run`, model overrides; 7.9M
-  dl/month. qutebrowser: 357 entries, 73 were dead. C++ twin below.
-- **P1 textual** (lifecycle; row) `on_*`, `action_*`, `watch_*`, `compose`,
-  `@on`, `@work` on App/Screen/Widget; 59.8M dl/month. harlequin: 211 entries,
-  medium 406 -> 173.
-- **P1 home-assistant** (lifecycle; 2 rows; `homeassistant`) `async_setup_entry`
-  and kin by name, `async_step_*`, entity and coordinator bases. proxmoxve: 56
-  entries, medium 127 -> 25.
-- **P1 django lifecycle** (lifecycle; rows) `@receiver`, template tags,
-  `AppConfig.ready`, Form `clean_*`, DRF `validate_*`. netbox: 379 entries,
-  1,332 -> 1,151.
-- **P1 odoo** (lifecycle; rows) `@api.depends`/`onchange`/`constrains`, Model
-  `action_*`, `_compute_*`, CRUD overrides. OCA/project: 121 entries, 135 -> 41.
-- **P1 behave and pytest-bdd** (test; row) `given`/`when`/`then`/`step`; twin of
-  `cucumber`; 4.0M + 3.9M dl/month. qutebrowser 172 steps, jrnl 57.
-- **P1 cocotb** (test; row; `cocotb`, `cocotb_tools`) `@cocotb.test`; drives
-  VHDL and Verilog; 1.22M dl/month. taxi: 490 entries, 766 -> 701; eurorack-pmod
-  0 -> 7.
-- **P1 Temporal** (queue; row; `temporalio`) `activity.defn`,
-  `workflow.run`/`signal`/`query`/`update`/`init`; Go twin exists; 48.7M/month.
-  tracecat: 302 entries.
-- **P1 grpc-python** (network; row after base patterns; `grpc`) `*Servicer`
-  methods; 390M/month. katib: 48 entries, 2,921 -> 2,835; MLServer 19.
-- **P1 Graphene** (network; row; `graphene`, `graphene_django`)
-  ObjectType/Mutation, `resolve_*`, `mutate`, `mutate_and_get_payload`. saleor:
-  974 entries, dead 3,954 -> 1,573.
-- **P1 Strawberry** (network; row) `strawberry.field`/`mutation`/`subscription`.
-  netbox: 41 of 41 resolvers (graphql module findings 56 -> 7).
-- **P1 discord.py** (network; row; `discord`, `nextcord`, `disnake`)
-  command/event/listener/loop attributes and Cog hooks. python-discord/bot: 481
-  entries, 779 -> 223; Red-DiscordBot (click mislabels ~600 commands today).
-- **P1 Slack Bolt** (network; row)
-  `@app.action`/`view`/`event`/`command`/`shortcut`; 19.4M/month. dispatch ~59
-  handlers. JS twin below.
-- **P1 Django Ninja** (network; row after the `mock.patch` fix) verb attributes,
-  `api_operation`. revel-backend: 553 operations.
 - **P2 pluggy** (public; marker row `hookimpl`) 1.33B dl/month; llm 20 entries.
 - **P2 modal** (queue; row) `@app.function`/`cls`,
   `@modal.method`/`enter`/`fastapi_endpoint`; `.remote()` is unbound, so all
@@ -814,27 +825,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 oclif** (cli; row; `@oclif/core`, `@oclif/command`) `extends Command`
-  with `run`/`init`/`catch`/`finally`; 17.6M/week. heroku/cli: 302 entries, 298
-  of 416 findings gone (45 more need the renamed-import base fix).
-- **P1 Elysia** (network; row) express verbs plus `ws`, `group`, `onRequest`,
-  `onBeforeHandle`, `onError`, `derive`; 8.9M/month. ConvertX 32, OpenPanel 203.
-- **P1 tsoa, routing-controllers, inversify, Ts.ED, Midway** (network; one row
-  each) verb decorators (inversify `httpGet`…). retraced: 28 entries, 127 -> 90.
-- **P1 TypeGraphQL** (network; row) `Query`, `Mutation`, `Subscription`,
-  `FieldResolver`; same set as `@nestjs/graphql`. Real app still needed.
-- **P1 sequelize-typescript hooks** (lifecycle, node false; row) `BeforeCreate`,
-  `AfterUpdate`, `BeforeDestroy` and 20 more. outline: 98 entries, 112 findings
-  gone.
-- **P1 TypeORM listeners and subscribers** (lifecycle, node false; row)
-  `@BeforeInsert` … `@AfterLoad`, `EntitySubscriberInterface`; 7.4M/week.
-  Validate on ever-co/ever-gauzy.
-- **P1 Phaser, Obsidian, Lit** (lifecycle; rows) Scene
-  `init`/`preload`/`create`/`update` (workadventure 30 entries, 255 findings
-  gone); Plugin/ItemView/Modal/PluginSettingTab hooks and
-  `addCommand`/`registerEvent` registrars (obsidian-dataview 18, 54 gone);
-  LitElement/ReactiveElement/HTMLElement `render`, `connectedCallback`,
-  `firstUpdated`, `updated` (validate on home-assistant/frontend).
 - **P2 Tagged-template value refs** (extraction) `${this._onClick}` in `html`
   templates records nothing: Lit, lit-html, FAST.
 - **P2 discord.js, Telegraf/grammY, Slack Bolt JS** (network; rows plus route
@@ -1016,43 +1006,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 Bukkit/Spigot/Paper** (lifecycle; row; `org.bukkit`, `io.papermc.paper`,
-  `net.md_5.bungee.api`) `@EventHandler`, `JavaPlugin`/`CommandExecutor` bases.
-  mcMMO: 148 entries, 826 of 1,679 findings gone; BukkitOldCombatMechanics 0 ->
-  194 (110 Java, 84 Kotlin).
-- **P1 SpongePowered Mixin** (lifecycle; row)
-  `@Inject`/`@Redirect`/`@Modify*`/MixinExtras methods are woven in and private,
-  so reported `high`. sodium: 84 of 92 `high` gone.
-- **P1 NeoForge/Forge events** (lifecycle; row; `net.neoforged.bus.api`)
-  `@SubscribeEvent`. Create: 126 entries, 1,070 findings gone with Mixin;
-  `addListener(this::m)` needs method-reference capture.
-- **P1 libGDX** (lifecycle; row) ApplicationListener/Game/Screen/InputProcessor.
-  shattered-pixel-dungeon: 16 roots, 490 of 2,966 gone.
-- **P1 JDA** (network; row) `ListenerAdapter` `on*`, `@SubscribeEvent`. TJ-Bot:
-  27 entries, 298 of 981 gone; MusicBot 199 -> 160; Kotlin Dis4IRC 4.
-- **P1 Netty** (network; row; `io.netty.channel`) `channelRead0`, `initChannel`,
-  `exceptionCaught` on inbound handlers, `ChannelInitializer`, codecs.
-  thingsboard 17 entries.
-- **P1 Quartz** (schedule; row; `org.quartz`) `Job.execute`,
-  `QuartzJobBean.executeInternal`, as the C# row. ruoyi-vue-pro 3, gobblin 7,
-  kapua uses it; Grails twin below.
-- **P1 BPMN delegates, RocketMQ, XXL-JOB** (queue/schedule; rows)
-  Flowable/Camunda 7/Activiti `JavaDelegate.execute`,
-  `Execution`/`TaskListener.notify` (ruoyi-vue-pro 16);
-  `RocketMQListener.onMessage`, `consumeMessage`, transaction hooks (ruoyi 2,
-  austin 2); `@XxlJob`, `IJobHandler.execute` (austin 4).
-- **P1 Spring WebSocket, Netflix DGS** (network; rows)
-  `TextWebSocketHandler.handleText…`, `afterConnection*`, `HandshakeInterceptor`
-  (thingsboard 5); `@DgsQuery`/`@DgsMutation`/`@DgsData` (Kotlin-heavy).
-- **P1 Temporal Java** (queue; row plus class annotations) `@WorkflowMethod`,
-  `@SignalMethod`, `@QueryMethod`, `@ActivityMethod`; `@ActivityInterface`-only
-  methods wait for containers. gobblin 15 entries.
-- **P1 grpc-java and grpc-kotlin** (network; row after base patterns)
-  `*ImplBase`, `AsyncService`, `X*CoroutineImplBase`. Validate on thingsboard,
-  druid, kestra.
-- **P1 String-named fallbacks** (`member_sources_for`) resilience4j
-  `fallbackMethod=`, Sentinel `blockHandler=`, Hystrix, MicroProfile Fault
-  Tolerance, Spring Retry `@Recover`; `high` dead on a fixture.
 - **P2 Jakarta CDI observers** (extraction) `@Observes`/`@Disposes` sit on
   parameters; `@Produces` is a row. geopulse: 16 reported (7 `high`).
 - **P2 Jenkins plugins, Fabric** (lifecycle; rows)
@@ -1136,16 +1089,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 IntelliJ Platform plugins** (lifecycle; rows, Kotlin and Java;
-  `com.intellij`) AnAction, ToolWindowFactory, ProjectActivity, Configurable
-  bases; 26k Kotlin files import AnAction. TranslationPlugin 74 entries (1,418
-  -> 1,341), MinecraftDev 98; `plugin.xml` is minor.
-- **P1 AndroidX Paging, Room, kotlinx.serialization** (lifecycle, node false;
-  rows, Java twins) `PagingSource`/`RemoteMediator`
-  `load`/`getRefreshKey`/`initialize` (mihon 2; 2 more behind a typealias);
-  `@TypeConverter`/`@ColumnTypeConverter`, `Migration.migrate`, `Callback` with
-  `androidx.room3` too (wordpress-android 11); `KSerializer`
-  `serialize`/`deserialize` (home-assistant 24, ort 21, mihon 4).
 - **P2 Clikt** (cli; row) `CliktCommand.run` is live through builtin names but
   mints no node. ort: 65 entries.
 - **P2 KSP, detekt** (lifecycle; rows) `SymbolProcessorProvider.create`,
@@ -1267,36 +1210,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 Harmony** (lifecycle; row; `HarmonyLib`)
-  `Prefix`/`Postfix`/`Transpiler`/`Finalizer`/`TargetMethod(s)` and `Harmony*`
-  attributes; keep `Prepare`/`Cleanup` attribute-only. Multiplayer: 734 entries,
-  `high` 760 -> 117.
-- **P1 Reqnroll/SpecFlow** (test; row) cucumber twin; 157M downloads. Orchard:
-  56 entries, 53 dead gone; step files are not test files.
-- **P1 McMaster CommandLineUtils, Spectre.Console.Cli** (cli; rows)
-  `OnExecute(Async)`/`OnValidate` (OpenKh 96); `Command<T>`/`AsyncCommand<T>`
-  `Execute(Async)`/`Validate` (azure-cost-cli 25, 44 dead gone).
-- **P1 Roslyn analyzers and generators** (lifecycle; row;
-  `Microsoft.CodeAnalysis`) `DiagnosticAnalyzer`, `IIncrementalGenerator`,
-  `CodeFixProvider` `Initialize`/`Register*`. Files: 5 once `global using
-  global::` detects.
-- **P1 FluentValidation, FluentMigrator** (lifecycle; rows)
-  `AbstractValidator<T>` constructors (constructor shape; eShop 4); `Migration`
-  `Up`/`Down` (aptabase 28 of 32 gone).
-- **P1 Rebus, NServiceBus, DotNetCore.CAP** (queue; rows)
-  `IHandleMessages<T>.Handle` (NexusForever: 129 dead -> 0);
-  `IAmStartedByMessages`, `IHandleTimeouts` (das-commitments 64);
-  `[CapSubscribe]` (IoTSharp 7).
-- **P1 FastEndpoints, ABP** (network; rows) `Endpoint<,>`,
-  `EndpointWithoutRequest`, `Ep.*` `HandleAsync`/`ExecuteAsync`/`Configure`
-  (Reaparr: 226 dead); ABP `ApplicationService` family, event handlers, jobs,
-  `AbpModule` hooks (abp-next-admin 1,010; needs the private-member fix).
-- **P1 Akka.NET** (queue; row, F# twin) `UntypedActor`, `ReceiveActor`,
-  persistent actors `OnReceive`/`PreStart`…; reuse the Java `akka` list;
-  `ReceiveActor` constructors need the constructor shape. neo: 11.
-- **P1 grpc-dotnet** (network; matcher) nested `X.XBase` overrides or
-  `MapGrpcService<T>`; overrides are capped `medium` today. Validate on eShop
-  BasketService.
 - **P2 WinUI 3/UWP** (lifecycle; row) `OnLaunched`, `OnNavigatedTo`…; Files 49
   entries. Lands with the `{x:Bind}` fix.
 - **P2 GraphQL.NET, Hot Chocolate** (network) `ObjectGraphType` constructors
@@ -1406,30 +1319,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 terraform-plugin-framework** (public; row) `Metadata`, `Schema`,
-  `Create`, `Read`, `Update`, `Delete`, `ImportState`…; 1,553 modules.
-  hcl-terraform-aws: 3,099 entries, findings 9,333 -> 4,146.
-- **P1 controller-runtime, prometheus collectors** (queue/lifecycle; rows)
-  `Reconcile` (crossplane 19, 4 were dead; webhooks after gating);
-  `Describe`+`Collect` node false (38k modules; crossplane 10).
-- **P1 GORM, ent schema** (lifecycle, node false; rows) `BeforeCreate`,
-  `AfterFind`… and `TableName` for `gorm.io/gorm`, `jinzhu/gorm` (photoprism: 52
-  findings -> 0; xorm/bun alike); ent
-  `Fields`/`Edges`/`Indexes`/`Mixin`/`Annotations`/`Policy`, not `Hooks`
-  (homebox 30).
-- **P1 testify suite** (test; row) `SetupSuite`, `SetupTest`, `TearDown*`,
-  `BeforeTest`, `AfterTest`, `SetupSubTest`, `TearDownSubTest`, `HandleStats`.
-- **P1 bubbletea** (lifecycle; row; `charmbracelet/bubbletea`,
-  `charm.land/bubbletea`) `Init`/`Update`/`View` once Go names are
-  case-sensitive. gh-dash: 51 entries.
-- **P1 watermill, nats, sarama, discordgo** (queue/network; rows) `AddHandler`,
-  `AddNoPublisherHandler`, cqrs handlers (openmeter 35); `Subscribe`,
-  `QueueSubscribe`, `Consume`, `AddEndpoint` (go-choria 9; generic: after
-  gating); `ConsumeClaim` (dead today; `Setup`/`Cleanup` need a sibling
-  matcher); `AddHandler`/`AddHandlerOnce` (automuteus 15).
-- **P1 httprouter, go-restful** (network; rows) verbs, `Handle`, `HandlerFunc`
-  (nsq 63; `Decorate()` arguments also entered); `To`/`Filter` (kubesphere 71;
-  routes sit on the `ws.GET` receiver).
 - **P2 Interface-satisfaction matcher** (new matcher) root a type's methods when
   its method set covers a listed interface (`go_iface` shape) in importing
   packages: ebitengine `Update`/`Draw`/`Layout` (neko 3 of 3 dead; name rows
@@ -1534,31 +1423,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 Function values outside call arguments** (extraction) tuple and array
-  elements, struct-field values, `let` initialisers, macro arguments and method
-  receivers (`f.run_if(c)`) record nothing, so the function is dead at `high`:
-  Ferrite 52 of 83 `high` are `render: path::f` fields, Ethertum 20 of 24 are
-  Bevy systems.
-- **P1 godot-rust gdext** (lifecycle; row; `godot`)
-  `#[func]`/`#[signal]`/`#[rpc]` and `impl INode`/`IResource` virtuals (list
-  bases until `I*` patterns). OpenGamepadUI: 427 entries, 126 `high` -> 0.
-- **P1 Bevy** (lifecycle; row plus the value-ref item) `add_systems`,
-  `add_observer`, `observe`, `impl Plugin { fn build }`. Ethertum: 31 entries.
-- **P1 Rust UI components** (lifecycle; row; `leptos`, `dioxus`, `yew`,
-  `sycamore`) `#[component]`/`#[function_component]`, `#[server]`/`#[island]`
-  endpoints. superposition: 202 entries clear 48 `high` and 148 medium; closures
-  inside `view!` stay dead.
-- **P1 Kani** (test; row; `kani::proof`, `kani::proof_for_contract`)
-  path-qualified, no `use`. RS-Key: 109 entries, `high` 136 -> 27.
-- **P1 eframe/egui** (lifecycle; row) `impl eframe::App` `update`, `ui`, `save`,
-  `on_exit`. Ferrite: 5 entries clear 797 medium.
-- **P1 zbus, serenity, poise, teloxide, hyper** (network; rows)
-  `container_attributes_for` `interface`/`zbus::interface`/`dbus_interface`,
-  skipping `#[zbus(signal)]` (asusctl: 120 findings, 20 `high`);
-  `EventHandler`/`RawEventHandler` (robbb 19, discord-compiler-bot 7);
-  `poise::command` only (robbb 62; tauri's `command` labels it today);
-  `endpoint`, `repl`, `commands_repl` (DickGrowerBot 49); hyper `service_fn`
-  (undetected today).
 - **P2 sea-orm, loco-rs, apalis, kameo, ractor** (lifecycle/queue; rows)
   `ActiveModelBehavior` hooks, `MigrationTrait` `up`/`down` (svix 10);
   `BackgroundWorker`, `Task`, `Hooks`, `Initializer` (connect-killer 28, 44 dead
@@ -1647,22 +1511,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 ActiveRecord migrations** (lifecycle, node false; row; `db/migrate/`)
-  base `ActiveRecord::Migration`, `change`/`up`/`down`. Findings: mastodon -916,
-  rubygems.org -347, casa -217, huginn -134, chaskiq -86.
-- **P1 Pundit, Action Policy** (lifecycle; row; `app/policies/`)
-  `ApplicationPolicy(::Scope)`, `ActionPolicy::Base`, `*?`, `resolve`; 117M
-  downloads. mastodon -168, rubygems.org -213, casa -86.
-- **P1 graphql-ruby** (network; row; `app/graphql/`)
-  `GraphQL::Schema::Object`/`Mutation`/`Resolver` members; 212M. chaskiq: 355
-  entries, 790 -> 336 (needs member-less bases).
-- **P1 Thor and Rails generators** (cli; row after the qualified-base fix)
-  `Thor`, `Thor::Group`, `Rails::Generators::Base`, minus `no_commands` blocks
-  (needs visibility); kamal 89 commands, mastodon tootctl 64.
-- **P1 ActiveModel validators, ViewComponent/Phlex, active_model_serializers**
-  (lifecycle; rows) `EachValidator#validate_each`, `Validator#validate`
-  (mastodon -68); `app/components/` members (rubygems.org 177 roots, 146 Phlex
-  views); `ActiveModel::Serializer` members (mastodon 698 roots, -482).
 - **P2 ERB templates** (minor) lift `<% %>` code into Ruby as the `.ipynb`
   extractor does; dead helpers: mastodon 156, casa 102, rubygems.org 71, huginn
   51 (EEx, Jinja, JSP alike).
@@ -1760,24 +1608,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 livewire** (network; matcher) every public method of a
-  `Livewire\Component` is browser-callable; lifecycle names gave 753 entries on
-  coolify, but 924 `wire:click` actions need a public-members-of-base matcher
-  plus `On`/`Computed`/`Renderless`. 128.8M downloads.
-- **P1 filament** (lifecycle; row) Resource/Page/Widget `form`, `table`, `get*`,
-  `can*`, `mutate*`, Action/Field/Column `setUp`/`getDefaultName`.
-  pelican/panel: 419 entries, 691 -> 237.
-- **P1 nextcloud** (network and lifecycle; rows; `OCP\AppFramework`)
-  Controller/OCSController, `NoAdminRequired`/`PublicPage`, TimedJob, Migration,
-  IBootstrap. cospend-nc: roots 0 -> 387, 558 -> 332.
-- **P1 hyperf** (network; row) `GetMapping`/`PostMapping`, Swagger attributes,
-  HyperfCommand/Listener/Consumer bases. mineadmin: 94 entries.
-- **P1 pest** (test; DSL block callables) `test()`/`it()` closures; coolify has
-  13,322 calls.
-- **P1 doctrine lifecycle, api-platform** (rows) `#[ORM\PrePersist]` and kin
-  (needs fully qualified attributes), `AbstractMigration` `up`/`down`,
-  `Fixture::load` (Part-DB 35 marks); `ProcessorInterface.process`,
-  `ProviderInterface.provide`, filters (Part-DB 98, 45 -> 26).
 - **P2 laminas-mvc/mezzio, typo3 extbase, ratchet, drush** (rows)
   `AbstractActionController` `*Action`; `ActionController`
   `*Action`/`initialize*Action`; `MessageComponentInterface` hooks;
@@ -1835,21 +1665,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 Scala 3 `@main`, mainargs `@main`** (cli; marker row, or a builtin root;
-  also in the agent section) only the name `main` is rooted. scastie `@main def
-  migrate` and 13 callees cleared.
-- **P1 ZIO Test** (test; row; `zio.test`) `ZIOSpecDefault`/`ZIOSpec`
-  `spec`/`bootstrap`/`aspects`. webjars: 41 entries; with the effect-app row
-  candidates 635 -> 411 and the root-coverage gate passes.
-- **P1 Slick `Table`** (lifecycle, node false; row) Slick calls `*` (`methods =
-  ["*"]` is the match-all pattern: the row roots every Table member). gitbucket
-  108 entries, nussknacker 234.
-- **P1 Flink** (queue; Java `flink` row plus Scala and Kotlin twins) the gap
-  text already lists bases and methods. nussknacker: 93 entries;
-  app-flinkplatform-flink has 12 Java files seen with no rules.
-- **P1 Scala.js exports** (ffi; marker row) `JSExportTopLevel`, `JSExport`,
-  `JSExportAll`, `JSExportStatic`; Kotlin/JS `@JsExport` has no row either.
-  scastie 7.
 - **P2 Finagle, Finatra, TwitterServer** (network; row) Service/Filter `apply`,
   `configureHttp`/`configureThrift`, `setup`/`warmup`/`modules`. the-algorithm:
   151 entries, +368 with a Scala guice row.
@@ -1924,16 +1739,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 swift-argument-parser** (cli; row; `ArgumentParser`)
-  `ParsableCommand`/`AsyncParsableCommand` `run`/`validate`. apple/container: 19
-  entries, 19 dead gone; recognised (none) today.
-- **P1 Vapor ecosystem** (lifecycle/cli/queue; rows) Fluent `AsyncMigration`
-  `prepare`/`revert`, `AsyncCommand.run`, Queues `AsyncJob.dequeue`,
-  `AsyncScheduledJob.run`. SwiftPackageIndex-Server: 551 -> 167 findings.
-- **P1 WidgetKit, AppIntents, app extensions** (lifecycle; rows)
-  `TimelineProvider` `placeholder`/`snapshot`/`timeline`, `AppIntent.perform`,
-  `EntityQuery`, notification service `didReceive`, `beginRequest`. IceCubesApp
-  528 -> 481.
 - **P2 SwiftNIO** (network; row; `NIO`, `NIOCore`) `channelRead`,
   `channelActive`, `errorCaught`, `decode`; Java Netty twin. container: 17 dead
   gone.
@@ -2006,20 +1811,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 React Native ObjC modules** (ffi; extraction plus row; `React`)
-  `RCT_EXPORT_METHOD`, `RCT_REMAP_METHOD`,
-  `RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD` bodies get no callable (their calls
-  are caller-less): add a method-defining-macro table and a row with
-  `requiresMainQueueSetup`, `constantsToExport`, `supportedEvents`,
-  `startObserving`/`stopObserving`, `methodQueue`. Swift twin:
-  `RCT_EXTERN_METHOD` names `@objc` funcs (Expensify 21).
-- **P1 AppKit documents and responders** (lifecycle; row; AppKit, Cocoa; Swift
-  twin) NSDocument hooks, NSResponder/NSView events (`mouseDown`, `keyDown`,
-  `isFlipped`), `validateMenuItem`, NSDraggingDestination. Sequel-Ace: 59 roots,
-  479 findings gone; Hammerspoon 27.
-- **P1 Core Data** (lifecycle; row; Swift twin) `awakeFromInsert`/`Fetch`,
-  `willSave`, `didSave`, `prepareForDeletion`, fault and `validateFor*` hooks,
-  `controller{Will,Did}ChangeContent`. simplenote-ios 4.
 - **P2 App extension principals** (lifecycle; row gated per framework)
   `didReceiveNotificationRequest`, `startTunnel…`, `didSelectPost`. Monal 5.
 - **P2 Cordova and Flutter plugins** (ffi) actions are any
@@ -2080,33 +1871,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 Class-body macros read as methods** (extraction) `UFUNCTION(..)`,
-  `Q_PROPERTY(..)`, `METHOD_ADD(..)`, `TF_DISALLOW_COPY_AND_ASSIGN(X)` become
-  dead `Class::MACRO` callables (tensorflow/serving 228, keepassxc 64, Bomber
-  43); record them as attributes or registrar sites of the next member.
-- **P1 `class X_API Name : Base` loses its bases** (extraction) Unreal `*_API`,
-  Qt `Q_*_EXPORT`, `DLLEXPORT` heads drop the base list (Bomber: 163 classes).
-- **P1 Qt Widgets, QtTest** (lifecycle/test; rows; Python twin) QObject/QWidget
-  bases, event overrides (`closeEvent`, `dropEvent`), `on_<obj>_<signal>`
-  auto-slots (flameshot 75 entries, 309 -> 245; keepassxc 121; cmake-gui 141
-  medium); test slots of `QTEST_*MAIN` classes gated to test files (keepassxc
-  601 entries, 2,776 -> 1,569). Signals, slots and `Q_INVOKABLE` wait for the
-  macro and access-section items.
-- **P1 Boost.Test** (test; row, case-sensitive) `BOOST_AUTO_TEST_CASE`,
-  `BOOST_FIXTURE_TEST_CASE`, `BOOST_DATA_TEST_CASE` and `_TEMPLATE` forms. pdns:
-  1,004 entries, 4,274 -> 3,270.
-- **P1 ROS 2 and BehaviorTree.CPP** (lifecycle; rows) LifecycleNode
-  `on_configure`/`on_activate`… (navigation2 153); node bases with
-  `tick`/`providedPorts`/`onStart` and `BT_REGISTER_NODES` bodies (233; 79 ->
-  0).
-- **P1 JUCE** (lifecycle and ffi; row) AudioProcessor/Component overrides and
-  `createPluginFilter`; `AudioProcessor* JUCE_CALLTYPE f()` is never extracted
-  (fix too). dexed: 69 entries, roots 7 -> 76.
-- **P1 gRPC C++** (network; row with a qualified base) members of
-  `X::Service`/`CallbackService` subclasses. tensorflow/serving 18, 675 -> 625.
-- **P1 Arduino/PlatformIO** (lifecycle; owner-less matcher) free `setup`/`loop`
-  (meshtastic `loop` is dead; a name row also roots 30 member `setup()`s);
-  `.ino` is minor.
 - **P2 Unreal Engine** (lifecycle; after the two extraction items) `BeginPlay`,
   `Tick`, `OnRep_*`, `UFUNCTION` members. Bomber 4 entries today.
 - **P2 Class-naming registrars** (new matcher) `PLUGINLIB_EXPORT_CLASS`,
@@ -2160,34 +1924,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 GLib/GTK** (lifecycle; row; `glib.h`, `gtk/gtk.h`, `glib-object.h`,
-  `gio/gio.h`) `g_signal_connect*`, `g_idle_add*`, `g_timeout_add*`,
-  `g_thread_new`, `g_thread_try_new`, `g_task_run_in_thread`. geany: 302
-  entries, 8,130 -> 7,387. Land with the C-family `&`/cast fix
-  (`g_idle_add((GSourceFunc) cb, ..)` goes from live to dead under the
-  prototype); `G_DEFINE_TYPE` `*_init`/`*_class_init` need engine work, `.ui`
-  `<signal handler=>` is minor.
-- **P1 Zephyr** (lifecycle; row; `zephyr/kernel.h`, `zephyr/init.h`,
-  `zephyr/device.h`) `SYS_INIT`, `K_THREAD_DEFINE`, `K_WORK_DEFINE`,
-  `SHELL_CMD_REGISTER`, `DEVICE_DT_INST_DEFINE`. zmk: 79 entries, 971 -> 792; 32
-  of 33 `SYS_INIT` targets dead today.
-- **P1 Function-defining macros** (extraction; builtin name table)
-  `PHP_METHOD`/`ZEND_METHOD(C, m)`, `BPF_PROG`/`BPF_KPROBE(name, ..)`, `ZTEST(s,
-  t)`, Criterion `Test(s, t)`, Unity `TEST(g, t)`, ESP-IDF `TEST_CASE("..")` get
-  no or a wrong callable (phpredis loses 363 method bodies and reports 175 bogus
-  ALL-CAPS callables). C twin of `cpp-test-macros`.
-- **P1 Redis modules, SQLite extensions** (ffi; rows) `RedisModule_OnLoad`,
-  `RedisModule_CreateCommand` (RedisBloom 255 -> 89); `sqlite3_*` methods and
-  `sqlite3_create_function*` (sqlite-vec 45 -> 23; `sqlite3_*_init` needs an
-  infix pattern).
-- **P1 ESP-IDF and FreeRTOS** (lifecycle; rows) `app_main`, `vApplication*`,
-  `esp_event_handler_register`, `xTaskCreate*`. squeezelite-esp32 6,552 ->
-  6,380; Flipper gains 6 hooks.
-- **P1 CMSIS vector handlers** (lifecycle; row plus `LANG_ENTRY`; C, C++, asm)
-  `Reset_Handler` in the asm and C entry tables; the 11 core `*_Handler` names
-  and `*_IRQHandler`, HAL `*Callback` (detect on `HAL_Init`; a `*` rule cannot
-  detect itself and `stm32` misses `stm32fxxx.h`). crazyflie-firmware: 38
-  entries, 48 -> 27.
 - **P2 PostgreSQL extensions** (ffi; new matcher; `fmgr.h`) root functions whose
   parameter list is `PG_FUNCTION_ARGS`: pgvector has 99 of 105 SQL functions
   dead; `PG_FUNCTION_INFO_V1(f)` parses as a declaration.
@@ -2270,19 +2006,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 Oban** (queue; row after gating; `Oban.Worker`, `Oban.Pro.Worker`)
-  `perform`, `backoff`, `timeout`; 30M Hex. hexpm: 54 dead today, 53 entries.
-- **P1 Ecto.Migration, Ecto.Type** (lifecycle, node false; rows)
-  `change`/`up`/`down` with `priv/repo/migrations/` (dead today: hexpm 356,
-  realtime 149, teslamate 141, Plausible 138, glific 121);
-  `type`/`cast`/`load`/`dump`/`embed_as`/`equal?` (logflare 33 via `@behaviour`,
-  Plausible 30, hexpm 20, sequin 12).
-- **P1 Broadway, GenStage** (queue/lifecycle; rows after gating)
-  `handle_message`, `handle_batch`, `prepare_messages`, `handle_failed`
-  (logflare 18 dead); `handle_demand`, `handle_events`, `handle_subscribe`,
-  `handle_cancel` (sequin 8, logflare 4).
-- **P1 `Plug.ErrorHandler`** (network; row in `plug`) `handle_errors/2`
-  (lanyard's router).
 - **P2 gen_statem/GenStateMachine** (lifecycle; row with arity) `handle_event/4`
   collides with LiveView `handle_event/3` (teslamate: 59 of 157 outside).
 - **P2 PromEx, WebSockex** (lifecycle; rows)
@@ -2349,12 +2072,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 `?MODULE` function values** (extraction) `fun ?MODULE:f/N` and `{?MODULE,
-  f, A}` are dropped: emqx has 237 such targets, 194 reported dead (telemetry
-  and `emqx_hooks` register this way). Also `{M,F,A}` with extra args and
-  `{M,F}` as a map value (OTP argparse `handler =>`).
-- **P1 rebar3 providers** (cli; row; `provider`) `do`, `format_error` (`init`
-  after module scoping). app-rebar3-eunit: 41 modules, 3,396 -> 3,180.
 - **P2 Module/function argument pairs** (extraction) `f(…, ?MODULE, fun_atom,
   …)` naming a local exported function. ejabberd: 168 of 189
   `ejabberd_hooks:add` and 34 of 35 IQ handlers dead.
@@ -2411,14 +2128,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 Hubitat/SmartThings apps and drivers** (lifecycle; row; `detect_calls`
-  `definition`) `installed`, `updated`, `uninstalled`, `parse`, `on`, `off`,
-  `refresh`… (no imports, so silent today). Hubitat: 357 entries, 1,641 ->
-  1,450; echo-speaks 946 -> 744; `subscribe`/`runIn` handlers need registrar
-  capture (244 and 141 left).
-- **P1 grails-quartz** (schedule; row; `org.quartz`, `grails-app/jobs/`)
-  `execute()` on `*Job` classes. openboxes: 14 entries, all 12 dead `execute`
-  gone; Java/Kotlin Quartz above.
 - **P2 Geb specs** (test; spock row change) bases stop at `Specification`, so
   `setup`/`cleanup` of `GebReportingSpec`/`GebSpec` subclasses are dead
   (openboxes 5).
@@ -2467,17 +2176,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 Equatable** (lifecycle; row) `props`/`stringify` getters read only by
-  `==`; 7.6M downloads/30 days. thunder: 149 entries, `props` findings 83 -> 0
-  (`EquatableMixin` needs the base-clause fix).
-- **P1 GetX** (lifecycle; row; `package:get`) `onInit`/`onReady`/`onClose`,
-  `Bindings.dependencies`, `GetMiddleware`. PiliPlus: 113 entries, `onInit` 94
-  -> 27.
-- **P1 Riverpod** (lifecycle; row) Notifier family `build`, `ProviderObserver`
-  hooks, `Consumer*` bases. lichess mobile: 522 entries, roots 468 -> 990.
-- **P1 dart_frog, package:args** (network/cli; rows) `onRequest`, `middleware`
-  with the route taken from `routes/` paths (SkyBridge: 41 entries fold into one
-  node until then); `Command.run` (fvm 20 through an in-tree base).
 - **P2 serverpod** (network; row) `Endpoint` bases and `FutureCall.invoke`; also
   claims `_private` helpers until Dart visibility comes from the leading `_`
   (discord_open 22).
@@ -2527,13 +2225,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 Interface and generic bases** (extraction) only a `simple_type` inherit
-  is kept: `interface I with`, `inherit Hub<T>()` and
-  `ProgramComponent<M,Msg>()` record no base, so every .NET twin misses.
-- **P1 orleans twin** (network; row) Grace: 379 entries, withheld 2,877 ->
-  2,687; grain interfaces need the base item.
-- **P1 aws-lambda twin and an `ILambdaContext` parameter matcher** (C# and F#)
-  fantomas-tools: 12 dead handlers.
 - **P2 avalonia with FuncUI, signalr, akka.net** (rows after bases)
   `HostWindow`/`HostControl` (Rocksmith2014.NET 5); `inherit Hub<T>()`; actors
   as the C# row.
@@ -2583,17 +2274,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 QuickCheck and Hedgehog** (test; row; `Test.QuickCheck`, `Hedgehog`)
-  top-level `prop_*` collected by `$quickCheckAll`/`$$(discover)`. shellcheck:
-  2,479 of 4,474 findings, all entered by a prototype. Erlang PropEr is the
-  twin.
-- **P1 IHP** (network; row) `action`, `beforeAction`, `html`, `perform`,
-  `controllers`, `initContext`, `workers`. predimarkt: 77 entries, no false
-  ones.
-- **P1 yesod handlers** (network; row with infix patterns) `get*R`, `handle*R`:
-  a `*R` prototype gave 47 entries on app-stackage-yesod (one false) and cleared
-  50 findings; hledger 36 (4 false). Routes need the `parseRoutes` quasi-quote
-  (minor).
 - **P2 Quasi-quote splice references** (extraction; `.hamlet` files minor) calls
   in `[hsx|{f x}|]` and hamlet `#{}`/`^{}`: predimarkt 329 of 661 findings.
 - **P2 sydtest, Servant generic records** `spec` (smos 142); `NamedRoutes` field
@@ -2651,13 +2331,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 ClojureScript exports** (public; extraction) `^:export` and
-  `^:dev/after-load` are stripped, never attributes. repath-studio: rooting 6
-  entries cuts 607 -> 142.
-- **P1 re-frame** (lifecycle; row plus a matcher) `reg-event-db`/`-fx`/`-ctx`,
-  `reg-sub`, `reg-sub-raw`, `reg-fx`, `reg-cofx`; handlers are inline `fn`s, so
-  synthesis must accept a leading keyword id as the route (repath 14 of 632,
-  rems 7 of 487, lipas ~1,570 sites).
 - **P2 secretary** (network; row) `(defroute "/x" [] body)`: 47 of 47 in rems.
 - **P2 Framework def-macros** (extraction; one table of namespace and macro to
   kind) mount `defstate` (rems 19), pathom3 `defresolver`/`defmutation`, fulcro
@@ -2702,12 +2375,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 MirageOS `start`** (lifecycle; row; `Mirage`) `config.ml` names the
-  unikernel; the runtime calls `start` (top level or in `module Main (…)`).
-  qubes-mirage-firewall 2 entries; works today.
-- **P1 Jane Street `Command`** (cli; row after registrar context and the
-  data-binding fix) `Command.basic`/`async`/`async_or_error`/`group` run by
-  `Command_unix.run`. magic-trace: three subcommands dead.
 - **P2 cohttp server, `Callback.register`, QCheck, OUnit2** `Server.make
   ~callback` (learn-ocaml `callback` dead); C reaches `f` through
   `caml_named_value("n")` (unison 47 registrations); `Test.make ~name gen prop`;
@@ -2770,19 +2437,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 Perl builtin lifecycle** (lifecycle; row; no detect) `DESTROY`,
-  `AUTOLOAD`, `import`, `unimport`, `CLONE` and tie methods are called by perl;
-  Perl has no `LIFECYCLE` row.
-- **P1 moose lifecycle** (lifecycle, node false; row; Moose, Moo, Mouse,
-  Role::Tiny, Object::Pad, Mojo::Base) `BUILD`, `BUILDARGS`, `DEMOLISH`,
-  `FOREIGNBUILDARGS`, `_build_*`, in `methods_case_sensitive` (openQA's
-  `destroy` actions matched `DESTROY`). metacpan-api: 63 roots, 281 -> 230.
-- **P1 irssi** (public; row) `command_bind*`, `signal_add*`, `timeout_add*`,
-  `input_add`, string targets on. scripts.irssi.org: 0 -> 1,786 entries, 1,098
-  -> 345; `signal_add({...})` still missed; WeeChat and HexChat share the shape.
-- **P1 minion** (queue; row) `add_task` (openQA 16 of 23; bareword-named inline
-  subs need the bareword-key fix); `$app->plugin(Minion => ...)` alone does not
-  detect: record `plugin(Name)` as an import.
 - **P2 App::Cmd, mod_perl, Plack::Component, Mojolicious commands, Test::Class**
   `execute`, `opt_spec`, `validate_args`, `abstract`, `usage_desc` (Dist-Zilla
   52 entries, 260 -> 186); `handler` (bugzilla 2); `call`, `prepare_app`,
@@ -2836,12 +2490,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 targets** (schedule; row plus extraction; `targets`, `tarchetypes`)
-  silent today; `tar_source()` should act as an include of `R/`. CDC wastewater
-  forecasting: 122 `wweval` findings.
-- **P1 `.Rmd` and `.qmd` chunks** (cli; `.qmd` minor) `r.rs` claims `.Rmd` but
-  parses it whole (parse error, 0 callables); blank non-chunk lines as the
-  `.ipynb` extractor does. rmarkdown 1.35M, knitr 1.08M dl/month.
 - **P2 R value references** (extraction) `lapply`, `purrr::map`/`partial`,
   `do.call`, `future_lapply`, `later::later` arguments; CDC `save_figure` via
   `purrr::partial` reads never-referenced.
@@ -2895,19 +2543,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 Julia value references** (extraction) functions passed as values are
-  dead: app-crnn-flux 30 of 39 findings are `ODEProblem`/`DiscreteCallback`
-  arguments (SciML, Optim, Makie alike).
-- **P1 Genie, Oxygen and HTTP.jl routes** (network; rows after registrar
-  capture, macrocall arguments included) Genie `route`/`channel`; Oxygen
-  `get`/`post`/…/`websocket`/`stream` and `@cron`/`@repeat`; `HTTP.register!(r,
-  "GET", "/p", h)`, `serve`/`serve!`/`listen!` (Pluto 11, Registrator 7,
-  PlutoSliderServer 4 dead).
-- **P1 Franklin.jl** (public; row; `detect_paths` `utils.jl`) `hfun_*`, `lx_*`,
-  `env_*`. `www.julialang.org`: 10 of 10 recovered.
-- **P1 External generics** (lifecycle; matcher) root `function M.f` when `M` is
-  imported and not in the tree (Tables, StructTypes, MLJModelInterface,
-  Logging). Pluto 7.
 - **P2 Comonicon, `(@main)`** (cli) record a wrapping `@main`/`@cast` macro as
   an attribute (also Oxygen `@get "/p" function h`; AirspeedVelocity 3); name
   `function (@main)(args)` `main`.
@@ -2961,10 +2596,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 Chocolatey AU** (lifecycle; row) `au_GetLatest`, `au_SearchReplace`,
-  `au_BeforeUpdate`, `au_AfterUpdate` in every `update.ps1` (suffix patterns
-  until scope prefixes are stripped). chocolatey-packages: 745 entries, 831 ->
-  86.
 - **P2 Pode, InvokeBuild, psake** (network/cli; detect-only rows now,
   ScriptBlock callables to enumerate) routes, schedules, timers as `-ScriptBlock
   { }` (OpenGSMGateway 3 routes, 3 schedules); `task Name deps { }` (PSReadLine
@@ -3020,11 +2651,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 httpz and websocket.zig** (network; rows) `notFound`, `uncaughtError`
-  (maiden 2; one false entry on a free `notFound`); `clientMessage`,
-  `clientClose`, `clientPing`, `clientPong`, `afterInit` (nullclaw). Route nodes
-  need Zig registrar capture (maiden ~43, ochi ~8); `dispatch`/`handle` need
-  name-first `signature_methods_for` (ochi 3).
 - **P2 jetzig** (network; path-gated methods or the signature form) views
   `index`/`get`/`post`… under `src/app/views` are dead; no real app found.
 - **P3 ziggy-pydust (needs visibility), mach systems (enum literals), zap
@@ -3068,22 +2694,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 Neovim plugins** (lifecycle/public; path-gated matcher; `detect_calls`
-  `nvim_create_autocmd`) `setup`/`check` of the table `lua/*/init.lua` and
-  `health.lua` return (`path_matches` uses `rfind`, so a `lua/` marker never
-  matches today). oil.nvim: 347 -> 249.
-- **P1 Luanti** (lifecycle; row; `detect_calls` `register_node`) `on_construct`,
-  `can_dig`, `on_blast`, `allow_metadata_inventory_*` (36 names).
-  capturetheflag: 77 entries, 418 -> 319, none false.
-- **P1 APISIX plugins** (network; path-gated matcher shared with kong) phase
-  methods of `apisix/plugins/*.lua`: 313 of 319 `_M` phase functions in
-  app-apisix-openresty have no caller.
-- **P1 busted** (test; block callables) `describe`/`it`/`before_each` in
-  `*_spec.lua`. koreader: 88 specs, no harness entry.
-- **P1 LÖVE** (lifecycle; owner-qualified methods)
-  `love.load`/`update`/`draw`/`run`/`conf` and ~25 callbacks; a plain row on
-  SNKRX mints 166 entries, 2 right. The same change serves GMod
-  `GM:`/`ENT:`/`SWEP:`.
 - **P2 mpv scripts, Garry's Mod, Factorio, WoW Ace3** (rows after registrar
   capture) `register_event`, `add_key_binding`, `observe_property` (uosc: 382 of
   571 callables reported); `hook.Add`, `concommand.Add`, `net.Receive`;
@@ -3143,13 +2753,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 Virtual/override dispatch** (lifecycle; extraction) record `is A, B` as
-  `base_types` and add Solidity to `INHERITANCE_LANGS`: in-tree base hooks never
-  reach overrides (kleros-v2: 19 `_authorizeUpgrade` and `fulfillRandomWords`
-  dead).
-- **P1 Chainlink** (network; row; `@chainlink/contracts`, `-ccip`)
-  `fulfillRandomWords`, `fulfillRandomness`, `_ccipReceive`, `fulfillRequest`.
-  Frankencoin 5 of 5 `_ccipReceive`, kleros VRF.
 - **P2 Uniswap v4 hooks, LayerZero OApp, ERC-4337 accounts** (network; rows)
   BaseHook `_beforeSwap` … `_afterDonate` (flaunchgg 14 of 14, 73 -> 43);
   `_lzReceive`, `_lzReceiveSimulate`, OFT `_debit`/`_credit` (stargate-v2);
@@ -3195,18 +2798,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 shUnit2** (test; row) `test*`, `setUp`, `tearDown`, `oneTimeSetUp`,
-  `oneTimeTearDown`, `suite`, detected by `assertEquals`/`assertTrue` calls
-  since `. ./scripts/shunit2` misses `import_matches`; bash_unit is the same
-  shape. yq: 189 entries (175 tests, 14 `setUp`).
-- **P1 bats-core** (test; minor: `.bats` and the `bats` shebang) `@test` blocks
-  as `handler_at_<line>` with their description,
-  `setup`/`teardown`/`setup_file`/`teardown_file`/`setup_suite`, `.bats` as test
-  files. pyenv 584 blocks, dokku 1,180.
-- **P1 makepkg** (lifecycle; row, then the `PKGBUILD` name) `pkgver`, `prepare`,
-  `build`, `check`, `package*`, `.install` `pre_*`/`post_*`, mkinitcpio
-  `run_*hook`; needs per-file gating. CachyOS-PKGBUILDS: 57 entries, 56 -> 6;
-  189 of 190 PKGBUILDs unparsed.
 - **P2 argc, interactive registrations, APKBUILD and ebuild** `# @cmd` comments
   as attributes (llm-functions: 39 of 51 findings); alias values, `export -f`,
   `PROMPT_COMMAND`, `preexec_functions+=`, `__git_complete`, zsh
@@ -3250,13 +2841,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 CPM.cmake API** (public; node-false row; `CPM.cmake`, `get_cpm.cmake`
-  paths) `CPMAddPackage`, `CPMFindPackage`, `CPMGetPackage`…, vendored into
-  every user. zrythm 11 -> 7.
-- **P1 Vendored module APIs** (public; node-false rows, separate from `cmake` so
-  its gap still prints) `CodeCoverage.cmake`
-  `setup_target_for_coverage_*`/`append_coverage_*` and `@PACKAGE_INIT@`
-  `set_and_check`/`check_required_components`. fujinet-firmware 18 -> 11.
 - **P2 ament_cmake and catkin extras** (public; extraction and resolver)
   `CONFIG_EXTRAS`/`CFG_EXTRAS` files are the package's CMake API (navigation2:
   `nav2_package` 42 sites, `nav2_add_test` 34, dead); a detection row first.
@@ -3302,12 +2886,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 flake-parts** (lifecycle; row; `detect_calls` `mkFlake`)
-  `perSystem`/`perInput` lambdas; real flakes never `import` it. attic 4,
-  srid/nixos-config 4.
-- **P1 NixOS VM tests** (test; row plus nested qualified names; `detect_calls`
-  `runNixOSTest`, `nixosTest`, `makeTest`) `testScript` and `nodes.*` lambdas;
-  `nodes = { a = …; }` names the callable `a` today. lanzaboote 28.
 - **P2 Module system** (extraction) a file whose top level is a lambda (NixOS,
   home-manager, nix-darwin modules, `callPackage` packages, overlays) yields no
   callable (mitchellh/nixos-config: 21 files, 2 callables): mint a file callable
@@ -3413,15 +2991,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 Fixed-form comment rewrite** (parse prerequisite; `parse_source`) turn
-  column-1 `C`/`c`/`*` lines into `!` (same length): today 14 of 61 files of
-  ABAQUS_PDALAC extract 0 callables.
-- **P1 Abaqus user subroutines** (ffi; row; exact names) `UMAT`, `VUMAT`, `UEL`,
-  `VUEL`, `USDFLD`, `DLOAD`, `VUAMP`… called by the solver (5 entries, ~40 after
-  the rewrite); ANSYS `USERMAT` and LS-DYNA `UMAT41`… rows too.
-- **P1 ESMF, NUOPC, MAPL** (lifecycle; row then registrars) `SetServices` roots
-  each cap now (MOM6 1); `NUOPC_CompSpecialize`/`ESMF_GridCompSetEntryPoint`
-  need value refs (MOM6 5 of 5, CTSM 26 of 26 phase routines dead).
 - **P2 CCPP physics schemes** (lifecycle; extraction) record `\section
   arg_table_<name>` comments as an attribute; a suffix prototype on ccpp-physics
   roots 216 (174 true), clearing 183.
@@ -3464,9 +3033,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 VUnit** (test; row; `vunit_lib`, `VUNIT_LIB`) `tb_*`, `*_tb`, `TB_*`,
-  `*_TB` (patterns are case-sensitive); entities with a `runner_cfg` generic
-  would be more precise; 67.6k dl/month. microwatt 0 -> 5, dvb_fpga 0 -> 20.
 - **P2 OSVVM** (test; row plus extraction) `Tb*`, `tb_*`, `*_tb` harness
   entities (spi-to-axi-bridge 2, OpenJLS 33); test cases are TestCtrl
   architectures bound by `configuration X of Tb is … use entity
@@ -3488,15 +3054,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 Descriptor rpcs as roots** (network; matcher; `.proto`) `descriptor.rs`
-  edges never make an implementation live because rpcs are no roots, and the
-  edges also hit stubs (memos 584, ~208 to `*Client`; katib 72, ~5 real). Root
-  rpcs, link by declared base, fold `_`, skip
-  `Client`/`Mock`/`Unimplemented`/`*.pb.*`. ScalaPB, akka-grpc, pekko-grpc and
-  grpc-java impls read dead today when a `.proto` is in the tree.
-- **P1 connexion via `operationId`** (network; matcher; `connexion`) add OpenAPI
-  to the linker, match a dotted `operationId` to the Python qualified name,
-  prefix `x-openapi-router-controller`. Annif: 8 of 8 names match.
 - **P2 oapi-codegen, lighthouse, ariadne** (network) PascalCase(`operationId`)
   methods on the handed-in server type; resolvers named by schema
   `@field(resolver:)` or `Queries\X::__invoke`; `@query.field("x")` (verb
@@ -3520,16 +3077,6 @@ Corpus additions:
 
 New coverage (ranked):
 
-- **P1 Lean attributes** (lifecycle and ffi; matcher, then a marker row) fix
-  `attribute_key` (`@[export]` gives `[export`), then root `export`, `extern`,
-  `init`, `implemented_by`, `csimp`, `command_elab`, `term_elab`, `tactic`,
-  `macro` and `builtin_*` (batteries: 15 tactic, 9 implemented_by, 19 csimp),
-  recording the `implemented_by f` argument as a reference. Test on LeanCopilot.
-- **P1 Assembly extraction** (patch) RISC-V `j`/`tail`/`beq`/`bnez`/`blt`… are
-  not call mnemonics; `1:`, `.L*` and data labels become callables;
-  `la`/`lla`/`adr`/`lea` and `.word`/`.quad`/`dd` symbols make no reference;
-  `.globl`/`global`/`.weak` set no visibility. opensbi: 83 findings,
-  `_trap_handler` among them. CMSIS `Reset_Handler` is in the C section.
 - **P2 Assembly function macros** (extraction; builtin table)
   `SYM_FUNC_START(x)`, `ENTRY(x)`, LK `FUNCTION(x)`, x86inc `cglobal x` define
   no callable, so their bodies' calls vanish.
@@ -3580,77 +3127,6 @@ passed as values already stay live through value references in most
 languages; what is missing is the entry, and what reads dead is A, D and
 method-shorthand B. The changes below serve every framework at once.
 
-- **P1 Per-file framework evidence** (all languages; matcher, patch).
-  Detection is repo-wide and keys are generic (`tool`, `step`, `task`,
-  `Tool`, `Agent`), so one framework's entries leak into another's:
-  CodePilot's 102 `tool(` calls minted 229 entries in three rules, an
-  `@mcp.tool` got an agno entry, rig claimed 37 of qbit's own `trait
-  Tool` impls, loom's AgentCore `websocket` claimed a FastAPI route. Add
-  python, javascript and typescript to `IMPORT_SCOPED_ATTRIBUTES`; apply
-  the same per-file test to bare registrars and to base types (imported
-  from a `detect` prefix or written qualified). Prerequisite for rows.
-- **P1 Detect ignores in-tree modules** (all languages; matcher, patch).
-  `Detection::scan` took ai-doc-gen's own `agents/` package for the
-  OpenAI Agents SDK (`agents`); ask `WorkspaceVocab` first.
-- **P1 New entry kind `tool`** (all languages; new capability, minor).
-  The model chooses the arguments, a prompt-injection boundary that is
-  neither `network` (no socket of the app's own) nor `lifecycle` (asserts
-  no boundary), the same argument `Public` makes. `untrusted_input()` is
-  true. Use it for everything an LLM host can call (tools, MCP tools,
-  resources and prompts, VS Code LM tools, CopilotKit actions,
-  `@callable`); move `rmcp` from `network` (entry qnames change: say so
-  in CHANGELOG). Hooks, guardrails, middleware and callbacks are
-  `lifecycle` with `node = false`; graph nodes, workflow steps and
-  handoff callbacks `lifecycle` with nodes; deployed runtime entry points
-  (AgentCore `@app.entrypoint`, A2A executors, Workers RPC) `network`.
-  Land the kind before or with the first rows so qnames change once.
-- **P1 Route is the tool name** (all languages; matcher, patch). Today
-  the first string argument wins: `rmcp::tool("<description>")` on all
-  10 legba tools, LangChain4j `@Tool("<description>")`,
-  `pydantic-ai::agent('openai:gpt-4o')`. Prefer a `name =` argument or
-  options-object `name`/`id`/`uri` property, else the callable's name;
-  never a `description` or model string. Entries then read
-  `<framework-entry>::tool::<framework id>::<tool name>`.
-- **P1 Keyword-slot registrars** (python, js/ts, kotlin, swift, dart,
-  c#; extraction and rule syntax, minor). Value refs drop the keyword,
-  so `create_react_agent(m, tools=[t], prompt=p)` makes `p` a tool and
-  `model=` a route (fixture `py-kw`). Record the slot on the value ref
-  and allow `registrars = ["Agent:tools"]` with its own kind; a second
-  row `Agent:before_model_callback` can be `lifecycle`.
-- **P1 Attribute text over 512 bytes** (all languages; extraction,
-  patch). `plugins/attrs.rs:79` drops the whole annotation, and tool
-  descriptions are prose: 43 dead `@Tool`s on Kestra, HertzBeat, EDDI and
-  ruoyi-ai survive the rows (fixture `java-long`: dead at `high` with a
-  row). Keep the key and first argument; truncate the stored text.
-- **P1 Options-object handlers** (js/ts; extraction in
-  `registrar::inline_closures`, patch). Method shorthand (`tool({ async
-  execute() {} })`, `async *execute`, `handler() {}`), one wrapping call
-  (`execute: wrap(async …)`) and two-level nesting (`lifecycle: {
-  onStart }`, `functions: [{ func }]`) are not handlers; shorthand reads
-  dead even with a row (fixture `ts-shorthand`; morphic 5, brightdata 11
-  of 13 tools). Mint them as inline handlers.
-- **P1 Minted closures keep their context** (js/ts, go, ruby, swift,
-  clojure, elixir; resolver, patch). An unclaimed `handler_at_N` orphans
-  its callees (`bus.get('/y', () => helperC())`: `helperC` dead; fixture
-  `js-orphan`; 4 orphans in github-mcp-server) and loses the enclosing
-  function's parameter and local types (crush lost 12 `high` edges,
-  wingman gained 2 dead findings). Link the enclosing callable (or top
-  level) to every closure it mints and give the closure its scope.
-- **P1 Base types the plugins lose** (several; extraction, patch).
-  TS/JS `extends Agent<Env, { n: number }>` (`is_type_name`,
-  `attrs.rs:444`); C# `class X() : Executor<T>("id")` (`csharp.rs:174`
-  should use `base_types_with_ctor_args`; BookWorm 1 -> 30 recovered);
-  `BaseTypeIndex::build` reads bases only from methods, so an empty
-  `ApplicationTool < RubyLLM::Tool` breaks the chain (feed
-  `FileFacts::classes`; Ruby records no `ClassDecl`); PHP bases are not
-  resolved through `use`; Elixir `use Mod, opts` (see Elixir).
-- **P1 Registrar capture limits** (all capturing plugins; matcher,
-  patch). `is_registration_shape` refuses more than 4 arguments
-  (`server.tool` with annotations, Claude SDK `tool` with extras); a
-  receiver-qualified verb still trips `AMBIGUOUS_VERBS` (`create`,
-  `handle`, `resource`); a user rule's dotted registrar never captures
-  (`lib.rs:285` stores the path, capture asks the last segment); a
-  registrar through a file-level alias is missed (ALwrity 0 -> 105).
 - **P2 Curried registrars** (python first, then js/ts; matcher, patch).
   `a.register_for_llm(d)(f)`, `mcp.tool()(f)`, `app.route("/x")(view)`:
   the outer call has no callee name, so nothing captures `f` (Agent-E:
@@ -3715,43 +3191,6 @@ method-shorthand B. The changes below serve every framework at once.
 
 New coverage (ranked):
 
-- **P1 MCP Python SDK / FastMCP** (A + B, rows; `mcp`, `fastmcp`).
-  `@mcp.tool()`/`.resource`/`.prompt`, v1 `@server.call_tool()`, v2
-  `Server(on_call_tool=f)`, `add_tool`. hexstrike-ai 175 -> 25 findings;
-  also Hive (aden-hive) tools and beever-atlas (23 dead).
-- **P1 DSPy** (D + B, rows; `dspy`). `Module.forward` runs through
-  `__call__`; `ReAct(tools=[f])`. STORM 198 -> 98 findings.
-- **P1 LangChain** (A + B + D, rows; `langchain_core`, `langchain`).
-  `@tool`, `StructuredTool.from_function`, `bind_tools`, `create_agent`,
-  `BaseTool._run`, 1.x `AgentMiddleware` hooks, `BaseCallbackHandler.on_*`.
-  deer-flow 1,836 -> 1,745 (91 recovered, 0 new).
-- **P1 LlamaIndex** (A + B + D, rows; `llama_index`, `workflows`).
-  `@step` methods, `FunctionTool.from_defaults`, `FunctionAgent(tools=)`;
-  mobilerun 204 -> 162. `spec_functions` needs string-named members.
-- **P1 CrewAI** (A + D, rows; `crewai`). `@tool`, `BaseTool._run/_arun`,
-  `@CrewBase` `@agent/@crew/@before_kickoff`, Flow `@start/@listen/
-  @router`; only `@task` is rooted, by the celery key. CrewAI-Studio
-  177 -> 158.
-- **P1 Strands Agents** (A + B + D, rows; `strands`). `@tool`, `@hook`,
-  `Agent(tools=)`, `add_callback(E, f)`, `HookProvider`/`AgentTool`;
-  Wazuh-Autopilot 14 of 25 hooks dead. `TOOL_SPEC` module tools need a
-  module-convention matcher.
-- **P1 Pydantic AI** (A, rows; `pydantic_ai`). `@agent.tool`,
-  `@agent.tool_plain`, `@toolset.tool`; `@agent.system_prompt`,
-  `instructions`, `output_validator` as lifecycle.
-- **P1 OpenAI Agents SDK** (A + D, rows; `agents`, after the in-tree
-  detect fix). `@function_tool`, `@input_guardrail`, `@output_guardrail`,
-  `RunHooks`/`AgentHooks.on_*`.
-- **P1 Claude Agent SDK** (A + B, rows; `claude_agent_sdk`,
-  `claude_code_sdk`). `@tool("name", …)`, `create_sdk_mcp_server`,
-  `HookMatcher(hooks=[f])`, `can_use_tool=f`.
-- **P1 LangGraph** (A + B, rows; `langgraph`). `add_node`,
-  `add_conditional_edges`, `ToolNode`, `create_react_agent(tools=)`,
-  `@entrypoint`/`@task`. gpt-researcher +7 to +10 entries.
-- **P1 Bedrock AgentCore** (A, row; `bedrock_agentcore`).
-  `@app.entrypoint`/`@app.ping`/`@app.websocket`; loom 4 -> 0 dead.
-- **P1 A2A SDK** (D, row; `a2a`). `AgentExecutor.execute/cancel`
-  (Zen7 both dead).
 - **P2 Google ADK** (B + D, rows; `google.adk`). `Agent(tools=,
   before_model_callback=)` wants keyword slots; `_run_async_impl` dead.
 - **P2 Microsoft Agent Framework** (A + B + D, rows; `agent_framework`).
@@ -3790,30 +3229,6 @@ Fixes:
 
 New coverage (ranked):
 
-- **P1 MCP TypeScript SDK** (B/C, row; `@modelcontextprotocol/sdk`,
-  `mcp-handler`). `server.tool`, `registerTool`/`Resource`/`Prompt`,
-  `setRequestHandler`, `registerAppTool`, `createMcpHandler`: 0 entries
-  today; 80 on context7, 106 on mcp-server-cloudflare with the row.
-- **P1 Cloudflare Agents + Workers RPC** (A + D + E, rows; `agents`,
-  `agents/mcp`, `cloudflare:workers`). `@callable()`, `on*` hooks of
-  `Agent`/`AIChatAgent`/`McpAgent`, public methods of
-  `WorkerEntrypoint`/`DurableObject`; Mail-0/Zero 87 recovered.
-- **P1 Vercel AI SDK** (B/C, row + options-object handlers; `ai`).
-  `tool({ execute })`, `dynamicTool`, `onStepFinish`/`prepareStep` hooks.
-- **P1 Mastra** (B/C, rows; `@mastra/core`). `createTool`, `createStep`,
-  `Agent({ instructions: fn })`; dataagent 9 entries.
-- **P1 LangChain.js** (B/C + D, rows; `@langchain/core`, `langchain`).
-  `tool(fn, {name})`, `DynamicStructuredTool`, `StructuredTool._call`,
-  `BaseCallbackHandler.handle*`; fixture dead 5 -> 0.
-- **P1 OpenAI Agents JS** (B/C, rows; `@openai/agents`). `tool`,
-  `handoff({ onHandoff })`, `defineInputGuardrail`; typed literals
-  (`const g: InputGuardrail = { execute }`) need a type-keyed matcher.
-- **P1 Claude Agent SDK TS** (B/C, row + argument cap;
-  `@anthropic-ai/claude-agent-sdk`). `tool(name, desc, shape, fn)`,
-  `query({ options: { hooks, canUseTool } })`.
-- **P1 VS Code LM tools and chat** (B + D, rows; `vscode`). `activate`,
-  `LanguageModelTool.invoke`/`prepareInvocation`,
-  `createChatParticipant`; vscode-pull-request-github 19 recovered.
 - **P2 LangGraph.js** (B/C, row; `@langchain/langgraph`). `addNode`,
   `addConditionalEdges`, `task`, `entrypoint`, `createReactAgent`.
 - **P2 FastMCP TS, tmcp, mcp-use, mcp-framework** (B + D, rows;
@@ -3834,9 +3249,6 @@ New coverage (ranked):
 
 Fixes:
 
-- **P1 Module-scope calls to imports.** `makeApp({ register:
-  registerTools })` at module level is `no-candidate-in-file`: no edge,
-  no top-level credit, both reported dead (~20 on mcp-server-cloudflare).
 - **P2 `.d.ts` ambient declarations in dead code.** 5,231 of 5,295
   findings on mcp-server-cloudflare are in `worker-configuration.d.ts`.
 - **P3 zod `.describe()`** makes `js-test-globals` report "seen, no
@@ -3846,14 +3258,6 @@ Fixes:
 
 New coverage (ranked):
 
-- **P1 Spring AI** (A + D, rows; `org.springframework.ai`,
-  `org.springaicommunity.mcp`). `@Tool`, `@McpTool`/`@McpResource`/
-  `@McpPrompt`/`@McpComplete`, `ToolCallback.call`, advisors as
-  lifecycle. HertzBeat 189 -> 20 dead `@Tool` (rest: 512-byte cap).
-- **P1 LangChain4j + Quarkus LangChain4j** (A + D, rows;
-  `dev.langchain4j`, `io.quarkiverse.langchain4j`). `@Tool`,
-  `ToolExecutor`, agentic `@Agent`/`@ExitCondition`, guardrails;
-  ruoyi-ai 31 -> 3, Kestra 29 -> 18.
 - **P2 Quarkus MCP server** (A, row; `io.quarkiverse.mcp.server`).
   `@Tool`/`@Prompt`/`@Resource`/`@Complete*`; EDDI 14 -> 2.
 - **P2 Google ADK Java** (A + D + new extraction; `com.google.adk`).
@@ -3880,11 +3284,6 @@ Fixes:
 
 New coverage (ranked):
 
-- **P1 Koog** (A + D, rows; `ai.koog.agents`). `ToolSet` `@Tool` members
-  and `Tool`/`SimpleTool` `execute`; trailblaze -45 findings,
-  mobile-tester-agent 24 entries.
-- **P1 LangChain4j and Spring AI twins** (A + D, rows; as Java). askimo
-  20 entries; klibs-io `ToolCallback` dead today.
 - **P2 MCP Kotlin SDK** (B/C, row after Kotlin registrar capture;
   `io.modelcontextprotocol.kotlin.sdk.server`). `addTool`/`addPrompt`/
   `addResource`; handlers live, no entries (crosspaste, burp-ai-agent).
@@ -3916,16 +3315,6 @@ Fixes:
 
 New coverage (ranked):
 
-- **P1 MCP C# SDK** (A + B, rows; `ModelContextProtocol`; F# twin).
-  `[McpServerTool]`/`[McpServerPrompt]`/`[McpServerResource]`,
-  `With*Handler`; openclaw.net 34 of 56 tools dead, Equibles 41 recovered.
-- **P1 Microsoft Agent Framework** (A + D, rows;
-  `Microsoft.Agents.AI.Workflows`, `Microsoft.Agents.AI`).
-  `[MessageHandler]` (private, dead at `high`), `Executor<T>.HandleAsync`,
-  `AIAgent.RunCoreAsync`, `AIContextProvider`; BookWorm 14 executors.
-- **P1 Semantic Kernel** (A + D, rows; `Microsoft.SemanticKernel`; F#
-  twin). `[KernelFunction]`, the three filter interfaces,
-  `CreateFromMethod`.
 - **P2 Microsoft.Extensions.AI** (B + D, rows + ambiguous-verb fix;
   `Microsoft.Extensions.AI`). `AIFunctionFactory.Create(f)`,
   `AIFunction.InvokeCoreAsync`.
@@ -3937,8 +3326,6 @@ New coverage (ranked):
 
 Fixes:
 
-- **P1 Method groups through a receiver.** `AIFunctionFactory.Create(
-  _svc.M)` is not a value ref; NetCoreKevin ~36 tools dead.
 - **P2 Collection expressions.** `tools: [GetWeather]` elements are not
   value refs; a private tool passed only there is dead at `high`.
 - **P3 Top-level statements are no callable.** `Program.cs` wiring has
@@ -3948,14 +3335,6 @@ Fixes:
 
 New coverage (ranked):
 
-- **P1 MCP Go SDK** (B/C, row; `github.com/modelcontextprotocol/go-sdk`).
-  `mcp.AddTool`, `s.AddTool/AddPrompt/AddResource`; middleware as
-  lifecycle. 8 entries on github-mcp-server, 11 on mcp-grafana.
-- **P1 mcp-go** (B/C, row; `github.com/mark3labs/mcp-go`). `AddTool`,
-  `AddTaskTool`, `AddPrompt`, hooks `AddBefore*`; k8sgpt 18 entries.
-- **P1 Eino** (B/C + methods, rows; `github.com/cloudwego/eino`).
-  `InferTool`, `InvokableLambda`, `NewGraphBranch`, `InvokableRun`;
-  mayfly-go 14 entries, 6 findings removed.
 - **P2 fantasy** (B/C, row; `charm.land/fantasy`). `NewAgentTool`;
   crush 38 entries.
 - **P2 LangChainGo** (Go method sets; `github.com/tmc/langchaingo`).
@@ -3976,12 +3355,6 @@ Fixes:
 
 New coverage (ranked):
 
-- **P1 rmcp hand-written handlers** (D, on the existing rule; `rmcp`).
-  `ServerHandler`/`ClientHandler` `call_tool`, `list_tools`, `on_*`;
-  ck 3, qbit 6 dead.
-- **P1 Rig** (A + D, rows; `rig`, `rig_core`, `rig_derive`).
-  `impl Tool`, `ToolEmbedding`, `#[rig_tool]`, `PromptHook`; deepwiki-rs
-  23, codegraph-rust 44 recovered (needs per-file base types first).
 - **P2 ADK-Rust** (A + D + B, rows; `adk_rust`, `adk_core`, `adk_tool`,
   `adk_agent`, `adk_graph`). `#[tool]`, `impl Tool { execute }`,
   `impl Agent { run }`.
@@ -4002,10 +3375,6 @@ Fixes:
 
 New coverage (ranked):
 
-- **P1 RubyLLM** (D + B, rows, no detect: Rails autoloads). `< RubyLLM::
-  Tool` `execute`, `with_tool(s)`; rubyevents 39 -> 1.
-- **P1 MCP Ruby SDK** (D + B, rows; `mcp`). `self.call`, `self.template`,
-  `define_tool`; canine 60 -> 24.
 - **P2 fast-mcp, ai-agents, ActiveAgent, langchainrb** (D/E, rows;
   `fast_mcp`, `agents`). `Tool#call`, `Resource#content`, `perform`,
   `define_function :m`.
@@ -4019,13 +3388,6 @@ Fixes:
 
 New coverage (ranked):
 
-- **P1 Laravel MCP and Laravel AI SDK** (D, rows; `Laravel\Mcp`,
-  `Laravel\Ai`, after bases through `use`). `handle`, `schema`,
-  `shouldRegister`; relaticle 214 tool methods dead.
-- **P1 Symfony AI / MCP PHP SDK** (A + class marker; `Symfony\AI`,
-  `Mcp\Capability`). `#[McpTool]`, `#[AsTool(method:)]`.
-- **P1 Prism** (B, row after callable decoding; `Prism\Prism`).
-  `->using()` closures, `[obj, 'm']`, invokables.
 - **P2 Neuron AI, php-mcp/server** (A/B/D, rows; `NeuronAI`,
   `PhpMcp\Server`). `withTool([C::class, 'm'])` mints a node, no edge.
 - **P3 LLPhant** (new matcher; `LLPhant`). `new FunctionInfo('m', $obj)`.
@@ -4044,9 +3406,6 @@ New coverage (ranked):
 
 Fixes:
 
-- **P1 `use Mod, opts`.** `record_import` stores `"Mod, opts"`, so no
-  detect prefix matches (also LiveView and OTP rows); record `use` and
-  `@behaviour` as base types so `run` rows stop matching every `run`.
 - **P2 Top-level roots.** `@spec run(...)` roots all 83 `run/2` in
   loomkin; an ExUnit `test` body roots 24 `execute/2` in sanbase2.
 - **P2 MFA tuples.** `{Mod, :fun}` (ReqLLM `callback:`) are no value refs.
@@ -4055,18 +3414,12 @@ Fixes:
 
 New coverage (ranked):
 
-- **P1 Apple Foundation Models** (D, row; `FoundationModels`,
-  `AnyLanguageModel`, `SwiftAgent`). `Tool.call(arguments:)`; kaset 2.
 - **P2 SwiftMCP, Swarm** (A; needs Swift attribute capture).
 - **P3 MCP Swift SDK** (B/C, row; `MCP`). Entries only (iMCP).
 
 ### Dart
 
 Fixes:
-
-- **P1 Arrow-closure calls.** `() => f()` records no call (`dart.rs`
-  `record_call`): marionette_mcp tool bodies and 15 false dead in
-  dartpad_ui, every Flutter `onPressed: () => _x()`.
 
 New coverage (ranked):
 

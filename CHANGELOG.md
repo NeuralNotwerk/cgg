@@ -9,6 +9,360 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-25
+
+A framework-coverage release: every P1 item of the 2026-11-25 framework
+audit and AI agent/tool-calling study. It adds a new entry kind,
+**`tool`**, for callables an LLM host invokes with model-chosen arguments
+(agent, MCP and tool-calling SDKs for Python, JS/TS, the JVM, .NET, Go,
+Rust, Ruby, PHP and Swift), about 345 new rule
+rows (653 rule ids in 38 languages), new rule syntax, and new file types
+(Bash `.bats`/`PKGBUILD`, R `.qmd`/`.Rmd` chunks, Fortran `.f77`/`.ftn`).
+Framework evidence is now **per file**, which removes many false entries.
+**The default graph changes** in most languages (see *Compatibility*),
+and some existing entry qnames and kinds change (marked in bold below).
+
+### Added
+
+- **New entry kind `tool`** for a callable an LLM host invokes with
+  arguments the model chose (agent and MCP tools, resources, prompts).
+  It counts as untrusted input; `--filter '<framework-entry>::tool::'`
+  lists every tool, and the coverage table adds a prompt-injection caveat
+  when tools are found. A tool entry is named by the tool: its
+  `name`/`id`/`uri` argument, else a name-shaped first string, else the
+  function's (or, for a base-type tool, the type's) name.
+- Agent and tool-calling SDKs (37 `tool` rule ids, plus their lifecycle
+  hook rows):
+  - Python: MCP Python SDK/FastMCP (`mcp-python`), DSPy (`dspy`,
+    `dspy-tools`), LangChain (`langchain-python`,
+    `langchain-python-middleware`), LangGraph (`langgraph-python`,
+    `langgraph-python-tools`), LlamaIndex (`llamaindex-workflows`,
+    `llamaindex-tools`), CrewAI (`crewai-tools`, `crewai-project`,
+    `crewai-flow`), Strands (`strands-python`, `strands-python-hooks`),
+    Pydantic AI (`pydantic-ai`, `pydantic-ai-hooks`), OpenAI Agents SDK
+    (`openai-agents-python`, `openai-agents-python-hooks`), Claude Agent
+    SDK (`claude-agent-sdk-python`, `claude-agent-sdk-python-hooks`),
+    Bedrock AgentCore runtime (`bedrock-agentcore-python`, network) and
+    the A2A SDK (`a2a-python`, network).
+  - JavaScript/TypeScript and Swift: MCP TypeScript SDK (`mcp-sdk`,
+    `mcp-handler`), Cloudflare Agents (`cloudflare-agents`,
+    `cloudflare-agents-lifecycle`) and Workers RPC
+    (`cloudflare-workers-rpc`, every public method of a `WorkerEntrypoint`,
+    `DurableObject` or `WorkflowEntrypoint`), Vercel AI SDK (`vercel-ai`,
+    `vercel-ai-hooks`), Mastra (`mastra`, `mastra-workflows`,
+    `mastra-agent`), LangChain.js (`langchain-js`,
+    `langchain-js-callbacks`), OpenAI Agents JS (`openai-agents`,
+    `openai-agents-handoffs`, `openai-agents-hooks`), Claude Agent SDK
+    (`claude-agent-sdk`), VS Code extensions and language-model tools
+    (`vscode-extension`, `vscode-lm-tools`), Apple Foundation Models
+    (`foundation-models`, Swift).
+  - JVM: Spring AI (`spring-ai`, `spring-ai-hooks`), LangChain4j and
+    Quarkus LangChain4j (`langchain4j`, `langchain4j-agentic`,
+    `langchain4j-hooks`; Java, Kotlin, Scala), Koog (`koog`, Kotlin).
+  - .NET: MCP C# SDK (`mcp-csharp-sdk`, also F#), Semantic Kernel
+    (`semantic-kernel`, `semantic-kernel-hooks`), Microsoft.Extensions.AI
+    (`microsoft-extensions-ai`), Microsoft Agent Framework
+    (`microsoft-agent-framework`, `microsoft-agent-framework-workflows`).
+  - Go: official MCP Go SDK (`mcp-go-sdk`, `mcp-go-sdk-middleware`),
+    mark3labs mcp-go (`mcp-go`, `mcp-go-hooks`), Eino (`eino`,
+    `eino-graph`, `eino-hooks`).
+  - Rust: Rig (`rig`, `rig-hooks`); hand-written rmcp
+    `impl ServerHandler`/`ClientHandler` (request methods as `rmcp` tool
+    entries, the rest as `rmcp-handlers` lifecycle roots).
+  - Ruby and PHP: RubyLLM (`ruby-llm`), MCP Ruby SDK (`mcp-ruby`),
+    Laravel MCP (`laravel-mcp`), Laravel AI SDK (`laravel-ai`,
+    `laravel-ai-agent`), Symfony AI (`symfony-ai`), MCP PHP SDK
+    (`mcp-php`), Prism (`prism-php`).
+- Application framework rules:
+  - Python: Blender add-ons (`blender-addon`, `blender-addon-register`),
+    Qt for Python (`qt`), Textual (`textual`), Home Assistant
+    (`home-assistant`, `home-assistant-entity`), Django signal receivers
+    and template tags (`django-hooks`), forms and app configs
+    (`django-lifecycle`), DRF serializers (`drf-serializers`), Odoo
+    (`odoo`, `odoo-model`), behave and pytest-bdd steps, cocotb, Temporal
+    (`temporal-python`), gRPC servicers (`grpc-python`), Graphene,
+    Strawberry, discord.py/nextcord/disnake (`discord-py`,
+    `discord-py-extension`), Slack Bolt, Django Ninja.
+  - JavaScript/TypeScript: oclif, Elysia, tsoa, routing-controllers,
+    inversify-express-utils, Ts.ED, Midway, TypeGraphQL,
+    sequelize-typescript hooks, TypeORM listeners and subscribers,
+    Phaser, Obsidian, Lit.
+  - Swift: swift-argument-parser, Fluent, Vapor commands and queues,
+    WidgetKit, App Intents, app extensions, AppKit, Core Data.
+    Objective-C: React Native native modules (`react-native`), AppKit,
+    Core Data. Dart: Equatable, GetX, Riverpod, dart_frog (one entry per
+    route file, named by its path under `routes/`), package:args.
+  - Java/Kotlin: Bukkit/Spigot/Paper, SpongePowered Mixin, NeoForge/Forge
+    events, libGDX, JDA, Netty, Quartz, BPMN delegates, RocketMQ,
+    XXL-JOB, Spring WebSocket, Netflix DGS, Temporal, IntelliJ Platform,
+    AndroidX Paging, Room, kotlinx.serialization, Kotlin/JS `@JsExport`,
+    fault-tolerance fallbacks (Resilience4j, Hystrix, MicroProfile,
+    Sentinel, Spring Retry `recover=`). gRPC Kotlin (`grpc-kotlin`).
+    Scala: `@main`, ZIO Test, Slick, Flink, Scala.js exports. Groovy:
+    Grails Quartz, Hubitat/SmartThings. Clojure: re-frame, ClojureScript
+    `^:export`, shadow-cljs hooks.
+  - C#/F#: Harmony, Reqnroll/SpecFlow, McMaster CommandLineUtils,
+    Spectre.Console.Cli, Roslyn (C#), FluentValidation, FluentMigrator,
+    Rebus, NServiceBus, DotNetCore.CAP, FastEndpoints, ABP, Akka.NET; F#
+    rows for `orleans`, `aws-lambda` and `grpc-dotnet`.
+  - Go: terraform-plugin-framework, controller-runtime, Prometheus
+    collectors, GORM, ent, testify suites, Bubble Tea, Watermill, NATS,
+    Sarama, discordgo, httprouter, go-restful.
+  - Rust: godot-rust (`gdext`), Bevy, Leptos/Dioxus/Yew/Sycamore
+    components (`rust-ui-components`), `#[server]` functions, Kani,
+    eframe, zbus, serenity, poise, teloxide, hyper `service_fn`.
+  - C/C++: Qt Widgets, QtTest, Boost.Test, ROS 2, BehaviorTree.CPP, JUCE,
+    gRPC C++, Arduino/PlatformIO, GLib/GTK signals, Zephyr and ztest,
+    Redis modules, SQLite extensions, ESP-IDF, FreeRTOS, CMSIS vector
+    handlers (also assembly), STM32 HAL callbacks; `Reset_Handler` is a
+    program entry in C, C++ and assembly.
+  - Ruby: ActiveRecord migrations, Pundit/Action Policy, graphql-ruby,
+    Thor, ActiveModel validators, ViewComponent/Phlex,
+    active_model_serializers. PHP: Livewire, Filament, Nextcloud apps,
+    Hyperf, Pest, Doctrine lifecycle callbacks, API Platform. Perl: Moose
+    `BUILD`/`DEMOLISH`, irssi, Minion; Perl's own `DESTROY`, `AUTOLOAD`,
+    `import`, `CLONE` and tie methods are lifecycle roots. Lua: Neovim
+    plugins, Luanti, APISIX plugins, busted, LÖVE. Bash: shUnit2, bats,
+    makepkg, mkinitcpio. PowerShell: Chocolatey AU. R: `targets`
+    (disclosed). Julia: Genie, Oxygen, HTTP.jl route handlers, Franklin;
+    methods extending an imported module's generic are roots.
+  - Elixir: Oban, Ecto migrations and types, Broadway, GenStage; `plug`
+    roots `handle_errors`. Erlang: rebar3 providers. Haskell:
+    QuickCheck, Hedgehog, IHP. OCaml: MirageOS; Jane Street `Command`
+    (disclosed only). Solidity: Chainlink. Zig: httpz and websocket.zig
+    hooks. CMake: CPM, vendored `CodeCoverage.cmake`, package config
+    helpers. Nix: flake-parts, NixOS VM tests. Fortran: Abaqus, ANSYS
+    and LS-DYNA user subroutines, ESMF/NUOPC. VHDL: VUnit. Lean: `@[export]`/
+    `@[extern]` (`lean-ffi`) and compiler attributes (`lean-attributes`).
+- New file types: Bash `.bats` (and the `bats` shebang) and `PKGBUILD`;
+  R `.qmd` (Quarto) and the R chunks of `.Rmd`; Fortran `.f77` and
+  `.ftn`.
+- Rule syntax (built-in and `[[framework]]`):
+  - infix name patterns `prefix*suffix` (`sqlite3_*_init`, `get*R`);
+  - name patterns in `base_types` (`*Servicer`, `*ImplBase`, `I*`,
+    `*::Service`) and the nested form `$.$Base` (`Greeter.GreeterBase`);
+  - a registrar slot: `registrars = ["create_react_agent:tools"]` takes
+    only what is passed as `tools=` (Python, JS/TS, Swift and C# record
+    slots; Kotlin and Dart record them but do not capture registrar
+    arguments yet);
+  - `methods = ["<init>"]` roots the matched class's constructor;
+  - a `methods` entry written `owner.name` matches by owner
+    (`love.update`);
+  - a `detect` entry holding `*` is an import-name pattern (`*Grpc`).
+- A proto `rpc` and an OpenAPI operation are dead-code roots
+  (`descriptor:operation`); connexion's `operationId` links to the Python
+  function it names.
+- Elixir `child_spec/1` is a builtin dead-code root.
+
+### Changed
+
+- **rmcp entries change kind and qname**:
+  `<framework-entry>::network::rmcp::tool("<description>")` is now
+  `<framework-entry>::tool::rmcp::<tool name>`; its `#[tool_handler]`
+  container entries are `tool` kind too.
+- **Framework evidence is per file.** Python/JS/TS decorators and, in
+  Python, JS/TS, Java, Kotlin, Go, Rust and Swift, bare registrar calls
+  and base types match a framework only in a file that imports it, writes
+  it qualified, or imports the name from a project module that does;
+  implicitly imported names (`java.lang`, Kotlin default imports, Rust
+  prelude, Swift standard library, Go `error`, Python builtins, JS
+  globals) need no import. This removes false entries: `mock.patch` read
+  as FastAPI `PATCH` routes, Slack Bolt `@app.options`, axum routes
+  claimed by salvo, Ember/Playwright `use(`/`on(` calls read as Express,
+  bullmq `Worker` read as worker_threads, photoprism `Schedule()` read as
+  robfig-cron, and others.
+- A Python import of a module the tree declares detects no framework (a
+  project's own `agents/` package is not the OpenAI Agents SDK); a
+  framework's own repository still detects itself. **Powertools for AWS
+  Lambda's own repository no longer detects `aws-lambda`** (its examples'
+  `lambda_handler`s lose their entries).
+- A class whose base is written namespace-qualified (`< RubyLLM::Tool`,
+  `extends \Foo\Bar`) is detection evidence by itself.
+- **JS/TS: an object method written in shorthand inside a registrar call
+  (`tool({ async execute() {} })`) is now named `handler_at_<line>`**,
+  like the arrow form, instead of its key.
+- **Nix: a lambda nested in an attribute set is named by its attribute
+  path** (`nodes.machine`).
+- **C/C++ function-defining macros name the function they define**
+  (`PHP_METHOD(C, m)` → `C::m`, `BPF_KPROBE(name, …)` → `name`,
+  `ZTEST(s, t)` → `s::t`, Criterion `Test` and Unity `TEST` likewise,
+  `TEST_CASE("…")` → `TEST_CASE_at_<line>`); **C++ `Class::MACRO`
+  callables from class-body macros (`Q_OBJECT`, `GENERATED_BODY()`)
+  disappear**.
+- **Assembly local labels (`1:`, `.L*`) and data labels are no longer
+  callables**; `.globl`/`.weak`/`global`/`PUBLIC` set visibility.
+- **OpenAPI: a bare `operationId` under `x-openapi-router-controller` is
+  named `<controller>.<operationId>`.**
+- Elixir: `use Mod, opts`/`import Mod, only: …` record `Mod`; **`@behaviour
+  Mod` is an import (it was a call named `behaviour`)**; the `otp`,
+  `otp-application`, `mix-task`, `oban`, `ecto-migration`, `ecto-type`,
+  `broadway` and `genstage` rules match only modules that `use` the
+  contract or declare its `@behaviour` (Plausible: 21 `mix-task` nodes →
+  13 real tasks).
+- Rules that now enumerate (were detect-only): `grpc-java`, `grpc-dotnet`,
+  `flink` (Java), `vapor`, `yesod`, `kong`, `genie`. `genie` no longer
+  detects Oxygen (own `oxygen` row).
+- Go framework rules compare method names with their case (also user Go
+  rules): a lowercase `serveHTTP`, `init` or `read` is no longer an entry.
+- gRPC descriptor linking: only an implementation whose class or declared
+  base names the service links; generated files, client/stub/mock/
+  `Unimplemented*` classes and message types are never targets (memos:
+  584 descriptor edges → 73).
+- Solidity: contract bases are recorded and Solidity joins inheritance
+  dispatch, so a base's call to a `virtual` function reaches in-tree
+  overrides.
+- A rule detected by the names it defines detects on its exact names even
+  when it also carries patterns.
+- C-family registrar capture reads `&f`, casts and ALL-CAPS cast macros
+  (`G_CALLBACK(f)`); the Fortran, Lua and Julia plugins capture registrar
+  arguments; PHP `new C()` and `[new C(), 'm']` handed to a registrar
+  name `C::__invoke` and `C::m`.
+- A base-type chain through a class with no methods of its own now
+  reaches the framework base: class records seed the index (Ruby, PHP,
+  Python, …). A namespace-qualified base no longer walks into an
+  unrelated in-tree class of the same last name; a bare Ruby base
+  resolves through the enclosing modules. PHP bases are read through the
+  file's `use` imports and namespace.
+- PHP: a class-level attribute applies to the method it names
+  (`method:`) or to `__invoke`.
+- Rust function values in tuples, arrays, struct fields, initialisers,
+  `return`, `vec![…]` and method receivers are value references; values
+  inside a registrar call reach registrar rules.
+- C#: a field's declared type types calls through the field
+  (`_repo.Find()`), so interface members called only through injected
+  fields are no longer reported dead (Ombi −244, NexusForever −389,
+  Reaparr −280 findings).
+
+### Fixed
+
+- An attribute over 512 bytes was dropped whole (`@Tool(description =
+  "…")` entered nothing); its text is now cut short.
+- `@patch`/`@mock.patch`/`@patch.object` from `unittest.mock`/`mock` are
+  never HTTP PATCH routes (dispatch 318 → 294, tracecat 898 → 888 fastapi
+  entries).
+- A registration with five or six arguments (MCP `server.tool(name,
+  description, schema, annotations, handler)`) hands off its inline
+  handler; a registrar called through a file-level alias (`const f =
+  useCopilotAction as any`) is recognised; a user registrar written with
+  its receiver (`server.tool`) captures.
+- JS/TS options-object handlers (method shorthand, `execute: wrap(…)`,
+  nested objects and arrays, shorthand properties) are handlers of the
+  registration call.
+- An inline handler no rule claims no longer leaves its callees dead: the
+  enclosing function, or the top level, reaches it, and calls in it see
+  the enclosing function's parameter and local types (JS/TS, Go, Ruby,
+  Swift, Clojure, Elixir, Perl).
+- Lost base types: TypeScript bases with object or function type
+  arguments, C# bases after a primary constructor, Dart `with`-only,
+  `mixin … on` and multi-line `with` clauses, F# generic `inherit` and
+  `interface I with`, JS/TS bases imported by default or renamed, and C++
+  `class X_API Name : Base`.
+- C/C++: `T* CALLCONV name()` is extracted; the member after a `;`-less
+  `Q_OBJECT`/`GENERATED_BODY()` is not lost; `UFUNCTION`/`UPROPERTY`/
+  `Q_INVOKABLE` are attributes.
+- Objective-C: React Native's `RCT_EXPORT_METHOD` (and kin) define
+  methods.
+- Fixed-form Fortran column-1 comments no longer hide every routine.
+- Lean attributes could never match a rule.
+- Assembly branches (RISC-V `j`/`tail`/`b*`, ARM `cbz`/`tbz`/`b.<cond>`,
+  x86 `jcc`) reach their target; addresses and table entries keep
+  targets live.
+- Rust destructured struct-pattern fields are locals.
+- Dart: a call in an arrow closure (`onPressed: () => _save()`) is a call.
+- JS/TS dead code: a function imported from a project module and named
+  at module top level is credited.
+- C#: a method group passed through a field, parameter or local
+  (`AIFunctionFactory.Create(_svc.GetTime)`) is a reference to that
+  method; a property read through an untyped variable is not bound by
+  name.
+- Erlang: `fun ?MODULE:f/N`, `{?MODULE, f, Args}` and `{?MODULE, f}`
+  credit the handler; `{M, F, Args}` names `F` at any arity; `{M, F}` as
+  a map value is a value.
+- Julia: `M.f(x) = …` is a definition; functions passed as values are
+  reference sites.
+- Perl: an inline sub registered under a bareword (`add_task(resize =>
+  sub {…})`) is an entry; `$app->plugin(Minion => …)` is an import.
+- PHP: attributes written qualified (`#[ORM\PrePersist]`) match by their
+  last segment.
+- Path conventions match at every position (`lua/` in
+  `x/lua/oil/init.lua`) and on segment boundaries.
+- `.Rmd` files were parsed whole and failed; their R chunks are parsed.
+- C++: doctest `TEST_CASE_TEMPLATE` and `TEST_CASE_FIXTURE` bodies are
+  callables (`TEST_CASE_TEMPLATE_at_<line>`); a class-body macro with a
+  literal argument (`JSONCPP_DEPRECATED("…")`) no longer breaks the class
+  open, so the members after it keep their class.
+- Per-file evidence (fixup): `implements Runnable` needs no import; a
+  service importing only its generated gRPC stub (`…Grpc`, `…GrpcKt`,
+  `*_pb2_grpc`, `*.grpc.pb.h`) is recognised; JPA `AttributeConverter`s
+  are recognised from a `jakarta.persistence`/`javax.persistence` import.
+
+### Known gaps (partial items)
+
+- Kotlin and Dart do not capture registrar arguments, so registrar rows
+  (slotted or not) are inert there.
+- Elixir `use MyAppWeb, :live_view` does not expand `__using__`, so the
+  Phoenix rows stay name-matched tree-wide.
+- Cloudflare Agents `schedule(…, "method")` (a target in the second
+  string), nested options-object slots (Claude Agent SDK
+  `query({ options: { canUseTool, hooks } })`, a Vercel AI tool's name
+  from its object key), typed literals (OpenAI Agents `const g:
+  InputGuardrail = {…}`), and a renamed import used only as a module-
+  level value.
+- Prism and MCP PHP tool names in an earlier chained call
+  (`Tool::as('weather')->…->using(fn)`) route by the function name;
+  mcp-ruby methods inside `class << self`; `Create(_svc.M)` and
+  `MapGrpcService<T>` mint no entry node.
+- Base-type rows with no method list root private helpers too (netty,
+  grpc-java/kotlin/dotnet, slick, abp-appservice, graphql-ruby, thor).
+- Detect-only or partial rows: `jane-street-command`, `targets` (a
+  top-level call into a sourced script does not bind), `zig-httpz`
+  route nodes, Spring AI `FunctionToolCallback`, Room migrations as
+  anonymous objects, Hubitat `subscribe`/`runIn` handlers, Temporal Java
+  interface-only methods, Forge `addListener(this::m)`, Vapor route
+  closures, React Native's Swift `RCT_EXTERN_METHOD`, Boost.Test cases
+  still named after the macro, `.ino` sketches, fixed-form Fortran
+  continuation lines, assembly include closures.
+- A Dash app's `@app.server.route`/`errorhandler` (Flask decorators in a
+  file importing only `dash`) are no longer entries; C# calls inside a
+  lambda in a field initializer are not recorded (both predate per-file
+  evidence and field typing, which made them visible as false `high`
+  findings).
+
+### Compatibility
+
+Measured with `scripts/graph-ab.py` over all 485 corpus repositories
+against 0.13.4; 354 change. Every bucket of lost edges was traced at
+sample call sites:
+
+- About 12,000 dropped edges are the same call site and callee with a new
+  caller: inline closures are now `handler_at_<line>` callables (busted,
+  pest, bats, Julia, Lua, PHP) and own their calls.
+- About 15,000 are the same site and caller with a better-qualified
+  callee, mostly C++ classes declared through an export macro
+  (`class JSON_API Value`) that now keep their name, so `a.emit()` binds
+  one typed method at `high` instead of several by-name `medium`s.
+- About 15,700 are lost outright: low-confidence descriptor edges to
+  generated gRPC/HTTP stubs and client SDKs (moon-kratos, memos,
+  smithy), medium by-name C# fan-out that field typing now binds or
+  leaves external (Files, Paket, NexusForever, Orleans, neo), Dart mixin
+  delegatees behind a facade (dart-flutter, reachability kept), and false
+  framework entries removed by per-file evidence (py-quart's double
+  `flask` claims, mock.patch "routes").
+- Dead code: 1,178 `high` findings are gone, rooted by the new rules
+  (harmony 641, gdext 126, kani 110, mixin 87, eframe 52, leptos 48).
+  Two new `high` findings are false and listed under *Known gaps*
+  (a Dash app's `@app.server.errorhandler`; a C# call inside a
+  field-initializer lambda).
+- Renamed or re-kinded entries and callables: rmcp tools, JS/TS shorthand
+  handlers, Nix attribute-path lambdas, C/C++ macro-defined functions,
+  assembly labels, OpenAPI controller operations and Elixir
+  contract-scoped rules (each in bold above). `--write-roots` baselines
+  keyed on the old qnames need regenerating for those.
+
+### Performance
+
+PERF_PLACEHOLDER
+
 ## [0.13.4] - 2026-11-25
 
 A bugfix and documentation release. **The default graph does not change
