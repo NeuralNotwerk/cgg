@@ -297,7 +297,7 @@ const SWIFT_SPEC: Spec = Spec {
 };
 
 const RUST_SPEC: Spec = Spec {
-    idents: &["identifier"],
+    idents: &["identifier", "shorthand_field_identifier"],
     binders: &[
         b("parameter", &["pattern"], Scope::Param),
         b("closure_parameters", &[""], Scope::Param),
@@ -3913,6 +3913,17 @@ mod tests {
         let other = src.find("k(2)").unwrap() as u32;
         assert!(b.start_byte <= body && body < b.end_byte, "{b:?}");
         assert!(other >= b.end_byte, "{b:?} covers the else branch");
+    }
+
+    /// `let Diff { limit, max: m, .. } = d;` binds `limit` (a shorthand
+    /// field pattern) and `m`, never the field name `max`.
+    #[test]
+    fn a_rust_shorthand_field_pattern_binds_its_name() {
+        let src = "fn f(d: Diff) { let Diff { limit, max: m, .. } = d; limit.or(m); }";
+        let got = names("rust", tree_sitter_rust::LANGUAGE.into(), src);
+        assert!(got.contains(&"limit".to_string()), "{got:?}");
+        assert!(got.contains(&"m".to_string()), "{got:?}");
+        assert!(!got.contains(&"max".to_string()), "{got:?}");
     }
 
     /// Zig `const fatal = std.process.fatal;` in a function names the

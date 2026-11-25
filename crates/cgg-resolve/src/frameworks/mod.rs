@@ -842,8 +842,11 @@ impl<'a> RegistrarIndex<'a> {
             if f.language != language {
                 continue;
             }
+            let value_refs = VALUE_REF_REGISTRAR_LANGS.contains(&language);
             for r in &f.references {
-                if r.receiver_hint != VALUE_REF_HINT && r.receiver_hint != STRING_REF_HINT
+                if r.receiver_hint != VALUE_REF_HINT
+                    && r.receiver_hint != STRING_REF_HINT
+                    && !(value_refs && r.value_ref)
                 {
                     continue;
                 }
@@ -1055,6 +1058,12 @@ fn base_type_matches(wanted: &[String], declared: &str) -> bool {
     let last = bare.rsplit(['.', ':', '\\']).next().unwrap_or(bare);
     contains_ci(wanted, last)
 }
+
+/// Languages whose [`cgg_core::RefRecord::value_ref`] sites carry the
+/// registrar context of the call they are an argument of (Rust: a system
+/// in a tuple, `add_systems(Update, (a, b))`, or a combinator's receiver,
+/// `a.run_if(c)`), so a registrar rule reads them like a bare argument.
+const VALUE_REF_REGISTRAR_LANGS: &[&str] = &["rust"];
 
 /// Languages whose callable's qualified name is its attribute path
 /// (Nix: `nodes = { machine = …; }` is `nodes.machine`), so a rule's
@@ -1502,7 +1511,7 @@ fn match_registrars(
             continue;
         }
         {
-            let is_value = r.receiver_hint == VALUE_REF_HINT;
+            let is_value = r.receiver_hint == VALUE_REF_HINT || r.value_ref;
             let is_string = r.receiver_hint == STRING_REF_HINT;
             let verb = r
                 .context
