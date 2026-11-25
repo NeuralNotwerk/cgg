@@ -489,10 +489,18 @@ fn class_body_macro_lines(
                                 | Tok::Punct(b',')
                         )
                     {
+                        // `MACRO("text");` is no declaration the grammar can
+                        // read in a class body (`JSONCPP_DEPRECATED("…")`):
+                        // it breaks the class open, so such an invocation is
+                        // blanked rather than terminated.
+                        let literal_arg = src[next.start..toks[k].end]
+                            .iter()
+                            .any(|b| *b == b'"' || *b == b'\'');
                         match src[toks[k].end..after.start]
                             .iter()
                             .position(|b| *b == b' ' || *b == b'\t')
                         {
+                            Some(_) if literal_arg => blank.push((t.start, toks[k].end)),
                             Some(off) => semis.push(toks[k].end + off),
                             // No whitespace to hold a `;` (`GENERATED_BODY()`,
                             // a blank line, `public:` at column 0): blank
@@ -634,6 +642,15 @@ mod tests {
         assert_eq!(
             rw("class U : A {\n\tGENERATED_BODY()\n\npublic:\n};", true),
             "class U : A {\n\t                \n\npublic:\n};"
+        );
+        // A literal argument (`JSONCPP_DEPRECATED("…")`) makes no declaration
+        // the grammar reads, so the invocation is blanked instead.
+        assert_eq!(
+            rw(
+                "class V {\n  DEPRECATED(\"use x()\")\n  void a();\n};",
+                true
+            ),
+            "class V {\n                       \n  void a();\n};"
         );
         // Not in a function body, an enum, or C.
         let f =
