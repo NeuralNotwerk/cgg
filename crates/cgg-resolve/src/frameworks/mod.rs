@@ -1166,8 +1166,8 @@ fn type_segments(t: &str) -> Vec<&str> {
 /// The in-tree types a base written `t` (inside type `ctx`) may name,
 /// looked up by its last segment.
 ///
-/// A base written qualified (`ActiveRecord::Base`) refuses a candidate
-/// whose own enclosing namespace contradicts the qualifier
+/// A base written with a namespace path (`ActiveRecord::Base`) refuses a
+/// candidate whose own enclosing namespace contradicts the qualifier
 /// (`Mastodon::CLI::Base`): the qualifier names where the type lives. A
 /// candidate with no namespace of its own (a PHP or Ruby class declared
 /// at top level) is not contradicted. A bare base several types share
@@ -1184,7 +1184,13 @@ fn in_tree_bases<'a>(
     let Some(cands) = by_owner.get(*key) else {
         return Vec::new();
     };
-    let written_parent = segs.len().checked_sub(2).map(|i| segs[i]);
+    // Only a `::`/`\\` path names a declared namespace (Ruby, PHP, C++,
+    // Rust). A dotted qualifier is a module or import alias (`generic.
+    // ObjectEditView` through a package re-export), which says nothing
+    // about the file the class is declared in.
+    let written_parent = (t.contains("::") || t.contains('\\'))
+        .then(|| segs.len().checked_sub(2).map(|i| segs[i]))
+        .flatten();
     let namespace_of = |owner: &'a str| -> Option<Vec<&'a str>> {
         // Owners read from a trait-impl wrapper or a generic carry no
         // namespace this comparison can trust.
@@ -3555,7 +3561,12 @@ mod tests {
             ),
             None
         );
-        // A bare or matching qualifier still reaches it.
+        // A bare or matching qualifier still reaches it, and a dotted
+        // qualifier is a module alias, never a contradiction.
+        assert_eq!(
+            find_in_base_chain(&["views.Base".to_string()], "x.Y", &map, &thor),
+            Some("Thor".to_string())
+        );
         assert_eq!(
             find_in_base_chain(
                 &["Base".to_string()],
