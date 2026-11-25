@@ -24,8 +24,9 @@
 #   default        the working tree as it is now, tracked and untracked
 #                  (snapshotted through a temporary index; the real index,
 #                  stash and refs are untouched) — what release.sh releases
-#   --ref REF      a commit (tag, branch, sha); Linux builds it in a
-#                  temporary worktree
+#   --ref REF      a commit (tag, branch, sha)
+# Either way, both hosts build that one commit; Linux builds it in a
+# temporary worktree, never the live tree.
 #
 # The VM (default /storage/windows_vm, see the push skill §4b) is started
 # if it is stopped, and stopped again afterwards unless --keep-running.
@@ -88,11 +89,6 @@ mkdir -p "$WORK/linux" "$WORK/windows"
 # ---------------------------------------------------------------- snapshot
 if [ -n "$REF" ]; then
     COMMIT="$(git rev-parse --verify "$REF^{commit}")" || die "no such ref: $REF"
-    SRC="$WORK/worktree"
-    git worktree remove --force "$SRC" >/dev/null 2>&1 || true
-    git worktree add -q --detach "$SRC" "$COMMIT" || die "worktree for $REF"
-    trap 'git -C "$ROOT" worktree remove --force "$SRC" >/dev/null 2>&1' EXIT
-    LINUX_TARGET="$WORK/linux-target"
     say "testing $REF ($COMMIT)"
 else
     # A commit of the working tree, untracked files included, built
@@ -102,10 +98,16 @@ else
     TREE="$(GIT_INDEX_FILE="$IDX" git write-tree)" || die "snapshot (write-tree)"
     rm -f "$IDX"
     COMMIT="$(git commit-tree "$TREE" -p HEAD -m "windows-parity snapshot")" || die "snapshot (commit)"
-    SRC="$ROOT"
-    LINUX_TARGET="$ROOT/target"
     say "testing the working tree (snapshot $COMMIT on $(git rev-parse --short HEAD))"
 fi
+# Linux builds the same commit Windows does, from its own checkout: building
+# the live tree let edits made during the run reach one side only. The
+# target dir persists so dependencies stay cached between runs.
+SRC="$WORK/worktree"
+git worktree remove --force "$SRC" >/dev/null 2>&1 || true
+git worktree add -q --detach "$SRC" "$COMMIT" || die "worktree for $COMMIT"
+trap 'git -C "$ROOT" worktree remove --force "$SRC" >/dev/null 2>&1' EXIT
+LINUX_TARGET="$ROOT/target/windows-parity-linux"
 
 # ------------------------------------------------------------------ inputs
 cargo run -q --release -p cgg --example plugin_ids --manifest-path "$SRC/Cargo.toml" \
@@ -140,7 +142,7 @@ stop_vm() {
         (cd "$VM_DIR" && docker compose stop >/dev/null 2>&1)
     fi
 }
-trap 'stop_vm; [ -n "$REF" ] && git -C "$ROOT" worktree remove --force "$SRC" >/dev/null 2>&1' EXIT
+trap 'stop_vm; git -C "$ROOT" worktree remove --force "$SRC" >/dev/null 2>&1' EXIT
 
 for _ in $(seq 1 60); do
     "${SSH[@]}" "exit 0" >/dev/null 2>&1 && break
