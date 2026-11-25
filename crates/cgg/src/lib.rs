@@ -1164,7 +1164,7 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
     // kind of question one level up and wants the whole graph present.
     let desc_edges = {
         let _s = cgg_core::profile::span("resolve::descriptor");
-        cgg_resolve::descriptor::link_descriptors(&graph)
+        cgg_resolve::descriptor::link_descriptors(&graph, &all_facts)
     };
     for e in &desc_edges {
         match e.confidence {

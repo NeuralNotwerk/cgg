@@ -853,6 +853,21 @@ pub(crate) fn discover(
             continue;
         }
 
+        // A proto `rpc` or an OpenAPI operation is called by remote
+        // clients: rooting it keeps the implementation the descriptor
+        // linker found (and everything that calls) live.
+        if crate::descriptor::is_descriptor_operation(node) {
+            set.push(
+                graph,
+                *id,
+                RootKind::FrameworkCallback,
+                "descriptor:operation",
+                format!("{} operation served to remote clients", node.language),
+                &mut seen,
+            );
+            continue;
+        }
+
         // Program entry points.
         let lang_entries = LANG_ENTRY
             .iter()
