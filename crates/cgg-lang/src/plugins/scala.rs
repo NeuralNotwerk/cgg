@@ -815,6 +815,18 @@ mod tests {
         assert!(!f.references.is_empty(), "should extract references");
     }
 
+    /// A `with` on a continuation line is a base like one on the first.
+    #[test]
+    fn a_with_on_its_own_line_names_a_base() {
+        let o = extract(
+            "class Svc extends Base(1)\n    with Logging\n    with Metrics { def f() = 1 }\n",
+        );
+        assert_eq!(
+            o.definitions[0].base_types,
+            vec!["Base".to_string(), "Logging".to_string(), "Metrics".to_string()]
+        );
+    }
+
     /// WS14: a trait is a scope like a class: its methods are its own.
     #[test]
     fn trait_methods_are_owned_by_the_trait() {
