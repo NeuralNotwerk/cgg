@@ -76,7 +76,7 @@ fn collect_inner(node: Node, source: &[u8], scan_preceding: bool) -> Vec<String>
     let mut push = |n: Node| {
         if let Ok(t) = n.utf8_text(source) {
             let t = bounded(t.trim());
-            if !t.is_empty() && !out.iter().any(|e: &String| *e == t) {
+            if !t.is_empty() && !out.contains(&t) {
                 out.push(t);
             }
         }
