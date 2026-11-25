@@ -587,6 +587,16 @@ pub struct RefRecord {
     /// reads where the call is and writes here — or clears.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub arg_type: Option<String>,
+
+    /// The keyword, option key or argument label a registrar argument was
+    /// passed under: `tools` for `create_react_agent(m, tools=[t])` (Python
+    /// `tools=`, a JS/TS options object's `tools:`, a Swift, Kotlin or
+    /// Dart label, a C# `tools:` named argument). Empty for a positional
+    /// argument. A rule's registrar written `Agent:tools`
+    /// ([`crate::frameworks::split_registrar_slot`]) matches only the
+    /// arguments passed under that slot, so `prompt=p` is not a tool.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub slot: String,
 }
 
 /// Marks a [`RefRecord::arg_type`] that names a variable to be typed,

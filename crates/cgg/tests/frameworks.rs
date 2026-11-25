@@ -1512,3 +1512,131 @@ fn base_types_the_plugins_used_to_lose_reach_their_rules() {
         );
     }
 }
+
+#[test]
+fn a_keyword_slot_registrar_takes_only_that_slot() {
+    // `create_react_agent(m, tools=[t], prompt=p)`: a plain registrar
+    // made `my_prompt` a tool; `create_react_agent:tools` takes only what
+    // is passed under `tools`, and a second row can give `prompt` its own
+    // kind.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "app.py",
+        "from langgraph.prebuilt import create_react_agent\n\n\
+         def search(q):\n    return q\n\n\
+         def my_prompt(state):\n    return \"be nice\"\n\n\
+         def build():\n    return create_react_agent(\"m\", tools=[search], prompt=my_prompt)\n",
+    );
+    write(
+        tmp.path(),
+        "rules.toml",
+        "[[framework]]\nid = \"t-lg\"\nlanguage = \"python\"\nkind = \"network\"\n\
+         detect = [\"langgraph\"]\nregistrars = [\"create_react_agent:tools\"]\nnode = true\n\n\
+         [[framework]]\nid = \"t-lg-hooks\"\nlanguage = \"python\"\nkind = \"lifecycle\"\n\
+         detect = [\"langgraph\"]\nregistrars = [\"create_react_agent:prompt\"]\nnode = true\n",
+    );
+    let rules = tmp.path().join("rules.toml");
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .args(["--roots", rules.to_str().unwrap()])
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let names: std::collections::HashMap<String, String> = g["callables"]
+        .as_object()
+        .unwrap()
+        .iter()
+        .map(|(id, c)| {
+            (
+                id.clone(),
+                c["qualified_name"].as_str().unwrap_or("").to_string(),
+            )
+        })
+        .collect();
+    let mut entries: Vec<(String, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| names[e["src"].as_str().unwrap()].contains("framework-entry"))
+        .map(|e| {
+            let from = &names[e["src"].as_str().unwrap()];
+            let kind = if from.contains("::network::") {
+                "network"
+            } else {
+                "lifecycle"
+            };
+            (kind.to_string(), names[e["dst"].as_str().unwrap()].clone())
+        })
+        .collect();
+    entries.sort();
+    assert_eq!(
+        entries,
+        vec![
+            ("lifecycle".to_string(), "app.my_prompt".to_string()),
+            ("network".to_string(), "app.search".to_string()),
+        ],
+        "{g:#}"
+    );
+}
+
+#[test]
+fn options_object_handlers_are_inline_handlers() {
+    // Method shorthand (plain, async, generator), a handler behind one
+    // wrapping call, and handlers one level down (a nested object, an
+    // array of objects, a shorthand property naming a function) were no
+    // handlers, and shorthand read dead with a rule naming `tool`.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "agent.ts",
+        "import { tool } from \"ai\";\n\
+         function a() { return 1; }\nfunction b() { return 2; }\nfunction c() { return 3; }\n\
+         function d() { return 4; }\nfunction e() { return 5; }\nfunction onStart() { return 6; }\n\
+         function wrap(f: any) { return f; }\n\
+         export const t1 = tool({ description: \"x\", async execute() { return a(); } });\n\
+         export const t2 = tool({ async *execute() { yield b(); } });\n\
+         export const t3 = tool({ execute: wrap(async () => c()) });\n\
+         export const t4 = tool({ lifecycle: { onEnd: () => d() } });\n\
+         export const t5 = tool({ functions: [{ func: () => e() }] });\n\
+         export const t6 = tool({ lifecycle: { onStart } });\n",
+    );
+    write(
+        tmp.path(),
+        "rules.toml",
+        "[[framework]]\nid = \"t-ai\"\nlanguage = \"typescript\"\nkind = \"network\"\n\
+         detect = [\"ai\"]\nregistrars = [\"tool\"]\nnode = true\n",
+    );
+    let rules = tmp.path().join("rules.toml");
+    let (g, _) = run(tmp.path(), &["--roots", rules.to_str().unwrap()]);
+    assert_eq!(
+        g.matches("network::t-ai::").count(),
+        6,
+        "one entry per handler:\n{g}"
+    );
+    let report = tmp.path().join("dead.json");
+    cgg()
+        .arg(tmp.path())
+        .args(["--roots", rules.to_str().unwrap()])
+        .args(["--dead-code", "--dead-code-confidence", "low"])
+        .args(["--dead-code-format", "json", "--dead-code-report"])
+        .arg(&report)
+        .assert()
+        .success();
+    let v: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&report).unwrap()).unwrap();
+    let dead: Vec<&str> = v["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| f["qualified_name"].as_str().unwrap())
+        .collect();
+    assert!(
+        dead.is_empty(),
+        "every handler and its callees are live: {dead:?}"
+    );
+}

@@ -2404,6 +2404,7 @@ impl<'a> Walker<'a> {
                 kwargs: Vec::new(),
                 retyped_receiver: false,
                 receiver_module: None,
+                slot: String::new(),
             });
         }
     }

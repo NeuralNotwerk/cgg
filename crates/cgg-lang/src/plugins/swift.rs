@@ -420,6 +420,7 @@ impl<'a> SwiftWalker<'a> {
                 site_byte: closure.start_byte() as u32,
                 context: context.to_string(),
                 route: route.clone(),
+                slot: super::registrar::handler_slot(closure, node, self.source),
                 ..Default::default()
             });
         }

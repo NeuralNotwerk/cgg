@@ -286,7 +286,11 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
         .frameworks
         .iter()
         .flat_map(|r| r.registrars.iter())
-        .map(|v| v.to_ascii_lowercase())
+        .map(|v| {
+            cgg_core::frameworks::split_registrar_slot(v)
+                .0
+                .to_ascii_lowercase()
+        })
         .collect();
     // Every worker shares this by reference; extraction pays a pointer.
     // Receiver-carrying value references only ever become reference

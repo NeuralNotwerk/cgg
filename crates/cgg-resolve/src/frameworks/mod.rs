@@ -895,10 +895,15 @@ impl<'a> RegistrarIndex<'a> {
         let mut seen: HashSet<*const cgg_core::RefRecord> = HashSet::new();
         let mut out = Vec::new();
         for reg in &rule.registrars {
+            // `Agent:tools` takes only what is passed under `tools`.
+            let (reg, slot) = cgg_core::frameworks::split_registrar_slot(reg);
             let Some(hits) = self.by_verb.get(&reg.to_ascii_lowercase()) else {
                 continue;
             };
             for (f, r) in hits {
+                if slot.is_some_and(|s| r.slot != s) {
+                    continue;
+                }
                 if seen.insert(*r as *const _) {
                     out.push((*f, *r));
                 }
@@ -2958,6 +2963,7 @@ mod tests {
             kwargs: Vec::new(),
             retyped_receiver: false,
             receiver_module: None,
+            slot: String::new(),
         });
         let out = detect(&g, &f_vec(f), &[]);
         assert_eq!(out.entries.len(), 1, "{:?}", out.entries);
@@ -3004,6 +3010,7 @@ mod tests {
             kwargs: Vec::new(),
             retyped_receiver: false,
             receiver_module: None,
+            slot: String::new(),
         });
         assert!(detect(&g, &f_vec(bare), &[]).entries.is_empty());
 
@@ -3036,6 +3043,7 @@ mod tests {
             kwargs: Vec::new(),
             retyped_receiver: false,
             receiver_module: None,
+            slot: String::new(),
         });
         assert_eq!(detect(&g, &f_vec(free), &[]).entries.len(), 1);
     }
@@ -3075,6 +3083,7 @@ mod tests {
             kwargs: Vec::new(),
             retyped_receiver: false,
             receiver_module: None,
+            slot: String::new(),
         });
         assert!(detect(&g, &f_vec(f), &[]).entries.is_empty());
         // Rails, which does route by string, keeps the behaviour.
@@ -3139,6 +3148,7 @@ mod tests {
             kwargs: Vec::new(),
             retyped_receiver: false,
             receiver_module: None,
+            slot: String::new(),
         });
         let out = detect(&g, &f_vec(f), &[]);
         assert!(out.entries.is_empty());
@@ -3187,6 +3197,7 @@ mod tests {
             kwargs: Vec::new(),
             retyped_receiver: false,
             receiver_module: None,
+            slot: String::new(),
         });
         let out = detect(&g, &f_vec(f), &[]);
         let names: Vec<&str> =

@@ -142,6 +142,10 @@ pub(crate) struct JsWalker<'a> {
     /// Svc()`): an assignment to one later is recorded as
     /// [`cgg_core::REASSIGNED_LOCAL`] (WS23).
     constructed_mutable: std::collections::HashSet<String>,
+    /// Start bytes of object methods minted as inline handlers
+    /// (`tool({ async execute() {} })`): the handler record is the
+    /// method's definition, so the walk does not record it twice.
+    minted_methods: std::collections::HashSet<u32>,
 }
 
 impl<'a> JsWalker<'a> {
@@ -157,6 +161,7 @@ impl<'a> JsWalker<'a> {
             scope: Vec::new(),
             bases: Vec::new(),
             constructed_mutable: std::collections::HashSet::new(),
+            minted_methods: std::collections::HashSet::new(),
         }
     }
 
@@ -201,7 +206,9 @@ impl<'a> JsWalker<'a> {
                 return;
             }
             "method_definition" => {
-                self.record_method(node);
+                if !self.minted_methods.contains(&(node.start_byte() as u32)) {
+                    self.record_method(node);
+                }
                 self.walk_children(node);
                 return;
             }
@@ -1678,6 +1685,9 @@ impl<'a> JsWalker<'a> {
         // nothing.
         let closures = super::registrar::inline_closures(node);
         for closure in closures {
+            if closure.kind() == "method_definition" {
+                self.minted_methods.insert(closure.start_byte() as u32);
+            }
             let line = (closure.start_position().row as u32) + 1;
             let simple = format!("handler_at_{line}");
             let qn = self.qn(&simple);
@@ -1721,6 +1731,7 @@ impl<'a> JsWalker<'a> {
                 kwargs: Vec::new(),
                 retyped_receiver: false,
                 receiver_module: None,
+                slot: super::registrar::handler_slot(closure, node, self.source),
             });
         }
     }
