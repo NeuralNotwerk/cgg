@@ -9073,7 +9073,7 @@ pub const SPECS: &[RuleSpec] = &[
         methods: NONE,
         string_targets: false,
         node: true,
-        gap: "cgg has no entry rules for Connexion, because Connexion does not route in Python at all. Every handler is named by an `operationId: my_package.my_module.my_function` STRING in the OpenAPI/Swagger document, optionally rebased by an `x-openapi-router-controller` key on the path or operation, so no Python source line ever references the handler and every one of them reads as dead code. Open the spec passed to `connexion.App(...).add_api(\"openapi.yaml\")` / `FlaskApp(...).add_api(...)` and resolve each operationId and x-openapi-router-controller by hand; also check `add_error_handler(...)`, the `validator_map` entries, and the security handlers named by `x-basicInfoFunc` / `x-bearerInfoFunc` / `x-apikeyInfoFunc`, which name Python callables the same string-only way.",
+        gap: "Connexion does not route in Python: every handler is named by an `operationId: my_package.my_module.my_function` STRING in the OpenAPI/Swagger document, optionally rebased by an `x-openapi-router-controller` key on the path or operation. When that document is in the analyzed tree, cgg links each dotted operationId to the Python function of that qualified name (a `desc` edge from the operation, which is a dead-code root), so those handlers are live; this rule itself enumerates no entry nodes. Not covered: a spec outside the tree, an operationId resolved by a custom `Resolver`, `add_error_handler(...)`, the `validator_map` entries, and the security handlers named by `x-basicInfoFunc` / `x-bearerInfoFunc` / `x-apikeyInfoFunc`; check those by hand.",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
