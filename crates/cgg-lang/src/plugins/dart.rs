@@ -645,6 +645,10 @@ impl<'a> DartWalker<'a> {
         //   member_expression -> [identifier | super | call_expression] . identifier
         let callee = node.child(0);
         let Some(mut callee) = callee else { return };
+        // The grammar reads `() => f()` as `(() => f)()`: the closure is
+        // applied to the arguments. The call is of the closure's body
+        // expression, made inside it (`onPressed: () => _save()`).
+        callee = closure_body_receiver(callee);
         // `f<int>()` / `b.m<T>()`: explicit type arguments wrap the callee
         // in an `instantiation_expression`; the call is of what it wraps.
         if callee.kind() == "instantiation_expression" {
@@ -747,6 +751,24 @@ mod tests {
     use cgg_core::ids::FileId;
     use std::path::PathBuf;
     use tree_sitter::Parser;
+
+    /// `() => f()` parses as the closure `() => f` applied to `()`; the
+    /// call is of `f`, as in a block body.
+    #[test]
+    fn an_arrow_closure_body_call_is_a_call() {
+        let f = extract(
+            "int a1() => 1;\nint a2() => 2;\nclass C { void m() {} }\n\
+             void main(C c) {\n  run(() => a1());\n  reg('x', callback: (a, b) async => a2());\n  run(() => c.m());\n}\nvoid run(Function f) {}\n",
+        );
+        let calls: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .map(|r| (r.name.as_str(), r.receiver_hint.as_str()))
+            .collect();
+        assert!(calls.contains(&("a1", "")), "{calls:?}");
+        assert!(calls.contains(&("a2", "")), "{calls:?}");
+        assert!(calls.contains(&("m", "c")), "{calls:?}");
+    }
 
     // WS20 gap 5: the `override` marker is recorded so dead-code can
     // cap an override of an out-of-tree base at medium.

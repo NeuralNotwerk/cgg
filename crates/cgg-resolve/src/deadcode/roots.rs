@@ -775,6 +775,17 @@ pub(crate) fn discover(
         }
     }
 
+    // --- Rule: a JS/TS import used at module top level ----------------
+    //
+    // `const app = makeApp({ register: registerTools })` or
+    // `register('x', h.searchDocs)` at module scope, the names imported
+    // from a project module: there is no caller to hang an edge on, and
+    // intra-file, finding no definition in the file, files the site
+    // `no-candidate-in-file`, which the top-level rule above does not read.
+    // The site names the imported function (by the name it was exported
+    // as), so it credits the callables of that name.
+    js_toplevel_import_uses(graph, facts, &mut set, &mut seen);
+
     // --- Rule: a minted closure handed off at module top level ---------
     //
     // `app.get('/x', () => helper())` at top level: the closure is its own
@@ -1588,6 +1599,138 @@ const FILE_SCOPED_VALUE_REF_LANGS: &[&str] = &[
 
 /// `(file, site byte, name)` of the value-reference records of the
 /// [`FILE_SCOPED_VALUE_REF_LANGS`] files.
+/// Per JS/TS file, the names its relative imports bind, keyed by
+/// `(file, receiver, name)` as a site writes them and mapped to the name
+/// the module exports: `import { a as b } from './m'` gives `("", "b") ->
+/// "a"`; `import * as h from './m'` and `const h = require('./m')` give
+/// every `("h", x) -> x`, stored as `("h", "*")`. A default import names
+/// no exported function by its own name and is left out.
+fn js_toplevel_imported_names(facts: &[FileFacts]) -> JsImportedNames {
+    let mut out = JsImportedNames::default();
+    for f in facts
+        .iter()
+        .filter(|f| matches!(f.language.as_str(), "javascript" | "typescript"))
+    {
+        for imp in &f.imports {
+            let p = imp.path.trim();
+            if !(p.starts_with("./") || p.starts_with("../")) {
+                continue;
+            }
+            match imp.kind.as_str() {
+                "from-import" => {
+                    for item in imp.alias.split(',') {
+                        let item = item.trim();
+                        let (orig, local) =
+                            item.split_once(" as ").unwrap_or((item, item));
+                        let (orig, local) = (orig.trim(), local.trim());
+                        if orig.is_empty() || orig == "default" || orig == "*" {
+                            continue;
+                        }
+                        out.names.insert(
+                            (f.file, String::new(), local.to_string()),
+                            orig.to_string(),
+                        );
+                    }
+                }
+                "import" if !imp.alias.is_empty() => {
+                    out.namespaces.insert((f.file, imp.alias.clone()));
+                }
+                _ => {}
+            }
+        }
+    }
+    out
+}
+
+fn js_toplevel_import_uses(
+    graph: &Graph,
+    facts: &[FileFacts],
+    set: &mut RootSet,
+    seen: &mut HashSet<CallableId>,
+) {
+    let imported = js_toplevel_imported_names(facts);
+    if imported.names.is_empty() && imported.namespaces.is_empty() {
+        return;
+    }
+    let mut spans: HashMap<cgg_core::FileId, Vec<(u32, u32)>> = HashMap::new();
+    for node in graph.callables.values() {
+        if !node.synthetic {
+            spans
+                .entry(node.file)
+                .or_default()
+                .push((node.start_byte, node.end_byte));
+        }
+    }
+    // (name exported, file, line) per top-level use, in file order.
+    let mut wanted: HashMap<String, (cgg_core::FileId, u32)> = HashMap::new();
+    for f in facts
+        .iter()
+        .filter(|f| matches!(f.language.as_str(), "javascript" | "typescript"))
+    {
+        let file_spans = spans.get(&f.file);
+        for r in &f.references {
+            let inside = file_spans.is_some_and(|v| {
+                v.iter().any(|&(a, b)| a <= r.site_byte && r.site_byte < b)
+            });
+            if inside {
+                continue;
+            }
+            if let Some(orig) =
+                imported.get(&(f.file, r.receiver_hint.as_str(), r.name.as_str()))
+            {
+                wanted.entry(orig).or_insert((f.file, r.site_line));
+            }
+        }
+    }
+    if wanted.is_empty() {
+        return;
+    }
+    for (id, node) in &graph.callables {
+        if node.synthetic
+            || !matches!(node.language.as_str(), "javascript" | "typescript")
+        {
+            continue;
+        }
+        let Some((file, line)) = wanted.get(&node.simple_name) else {
+            continue;
+        };
+        let path = graph
+            .files
+            .get(file)
+            .map(|f| f.path.display().to_string())
+            .unwrap_or_default();
+        set.push(
+            graph,
+            *id,
+            RootKind::TopLevelInvocation,
+            "toplevel:invocation",
+            format!("imported and used at module top level at {path}:{line}"),
+            seen,
+        );
+    }
+}
+
+#[derive(Default)]
+struct JsImportedNames {
+    names: HashMap<(cgg_core::FileId, String, String), String>,
+    namespaces: HashSet<(cgg_core::FileId, String)>,
+}
+
+impl JsImportedNames {
+    fn get(&self, key: &(cgg_core::FileId, &str, &str)) -> Option<String> {
+        let (file, recv, name) = *key;
+        if recv.is_empty() {
+            return self
+                .names
+                .get(&(file, String::new(), name.to_string()))
+                .cloned();
+        }
+        self.namespaces
+            .contains(&(file, recv.to_string()))
+            .then(|| name.to_string())
+    }
+}
+
 fn own_file_value_sites(facts: &[FileFacts]) -> HashSet<(cgg_core::FileId, u32, &str)> {
     facts
         .iter()

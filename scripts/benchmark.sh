@@ -619,6 +619,21 @@ APPS=(
     "app-klibsio-springai|https://github.com/JetBrains/klibs-io.git|compose,gradle-task,jsr250-lifecycle,junit,junit-sources,kotlinx-serialization,playwright,servlet,spring,spring-ai,spring-context,spring-jobs,vitest"
     "app-trailblaze-koog|https://github.com/block/trailblaze.git|android-activity,android-broadcastreceiver,android-contentprovider,android-fragment,android-service,appkit,cocoa-delegate,compose,electron,gradle-task,java-closeable,java-concurrent,js-test-globals,junit,koog,kotlin-js-export,kotlinx-serialization,playwright,swing,uikit-appdelegate"
     "app-mobiletester-koog|https://github.com/maikotrindade/mobile-tester-agent.git|junit,koog,vitest"
+    # 0.14.0 agent audit: JS/TS and Swift AI agent and tool-calling rows
+    # (measured claims).
+    "app-context7-mcp|https://github.com/upstash/context7.git|express,hono,mcp-handler,mcp-sdk,node-event-emitter,vercel-ai,vitest,~js-test-globals,~react,~react-hooks,~vercel-ai-hooks"
+    "app-zero-cfagents|https://github.com/Mail-0/Zero.git|cloudflare-agents-lifecycle,cloudflare-workers,cloudflare-workers-rpc,hono,mcp-sdk,playwright,vercel-ai,vitest,~cloudflare-agents,~react,~react-hooks,~trpc,~vercel-ai-hooks"
+    "app-coworkers-cfagents|https://github.com/fayazara/coworkers.git|cloudflare-agents,cloudflare-agents-lifecycle,cloudflare-workers,cloudflare-workers-rpc,mcp-sdk,vercel-ai,vitest,~react,~react-hooks,~vercel-ai-hooks"
+    "app-morphic-vercelai|https://github.com/miurla/morphic.git|node-event-emitter,vercel-ai,vitest,~nextjs,~react,~react-hooks,~vercel-ai-hooks"
+    "app-inboxzero-vercelai|https://github.com/elie222/inbox-zero.git|bullmq,electron,mcp-sdk,node-event-emitter,node-test,playwright,react,vercel-ai,vercel-ai-hooks,vitest,~nextjs,~react-hooks"
+    "app-dataagent-mastra|https://github.com/datagallery-ai/dataagent.git|click,fastapi,mastra,mcp-sdk,node-event-emitter,node-test,pytest,vitest,~mastra-agent,~mastra-workflows,~nextjs,~py-argparse,~py-unittest,~pydantic,~react,~react-hooks,~sqlalchemy-events"
+    "app-openreels-mastra|https://github.com/tsensei/OpenReels.git|bullmq,mastra-workflows,node-event-emitter,vitest,~fastify,~mastra,~mastra-agent,~nextjs,~react,~react-hooks,~vercel-ai,~vercel-ai-hooks"
+    "app-wingman-langchain|https://github.com/RussellCanfield/wingman-ai-vscode-extension.git|langchain-js,vitest,vscode-extension,~langchain-js-callbacks,~react,~react-hooks,~vscode-lm-tools"
+    "app-refly-langchain|https://github.com/refly-ai/refly.git|bullmq,langchain-js,langchain-js-callbacks,nestjs,nestjs-schedule,node-event-emitter,react,vitest,~express,~jest,~mcp-sdk,~py-argparse,~react-hooks"
+    "app-wordpecker-openaiagents|https://github.com/baturyilmaz/wordpecker-app.git|express,openai-agents,~jest,~js-test-globals,~openai-agents-handoffs,~openai-agents-hooks,~react,~react-hooks"
+    "app-codepilot-claudeagent|https://github.com/op7418/CodePilot.git|claude-agent-sdk,electron,mcp-sdk,node-event-emitter,node-test,playwright,react,vercel-ai,vercel-ai-hooks,~js-test-globals,~nextjs,~react-hooks,~worker-threads"
+    "app-vscodeprgithub-vscode|https://github.com/microsoft/vscode-pull-request-github.git|mocha,node-event-emitter,react,vscode-extension,vscode-lm-tools,~react-hooks"
+    "app-kaset-foundationmodels|https://github.com/sozercan/kaset.git|appintents,appkit,cocoa-delegate,foundation-models,py-context-manager,py-signal,py-threading,py-unittest,uikit-appdelegate,uikit-lifecycle,xctest,~apple-app-extension,~py-argparse,~swift-testing,~swiftui"
 )
 
 # Framework rules with NO application in the APPS manifest above.
@@ -666,6 +681,9 @@ APPS_UNVERIFIED=(
     "ansys-user-material|ANSYS USERMAT sources found on GitHub are single-file course exercises, not applications"
     "lsdyna-user-material|no public LS-DYNA user-material application found; the UMAT4x names are fixed by the solver"
     "apisix-plugin|no third-party APISIX plugin repository with real use was found (searches for custom-plugin repos over 30 stars returned none); measured on APISIX itself (app-apisix-openresty): 317 phase-function entries"
+    "mastra-agent|no application found passing a function as a Mastra Agent's instructions/model/tools (dataagent and OpenReels use strings; GitHub code search, 0.14.0 agent audit); verified by crates/cgg/tests/frameworks_apps_b.rs"
+    "openai-agents-handoffs|no application found using handoff({ onHandoff }) from @openai/agents (wordpecker, clueless and witsy checked; the 78 package.json hits are mostly SDK examples); verified by crates/cgg/tests/frameworks_apps_b.rs"
+    "openai-agents-hooks|no application found calling defineInputGuardrail/defineOutputGuardrail or giving an Agent a function as instructions (same search as openai-agents-handoffs); verified by crates/cgg/tests/frameworks_apps_b.rs"
     "oxygen|no real Oxygen.jl application found: a GitHub search for apps using Oxygen returned only examples and projects with one star or fewer (0.14.0 audit); the row is verified by crates/cgg/tests/frameworks_perl_r_julia_ps.rs"
 )
 
