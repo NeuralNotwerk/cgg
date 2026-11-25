@@ -1500,6 +1500,18 @@ fn match_registrars(
                 .rsplit(['.', ':', '-', '>'])
                 .next()
                 .unwrap_or(&r.context);
+            // A hyphenated verb the rule names whole (re-frame's
+            // `reg-event-db`) is that verb, not its last word.
+            let tail = r
+                .context
+                .rsplit(['.', ':', '>'])
+                .next()
+                .unwrap_or(&r.context);
+            let verb = if tail.contains('-') && contains_ci(&rule.registrars, tail) {
+                tail
+            } else {
+                verb
+            };
             // An ambiguous verb needs corroboration — see AMBIGUOUS_VERBS.
             let receiverless = r.context.eq_ignore_ascii_case(verb);
             if contains_ci(

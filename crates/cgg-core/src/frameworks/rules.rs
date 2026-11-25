@@ -3592,6 +3592,80 @@ pub const SPECS: &[RuleSpec] = &[
         handler_on_enclosing_owner: false,
     },
     RuleSpec {
+        // re-frame: event handlers, subscriptions, effects and coeffects are
+        // registered under a keyword id and called by the router; the handler
+        // is usually an inline `(fn …)`, minted as `handler_at_<line>` with the
+        // id as its route.
+        id: "re-frame",
+        language: "clojure",
+        kind: TrustKind::Lifecycle,
+        detect: &["re-frame"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: &[
+            "reg-event-db",
+            "reg-event-fx",
+            "reg-event-ctx",
+            "reg-sub",
+            "reg-sub-raw",
+            "reg-fx",
+            "reg-cofx",
+            "reg-global-interceptor",
+        ],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    RuleSpec {
+        // ClojureScript `^:export`: the name survives advanced compilation so
+        // JavaScript (an HTML page, shadow-cljs `:init-fn`) can call it. The
+        // metadata needs no require, so the marker is the evidence.
+        id: "cljs-export",
+        language: "clojure",
+        kind: TrustKind::Ffi,
+        detect: NONE,
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &["export"],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    RuleSpec {
+        // shadow-cljs hot-reload hooks, called by the dev runtime around every
+        // code reload.
+        id: "shadow-cljs-hooks",
+        language: "clojure",
+        kind: TrustKind::Lifecycle,
+        detect: NONE,
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &[
+            "dev/after-load",
+            "dev/before-load",
+            "dev/after-load-async",
+            "dev/before-load-async",
+        ],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    RuleSpec {
         id: "android-activity",
         language: "java",
         kind: TrustKind::Lifecycle,
@@ -13384,6 +13458,10 @@ mod tests {
                     | "razor"
                     // WS20: a fixed engine-called symbol, by its exact name.
                     | "libfuzzer"
+                    // 0.14.0: ClojureScript's `^:export` and the shadow-cljs
+                    // reload hooks are metadata that needs no require.
+                    | "cljs-export"
+                    | "shadow-cljs-hooks"
             );
             assert!(
                 detectable || marker_is_the_evidence,
