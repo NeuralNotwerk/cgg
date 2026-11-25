@@ -6883,6 +6883,44 @@ pub const SPECS: &[RuleSpec] = &[
         handler_on_enclosing_owner: false,
     },
     // ---- 0.14.0 framework audit: native languages (B5) ----
+    // Zephyr's ztest cases: `ZTEST(suite, case) { … }` is a function the
+    // C plugin names `suite::case`, carrying the invocation as an attribute.
+    RuleSpec {
+        id: "ztest",
+        language: "c",
+        kind: TrustKind::Test,
+        detect: &["zephyr/ztest.h", "ztest.h"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &["ZTEST", "ZTEST_F", "ZTEST_USER", "ZTEST_USER_F"],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Zephyr's ztest cases: `ZTEST(suite, case) { … }` is a function the
+    // C plugin names `suite::case`, carrying the invocation as an attribute.
+    RuleSpec {
+        id: "ztest",
+        language: "cpp",
+        kind: TrustKind::Test,
+        detect: &["zephyr/ztest.h", "ztest.h"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: &["ZTEST", "ZTEST_F", "ZTEST_USER", "ZTEST_USER_F"],
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
     // godot-rust (gdext): `#[func]`/`#[signal]`/`#[rpc]` members are called from
     // GDScript, and the `I*` engine-class virtuals (`impl INode2D for Player {
     // fn ready }`) and `ExtensionLibrary` hooks by the engine.

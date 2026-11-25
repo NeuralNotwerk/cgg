@@ -472,3 +472,15 @@ fn vunit_testbenches_by_entity_name() {
     )]);
     assert_entries(&err, "vunit", "test", 1);
 }
+
+#[test]
+fn ztest_cases_enter_through_the_function_defining_macro() {
+    let err = run(&[(
+        "tests/main.c",
+        "#include <zephyr/ztest.h>\n\
+         static int add(int a, int b) { return a + b; }\n\
+         ZTEST(math, test_add) { zassert_equal(add(1, 2), 3); }\n\
+         ZTEST_SUITE(math, NULL, NULL, NULL, NULL, NULL);\n",
+    )]);
+    assert_entries(&err, "ztest", "test", 1);
+}
