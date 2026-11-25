@@ -1027,24 +1027,81 @@ impl BaseTypeIndex {
             if f.language != language {
                 continue;
             }
+            let uses = php_use_map(f);
             for d in &f.definitions {
                 if d.base_types.is_empty() {
                     continue;
                 }
-                bases.insert((f.file, d.start_byte), d.base_types.clone());
+                let declared: Vec<String> = d
+                    .base_types
+                    .iter()
+                    .map(|b| match uses.get(b.as_str()) {
+                        Some(full) => (*full).to_string(),
+                        None => b.clone(),
+                    })
+                    .collect();
+                bases.insert((f.file, d.start_byte), declared.clone());
                 if let Some(owner) = crate::names::owner_from_qn(&d.qualified_name) {
                     let full = crate::names::split_last_segment(&d.qualified_name)
                         .map(|(o, _)| o)
                         .unwrap_or(owner);
                     let list = by_owner.entry(owner.to_string()).or_default();
                     if !list.iter().any(|(o, _)| o == full) {
-                        list.push((full.to_string(), d.base_types.clone()));
+                        list.push((full.to_string(), declared));
                     }
                 }
             }
         }
         Self { bases, by_owner }
     }
+}
+
+/// A PHP file's `use` imports, by the name the file writes (the alias, or
+/// the last segment): `use Livewire\Component;` makes `extends Component`
+/// read `Livewire\Component`, so a rule naming the qualified base tells it
+/// from `Illuminate\View\Component`. Empty for every other language.
+fn php_use_map(f: &FileFacts) -> HashMap<&str, &str> {
+    let mut out = HashMap::new();
+    if f.language != "php" {
+        return out;
+    }
+    for imp in f.imports.iter().filter(|i| i.kind == "use") {
+        let path = imp.path.trim().trim_start_matches('\\');
+        let name = if imp.alias.is_empty() {
+            path.rsplit('\\').next().unwrap_or(path)
+        } else {
+            imp.alias.as_str()
+        };
+        if !name.is_empty() && path.contains('\\') {
+            out.insert(name, path);
+        }
+    }
+    out
+}
+
+/// Whether a callable is a public instance member as declared: its
+/// normalized visibility where the plugin records one, else (PHP) the
+/// modifiers in front of `function`, where none means public. Magic
+/// `__x` methods and static members are not, since a host that calls
+/// every public member (a Livewire action, a controller endpoint) calls
+/// neither.
+fn declared_public_instance_member(node: &cgg_core::graph::CallableNode) -> bool {
+    if node.simple_name.starts_with("__") {
+        return false;
+    }
+    match node.vis {
+        cgg_core::Vis::Public => {}
+        cgg_core::Vis::Unknown if node.language == "php" => {}
+        _ => return false,
+    }
+    let head = node
+        .signature_hint
+        .split("function")
+        .next()
+        .unwrap_or_default();
+    !head
+        .split_whitespace()
+        .any(|w| matches!(w, "private" | "protected" | "static"))
 }
 
 fn match_base_types(
@@ -1077,11 +1134,21 @@ fn match_base_types(
         let context = crate::names::split_last_segment(&node.qualified_name)
             .map(|(o, _)| o)
             .unwrap_or("");
-        let Some(hit) = find_in_base_chain(types, context, by_owner, &rule.base_types)
+        let lexical = rules::LEXICAL_CONSTANT_LANGS.contains(&rule.language.as_str());
+        let Some(hit) =
+            find_in_base_chain(types, context, by_owner, &rule.base_types, lexical)
         else {
             continue;
         };
-        let named = rule.methods.is_empty() || callable_matches_methods(rule, node);
+        // A host that calls every public member (a Livewire action, a
+        // Nextcloud controller endpoint) takes the public ones on top of
+        // the named hooks; with no names listed, the public ones only.
+        let named = if rules::public_members_are_entries(&rule.id, &rule.language) {
+            (!rule.methods.is_empty() && callable_matches_methods(rule, node))
+                || declared_public_instance_member(node)
+        } else {
+            rule.methods.is_empty() || callable_matches_methods(rule, node)
+        };
         // In the languages of `TEST_CLASS_MEMBERS_ARE_ROOTS`, a test
         // class's other members (helpers, fixtures by another name) are
         // test code its cases reach through `self`/`$this` across the
@@ -1126,6 +1193,7 @@ fn find_in_base_chain(
     context: &str,
     by_owner: &HashMap<String, Vec<(String, Vec<String>)>>,
     wanted: &[String],
+    lexical: bool,
 ) -> Option<String> {
     let mut seen: BTreeSet<(String, String)> = BTreeSet::new();
     let mut frontier: Vec<(String, String)> = direct
@@ -1144,7 +1212,7 @@ fn find_in_base_chain(
             if base_type_matches(wanted, &t) {
                 return Some(t);
             }
-            for (owner, parents) in in_tree_bases(&t, &ctx, by_owner) {
+            for (owner, parents) in in_tree_bases(&t, &ctx, by_owner, lexical) {
                 next.extend(parents.iter().map(|p| (p.clone(), owner.to_string())));
             }
         }
@@ -1176,6 +1244,7 @@ fn in_tree_bases<'a>(
     t: &str,
     ctx: &str,
     by_owner: &'a HashMap<String, Vec<(String, Vec<String>)>>,
+    lexical: bool,
 ) -> Vec<(&'a str, &'a [String])> {
     let segs = type_segments(t);
     let Some(key) = segs.last() else {
@@ -1202,8 +1271,19 @@ fn in_tree_bases<'a>(
         })
         .map(|(o, b)| (o.as_str(), b.as_slice()))
         .collect();
+    let ctx_segs = type_segments(ctx);
+    // Where a bare constant resolves lexically (Ruby: the enclosing
+    // modules, then the top level), a type in an unrelated namespace is
+    // out of reach: `Base` inside `Chewy::Strategy` is not
+    // `Mastodon::CLI::Base`.
+    if lexical && written_parent.is_none() {
+        kept.retain(|(o, _)| {
+            namespace_of(o).is_none_or(|ns| {
+                ns.len() < ctx_segs.len() && ns.iter().zip(&ctx_segs).all(|(a, b)| a == b)
+            })
+        });
+    }
     if written_parent.is_none() && kept.len() > 1 {
-        let ctx_segs = type_segments(ctx);
         let shared = |owner: &'a str| -> usize {
             namespace_of(owner).map_or(0, |ns| {
                 ns.iter().zip(&ctx_segs).take_while(|(a, b)| a == b).count()
@@ -1218,7 +1298,8 @@ fn in_tree_bases<'a>(
 }
 
 fn base_type_matches(wanted: &[String], declared: &str) -> bool {
-    let d = declared.trim();
+    // PHP writes a fully qualified base with a leading `\`.
+    let d = declared.trim().trim_start_matches('\\');
     if contains_ci(wanted, d) {
         return true;
     }
@@ -3525,7 +3606,13 @@ mod tests {
         );
         // Two classes naming each other: must return rather than spin.
         assert_eq!(
-            find_in_base_chain(&["A".to_string()], "", &map, &["Nope".to_string()]),
+            find_in_base_chain(
+                &["A".to_string()],
+                "",
+                &map,
+                &["Nope".to_string()],
+                false
+            ),
             None
         );
     }
@@ -3551,7 +3638,8 @@ mod tests {
                 &["ApplicationRecord".to_string()],
                 "Account",
                 &map,
-                &thor
+                &thor,
+                false
             ),
             None
         );
@@ -3561,12 +3649,31 @@ mod tests {
                 &["Base".to_string()],
                 "Mastodon::CLI::Accounts",
                 &map,
-                &thor
+                &thor,
+                true
             ),
             Some("Thor".to_string())
         );
+        // Ruby reads a bare `Base` through the enclosing modules only:
+        // inside `Chewy::Strategy` it is not `Mastodon::CLI::Base`.
         assert_eq!(
-            find_in_base_chain(&["CLI::Base".to_string()], "Mastodon::X", &map, &thor),
+            find_in_base_chain(
+                &["Base".to_string()],
+                "Chewy::Strategy::Mastodon",
+                &map,
+                &thor,
+                true
+            ),
+            None
+        );
+        assert_eq!(
+            find_in_base_chain(
+                &["CLI::Base".to_string()],
+                "Mastodon::X",
+                &map,
+                &thor,
+                false
+            ),
             Some("Thor".to_string())
         );
     }
@@ -3583,11 +3690,11 @@ mod tests {
         );
         let thor = ["Thor".to_string()];
         assert_eq!(
-            find_in_base_chain(&["Base".to_string()], "Api::Users", &map, &thor),
+            find_in_base_chain(&["Base".to_string()], "Api::Users", &map, &thor, false),
             None
         );
         assert_eq!(
-            find_in_base_chain(&["Base".to_string()], "Admin::Users", &map, &thor),
+            find_in_base_chain(&["Base".to_string()], "Admin::Users", &map, &thor, false),
             Some("Thor".to_string())
         );
     }
