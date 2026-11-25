@@ -1398,3 +1398,41 @@ fn every_cloud_platform_and_language_pair_enumerates() {
         failures.join("\n---\n")
     );
 }
+
+// ---------------------------------------------------------------------
+// Engine and extraction (0.14.0, packet A2)
+// ---------------------------------------------------------------------
+
+#[test]
+fn an_attribute_over_512_bytes_still_marks_its_entry() {
+    // REGRESSION: attribute text over 512 bytes was dropped whole, so a
+    // Spring AI `@Tool` with a long description lost its marker and read
+    // dead at `high` with a rule naming it.
+    let tmp = TempDir::new().unwrap();
+    let prose = "Return the weather. ".repeat(40);
+    write(
+        tmp.path(),
+        "src/Tools.java",
+        &format!(
+            "import org.springframework.ai.tool.annotation.Tool;\n\
+             public class Tools {{\n\
+             \x20   @Tool(description = \"short one\")\n\
+             \x20   String shortTool(String c) {{ return c; }}\n\
+             \x20   @Tool(description = \"{prose}\")\n\
+             \x20   String longTool(String c) {{ return c; }}\n}}\n"
+        ),
+    );
+    write(
+        tmp.path(),
+        "rules.toml",
+        "[[framework]]\nid = \"t-spring-ai\"\nlanguage = \"java\"\nkind = \"network\"\n\
+         detect = [\"org.springframework.ai\"]\nattributes = [\"Tool\"]\nnode = true\n",
+    );
+    let rules = tmp.path().join("rules.toml");
+    let (g, _) = run(tmp.path(), &["--roots", rules.to_str().unwrap()]);
+    assert_eq!(
+        g.matches("network::t-spring-ai::").count(),
+        2,
+        "both tools are entries:\n{g}"
+    );
+}
