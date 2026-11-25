@@ -28,11 +28,18 @@ impl LanguagePlugin for ObjcPlugin {
         source: &[u8],
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "objc");
+        let macro_methods = macro_methods(source);
+        let macro_spans: Vec<(u32, u32)> = macro_methods
+            .iter()
+            .map(|d| (d.start_byte, d.end_byte))
+            .collect();
+        facts.definitions.extend(macro_methods);
         let mut w = ObjcWalker {
             source,
             facts: &mut facts,
             scope: Vec::new(),
             reference_sites: ctx.reference_sites,
+            macro_spans,
         };
         w.walk(tree.root_node());
         // C function names in value positions (`sort_with(xs, compare)`), read
@@ -54,11 +61,19 @@ struct ObjcWalker<'a> {
     scope: Vec<String>,
     /// Record selector values (WS26); see `crate::ExtractCtx`.
     reference_sites: bool,
+    /// Byte spans of the methods [`macro_methods`] read. The grammar's
+    /// error recovery inside one can produce a method or function
+    /// definition that is not one; nothing is recorded there.
+    macro_spans: Vec<(u32, u32)>,
 }
 
 impl<'a> ObjcWalker<'a> {
     fn text(&self, n: Node) -> &str {
         n.utf8_text(self.source).unwrap_or("")
+    }
+    fn in_macro_method(&self, n: Node) -> bool {
+        let b = n.start_byte() as u32;
+        self.macro_spans.iter().any(|&(s, e)| s <= b && b < e)
     }
     fn qn(&self, s: &str) -> String {
         if self.scope.is_empty() {
@@ -86,7 +101,9 @@ impl<'a> ObjcWalker<'a> {
                 return;
             }
             "method_definition" | "method_declaration" => {
-                self.record_method(node);
+                if !self.in_macro_method(node) {
+                    self.record_method(node);
+                }
                 self.walk_children(node);
                 return;
             }
@@ -98,6 +115,7 @@ impl<'a> ObjcWalker<'a> {
                 // `#if` as a definition of `error`.
                 let name = node
                     .child_by_field_name("declarator")
+                    .filter(|_| !self.in_macro_method(node))
                     .filter(|d| declares_a_function(*d))
                     .map(|d| super::c::fn_name_from_declarator(d, self.source))
                     .unwrap_or_default();
@@ -316,6 +334,214 @@ impl<'a> ObjcWalker<'a> {
     }
 }
 
+/// The methods [`cgg_core::stdlib::OBJC_METHOD_DEFINING_MACROS`] define:
+/// `RCT_EXPORT_METHOD(sel:(T)a rest:(U)b) { … }` at the start of a line
+/// inside an `@implementation`, read from the text because the grammar
+/// cannot parse it. Each is a method of that class named by the
+/// selector's first keyword, spanning macro and body, with the macro's
+/// name as its attribute.
+fn macro_methods(source: &[u8]) -> Vec<DefRecord> {
+    let text = blank_comments_and_strings(source);
+    let mut out = Vec::new();
+    if !cgg_core::stdlib::OBJC_METHOD_DEFINING_MACROS
+        .iter()
+        .any(|(m, _)| text.windows(m.len()).any(|w| w == m.as_bytes()))
+    {
+        return out;
+    }
+    // `@implementation Name` … `@end` ranges, in order.
+    let mut classes: Vec<(usize, usize, String)> = Vec::new();
+    let mut i = 0;
+    while let Some(at) = find(&text, b"@implementation", i) {
+        let mut j = at + "@implementation".len();
+        while j < text.len() && text[j].is_ascii_whitespace() {
+            j += 1;
+        }
+        let start = j;
+        while j < text.len() && (text[j].is_ascii_alphanumeric() || text[j] == b'_') {
+            j += 1;
+        }
+        let name = String::from_utf8_lossy(&text[start..j]).to_string();
+        let end = find(&text, b"@end", j).unwrap_or(text.len());
+        if !name.is_empty() {
+            classes.push((at, end, name));
+        }
+        i = end.max(j);
+    }
+    let mut line_start = 0usize;
+    while line_start < text.len() {
+        let line_end = text[line_start..]
+            .iter()
+            .position(|&b| b == b'\n')
+            .map_or(text.len(), |p| line_start + p);
+        let mut k = line_start;
+        while k < line_end && (text[k] == b' ' || text[k] == b'\t') {
+            k += 1;
+        }
+        let next = line_end + 1;
+        let Some(&(mac, sel_arg)) = cgg_core::stdlib::OBJC_METHOD_DEFINING_MACROS
+            .iter()
+            .find(|(m, _)| {
+                text[k..].starts_with(m.as_bytes())
+                    && !text
+                        .get(k + m.len())
+                        .is_some_and(|b| b.is_ascii_alphanumeric() || *b == b'_')
+            })
+        else {
+            line_start = next;
+            continue;
+        };
+        let Some(class) = classes.iter().find(|(s, e, _)| *s < k && k < *e) else {
+            line_start = next;
+            continue;
+        };
+        let mut j = k + mac.len();
+        while j < text.len() && text[j].is_ascii_whitespace() {
+            j += 1;
+        }
+        let Some(close) = (text.get(j) == Some(&b'('))
+            .then(|| matching(&text, j))
+            .flatten()
+        else {
+            line_start = next;
+            continue;
+        };
+        let args = String::from_utf8_lossy(&source[j + 1..close]).to_string();
+        let mut b = close + 1;
+        while b < text.len() && text[b].is_ascii_whitespace() {
+            b += 1;
+        }
+        let Some(body_end) = (text.get(b) == Some(&b'{'))
+            .then(|| matching(&text, b))
+            .flatten()
+        else {
+            line_start = next;
+            continue;
+        };
+        let name = split_args(&args)
+            .get(sel_arg)
+            .map(|sel| sel.split(':').next().unwrap_or("").trim().to_string())
+            .filter(|n| {
+                !n.is_empty() && n.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+            });
+        if let Some(name) = name {
+            let line_of = |byte: usize| {
+                source[..byte].iter().filter(|&&c| c == b'\n').count() as u32 + 1
+            };
+            out.push(DefRecord {
+                qualified_name: format!("{}::{name}", class.2),
+                simple_name: name,
+                variant: DefVariant::InherentMethod,
+                start_line: line_of(k),
+                end_line: line_of(body_end),
+                start_byte: k as u32,
+                end_byte: (body_end + 1) as u32,
+                signature_hint: String::from_utf8_lossy(&source[k..=close]).to_string(),
+                visibility: String::new(),
+                attributes: vec![mac.to_string()],
+                has_body: true,
+                ..Default::default()
+            });
+        }
+        line_start = body_end.max(line_end) + 1;
+    }
+    out
+}
+
+fn find(hay: &[u8], needle: &[u8], from: usize) -> Option<usize> {
+    hay.get(from..)?
+        .windows(needle.len())
+        .position(|w| w == needle)
+        .map(|p| from + p)
+}
+
+/// The index of the bracket closing the one at `open` (`(` or `{`), in
+/// text whose comments and literals are blanked.
+fn matching(text: &[u8], open: usize) -> Option<usize> {
+    let (o, c) = match text[open] {
+        b'(' => (b'(', b')'),
+        b'{' => (b'{', b'}'),
+        _ => return None,
+    };
+    let mut depth = 0usize;
+    for (i, &b) in text.iter().enumerate().skip(open) {
+        if b == o {
+            depth += 1;
+        } else if b == c {
+            depth -= 1;
+            if depth == 0 {
+                return Some(i);
+            }
+        }
+    }
+    None
+}
+
+/// Split a macro's argument text at top-level commas.
+fn split_args(args: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let (mut depth, mut start) = (0i32, 0usize);
+    for (i, c) in args.char_indices() {
+        match c {
+            '(' | '[' | '{' | '<' => depth += 1,
+            ')' | ']' | '}' | '>' => depth -= 1,
+            ',' if depth == 0 => {
+                out.push(args[start..i].trim());
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    out.push(args[start..].trim());
+    out
+}
+
+/// `source` with every comment and string or character literal replaced
+/// by spaces (newlines kept), so bracket matching and line scanning see
+/// code only. Offsets are unchanged.
+fn blank_comments_and_strings(source: &[u8]) -> Vec<u8> {
+    let mut out = source.to_vec();
+    let mut i = 0;
+    let blank = |out: &mut Vec<u8>, from: usize, to: usize| {
+        for b in &mut out[from..to] {
+            if *b != b'\n' {
+                *b = b' ';
+            }
+        }
+    };
+    while i < source.len() {
+        match source[i] {
+            b'/' if source.get(i + 1) == Some(&b'/') => {
+                let end = source[i..]
+                    .iter()
+                    .position(|&b| b == b'\n')
+                    .map_or(source.len(), |p| i + p);
+                blank(&mut out, i, end);
+                i = end;
+            }
+            b'/' if source.get(i + 1) == Some(&b'*') => {
+                let end = find(source, b"*/", i + 2).map_or(source.len(), |p| p + 2);
+                blank(&mut out, i, end);
+                i = end;
+            }
+            q @ (b'"' | b'\'') => {
+                let mut j = i + 1;
+                while j < source.len() && source[j] != q && source[j] != b'\n' {
+                    if source[j] == b'\\' {
+                        j += 1;
+                    }
+                    j += 1;
+                }
+                let end = (j + 1).min(source.len());
+                blank(&mut out, i, end);
+                i = end;
+            }
+            _ => i += 1,
+        }
+    }
+    out
+}
+
 /// Whether a definition's declarator, through the pointer, attribute
 /// and parenthesis layers a return type wraps around it, holds a
 /// `function_declarator`.
@@ -424,6 +650,59 @@ mod tests {
                 .references
                 .iter()
                 .all(|r| !r.value_ref)
+        );
+    }
+
+    /// React Native's `RCT_EXPORT_*` macros define methods the grammar
+    /// cannot parse: each is a method of its class, named by the
+    /// selector's first keyword and tagged with the macro, and the calls
+    /// in its body have it as their caller.
+    #[test]
+    fn method_defining_macros_are_methods() {
+        let src = "@implementation Cal\n\
+                   RCT_EXPORT_MODULE();\n\
+                   - (void)helper {}\n\
+                   RCT_EXPORT_METHOD(createEvent:(NSString *)name location:(NSString *)loc)\n\
+                   {\n  RCTLogInfo(@\"at %@ )\", name);\n  [self helper];\n}\n\
+                   RCT_REMAP_METHOD(find,\n                 findWithResolver:(RCTPromiseResolveBlock)resolve\n                 rejecter:(RCTPromiseRejectBlock)reject)\n\
+                   {\n  resolve(@[]);\n}\n\
+                   RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(getName)\n{\n  return @\"x\";\n}\n\
+                   // RCT_EXPORT_METHOD(commented:(id)x) { }\n\
+                   @end\n";
+        let f = extract(src);
+        let m = |qn: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.qualified_name == qn)
+                .unwrap_or_else(|| panic!("{qn}: {:?}", f.definitions))
+        };
+        let create = m("Cal::createEvent");
+        assert_eq!(create.attributes, vec!["RCT_EXPORT_METHOD"]);
+        assert!(create.has_body);
+        let find = m("Cal::findWithResolver");
+        assert_eq!(find.attributes, vec!["RCT_REMAP_METHOD"]);
+        assert_eq!(
+            m("Cal::getName").attributes,
+            vec!["RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD"]
+        );
+        assert!(f.definitions.iter().all(|d| d.simple_name != "commented"));
+        // No spurious definition from the grammar's error recovery.
+        assert!(
+            f.definitions.iter().all(|d| d.simple_name != "location"
+                && d.simple_name != "loc"
+                && d.simple_name != "name"),
+            "{:?}",
+            f.definitions
+        );
+        // `[self helper]` sits inside `createEvent`'s span.
+        let helper_call = f
+            .references
+            .iter()
+            .find(|r| r.name == "helper")
+            .expect("helper call");
+        assert!(
+            create.start_byte <= helper_call.site_byte
+                && helper_call.site_byte < create.end_byte
         );
     }
 
