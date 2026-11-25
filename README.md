@@ -557,7 +557,7 @@ OpenAPI/AsyncAPI root key for `.yaml`/`.yml`/`.json`, then its extension.
 
 ## Self-analysis
 
-`cgg` run on its own source <!-- cgg:begin:self-stats -->(5090 callables, 16756 edges, 4902 cross-file, 552ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
+`cgg` run on its own source <!-- cgg:begin:self-stats -->(5094 callables, 16772 edges, 4909 cross-file, 559ms)<!-- cgg:end:self-stats -->. This is the 1-hop neighborhood of `cgg::analyze_in_pool`, the pipeline <!-- markdownlint-disable-line MD013 -->
 body — every edge is a real cross-crate function call, and the fan-out is
 the resolver ordering described under [How it works](#how-it-works):
 
@@ -826,12 +826,171 @@ cgg ./crates --filter 'cgg_resolve::' -n 1 -t mermaid  # resolution pipeline
 <!-- cgg:begin:walk -->
 ```mermaid
 flowchart LR
+  N0["cgg_walk::WalkOutcome::is_empty"]
+  N1["cgg_walk::<WalkConfig as Default>::default"]
+  N2["cgg_walk::walk"]
+  N3["cgg_walk::portable_path"]
+  N4["cgg_walk::portable_windows_str"]
+  N5["cgg_walk::walk_one"]
+  N6["cgg_walk::push_candidate"]
+  N7["cgg_walk::is_symlink_chain"]
+  N8["cgg_walk::classify_file"]
+  N9["cgg_walk::read_probe"]
+  N10["cgg_walk::minifiable_extension"]
+  N11["cgg_walk::has_min_dot_extension"]
+  N12["cgg_walk::average_line_len"]
+  N13["cgg_walk::builtin_reason"]
+  N14["cgg_walk::extract_err_path"]
+  N33["<framework-entry>::test::cargo-test ⟨framework entry callback⟩"]
+  N14 -->|2x| N14
+  N2 -->|2x| N3
+  N2 --> N5
+  N3 --> N4
+  N5 -->|2x| N13
+  N5 --> N14
+  N5 -->|2x| N6
+  N5 --> N7
+  N5 -->|2x| N8
+  N8 --> N10
+  N8 --> N11
+  N8 --> N12
+  N8 --> N9
 ```
 <!-- cgg:end:walk -->
 
 <!-- cgg:begin:lang -->
 ```mermaid
 flowchart LR
+  N0["cgg_lang::detect::LanguageDetector<'r>::new"]
+  N1["cgg_lang::detect::LanguageDetector<'r>::detect"]
+  N2["cgg_lang::detect::LanguageDetector<'r>::match_ext"]
+  N3["cgg_lang::detect::extension"]
+  N4["cgg_lang::detect::sniff_structured_descriptor"]
+  N5["cgg_lang::detect::read_shebang"]
+  N6["cgg_lang::detect::shebang_interpreter"]
+  N7["cgg_lang::detect::basename"]
+  N8["cgg_lang::detect::interpreter_matches"]
+  N9["cgg_lang::detect::header_verdict"]
+  N10["cgg_lang::detect::has_cpp_content"]
+  N11["cgg_lang::detect::is_cpp_stdlib_header"]
+  N12["cgg_lang::detect::has_cpp_include"]
+  N13["cgg_lang::detect::has_enum_class"]
+  N14["cgg_lang::detect::has_cxx_base_clause"]
+  N15["cgg_lang::detect::has_access_specifier"]
+  N16["cgg_lang::detect::has_virtual_member"]
+  N17["cgg_lang::detect::contains_word"]
+  N18["cgg_lang::detect::is_ident_byte"]
+  N19["cgg_lang::detect::strip_c_lexemes"]
+  N59["cgg_lang::parser::ParserPool<'r>::new"]
+  N60["cgg_lang::parser::ParserPool<'r>::parse"]
+  N61["cgg_lang::parser::ParserPool<'r>::parse_file"]
+  N62["cgg_lang::parser::ParserPool<'r>::plugin"]
+  N63["cgg_lang::parser::set_language"]
+  N64["cgg_lang::parser::exceeds_depth"]
+  N68["cgg_lang::parser::depth_tests::parse_python"]
+  N69["cgg_lang::parser::depth_tests::shallow_tree_is_within_any_reasonable_cap"]
+  N70["cgg_lang::parser::depth_tests::nested_tree_exceeds_a_cap_below_its_depth_and_not_one_above"]
+  N71["cgg_lang::parser::depth_tests::check_is_iterative_on_a_very_deep_tree"]
+  N72["cgg_lang::registrar_verb"]
+  N73["cgg_lang::builtin_verbs"]
+  N74["cgg_lang::builtin_verbs_for"]
+  N75["cgg_lang::is_harness"]
+  N76["cgg_lang::builtin_harness_verbs_for"]
+  N77["cgg_lang::builtin_registrar_paths_for"]
+  N78["cgg_lang::no_extra_verbs"]
+  N79["cgg_lang::ExtractCtx<'a>::new"]
+  N80["cgg_lang::ExtractCtx<'a>::with_reference_sites"]
+  N81["cgg_lang::ExtractCtx<'a>::with_externals"]
+  N82["cgg_lang::ExtractCtx<'a>::with_property_sites"]
+  N83["cgg_lang::ExtractCtx<'a>::for_language"]
+  N84["cgg_lang::ExtractCtx<'a>::for_test_file"]
+  N85["cgg_lang::ExtractCtx<'a>::is_registrar_context"]
+  N86["cgg_lang::ExtractCtx<'a>::plain"]
+  N87["cgg_lang::ExtractCtx<'a>::is_registrar_verb"]
+  N88["cgg_lang::ExtractCtx<'a>::is_harness_only_verb"]
+  N89["cgg_lang::ExtractCtx<'a>::is_harness_verb"]
+  N90["cgg_lang::longest_line_bytes"]
+  N91["cgg_lang::LanguagePlugin::id"]
+  N92["cgg_lang::LanguagePlugin::extensions"]
+  N93["cgg_lang::LanguagePlugin::shebangs"]
+  N94["cgg_lang::LanguagePlugin::filenames"]
+  N95["cgg_lang::LanguagePlugin::signals"]
+  N96["cgg_lang::LanguagePlugin::max_line_bytes"]
+  N97["cgg_lang::LanguagePlugin::parse_source"]
+  N98["cgg_lang::LanguagePlugin::ts_language"]
+  N99["cgg_lang::LanguagePlugin::ts_language_for"]
+  N100["cgg_lang::LanguagePlugin::extract"]
+  N101["cgg_lang::PluginRegistry::new"]
+  N102["cgg_lang::PluginRegistry::register"]
+  N103["cgg_lang::PluginRegistry::all"]
+  N104["cgg_lang::PluginRegistry::by_id"]
+  N105["cgg_lang::PluginRegistry::with_v1_plugins"]
+  N112["<framework-entry>::test::cargo-test ⟨framework entry callback⟩"]
+  N1 -->|2x| N103
+  N1 -->|2x| N2
+  N1 -->|2x| N3
+  N1 --> N4
+  N1 --> N5
+  N1 --> N6
+  N1 --> N8
+  N1 -->|2x| N9
+  N1 -->|?2x| N91
+  N1 -->|?| N93
+  N1 -->|?| N94
+  N10 --> N12
+  N10 --> N13
+  N10 --> N14
+  N10 --> N15
+  N10 --> N16
+  N10 -->|2x| N17
+  N10 --> N19
+  N100 --> N91
+  N104 -->|?| N91
+  N105 --> N101
+  N112 -->|entry| N69
+  N112 -->|entry| N70
+  N112 -->|entry| N71
+  N12 --> N11
+  N14 --> N17
+  N17 -->|2x| N18
+  N2 --> N103
+  N2 -->|?| N91
+  N2 -->|?| N92
+  N6 -->|4x| N7
+  N60 --> N61
+  N61 --> N104
+  N61 --> N60
+  N61 --> N63
+  N61 -->|?| N98
+  N61 -->|?| N99
+  N62 --> N104
+  N68 --> N105
+  N68 --> N59
+  N68 -->|?| N60
+  N69 --> N64
+  N69 --> N68
+  N70 -->|2x| N64
+  N70 --> N68
+  N71 --> N64
+  N71 --> N68
+  N73 --> N72
+  N74 --> N72
+  N74 --> N75
+  N76 --> N72
+  N76 --> N75
+  N77 --> N75
+  N85 --> N76
+  N85 --> N77
+  N85 --> N87
+  N86 --> N78
+  N87 --> N73
+  N87 --> N74
+  N87 -->|2x| N89
+  N88 --> N74
+  N88 --> N89
+  N89 --> N76
+  N9 --> N10
+  N99 --> N98
 ```
 <!-- cgg:end:lang -->
 

@@ -38,7 +38,7 @@ test("version matches the crate", () => {
 
 test("languages() lists every plugin", () => {
   const langs = cgg.languages();
-  assert.ok(langs.length >= 44, `expected >= 44 languages, got ${langs.length}`);
+  assert.ok(langs.length >= 46, `expected >= 46 languages, got ${langs.length}`);
   assert.ok(langs.includes("rust") && langs.includes("python"));
   assert.strictEqual(new Set(langs).size, langs.length, "duplicate language id");
 });

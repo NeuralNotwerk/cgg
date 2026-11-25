@@ -1,7 +1,7 @@
 {
   "name": "cgg-callgraphgenerator",
-  "version": "0.13.3",
-  "description": "Offline, deterministic call-graph generation for 44 languages. Point it at a directory, get a mermaid diagram.",
+  "version": "0.13.4",
+  "description": "Offline, deterministic call-graph generation for 46 languages. Point it at a directory, get a mermaid diagram.",
   "keywords": [
     "call-graph",
     "static-analysis",
@@ -50,10 +50,10 @@
     "@napi-rs/cli": "^3.8.5"
   },
   "optionalDependencies": {
-    "cgg-callgraphgenerator-linux-x64-gnu": "0.13.3",
-    "cgg-callgraphgenerator-linux-arm64-gnu": "0.13.3",
-    "cgg-callgraphgenerator-darwin-x64": "0.13.3",
-    "cgg-callgraphgenerator-darwin-arm64": "0.13.3",
-    "cgg-callgraphgenerator-win32-x64-msvc": "0.13.3"
+    "cgg-callgraphgenerator-linux-x64-gnu": "0.13.4",
+    "cgg-callgraphgenerator-linux-arm64-gnu": "0.13.4",
+    "cgg-callgraphgenerator-darwin-x64": "0.13.4",
+    "cgg-callgraphgenerator-darwin-arm64": "0.13.4",
+    "cgg-callgraphgenerator-win32-x64-msvc": "0.13.4"
   }
 }

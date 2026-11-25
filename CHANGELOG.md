@@ -9,6 +9,60 @@ otherwise change the default graph.
 
 ## [Unreleased]
 
+## [0.13.4] - 2026-11-25
+
+A bugfix and documentation release. **The default graph does not change
+on any platform** except Lean 4 on Windows builds, which no longer crash
+(below). Every shipped document was re-checked against the code.
+
+### Fixed
+
+- **Windows: Lean 4 files crashed cgg or lost tokens.** MSVC compiles
+  string literals in the system code page unless told otherwise, so the
+  vendored grammars' non-ASCII token names were mangled in every Windows
+  build: `·` became the lone byte 0xB7 and `Node::kind()` panicked on
+  any Lean file using it, while `λ`, `→` and others silently became `?`.
+  The vendored grammars are now compiled with `-utf-8` on MSVC, as the
+  published grammar crates already are. A new test fails on an MSVC
+  build without the flag (verified on Windows 11) and passes with it.
+- **A misspelled key in a `[[framework]]` rule was silently ignored.**
+  `atributes = [...]` parsed, the rule matched nothing, and the run
+  looked healthy. It is now an `unknown field` error naming the valid
+  keys, as top-level and `[[allow]]` keys already were.
+- **`--from-graph` silently ignored four options.** `--property-edges`,
+  `--module-scope-calls`, a non-default `--fanout-cap` and `--allow-dir`
+  change analysis, which a replay does not run; they are now refused
+  with a reason, like the other analysis-time options.
+- **The README's `walk` and `lang` graphs were empty.** The generator
+  only recognised node ids starting with `C`, and mermaid ids have been
+  `N0`, `N1`, … since 0.8.2. Its self-test now covers numbered ids.
+- Help text: `--externals-format json` named the dead-code schema
+  instead of `cgg.externals.v1`; `--dynamic-dispatch` described Python
+  overrides only (it covers 12 languages plus Go interfaces and Clojure
+  protocols); the `--rollup` bytes-per-token range is re-measured.
+- Package descriptions (npm, PyPI) said 44 or 45 languages; it is 46.
+
+### Release process
+
+- **Windows parity gate.** `scripts/windows-parity.sh` builds one commit
+  on Linux and on a Windows VM, runs both over corpus repositories that
+  cover every language, and requires identical graph, audit, dead-code
+  and externals documents apart from timings. `scripts/release.sh` runs
+  it in every mode (`--skip-windows` opts out).
+
+### Documentation
+
+- README, INSTALL, the crate READMEs, the three shipped skills
+  (`skills/`), the maintainer notes (`CLAUDE.md`, the push and
+  docs-sync skills, `PUBLISHING.md`), all 46 per-language docs and the
+  17 parity matrices and framework-rule references were re-checked
+  against 0.13.3 by running cgg on its own tree and on fixtures. Stale
+  claims were fixed: the CLI table gains `-v`/`-q`; replay, dead-code,
+  audit-sidecar and `--jobs` behaviour are described as built; install
+  instructions point at current releases; the language docs and
+  matrices record what 0.11.1–0.13.3 fixed. Bugs found along the way
+  that change the graph are listed in `BACKLOG.md` for a later patch.
+
 ## [0.13.3] - 2026-11-24
 
 A Windows release (issue #14). **Nothing changes on Linux or macOS.** On

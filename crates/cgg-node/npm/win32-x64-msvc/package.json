@@ -1,6 +1,6 @@
 {
   "name": "cgg-callgraphgenerator-win32-x64-msvc",
-  "version": "0.13.3",
+  "version": "0.13.4",
   "cpu": [
     "x64"
   ],
@@ -8,7 +8,7 @@
   "files": [
     "cgg.win32-x64-msvc.node"
   ],
-  "description": "Offline, deterministic call-graph generation for 44 languages. Point it at a directory, get a mermaid diagram.",
+  "description": "Offline, deterministic call-graph generation for 46 languages. Point it at a directory, get a mermaid diagram.",
   "keywords": [
     "call-graph",
     "static-analysis",
