@@ -65,7 +65,7 @@ impl LanguagePlugin for LeanPlugin {
 
     fn extract(
         &self,
-        _ctx: &crate::ExtractCtx<'_>,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -74,6 +74,7 @@ impl LanguagePlugin for LeanPlugin {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "lean");
         let mut w = LeanWalker {
             source,
+            reference_sites: ctx.reference_sites,
             facts: &mut facts,
             ns_stack: Vec::new(),
             pending_attrs: Vec::new(),
@@ -147,6 +148,9 @@ struct LeanWalker<'a> {
     /// while the wrapped declaration is visited so `push_def` can attach
     /// them, then cleared.
     pending_attrs: Vec<String>,
+    /// `ExtractCtx::reference_sites`: record function values
+    /// (`@[implemented_by f]`) as value references.
+    reference_sites: bool,
     /// Names the declaration being visited binds in its signature
     /// (`(hprob : …)`, `{κ : …}`, `[inst : …]`). An unqualified reference to
     /// one of them is the local, never a same-named declaration elsewhere.
@@ -264,8 +268,29 @@ impl<'a> LeanWalker<'a> {
                     if entry.kind() == "attribute_entry" {
                         // `attribute_entry` is `name arg*`; the name is its
                         // first dotted group (drop priority/string args).
-                        if let Some(name) = self.dotted_groups(entry).into_iter().next() {
+                        let groups = self.dotted_groups(entry);
+                        if let Some(name) = groups.first() {
                             attrs.push(format!("@[{name}]"));
+                        }
+                        // `@[implemented_by f]`: the compiler runs `f` in
+                        // place of the declaration, so `f` is used although
+                        // nothing calls it by name.
+                        if self.reference_sites
+                            && groups.first().is_some_and(|n| n == "implemented_by")
+                            && let Some(target) = groups.get(1)
+                        {
+                            let (recv, name) = match target.rsplit_once('.') {
+                                Some((r, n)) => (r.to_string(), n.to_string()),
+                                None => (String::new(), target.clone()),
+                            };
+                            self.facts.references.push(RefRecord {
+                                name,
+                                receiver_hint: recv,
+                                site_line: (entry.start_position().row as u32) + 1,
+                                site_byte: entry.start_byte() as u32,
+                                value_ref: true,
+                                ..Default::default()
+                            });
                         }
                     }
                 }
@@ -638,6 +663,40 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    // P1 Lean attributes: `@[implemented_by f]` names the function the
+    // compiler runs instead, so `f` is used although nothing calls it.
+    #[test]
+    fn implemented_by_target_is_a_value_reference() {
+        let src = "@[implemented_by fastImpl] def slowImpl (n : Nat) : Nat := n\n\
+                   @[implemented_by Impl.fast] def slow2 (n : Nat) : Nat := n\n\
+                   def fastImpl (n : Nat) : Nat := n\n";
+        let mut p = Parser::new();
+        p.set_language(&LEAN_LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        let ctx = crate::ExtractCtx::plain().with_reference_sites(true);
+        let f = LeanPlugin.extract(
+            &ctx,
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.lean"),
+            &tree,
+            src.as_bytes(),
+        );
+        let vals: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| (r.receiver_hint.as_str(), r.name.as_str()))
+            .collect();
+        assert_eq!(vals, vec![("", "fastImpl"), ("Impl", "fast")]);
+        // Without reference sites nothing is recorded.
+        assert!(extract(src).references.iter().all(|r| !r.value_ref));
+        let slow = f.definitions.iter().find(|d| d.simple_name == "slowImpl");
+        assert_eq!(
+            slow.map(|d| d.attributes.clone()),
+            Some(vec!["@[implemented_by]".to_string()])
+        );
     }
 
     #[test]

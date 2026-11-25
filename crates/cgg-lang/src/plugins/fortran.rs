@@ -13,13 +13,22 @@ impl LanguagePlugin for FortranPlugin {
         "fortran"
     }
     fn extensions(&self) -> &'static [&'static str] {
-        &[".f90", ".f95", ".f03", ".f08", ".f", ".for", ".fpp"]
+        &[
+            ".f90", ".f95", ".f03", ".f08", ".f", ".for", ".f77", ".ftn", ".fpp",
+        ]
     }
     fn shebangs(&self) -> &'static [&'static str] {
         &[]
     }
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_fortran::LANGUAGE.into()
+    }
+
+    /// The grammar reads free-form source only, so a fixed-form file's
+    /// column-1 `C`/`c`/`*` comment lines parse as statements and can
+    /// sink the whole file into ERROR nodes. Turn them into `!` comments.
+    fn parse_source(&self, path: &Path, source: &[u8]) -> Option<Vec<u8>> {
+        fixed_form_comments_as_bang(path, source)
     }
 
     fn extract(
@@ -40,6 +49,57 @@ impl LanguagePlugin for FortranPlugin {
         w.walk(tree.root_node());
         facts
     }
+}
+
+/// Extensions whose source form is fixed by convention (compared
+/// lowercased, so `.F` and `.FOR` count). `.fpp` is either form.
+const FIXED_FORM_EXTENSIONS: &[&str] = &["f", "for", "f77", "ftn"];
+
+/// A same-length copy of a fixed-form file with every column-1 comment
+/// line (`C`, `c`, `*`, and the `D`/`d` debug lines compilers drop by
+/// default) starting with `!`, or `None` when nothing changes.
+///
+/// The extension alone is not trusted: a `.f` file written in free form
+/// would have `call x` or `do i = 1, n` at column 1 destroyed. A file is
+/// read as free form, and left alone, when any line starts at column 1
+/// with a letter that is not a comment marker, or has a letter as its
+/// first character in columns 2 to 5 (only labels may sit there in fixed
+/// form). A tab before the first character is the fixed-form tab layout
+/// and says nothing.
+pub(crate) fn fixed_form_comments_as_bang(path: &Path, source: &[u8]) -> Option<Vec<u8>> {
+    let ext = path.extension()?.to_str()?.to_ascii_lowercase();
+    if !FIXED_FORM_EXTENSIONS.contains(&ext.as_str()) {
+        return None;
+    }
+    let is_comment_mark = |b: u8| matches!(b, b'C' | b'c' | b'*' | b'D' | b'd');
+    let mut starts = Vec::new();
+    for line in source.split(|&b| b == b'\n') {
+        let Some(&first) = line.first() else { continue };
+        if first.is_ascii_alphabetic() && !is_comment_mark(first) {
+            return None;
+        }
+        if is_comment_mark(first) {
+            let offset = line.as_ptr() as usize - source.as_ptr() as usize;
+            starts.push(offset);
+            continue;
+        }
+        for (col, &b) in line.iter().enumerate().take(5) {
+            match b {
+                b' ' => continue,
+                b'\t' => break,
+                _ if b.is_ascii_alphabetic() && col > 0 => return None,
+                _ => break,
+            }
+        }
+    }
+    if starts.is_empty() {
+        return None;
+    }
+    let mut out = source.to_vec();
+    for i in starts {
+        out[i] = b'!';
+    }
+    Some(out)
 }
 
 struct FortranWalker<'a> {
@@ -274,5 +334,93 @@ mod tests {
             "module m\n  interface\n    function g(x) result(r)\n      real :: x, r\n    end function g\n  end interface\ncontains\n  function g(x) result(r)\n    real :: x, r\n    r = x\n  end function g\nend module m\n",
         );
         assert_eq!(abstract_tags(&f, "m::g"), vec![true, false]);
+    }
+
+    /// Parse `src` as the pipeline does for a file at `path`: through
+    /// `parse_source` when it rewrites, extracting from the original.
+    fn extract_at(path: &str, src: &str) -> FileFacts {
+        let rewritten = FortranPlugin.parse_source(Path::new(path), src.as_bytes());
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_fortran::LANGUAGE.into())
+            .unwrap();
+        let tree = p
+            .parse(rewritten.as_deref().unwrap_or(src.as_bytes()), None)
+            .unwrap();
+        FortranPlugin.extract(
+            &crate::ExtractCtx::plain(),
+            FileId::new(0),
+            &PathBuf::from(path),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    const FIXED_FORM: &str = "C*****************************\n\
+        C   HEADER\n\
+        *   another comment\n\
+        \x20     SUBROUTINE UMAT(STRESS,\n\
+        \x20    1 NTENS)\n\
+        C   body\n\
+        \x20     CALL HELPER(STRESS)\n\
+        \x20     RETURN\n\
+        \x20     END\n\
+        c lower-case comment\n\
+        \x20     SUBROUTINE HELPER(S)\n\
+        \x20     RETURN\n\
+        \x20     END\n";
+
+    // P1 fixed-form rewrite: column-1 `C` comments sank every routine of
+    // a fixed-form Abaqus UMAT file into ERROR nodes (0 callables).
+    #[test]
+    fn fixed_form_column_one_comments_do_not_hide_routines() {
+        let f = extract_at("/t/umat.for", FIXED_FORM);
+        let names: Vec<&str> = f
+            .definitions
+            .iter()
+            .map(|d| d.simple_name.as_str())
+            .collect();
+        assert!(
+            names.iter().any(|n| n.eq_ignore_ascii_case("umat")),
+            "{names:?}"
+        );
+        assert!(
+            names.iter().any(|n| n.eq_ignore_ascii_case("helper")),
+            "{names:?}"
+        );
+        // Same length, offsets unchanged, only column-1 marks touched.
+        let r = FortranPlugin
+            .parse_source(Path::new("/t/UMAT.F"), FIXED_FORM.as_bytes())
+            .unwrap();
+        assert_eq!(r.len(), FIXED_FORM.len());
+        let text = String::from_utf8(r).unwrap();
+        assert!(text.starts_with("!*****"), "{text}");
+        assert!(text.contains("\n!   HEADER\n!   another"), "{text}");
+        assert!(text.contains("\n! lower-case"), "{text}");
+        assert!(text.contains("      CALL HELPER"), "{text}");
+    }
+
+    #[test]
+    fn free_form_sources_are_never_rewritten() {
+        // A free-form extension, whatever its content.
+        assert!(
+            FortranPlugin
+                .parse_source(Path::new("/t/m.f90"), FIXED_FORM.as_bytes())
+                .is_none()
+        );
+        // A `.f` file written in free form: `call` at column 1 is code.
+        let free = "subroutine s()\ncall t()\nend subroutine s\n";
+        assert!(
+            FortranPlugin
+                .parse_source(Path::new("/t/m.f"), free.as_bytes())
+                .is_none()
+        );
+        // Indented free form: a letter in columns 2-5 is not fixed form.
+        let indented =
+            "module m\ncontains\n  subroutine s()\n  end subroutine s\nend module m\n";
+        assert!(
+            FortranPlugin
+                .parse_source(Path::new("/t/m.f"), indented.as_bytes())
+                .is_none()
+        );
     }
 }

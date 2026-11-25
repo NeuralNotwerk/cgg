@@ -454,7 +454,9 @@ fn analyze_in_pool(opts: &RunOptions) -> Result<RunOutcome> {
             // The grammar is chosen per file (TypeScript `.ts` vs `.tsx`).
             // A plugin may have the grammar read a same-length rewrite
             // (`LanguagePlugin::parse_source`); extraction reads `bytes`.
-            let rewritten = pool.plugin(lang).and_then(|p| p.parse_source(&bytes));
+            let rewritten = pool
+                .plugin(lang)
+                .and_then(|p| p.parse_source(&cand.path, &bytes));
             let parsed = pool.parse_file(
                 lang,
                 Some(&cand.path),

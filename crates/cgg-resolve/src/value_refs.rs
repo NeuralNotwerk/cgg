@@ -167,6 +167,19 @@ pub fn prune(all_facts: &mut [FileFacts]) {
             continue;
         }
         let known = names.get(&f.language).unwrap_or(&empty);
+        // An assembly value (`.word handler`, `la t0, handler`) names a
+        // C or C++ function as often as a label: the linker joins them.
+        let asm_known: HashSet<String>;
+        let known = if f.language == "asm" {
+            asm_known = ["asm", "c", "cpp"]
+                .iter()
+                .filter_map(|l| names.get(*l))
+                .flat_map(|s| s.iter().cloned())
+                .collect();
+            &asm_known
+        } else {
+            known
+        };
         // A bare name some struct or class of the language declares as a
         // data member is, inside a member function, that field far more
         // often than a function (`result.height = height`).
