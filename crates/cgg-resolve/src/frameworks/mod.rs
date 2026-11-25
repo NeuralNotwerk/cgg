@@ -1052,8 +1052,11 @@ fn base_type_matches(wanted: &[String], declared: &str) -> bool {
     if contains_ci(wanted, bare) {
         return true;
     }
+    // The last segment also takes naming patterns: a generated gRPC base
+    // is named per service (`QueryGrpc.QueryImplBase`), so a rule can only
+    // write it as `*ImplBase`.
     let last = bare.rsplit(['.', ':', '\\']).next().unwrap_or(bare);
-    contains_ci(wanted, last)
+    matches_ci_or_pattern(wanted, last)
 }
 
 /// A method-name rule with no base type — the structural-typing escape
@@ -1163,7 +1166,8 @@ fn type_literal(arg: &str) -> Option<String> {
     let inner = if let Some(rest) = a.strip_prefix("typeof(") {
         rest.strip_suffix(')')?
     } else {
-        a.strip_suffix(".class")?
+        a.strip_suffix(".class")
+            .or_else(|| a.strip_suffix("::class"))?
     };
     let bare = inner.split('<').next().unwrap_or(inner).trim();
     let last = bare.rsplit(['.', ':']).next().unwrap_or(bare).trim();
@@ -1213,11 +1217,15 @@ fn members_in(arg: &str, out: &mut Vec<(Option<String>, String)>) {
 /// Read an attribute's arguments for the members and type they name.
 ///
 /// Named arguments contribute only a type (`MemberType = typeof(T)`),
-/// except Java's implicit `value` element, which is the positional one.
-/// Of the positional arguments, type literals give the owner and the
-/// FIRST other one names the members — later positionals are parameters
-/// handed to the source (`[MemberData(nameof(D), 3)]`), never names.
-fn named_members(attr: &str) -> NamedMembers {
+/// except Java's implicit `value` element, which is the positional one,
+/// and the source's own `named` elements (`fallbackMethod = "m"`), whose
+/// string names a member — owned by the type the paired class element
+/// names, if the attribute writes one. Of the positional arguments, type
+/// literals give the owner and the FIRST other one names the members —
+/// later positionals are parameters handed to the source
+/// (`[MemberData(nameof(D), 3)]`), never names — unless the source has
+/// named elements, which then are its only member names.
+fn named_members(attr: &str, named: &[rules::NamedElement]) -> NamedMembers {
     let mut out = NamedMembers::default();
     let Some(open) = attr.find('(') else {
         return out;
@@ -1228,9 +1236,9 @@ fn named_members(attr: &str) -> NamedMembers {
     if close <= open {
         return out;
     }
-    let mut member_arg_seen = false;
-    for arg in split_top_level_args(&attr[open + 1..close]) {
-        let (name, value) = match arg.split_once('=') {
+    let args: Vec<(Option<&str>, &str)> = split_top_level_args(&attr[open + 1..close])
+        .into_iter()
+        .map(|arg| match arg.split_once('=') {
             Some((n, v))
                 if is_identifierish(n.trim())
                     && !v.starts_with('=')
@@ -1239,13 +1247,38 @@ fn named_members(attr: &str) -> NamedMembers {
                 (Some(n.trim()), v.trim())
             }
             _ => (None, arg),
-        };
+        })
+        .collect();
+    let class_of = |element: &str| -> Option<String> {
+        if element.is_empty() {
+            return None;
+        }
+        args.iter()
+            .find(|(n, _)| *n == Some(element))
+            .and_then(|(_, v)| type_literal(v.trim_matches(['{', '}', '[', ']', ' '])))
+    };
+    let mut member_arg_seen = false;
+    for (name, value) in &args {
+        if let Some(el) = name.and_then(|n| named.iter().find(|e| e.element == n)) {
+            let mut found = Vec::new();
+            members_in(value, &mut found);
+            let owner = class_of(el.class_element);
+            out.members.extend(
+                found
+                    .into_iter()
+                    .map(|(qual, member)| (qual.or_else(|| owner.clone()), member)),
+            );
+            continue;
+        }
         if let Some(t) = type_literal(value) {
-            out.owner_type.get_or_insert(t);
+            let paired = name.is_some_and(|n| named.iter().any(|e| e.class_element == n));
+            if !paired {
+                out.owner_type.get_or_insert(t);
+            }
             continue;
         }
         let positional = name.is_none_or(|n| n == "value");
-        if positional && !member_arg_seen {
+        if positional && !member_arg_seen && named.is_empty() {
             member_arg_seen = true;
             members_in(value, &mut out.members);
         }
@@ -1285,7 +1318,7 @@ fn match_member_sources(
                 continue;
             };
             let own_owner = crate::names::owner_from_qn(&node.qualified_name);
-            let named = named_members(attr);
+            let named = named_members(attr, src.named);
             let mut wanted: Vec<(Option<String>, String)> = Vec::new();
             for (qual, member) in &named.members {
                 let owner = qual
@@ -3451,9 +3484,13 @@ mod tests {
         v
     }
 
+    fn named_members_of(attr: &str) -> NamedMembers {
+        named_members(attr, &[])
+    }
+
     #[test]
     fn attribute_arguments_name_members_and_owner_types() {
-        let m = named_members("@MethodSource({\"alpha\", \"demo.Shared#beta(int)\"})");
+        let m = named_members_of("@MethodSource({\"alpha\", \"demo.Shared#beta(int)\"})");
         assert_eq!(
             m.members,
             vec![
@@ -3461,26 +3498,27 @@ mod tests {
                 (Some("Shared".to_string()), "beta".to_string())
             ]
         );
-        let m = named_members("TestCaseSource(typeof(Other), nameof(Other.Remote))");
+        let m = named_members_of("TestCaseSource(typeof(Other), nameof(Other.Remote))");
         assert_eq!(m.owner_type.as_deref(), Some("Other"));
         assert_eq!(
             m.members,
             vec![(Some("Other".to_string()), "Remote".to_string())]
         );
-        let m = named_members("MemberData(nameof(Ext.Data), MemberType = typeof(Ext))");
+        let m =
+            named_members_of("MemberData(nameof(Ext.Data), MemberType = typeof(Ext))");
         assert_eq!(m.owner_type.as_deref(), Some("Ext"));
         assert_eq!(
             m.members,
             vec![(Some("Ext".to_string()), "Data".to_string())]
         );
         // Later positionals are parameters for the source, not names.
-        let m = named_members("MemberData(nameof(Data), \"abc\", 3)");
+        let m = named_members_of("MemberData(nameof(Data), \"abc\", 3)");
         assert_eq!(m.members, vec![(None, "Data".to_string())]);
         // Java's implicit `value` element is the positional one.
-        let m = named_members("@MethodSource(value = \"rows\")");
+        let m = named_members_of("@MethodSource(value = \"rows\")");
         assert_eq!(m.members, vec![(None, "rows".to_string())]);
-        assert_eq!(named_members("@MethodSource"), NamedMembers::default());
-        let m = named_members("@ArgumentsSource(Rows.class)");
+        assert_eq!(named_members_of("@MethodSource"), NamedMembers::default());
+        let m = named_members_of("@ArgumentsSource(Rows.class)");
         assert_eq!(m.owner_type.as_deref(), Some("Rows"));
         assert!(m.members.is_empty());
     }
@@ -3543,6 +3581,66 @@ mod tests {
         let g = graph_with(vec![t, node(1, "demo.T.words", "words", "java")]);
         let facts = vec![facts_with_import("java", "T.java", "java.util.List")];
         assert!(rooted(&detect(&g, &facts, &[])).is_empty());
+    }
+
+    #[test]
+    fn a_named_fallback_element_names_the_member_and_its_class() {
+        let sentinel = rules::member_sources_for("fault-tolerance", "java")
+            .iter()
+            .find(|s| s.attribute == "SentinelResource")
+            .unwrap();
+        let m = named_members(
+            "@SentinelResource(value = \"res\", blockHandler = \"onBlock\", \
+             blockHandlerClass = Handlers.class, fallback = \"onError\")",
+            sentinel.named,
+        );
+        // `value` is the resource, never a member; the paired class names
+        // only `blockHandler`'s owner.
+        assert_eq!(
+            m.members,
+            vec![
+                (Some("Handlers".to_string()), "onBlock".to_string()),
+                (None, "onError".to_string()),
+            ]
+        );
+        assert_eq!(m.owner_type, None);
+        let fallback = rules::member_sources_for("fault-tolerance", "kotlin")
+            .iter()
+            .find(|s| s.attribute == "Fallback")
+            .unwrap();
+        let m = named_members("@Fallback(Recovery::class)", fallback.named);
+        assert_eq!(m.owner_type.as_deref(), Some("Recovery"));
+        assert!(m.members.is_empty());
+    }
+
+    // A fallback is called by the library by name: without the row it is
+    // reported dead at `high`.
+    #[test]
+    fn a_resilience4j_fallback_method_is_rooted_and_its_neighbours_are_not() {
+        let mut call = node(0, "demo.Svc.call", "call", "java");
+        call.attributes = vec![
+            "@CircuitBreaker(name = \"backend\", fallbackMethod = \"recover\")".into(),
+        ];
+        let g = graph_with(vec![
+            call,
+            node(1, "demo.Svc.recover", "recover", "java"),
+            node(2, "demo.Svc.backend", "backend", "java"),
+            node(3, "demo.Other.recover", "recover", "java"),
+        ]);
+        let facts = vec![facts_with_import(
+            "java",
+            "Svc.java",
+            "io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker",
+        )];
+        let out = detect(&g, &facts, &[]);
+        let ids: Vec<u32> = out
+            .entries
+            .iter()
+            .filter(|e| e.framework == "fault-tolerance")
+            .map(|e| e.target.as_u32())
+            .collect();
+        assert_eq!(ids, vec![1], "{:?}", out.entries);
+        assert!(out.entries.iter().all(|e| !e.node));
     }
 
     #[test]
