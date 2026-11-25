@@ -359,6 +359,12 @@ APPS=(
     "app-mom6-esmf|https://github.com/mom-ocean/MOM6.git|esmf-nuopc,~fortran-program,~py-argparse"
     "app-microwatt-vunit|https://github.com/antonblanchard/microwatt.git|c-callbacks,cpp-callbacks,ffi-export,vunit,~c-runtime,~cpp-runtime,~py-argparse,~py-signal,~rust-runtime,~rust-std-traits,~vhdl-toplevel"
     "app-dvbfpga-vunit|https://github.com/OpenResearchInstitute/dvb_fpga.git|vunit,~py-argparse,~py-threading,~vhdl-toplevel"
+    # 0.14.0 Phase C: Rust AI-agent and tool-calling frameworks (B5).
+    "app-deepwiki-rig|https://github.com/sopaco/deepwiki-rs.git|cargo-test,rig,rust-std-traits,~clap,~rig-hooks,~rmcp,~rmcp-handlers,~rust-runtime,~serde"
+    "app-codegraph-rig|https://github.com/Jakedismo/codegraph-rust.git|axum,cargo-test,py-unittest,rig,rmcp,rust-std-traits,~clap,~criterion,~py-argparse,~py-context-manager,~rig-hooks,~rmcp-handlers,~rust-runtime,~serde"
+    "app-ck-rmcp|https://github.com/BeaconBay/ck.git|cargo-test,net-http,node-test,py-unittest,rmcp,rmcp-handlers,rust-std-traits,~clap,~go-runtime,~py-argparse,~py-context-manager,~rust-runtime,~serde"
+    "app-qbit-rig|https://github.com/qbit-ai/qbit.git|cargo-test,playwright,react,rmcp-handlers,rust-std-traits,tauri,vitest,~clap,~py-argparse,~react-hooks,~rig,~rig-hooks,~rmcp,~rust-runtime,~serde"
+    "app-spacebot-rig|https://github.com/spacedriveapp/spacebot.git|axum,cargo-test,js-test-globals,react,rig,rig-hooks,rmcp-handlers,rust-std-traits,serenity,tauri,~appkit,~clap,~cloudflare-workers,~cocoa-delegate,~nextjs,~nix,~react-hooks,~rmcp,~rust-runtime,~serde,~teloxide,~tokio-cron,~uikit-appdelegate,~uikit-lifecycle"
     "app-orbfirmware-zephyr|https://github.com/worldcoin/orb-firmware.git|py-threading,zephyr,ztest,~c-runtime,~cmake,~nix,~py-argparse"
     # Every corpus directory is an APPS entry, so framework coverage and the
     # manifest sync measure all of them. Claims are measured, not hand-written
