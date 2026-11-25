@@ -403,14 +403,19 @@ impl Detection {
                         // `subroutine umat` is Abaqus's `UMAT`.
                         let exact =
                             rules::methods_case_sensitive(&rule.id, &rule.language);
+                        // An owner-qualified name (`love.update`) is matched
+                        // against the qualified name.
                         hit = f.definitions.iter().any(|d| {
                             rule.methods.iter().any(|m| {
                                 !m.contains('*')
-                                    && if exact {
+                                    && (if exact {
                                         *m == d.simple_name
                                     } else {
                                         m.eq_ignore_ascii_case(&d.simple_name)
-                                    }
+                                    } || owner_qualified_matches(
+                                        m,
+                                        &d.qualified_name,
+                                    ))
                             })
                         });
                     }
@@ -946,16 +951,72 @@ fn normalize_path(p: &str) -> String {
 }
 
 /// Whether a file path matches a convention marker (`config/routes.rb`,
-/// `urls.py`, `routes/web.php`). Suffix match on a path-segment
-/// boundary, so `app/urls.py` matches `urls.py` but `myurls.py` does not.
+/// `urls.py`, `routes/web.php`). Suffix match on path segments, so
+/// `app/urls.py` matches `urls.py` but `myurls.py` does not. A marker
+/// ending in `/` names a directory, which may sit anywhere in the path
+/// (`app/controllers/` matches `src/app/controllers/x.rb`). A `*` inside
+/// a marker segment matches any run of characters within one segment
+/// (`lua/*/init.lua`, `apisix/plugins/*.lua`).
+///
+/// Every position is tried, not only the last: `lua/` must match
+/// `x/lua/oil/init.lua`, whose last `lua` is the file extension.
 fn path_matches(path: &str, marker: &str) -> bool {
-    let m = marker.trim_end_matches('/');
-    if let Some(idx) = path.rfind(m) {
-        let ends_ok = idx + m.len() == path.len() || marker.ends_with('/');
-        let starts_ok = idx == 0 || path.as_bytes()[idx - 1] == b'/';
-        return ends_ok && starts_ok;
+    let dir = marker.ends_with('/');
+    let want: Vec<&str> = marker.split('/').filter(|s| !s.is_empty()).collect();
+    if want.is_empty() {
+        return false;
     }
-    false
+    let have: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+    let window_matches = |start: usize| {
+        want.iter()
+            .zip(&have[start..])
+            .all(|(w, h)| segment_glob_matches(w, h))
+    };
+    if dir {
+        // The directory must hold something: at least one segment after it.
+        (0..have.len().saturating_sub(want.len()))
+            .any(|start| start + want.len() < have.len() && window_matches(start))
+    } else {
+        have.len() >= want.len() && window_matches(have.len() - want.len())
+    }
+}
+
+/// One path segment against one marker segment, `*` matching any run of
+/// characters (none included) within the segment.
+fn segment_glob_matches(pattern: &str, segment: &str) -> bool {
+    let parts: Vec<&str> = pattern.split('*').collect();
+    if parts.len() == 1 {
+        return pattern == segment;
+    }
+    let (first, last) = (parts[0], parts[parts.len() - 1]);
+    if segment.len() < first.len() + last.len()
+        || !segment.starts_with(first)
+        || !segment.ends_with(last)
+    {
+        return false;
+    }
+    let mut rest = &segment[first.len()..segment.len() - last.len()];
+    for mid in &parts[1..parts.len() - 1] {
+        match rest.find(mid) {
+            Some(i) => rest = &rest[i + mid.len()..],
+            None => return false,
+        }
+    }
+    true
+}
+
+/// Whether `file` is one a path-gated rule's method and base-type
+/// matchers read ([`rules::method_paths_for`]). A rule with no gate reads
+/// every file.
+fn file_in_rule_paths(graph: &Graph, rule: &FrameworkRule, file: FileId) -> bool {
+    let gate = rules::method_paths_for(&rule.id, &rule.language);
+    if gate.is_empty() {
+        return true;
+    }
+    graph.files.get(&file).is_some_and(|f| {
+        let path = normalize_path(&f.path.to_string_lossy());
+        gate.iter().any(|g| path_matches(&path, g))
+    })
 }
 
 // ---------------------------------------------------------------------
@@ -1051,6 +1112,46 @@ fn method_name_matches(rule: &FrameworkRule, name: &str) -> bool {
         });
     }
     matches_ci_or_pattern(&rule.methods, name)
+}
+
+/// [`method_name_matches`] for a callable, plus owner-qualified patterns:
+/// a method written `owner.name` or `owner:name` (`love.update`,
+/// `GM:Think`, `GM:*`) matches a callable whose qualified name ends in
+/// that owner (case-sensitive, on a segment boundary) and a name the
+/// part after the separator matches. A LÖVE `love.update` and a game
+/// object's `Player:update` share a simple name; only the owner tells
+/// them apart.
+fn callable_matches_methods(
+    rule: &FrameworkRule,
+    node: &cgg_core::graph::CallableNode,
+) -> bool {
+    if method_name_matches(rule, &node.simple_name) {
+        return true;
+    }
+    rule.methods
+        .iter()
+        .any(|m| owner_qualified_matches(m, &node.qualified_name))
+}
+
+fn owner_qualified_matches(pattern: &str, qualified_name: &str) -> bool {
+    let Some(sep) = pattern.rfind(['.', ':']) else {
+        return false;
+    };
+    let (owner, name) = (&pattern[..sep], &pattern[sep + 1..]);
+    let owner = owner.trim_end_matches(':');
+    if owner.is_empty() || name.is_empty() {
+        return false;
+    }
+    let Some(qsep) = qualified_name.rfind(['.', ':']) else {
+        return false;
+    };
+    let q_owner = qualified_name[..qsep].trim_end_matches(':');
+    let q_name = &qualified_name[qsep + 1..];
+    let owner_ok = q_owner == owner
+        || q_owner
+            .strip_suffix(owner)
+            .is_some_and(|head| head.ends_with(['.', ':']));
+    owner_ok && name_pattern_matches(name, q_name)
 }
 
 pub(crate) fn name_pattern_matches(pattern: &str, name: &str) -> bool {
@@ -1585,18 +1686,28 @@ impl<'a> RegistrarIndex<'a> {
     }
 }
 
+/// An in-tree type's (full owner path, declared bases, declaring file).
+type OwnerBases = (String, Vec<String>, FileId);
+
 /// Declared base types for one language, indexed once.
 struct BaseTypeIndex {
     /// (file, start_byte) -> base types, from the facts side.
     bases: HashMap<(FileId, u32), Vec<String>>,
-    /// owner type -> its declared bases, for walking the chain.
-    by_owner: HashMap<String, (Vec<String>, FileId)>,
+    /// Owner type's last segment -> every in-tree type of that name, as
+    /// (full owner path, declared bases, declaring file), in input order.
+    /// Keyed by the last segment because a declaration writes
+    /// `generic.ObjectListView` for the class defined as `ObjectListView`;
+    /// the full path is kept so a qualified base (`ActiveRecord::Base`)
+    /// does not walk into an unrelated in-tree type of the same last name
+    /// (`CLI::Base < Thor`), and the file so a base matched up the chain
+    /// is judged where it is declared (per-file framework evidence).
+    by_owner: HashMap<String, Vec<OwnerBases>>,
 }
 
 impl BaseTypeIndex {
     fn build(facts: &[FileFacts], language: &str) -> Self {
         let mut bases: HashMap<(FileId, u32), Vec<String>> = HashMap::new();
-        let mut by_owner: HashMap<String, (Vec<String>, FileId)> = HashMap::new();
+        let mut by_owner: HashMap<String, Vec<OwnerBases>> = HashMap::new();
         for f in facts {
             if f.language != language {
                 continue;
@@ -1615,7 +1726,13 @@ impl BaseTypeIndex {
                 let declared = expand(&d.base_types);
                 bases.insert((f.file, d.start_byte), declared.clone());
                 if let Some(owner) = crate::names::owner_from_qn(&d.qualified_name) {
-                    by_owner.insert(owner.to_string(), (declared, f.file));
+                    let full = crate::names::split_last_segment(&d.qualified_name)
+                        .map(|(o, _)| o)
+                        .unwrap_or(owner);
+                    let list = by_owner.entry(owner.to_string()).or_default();
+                    if !list.iter().any(|(o, _, _)| o == full) {
+                        list.push((full.to_string(), declared, f.file));
+                    }
                 }
             }
         }
@@ -1637,13 +1754,17 @@ impl BaseTypeIndex {
                 if owner.is_empty() {
                     continue;
                 }
-                by_owner.entry(owner.to_string()).or_insert_with(|| {
-                    let declared = match &php {
-                        Some(names) => names.expand(&c.base_types),
-                        None => c.base_types.clone(),
-                    };
-                    (declared, f.file)
-                });
+                let list = by_owner.entry(owner.to_string()).or_default();
+                if list.iter().any(|(o, _, at)| {
+                    o == &c.class_qn || (*at == f.file && last_segment(o) == owner)
+                }) {
+                    continue;
+                }
+                let declared = match &php {
+                    Some(names) => names.expand(&c.base_types),
+                    None => c.base_types.clone(),
+                };
+                list.push((c.class_qn.clone(), declared, f.file));
             }
         }
         if language == "javascript" || language == "typescript" {
@@ -1717,6 +1838,31 @@ impl PhpNames {
     }
 }
 
+/// Whether a callable is a public instance member as declared: its
+/// normalized visibility where the plugin records one, else (PHP) the
+/// modifiers in front of `function`, where none means public. Magic
+/// `__x` methods and static members are not, since a host that calls
+/// every public member (a Livewire action, a controller endpoint) calls
+/// neither.
+fn declared_public_instance_member(node: &cgg_core::graph::CallableNode) -> bool {
+    if node.simple_name.starts_with("__") {
+        return false;
+    }
+    match node.vis {
+        cgg_core::Vis::Public => {}
+        cgg_core::Vis::Unknown if node.language == "php" => {}
+        _ => return false,
+    }
+    let head = node
+        .signature_hint
+        .split("function")
+        .next()
+        .unwrap_or_default();
+    !head
+        .split_whitespace()
+        .any(|w| matches!(w, "private" | "protected" | "static"))
+}
+
 /// A JS/TS class extends the name its file imports, which need not be the
 /// name the base class was declared under: `import BaseCommand from
 /// './base'` (whose default export is `class BaseDataCommand`) or `import
@@ -1726,7 +1872,7 @@ impl PhpNames {
 fn add_js_import_aliases(
     facts: &[FileFacts],
     language: &str,
-    by_owner: &mut HashMap<String, (Vec<String>, FileId)>,
+    by_owner: &mut HashMap<String, Vec<OwnerBases>>,
 ) {
     let files: Vec<&FileFacts> =
         facts.iter().filter(|f| f.language == language).collect();
@@ -1855,6 +2001,9 @@ fn match_base_types(
         let Some(types) = bases.get(&(node.file, node.start_byte)) else {
             continue;
         };
+        if !file_in_rule_paths(graph, rule, node.file) {
+            continue;
+        }
         // A framework contract is usually inherited, not declared
         // directly: NetBox writes `class CircuitListView(generic.
         // ObjectListView)`, and only three levels up does anything name
@@ -1866,9 +2015,19 @@ fn match_base_types(
                 || rule.detect.iter().any(|p| import_matches(base, p))
                 || evidence.carries_for(rule, at, marker_head(base), imports)
         };
-        let Some(hit) =
-            find_in_base_chain(types, node.file, by_owner, &rule.base_types, &accept)
-        else {
+        let context = crate::names::split_last_segment(&node.qualified_name)
+            .map(|(o, _)| o)
+            .unwrap_or("");
+        let lexical = rules::LEXICAL_CONSTANT_LANGS.contains(&rule.language.as_str());
+        let Some(hit) = find_in_base_chain(
+            types,
+            context,
+            node.file,
+            by_owner,
+            &rule.base_types,
+            lexical,
+            &accept,
+        ) else {
             continue;
         };
         // QtTest's base is plain `QObject`: a test class is one only
@@ -1882,10 +2041,19 @@ fn match_base_types(
         {
             continue;
         }
-        let named = rule.methods.is_empty()
-            || method_name_matches(rule, &node.simple_name)
-            || (node.kind == CallableKind::Constructor
-                && rule.methods.iter().any(|m| m == rules::CONSTRUCTOR_METHOD));
+        // `<init>` names the matched class's constructor.
+        let constructor = node.kind == CallableKind::Constructor
+            && rule.methods.iter().any(|m| m == rules::CONSTRUCTOR_METHOD);
+        // A host that calls every public member (a Livewire action, a
+        // Nextcloud controller endpoint) takes the public ones on top of
+        // the named hooks; with no names listed, the public ones only.
+        let named = if rules::public_members_are_entries(&rule.id, &rule.language) {
+            (!rule.methods.is_empty() && callable_matches_methods(rule, node))
+                || declared_public_instance_member(node)
+                || constructor
+        } else {
+            rule.methods.is_empty() || callable_matches_methods(rule, node) || constructor
+        };
         // In the languages of `TEST_CLASS_MEMBERS_ARE_ROOTS`, a test
         // class's other members (helpers, fixtures by another name) are
         // test code its cases reach through `self`/`$this` across the
@@ -1926,49 +2094,137 @@ fn match_base_types(
 /// syntax can be cyclic (two files each naming the other's type) and a
 /// deep hierarchy is not more evidence than a shallow one.
 ///
+/// `context` is the full owner path of the type declaring `direct`; a
+/// bare base name several in-tree types share is read as the one in the
+/// nearest enclosing namespace where constants resolve lexically.
+///
 /// `accept(base, file)` is asked of every match, with the file whose
 /// declaration names that base (`file` for `direct`): a base is the
 /// framework's only where that file carries its evidence, and a refused
 /// match lets the walk go on to a deeper one.
 fn find_in_base_chain(
     direct: &[String],
+    context: &str,
     file: FileId,
-    by_owner: &HashMap<String, (Vec<String>, FileId)>,
+    by_owner: &HashMap<String, Vec<OwnerBases>>,
     wanted: &[String],
+    lexical: bool,
     accept: &dyn Fn(&str, FileId) -> bool,
 ) -> Option<String> {
-    let mut seen: BTreeSet<String> = BTreeSet::new();
-    let mut frontier: Vec<(String, FileId)> =
-        direct.iter().map(|t| (t.clone(), file)).collect();
+    let mut seen: BTreeSet<(String, String)> = BTreeSet::new();
+    let mut frontier: Vec<(String, String, FileId)> = direct
+        .iter()
+        .map(|t| (t.clone(), context.to_string(), file))
+        .collect();
     for _ in 0..8 {
         if frontier.is_empty() {
             break;
         }
-        let mut next: Vec<(String, FileId)> = Vec::new();
-        for (t, declared_in) in frontier {
-            if !seen.insert(t.clone()) {
+        let mut next: Vec<(String, String, FileId)> = Vec::new();
+        for (t, ctx, declared_in) in frontier {
+            if !seen.insert((t.clone(), ctx.clone())) {
                 continue;
             }
             if base_type_matches(wanted, &t) && accept(&t, declared_in) {
                 return Some(t);
             }
-            // Look the base up by its own last segment, since a
-            // declaration writes `generic.ObjectListView` but the class
-            // is defined as `ObjectListView`.
-            let key = t
-                .split(['<', '['])
-                .next()
-                .unwrap_or(&t)
-                .rsplit(['.', ':', '\\'])
-                .next()
-                .unwrap_or(&t);
-            if let Some((parents, at)) = by_owner.get(key) {
-                next.extend(parents.iter().map(|p| (p.clone(), *at)));
+            for (owner, parents, at) in in_tree_bases(&t, &ctx, by_owner, lexical) {
+                next.extend(parents.iter().map(|p| (p.clone(), owner.to_string(), at)));
             }
         }
         frontier = next;
     }
     None
+}
+
+/// Path segments of a type or owner name, generic arguments dropped:
+/// `Mastodon::CLI::Base` -> `[Mastodon, CLI, Base]`, `\Livewire\Component`
+/// -> `[Livewire, Component]`.
+fn type_segments(t: &str) -> Vec<&str> {
+    let bare = t.split(['<', '[']).next().unwrap_or(t).trim();
+    bare.split(['.', ':', '\\'])
+        .filter(|s| !s.is_empty())
+        .collect()
+}
+
+/// The in-tree types a base written `t` (inside type `ctx`) may name,
+/// looked up by its last segment.
+///
+/// A base written with a namespace path (`ActiveRecord::Base`) refuses a
+/// candidate whose own enclosing namespace contradicts the qualifier
+/// (`Mastodon::CLI::Base`): the qualifier names where the type lives. A
+/// candidate with no namespace of its own (a PHP or Ruby class declared
+/// at top level) is not contradicted. Where constants resolve lexically
+/// (`lexical`), a bare base reads as the type in the nearest enclosing
+/// namespace of `ctx`; elsewhere as every in-tree type of the name.
+fn in_tree_bases<'a>(
+    t: &str,
+    ctx: &str,
+    by_owner: &'a HashMap<String, Vec<OwnerBases>>,
+    lexical: bool,
+) -> Vec<(&'a str, &'a [String], FileId)> {
+    let segs = type_segments(t);
+    let Some(key) = segs.last() else {
+        return Vec::new();
+    };
+    let Some(cands) = by_owner.get(*key) else {
+        return Vec::new();
+    };
+    // Only a `::`/`\\` path names a declared namespace (Ruby, PHP, C++,
+    // Rust). A dotted qualifier is a module or import alias (`generic.
+    // ObjectEditView` through a package re-export), which says nothing
+    // about the file the class is declared in.
+    let written_parent = (t.contains("::") || t.contains('\\'))
+        .then(|| segs.len().checked_sub(2).map(|i| segs[i]))
+        .flatten();
+    let namespace_of = |owner: &'a str| -> Option<Vec<&'a str>> {
+        // Owners read from a trait-impl wrapper or a generic carry no
+        // namespace this comparison can trust.
+        if owner.contains(['<', ' ']) {
+            return None;
+        }
+        let s = type_segments(owner);
+        (s.len() >= 2).then(|| s[..s.len() - 1].to_vec())
+    };
+    let mut kept: Vec<(&'a str, &'a [String], FileId)> = cands
+        .iter()
+        .filter(
+            |(owner, _, _)| match (written_parent, namespace_of(owner)) {
+                (Some(wp), Some(ns)) => ns.last() == Some(&wp),
+                _ => true,
+            },
+        )
+        .map(|(o, b, f)| (o.as_str(), b.as_slice(), *f))
+        .collect();
+    let ctx_segs = type_segments(ctx);
+    // Where a bare constant resolves lexically (Ruby: the enclosing
+    // modules, then the top level), a type in an unrelated namespace is
+    // out of reach: `Base` inside `Chewy::Strategy` is not
+    // `Mastodon::CLI::Base`.
+    if lexical && written_parent.is_none() {
+        kept.retain(|(o, _, _)| {
+            namespace_of(o).is_none_or(|ns| {
+                ns.len() < ctx_segs.len() && ns.iter().zip(&ctx_segs).all(|(a, b)| a == b)
+            })
+        });
+    }
+    // Lexically, the innermost enclosing namespace wins. Elsewhere a bare
+    // name several in-tree types share walks each: which one it means
+    // can turn on an import or a `use … as` alias this index does not
+    // read (Symfony's `Tests\HttpClientTestCase extends
+    // BaseHttpClientTestCase`), and walking only one lost the chain.
+    if lexical && written_parent.is_none() && kept.len() > 1 {
+        let shared = |owner: &'a str| -> usize {
+            namespace_of(owner).map_or(0, |ns| {
+                ns.iter().zip(&ctx_segs).take_while(|(a, b)| a == b).count()
+            })
+        };
+        let best = kept.iter().map(|(o, _, _)| shared(o)).max().unwrap_or(0);
+        if best > 0 {
+            kept.retain(|(o, _, _)| shared(o) == best);
+        }
+    }
+    kept
 }
 
 /// A declared base against a rule's `base_types`: exact names compare
@@ -1977,7 +2233,8 @@ fn find_in_base_chain(
 /// gRPC base of every service is named after the service, so no exact
 /// list can name them.
 fn base_type_matches(wanted: &[String], declared: &str) -> bool {
-    let d = declared.trim();
+    // PHP writes a fully qualified base with a leading `\`.
+    let d = declared.trim().trim_start_matches('\\');
     if matches_ci_or_pattern(wanted, d) {
         return true;
     }
@@ -2068,11 +2325,14 @@ fn match_methods(
         if rule.kind == TrustKind::Test && !harness_file {
             continue;
         }
+        if !file_in_rule_paths(graph, rule, node.file) {
+            continue;
+        }
         let path_match = || {
             ATTR_PATH_QN_LANGS.contains(&node.language.as_str())
                 && method_name_matches(rule, &node.qualified_name)
         };
-        if !(method_name_matches(rule, &node.simple_name) || path_match()) {
+        if !(callable_matches_methods(rule, node) || path_match()) {
             continue;
         }
         // Arduino's core calls the sketch's free `setup()`/`loop()`, never
@@ -3742,6 +4002,36 @@ mod tests {
         assert!(path_matches("config/routes.rb", "config/routes.rb"));
         assert!(path_matches("src/app/controllers/x.rb", "app/controllers/"));
         assert!(!path_matches("app/myurls.py", "urls.py"));
+        assert!(!path_matches("app/controllersx/y.rb", "app/controllers/"));
+        assert!(
+            !path_matches("app/controllers", "app/controllers/"),
+            "a directory marker needs something inside it"
+        );
+    }
+
+    #[test]
+    fn a_directory_marker_matches_before_a_later_same_named_segment() {
+        // The last `lua` of the path is the file extension.
+        assert!(path_matches("x/lua/oil/init.lua", "lua/"));
+        assert!(path_matches("lua/oil/init.lua", "lua/"));
+    }
+
+    #[test]
+    fn a_star_matches_within_one_segment() {
+        assert!(path_matches("lua/oil/init.lua", "lua/*/init.lua"));
+        assert!(path_matches("a/lua/oil/init.lua", "lua/*/init.lua"));
+        assert!(!path_matches("lua/oil/sub/init.lua", "lua/*/init.lua"));
+        assert!(path_matches(
+            "apisix/plugins/limit-req.lua",
+            "apisix/plugins/*.lua"
+        ));
+        assert!(!path_matches(
+            "apisix/plugins/x/y.lua",
+            "apisix/plugins/*.lua"
+        ));
+        assert!(path_matches("au/pkg/update.ps1", "update.ps1"));
+        assert!(path_matches("a/b.install", "*.install"));
+        assert!(!path_matches("a/b.installer", "*.install"));
     }
 
     // --- WS18: harness and framework entries ------------------------------
@@ -4752,19 +5042,196 @@ mod tests {
 
     #[test]
     fn a_cyclic_base_chain_terminates() {
-        let mut map: HashMap<String, (Vec<String>, FileId)> = HashMap::new();
-        map.insert("A".to_string(), (vec!["B".to_string()], FileId::new(0)));
-        map.insert("B".to_string(), (vec!["A".to_string()], FileId::new(0)));
+        let mut map: HashMap<String, Vec<OwnerBases>> = HashMap::new();
+        map.insert(
+            "A".to_string(),
+            vec![("A".to_string(), vec!["B".to_string()], FileId::new(0))],
+        );
+        map.insert(
+            "B".to_string(),
+            vec![("B".to_string(), vec!["A".to_string()], FileId::new(0))],
+        );
         // Two classes naming each other: must return rather than spin.
         assert_eq!(
             find_in_base_chain(
                 &["A".to_string()],
+                "",
                 FileId::new(0),
                 &map,
                 &["Nope".to_string()],
+                false,
                 &|_, _| true
             ),
             None
+        );
+    }
+
+    #[test]
+    fn a_qualified_base_does_not_walk_into_a_same_named_type_of_another_namespace() {
+        let mut map: HashMap<String, Vec<OwnerBases>> = HashMap::new();
+        map.insert(
+            "Base".to_string(),
+            vec![(
+                "Mastodon::CLI::Base".to_string(),
+                vec!["Thor".to_string()],
+                FileId::new(0),
+            )],
+        );
+        map.insert(
+            "ApplicationRecord".to_string(),
+            vec![(
+                "ApplicationRecord".to_string(),
+                vec!["ActiveRecord::Base".to_string()],
+                FileId::new(0),
+            )],
+        );
+        let thor = ["Thor".to_string()];
+        // `Account < ApplicationRecord < ActiveRecord::Base` is no command.
+        assert_eq!(
+            find_in_base_chain(
+                &["ApplicationRecord".to_string()],
+                "Account",
+                FileId::new(0),
+                &map,
+                &thor,
+                false,
+                &|_, _| true
+            ),
+            None
+        );
+        // A bare or matching qualifier still reaches it, and a dotted
+        // qualifier is a module alias, never a contradiction.
+        assert_eq!(
+            find_in_base_chain(
+                &["views.Base".to_string()],
+                "x.Y",
+                FileId::new(0),
+                &map,
+                &thor,
+                false,
+                &|_, _| true
+            ),
+            Some("Thor".to_string())
+        );
+        assert_eq!(
+            find_in_base_chain(
+                &["Base".to_string()],
+                "Mastodon::CLI::Accounts",
+                FileId::new(0),
+                &map,
+                &thor,
+                true,
+                &|_, _| true
+            ),
+            Some("Thor".to_string())
+        );
+        // Ruby reads a bare `Base` through the enclosing modules only:
+        // inside `Chewy::Strategy` it is not `Mastodon::CLI::Base`.
+        assert_eq!(
+            find_in_base_chain(
+                &["Base".to_string()],
+                "Chewy::Strategy::Mastodon",
+                FileId::new(0),
+                &map,
+                &thor,
+                true,
+                &|_, _| true
+            ),
+            None
+        );
+        assert_eq!(
+            find_in_base_chain(
+                &["CLI::Base".to_string()],
+                "Mastodon::X",
+                FileId::new(0),
+                &map,
+                &thor,
+                false,
+                &|_, _| true
+            ),
+            Some("Thor".to_string())
+        );
+    }
+
+    #[test]
+    fn a_bare_base_prefers_the_type_in_the_nearest_namespace() {
+        let mut map: HashMap<String, Vec<OwnerBases>> = HashMap::new();
+        map.insert(
+            "Base".to_string(),
+            vec![
+                (
+                    "Admin::Base".to_string(),
+                    vec!["Thor".to_string()],
+                    FileId::new(0),
+                ),
+                (
+                    "Api::Base".to_string(),
+                    vec!["Grape::API".to_string()],
+                    FileId::new(0),
+                ),
+                ("Base".to_string(), vec!["Thor".to_string()], FileId::new(0)),
+            ],
+        );
+        let thor = ["Thor".to_string()];
+        // Lexically (Ruby), `Base` inside `Api` is `Api::Base`.
+        assert_eq!(
+            find_in_base_chain(
+                &["Base".to_string()],
+                "Api::Users",
+                FileId::new(0),
+                &map,
+                &thor,
+                true,
+                &|_, _| true
+            ),
+            None
+        );
+        assert_eq!(
+            find_in_base_chain(
+                &["Base".to_string()],
+                "Admin::Users",
+                FileId::new(0),
+                &map,
+                &thor,
+                true,
+                &|_, _| true
+            ),
+            Some("Thor".to_string())
+        );
+    }
+
+    #[test]
+    fn a_bare_base_shared_by_several_types_walks_each_where_lookup_is_not_lexical() {
+        // PHP: `Tests\HttpClientTestCase extends BaseHttpClientTestCase`
+        // (a `use … as` alias) and `Contracts\HttpClientTestCase extends
+        // TestCase`. Keeping only one copy lost every test of the other.
+        let mut map: HashMap<String, Vec<OwnerBases>> = HashMap::new();
+        map.insert(
+            "HttpClientTestCase".to_string(),
+            vec![
+                (
+                    "Contracts\\HttpClientTestCase".to_string(),
+                    vec!["TestCase".to_string()],
+                    FileId::new(0),
+                ),
+                (
+                    "Tests\\HttpClientTestCase".to_string(),
+                    vec!["BaseHttpClientTestCase".to_string()],
+                    FileId::new(0),
+                ),
+            ],
+        );
+        assert_eq!(
+            find_in_base_chain(
+                &["HttpClientTestCase".to_string()],
+                "Tests\\AmpHttpClientTest",
+                FileId::new(0),
+                &map,
+                &["TestCase".to_string()],
+                false,
+                &|_, _| true
+            ),
+            Some("TestCase".to_string())
         );
     }
 

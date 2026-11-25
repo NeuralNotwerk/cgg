@@ -156,6 +156,55 @@ const LIFECYCLE: &[(&str, &[&str])] = &[
         ],
     ),
     ("objc", &["viewDidLoad", "applicationDidFinishLaunching"]),
+    // perl calls these itself: destruction, `AUTOLOAD` for an undefined
+    // method, `import`/`unimport` on `use`/`no`, `CLONE` on a new thread
+    // (perlobj, perlmod), and the tie interface on a tied variable
+    // (perltie). Compared exactly, so `destroy` stays reportable.
+    (
+        "perl",
+        &[
+            "DESTROY",
+            "AUTOLOAD",
+            "import",
+            "unimport",
+            "CLONE",
+            "CLONE_SKIP",
+            "TIESCALAR",
+            "TIEARRAY",
+            "TIEHASH",
+            "TIEHANDLE",
+            "FETCH",
+            "STORE",
+            "FETCHSIZE",
+            "STORESIZE",
+            "EXISTS",
+            "DELETE",
+            "CLEAR",
+            "FIRSTKEY",
+            "NEXTKEY",
+            "SCALAR",
+            "UNTIE",
+            "PUSH",
+            "POP",
+            "SHIFT",
+            "UNSHIFT",
+            "SPLICE",
+            "EXTEND",
+            "PRINT",
+            "PRINTF",
+            "WRITE",
+            "READLINE",
+            "GETC",
+            "READ",
+            "CLOSE",
+            "BINMODE",
+            "OPEN",
+            "EOF",
+            "FILENO",
+            "SEEK",
+            "TELL",
+        ],
+    ),
 ];
 
 /// Dunder / conventional names invoked by the language runtime.
@@ -345,12 +394,13 @@ pub fn attribute_string_arg(attr: &str) -> Option<String> {
     None
 }
 
-/// Last `.`/`::`-separated segment of an attribute key: the verb.
+/// Last `.`/`::`/`\`-separated segment of an attribute key: the verb.
 /// `app.route` -> `route`, `org.springframework.GetMapping` ->
-/// `GetMapping`, `get` -> `get`.
+/// `GetMapping`, `get` -> `get`, PHP `ORM\PrePersist` and
+/// `\Doctrine\ORM\Mapping\PreUpdate` -> `PrePersist`, `PreUpdate`.
 pub fn attribute_verb(attr: &str) -> &str {
     let key = attribute_key(attr);
-    key.rsplit(['.', ':']).next().unwrap_or(key)
+    key.rsplit(['.', ':', '\\']).next().unwrap_or(key)
 }
 
 fn has_attr(attrs: &[String], wanted: &[&str]) -> Option<String> {
@@ -741,6 +791,9 @@ pub(crate) fn discover(
     // (`.free = mod.free`, `.deinit = Self.deinit`) names the function of
     // the file that `@import` gives the module, or of this file.
     zig_qualified_toplevel(graph, facts, &mut set, &mut seen);
+    // Julia: `function Tables.columns(t::T)` extends a generic of a module
+    // the tree imports and does not declare; only that module calls it.
+    julia_external_generics(graph, facts, &mut set, &mut seen);
 
     // --- Rule: C-family macro invoked outside any function -------------
     //
@@ -1340,6 +1393,80 @@ fn normalize_path(p: &std::path::Path) -> std::path::PathBuf {
         }
     }
     out
+}
+
+/// Julia methods that extend a generic function of an external module:
+/// a definition named `M.f` (`function Logging.handle_message(…)`,
+/// `Tables.columns(t::T) = …`) where `M` is a module some Julia file of
+/// the tree imports (`using`/`import`, path head or alias), or `Base` /
+/// `Core`, and no module of the tree is named `M`. The module's generic
+/// dispatches to it; no call in the tree names the method itself.
+fn julia_external_generics(
+    graph: &Graph,
+    facts: &[FileFacts],
+    set: &mut RootSet,
+    seen: &mut HashSet<CallableId>,
+) {
+    let jl: Vec<&FileFacts> = facts.iter().filter(|f| f.language == "julia").collect();
+    if jl.is_empty() {
+        return;
+    }
+    let mut imported: HashSet<&str> = ["Base", "Core"].into_iter().collect();
+    for f in &jl {
+        for i in &f.imports {
+            if !matches!(i.kind.as_str(), "using" | "import") {
+                continue;
+            }
+            let path = i.path.trim();
+            if path.starts_with('.') {
+                continue; // a relative import names a module of the tree
+            }
+            if let Some(head) = path.split(['.', ':', ' ', ',']).next()
+                && !head.is_empty()
+            {
+                imported.insert(head);
+            }
+            if !i.alias.is_empty() {
+                imported.insert(i.alias.as_str());
+            }
+        }
+    }
+    // Modules the tree declares: the scope segments of every qualified name.
+    let mut tree_modules: HashSet<&str> = HashSet::new();
+    for n in graph.callables.values() {
+        if n.language != "julia" {
+            continue;
+        }
+        if let Some(scope) = n
+            .qualified_name
+            .strip_suffix(n.simple_name.as_str())
+            .map(|s| s.trim_end_matches('.'))
+        {
+            tree_modules.extend(scope.split('.').filter(|s| !s.is_empty()));
+        }
+    }
+    let mut hits: Vec<(CallableId, &str)> = Vec::new();
+    for (id, n) in &graph.callables {
+        if n.language != "julia" || n.synthetic {
+            continue;
+        }
+        let Some((head, _)) = n.simple_name.split_once('.') else {
+            continue;
+        };
+        if imported.contains(head) && !tree_modules.contains(head) {
+            hits.push((*id, head));
+        }
+    }
+    for (id, head) in hits {
+        set.push(
+            graph,
+            id,
+            RootKind::LifecycleCallback,
+            "julia:external-generic",
+            format!("extends a generic function of the external module `{head}`"),
+            seen,
+        );
+    }
 }
 
 fn clojure_qualified_toplevel(

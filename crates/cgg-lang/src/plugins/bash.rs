@@ -13,10 +13,48 @@ impl LanguagePlugin for BashPlugin {
         "bash"
     }
     fn extensions(&self) -> &'static [&'static str] {
-        &[".sh", ".bash"]
+        // `.bats`: bats-core test files, Bash plus `@test` blocks.
+        &[".sh", ".bash", ".bats"]
     }
     fn shebangs(&self) -> &'static [&'static str] {
-        &["bash", "sh", "zsh", "dash", "ksh", "mksh", "ash"]
+        &["bash", "sh", "zsh", "dash", "ksh", "mksh", "ash", "bats"]
+    }
+    /// makepkg's build script has no extension or shebang.
+    fn filenames(&self) -> &'static [&'static str] {
+        &["PKGBUILD"]
+    }
+    /// bats-core's `@test "description" {` opens a test body the Bash
+    /// grammar reads as a command named `@test` followed by loose
+    /// statements. bats itself rewrites the line into a function
+    /// definition before running it; this does the same, same length, so
+    /// the body parses as one function the walker names
+    /// `handler_at_<line>` (see [`bats_test_header`]).
+    fn parse_source(&self, _path: &Path, source: &[u8]) -> Option<Vec<u8>> {
+        if !source.windows(5).any(|w| w == b"@test") {
+            return None;
+        }
+        let mut out = source.to_vec();
+        let mut changed = false;
+        let mut start = 0;
+        while start < source.len() {
+            let end = source[start..]
+                .iter()
+                .position(|&b| b == b'\n')
+                .map_or(source.len(), |i| start + i);
+            if let Some((at, brace, _)) = bats_test_header(&source[start..end]) {
+                // `@test "d" {` -> `t______(){`: a name, `()`, the brace kept.
+                let (from, to) = (start + at, start + brace);
+                out[from] = b't';
+                for b in &mut out[from + 1..to - 2] {
+                    *b = b'_';
+                }
+                out[to - 2] = b'(';
+                out[to - 1] = b')';
+                changed = true;
+            }
+            start = end + 1;
+        }
+        changed.then_some(out)
     }
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_bash::LANGUAGE.into()
@@ -31,18 +69,47 @@ impl LanguagePlugin for BashPlugin {
         source: &[u8],
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "bash");
+        let bats = path.extension().is_some_and(|e| e == "bats")
+            || source.split(|&b| b == b'\n').next().is_some_and(|l| {
+                l.starts_with(b"#!") && l.windows(4).any(|w| w == b"bats")
+            });
         let mut w = BashWalker {
             source,
             facts: &mut facts,
+            bats,
         };
         w.walk(tree.root_node());
         facts
     }
 }
 
+/// A bats-core test header line, `@test "description" {` (leading blanks
+/// allowed, anything after the brace kept by bats as the body's first
+/// line): the byte offsets of the `@`, of the opening `{`, and the
+/// description unquoted. The rewrite needs at least three bytes before
+/// the brace for `t()`, which `@test ` alone provides.
+fn bats_test_header(line: &[u8]) -> Option<(usize, usize, String)> {
+    let at = line.iter().position(|b| !b.is_ascii_whitespace())?;
+    let rest = line.get(at..)?;
+    if !rest.starts_with(b"@test")
+        || !rest.get(5).is_some_and(|b| *b == b' ' || *b == b'\t')
+    {
+        return None;
+    }
+    // The last `{` preceded by a blank opens the body (bats' own rule).
+    let brace = (at + 6..line.len())
+        .rev()
+        .find(|&i| line[i] == b'{' && (line[i - 1] == b' ' || line[i - 1] == b'\t'))?;
+    let desc = std::str::from_utf8(&line[at + 5..brace]).ok()?.trim();
+    let desc = super::registrar::unquote(desc);
+    Some((at, brace, desc))
+}
+
 struct BashWalker<'a> {
     source: &'a [u8],
     facts: &'a mut FileFacts,
+    /// A bats-core test file, where `run cmd …` calls `cmd`.
+    bats: bool,
 }
 
 impl<'a> BashWalker<'a> {
@@ -85,6 +152,9 @@ impl<'a> BashWalker<'a> {
     }
 
     fn record_function(&mut self, node: Node) {
+        if self.record_bats_test(node) {
+            return;
+        }
         let name = node
             .child_by_field_name("name")
             .map(|n| self.text(n).to_string())
@@ -109,6 +179,53 @@ impl<'a> BashWalker<'a> {
             attributes: Vec::new(),
             ..Default::default()
         });
+    }
+
+    /// A bats `@test` block (parsed as a function through
+    /// [`BashPlugin::parse_source`]): minted as `handler_at_<line>`, with a
+    /// reference carrying `@test` as its registering context and the
+    /// description as its route, the shape every harness rule reads.
+    fn record_bats_test(&mut self, node: Node) -> bool {
+        let line_start = self.source[..node.start_byte()]
+            .iter()
+            .rposition(|&b| b == b'\n')
+            .map_or(0, |i| i + 1);
+        let line_end = self.source[node.start_byte()..]
+            .iter()
+            .position(|&b| b == b'\n')
+            .map_or(self.source.len(), |i| node.start_byte() + i);
+        let Some((at, _, desc)) = bats_test_header(&self.source[line_start..line_end])
+        else {
+            return false;
+        };
+        if line_start + at != node.start_byte() {
+            return false;
+        }
+        let line = (node.start_position().row as u32) + 1;
+        let simple = format!("handler_at_{line}");
+        self.facts.definitions.push(DefRecord {
+            simple_name: simple.clone(),
+            qualified_name: simple.clone(),
+            variant: DefVariant::NamedClosure,
+            start_line: line,
+            end_line: (node.end_position().row as u32) + 1,
+            start_byte: node.start_byte() as u32,
+            end_byte: node.end_byte() as u32,
+            signature_hint: super::extract_signature(self.text(node)),
+            visibility: String::new(),
+            attributes: vec!["synthetic".to_string()],
+            ..Default::default()
+        });
+        self.facts.references.push(RefRecord {
+            name: simple,
+            receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+            site_line: line,
+            site_byte: node.start_byte() as u32,
+            context: "@test".to_string(),
+            route: desc,
+            ..Default::default()
+        });
+        true
     }
 
     fn record_command(&mut self, node: Node) {
@@ -197,6 +314,18 @@ impl<'a> BashWalker<'a> {
             return;
         }
 
+        // bats' `run [-N] [--separate-stderr] [!] cmd args…` calls `cmd`.
+        let run_target = (self.bats && name == "run")
+            .then(|| {
+                let mut c = node.walk();
+                node.children_by_field_name("argument", &mut c)
+                    .find(|a| {
+                        let t = self.text(*a);
+                        a.kind() == "word" && !t.starts_with('-') && t != "!"
+                    })
+                    .map(|a| (self.text(a).to_string(), a))
+            })
+            .flatten();
         self.facts.references.push(RefRecord {
             name,
             receiver_hint: String::new(),
@@ -204,6 +333,15 @@ impl<'a> BashWalker<'a> {
             site_byte: node.start_byte() as u32,
             ..Default::default()
         });
+        if let Some((target, a)) = run_target {
+            self.facts.references.push(RefRecord {
+                name: target,
+                receiver_hint: String::new(),
+                site_line: (a.start_position().row as u32) + 1,
+                site_byte: a.start_byte() as u32,
+                ..Default::default()
+            });
+        }
     }
 
     fn check_source(&mut self, _node: Node) {
@@ -229,6 +367,77 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    fn extract_rewritten(src: &str) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_bash::LANGUAGE.into()).unwrap();
+        let parsed = BashPlugin
+            .parse_source(Path::new("t.bats"), src.as_bytes())
+            .unwrap_or_else(|| src.as_bytes().to_vec());
+        assert_eq!(parsed.len(), src.len(), "the rewrite keeps every offset");
+        let tree = p.parse(&parsed, None).unwrap();
+        BashPlugin.extract(
+            &crate::ExtractCtx::plain(),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/x.bats"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    #[test]
+    fn bats_test_blocks_are_minted_as_handlers_with_their_description() {
+        let src = "#!/usr/bin/env bats\nload test_helper\nsetup() {\n  x=1\n}\n\
+                   @test \"adds two\" {\n  run add 1 2\n}\n\
+                   \t@test 'other — é' {\n  helper\n}\n";
+        let f = extract_rewritten(src);
+        let defs: Vec<(&str, u32, u32)> = f
+            .definitions
+            .iter()
+            .map(|d| (d.simple_name.as_str(), d.start_line, d.end_line))
+            .collect();
+        assert_eq!(
+            defs,
+            vec![
+                ("setup", 3, 5),
+                ("handler_at_6", 6, 8),
+                ("handler_at_9", 9, 11)
+            ]
+        );
+        let routes: Vec<(&str, &str)> = f
+            .references
+            .iter()
+            .filter(|r| r.context == "@test")
+            .map(|r| (r.name.as_str(), r.route.as_str()))
+            .collect();
+        assert_eq!(
+            routes,
+            vec![("handler_at_6", "adds two"), ("handler_at_9", "other — é")]
+        );
+        // The body's commands are calls made from the test.
+        assert!(f.references.iter().any(|r| r.name == "add"));
+        assert!(f.references.iter().any(|r| r.name == "helper"));
+        // `@test` itself and its closing brace are not calls.
+        assert!(
+            !f.references
+                .iter()
+                .any(|r| r.name == "@test" || r.name == "}")
+        );
+    }
+
+    #[test]
+    fn a_file_without_bats_tests_is_parsed_as_written() {
+        assert!(
+            BashPlugin
+                .parse_source(Path::new("t.bats"), b"echo '@test'\n")
+                .is_none()
+        );
+        assert!(
+            BashPlugin
+                .parse_source(Path::new("t.bats"), b"f() { :; }\n")
+                .is_none()
+        );
     }
 
     #[test]

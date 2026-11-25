@@ -18,13 +18,19 @@ impl LanguagePlugin for JuliaPlugin {
     fn shebangs(&self) -> &'static [&'static str] {
         &["julia"]
     }
+    fn signals(&self) -> crate::PluginSignals {
+        crate::PluginSignals {
+            value_refs: true,
+            ..Default::default()
+        }
+    }
     fn ts_language(&self) -> tree_sitter::Language {
         tree_sitter_julia::LANGUAGE.into()
     }
 
     fn extract(
         &self,
-        _ctx: &crate::ExtractCtx<'_>,
+        ctx: &crate::ExtractCtx<'_>,
         file: FileId,
         path: &Path,
         tree: &Tree,
@@ -32,9 +38,11 @@ impl LanguagePlugin for JuliaPlugin {
     ) -> FileFacts {
         let mut facts = FileFacts::new(file, path.to_path_buf(), "julia");
         let mut w = JuliaWalker {
+            ctx,
             source,
             facts: &mut facts,
             scope: Vec::new(),
+            in_signature: false,
         };
         w.walk(tree.root_node());
         facts
@@ -42,9 +50,12 @@ impl LanguagePlugin for JuliaPlugin {
 }
 
 struct JuliaWalker<'a> {
+    ctx: &'a crate::ExtractCtx<'a>,
     source: &'a [u8],
     facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// Inside a function signature: its parameters are no values.
+    in_signature: bool,
 }
 
 impl<'a> JuliaWalker<'a> {
@@ -61,6 +72,9 @@ impl<'a> JuliaWalker<'a> {
     }
 
     fn walk(&mut self, node: Node) {
+        if self.ctx.reference_sites && !self.in_signature {
+            self.capture_value_positions(node);
+        }
         match node.kind() {
             "module_definition" => {
                 if let Some(name_node) = node.child_by_field_name("name") {
@@ -137,7 +151,9 @@ impl<'a> JuliaWalker<'a> {
                 if let Some(lhs) = node.named_child(0).map(short_form_head)
                     && lhs.kind() == "call_expression"
                     && let Some(name_node) = lhs.named_child(0)
-                    && name_node.kind() == "identifier"
+                    && (name_node.kind() == "identifier"
+                        || (name_node.kind() == "field_expression"
+                            && is_dotted_name(name_node)))
                 {
                     let name = self.text(name_node).to_string();
                     if !name.is_empty() {
@@ -159,6 +175,23 @@ impl<'a> JuliaWalker<'a> {
             }
             "call_expression" => {
                 self.record_call(node);
+                if let Some(callee) = node.named_child(0) {
+                    let context = self.text(callee).to_string();
+                    self.capture_registrar(node, &context);
+                }
+                self.walk_children(node);
+                return;
+            }
+            // `@get "/x" function(req) … end`, `@get("/y", handler)`: a
+            // macro registering a handler (Oxygen's routes, `@cron`).
+            "macrocall_expression" => {
+                if let Some(m) = node
+                    .named_child(0)
+                    .filter(|m| m.kind() == "macro_identifier")
+                {
+                    let context = self.text(m).trim_start_matches('@').to_string();
+                    self.capture_registrar(node, &context);
+                }
                 self.walk_children(node);
                 return;
             }
@@ -167,9 +200,220 @@ impl<'a> JuliaWalker<'a> {
         self.walk_children(node);
     }
 
+    /// Functions used as values, when the run records reference sites: a
+    /// call's or macro's argument (positional or keyword: `ODEProblem(f!,
+    /// u0)`, `solve(p; callback = cb)`), the right side of `=`, a
+    /// `return`'s value, vector and tuple elements and a pair's value
+    /// (`"a" => f`). Recorded as the call would be — `f` bare, `M.f`
+    /// whole — marked `value_ref`. Names a local or parameter binds are
+    /// dropped through the Julia locals (`value_refs::prune`).
+    fn capture_value_positions(&mut self, node: Node) {
+        let mut values: Vec<Node> = Vec::new();
+        match node.kind() {
+            "argument_list" | "macro_argument_list" => {
+                // A do-block's or an anonymous function's parameter list
+                // binds names; it holds no values.
+                if node.parent().is_some_and(|p| {
+                    matches!(
+                        p.kind(),
+                        "do_clause" | "signature" | "arrow_function_expression"
+                    )
+                }) {
+                    return;
+                }
+                let mut c = node.walk();
+                for ch in node.named_children(&mut c) {
+                    if ch.kind() == "named_argument" {
+                        let n = ch.named_child_count();
+                        if n >= 2
+                            && let Some(v) = ch.named_child(n as u32 - 1)
+                        {
+                            values.push(v);
+                        }
+                    } else {
+                        values.push(ch);
+                    }
+                }
+            }
+            "assignment" => {
+                // `f(x) = …` defines; only a plain binding's value counts.
+                if node
+                    .named_child(0)
+                    .map(short_form_head)
+                    .is_some_and(|l| l.kind() == "call_expression")
+                {
+                    return;
+                }
+                let n = node.named_child_count();
+                if n >= 2
+                    && let Some(v) = node.named_child(n as u32 - 1)
+                {
+                    values.push(v);
+                }
+            }
+            "return_statement" | "vector_expression" | "tuple_expression" => {
+                let mut c = node.walk();
+                values.extend(node.named_children(&mut c));
+            }
+            "binary_expression" => {
+                if node
+                    .child_by_field_name("operator")
+                    .or_else(|| node.child(1))
+                    .is_some_and(|o| self.text(o) == "=>")
+                    && let Some(v) = node.named_child(node.named_child_count() as u32 - 1)
+                {
+                    values.push(v);
+                }
+            }
+            _ => return,
+        }
+        for v in values {
+            if let Some(name) = self.value_name(v) {
+                self.facts.references.push(RefRecord {
+                    name,
+                    receiver_hint: String::new(),
+                    site_line: (v.start_position().row as u32) + 1,
+                    site_byte: v.start_byte() as u32,
+                    value_ref: true,
+                    ..Default::default()
+                });
+            }
+        }
+    }
+
+    /// The function a value position names: a bare identifier or a dotted
+    /// path (`M.f`), written as a call to it would be.
+    fn value_name(&self, v: Node) -> Option<String> {
+        let ok = match v.kind() {
+            "identifier" => true,
+            "field_expression" => is_dotted_name(v),
+            _ => false,
+        };
+        if !ok {
+            return None;
+        }
+        let t = self.text(v).trim();
+        // `nothing`, `true`, `missing` and friends are no functions.
+        if t.is_empty() || matches!(t, "nothing" | "missing" | "true" | "false" | "end") {
+            return None;
+        }
+        Some(t.to_string())
+    }
+
+    /// Capture the argument slots of a registration-shaped call or macro —
+    /// shapes B and C of the framework design: `route("/p", handler)`,
+    /// `HTTP.register!(r, "GET", "/p", handler)`, `@get "/x" function(req)
+    /// … end`, `route("/w") do … end`. Gated on the registrar verb; the
+    /// rule engine gates every record on detected imports.
+    fn capture_registrar(&mut self, node: Node, context: &str) {
+        let verb = super::registrar::last_segment(context);
+        if !self.ctx.is_registrar_verb(verb) {
+            return;
+        }
+        let mut items: Vec<Node> = Vec::new();
+        let mut do_clause: Option<Node> = None;
+        let mut c = node.walk();
+        for ch in node.named_children(&mut c) {
+            match ch.kind() {
+                "argument_list" | "macro_argument_list" => {
+                    let mut c2 = ch.walk();
+                    for a in ch.named_children(&mut c2) {
+                        if a.kind() == "named_argument" {
+                            let n = a.named_child_count();
+                            if n >= 2
+                                && let Some(v) = a.named_child(n as u32 - 1)
+                            {
+                                items.push(v);
+                            }
+                        } else {
+                            items.push(a);
+                        }
+                    }
+                }
+                "do_clause" => do_clause = Some(ch),
+                _ => {}
+            }
+        }
+        // The route: the leading literals, joined (`GET /p`), else the
+        // first number (`@repeat 5 …`).
+        let strings: Vec<String> = items
+            .iter()
+            .filter(|n| n.kind() == "string_literal")
+            .map(|n| super::registrar::unquote(self.text(*n)))
+            .filter(|s| !s.is_empty())
+            .take(2)
+            .collect();
+        let route = if strings.is_empty() {
+            items
+                .iter()
+                .find(|n| matches!(n.kind(), "integer_literal" | "float_literal"))
+                .map(|n| self.text(*n).to_string())
+                .unwrap_or_default()
+        } else {
+            strings.join(" ")
+        };
+        let mut out: Vec<RefRecord> = Vec::new();
+        for arg in &items {
+            if let Some(name) = self.value_name(*arg) {
+                out.push(RefRecord {
+                    name,
+                    receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                    site_line: (arg.start_position().row as u32) + 1,
+                    site_byte: arg.start_byte() as u32,
+                    context: context.to_string(),
+                    route: route.clone(),
+                    ..Default::default()
+                });
+            }
+        }
+        self.facts.references.extend(out);
+        if route.is_empty() {
+            return;
+        }
+        let closures = items
+            .iter()
+            .copied()
+            .filter(|n| is_anonymous_function(*n))
+            .chain(do_clause);
+        for arg in closures.collect::<Vec<_>>() {
+            let line = (arg.start_position().row as u32) + 1;
+            let simple = format!("handler_at_{line}");
+            let qn = self.qn(&simple);
+            self.facts.definitions.push(DefRecord {
+                simple_name: simple.clone(),
+                qualified_name: qn,
+                variant: DefVariant::NamedClosure,
+                start_line: line,
+                end_line: (arg.end_position().row as u32) + 1,
+                start_byte: arg.start_byte() as u32,
+                end_byte: arg.end_byte() as u32,
+                signature_hint: super::extract_signature(self.text(arg)),
+                visibility: String::new(),
+                attributes: vec!["synthetic".to_string()],
+                ..Default::default()
+            });
+            self.facts.references.push(RefRecord {
+                name: simple,
+                receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                site_line: line,
+                site_byte: arg.start_byte() as u32,
+                context: context.to_string(),
+                route: route.clone(),
+                ..Default::default()
+            });
+        }
+    }
+
     /// Walk a function signature without its head: the outermost call
     /// (`foo(x = g())`) contributes its arguments, never itself.
     fn walk_signature(&mut self, node: Node) {
+        let outer = self.in_signature;
+        self.in_signature = true;
+        self.walk_signature_inner(node);
+        self.in_signature = outer;
+    }
+
+    fn walk_signature_inner(&mut self, node: Node) {
         if node.kind() == "call_expression" {
             for i in 1..node.child_count() {
                 if let Some(ch) = node.child(i as u32) {
@@ -180,7 +424,7 @@ impl<'a> JuliaWalker<'a> {
         }
         let mut c = node.walk();
         for child in node.children(&mut c) {
-            self.walk_signature(child);
+            self.walk_signature_inner(child);
         }
     }
 
@@ -274,6 +518,33 @@ impl<'a> JuliaWalker<'a> {
     }
 }
 
+/// Whether a `field_expression` is a plain dotted name (`M.f`, `A.B.f`),
+/// not a field of a call result or an indexed value.
+fn is_dotted_name(n: Node) -> bool {
+    match n.kind() {
+        "identifier" => true,
+        "field_expression" => {
+            let mut c = n.walk();
+            n.named_children(&mut c).all(is_dotted_name)
+        }
+        _ => false,
+    }
+}
+
+/// An anonymous function written as an argument: `function(req) … end`,
+/// `req -> …`.
+fn is_anonymous_function(n: Node) -> bool {
+    match n.kind() {
+        "arrow_function_expression" => true,
+        "function_definition" => !n.named_children(&mut n.walk()).any(|c| {
+            c.kind() == "signature"
+                && c.named_child(0)
+                    .is_some_and(|h| h.kind() != "argument_list")
+        }),
+        _ => false,
+    }
+}
+
 /// The signature of a short-form method under its type parameters or
 /// return type: `f(x::T) where {T} = …` and `f(x)::Int = …` are the
 /// methods `f(x::T)` and `f(x)`. Anything else is returned unchanged.
@@ -309,6 +580,92 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    fn extract_with_refs(src: &str) -> FileFacts {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_julia::LANGUAGE.into()).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        JuliaPlugin.extract(
+            &crate::ExtractCtx::plain().with_reference_sites(true),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/X.jl"),
+            &tree,
+            src.as_bytes(),
+        )
+    }
+
+    fn value_refs(f: &FileFacts) -> Vec<String> {
+        f.references
+            .iter()
+            .filter(|r| r.value_ref)
+            .map(|r| r.name.clone())
+            .collect()
+    }
+
+    #[test]
+    fn functions_passed_as_values_are_reference_sites() {
+        let src = "function lorenz!(du, u, p, t) end\n\
+                   prob = ODEProblem(lorenz!, u0, tspan; callback = cb, f = M.g)\n\
+                   x = handler\n\
+                   y = [f1, f2]\n\
+                   z = (\"a\" => h, k)\n\
+                   function mk(q)\n  return q2\nend\n";
+        let got = value_refs(&extract_with_refs(src));
+        for want in [
+            "lorenz!", "cb", "M.g", "handler", "f1", "f2", "h", "k", "q2",
+        ] {
+            assert!(got.iter().any(|g| g == want), "{want}: {got:?}");
+        }
+        // Parameters are bindings, not values.
+        for not in ["du", "q", "ODEProblem", "mk"] {
+            assert!(!got.iter().any(|g| g == not), "{not}: {got:?}");
+        }
+        assert!(
+            value_refs(&extract(src)).is_empty(),
+            "off without reference sites"
+        );
+    }
+
+    #[test]
+    fn a_qualified_short_form_method_is_a_definition() {
+        let f = extract("Logging.shouldlog(l::MyLogger, args...) = true\n");
+        assert_eq!(defs(&f), vec!["Logging.shouldlog"]);
+        assert!(refs(&f).is_empty(), "{:?}", refs(&f));
+    }
+
+    #[test]
+    fn route_registrations_capture_handlers_and_inline_closures() {
+        let src = "HTTP.register!(r, \"GET\", \"/p\", serve_asset)\n\
+                   route(\"/z\", hz)\n\
+                   route(\"/w\") do\n  1\nend\n\
+                   @get \"/x\" function(req) 1 end\n\
+                   @post(\"/y\", hy)\n";
+        let f = extract(src);
+        let reg: Vec<(String, String, String)> = f
+            .references
+            .iter()
+            .filter(|r| r.receiver_hint == cgg_core::VALUE_REF_HINT)
+            .map(|r| (r.name.clone(), r.context.clone(), r.route.clone()))
+            .collect();
+        let has = |n: &str, c: &str, rt: &str| {
+            reg.iter()
+                .any(|(a, b, d)| a.starts_with(n) && b == c && d == rt)
+        };
+        assert!(has("serve_asset", "HTTP.register!", "GET /p"), "{reg:?}");
+        assert!(has("hz", "route", "/z"), "{reg:?}");
+        assert!(has("handler_at_3", "route", "/w"), "{reg:?}");
+        assert!(has("handler_at_6", "get", "/x"), "{reg:?}");
+        assert!(has("hy", "post", "/y"), "{reg:?}");
+        assert!(
+            f.definitions
+                .iter()
+                .filter(|d| d.simple_name.starts_with("handler_at_"))
+                .count()
+                == 2,
+            "{:?}",
+            defs(&f)
+        );
     }
 
     fn defs(f: &FileFacts) -> Vec<String> {

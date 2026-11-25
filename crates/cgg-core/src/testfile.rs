@@ -155,8 +155,12 @@ pub fn classify_test_file(path: &Path, language: &str) -> Option<TestFileReason>
             .any(|s| lower.ends_with(s)),
         // `terraform test`.
         "hcl" => lower.ends_with(".tftest.hcl"),
-        // shUnit2.
-        "bash" => lower.ends_with("_test.sh"),
+        // shUnit2; bats-core runs `*.bats` and its `setup_suite.bash`.
+        "bash" => {
+            lower.ends_with("_test.sh")
+                || lower.ends_with(".bats")
+                || lower == "setup_suite.bash"
+        }
         "zig" => lower.ends_with("_test.zig"),
         // `Pkg.test` runs `test/runtests.jl`.
         "julia" => name == "runtests.jl",
@@ -240,6 +244,8 @@ mod tests {
             ("src/app/core_test.clj", "clojure"),
             ("main.tftest.hcl", "hcl"),
             ("lib/util_test.sh", "bash"),
+            ("libexec/pyenv.bats", "bash"),
+            ("suite/setup_suite.bash", "bash"),
             ("src/parse_test.zig", "zig"),
             ("runtests.jl", "julia"),
             ("src/a.test.mts", "typescript"),

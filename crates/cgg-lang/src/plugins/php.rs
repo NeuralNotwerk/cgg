@@ -423,6 +423,68 @@ impl<'a> PhpWalker<'a> {
         // needs `add_action('hook', 'fn')`. All three arrive here.
         let extra = super::registrar::capture(&self.ctx, node, self.source, &context);
         self.facts.references.extend(extra);
+        self.extract_inline_handlers(node, &context);
+    }
+}
+
+impl PhpWalker<'_> {
+    /// Name the closures a registrar call hands off — Pest's
+    /// `it('works', function () { … })`, `beforeEach(fn () => …)` — so a
+    /// rule has a callable to enter: `handler_at_<line>`, routed by the
+    /// call's leading string. Gated on the registrar verb (a harness verb
+    /// only in a test file), exactly as Ruby's blocks and JavaScript's
+    /// callbacks are, so `array_map(fn …)` mints nothing.
+    fn extract_inline_handlers(&mut self, call: Node, context: &str) {
+        if !super::registrar::admits(&self.ctx, context) {
+            return;
+        }
+        let Some(args) = call.child_by_field_name("arguments") else {
+            return;
+        };
+        let mut c = args.walk();
+        let values: Vec<Node> = args
+            .named_children(&mut c)
+            .filter(|a| a.kind() == "argument")
+            .filter_map(|a| a.named_child(a.named_child_count().saturating_sub(1) as u32))
+            .collect();
+        let route = values
+            .first()
+            .filter(|v| matches!(v.kind(), "string" | "encapsed_string"))
+            .map(|v| super::registrar::unquote(self.text(*v)))
+            .unwrap_or_default();
+        for closure in values.into_iter().filter(|v| {
+            matches!(
+                v.kind(),
+                "anonymous_function"
+                    | "anonymous_function_creation_expression"
+                    | "arrow_function"
+            )
+        }) {
+            let line = (closure.start_position().row as u32) + 1;
+            let simple = format!("handler_at_{line}");
+            let qn = self.qn(&simple);
+            self.facts.definitions.push(DefRecord {
+                simple_name: simple.clone(),
+                qualified_name: qn,
+                variant: DefVariant::NamedClosure,
+                start_line: line,
+                end_line: (closure.end_position().row as u32) + 1,
+                start_byte: closure.start_byte() as u32,
+                end_byte: closure.end_byte() as u32,
+                signature_hint: super::extract_signature(self.text(closure)),
+                attributes: vec!["synthetic".to_string()],
+                ..Default::default()
+            });
+            self.facts.references.push(RefRecord {
+                name: simple,
+                receiver_hint: cgg_core::VALUE_REF_HINT.to_string(),
+                site_line: line,
+                site_byte: closure.start_byte() as u32,
+                context: context.to_string(),
+                route: route.clone(),
+                ..Default::default()
+            });
+        }
     }
 }
 
@@ -739,6 +801,45 @@ mod tests {
             "{:?}",
             f.references
         );
+    }
+
+    fn handlers(src: &str, test_file: bool) -> Vec<(String, String)> {
+        let mut p = Parser::new();
+        p.set_language(&tree_sitter_php::LANGUAGE_PHP.into())
+            .unwrap();
+        let tree = p.parse(src, None).unwrap();
+        let f = PhpPlugin.extract(
+            &crate::ExtractCtx::plain()
+                .for_language("php")
+                .for_test_file(test_file),
+            FileId::new(0),
+            &PathBuf::from("/tmp/__cgg_test__/tests/XTest.php"),
+            &tree,
+            src.as_bytes(),
+        );
+        f.references
+            .iter()
+            .filter(|r| r.name.starts_with("handler_at_"))
+            .map(|r| (r.name.clone(), r.route.clone()))
+            .collect()
+    }
+
+    #[test]
+    fn a_pest_closure_in_a_test_file_is_a_named_handler() {
+        let src = "<?php
+it('lists users', function () { listUsers(); });
+                   beforeEach(fn () => seed());
+array_map(function ($x) { return $x; }, []);
+";
+        assert_eq!(
+            handlers(src, true),
+            vec![
+                ("handler_at_2".to_string(), "lists users".to_string()),
+                ("handler_at_3".to_string(), String::new()),
+            ]
+        );
+        // Outside a test file `it`/`test` are no registrar verbs.
+        assert!(handlers(src, false).is_empty());
     }
 
     fn extract_with_refs(src: &str, refs: bool) -> FileFacts {
