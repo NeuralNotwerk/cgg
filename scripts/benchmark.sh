@@ -273,7 +273,7 @@ APPS=(
     "app-dataverse-jsf|https://github.com/IQSS/dataverse.git|jakarta-rs,java-closeable,java-concurrent,jpa-lifecycle,junit,servlet,~r-package-hooks,~jsf"
     "app-ksql-kafkastreams|https://github.com/confluentinc/ksql.git|java-closeable,java-concurrent,junit,~jakarta-rs,~py-argparse,~kafka-streams"
     "app-yapi-koa|https://github.com/YMFE/yapi.git|react,~koa"
-    "app-circuitbreaker-kong|https://github.com/dream11/kong-circuit-breaker.git|~kong"
+    "app-circuitbreaker-kong|https://github.com/dream11/kong-circuit-breaker.git|busted,kong"
     "app-moon-kratos|https://github.com/aide-family/moon.git|go-encoding,~gorilla-mux,~net-http,~robfig-cron,~kratos"
     "app-kotlinconf-ktor|https://github.com/JetBrains/kotlinconf-app.git|android-broadcastreceiver,compose,junit,android-activity,android-application,~android-fragment,~ktor"
     "app-kori-ktorclient|https://github.com/YangDai2003/Kori.git|compose,junit,uikit-appdelegate,android-activity,android-application,~android-broadcastreceiver,~android-contentprovider,~cocoa-delegate,~uikit-lifecycle,~ktor-client"
@@ -376,7 +376,7 @@ APPS=(
     "js-loopback|https://github.com/loopbackio/loopback-next.git|express,loopback,mocha,node-event-emitter"
     "kivy-kivymd|https://github.com/kivymd/KivyMD.git|kivy,~py-argparse"
     "kotlin-okio|https://github.com/square/okio.git|junit,java-closeable,java-concurrent"
-    "lua-kong|https://github.com/Kong/kong.git|rust-std-traits,~py-argparse"
+    "lua-kong|https://github.com/Kong/kong.git|busted,kong,rust-std-traits,~py-argparse"
     "lua-neovim|https://github.com/neovim/neovim.git|"
     "nix-home-manager|https://github.com/nix-community/home-manager.git|~py-argparse"
     "objc-afnetworking|https://github.com/AFNetworking/AFNetworking.git|cocoa-delegate,uikit-appdelegate,uikit-lifecycle"
@@ -430,6 +430,16 @@ APPS=(
     "app-reggie-restify|https://github.com/mbrevoort/node-reggie.git|restify"
     "app-socialhome-dramatiq|https://github.com/jaywink/socialhome.git|django,django-admin,dramatiq,py-unittest,~apscheduler"
     "app-workerstunnel-cloudflare|https://github.com/zhu327/workers-tunnel.git|cloudflare-workers,~rust-std-traits"
+    # 0.14.0: applications for the Lua and Bash host rules (2026-11-25).
+    "app-cachyos-makepkg|https://github.com/CachyOS/CachyOS-PKGBUILDS.git|makepkg,mkinitcpio,~py-argparse"
+    "app-capturetheflag-luanti|https://github.com/MT-CTF/capturetheflag.git|luanti"
+    "app-dokku-bats|https://github.com/dokku/dokku.git|bats,express,flask,go-encoding,go-testing,net-http,servlet,sinatra,~bash-dispatch,~compojure,~django,~go-runtime,~go-signal,~grpc-go,~java-closeable,~java-runtime,~java-serialization,~py-argparse,~ring,~robfig-cron"
+    "app-koreader-busted|https://github.com/koreader/koreader.git|busted,~nix,~py-argparse,~py-context-manager"
+    "app-kong-oidc-kong|https://github.com/nokia/kong-oidc.git|busted,kong,~openresty"
+    "app-oil-neovim|https://github.com/stevearc/oil.nvim.git|busted,neovim-plugin,~py-argparse"
+    "app-pyenv-bats|https://github.com/pyenv/pyenv.git|bats,~bash-dispatch,~c-runtime,~py-argparse"
+    "app-snkrx-love2d|https://github.com/a327ex/SNKRX.git|love2d"
+    "app-yq-shunit2|https://github.com/mikefarah/yq.git|go-encoding,go-testing,shunit2,~cobra,~go-runtime"
 )
 
 # Framework rules with NO application in the APPS manifest above.
@@ -474,6 +484,7 @@ APPS=(
 #
 # Format: id|why no application was found
 APPS_UNVERIFIED=(
+    "apisix-plugin|no third-party APISIX plugin repository with real use was found (searches for custom-plugin repos over 30 stars returned none); measured on APISIX itself (app-apisix-openresty): 317 phase-function entries"
 )
 
 # One checkout per repository. A row that measures a repository another
