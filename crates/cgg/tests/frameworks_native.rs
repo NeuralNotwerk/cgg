@@ -484,3 +484,66 @@ fn ztest_cases_enter_through_the_function_defining_macro() {
     )]);
     assert_entries(&err, "ztest", "test", 1);
 }
+
+// ---------------------------------------------------------------------
+// Rust AI-agent and tool-calling frameworks (0.14.0 Phase C)
+// ---------------------------------------------------------------------
+
+#[test]
+fn rmcp_hand_written_handlers_split_tools_from_lifecycle() {
+    let err = run(&[(
+        "src/server.rs",
+        "use rmcp::{model::*, service::RequestContext, ErrorData, RoleServer, RoleClient, ServerHandler, ClientHandler};\n\
+         pub struct Raw;\n\
+         impl ServerHandler for Raw {\n    \
+         async fn list_tools(&self, r: Option<P>, c: RequestContext<RoleServer>) -> Result<L, ErrorData> { todo!() }\n    \
+         async fn call_tool(&self, r: CallToolRequestParam, c: RequestContext<RoleServer>) -> Result<C, ErrorData> { dispatch(&r.name) }\n    \
+         fn get_info(&self) -> ServerInfo { ServerInfo::default() }\n    \
+         fn helper(&self) {}\n}\n\
+         fn dispatch(n: &str) -> Result<C, ErrorData> { todo!() }\n\
+         pub struct Cli;\n\
+         impl ClientHandler for Cli {\n    \
+         async fn on_logging_message(&self, p: LoggingMessageNotificationParam) {}\n}\n",
+    )]);
+    // list_tools, call_tool are tools; get_info, on_logging_message are
+    // lifecycle; `helper` is neither.
+    assert_entries(&err, "rmcp", "tool", 2);
+    assert_entries(&err, "rmcp-handlers", "lifecycle", 2);
+}
+
+#[test]
+fn rig_tools_and_hooks() {
+    let err = run(&[(
+        "src/main.rs",
+        "use rig::tool::{Tool, ToolEmbedding};\nuse rig::agent::PromptHook;\nuse rig_derive::rig_tool;\n\
+         struct Adder;\n\
+         impl Tool for Adder {\n    const NAME: &'static str = \"add\";\n    \
+         async fn definition(&self, p: String) -> ToolDefinition { todo!() }\n    \
+         async fn call(&self, a: Args) -> Result<i32, E> { Ok(add_impl(a.x, a.y)) }\n}\n\
+         fn add_impl(x: i32, y: i32) -> i32 { x + y }\n\
+         #[rig_tool(description = \"Multiply x and y\")]\n\
+         fn multiply(x: i32, y: i32) -> Result<i32, rig::tool::ToolError> { Ok(x * y) }\n\
+         struct Logger;\n\
+         impl<M: CompletionModel> PromptHook<M> for Logger {\n    \
+         async fn on_tool_call(&self, name: &str, args: &str) {}\n}\n",
+    )]);
+    assert_entries(&err, "rig", "tool", 3);
+    assert_entries(&err, "rig-hooks", "lifecycle", 1);
+}
+
+#[test]
+fn a_tool_trait_of_the_apps_own_is_not_rigs() {
+    let err = run(&[
+        (
+            "src/providers.rs",
+            "use rig::providers::openai;\npub fn client() -> openai::Client { openai::Client::from_env() }\n",
+        ),
+        (
+            "src/tools.rs",
+            "pub trait Tool { fn call(&self); }\nstruct Grep;\n\
+             impl Tool for Grep {\n    fn call(&self) {}\n}\n",
+        ),
+    ]);
+    // Rig is detected, but `tools.rs` neither imports it nor names it.
+    assert!(!err.contains("rig (tool"), "{err}");
+}
