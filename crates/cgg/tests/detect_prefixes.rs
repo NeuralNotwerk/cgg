@@ -90,6 +90,7 @@ fn import_form(language: &str, prefix: &str) -> Option<(String, &'static str)> {
         "vhdl" => (format!("library {prefix};\nuse {prefix}.all;\n"), "vhd"),
         "verilog" => (format!("`include \"{prefix}.v\"\n"), "v"),
         "asm" => (format!(".global _start\n_start:\n  call {prefix}\n"), "s"),
+        "solidity" => (format!("import \"{prefix}/contracts/C.sol\";\n"), "sol"),
         // Descriptor languages: an "import" is a schema reference.
         "proto" | "graphql" | "openapi" | "asyncapi" | "smithy" | "hcl" => {
             return None;

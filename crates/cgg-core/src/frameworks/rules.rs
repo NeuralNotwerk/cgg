@@ -106,6 +106,34 @@ pub const CLOJURE_REEXPORT_FORMS: &[&str] = &["import-vars"];
 /// a tree namespace defining one) provides.
 pub const CLOJURE_DEFN_MACRO_NAMES: &[&str] = &["defn", "defn-", "defmethod"];
 
+/// File names the gRPC / Connect code generators write: their classes
+/// are client stubs, server base classes and message types, never the
+/// implementation of an rpc (`descriptor::link_descriptors`). A marker
+/// ending in `.` matches anywhere in the file name (`.pb.` covers
+/// `x.pb.go`, `x_grpc.pb.go`, `x.pb.cc`, `x.pb.h`), any other at its end.
+pub const GRPC_GENERATED_FILE_MARKERS: &[&str] = &[
+    ".pb.",
+    "_pb2.py",
+    "_pb2_grpc.py",
+    "_pb2.pyi",
+    "_pb2_grpc.pyi",
+    ".connect.go",
+    "_pb.js",
+    "_pb.d.ts",
+    "_grpc_pb.js",
+    "_grpc_pb.d.ts",
+    "Grpc.java",
+    "Grpc.cs",
+    "GrpcKt.kt",
+];
+
+/// Owner-type name prefixes and suffixes (compared lowercased) of the
+/// generated or test classes that carry an rpc's name without serving
+/// it: `UnimplementedGreeterServer`, `MockGreeterClient`, `GreeterClient`,
+/// `GreeterBlockingStub`.
+pub const RPC_STUB_OWNER_PREFIXES: &[&str] = &["unimplemented", "mock"];
+pub const RPC_STUB_OWNER_SUFFIXES: &[&str] = &["client", "stub"];
+
 /// Web-framework traits whose method the framework calls on a handler's
 /// return value: axum/poem `IntoResponse`, actix-web/rocket `Responder`.
 pub const RESPONSE_TRAITS: &[&str] = &["IntoResponse", "Responder"];
@@ -2186,6 +2214,32 @@ pub const SPECS: &[RuleSpec] = &[
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
+    // Chainlink consumers: an oracle or CCIP transaction enters through the
+    // base contract (`rawFulfillRandomWords`, `ccipReceive`), which calls the
+    // internal override. The base usually sits outside the tree (npm), so the
+    // override's name is the evidence.
+    RuleSpec {
+        id: "chainlink",
+        language: "solidity",
+        kind: TrustKind::Network,
+        detect: &["@chainlink"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &[
+            "fulfillRandomWords",
+            "fulfillRandomness",
+            "_ccipReceive",
+            "fulfillRequest",
+        ],
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
     // ---------------------------------------------------------------
     // FFI exports — the caller is in another language, or another process
     // ---------------------------------------------------------------
@@ -3876,13 +3930,15 @@ pub const SPECS: &[RuleSpec] = &[
         id: "plug",
         language: "elixir",
         kind: TrustKind::Network,
-        detect: &["Plug.Conn", "Plug.Builder"],
+        detect: &["Plug.Conn", "Plug.Builder", "Plug.ErrorHandler"],
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: NONE,
         registrars: NONE,
         base_types: NONE,
-        methods: &["call"],
+        // `handle_errors/2` is `Plug.ErrorHandler`'s callback: the plug
+        // calls it when the pipeline raises.
+        methods: &["call", "handle_errors"],
         string_targets: false,
         node: true,
         gap: "",
@@ -3934,6 +3990,117 @@ pub const SPECS: &[RuleSpec] = &[
         methods: NONE,
         string_targets: false,
         node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Oban job workers: the queue calls `perform/1`, and `backoff/1`/`timeout/1`
+    // when the worker defines them.
+    RuleSpec {
+        id: "oban",
+        language: "elixir",
+        kind: TrustKind::Queue,
+        detect: &["Oban.Worker", "Oban.Pro.Worker"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &["perform", "backoff", "timeout"],
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // `mix ecto.migrate` runs a migration module's `change/0` (or `up/0` and
+    // `down/0`).
+    RuleSpec {
+        id: "ecto-migration",
+        language: "elixir",
+        kind: TrustKind::Lifecycle,
+        detect: &["Ecto.Migration"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &["change", "up", "down"],
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Ecto calls a custom type's callbacks when it casts, loads and dumps a
+    // field.
+    RuleSpec {
+        id: "ecto-type",
+        language: "elixir",
+        kind: TrustKind::Lifecycle,
+        detect: &["Ecto.Type", "Ecto.ParameterizedType"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &[
+            "type",
+            "cast",
+            "load",
+            "dump",
+            "embed_as",
+            "equal?",
+            "autogenerate",
+        ],
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Broadway pipelines: the topology calls the message and batch callbacks.
+    RuleSpec {
+        id: "broadway",
+        language: "elixir",
+        kind: TrustKind::Queue,
+        detect: &["Broadway"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &[
+            "handle_message",
+            "handle_batch",
+            "prepare_messages",
+            "handle_failed",
+        ],
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // GenStage producers and consumers: the stage process calls these.
+    RuleSpec {
+        id: "genstage",
+        language: "elixir",
+        kind: TrustKind::Lifecycle,
+        detect: &["GenStage"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &[
+            "handle_demand",
+            "handle_events",
+            "handle_subscribe",
+            "handle_cancel",
+        ],
+        string_targets: false,
+        node: false,
         gap: "",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
@@ -7875,6 +8042,25 @@ pub const SPECS: &[RuleSpec] = &[
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
+    // rebar3 commands: rebar3 calls `do/1` on every `-behaviour(provider)`
+    // module it loads, and `format_error/1` to render its `{error, {Mod, R}}`.
+    RuleSpec {
+        id: "rebar3-provider",
+        language: "erlang",
+        kind: TrustKind::Cli,
+        detect: &["provider"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &["do", "format_error"],
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
     RuleSpec {
         id: "servant",
         language: "haskell",
@@ -7892,6 +8078,9 @@ pub const SPECS: &[RuleSpec] = &[
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
+    // Yesod handlers are named by convention after the `parseRoutes` table:
+    // `<method><Resource>R`, or `handle<Resource>R` for a route with no
+    // method list (the route string itself is not read).
     RuleSpec {
         id: "yesod",
         language: "haskell",
@@ -7902,10 +8091,19 @@ pub const SPECS: &[RuleSpec] = &[
         attributes: NONE,
         registrars: NONE,
         base_types: NONE,
-        methods: NONE,
+        methods: &[
+            "get*R",
+            "post*R",
+            "put*R",
+            "delete*R",
+            "patch*R",
+            "head*R",
+            "options*R",
+            "handle*R",
+        ],
         string_targets: false,
         node: true,
-        gap: "Yesod route handlers are named by CONVENTION after Template Haskell expansion: `mkYesod`/`mkYesodData` consume a `parseRoutes` quasi-quote block and require a `get<Route>R`, `post<Route>R`, `delete<Route>R` function per route/method pair. cgg does not run Template Haskell and matches method names literally with no glob, so the `get*R`/`post*R` family cannot be enumerated. Read the `[parseRoutes| ... |]` quasi-quote to get the route table, then the correspondingly named `get*R`/`post*R` handlers.",
+        gap: "",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
@@ -7971,6 +8169,72 @@ pub const SPECS: &[RuleSpec] = &[
         registrars: NONE,
         base_types: NONE,
         methods: &["spec"],
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // `$quickCheckAll` / `$(forAllProperties)` run every top-level `prop_*` of
+    // the module.
+    RuleSpec {
+        id: "quickcheck",
+        language: "haskell",
+        kind: TrustKind::Test,
+        detect: &["Test.QuickCheck"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &["prop_*"],
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Hedgehog's `$$(discover)` collects every `prop_*` of the module.
+    RuleSpec {
+        id: "hedgehog",
+        language: "haskell",
+        kind: TrustKind::Test,
+        detect: &["Hedgehog"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &["prop_*", "hprop_*"],
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // IHP dispatches to typeclass instance methods: `Controller`'s `action` and
+    // `beforeAction`, `View`'s `html`, `Job`'s `perform`, `FrontController`'s
+    // `controllers`, `InitControllerContext`'s `initContext`, `Worker`'s
+    // `workers`.
+    RuleSpec {
+        id: "ihp",
+        language: "haskell",
+        kind: TrustKind::Network,
+        detect: &["IHP"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &[
+            "action",
+            "beforeAction",
+            "html",
+            "perform",
+            "controllers",
+            "initContext",
+            "workers",
+        ],
         string_targets: false,
         node: true,
         gap: "",
@@ -8064,6 +8328,44 @@ pub const SPECS: &[RuleSpec] = &[
         string_targets: false,
         node: true,
         gap: "A Cmdliner subcommand's implementation is a plain function lifted into a `Term.t` by `Term.const f $ arg1 $ arg2`, registered with `Cmd.v info term` / `Cmd.group`, and finally run from `let () = exit (Cmd.eval cmd)`. The function reaches the runtime purely through argument position, which the ocaml plugin does not record, and the `let () = ...` program entry produces no callable at all — so both the command implementations and OCaml's actual entry point are invisible. Read the `Cmd.v`/`Cmd.group` list and take the `Term.const` argument of each as an entry point. This is also why OCaml programs generally show no `main`: cgg extracts nothing for `let () =`, and `let main` is a bare convention (15 unrelated `let main` bindings in the dune corpus, including `otherlibs/stdune/src/at_exit.ml`), too weak to match by name.",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // MirageOS: `config.ml` (`open Mirage`) names the unikernel module, and the
+    // generated main calls its `start`.
+    RuleSpec {
+        id: "mirage",
+        language: "ocaml",
+        kind: TrustKind::Lifecycle,
+        detect: &["Mirage"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &["start"],
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Jane Street `Command` (core): `Command.basic`/`async`/`async_or_error`/
+    // `group` build the command tree that `Command_unix.run` executes.
+    RuleSpec {
+        id: "jane-street-command",
+        language: "ocaml",
+        kind: TrustKind::Cli,
+        detect: &["Command_unix"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "A Jane Street `Command` program builds its subcommands as values (`let run_command = Command.async_or_error ~summary (let%map_open.Command … in fun () -> …)`), collects them with `Command.group ~summary [ \"run\", run_command; … ]` and runs the tree from `let () = Command_unix.run command`. The implementation of each subcommand is an inline closure, each subcommand is a parameterless binding the ocaml plugin records as data rather than as a callable reached through the group list, and the `Command_unix.run` argument is usually another module's value (`Trace.command`), which the resolver does not follow yet. Read the `Command.group` lists from the value passed to `Command_unix.run` and treat the closure of each `Command.basic`/`async`/`async_or_error` as an entry point.",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
@@ -12285,7 +12587,7 @@ pub const SPECS: &[RuleSpec] = &[
         methods: NONE,
         string_targets: false,
         node: true,
-        gap: "cgg has no entry rules for Connexion, because Connexion does not route in Python at all. Every handler is named by an `operationId: my_package.my_module.my_function` STRING in the OpenAPI/Swagger document, optionally rebased by an `x-openapi-router-controller` key on the path or operation, so no Python source line ever references the handler and every one of them reads as dead code. Open the spec passed to `connexion.App(...).add_api(\"openapi.yaml\")` / `FlaskApp(...).add_api(...)` and resolve each operationId and x-openapi-router-controller by hand; also check `add_error_handler(...)`, the `validator_map` entries, and the security handlers named by `x-basicInfoFunc` / `x-bearerInfoFunc` / `x-apikeyInfoFunc`, which name Python callables the same string-only way.",
+        gap: "Connexion does not route in Python: every handler is named by an `operationId: my_package.my_module.my_function` STRING in the OpenAPI/Swagger document, optionally rebased by an `x-openapi-router-controller` key on the path or operation. When that document is in the analyzed tree, cgg links each dotted operationId to the Python function of that qualified name (a `desc` edge from the operation, which is a dead-code root), so those handlers are live; this rule itself enumerates no entry nodes. Not covered: a spec outside the tree, an operationId resolved by a custom `Resolver`, `add_error_handler(...)`, the `validator_map` entries, and the security handlers named by `x-basicInfoFunc` / `x-bearerInfoFunc` / `x-apikeyInfoFunc`; check those by hand.",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },

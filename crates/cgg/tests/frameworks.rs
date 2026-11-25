@@ -1821,3 +1821,257 @@ fn a_minted_closure_sees_the_enclosing_functions_parameter_types() {
         ]
     );
 }
+
+// ---------------------------------------------------------------------
+// 0.14.0 rows: Elixir, Erlang, Haskell, OCaml and Solidity
+// ---------------------------------------------------------------------
+//
+// One case per new rule: the smallest source carrying the framework's
+// real shape, and the coverage line it must produce. A count, not a
+// substring of the graph: `node: false` rules mint no node to look for.
+struct RowCase {
+    name: &'static str,
+    files: &'static [(&'static str, &'static str)],
+    expect: &'static str,
+}
+
+const ROW_CASES: &[RowCase] = &[
+    RowCase {
+        name: "oban",
+        files: &[(
+            "lib/w.ex",
+            "defmodule MyApp.W do\n  use Oban.Worker\n  def perform(_job), do: helper()\n  def backoff(_a), do: 5\n  defp helper, do: :ok\nend\n",
+        )],
+        expect: "oban (queue, 2 entries)",
+    },
+    RowCase {
+        name: "ecto-migration",
+        files: &[(
+            "priv/repo/migrations/20200101_add.exs",
+            "defmodule MyApp.Repo.Migrations.Add do\n  use Ecto.Migration\n  def up do\n    create table(:x)\n  end\n  def down do\n    drop table(:x)\n  end\nend\n",
+        )],
+        expect: "ecto-migration (lifecycle, 2 entries)",
+    },
+    RowCase {
+        name: "ecto-type",
+        files: &[(
+            "lib/t.ex",
+            "defmodule MyApp.T do\n  use Ecto.Type\n  def type, do: :string\n  def cast(x), do: {:ok, x}\n  def load(x), do: {:ok, x}\n  def dump(x), do: {:ok, x}\nend\n",
+        )],
+        expect: "ecto-type (lifecycle, 4 entries)",
+    },
+    RowCase {
+        name: "broadway",
+        files: &[(
+            "lib/p.ex",
+            "defmodule MyApp.P do\n  use Broadway\n  def handle_message(_p, m, _c), do: m\n  def handle_batch(_b, ms, _i, _c), do: ms\nend\n",
+        )],
+        expect: "broadway (queue, 2 entries)",
+    },
+    RowCase {
+        name: "genstage",
+        files: &[(
+            "lib/s.ex",
+            "defmodule MyApp.S do\n  use GenStage\n  def handle_demand(d, s), do: {:noreply, [d], s}\n  def handle_events(e, _f, s), do: {:noreply, e, s}\nend\n",
+        )],
+        expect: "genstage (lifecycle, 2 entries)",
+    },
+    RowCase {
+        name: "plug/handle_errors",
+        files: &[(
+            "lib/r.ex",
+            "defmodule MyApp.Router do\n  use Plug.ErrorHandler\n  def handle_errors(conn, _e), do: conn\nend\n",
+        )],
+        expect: "plug (network, 1 entry)",
+    },
+    RowCase {
+        name: "rebar3-provider",
+        files: &[(
+            "src/p.erl",
+            "-module(p).\n-behaviour(provider).\n-export([init/1, do/1, format_error/1]).\ninit(S) -> {ok, S}.\ndo(S) -> {ok, S}.\nformat_error(R) -> R.\n",
+        )],
+        expect: "rebar3-provider (cli, 2 entries)",
+    },
+    RowCase {
+        name: "quickcheck",
+        files: &[(
+            "src/A.hs",
+            "module A where\nimport Test.QuickCheck\nprop_rev xs = reverse (reverse xs) == (xs :: [Int])\nhelper = 1\nrunTests = $quickCheckAll\n",
+        )],
+        expect: "quickcheck (test, 1 entry)",
+    },
+    RowCase {
+        name: "hedgehog",
+        files: &[(
+            "test/B.hs",
+            "module B where\nimport Hedgehog\nprop_x = property success\nhprop_y = property success\ntests = checkParallel $$(discover)\n",
+        )],
+        expect: "hedgehog (test, 2 entries)",
+    },
+    RowCase {
+        name: "ihp",
+        files: &[
+            (
+                "Web/Controller/Posts.hs",
+                "module Web.Controller.Posts where\nimport IHP.ControllerPrelude\ninstance Controller PostsController where\n    beforeAction = ensureIsUser\n    action PostsAction = render IndexView\nhelperUnused x = x\n",
+            ),
+            (
+                "Web/View/Posts/Index.hs",
+                "module Web.View.Posts.Index where\nimport IHP.ViewPrelude\ninstance View IndexView where\n    html IndexView = [hsx|<h1>Posts</h1>|]\n",
+            ),
+        ],
+        expect: "ihp (network, 3 entries)",
+    },
+    RowCase {
+        name: "yesod",
+        files: &[(
+            "src/Main.hs",
+            "module Main where\nimport Yesod\ngetHomeR = defaultLayout mempty\npostUserR = undefined\nhandleStaticR = undefined\nsdistR = 1\ngetter = 2\nmain = warp 3000 App\n",
+        )],
+        expect: "yesod (network, 3 entries)",
+    },
+    RowCase {
+        name: "mirage",
+        files: &[
+            (
+                "config.ml",
+                "open Mirage\nlet main = main \"Unikernel.Main\" (stackv4v6 @-> job)\nlet () = register \"hello\" [ main $ generic_stackv4v6 default_network ]\n",
+            ),
+            (
+                "unikernel.ml",
+                "module Main (S : Tcpip.Stack.V4V6) = struct\n  let helper x = x + 1\n  let start s = ignore (helper 1); ignore s; Lwt.return_unit\nend\n",
+            ),
+        ],
+        expect: "mirage (lifecycle, 1 entry)",
+    },
+    RowCase {
+        name: "chainlink",
+        files: &[(
+            "C.sol",
+            "import {CCIPReceiver} from \"@chainlink/contracts-ccip/src/v0.8/ccip/applications/CCIPReceiver.sol\";\n\
+             contract C is CCIPReceiver {\n  function _ccipReceive(bytes memory m) internal override { _apply(m); }\n  function _apply(bytes memory m) internal {}\n}\n",
+        )],
+        expect: "chainlink (network, 1 entry)",
+    },
+];
+
+#[test]
+fn every_new_functional_and_contract_row_enumerates() {
+    let mut failures: Vec<String> = Vec::new();
+    for case in ROW_CASES {
+        let tmp = TempDir::new().unwrap();
+        for (file, src) in case.files {
+            write(tmp.path(), file, src);
+        }
+        let (_, err) = run(tmp.path(), &["--framework-coverage"]);
+        if !err.contains(case.expect) {
+            failures.push(format!(
+                "{}: expected {:?}\n{}",
+                case.name, case.expect, err
+            ));
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "{} of {} rows did not enumerate:\n\n{}",
+        failures.len(),
+        ROW_CASES.len(),
+        failures.join("\n---\n")
+    );
+}
+
+/// Run `--dead-code` at medium confidence and return the reported
+/// unreferenced count line.
+fn dead_count(dir: &Path) -> String {
+    let out = dir.join("d.mmd");
+    let assert = cgg()
+        .args(["--dead-code", "--dead-code-confidence", "medium", "-o"])
+        .arg(&out)
+        .arg(dir)
+        .assert()
+        .success();
+    String::from_utf8_lossy(&assert.get_output().stderr).to_string()
+}
+
+/// BACKLOG P1: a Solidity base's call to its `virtual` hook runs the
+/// most-derived override, so the override and what it calls are live.
+#[test]
+fn a_solidity_override_of_an_in_tree_virtual_hook_is_live() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "Base.sol",
+        "pragma solidity ^0.8.20;\n\
+         abstract contract Base {\n  function run() external { _hook(); }\n  function _hook() internal virtual {}\n}\n\
+         contract Impl is Base {\n  function _hook() internal override { _work(); }\n  function _work() internal {}\n}\n",
+    );
+    let err = dead_count(tmp.path());
+    assert!(err.contains("0 callable(s) marked unreferenced"), "{err}");
+}
+
+/// BACKLOG P1: `fun ?MODULE:f/N`, `{?MODULE, f, A}` (a hook appends its
+/// own arguments, so `A` is not `f`'s arity), `{?MODULE, f}` and an
+/// `argparse` `handler => {?MODULE, f}` name this module's functions.
+#[test]
+fn erlang_module_macro_callbacks_are_live() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/hk.erl",
+        "-module(hk).\n-export([start/0, on_pub/2, on_conn/2, on_fun/2, cli/0, do_list/1]).\n\
+         start() ->\n    emqx_hooks:add('message.publish', {?MODULE, on_pub, []}, 10),\n\
+         \x20   emqx_hooks:add('client.connect', {?MODULE, on_conn}, 10),\n\
+         \x20   telemetry:attach(<<\"id\">>, [a], fun ?MODULE:on_fun/2, #{}),\n    cli().\n\
+         on_pub(_, _) -> ok.\non_conn(_, _) -> ok.\non_fun(_, _) -> ok.\n\
+         cli() -> #{commands => #{\"list\" => #{handler => {?MODULE, do_list}}}}.\n\
+         do_list(_) -> ok.\n",
+    );
+    let err = dead_count(tmp.path());
+    assert!(err.contains("0 callable(s) marked unreferenced"), "{err}");
+}
+
+/// BACKLOG P1: a proto rpc is a root, so the implementation the
+/// descriptor linker finds (through a declared base here) and its
+/// callees are live.
+#[test]
+fn a_proto_rpc_keeps_its_implementation_live() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "proto/svc.proto",
+        "syntax = \"proto3\";\nservice Suggestion {\n  rpc GetSuggestions (Req) returns (Resp);\n}\n\
+         message Req { string a = 1; }\nmessage Resp { string b = 1; }\n",
+    );
+    write(
+        tmp.path(),
+        "svc/hyperopt.py",
+        "import grpc\nfrom pkg import api_pb2_grpc\n\n\
+         class HyperoptService(api_pb2_grpc.SuggestionServicer):\n\
+         \x20   def GetSuggestions(self, request, context):\n        return _plan(request)\n\n\
+         def _plan(r):\n    return r\n",
+    );
+    let err = dead_count(tmp.path());
+    assert!(err.contains("0 callable(s) marked unreferenced"), "{err}");
+}
+
+/// BACKLOG P1 (connexion): an `operationId` under
+/// `x-openapi-router-controller` names its Python handler, which is live.
+#[test]
+fn a_connexion_operation_id_keeps_its_handler_live() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "openapi.yaml",
+        "openapi: 3.0.0\ninfo:\n  title: t\n  version: '1'\npaths:\n  /items:\n\
+         \x20   get:\n      x-openapi-router-controller: app.api\n      operationId: list_items\n\
+         \x20     responses:\n        '200':\n          description: ok\n",
+    );
+    write(
+        tmp.path(),
+        "app/api.py",
+        "def list_items():\n    return _load()\n\n\ndef _load():\n    return []\n",
+    );
+    write(tmp.path(), "app/__init__.py", "");
+    let err = dead_count(tmp.path());
+    assert!(err.contains("0 callable(s) marked unreferenced"), "{err}");
+}

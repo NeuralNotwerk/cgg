@@ -313,7 +313,7 @@ APPS=(
     "app-jupyterhub-tornado|https://github.com/jupyterhub/jupyterhub.git|fastapi,flask,py-signal,pydantic,~py-argparse,~py-context-manager,~py-threading,~py-unittest,~react,~tornado"
     "app-bambufarm-vaadin|https://github.com/TFyre/bambu-farm.git|jakarta-rs,~java-closeable,~java-concurrent,~servlet,~vaadin"
     "app-alarik-vapor|https://github.com/achtungsoftware/alarik.git|vapor,~cocoa-delegate"
-    "app-stackage-yesod|https://github.com/commercialhaskell/stackage-server.git|~yesod"
+    "app-stackage-yesod|https://github.com/commercialhaskell/stackage-server.git|yesod"
     "app-humhub-yii|https://github.com/humhub/humhub.git|node-event-emitter,~phpunit,~yii"
     "app-ghostty-zig|https://github.com/ghostty-org/ghostty.git|uikit-appdelegate,uikit-lifecycle,~cocoa-delegate,~py-argparse,~py-context-manager,~zig-build"
     "app-libxev-zig|https://github.com/mitchellh/libxev.git|~zig-export"
@@ -375,7 +375,7 @@ APPS=(
     "app-opam-cmdliner|https://github.com/ocaml/opam.git|"
     "app-pywallet-kivy|https://github.com/AndreMiras/PyWallet.git|kivy,py-unittest,~py-threading"
     "app-quack-oak|https://github.com/raaymax/quack.git|android-broadcastreceiver,android-service-bind,android-service-start,junit,node-event-emitter,~android-activity,android-service,~react"
-    "app-rebar3-eunit|https://github.com/erlang/rebar3.git|erlang-gen-server,eunit"
+    "app-rebar3-eunit|https://github.com/erlang/rebar3.git|erlang-gen-server,eunit,rebar3-provider"
     "app-smoothie-kivy|https://github.com/wolfmanjm/kivy-smoothie-host.git|kivy,py-signal,py-threading,~py-argparse"
     "app-smoothieware-cpp|https://github.com/Smoothieware/Smoothieware.git|py-signal,py-threading,~py-argparse"
     "app-snlquest-kivy|https://github.com/sandialabs/snl-quest.git|kivy,py-threading,~py-context-manager"
@@ -574,6 +574,14 @@ APPS=(
     "app-pelican-filament|https://github.com/pelican/panel.git|filament,laravel,laravel-lifecycle,livewire,pest,phpunit"
     "app-cospend-nextcloud|https://github.com/julien-nc/cospend-nc.git|nextcloud,nextcloud-lifecycle,phpunit"
     "app-partdb-apiplatform|https://github.com/Part-DB/Part-DB-server.git|api-platform,doctrine-lifecycle,phpunit,symfony"
+    # 0.14.0 framework rows: Elixir, Haskell, OCaml and Solidity (2026-11-25).
+    "app-sequin-oban|https://github.com/sequinstream/sequin.git|broadway,ecto-migration,ecto-type,express,genstage,go-testing,js-test-globals,mix-task,oban,otp,otp-application,phoenix,phoenix-liveview,plug,~go-encoding,~go-runtime,~go-signal,~gorilla-mux,~net-http,~phoenix-channel,~svelte"
+    "app-hexpm-ecto|https://github.com/hexpm/hexpm.git|broadway,ecto-migration,ecto-type,mix-task,otp,otp-application,phoenix,phoenix-liveview,plug"
+    "app-shellcheck-quickcheck|https://github.com/koalaman/shellcheck.git|quickcheck,~haskell-main"
+    "app-hackage-hedgehog|https://github.com/haskell/hackage-server.git|hedgehog,quickcheck,tasty,~c-runtime,~haskell-main,~nix"
+    "app-predimarkt-ihp|https://github.com/avitkauskas/predimarkt.git|ihp,~hspec,~nix,~quickcheck,~wai"
+    "app-qubesfirewall-mirage|https://github.com/mirage/qubes-mirage-firewall.git|mirage,~alcotest,~cmdliner"
+    "app-frankencoin-chainlink|https://github.com/Frankencoin-ZCHF/Frankencoin.git|chainlink,js-test-globals,solidity-public"
 )
 
 # Framework rules with NO application in the APPS manifest above.

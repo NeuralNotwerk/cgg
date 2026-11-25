@@ -152,6 +152,7 @@ pub(crate) const INHERITANCE_LANGS: &[&str] = &[
     "dart",
     "php",
     "ruby",
+    "solidity",
 ];
 
 /// Languages whose plugin records every class with exactly its own bases
