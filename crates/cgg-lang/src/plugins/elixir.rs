@@ -43,6 +43,7 @@ impl LanguagePlugin for ElixirPlugin {
             facts: &mut facts,
             scope: Vec::new(),
             suppress_call_at: None,
+            module_bases: Vec::new(),
         };
         w.walk(tree.root_node());
         facts
@@ -55,6 +56,13 @@ struct ElixirWalker<'a> {
     ctx: crate::ExtractCtx<'a>,
     facts: &'a mut FileFacts,
     scope: Vec<String>,
+    /// Per entry of `scope`: the modules it `use`s or declares a
+    /// `@behaviour` of, and the definitions written directly in it. On
+    /// leaving the module each of those definitions carries the list as
+    /// its `base_types`, so a framework row can name the contract
+    /// (`use Oban.Worker` → `perform`) instead of a bare name that every
+    /// module may define.
+    module_bases: Vec<(Vec<String>, Vec<usize>)>,
     /// Start offset of the head of the `def` currently being walked, if
     /// any. A `call` node beginning exactly there is the definition's
     /// own head re-read as a call, not a call site.
@@ -227,7 +235,17 @@ impl<'a> ElixirWalker<'a> {
                             site_line: (node.start_position().row as u32) + 1,
                             site_byte: node.start_byte() as u32,
                         });
+                        self.module_bases.push((Vec::new(), Vec::new()));
                         self.walk_children(node);
+                        if let Some((bases, defs)) = self.module_bases.pop()
+                            && !bases.is_empty()
+                        {
+                            for i in defs {
+                                if let Some(d) = self.facts.definitions.get_mut(i) {
+                                    d.base_types = bases.clone();
+                                }
+                            }
+                        }
                         self.scope.pop();
                     } else {
                         self.walk_children(node);
@@ -262,8 +280,24 @@ impl<'a> ElixirWalker<'a> {
                     return;
                 }
                 "import" | "use" | "require" => {
-                    self.record_import(node, &func_name);
+                    if let Some(module) = self.record_import(node, &func_name)
+                        && func_name == "use"
+                    {
+                        self.push_base(module);
+                    }
                     self.walk_children(node);
+                    return;
+                }
+                // `@behaviour GenServer`: the module implements that
+                // contract. An import (detection evidence) and a base.
+                "behaviour" | "behavior"
+                    if node.parent().is_some_and(|p| {
+                        p.kind() == "unary_operator" && self.text(p).starts_with('@')
+                    }) =>
+                {
+                    if let Some(module) = self.record_import(node, "behaviour") {
+                        self.push_base(module);
+                    }
                     return;
                 }
                 _ => {
@@ -332,6 +366,9 @@ impl<'a> ElixirWalker<'a> {
                 (node.start_position().row as u32) + 1,
                 (node.end_position().row as u32) + 1,
             );
+            if let Some((_, defs)) = self.module_bases.last_mut() {
+                defs.push(self.facts.definitions.len());
+            }
             self.facts.definitions.push(DefRecord {
                 simple_name: name,
                 qualified_name: qn,
@@ -348,23 +385,37 @@ impl<'a> ElixirWalker<'a> {
         }
     }
 
-    fn record_import(&mut self, node: Node, import_type: &str) {
-        // alias/import/use/require Module
-        // The module is typically the second child
-        if let Some(module_node) = node.child(1) {
-            let path = self
-                .text(module_node)
-                .trim_matches(|c| c == '\'' || c == '"')
-                .to_string();
-            if !path.is_empty() {
-                self.facts.imports.push(ImportRecord {
-                    kind: import_type.to_string(),
-                    path,
-                    alias: String::new(),
-                    site_line: (node.start_position().row as u32) + 1,
-                    site_byte: node.start_byte() as u32,
-                });
-            }
+    /// `import`/`use`/`require Module` (and `@behaviour Module`): the
+    /// module named by the first argument, never the options after it
+    /// (`use Oban.Worker, queue: :mail` is `Oban.Worker`). Returns it.
+    fn record_import(&mut self, node: Node, import_type: &str) -> Option<String> {
+        let mut module_node = node.child(1)?;
+        if module_node.kind() == "arguments" {
+            module_node = module_node.named_child(0)?;
+        }
+        let written: String = self.text(module_node).split_whitespace().collect();
+        let path = self
+            .expand_module(written.trim_matches(|c| c == '\'' || c == '"'))
+            .to_string();
+        if path.is_empty() {
+            return None;
+        }
+        self.facts.imports.push(ImportRecord {
+            kind: import_type.to_string(),
+            path: path.clone(),
+            alias: String::new(),
+            site_line: (node.start_position().row as u32) + 1,
+            site_byte: node.start_byte() as u32,
+        });
+        Some(path)
+    }
+
+    /// A contract of the module being walked (`use X`, `@behaviour X`).
+    fn push_base(&mut self, module: String) {
+        if let Some((bases, _)) = self.module_bases.last_mut()
+            && !bases.contains(&module)
+        {
+            bases.push(module);
         }
     }
 
@@ -906,6 +957,56 @@ mod tests {
             .map(|d| d.simple_name.as_str())
             .collect();
         assert_eq!(names, vec!["defgetter", "fetch", "real"]);
+    }
+
+    /// BACKLOG P1 (agent / Elixir): `use Mod, opts` imports `Mod`, not
+    /// the option list; `@behaviour Mod` is an import too, and both are
+    /// the bases of the module's own definitions (not a nested module's).
+    #[test]
+    fn use_with_options_and_behaviour_are_imports_and_bases() {
+        let src = "defmodule MyApp.W do\n\
+            \x20 use Oban.Worker, queue: :mail, max_attempts: 3\n\
+            \x20 @behaviour MyApp.Hook\n\
+            \x20 import Plug.Conn, only: [put_status: 2]\n\
+            \x20 def perform(_job), do: :ok\n\
+            \x20 defmodule Inner do\n\
+            \x20   def run(x), do: x\n\
+            \x20 end\n\
+            end\n\
+            defmodule MyApp.Plain do\n\
+            \x20 def run(x), do: x\n\
+            end\n";
+        let f = extract(src);
+        let imports: Vec<(&str, &str)> = f
+            .imports
+            .iter()
+            .filter(|i| i.kind != "elixir-module")
+            .map(|i| (i.kind.as_str(), i.path.as_str()))
+            .collect();
+        assert_eq!(
+            imports,
+            vec![
+                ("use", "Oban.Worker"),
+                ("behaviour", "MyApp.Hook"),
+                ("import", "Plug.Conn"),
+            ]
+        );
+        let bases = |qn: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.qualified_name == qn)
+                .map(|d| d.base_types.clone())
+                .unwrap()
+        };
+        assert_eq!(bases("MyApp.W::perform"), vec!["Oban.Worker", "MyApp.Hook"]);
+        let inner = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "run" && d.qualified_name.contains("Inner"))
+            .unwrap();
+        assert!(inner.base_types.is_empty(), "{inner:?}");
+        assert!(bases("MyApp.Plain::run").is_empty());
+        assert!(!f.references.iter().any(|r| r.name == "behaviour"));
     }
 
     #[test]
