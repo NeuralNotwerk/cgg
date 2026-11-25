@@ -1640,3 +1640,126 @@ fn options_object_handlers_are_inline_handlers() {
         "every handler and its callees are live: {dead:?}"
     );
 }
+
+/// Dead-code findings (qualified names) of a run over `dir`.
+fn dead_findings(dir: &Path, extra: &[&str]) -> Vec<String> {
+    let report = dir.join("dead.json");
+    cgg()
+        .arg(dir)
+        .args(["--dead-code", "--dead-code-confidence", "low"])
+        .args(["--dead-code-format", "json", "--dead-code-report"])
+        .arg(&report)
+        .args(extra)
+        .assert()
+        .success();
+    let v: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&report).unwrap()).unwrap();
+    v["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| f["qualified_name"].as_str().unwrap().to_string())
+        .collect()
+}
+
+#[test]
+fn a_minted_closure_no_rule_claims_keeps_its_callees_live() {
+    // REGRESSION: an inline closure handed to a registrar verb is minted
+    // as `handler_at_<line>` whether or not a rule claims it. Unclaimed,
+    // nothing reached it, and its callees read dead: written inline they
+    // belonged to the enclosing function (or the top level). One case
+    // per language that mints them.
+    let tmp = TempDir::new().unwrap();
+    let d = tmp.path();
+    write(
+        d,
+        "a.js",
+        "function helperJs() { return 1; }\nexport function setup(bus) {\n\
+         \x20 bus.get(\"/y\", () => helperJs());\n}\nsetup({});\n\
+         app.post(\"/z\", () => helperJs2());\nfunction helperJs2() { return 2; }\n",
+    );
+    write(
+        d,
+        "main.go",
+        "package main\n\nfunc renderGo() string { return \"x\" }\n\n\
+         func setup(m *Mux) {\n\tm.Get(\"/\", func() string {\n\t\treturn renderGo()\n\t})\n}\n\n\
+         func main() { setup(nil) }\n",
+    );
+    write(
+        d,
+        "app.rb",
+        "def helper_rb\n  1\nend\n\ndef boot_rb\n  2\nend\n\nboot_rb()\n\n\
+         get \"/x\" do\n  helper_rb\nend\n",
+    );
+    write(
+        d,
+        "main.swift",
+        "func greetSw(_ n: String) -> String { n }\nfunc bootSw() {}\nbootSw()\n\
+         Lambda.run { (c, n: String, cb) in\n  greetSw(n)\n}\n",
+    );
+    write(
+        d,
+        "app.clj",
+        "(ns app)\n(defn home-page [] \"hi\")\n(defn routes [] (GET \"/\" [] (home-page)))\n(routes)\n",
+    );
+    write(
+        d,
+        "router.ex",
+        "defmodule MyApp.Router do\n  def helper_ex, do: :ok\n  def boot_ex, do: :ok\n\n\
+         \x20 boot_ex()\n\n  get \"/health\" do\n    helper_ex()\n  end\nend\n",
+    );
+    let dead = dead_findings(d, &[]);
+    assert!(dead.is_empty(), "every helper is live: {dead:?}");
+}
+
+#[test]
+fn a_minted_closure_sees_the_enclosing_functions_parameter_types() {
+    // REGRESSION: a minted closure was its own scope for type
+    // propagation, so the enclosing function's typed parameter `files`
+    // was unknown inside it and the call bound by name at `medium`.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "main.go",
+        "package main\n\ntype Files struct{}\n\nfunc (f *Files) CreateVersion() {}\n\n\
+         type Other struct{}\n\nfunc (o *Other) CreateVersion() {}\n\n\
+         func setup(m *Mux, files *Files) {\n\tm.Get(\"/\", func() string {\n\
+         \t\tfiles.CreateVersion()\n\t\treturn \"\"\n\t})\n}\n",
+    );
+    write(
+        tmp.path(),
+        "a.ts",
+        "class Files { createVersion() {} }\nclass Other { createVersion() {} }\n\
+         export function setup(app, files: Files) {\n  app.get(\"/\", () => { files.createVersion(); });\n}\n",
+    );
+    let out = tmp.path().join("g.json");
+    cgg()
+        .args(["-t", "json", "-o"])
+        .arg(&out)
+        .arg(tmp.path())
+        .assert()
+        .success();
+    let g: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    let qn = |id: &serde_json::Value| {
+        g["callables"][id.as_str().unwrap()]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let mut got: Vec<(String, String)> = g["edges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| qn(&e["src"]).contains("handler_at_"))
+        .map(|e| (qn(&e["dst"]), e["confidence"].as_str().unwrap().to_string()))
+        .collect();
+    got.sort();
+    assert_eq!(
+        got,
+        vec![
+            ("Files.createVersion".to_string(), "high".to_string()),
+            ("main.Files.CreateVersion".to_string(), "high".to_string()),
+        ]
+    );
+}

@@ -12,7 +12,7 @@ use std::collections::{HashMap, HashSet};
 use cgg_core::audit::{AuditUnresolvedCall, UnresolvedReason};
 use cgg_core::deadcode::{RootKind, RootRecord};
 use cgg_core::frameworks::rules::{RESPONSE_TRAITS, SELF_CONVERTING_WRAPPERS};
-use cgg_core::graph::Graph;
+use cgg_core::graph::{CallableKind, CallableNode, Graph};
 use cgg_core::ids::CallableId;
 use cgg_core::{FileFacts, ImportRecord};
 
@@ -719,6 +719,15 @@ pub(crate) fn discover(
         }
     }
 
+    // --- Rule: a minted closure handed off at module top level ---------
+    //
+    // `app.get('/x', () => helper())` at top level: the closure is its own
+    // callable (`handler_at_<line>`) because the call registers it, and
+    // with no rule claiming it nothing reaches it. Written inline, its
+    // calls were top-level invocations; a minted closure inside a function
+    // is reached from that function instead (`intra_file`).
+    minted_toplevel_closures(graph, &mut set, &mut seen);
+
     // Clojure: a top-level `alias/f` call or `#'alias/f` value names one
     // var — `f` of the namespace the file's `:require` gives `alias`,
     // through `import-vars` re-exports — and credits exactly the callables
@@ -1186,6 +1195,62 @@ fn collect_rust_reexports(facts: &[FileFacts]) -> HashSet<String> {
         }
     }
     out
+}
+
+/// Minted closures ([`cgg_core::DefRecord::is_minted_closure`]) that no
+/// other real callable of their file contains, as top-level roots.
+fn minted_toplevel_closures(
+    graph: &Graph,
+    set: &mut RootSet,
+    seen: &mut HashSet<CallableId>,
+) {
+    let minted = |n: &CallableNode| {
+        n.synthetic
+            && n.kind == CallableKind::Closure
+            && n.attributes.iter().any(|a| a == "synthetic")
+    };
+    let mut by_file: HashMap<cgg_core::FileId, Vec<(u32, u32)>> = HashMap::new();
+    let mut closures: Vec<(&CallableId, &CallableNode)> = Vec::new();
+    for (id, n) in &graph.callables {
+        if n.attributes
+            .iter()
+            .any(|a| a == cgg_core::MODULE_SCOPE_ATTR)
+        {
+            continue;
+        }
+        if minted(n) {
+            closures.push((id, n));
+        }
+        by_file
+            .entry(n.file)
+            .or_default()
+            .push((n.start_byte, n.end_byte));
+    }
+    for (id, n) in closures {
+        let enclosed = by_file.get(&n.file).is_some_and(|spans| {
+            spans.iter().any(|&(s, e)| {
+                s <= n.start_byte
+                    && n.end_byte <= e
+                    && (s, e) != (n.start_byte, n.end_byte)
+            })
+        });
+        if enclosed {
+            continue;
+        }
+        let path = graph
+            .files
+            .get(&n.file)
+            .map(|f| f.path.display().to_string())
+            .unwrap_or_default();
+        set.push(
+            graph,
+            *id,
+            RootKind::TopLevelInvocation,
+            "toplevel:invocation",
+            format!("handed off at module top level at {path}:{}", n.start_line),
+            seen,
+        );
+    }
 }
 
 fn zig_qualified_toplevel(
