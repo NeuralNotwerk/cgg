@@ -186,7 +186,7 @@ impl<'a> JsWalker<'a> {
     }
 
     pub(crate) fn walk(&mut self, node: Node) {
-        if node.parent().is_none() && node.kind() == "program" {
+        if node.kind() == "program" && node.parent().is_none() {
             self.registrar_aliases =
                 super::registrar::file_aliases(&self.ctx, node, self.source);
         }

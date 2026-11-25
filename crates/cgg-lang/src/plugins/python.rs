@@ -196,7 +196,7 @@ impl<'a> Walker<'a> {
     }
 
     fn walk(&mut self, node: Node) {
-        if node.parent().is_none() && node.kind() == "module" {
+        if node.kind() == "module" && node.parent().is_none() {
             self.registrar_aliases =
                 super::registrar::file_aliases(&self.ctx, node, self.source);
         }
