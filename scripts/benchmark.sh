@@ -592,6 +592,14 @@ APPS=(
     # itself declares `aws_lambda_powertools` in-tree, so it no longer detects
     # aws-lambda; this app carries that claim.
     "app-instancescheduler-lambda|https://github.com/aws-solutions/instance-scheduler-on-aws.git|aws-lambda,aws-lambda-powertools,jest,py-argparse,py-context-manager,py-threading,pytest,~aws-cdk,~py-unittest,~pydantic"
+    "app-hertzbeat-springai|https://github.com/apache/hertzbeat.git|axum,cargo-test,grpc-java,jackson,java-closeable,java-concurrent,jsr250-lifecycle,junit,junit-sources,netty,node-test,playwright,py-unittest,react,rmcp,servlet,spring,spring-ai,spring-ai-hooks,spring-context,spring-jobs,vitest"
+    "app-ruoyiai-langchain4j|https://github.com/ageerle/ruoyi-ai.git|jackson,java-closeable,jsr250-lifecycle,junit,langchain4j,langchain4j-agentic,langchain4j-hooks,py-unittest,servlet,spring,spring-context,spring-jobs,spring-websocket"
+    "app-eddi-quarkus|https://github.com/labsai/EDDI.git|jackson,jakarta-rs,java-closeable,java-concurrent,jsr250-lifecycle,jsr330-inject,junit,junit-sources,langchain4j,langchain4j-hooks,node-test,playwright,py-argparse,py-threading,react,vitest"
+    "app-kestra-langchain4j|https://github.com/kestra-io/kestra.git|grpc-java,jackson,java-closeable,java-concurrent,jmh,jsr250-lifecycle,jsr330-inject,junit,junit-sources,langchain4j,langchain4j-hooks,micronaut,playwright"
+    "app-askimo-langchain4j|https://github.com/askimo-ai/askimo.git|compose,java-closeable,junit,junit-sources,kotlinx-serialization,langchain4j,langchain4j-agentic,langchain4j-hooks,swing"
+    "app-klibsio-springai|https://github.com/JetBrains/klibs-io.git|compose,gradle-task,jsr250-lifecycle,junit,junit-sources,kotlinx-serialization,playwright,servlet,spring,spring-ai,spring-context,spring-jobs,vitest"
+    "app-trailblaze-koog|https://github.com/block/trailblaze.git|android-activity,android-broadcastreceiver,android-contentprovider,android-fragment,android-service,appkit,cocoa-delegate,compose,electron,gradle-task,java-closeable,java-concurrent,js-test-globals,junit,koog,kotlin-js-export,kotlinx-serialization,playwright,swing,uikit-appdelegate"
+    "app-mobiletester-koog|https://github.com/maikotrindade/mobile-tester-agent.git|junit,koog,vitest"
 )
 
 # Framework rules with NO application in the APPS manifest above.

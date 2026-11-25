@@ -521,6 +521,127 @@ const CASES: &[Case] = &[
         coverage: "shadow-cljs-hooks (lifecycle, 1 entry)",
         node: "",
     },
+    // ---- AI agent and tool-calling frameworks (kind `tool`) ----
+    Case {
+        name: "spring-ai/java",
+        files: &[
+            (
+                "Tools.java",
+                "package demo;\nimport org.springframework.ai.tool.annotation.Tool;\nimport org.springaicommunity.mcp.annotation.McpResource;\npublic class Tools {\n  @Tool(description = \"Current time\")\n  public String now() { return fmt(); }\n  @McpResource(uri = \"config://{key}\")\n  public String config(String key) { return key; }\n  private String fmt() { return \"\"; }\n}\n",
+            ),
+            (
+                "Raw.java",
+                "package demo;\nimport org.springframework.ai.tool.ToolCallback;\npublic class Raw implements ToolCallback {\n  public String call(String input) { return input; }\n}\n",
+            ),
+        ],
+        coverage: "spring-ai (tool, 3 entries)",
+        node: "tool::spring-ai::config://{key}",
+    },
+    Case {
+        name: "spring-ai/kotlin",
+        files: &[(
+            "Tools.kt",
+            "package demo\nimport org.springframework.ai.tool.annotation.Tool\nclass Tools {\n  @Tool(name = \"set_alarm\", description = \"Set an alarm\")\n  fun setAlarm(at: String) { log() }\n  private fun log() {}\n}\n",
+        )],
+        coverage: "spring-ai (tool, 1 entry)",
+        node: "tool::spring-ai::set_alarm",
+    },
+    Case {
+        name: "spring-ai-hooks/java",
+        files: &[(
+            "Log.java",
+            "package demo;\nimport org.springframework.ai.chat.client.advisor.api.CallAdvisor;\npublic class Log implements CallAdvisor {\n  public Object adviseCall(Object req, Object chain) { return null; }\n  public String getName() { return \"log\"; }\n  public int getOrder() { return 0; }\n}\n",
+        )],
+        coverage: "spring-ai-hooks (lifecycle, 3 entries)",
+        node: "",
+    },
+    Case {
+        name: "spring-ai-hooks/kotlin",
+        files: &[(
+            "Log.kt",
+            "package demo\nimport org.springframework.ai.tool.ToolCallbackProvider\nclass Provider : ToolCallbackProvider {\n  override fun getToolCallbacks(): Array<Any> = arrayOf()\n}\n",
+        )],
+        coverage: "spring-ai-hooks (lifecycle, 1 entry)",
+        node: "",
+    },
+    Case {
+        name: "langchain4j/java",
+        files: &[
+            (
+                "Calc.java",
+                "package demo;\nimport dev.langchain4j.agent.tool.Tool;\npublic class Calc {\n  @Tool(\"Adds two numbers\")\n  public int add(int a, int b) { return a + b; }\n  public int helper() { return 0; }\n}\n",
+            ),
+            (
+                "Weather.java",
+                "package demo;\nimport dev.langchain4j.service.tool.ToolExecutor;\npublic class Weather implements ToolExecutor {\n  public String execute(Object req, Object memoryId) { return \"\"; }\n}\n",
+            ),
+        ],
+        coverage: "langchain4j (tool, 2 entries)",
+        node: "tool::langchain4j::",
+    },
+    Case {
+        name: "langchain4j/kotlin",
+        files: &[(
+            "Booking.kt",
+            "package demo\nimport dev.langchain4j.agent.tool.Tool\nclass Booking {\n  @Tool(\"Cancels a booking\")\n  fun cancelBooking(id: String) {}\n}\n",
+        )],
+        coverage: "langchain4j (tool, 1 entry)",
+        node: "tool::langchain4j::cancelBooking",
+    },
+    Case {
+        name: "langchain4j/scala",
+        files: &[(
+            "Booking.scala",
+            "package demo\nimport dev.langchain4j.agent.tool.Tool\nclass Booking {\n  @Tool(Array(\"Cancels a booking\"))\n  def cancel(id: String): Unit = ()\n}\n",
+        )],
+        coverage: "langchain4j (tool, 1 entry)",
+        node: "tool::langchain4j::cancel",
+    },
+    Case {
+        name: "langchain4j-agentic/java",
+        files: &[(
+            "Writer.java",
+            "package demo;\nimport dev.langchain4j.agentic.Agent;\npublic interface Writer {\n  @Agent(\"Writes a story\")\n  String write(String topic);\n}\n",
+        )],
+        coverage: "langchain4j-agentic (lifecycle, 1 entry)",
+        node: "lifecycle::langchain4j-agentic::",
+    },
+    Case {
+        name: "langchain4j-agentic/kotlin",
+        files: &[(
+            "Writer.kt",
+            "package demo\nimport dev.langchain4j.agentic.Agent\ninterface Writer {\n  @Agent(\"Writes a story\")\n  fun write(topic: String): String\n}\n",
+        )],
+        coverage: "langchain4j-agentic (lifecycle, 1 entry)",
+        node: "lifecycle::langchain4j-agentic::",
+    },
+    Case {
+        name: "langchain4j-hooks/java",
+        files: &[(
+            "Guard.java",
+            "package demo;\nimport dev.langchain4j.guardrail.InputGuardrail;\nimport dev.langchain4j.agentic.declarative.ExitCondition;\npublic class Guard implements InputGuardrail {\n  public Object validate(Object msg) { return null; }\n  @ExitCondition static boolean done(double score) { return score > 0.8; }\n}\n",
+        )],
+        coverage: "langchain4j-hooks (lifecycle, 2 entries)",
+        node: "",
+    },
+    Case {
+        name: "langchain4j-hooks/kotlin",
+        files: &[(
+            "Listener.kt",
+            "package demo\nimport dev.langchain4j.model.chat.listener.ChatModelListener\nclass Audit : ChatModelListener {\n  override fun onRequest(ctx: Any) {}\n  override fun onError(ctx: Any) {}\n}\n",
+        )],
+        coverage: "langchain4j-hooks (lifecycle, 2 entries)",
+        node: "",
+    },
+    Case {
+        name: "koog/kotlin",
+        files: &[(
+            "Tools.kt",
+            "package demo\nimport ai.koog.agents.core.tools.SimpleTool\nimport ai.koog.agents.core.tools.annotations.Tool\nimport ai.koog.agents.core.tools.reflect.ToolSet\nclass Weather : ToolSet {\n  @Tool\n  fun currentTemperature(city: String): Int = lookup(city)\n  private fun lookup(city: String): Int = 0\n}\nobject Echo : SimpleTool<String>() {\n  override suspend fun doExecute(args: String): String = args\n}\n",
+        )],
+        coverage: "koog (tool, 2 entries)",
+        node: "tool::koog::currentTemperature",
+    },
 ];
 
 #[test]
@@ -564,6 +685,12 @@ fn the_rows_need_their_framework() {
         "Plain.kt",
         "package demo\nclass Plain : Job {\n  fun execute() {}\n  fun onMessage() {}\n}\n",
     );
+    // An in-house `@Tool` annotation and `Tool` base: no agent framework.
+    write(
+        tmp.path(),
+        "Mine.kt",
+        "package demo\nannotation class Tool\nabstract class SimpleTool { abstract fun doExecute() }\nclass Mine : SimpleTool() {\n  @Tool fun run() {}\n  override fun doExecute() {}\n}\n",
+    );
     write(
         tmp.path(),
         "plain.clj",
@@ -578,6 +705,9 @@ fn the_rows_need_their_framework() {
         "grpc-kotlin",
         "rocketmq",
         "re-frame",
+        "spring-ai",
+        "langchain4j",
+        "koog",
     ] {
         assert!(
             !err.contains(&format!("{id} (")),
@@ -635,4 +765,35 @@ fn clojurescript_entries_keep_their_call_trees_live() {
          (defn- unused [] 2)\n",
     );
     assert_eq!(dead_count(tmp.path()), 1);
+}
+
+/// An agent tool is called by the model host: before the rows each
+/// `@Tool` method (and the helpers it alone reaches) read as dead.
+#[test]
+fn agent_tools_and_their_helpers_are_not_dead() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "Tools.java",
+        "package demo;\nimport dev.langchain4j.agent.tool.Tool;\nclass Tools {\n  @Tool(\"Adds\")\n  int add(int a, int b) { return norm(a) + b; }\n  private int norm(int a) { return a; }\n  private int unused() { return 0; }\n}\n",
+    );
+    write(
+        tmp.path(),
+        "Weather.kt",
+        "package demo\nimport ai.koog.agents.core.tools.annotations.Tool\nimport ai.koog.agents.core.tools.reflect.ToolSet\nclass Weather : ToolSet {\n  @Tool\n  fun temperature(city: String): Int = lookup(city)\n  private fun lookup(city: String): Int = 0\n}\n",
+    );
+    run(
+        tmp.path(),
+        &["--dead-code", "--dead-code-confidence", "low"],
+    );
+    let report = fs::read_to_string(tmp.path().join("g.mmd.deadcode.txt")).unwrap();
+    for live in [
+        "Tools.add'",
+        "Tools.norm'",
+        "Weather.temperature'",
+        "Weather.lookup'",
+    ] {
+        assert!(!report.contains(live), "{live} reported:\n{report}");
+    }
+    assert!(report.contains("Tools.unused'"), "{report}");
 }
