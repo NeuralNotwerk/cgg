@@ -1,7 +1,9 @@
 //! Solidity plugin — callable extraction.
 
 use crate::LanguagePlugin;
-use cgg_core::{DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId};
+use cgg_core::{
+    ClassDecl, DefRecord, DefVariant, FileFacts, ImportRecord, RefRecord, ids::FileId,
+};
 use std::path::Path;
 use tree_sitter::{Node, Tree};
 
@@ -43,6 +45,7 @@ impl LanguagePlugin for SolidityPlugin {
             facts: &mut facts,
             scope: Vec::new(),
             in_library: Vec::new(),
+            bases: Vec::new(),
         };
         w.walk(tree.root_node());
         facts
@@ -57,6 +60,11 @@ struct SolidityWalker<'a> {
     /// functions are called through the library (`L.f(x)`) or attached
     /// to a type (`using L for T`), never by bare name from outside it.
     in_library: Vec<bool>,
+    /// Per entry of `scope`: the contract's or interface's bases as
+    /// written after `is`, in order. Its functions carry them
+    /// (`DefRecord::base_types`): a call to a `virtual` function runs the
+    /// most-derived override, which the inheritance pass links.
+    bases: Vec<Vec<String>>,
 }
 
 impl<'a> SolidityWalker<'a> {
@@ -93,11 +101,21 @@ impl<'a> SolidityWalker<'a> {
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
                 if !name.is_empty() {
+                    let bases = self.inheritance_bases(node);
                     self.scope.push(name);
+                    if node.kind() != "library_declaration" {
+                        self.facts.classes.push(ClassDecl {
+                            class_qn: self.scope.join("."),
+                            base_types: bases.clone(),
+                            line: (node.start_position().row as u32) + 1,
+                        });
+                    }
                     self.in_library.push(node.kind() == "library_declaration");
+                    self.bases.push(bases);
                     self.walk_children(node);
                     self.scope.pop();
                     self.in_library.pop();
+                    self.bases.pop();
                 } else {
                     self.walk_children(node);
                 }
@@ -244,8 +262,22 @@ impl<'a> SolidityWalker<'a> {
             } else {
                 Vec::new()
             },
+            base_types: self.bases.last().cloned().unwrap_or_default(),
             ..Default::default()
         });
+    }
+
+    /// `contract C is A, B(x)`: `["A", "B"]`, as written.
+    fn inheritance_bases(&self, decl: Node) -> Vec<String> {
+        decl.named_children(&mut decl.walk())
+            .filter(|c| c.kind() == "inheritance_specifier")
+            .filter_map(|c| {
+                c.named_children(&mut c.walk())
+                    .find(|t| t.kind() == "user_defined_type")
+                    .map(|t| self.text(t).trim().to_string())
+            })
+            .filter(|b| !b.is_empty())
+            .collect()
     }
 
     /// A call at `site` of contract `ty`'s constructor.
@@ -269,15 +301,7 @@ impl<'a> SolidityWalker<'a> {
         else {
             return;
         };
-        let bases: Vec<String> = contract
-            .named_children(&mut contract.walk())
-            .filter(|c| c.kind() == "inheritance_specifier")
-            .filter_map(|c| {
-                c.named_children(&mut c.walk())
-                    .find(|t| t.kind() == "user_defined_type")
-                    .map(|t| self.text(t).trim().to_string())
-            })
-            .collect();
+        let bases = self.inheritance_bases(contract);
         let invocations: Vec<Node> = ctor
             .named_children(&mut ctor.walk())
             .filter(|c| c.kind() == "modifier_invocation")
@@ -407,6 +431,46 @@ mod tests {
         );
         assert_eq!(by.get("Token.transfer"), Some(&DefVariant::InherentMethod));
         assert_eq!(by.get("Token._send"), Some(&DefVariant::InherentMethod));
+    }
+
+    /// BACKLOG P1: a contract's and an interface's bases are recorded,
+    /// on the class and on each of its functions, so a base's call to a
+    /// `virtual` hook reaches the overrides; a library has none.
+    #[test]
+    fn contract_bases_are_recorded() {
+        let src = "abstract contract Base { function _hook() internal virtual {} }\n\
+            contract Impl is Base, Other(1) { function _hook() internal override {} }\n\
+            interface I is J { function f() external; }\n\
+            library L { function g() internal {} }";
+        let f = extract(src);
+        let classes: Vec<(&str, Vec<&str>)> = f
+            .classes
+            .iter()
+            .map(|c| {
+                (
+                    c.class_qn.as_str(),
+                    c.base_types.iter().map(String::as_str).collect(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            classes,
+            vec![
+                ("Base", vec![]),
+                ("Impl", vec!["Base", "Other"]),
+                ("I", vec!["J"]),
+            ]
+        );
+        let bases = |qn: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.qualified_name == qn)
+                .map(|d| d.base_types.clone())
+                .unwrap()
+        };
+        assert_eq!(bases("Impl._hook"), vec!["Base", "Other"]);
+        assert!(bases("Base._hook").is_empty());
+        assert!(bases("L.g").is_empty());
     }
 
     #[test]
