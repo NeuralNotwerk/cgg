@@ -5555,7 +5555,10 @@ mod tests {
         });
         let mut rule = user_rule("vercel", "typescript", "ai");
         rule.registrars = vec!["tool".into()];
-        let out = detect(&g, &[a, b, c, lib], &[rule]);
+        let mut out = detect(&g, &[a, b, c, lib], &[rule]);
+        // The built-in `vercel-ai` row takes the same sites; judge the
+        // user rule alone.
+        out.entries.retain(|e| e.framework == "vercel");
         assert_eq!(
             rooted(&out),
             vec!["a.search".to_string(), "c.fetch".to_string()]

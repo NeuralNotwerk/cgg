@@ -651,6 +651,234 @@ const CASES: &[Case] = &[
         coverage: &["dart-args (cli, 1 entry)"],
         graph: &["cli::dart-args::ListCmd"],
     },
+    // ---- AI agent and tool-calling frameworks (kind `tool`) ----
+    Case {
+        name: "mcp-sdk+mcp-handler/typescript",
+        files: &[
+            (
+                "src/server.ts",
+                "import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';\n\
+                 import { z } from 'zod';\n\
+                 const server = new McpServer({ name: 'fx', version: '1.0.0' });\n\
+                 server.tool('echo', 'Echo text', { text: z.string() }, async ({ text }) => ({ content: [{ type: 'text', text: shout(text) }] }));\n\
+                 server.registerTool('weather', { description: 'w' }, getWeather);\n\
+                 server.registerResource('user', 'users://{id}', { title: 'u' }, readUser);\n\
+                 server.prompt('review', { code: z.string() }, reviewPrompt);\n\
+                 function shout(s: string) { return s.toUpperCase(); }\n\
+                 async function getWeather(a: unknown) { return { content: [] }; }\n\
+                 async function readUser(uri: URL) { return { contents: [] }; }\n\
+                 function reviewPrompt(a: unknown) { return { messages: [] }; }\n",
+            ),
+            (
+                "app/api/route.ts",
+                "import { createMcpHandler } from 'mcp-handler';\n\
+                 const handler = createMcpHandler((server) => { setup(server); }, {}, { basePath: '/api' });\n\
+                 function setup(s: unknown) {}\n\
+                 export { handler as GET };\n",
+            ),
+        ],
+        coverage: &[
+            "mcp-sdk (tool, 4 entries)",
+            "mcp-handler (lifecycle, 1 entry)",
+        ],
+        graph: &[
+            "tool::mcp-sdk::echo",
+            "tool::mcp-sdk::weather",
+            "tool::mcp-sdk::user",
+            "tool::mcp-sdk::review",
+        ],
+    },
+    Case {
+        name: "mcp-sdk/javascript",
+        files: &[(
+            "server.js",
+            "import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';\n\
+             const server = new McpServer({ name: 'fx', version: '1.0.0' });\n\
+             server.registerTool('lookup', { description: 'l' }, lookup);\n\
+             async function lookup(a) { return { content: [] }; }\n",
+        )],
+        coverage: &["mcp-sdk (tool, 1 entry)"],
+        graph: &["tool::mcp-sdk::lookup"],
+    },
+    Case {
+        name: "cloudflare-agents+workers-rpc/typescript",
+        files: &[(
+            "src/server.ts",
+            "import { Agent, callable } from 'agents';\n\
+             import { WorkerEntrypoint } from 'cloudflare:workers';\n\
+             export class MyAgent extends Agent<Env, { count: number }> {\n\
+             \x20 async onStart() { await this.schedule(60, 'cleanup'); }\n\
+             \x20 async onRequest(request: Request) { return new Response(''); }\n\
+             \x20 @callable()\n\
+             \x20 async increment(by: number) { return by; }\n\
+             \x20 async cleanup() {}\n\
+             \x20 private helperNeverCalled() {}\n\
+             }\n\
+             export class Rpc extends WorkerEntrypoint {\n\
+             \x20 async add(a: number, b: number) { return a + b; }\n\
+             \x20 private secret() {}\n\
+             }\n",
+        )],
+        coverage: &[
+            "cloudflare-agents (tool, 1 entry)",
+            "cloudflare-agents-lifecycle (lifecycle, 2 entries)",
+            "cloudflare-workers-rpc (network, 1 entry)",
+        ],
+        graph: &[
+            "tool::cloudflare-agents::increment",
+            "network::cloudflare-workers-rpc::Rpc.add",
+        ],
+    },
+    Case {
+        name: "vercel-ai/typescript",
+        files: &[(
+            "agent.ts",
+            "import { tool, generateText } from 'ai';\n\
+             import { z } from 'zod';\n\
+             async function lookupStock({ symbol }: { symbol: string }) { return symbol; }\n\
+             export const stockTool = tool({ description: 'stock', inputSchema: z.object({ symbol: z.string() }), execute: lookupStock });\n\
+             export async function main() {\n\
+             \x20 return generateText({ model: 'm', tools: { stock: stockTool }, onStepFinish: logStep, prompt: 'hi' });\n\
+             }\n\
+             function logStep(step: unknown) {}\n",
+        )],
+        coverage: &[
+            "vercel-ai (tool, 1 entry)",
+            "vercel-ai-hooks (lifecycle, 1 entry)",
+        ],
+        graph: &["tool::vercel-ai::lookupStock"],
+    },
+    Case {
+        name: "mastra/typescript",
+        files: &[(
+            "index.ts",
+            "import { Agent } from '@mastra/core/agent';\n\
+             import { createTool } from '@mastra/core/tools';\n\
+             import { createStep } from '@mastra/core/workflows';\n\
+             import { z } from 'zod';\n\
+             export const weatherTool = createTool({ id: 'get-weather', description: 'w', inputSchema: z.object({}), async execute({ context }) { return helper(context); } });\n\
+             function helper(c: unknown) { return c; }\n\
+             async function plan({ inputData }: any) { return inputData; }\n\
+             const planStep = createStep({ id: 'plan', inputSchema: z.object({}), outputSchema: z.object({}), execute: plan });\n\
+             export const agent = new Agent({ name: 'A', instructions: dynamicInstructions, model: 'm' });\n\
+             function dynamicInstructions(c: unknown) { return 'x'; }\n",
+        )],
+        coverage: &[
+            "mastra (tool, 1 entry)",
+            "mastra-workflows (lifecycle, 1 entry)",
+            "mastra-agent (lifecycle, 1 entry)",
+        ],
+        graph: &["tool::mastra::get-weather", "lifecycle::mastra-workflows::"],
+    },
+    Case {
+        name: "langchain-js/typescript",
+        files: &[(
+            "tools.ts",
+            "import { tool, StructuredTool } from '@langchain/core/tools';\n\
+             import { BaseCallbackHandler } from '@langchain/core/callbacks/base';\n\
+             import { z } from 'zod';\n\
+             async function searchDocs({ q }: { q: string }) { return q; }\n\
+             export const search = tool(searchDocs, { name: 'search', schema: z.object({ q: z.string() }) });\n\
+             export class WikiTool extends StructuredTool {\n\
+             \x20 name = 'wiki';\n\
+             \x20 async _call(input: { q: string }) { return this.fetchPage(input.q); }\n\
+             \x20 private fetchPage(q: string) { return q; }\n\
+             }\n\
+             export class MyHandler extends BaseCallbackHandler {\n\
+             \x20 name = 'h';\n\
+             \x20 async handleLLMStart() {}\n\
+             \x20 async handleToolEnd(output: string) {}\n\
+             }\n",
+        )],
+        coverage: &[
+            "langchain-js (tool, 2 entries)",
+            "langchain-js-callbacks (lifecycle, 2 entries)",
+        ],
+        graph: &["tool::langchain-js::search", "tool::langchain-js::WikiTool"],
+    },
+    Case {
+        name: "openai-agents/typescript",
+        files: &[(
+            "agents.ts",
+            "import { Agent, tool, handoff, defineInputGuardrail } from '@openai/agents';\n\
+             import { z } from 'zod';\n\
+             async function refundExecute(input: { id: string }) { return input.id; }\n\
+             const refund = tool({ name: 'refund', description: 'r', parameters: z.object({ id: z.string() }), execute: refundExecute });\n\
+             const guard = defineInputGuardrail({ name: 'in', execute: checkIn });\n\
+             function checkIn(i: unknown) { return { outputInfo: {}, tripwireTriggered: false }; }\n\
+             const billing = new Agent({ name: 'Billing', instructions: billingPrompt, tools: [refund] });\n\
+             function billingPrompt(ctx: any) { return 'billing'; }\n\
+             export const triage = Agent.create({ name: 'T', handoffs: [handoff(billing, { onHandoff: onBillingHandoff })], inputGuardrails: [guard] });\n\
+             function onBillingHandoff(ctx: any) {}\n",
+        )],
+        coverage: &[
+            "openai-agents (tool, 1 entry)",
+            "openai-agents-handoffs (lifecycle, 1 entry)",
+            "openai-agents-hooks (lifecycle, 2 entries)",
+        ],
+        graph: &[
+            "tool::openai-agents::refund",
+            "lifecycle::openai-agents-handoffs::",
+        ],
+    },
+    Case {
+        name: "claude-agent-sdk/typescript",
+        files: &[(
+            "server.ts",
+            "import { tool, createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk';\n\
+             import { z } from 'zod';\n\
+             const calc = tool('calculate', 'Do math', { expr: z.string() }, async (args) => ({ content: [{ type: 'text', text: evaluate(args.expr) }] }));\n\
+             function evaluate(e: string) { return e; }\n\
+             async function lookupHandler(args: { id: string }) { return { content: [] }; }\n\
+             const lookup = tool('lookup', 'Look up', { id: z.string() }, lookupHandler);\n\
+             export const server = createSdkMcpServer({ name: 't', version: '1', tools: [calc, lookup] });\n",
+        )],
+        coverage: &["claude-agent-sdk (tool, 2 entries)"],
+        graph: &[
+            "tool::claude-agent-sdk::calculate",
+            "tool::claude-agent-sdk::lookup",
+        ],
+    },
+    Case {
+        name: "vscode/typescript",
+        files: &[(
+            "src/extension.ts",
+            "import * as vscode from 'vscode';\n\
+             export function activate(context: vscode.ExtensionContext) {\n\
+             \x20 context.subscriptions.push(vscode.lm.registerTool('fx_run', new RunTool()));\n\
+             \x20 vscode.chat.createChatParticipant('fx.cat', handleChat);\n\
+             }\n\
+             export function deactivate() {}\n\
+             class RunTool implements vscode.LanguageModelTool<{ command: string }> {\n\
+             \x20 async prepareInvocation(options: unknown) { return {}; }\n\
+             \x20 async invoke(options: unknown, token: unknown) { return {}; }\n\
+             }\n\
+             async function handleChat(request: unknown) {}\n",
+        )],
+        coverage: &[
+            "vscode-extension (lifecycle, 2 entries)",
+            "vscode-lm-tools (tool, 3 entries)",
+        ],
+        graph: &[
+            "tool::vscode-lm-tools::RunTool",
+            "tool::vscode-lm-tools::fx.cat",
+        ],
+    },
+    Case {
+        name: "foundation-models/swift",
+        files: &[(
+            "App/Weather.swift",
+            "import FoundationModels\n\
+             struct GetWeatherTool: Tool {\n\
+             \x20 let name = \"getWeather\"\n\
+             \x20 func call(arguments: Arguments) async throws -> String { lookup(arguments.city) }\n\
+             }\n\
+             func lookup(_ c: String) -> String { c }\n\
+             struct Plain { func call(arguments: Int) {} }\n",
+        )],
+        coverage: &["foundation-models (tool, 1 entry)"],
+        graph: &["tool::foundation-models::GetWeatherTool"],
+    },
 ];
 
 #[test]
@@ -724,4 +952,59 @@ fn a_renamed_or_default_imported_base_class_reaches_the_framework_base() {
     assert!(err.contains("oclif (cli, 2 entries)"), "{err}");
     assert!(g.contains("cli::oclif::Fork"), "{g}");
     assert!(g.contains("cli::oclif::Info"), "{g}");
+}
+
+/// A JS/TS function imported from a project module and called or named
+/// at module top level is credited: `makeApp({ register: registerTools })`
+/// and `register('x', h.searchDocs)` used to leave every name dead.
+#[test]
+fn a_module_scope_use_of_an_imported_function_credits_it() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "lib.ts",
+        "export function makeApp(o: { register: (c: unknown) => void }) { return o; }\n\
+         export function registerTools(c: unknown) {}\n\
+         export function unusedHelper() {}\n",
+    );
+    write(
+        tmp.path(),
+        "app.ts",
+        "import { makeApp as mk, registerTools } from './lib';\n\
+         export const app = mk({ register: registerTools });\n",
+    );
+    write(
+        tmp.path(),
+        "handlers.js",
+        "export function searchDocs(q) { return q; }\n",
+    );
+    write(
+        tmp.path(),
+        "server.js",
+        "import * as h from './handlers.js';\n\
+         import { register } from 'somewhere';\n\
+         register('search', h.searchDocs);\n",
+    );
+    let mut cmd = Command::cargo_bin("cgg").expect("cgg binary");
+    cmd.args([
+        "--dead-code",
+        "--dead-code-format",
+        "json",
+        "--dead-code-confidence",
+        "low",
+        "--no-graph",
+    ])
+    .arg(tmp.path());
+    let out = cmd.assert().success().get_output().stdout.clone();
+    let doc: serde_json::Value = serde_json::from_slice(&out).unwrap();
+    let dead: Vec<&str> = doc["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|f| f["qualified_name"].as_str())
+        .collect();
+    for live in ["makeApp", "registerTools", "searchDocs"] {
+        assert!(!dead.contains(&live), "{live} reported dead: {dead:?}");
+    }
+    assert!(dead.contains(&"unusedHelper"), "{dead:?}");
 }
