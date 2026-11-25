@@ -142,6 +142,9 @@ pub(crate) struct JsWalker<'a> {
     /// Svc()`): an assignment to one later is recorded as
     /// [`cgg_core::REASSIGNED_LOCAL`] (WS23).
     constructed_mutable: std::collections::HashSet<String>,
+    /// File-level aliases of a registrar (`const f = useCopilotAction as
+    /// any`), read at the program node: see `registrar::file_aliases`.
+    registrar_aliases: std::collections::HashMap<String, String>,
 }
 
 impl<'a> JsWalker<'a> {
@@ -157,6 +160,16 @@ impl<'a> JsWalker<'a> {
             scope: Vec::new(),
             bases: Vec::new(),
             constructed_mutable: std::collections::HashSet::new(),
+            registrar_aliases: std::collections::HashMap::new(),
+        }
+    }
+
+    /// The registrar a callee written through a file-level alias stands
+    /// for; the callee itself otherwise.
+    fn registrar_context(&self, callee: String) -> String {
+        match self.registrar_aliases.get(&callee) {
+            Some(target) => target.clone(),
+            None => callee,
         }
     }
 
@@ -173,6 +186,10 @@ impl<'a> JsWalker<'a> {
     }
 
     pub(crate) fn walk(&mut self, node: Node) {
+        if node.kind() == "program" && node.parent().is_none() {
+            self.registrar_aliases =
+                super::registrar::file_aliases(&self.ctx, node, self.source);
+        }
         if self.ctx.reference_sites {
             self.capture_value_positions(node);
         }
@@ -1638,6 +1655,7 @@ impl<'a> JsWalker<'a> {
         // Shape B/E: `app.get('/x', listUsers)` and
         // `new Worker('./w.js')`. Both put the handler in argument
         // position, where the callee alone says nothing.
+        let context = self.registrar_context(context);
         let extra = super::registrar::capture(&self.ctx, node, self.source, &context);
         self.facts.references.extend(extra);
     }
@@ -1658,7 +1676,7 @@ impl<'a> JsWalker<'a> {
         else {
             return;
         };
-        let context = self.text(func).to_string();
+        let context = self.registrar_context(self.text(func).to_string());
         // `describe('...', () => {})` has exactly the shape of a route
         // registration. Gating on the verb is what keeps a test suite
         // from minting a synthesized handler per block — four thousand
@@ -1721,6 +1739,7 @@ impl<'a> JsWalker<'a> {
                 kwargs: Vec::new(),
                 retyped_receiver: false,
                 receiver_module: None,
+                name_arg: super::registrar::name_arg_of(node, self.source),
             });
         }
     }

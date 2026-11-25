@@ -360,12 +360,14 @@ cgg ./src --filter '<framework-entry>::network::' -n 3
 cgg ./src --exclude-partial '<framework-entry>::lifecycle::'
 ```
 
-Kinds: `network` (the only one cgg treats as attack surface), `queue`,
+Kinds: `network` (attack surface), `queue`,
 `schedule`, `cli`, `ffi`, `lifecycle` (the default when no trust
 boundary is asserted), `test`, `ui` (an event handler wired in markup,
-e.g. XAML `Click="OnSave"`), and `public` (a callable the *language*
+e.g. XAML `Click="OnSave"`), `public` (a callable the *language*
 exposes to anyone with no framework involved — a Solidity
-`public`/`external` function).
+`public`/`external` function), and `tool` (a callable an LLM host
+invokes with arguments the model chose — an agent or MCP tool; untrusted
+input through prompt injection).
 
 **Two things to relay honestly, every time:**
 

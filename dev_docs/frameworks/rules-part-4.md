@@ -80,7 +80,7 @@ script over rules.rs lines 90–11623).
 | `cargo-test` (rules.rs:9173) | rust | Test | true | **attributes:** `test`, `*_test`, `rstest`, `test_case`, `quickcheck`<br>**detection:** marker-only (no import gate) | enumerating | `app-actix-examples`, `rust-ntex` | — |
 | `cargo-bench` (rules.rs:9191) | rust | Test | true | **attributes:** `bench`<br>**detection:** marker-only (no import gate) | enumerating | `rust-ntex` | — |
 | `rtic` (rules.rs:9212) | rust | Lifecycle | true | **attributes:** `init`, `idle`, `task`<br>**detection:** marker-only (no import gate) | enumerating | `rust-rtic` | — |
-| `rmcp` (rules.rs:9231) | rust | Network | true | **imports:** `rmcp`<br>**attributes:** `tool`, `prompt`<br>**helper:** container_attributes_for: `tool_handler`, `prompt_handler` | enumerating | `app-shuttle-examples` | — |
+| `rmcp` (rules.rs:9231) | rust | Tool | true | **imports:** `rmcp`<br>**attributes:** `tool`, `prompt`<br>**helper:** container_attributes_for: `tool_handler`, `prompt_handler` | enumerating | `app-shuttle-examples` | — |
 | `async-graphql` (rules.rs:9251) | rust | Network | true | **imports:** `async_graphql`<br>**helper:** container_attributes_for: `Object`, `ComplexObject`, `Subscription`, `MergedObject`, `Interface` | enumerating | `app-actix-examples` | — |
 | `juniper` (rules.rs:9269) | rust | Network | true | **imports:** `juniper`<br>**helper:** container_attributes_for: `graphql_object`, `graphql_subscription`, `graphql_interface` | enumerating | `app-actix-examples` | — |
 | `marimo` (rules.rs:9288) | python | Lifecycle | true | **imports:** `marimo`<br>**attributes:** `cell`, `function`, `class_definition` | enumerating | `app-oldata-dagster` | — |

@@ -130,6 +130,17 @@ pub enum TrustKind {
     /// A user-interface event wired in markup or an editor menu
     /// (`Click="OnSave"` in XAML, Unity `[MenuItem]`).
     Ui,
+    /// A callable an LLM host invokes with arguments the *model* chose:
+    /// an agent tool, an MCP tool, resource or prompt, a VS Code language
+    /// model tool, a CopilotKit action.
+    ///
+    /// A prompt-injection boundary, so its input is untrusted — the same
+    /// argument [`TrustKind::Public`] makes. It is not `Network` (the app
+    /// owns no socket here; the host does) and not `Lifecycle` (which
+    /// asserts no boundary at all). Hooks, guardrails and callbacks around
+    /// the model are `Lifecycle`; a deployed agent runtime's own entry
+    /// point (an A2A executor, a Workers RPC method) is `Network`.
+    Tool,
 }
 
 impl TrustKind {
@@ -146,6 +157,7 @@ impl TrustKind {
             TrustKind::Test => "test",
             TrustKind::Public => "public",
             TrustKind::Ui => "ui",
+            TrustKind::Tool => "tool",
         }
     }
 
@@ -160,15 +172,18 @@ impl TrustKind {
             "test" => TrustKind::Test,
             "public" => TrustKind::Public,
             "ui" => TrustKind::Ui,
+            "tool" => TrustKind::Tool,
             _ => return None,
         })
     }
 
     /// Whether this boundary carries input cgg considers untrusted by
     /// default. `Queue` is deliberately excluded: it depends entirely on
-    /// who can enqueue, which cgg cannot see.
+    /// who can enqueue, which cgg cannot see. `Tool` is included: the
+    /// model picks a tool's arguments, and whatever the model read
+    /// (a web page, an email, a file) can steer them.
     pub fn untrusted_input(self) -> bool {
-        matches!(self, TrustKind::Network)
+        matches!(self, TrustKind::Network | TrustKind::Tool)
     }
 }
 
@@ -461,6 +476,16 @@ impl FrameworkCoverage {
             .sum()
     }
 
+    /// Count of `tool`-kind entries: callables a model can invoke with
+    /// arguments it chose.
+    pub fn tool_entries(&self) -> u32 {
+        self.recognised
+            .iter()
+            .filter(|r| r.kind == TrustKind::Tool)
+            .map(|r| r.entries)
+            .sum()
+    }
+
     /// Render the §2 disclosure block.
     ///
     /// Lives here rather than in `cgg-format` so that every surface —
@@ -585,6 +610,12 @@ enumerated:\n                 {}{}\n                 \
                  data flow — cgg does no taint tracking.\n",
             );
         }
+        if self.tool_entries() > 0 {
+            s.push_str(
+                "  A `tool` entry is called by an LLM host with arguments the model chose;\n  \
+                 treat its parameters as untrusted (prompt injection), as for `network`.\n",
+            );
+        }
         s
     }
 }
@@ -665,6 +696,9 @@ mod tests {
             TrustKind::Ffi,
             TrustKind::Lifecycle,
             TrustKind::Test,
+            TrustKind::Public,
+            TrustKind::Ui,
+            TrustKind::Tool,
         ] {
             assert_eq!(TrustKind::parse(k.slug()), Some(k));
         }
@@ -678,6 +712,29 @@ mod tests {
         // see — asserting it would be a guess dressed as a finding.
         assert!(!TrustKind::Queue.untrusted_input());
         assert!(!TrustKind::Lifecycle.untrusted_input());
+    }
+
+    // The model chooses a tool's arguments: a prompt-injection boundary,
+    // so `tool` is untrusted, and it is its own segment of the node name
+    // (`--filter '<framework-entry>::tool::'` selects every tool).
+    #[test]
+    fn tool_kind_is_untrusted_and_named_in_the_node() {
+        assert!(TrustKind::Tool.untrusted_input());
+        assert_eq!(TrustKind::Tool.slug(), "tool");
+        let mut e = entry("search", TrustKind::Tool);
+        e.framework = "rmcp".into();
+        assert_eq!(e.node_name(), "<framework-entry>::tool::rmcp::search");
+        let mut c = FrameworkCoverage::new();
+        c.recognised.push(RecognisedFramework {
+            id: "rmcp".into(),
+            language: "rust".into(),
+            kind: TrustKind::Tool,
+            entries: 3,
+        });
+        let text = c.render_text();
+        assert!(text.contains("rmcp (tool, 3 entries)"), "{text}");
+        assert!(text.contains("prompt injection"), "{text}");
+        assert!(!text.contains("taint"), "{text}");
     }
 
     fn entry(route: &str, kind: TrustKind) -> FrameworkEntry {

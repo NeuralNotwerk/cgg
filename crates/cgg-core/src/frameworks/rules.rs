@@ -10245,11 +10245,12 @@ pub const SPECS: &[RuleSpec] = &[
         handler_on_enclosing_owner: false,
     },
     // WS18. rmcp (Model Context Protocol): `#[tool]` / `#[prompt]` methods are
-    // invoked by the MCP client over the transport.
+    // invoked by the MCP client over the transport, with arguments the model
+    // chose: kind `tool`.
     RuleSpec {
         id: "rmcp",
         language: "rust",
-        kind: TrustKind::Network,
+        kind: TrustKind::Tool,
         detect: &["rmcp"],
         detect_paths: NONE,
         detect_calls: NONE,
@@ -13179,7 +13180,41 @@ pub fn harness_globals_rank(id: &str, language: &str) -> u8 {
 /// evidence, or where the annotation is written fully qualified under one
 /// of its `detect` prefixes: `@Scheduled` on a member of a file that
 /// imports nothing from Spring is an annotation of its own package.
-pub const IMPORT_SCOPED_ATTRIBUTES: &[&str] = &["java", "kotlin"];
+///
+/// Python, JavaScript and TypeScript decorators are names too (`@tool`,
+/// `@app.task`), and their keys are generic enough that one framework's
+/// decorator matched another's rule wherever the tree used both (an
+/// `@mcp.tool` took an entry of every agent framework with a `tool`
+/// decorator). There a decorator whose head the file imports from one of
+/// the tree's own modules (`from .celeryconf import app`) counts when
+/// that module carries the evidence.
+pub const IMPORT_SCOPED_ATTRIBUTES: &[&str] =
+    &["java", "kotlin", "python", "javascript", "typescript"];
+
+/// Languages in which a file names what it uses through its own imports,
+/// so a bare registrar call (`tool({…})`, axum's `get(h)`) and a base type
+/// (`extends HttpServlet`, `impl Tool for X`) are a framework's only in a
+/// file carrying that framework's evidence: it imports a `detect` prefix,
+/// writes the name qualified under one, or (Python, JS/TS) imports the
+/// name from one of the tree's own modules that does. A base type found
+/// up the inheritance chain is judged in the file that declares it.
+///
+/// Not Ruby (autoloading: no file imports what it uses), C# (implicit and
+/// `global using`s state a file's namespaces outside it), Dart (a `part`
+/// file shares its library's imports), Scala (package-object and
+/// enclosing-package imports), PHP (a class of the file's own namespace
+/// or the global one needs no `use`), nor the languages whose include or
+/// load is transitive (C, C++, Lua, Perl, Elixir, Clojure).
+pub const FILE_SCOPED_EVIDENCE: &[&str] = &[
+    "python",
+    "javascript",
+    "typescript",
+    "java",
+    "kotlin",
+    "go",
+    "rust",
+    "swift",
+];
 
 /// Languages in which every member of a test-harness base class (a
 /// `unittest.TestCase`, PHPUnit `TestCase`, `Minitest::Test` subclass) is

@@ -147,7 +147,9 @@ fn output_does_not_depend_on_worker_count() {
 #[test]
 fn two_projects_each_get_their_own_framework_rules() {
     // A different custom verb each, neither shipped by cgg. `detect`
-    // matches the import that proves the framework is in use.
+    // matches the import that proves the framework is in use (`appfw`,
+    // not `app`: `import app` inside the tree's own top-level `app.py`
+    // imports the tree's own module, which detects no framework).
     //
     // The config lives OUTSIDE the analyzed tree: `roots: None` triggers
     // an upward search from the analyzed path, so a config next to
@@ -158,7 +160,7 @@ fn two_projects_each_get_their_own_framework_rules() {
         fs::write(
             dir.join("src/app.py"),
             format!(
-                "import app\n\n\
+                "import appfw\n\n\
                  def handler():\n    return 1\n\n\
                  {verb}(\"/route\", handler)\n"
             ),
@@ -173,7 +175,7 @@ fn two_projects_each_get_their_own_framework_rules() {
                 "[[framework]]\n\
                  id = \"fw_{verb}\"\n\
                  language = \"python\"\n\
-                 detect = [\"app\"]\n\
+                 detect = [\"appfw\"]\n\
                  registrars = [\"{verb}\"]\n"
             ),
         )

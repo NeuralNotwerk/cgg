@@ -257,7 +257,7 @@ All 30 rules with `language: "rust"` in `crates/cgg-core/src/frameworks/rules.rs
 | cargo-test | 9173 | test | attrs `test, *_test, rstest, test_case, quickcheck` | yes (one harness node) |
 | cargo-bench | 9191 | test | attr `bench` | yes |
 | rtic | 9212 | lifecycle | attrs `init, idle, task` (no detect import) | yes |
-| rmcp | 9231 | network | import `rmcp`. Attrs `tool, prompt`. Containers `tool_handler, prompt_handler` | yes |
+| rmcp | 9231 | tool | import `rmcp`. Attrs `tool, prompt`. Containers `tool_handler, prompt_handler` | yes |
 | async-graphql | 9251 | network | import `async_graphql`. Containers `Object, ComplexObject, Subscription, MergedObject, Interface` | yes |
 | juniper | 9269 | network | import `juniper`. Containers `graphql_object, graphql_subscription, graphql_interface` | yes |
 | criterion | 9760 | test | import `criterion`. **Gap** (`criterion_group!` macro). The bench fn becomes only a `macro-arg` mention | gap |
