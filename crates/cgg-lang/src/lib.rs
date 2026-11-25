@@ -537,9 +537,10 @@ pub trait LanguagePlugin: Send + Sync + fmt::Debug {
     /// place — byte offsets and lines unchanged — when the language has a
     /// construct the grammar cannot read but a local rewrite can. Extraction
     /// still reads the original bytes, so a node's text is what the file
-    /// says. `None` (the default) parses the source as is. No plugin uses
-    /// it today; Groovy did until it moved to the dekobon grammar.
-    fn parse_source(&self, _source: &[u8]) -> Option<Vec<u8>> {
+    /// says. `None` (the default) parses the source as is. Fortran uses it
+    /// to blank fixed-form column-1 comments (`plugins/fortran.rs`); the
+    /// path lets a plugin tell source forms apart by extension.
+    fn parse_source(&self, _path: &Path, _source: &[u8]) -> Option<Vec<u8>> {
         None
     }
 

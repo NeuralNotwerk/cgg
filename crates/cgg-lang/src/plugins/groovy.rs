@@ -712,7 +712,11 @@ mod tests {
         for c in ["prepare", "run", "check", "other"] {
             assert!(calls.contains(&c), "{c}: {calls:?}");
         }
-        assert!(GroovyPlugin.parse_source(src.as_bytes()).is_none());
+        assert!(
+            GroovyPlugin
+                .parse_source(Path::new("t.groovy"), src.as_bytes())
+                .is_none()
+        );
     }
 
     #[test]
