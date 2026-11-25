@@ -207,7 +207,7 @@ fn function_defining_macros_name_the_function_they_define() {
     write(
         tmp.path(),
         "catch.cpp",
-        "int twice(int a){ return 2*a; }\nTEST_CASE(\"doubles\") { twice(2); }\nTEST(Gt, Case) { twice(3); }\n",
+        "int twice(int a){ return 2*a; }\nTEST_CASE(\"doubles\") { twice(2); }\nTEST(Gt, Case) { twice(3); }\nTEST_CASE_TEMPLATE(\"templ\", T, int, long) { twice(4); }\nTEST_CASE_FIXTURE(Fix, \"fix\") { twice(5); }\n",
     );
     let g = graph(tmp.path());
     let n = names(&g);
@@ -243,4 +243,8 @@ fn function_defining_macros_name_the_function_they_define() {
     // C++: Catch2's TEST_CASE too; gtest's TEST keeps the macro's name.
     assert!(has_edge(&g, "TEST_CASE_at_2", "twice"));
     assert!(has_edge(&g, "TEST", "twice"));
+    // doctest's template and fixture cases too: before, no callable held
+    // their bodies.
+    assert!(has_edge(&g, "TEST_CASE_TEMPLATE_at_4", "twice"));
+    assert!(has_edge(&g, "TEST_CASE_FIXTURE_at_5", "twice"));
 }

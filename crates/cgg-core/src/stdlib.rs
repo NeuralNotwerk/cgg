@@ -1081,6 +1081,11 @@ pub const C_FN_DEFINING_MACROS: &[(&str, FnMacroNaming, bool)] = &[
     ),
     ("SCENARIO", FnMacroNaming::Described, true),
     ("TEST_CASE_METHOD", FnMacroNaming::Described, true),
+    // doctest's template and fixture cases: a description string and the
+    // fixture or type arguments. (Catch2's `TEMPLATE_TEST_CASE("d",
+    // "[tag]", int, float)` does not parse into a recognisable shape.)
+    ("TEST_CASE_TEMPLATE", FnMacroNaming::Described, true),
+    ("TEST_CASE_FIXTURE", FnMacroNaming::Described, true),
 ];
 
 /// The naming rule of a function-defining macro, if `name` is one in

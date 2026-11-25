@@ -13192,7 +13192,7 @@ pub const SPECS: &[RuleSpec] = &[
         methods: NONE,
         string_targets: false,
         node: true,
-        gap: "doctest and Catch2 declare a test with a macro whose argument is a STRING — TEST_CASE(\"name\"), TEST_CASE_TEMPLATE, TEST_SUITE, SCENARIO, SUBCASE, SECTION — and tree-sitter-cpp does not parse that as a function definition. cgg therefore extracts NO callable whatsoever for the test body: it is not merely unreferenced, it is absent from the graph, and every helper that only those tests call reads as dead. (gtest's TEST(Suite, Name) takes identifiers and does parse, which is why gtest is enumerated and this is not.) Grep for `TEST_CASE(`, `TEST_CASE_TEMPLATE(`, `SCENARIO(`, `SUBCASE(` and `SECTION(` and treat the enclosing block, and every function it reaches, as live.",
+        gap: "doctest and Catch2 declare a test with a macro whose argument is a STRING. cgg reads TEST_CASE(\"name\"), TEST_CASE_METHOD, SCENARIO and doctest's TEST_CASE_TEMPLATE and TEST_CASE_FIXTURE bodies as callables named <MACRO>_at_<line> (the calls inside them are edges, so what they call is live), but no rule mints a test entry for them; SUBCASE and SECTION blocks are part of their case, and Catch2's TEMPLATE_TEST_CASE, TEST_SUITE wrappers and other forms are not read at all. Grep for `TEMPLATE_TEST_CASE(` and treat each such block, and every function it reaches, as live.",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
