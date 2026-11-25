@@ -642,7 +642,12 @@ mod tests {
         let mut p = tree_sitter::Parser::new();
         p.set_language(&lang).unwrap();
         let tree = p.parse(src, None).unwrap();
-        let ctx = crate::ExtractCtx::plain().with_reference_sites(true);
+        // Scoped to the language as a real run is: the registrar gate of
+        // an unscoped context is every language's verbs (Python's Qt
+        // `connect` among them).
+        let ctx = crate::ExtractCtx::plain()
+            .for_language(if scoped { "c" } else { "cpp" })
+            .with_reference_sites(true);
         collect(&ctx, &tree, src.as_bytes(), scoped, false)
             .refs
             .into_iter()
