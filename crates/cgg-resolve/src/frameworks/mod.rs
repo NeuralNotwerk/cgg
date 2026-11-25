@@ -69,6 +69,10 @@ pub fn detect(
         Detection::scan(graph, facts, &all)
     };
     let called_in_file = callees_within_their_file(graph);
+    let in_tree_imports = {
+        let _s = cgg_core::profile::span("frameworks::in-tree-imports");
+        InTreeImports::build(facts)
+    };
     let mut name_indexes: HashMap<String, NameIndex> = HashMap::new();
     let mut base_indexes: HashMap<String, BaseTypeIndex> = HashMap::new();
     let mut reg_indexes: HashMap<String, RegistrarIndex> = HashMap::new();
@@ -114,11 +118,18 @@ pub fn detect(
 
             {
                 let _s = cgg_core::profile::span("frameworks::match-attributes");
-                match_attributes(graph, rule, &evidence, &mut entries);
+                match_attributes(graph, rule, &evidence, &in_tree_imports, &mut entries);
             }
             {
                 let _s = cgg_core::profile::span("frameworks::match-base-types");
-                match_base_types(graph, bases, rule, &mut entries);
+                match_base_types(
+                    graph,
+                    bases,
+                    rule,
+                    &evidence,
+                    &in_tree_imports,
+                    &mut entries,
+                );
             }
             {
                 let _s = cgg_core::profile::span("frameworks::match-methods");
@@ -134,6 +145,8 @@ pub fn detect(
                     rule,
                     &called_in_file,
                     &harness,
+                    &evidence,
+                    &in_tree_imports,
                     &mut entries,
                 );
             }
@@ -271,6 +284,32 @@ impl Detection {
                         import_hits.extend(ids.iter().copied());
                     }
                 }
+                // A Rust crate re-exporting a framework (`use
+                // shuttle_axum::axum::routing::get`) names it after a
+                // `::` rather than at the head.
+                if f.language == "rust" {
+                    for (i, _) in raw.match_indices("::") {
+                        for key in prefix_keys(&raw[i + 2..]) {
+                            if let Some(ids) =
+                                prefix_index.get(&(f.language.as_str(), key))
+                            {
+                                import_hits.extend(ids.iter().copied());
+                            }
+                        }
+                    }
+                }
+            }
+            // A JVM file sees its own package's types without importing
+            // them: a class in `org.springframework.batch.core` names
+            // `JobParametersValidator` bare.
+            if matches!(f.language.as_str(), "java" | "kotlin") {
+                for pkg in &f.packages {
+                    for key in prefix_keys(pkg.trim()) {
+                        if let Some(ids) = prefix_index.get(&(f.language.as_str(), key)) {
+                            import_hits.extend(ids.iter().copied());
+                        }
+                    }
+                }
             }
 
             for (ri, rule) in candidates {
@@ -371,6 +410,43 @@ impl Detection {
     fn file_carries(&self, id: &str, language: &str, file: FileId) -> bool {
         self.file_hits
             .contains(&(id.to_string(), language.to_string(), file))
+    }
+
+    /// Whether `file` carries `rule`'s evidence for a marker written
+    /// through `head` (`app` of `@app.task`, a bare registrar's verb, a
+    /// base type's first segment): the file's own, or — Python, JS/TS —
+    /// that of the tree's own module `head` is imported from, following
+    /// re-exports a few hops.
+    fn carries_for(
+        &self,
+        rule: &FrameworkRule,
+        file: FileId,
+        head: &str,
+        imports: &InTreeImports,
+    ) -> bool {
+        if self.file_carries(&rule.id, &rule.language, file) {
+            return true;
+        }
+        let mut frontier: Vec<(FileId, String)> = vec![(file, head.to_string())];
+        let mut seen: HashSet<(FileId, String)> = HashSet::new();
+        for _ in 0..IN_TREE_HOPS {
+            let mut next = Vec::new();
+            for key in frontier {
+                if !seen.insert(key.clone()) {
+                    continue;
+                }
+                for (src, name) in imports.bound.get(&key).into_iter().flatten() {
+                    if self.file_carries(&rule.id, &rule.language, *src) {
+                        return true;
+                    }
+                    if name != "*" && name != "default" {
+                        next.push((*src, name.clone()));
+                    }
+                }
+            }
+            frontier = next;
+        }
+        false
     }
 
     fn is_active(&self, id: &str, language: &str) -> bool {
@@ -498,6 +574,228 @@ impl Detection {
     }
 }
 
+// ---------------------------------------------------------------------
+// Per-file evidence
+// ---------------------------------------------------------------------
+
+/// Where a Python or JS/TS file's imported names come from, when the
+/// module is one of the tree's own files: `(file, local name)` →
+/// `(source file, the name there)`.
+///
+/// A decorator or registrar is usually written through a name the file
+/// imports from its own project, not from the framework:
+/// `from .celeryconf import app` then `@app.task`, `from . import bp`
+/// then `@bp.route`, `import { tool } from "@/lib/ai"`. The file
+/// carries no framework import of its own, but the module the name
+/// comes from does.
+#[derive(Default)]
+struct InTreeImports {
+    bound: HashMap<(FileId, String), Vec<(FileId, String)>>,
+}
+
+/// How many re-export hops [`InTreeImports`] follows.
+const IN_TREE_HOPS: u8 = 3;
+
+const JS_EXTENSIONS: &[&str] = &["ts", "tsx", "js", "jsx", "mjs", "cjs", "mts", "cts"];
+
+impl InTreeImports {
+    fn build(facts: &[FileFacts]) -> Self {
+        // Path keys, extension and `__init__`/`index` dropped, `/`-joined:
+        // the exact key for relative specifiers, every suffix for absolute
+        // and aliased ones.
+        let mut exact: HashMap<String, Vec<FileId>> = HashMap::new();
+        let mut suffix: HashMap<String, Vec<FileId>> = HashMap::new();
+        for f in facts {
+            if !matches!(f.language.as_str(), "python" | "javascript" | "typescript") {
+                continue;
+            }
+            let path = normalize_path(&f.path.to_string_lossy());
+            let Some(key) = module_key(&path) else {
+                continue;
+            };
+            exact.entry(key.clone()).or_default().push(f.file);
+            let segs: Vec<&str> = key.split('/').collect();
+            for i in 0..segs.len() {
+                suffix.entry(segs[i..].join("/")).or_default().push(f.file);
+            }
+        }
+        let mut out = InTreeImports::default();
+        for f in facts {
+            let lang = f.language.as_str();
+            if !matches!(lang, "python" | "javascript" | "typescript") {
+                continue;
+            }
+            let path = normalize_path(&f.path.to_string_lossy());
+            let dir = path.rsplit_once('/').map(|(d, _)| d).unwrap_or("");
+            for imp in &f.imports {
+                let spec = imp.path.trim().trim_matches(|c| c == '"' || c == '\'');
+                let targets: Vec<FileId> = if lang == "python" {
+                    py_targets(dir, spec, &exact, &suffix)
+                } else {
+                    js_targets(dir, spec, &exact, &suffix)
+                };
+                for (local, orig) in import_names(lang, imp) {
+                    // `from .. import celeryconf` names a submodule as
+                    // often as a member of the package.
+                    if lang == "python" && imp.kind == "from-import" {
+                        let sub = if spec.chars().all(|c| c == '.') {
+                            format!("{spec}{orig}")
+                        } else {
+                            format!("{spec}.{orig}")
+                        };
+                        for t in py_targets(dir, &sub, &exact, &suffix) {
+                            if t != f.file {
+                                out.bound
+                                    .entry((f.file, local.clone()))
+                                    .or_default()
+                                    .push((t, "*".to_string()));
+                            }
+                        }
+                    }
+                    if targets.is_empty() {
+                        continue;
+                    }
+                    let e = out.bound.entry((f.file, local)).or_default();
+                    for t in &targets {
+                        if *t != f.file {
+                            e.push((*t, orig.clone()));
+                        }
+                    }
+                }
+            }
+        }
+        out
+    }
+}
+
+/// `a/b/c.py` → `a/b/c`, `a/b/__init__.py` → `a/b`, `a/b/index.ts` →
+/// `a/b`; `None` for a file that is not a module.
+fn module_key(path: &str) -> Option<String> {
+    let (stem, ext) = path.rsplit_once('.')?;
+    if ext != "py" && !JS_EXTENSIONS.contains(&ext) {
+        return None;
+    }
+    let stem = stem.strip_suffix(".d").unwrap_or(stem);
+    let stem = stem
+        .strip_suffix("/__init__")
+        .or_else(|| stem.strip_suffix("/index"))
+        .unwrap_or(stem);
+    let stem = stem.trim_start_matches("./");
+    (!stem.is_empty()).then(|| stem.to_string())
+}
+
+/// Join `dir` and a relative path, resolving `.` and `..`.
+fn join_rel(dir: &str, rel: &str) -> Option<String> {
+    let root = if dir.starts_with('/') { "/" } else { "" };
+    let mut segs: Vec<&str> = dir
+        .split('/')
+        .filter(|s| !s.is_empty() && *s != ".")
+        .collect();
+    for part in rel.split('/') {
+        match part {
+            "" | "." => {}
+            ".." => {
+                segs.pop()?;
+            }
+            p => segs.push(p),
+        }
+    }
+    Some(format!("{root}{}", segs.join("/")))
+}
+
+fn py_targets(
+    dir: &str,
+    spec: &str,
+    exact: &HashMap<String, Vec<FileId>>,
+    suffix: &HashMap<String, Vec<FileId>>,
+) -> Vec<FileId> {
+    if spec.is_empty() {
+        return Vec::new();
+    }
+    if spec.starts_with('.') {
+        let level = spec.chars().take_while(|c| *c == '.').count();
+        let rest = spec[level..].replace('.', "/");
+        let up = "../".repeat(level - 1);
+        let Some(key) = join_rel(dir, &format!("{up}{rest}")) else {
+            return Vec::new();
+        };
+        return exact.get(&key).cloned().unwrap_or_default();
+    }
+    suffix
+        .get(&spec.replace('.', "/"))
+        .cloned()
+        .unwrap_or_default()
+}
+
+fn js_targets(
+    dir: &str,
+    spec: &str,
+    exact: &HashMap<String, Vec<FileId>>,
+    suffix: &HashMap<String, Vec<FileId>>,
+) -> Vec<FileId> {
+    let strip_ext = |s: &str| -> String {
+        match s.rsplit_once('.') {
+            Some((stem, ext)) if JS_EXTENSIONS.contains(&ext) => stem.to_string(),
+            _ => s.to_string(),
+        }
+    };
+    if spec.starts_with("./") || spec.starts_with("../") {
+        let Some(key) = join_rel(dir, &strip_ext(spec)) else {
+            return Vec::new();
+        };
+        return exact.get(&key).cloned().unwrap_or_default();
+    }
+    // A path alias (`@/lib/ai`, `~/lib/ai`, `#lib/ai`, `$lib/ai`): the
+    // rest after its first segment, matched as a path suffix. A bare
+    // package name is a dependency, never the tree's.
+    let rest =
+        if let Some(r) = spec.strip_prefix("@/").or_else(|| spec.strip_prefix("~/")) {
+            r
+        } else if spec.starts_with(['#', '$']) {
+            match spec.split_once('/') {
+                Some((_, r)) => r,
+                None => return Vec::new(),
+            }
+        } else {
+            return Vec::new();
+        };
+    suffix.get(&strip_ext(rest)).cloned().unwrap_or_default()
+}
+
+/// The names one import record binds, as `(local, name in the module)`.
+fn import_names(lang: &str, imp: &cgg_core::ImportRecord) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    match imp.kind.as_str() {
+        "from-import" | "re-export" => {
+            for item in imp.alias.split(',') {
+                let item = item.trim().trim_matches(|c| c == '(' || c == ')').trim();
+                if item.is_empty() || item == "*" {
+                    continue;
+                }
+                let (orig, local) = match item.split_once(" as ") {
+                    Some((o, l)) => (o.trim(), l.trim()),
+                    None => (item, item),
+                };
+                out.push((local.to_string(), orig.to_string()));
+            }
+        }
+        "import" => {
+            let alias = imp.alias.trim();
+            if lang == "python" {
+                // `import pkg.mod as m` binds `m`; `import pkg.mod` binds
+                // `pkg`, which is not the module's own name.
+                if !alias.is_empty() && !imp.path.contains(',') {
+                    out.push((alias.to_string(), "*".to_string()));
+                }
+            } else if !alias.is_empty() {
+                out.push((alias.to_string(), "*".to_string()));
+            }
+        }
+        _ => {}
+    }
+    out
+}
+
 /// Whether an import path is, or is under, `prefix`.
 ///
 /// Segment-aware so `next` does not match `nextcloud` and `express` does
@@ -559,6 +857,28 @@ fn path_matches(path: &str, marker: &str) -> bool {
 // ---------------------------------------------------------------------
 // Matchers
 // ---------------------------------------------------------------------
+
+/// Whether a rule's bare registrars and base types need per-file
+/// evidence ([`rules::FILE_SCOPED_EVIDENCE`]). A rule detected by path,
+/// by call or by its marker alone has no import to ask for.
+///
+/// Not a test harness: its base classes are reached through the
+/// framework's own subclasses (`django.test.TestCase` is a
+/// `unittest.TestCase`) that no import of the tree names, and its cases
+/// hang off one harness node whatever the file imports.
+fn file_scoped(rule: &FrameworkRule) -> bool {
+    rule.kind != TrustKind::Test
+        && !rule.detect.is_empty()
+        && rules::FILE_SCOPED_EVIDENCE.contains(&rule.language.as_str())
+}
+
+/// The name a marker is written through: `app` of `app.task`, `tools` of
+/// `tools.BaseTool`, `rig` of `rig::tool::Tool`, the whole of a bare one.
+fn marker_head(marker: &str) -> &str {
+    let m = marker.trim().trim_start_matches(['@', '#', '[']);
+    let m = m.split(['<', '[', '(']).next().unwrap_or(m);
+    m.split(['.', ':']).next().unwrap_or(m).trim()
+}
 
 /// Registrar verbs that collide with ordinary vocabulary.
 ///
@@ -639,6 +959,7 @@ fn match_attributes(
     graph: &Graph,
     rule: &FrameworkRule,
     evidence: &Detection,
+    imports: &InTreeImports,
     out: &mut Vec<FrameworkEntry>,
 ) {
     if rule.attributes.is_empty() {
@@ -673,7 +994,10 @@ fn match_attributes(
             {
                 continue;
             }
-            if !file_imports && !rule.detect.iter().any(|p| import_matches(key, p)) {
+            if !file_imports
+                && !rule.detect.iter().any(|p| import_matches(key, p))
+                && !evidence.carries_for(rule, node.file, marker_head(key), imports)
+            {
                 continue;
             }
             let route = if rule.kind == TrustKind::Tool {
@@ -1051,13 +1375,13 @@ struct BaseTypeIndex {
     /// (file, start_byte) -> base types, from the facts side.
     bases: HashMap<(FileId, u32), Vec<String>>,
     /// owner type -> its declared bases, for walking the chain.
-    by_owner: HashMap<String, Vec<String>>,
+    by_owner: HashMap<String, (Vec<String>, FileId)>,
 }
 
 impl BaseTypeIndex {
     fn build(facts: &[FileFacts], language: &str) -> Self {
         let mut bases: HashMap<(FileId, u32), Vec<String>> = HashMap::new();
-        let mut by_owner: HashMap<String, Vec<String>> = HashMap::new();
+        let mut by_owner: HashMap<String, (Vec<String>, FileId)> = HashMap::new();
         for f in facts {
             if f.language != language {
                 continue;
@@ -1068,7 +1392,7 @@ impl BaseTypeIndex {
                 }
                 bases.insert((f.file, d.start_byte), d.base_types.clone());
                 if let Some(owner) = crate::names::owner_from_qn(&d.qualified_name) {
-                    by_owner.insert(owner.to_string(), d.base_types.clone());
+                    by_owner.insert(owner.to_string(), (d.base_types.clone(), f.file));
                 }
             }
         }
@@ -1080,6 +1404,8 @@ fn match_base_types(
     graph: &Graph,
     idx: &BaseTypeIndex,
     rule: &FrameworkRule,
+    evidence: &Detection,
+    imports: &InTreeImports,
     out: &mut Vec<FrameworkEntry>,
 ) {
     if rule.base_types.is_empty() || idx.bases.is_empty() {
@@ -1100,7 +1426,15 @@ fn match_base_types(
         // ObjectListView)`, and only three levels up does anything name
         // Django's `View`. Matching the immediate bases alone sees none
         // of a real application's class-based views.
-        let Some(hit) = find_in_base_chain(types, by_owner, &rule.base_types) else {
+        let scoped = file_scoped(rule);
+        let accept = |base: &str, at: FileId| {
+            !scoped
+                || rule.detect.iter().any(|p| import_matches(base, p))
+                || evidence.carries_for(rule, at, marker_head(base), imports)
+        };
+        let Some(hit) =
+            find_in_base_chain(types, node.file, by_owner, &rule.base_types, &accept)
+        else {
             continue;
         };
         let named =
@@ -1144,23 +1478,31 @@ fn match_base_types(
 /// Bounded by a visited set and a depth cap: a base list read from
 /// syntax can be cyclic (two files each naming the other's type) and a
 /// deep hierarchy is not more evidence than a shallow one.
+///
+/// `accept(base, file)` is asked of every match, with the file whose
+/// declaration names that base (`file` for `direct`): a base is the
+/// framework's only where that file carries its evidence, and a refused
+/// match lets the walk go on to a deeper one.
 fn find_in_base_chain(
     direct: &[String],
-    by_owner: &HashMap<String, Vec<String>>,
+    file: FileId,
+    by_owner: &HashMap<String, (Vec<String>, FileId)>,
     wanted: &[String],
+    accept: &dyn Fn(&str, FileId) -> bool,
 ) -> Option<String> {
     let mut seen: BTreeSet<String> = BTreeSet::new();
-    let mut frontier: Vec<String> = direct.to_vec();
+    let mut frontier: Vec<(String, FileId)> =
+        direct.iter().map(|t| (t.clone(), file)).collect();
     for _ in 0..8 {
         if frontier.is_empty() {
             break;
         }
-        let mut next: Vec<String> = Vec::new();
-        for t in frontier {
+        let mut next: Vec<(String, FileId)> = Vec::new();
+        for (t, declared_in) in frontier {
             if !seen.insert(t.clone()) {
                 continue;
             }
-            if base_type_matches(wanted, &t) {
+            if base_type_matches(wanted, &t) && accept(&t, declared_in) {
                 return Some(t);
             }
             // Look the base up by its own last segment, since a
@@ -1173,8 +1515,8 @@ fn find_in_base_chain(
                 .rsplit(['.', ':', '\\'])
                 .next()
                 .unwrap_or(&t);
-            if let Some(parents) = by_owner.get(key) {
-                next.extend(parents.iter().cloned());
+            if let Some((parents, at)) = by_owner.get(key) {
+                next.extend(parents.iter().map(|p| (p.clone(), *at)));
             }
         }
         frontier = next;
@@ -1620,6 +1962,8 @@ fn match_registrars(
     rule: &FrameworkRule,
     called_in_file: &HashSet<CallableId>,
     harness: &HarnessChoice,
+    evidence: &Detection,
+    imports: &InTreeImports,
     out: &mut Vec<FrameworkEntry>,
 ) {
     if rule.registrars.is_empty() {
@@ -1648,6 +1992,17 @@ fn match_registrars(
                 .unwrap_or(&r.context);
             // An ambiguous verb needs corroboration — see AMBIGUOUS_VERBS.
             let receiverless = r.context.eq_ignore_ascii_case(verb);
+            // A bare registrar is a name the file imports: `tool({…})` is
+            // the framework's only in a file carrying its evidence. (A
+            // harness's block verbs are globals; `HarnessChoice` has
+            // already decided whose they are.)
+            if receiverless
+                && !is_harness
+                && file_scoped(rule)
+                && !evidence.carries_for(rule, f.file, verb, imports)
+            {
+                continue;
+            }
             if contains_ci(
                 &AMBIGUOUS_VERBS
                     .iter()
@@ -3578,12 +3933,18 @@ mod tests {
 
     #[test]
     fn a_cyclic_base_chain_terminates() {
-        let mut map: HashMap<String, Vec<String>> = HashMap::new();
-        map.insert("A".to_string(), vec!["B".to_string()]);
-        map.insert("B".to_string(), vec!["A".to_string()]);
+        let mut map: HashMap<String, (Vec<String>, FileId)> = HashMap::new();
+        map.insert("A".to_string(), (vec!["B".to_string()], FileId::new(0)));
+        map.insert("B".to_string(), (vec!["A".to_string()], FileId::new(0)));
         // Two classes naming each other: must return rather than spin.
         assert_eq!(
-            find_in_base_chain(&["A".to_string()], &map, &["Nope".to_string()]),
+            find_in_base_chain(
+                &["A".to_string()],
+                FileId::new(0),
+                &map,
+                &["Nope".to_string()],
+                &|_, _| true
+            ),
             None
         );
     }
@@ -3711,6 +4072,307 @@ mod tests {
             out.entries.iter().map(|e| e.target_name.clone()).collect();
         v.sort();
         v
+    }
+
+    fn py_import(
+        file: u32,
+        path: &str,
+        kind: &str,
+        module: &str,
+        names: &str,
+    ) -> FileFacts {
+        let mut f = FileFacts::new(FileId::new(file), PathBuf::from(path), "python");
+        f.imports.push(ImportRecord {
+            kind: kind.into(),
+            path: module.into(),
+            alias: names.into(),
+            site_line: 1,
+            site_byte: 0,
+        });
+        f
+    }
+
+    fn user_rule(id: &str, lang: &str, detect: &str) -> FrameworkRule {
+        FrameworkRule {
+            id: id.into(),
+            language: lang.into(),
+            kind: TrustKind::Tool,
+            detect: vec![detect.into()],
+            node: true,
+            ..Default::default()
+        }
+    }
+
+    // Per-file evidence: a generic decorator key (`tool`) is one
+    // framework's only in a file that carries that framework's import.
+    // An `@mcp.tool` in a FastMCP server must not take an entry of an
+    // agent framework another file of the tree imports.
+    #[test]
+    fn a_decorator_matches_only_the_framework_its_file_imports() {
+        let mut mcp_tool = node(0, "server.search", "search", "python");
+        mcp_tool.attributes = vec!["@mcp.tool()".into()];
+        let mut agent_tool = node(1, "agent.lookup", "lookup", "python");
+        agent_tool.attributes = vec!["@tool".into()];
+        agent_tool.file = FileId::new(1);
+        let g = graph_with(vec![mcp_tool, agent_tool]);
+        let facts = vec![
+            py_import(0, "server.py", "from-import", "fastmcp", "FastMCP"),
+            py_import(1, "agent.py", "from-import", "agentlib", "tool"),
+        ];
+        let mut mcp = user_rule("mcp", "python", "fastmcp");
+        mcp.attributes = vec!["tool".into()];
+        let mut agent = user_rule("agentlib", "python", "agentlib");
+        agent.attributes = vec!["tool".into()];
+        let out = detect(&g, &facts, &[mcp, agent]);
+        let mut got: Vec<(String, String)> = out
+            .entries
+            .iter()
+            .map(|e| (e.framework.clone(), e.target_name.clone()))
+            .collect();
+        got.sort();
+        assert_eq!(
+            got,
+            [
+                ("agentlib".to_string(), "agent.lookup".to_string()),
+                ("mcp".to_string(), "server.search".to_string()),
+            ]
+        );
+    }
+
+    // The commonest real shape: the decorator's receiver is imported from
+    // the project's own module (`from . import bp`, `from .celeryconf
+    // import app`), and that module is the one importing the framework.
+    #[test]
+    fn a_decorator_through_an_in_tree_import_keeps_its_framework() {
+        let mut view = node(0, "blog.views.index", "index", "python");
+        view.attributes = vec!["@bp.route(\"/\")".into()];
+        let mut task = node(1, "shop.tasks.send", "send", "python");
+        task.attributes = vec!["@app.task".into()];
+        task.file = FileId::new(1);
+        let mut stray = node(2, "misc.other.run", "run", "python");
+        stray.attributes = vec!["@app.task".into()];
+        stray.file = FileId::new(4);
+        let mut sub = node(3, "shop.jobs.sync", "sync", "python");
+        sub.attributes = vec!["@celeryconf.app.task".into()];
+        sub.file = FileId::new(6);
+        let g = graph_with(vec![view, task, stray, sub]);
+        let facts = vec![
+            py_import(0, "blog/views.py", "from-import", ".", "bp"),
+            py_import(1, "shop/tasks.py", "from-import", "shop.celeryconf", "app"),
+            py_import(2, "blog/__init__.py", "from-import", "flask", "Blueprint"),
+            py_import(3, "shop/celeryconf.py", "from-import", "celery", "Celery"),
+            // Imports `app` from a module that carries no celery import.
+            py_import(4, "misc/other.py", "from-import", ".helpers", "app"),
+            py_import(5, "misc/helpers.py", "import", "os", ""),
+            // `from . import celeryconf`: a submodule, not a member.
+            py_import(6, "shop/jobs.py", "from-import", ".", "celeryconf"),
+        ];
+        let mut flask = user_rule("myflask", "python", "flask");
+        flask.attributes = vec!["route".into()];
+        let mut celery = user_rule("mycelery", "python", "celery");
+        celery.attributes = vec!["task".into()];
+        let out = detect(&g, &facts, &[flask, celery]);
+        let mut got: Vec<String> = out
+            .entries
+            .iter()
+            .filter(|e| e.framework.starts_with("my"))
+            .map(|e| e.target_name.clone())
+            .collect();
+        got.sort();
+        assert_eq!(
+            got,
+            vec![
+                "blog.views.index".to_string(),
+                "shop.jobs.sync".to_string(),
+                "shop.tasks.send".to_string()
+            ]
+        );
+    }
+
+    // A bare registrar is a name the file imports: `tool({…})` is a
+    // framework's only where the file imports it (directly, or from a
+    // project module re-exporting it).
+    #[test]
+    fn a_bare_registrar_counts_only_where_the_file_imports_the_framework() {
+        let mut h1 = node(0, "a.search", "search", "typescript");
+        h1.file = FileId::new(0);
+        let mut h2 = node(1, "b.lookup", "lookup", "typescript");
+        h2.file = FileId::new(1);
+        let mut h3 = node(2, "c.fetch", "fetch", "typescript");
+        h3.file = FileId::new(2);
+        let g = graph_with(vec![h1, h2, h3]);
+        let reg = |file: u32, name: &str| {
+            let mut f = FileFacts::new(
+                FileId::new(file),
+                PathBuf::from(format!("src/{name}.ts")),
+                "typescript",
+            );
+            f.references.push(RefRecord {
+                name: name.into(),
+                receiver_hint: VALUE_REF_HINT.to_string(),
+                site_line: 3,
+                site_byte: 30,
+                context: "tool".into(),
+                ..Default::default()
+            });
+            f
+        };
+        let mut a = reg(0, "search");
+        a.references[0].name = "search".into();
+        a.imports.push(ImportRecord {
+            kind: "from-import".into(),
+            path: "ai".into(),
+            alias: "tool".into(),
+            site_line: 1,
+            site_byte: 0,
+        });
+        let mut b = reg(1, "lookup");
+        b.references[0].name = "lookup".into();
+        b.imports.push(ImportRecord {
+            kind: "from-import".into(),
+            path: "otherlib".into(),
+            alias: "tool".into(),
+            site_line: 1,
+            site_byte: 0,
+        });
+        let mut c = reg(2, "fetch");
+        c.references[0].name = "fetch".into();
+        c.imports.push(ImportRecord {
+            kind: "from-import".into(),
+            path: "@/lib/ai".into(),
+            alias: "tool".into(),
+            site_line: 1,
+            site_byte: 0,
+        });
+        let mut lib =
+            FileFacts::new(FileId::new(3), PathBuf::from("src/lib/ai.ts"), "typescript");
+        lib.imports.push(ImportRecord {
+            kind: "re-export".into(),
+            path: "ai".into(),
+            alias: "tool".into(),
+            site_line: 1,
+            site_byte: 0,
+        });
+        let mut rule = user_rule("vercel", "typescript", "ai");
+        rule.registrars = vec!["tool".into()];
+        let out = detect(&g, &[a, b, c, lib], &[rule]);
+        assert_eq!(
+            rooted(&out),
+            vec!["a.search".to_string(), "c.fetch".to_string()]
+        );
+    }
+
+    // A base type is the framework's only where the file declaring that
+    // base imports it (or writes it qualified): a project's own `trait
+    // Tool` is not an agent framework's, and a match up the chain is
+    // judged in the file of the class that names it.
+    #[test]
+    fn a_base_type_counts_only_where_its_declaring_file_imports_it() {
+        let mk = |id: u32, qn: &str, file: u32| {
+            let mut n = node(id, qn, qn.rsplit("::").next().unwrap(), "rust");
+            n.file = FileId::new(file);
+            n.start_byte = 100 + id;
+            n
+        };
+        let g = graph_with(vec![
+            mk(0, "own::Grep::call", 0),
+            mk(1, "agent::Search::call", 1),
+            mk(2, "agent::Deep::call", 2),
+            mk(3, "agent::Qual::call", 3),
+        ]);
+        let def = |qn: &str, id: u32, base: &str| DefRecord {
+            simple_name: "call".into(),
+            qualified_name: qn.into(),
+            start_byte: 100 + id,
+            base_types: vec![base.into()],
+            ..Default::default()
+        };
+        let mut own = FileFacts::new(FileId::new(0), PathBuf::from("src/own.rs"), "rust");
+        own.definitions.push(def("own::Grep::call", 0, "Tool"));
+        let mut agent = facts_with_import("rust", "src/agent.rs", "rig::tool::Tool");
+        agent.file = FileId::new(1);
+        agent
+            .definitions
+            .push(def("agent::Search::call", 1, "Tool"));
+        // `Deep` extends `Search`, declared in a file that imports rig.
+        let mut deep =
+            FileFacts::new(FileId::new(2), PathBuf::from("src/deep.rs"), "rust");
+        deep.definitions.push(def("agent::Deep::call", 2, "Search"));
+        let mut qual =
+            FileFacts::new(FileId::new(3), PathBuf::from("src/qual.rs"), "rust");
+        qual.definitions
+            .push(def("agent::Qual::call", 3, "rig::tool::Tool"));
+        let mut rule = user_rule("rig", "rust", "rig");
+        rule.base_types = vec!["Tool".into()];
+        rule.methods = vec!["call".into()];
+        let out = detect(&g, &[own, agent, deep, qual], &[rule]);
+        assert_eq!(
+            rooted(&out),
+            vec![
+                "agent::Deep::call".to_string(),
+                "agent::Qual::call".to_string(),
+                "agent::Search::call".to_string(),
+            ]
+        );
+    }
+
+    // Evidence a file carries without importing the framework by its own
+    // name: a Rust crate re-exporting it (`shuttle_axum::axum`), and a JVM
+    // class in the framework's own package, which sees its siblings bare.
+    #[test]
+    fn re_exporting_crates_and_own_packages_carry_evidence() {
+        let mut h = node(0, "app::health", "health", "rust");
+        h.file = FileId::new(0);
+        let g = graph_with(vec![h]);
+        let mut f =
+            facts_with_import("rust", "src/main.rs", "shuttle_axum::axum::routing::get");
+        f.references.push(RefRecord {
+            name: "health".into(),
+            receiver_hint: VALUE_REF_HINT.to_string(),
+            site_line: 9,
+            site_byte: 90,
+            context: "get".into(),
+            route: "/health".into(),
+            ..Default::default()
+        });
+        let mut rule = user_rule("myaxum", "rust", "axum");
+        rule.kind = TrustKind::Network;
+        rule.registrars = vec!["get".into()];
+        let out = detect(&g, &[f], &[rule]);
+        assert!(
+            out.entries.iter().any(|e| e.framework == "myaxum"),
+            "{:?}",
+            out.entries
+        );
+
+        let mut v = node(
+            0,
+            "org.acme.batch.core.RunIdIncrementer.getNext",
+            "getNext",
+            "java",
+        );
+        v.start_byte = 100;
+        let g = graph_with(vec![v]);
+        let mut f = FileFacts::new(
+            FileId::new(0),
+            PathBuf::from("RunIdIncrementer.java"),
+            "java",
+        );
+        f.packages = vec!["org.acme.batch.core".into()];
+        f.definitions.push(DefRecord {
+            simple_name: "getNext".into(),
+            qualified_name: "org.acme.batch.core.RunIdIncrementer.getNext".into(),
+            start_byte: 100,
+            base_types: vec!["JobParametersIncrementer".into()],
+            ..Default::default()
+        });
+        let mut rule = user_rule("mybatch", "java", "org.acme.batch");
+        rule.base_types = vec!["JobParametersIncrementer".into()];
+        let out = detect(&g, &[f], &[rule]);
+        assert_eq!(
+            rooted(&out),
+            vec!["org.acme.batch.core.RunIdIncrementer.getNext"]
+        );
     }
 
     #[test]
