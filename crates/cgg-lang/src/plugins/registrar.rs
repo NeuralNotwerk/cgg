@@ -783,17 +783,13 @@ fn collect_value_refs(
             return;
         }
         // A keyword or labelled argument (`tools=[t]`, `tools: [t]`):
-        // the label is no value, and what the value holds was passed
-        // under it. A pair's key keeps its old reading (a string key is a
-        // routing claim some rules decode).
+        // what the value holds was passed under the label. The label's
+        // own record (a bare identifier) keeps the reading it always had
+        // and no slot, so a slotted rule never takes it.
         let label = slot_label(arg);
-        let skip = label.filter(|_| kind != "pair").map(|l| l.id());
         let before = out.len();
         let mut cursor = arg.walk();
         for child in arg.named_children(&mut cursor) {
-            if Some(child.id()) == skip {
-                continue;
-            }
             if let Some(s) = string_within(child, source) {
                 out.push(RefRecord {
                     property_read: false,
@@ -831,8 +827,9 @@ fn collect_value_refs(
         // under `tools`.
         if let Some(l) = label {
             let slot = slot_text(l, source);
+            let at = l.start_byte() as u32;
             if !slot.is_empty() {
-                for r in &mut out[before..] {
+                for r in out[before..].iter_mut().filter(|r| r.site_byte != at) {
                     r.slot.clone_from(&slot);
                 }
             }
@@ -1177,15 +1174,16 @@ mod tests {
     }
 
     #[test]
-    fn keyword_arguments_carry_their_slot_and_their_label_is_no_value() {
+    fn keyword_arguments_carry_their_slot() {
         let want = |got: Vec<(String, String)>, lang: &str| {
             let has = |n: &str, s: &str| got.iter().any(|(a, b)| a == n && b == s);
             assert!(has("t", "tools"), "{lang}: {got:?}");
             assert!(has("p", "prompt"), "{lang}: {got:?}");
             assert!(has("model", ""), "{lang}: {got:?}");
             assert!(
-                !got.iter().any(|(n, _)| n == "tools" || n == "prompt"),
-                "{lang}: a keyword is not a value: {got:?}"
+                !got.iter()
+                    .any(|(n, s)| (n == "tools" || n == "prompt") && !s.is_empty()),
+                "{lang}: a keyword's own record is passed under no slot: {got:?}"
             );
         };
         want(
