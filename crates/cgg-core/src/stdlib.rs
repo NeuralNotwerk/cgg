@@ -441,6 +441,12 @@ pub const RUBY_METHOD_NAMING_CALLS: &[(&str, usize)] = &[
 /// stored as a value is a reference to `m`.
 pub const JS_FUNCTION_VALUE_ADAPTERS: &[&str] = &["bind"];
 
+/// Python's mocking modules. A decorator reached through a name a file
+/// binds to one of them (`@patch(...)`, `@mock.patch(...)`,
+/// `@patch.object(...)`) replaces an object for a test; it is never a
+/// framework's marker, though its last segment reads like an HTTP verb.
+pub const PY_MOCK_MODULES: &[&str] = &["unittest.mock", "mock"];
+
 /// The [`SCALA_IMPLICIT_PACKAGES`] that are roots in their own right;
 /// every other entry is a child of `scala` (`math` is `scala.math`).
 pub const SCALA_ROOT_PACKAGES: &[&str] = &["scala", "java", "javax"];
