@@ -34,7 +34,7 @@ use cgg_core::frameworks::{
     EntryShape, FrameworkCoverage, FrameworkEntry, FrameworkRule, RecognisedFramework,
     SeenFramework, TrustKind, UncoveredLanguage,
 };
-use cgg_core::graph::Graph;
+use cgg_core::graph::{CallableKind, Graph};
 use cgg_core::ids::{CallableId, FileId};
 use cgg_core::{FileFacts, STRING_REF_HINT, VALUE_REF_HINT};
 
@@ -178,6 +178,10 @@ pub fn detect(
             {
                 let _s = cgg_core::profile::span("frameworks::match-signatures");
                 match_signature_methods(graph, rule, &mut entries);
+            }
+            {
+                let _s = cgg_core::profile::span("frameworks::match-parameter-types");
+                match_parameter_types(graph, rule, &mut entries);
             }
             {
                 let _s = cgg_core::profile::span("frameworks::match-containers");
@@ -1835,8 +1839,10 @@ fn match_base_types(
         else {
             continue;
         };
-        let named =
-            rule.methods.is_empty() || method_name_matches(rule, &node.simple_name);
+        let named = rule.methods.is_empty()
+            || method_name_matches(rule, &node.simple_name)
+            || (node.kind == CallableKind::Constructor
+                && rule.methods.iter().any(|m| m == rules::CONSTRUCTOR_METHOD));
         // In the languages of `TEST_CLASS_MEMBERS_ARE_ROOTS`, a test
         // class's other members (helpers, fixtures by another name) are
         // test code its cases reach through `self`/`$this` across the
@@ -1932,6 +1938,9 @@ fn base_type_matches(wanted: &[String], declared: &str) -> bool {
     if matches_ci_or_pattern(wanted, d) {
         return true;
     }
+    if wanted.iter().any(|w| nested_base_matches(w, d)) {
+        return true;
+    }
     // `nn.Module` should match a rule written as `Module`, and
     // `Sidekiq::Job` a rule written as `Sidekiq::Job` — compare the last
     // segment too, and strip generic arguments (`IConsumer<OrderPlaced>`).
@@ -1944,6 +1953,25 @@ fn base_type_matches(wanted: &[String], declared: &str) -> bool {
     // write it as `*ImplBase`.
     let last = bare.rsplit(['.', ':', '\\']).next().unwrap_or(bare);
     matches_ci_or_pattern(wanted, last)
+}
+
+/// A `$.$Suffix` base pattern: the last two segments of `declared`
+/// (generic arguments stripped) are an outer type and a type nested in it
+/// whose name is the outer one's plus `Suffix`. protoc's C# output nests a
+/// service's base class in a class of the service's name, so every gRPC
+/// service implementation derives from `Greeter.GreeterBase`; neither name
+/// is fixed, but the relation between them is, and `*Base` alone would
+/// take every base class named so.
+fn nested_base_matches(pattern: &str, declared: &str) -> bool {
+    let Some(suffix) = pattern.strip_prefix("$.$") else {
+        return false;
+    };
+    let bare = declared.split(['<', '[']).next().unwrap_or(declared).trim();
+    let mut segs = bare.rsplit(['.', ':']).filter(|s| !s.is_empty());
+    let (Some(inner), Some(outer)) = (segs.next(), segs.next()) else {
+        return false;
+    };
+    inner.strip_suffix(suffix) == Some(outer)
 }
 
 /// A method-name rule with no base type — the structural-typing escape
@@ -2328,6 +2356,161 @@ fn param_types(signature: &str, name: &str) -> Option<Vec<String>> {
         out.push(bare.rsplit('.').next().unwrap_or(bare).to_string());
     }
     Some(out)
+}
+
+/// The parameter TYPES of `name`'s signature, last segment, generics
+/// stripped, for both parameter syntaxes the .NET languages write:
+/// type-first in a parenthesised list (`string F(string i, ILambdaContext
+/// c)`, C#) and name-first, curried or tupled, before the `=` (`let f (r:
+/// Req) (_c: ILambdaContext) =`, F#). A parameter with no written type is
+/// recorded as an empty string. `None` when `name` is not in the
+/// signature.
+fn declared_param_types(signature: &str, name: &str) -> Option<Vec<String>> {
+    let at = signature.match_indices(name).map(|(i, _)| i).find(|&i| {
+        let before = signature[..i].chars().next_back();
+        let after = signature[i + name.len()..].chars().next();
+        !before.is_some_and(|c| c.is_alphanumeric() || c == '_')
+            && !after.is_some_and(|c| c.is_alphanumeric() || c == '_')
+    })?;
+    let mut rest = signature[at + name.len()..].trim_start();
+    // Generic parameters of the method itself: `F<T>(…)`.
+    if rest.starts_with('<') {
+        let mut depth = 0i32;
+        let end = rest.char_indices().find(|&(_, c)| {
+            match c {
+                '<' => depth += 1,
+                '>' => depth -= 1,
+                _ => {}
+            }
+            depth == 0
+        })?;
+        rest = rest[end.0 + 1..].trim_start();
+    }
+    let bare_type = |t: &str| -> String {
+        let t = t.trim();
+        let t = t.split(['<', '[']).next().unwrap_or(t).trim();
+        t.rsplit('.').next().unwrap_or(t).to_string()
+    };
+    // The parenthesised groups at depth 0 up to `=` (or the end).
+    let mut groups: Vec<&str> = Vec::new();
+    let mut depth = 0i32;
+    let mut open = 0usize;
+    for (i, c) in rest.char_indices() {
+        match c {
+            '(' => {
+                if depth == 0 {
+                    open = i + 1;
+                }
+                depth += 1;
+            }
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    groups.push(&rest[open..i]);
+                }
+            }
+            '=' | '{' if depth == 0 => break,
+            _ => {}
+        }
+    }
+    let mut out = Vec::new();
+    for g in groups {
+        for p in split_params(g) {
+            let p = p.trim();
+            if p.is_empty() {
+                continue;
+            }
+            // Name-first (`x: T`), else type-first (`T x`, a lone word
+            // being a type with the name elided). Attributes go first.
+            let p = p
+                .split_whitespace()
+                .filter(|w| !w.starts_with('[') && !w.starts_with('@'))
+                .collect::<Vec<_>>()
+                .join(" ");
+            if let Some((_, ty)) = p.split_once(':') {
+                out.push(bare_type(ty));
+                continue;
+            }
+            let words: Vec<&str> = p
+                .split_whitespace()
+                .filter(|w| {
+                    !matches!(*w, "this" | "ref" | "in" | "out" | "params" | "scoped")
+                })
+                .collect();
+            match words.as_slice() {
+                [] => {}
+                [t] => out.push(bare_type(t)),
+                [ty @ .., _name] => out.push(bare_type(&ty.join(" "))),
+            }
+        }
+    }
+    Some(out)
+}
+
+/// Split a parameter list at top-level commas: brackets and generic
+/// arguments (`Dictionary<string, int>`) nest, an F# arrow's `>` does not.
+fn split_params(s: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let (mut depth, mut start, mut prev) = (0i32, 0usize, ' ');
+    for (i, c) in s.char_indices() {
+        match c {
+            '(' | '[' | '{' | '<' => depth += 1,
+            '>' if prev == '-' => {}
+            ')' | ']' | '}' | '>' => depth -= 1,
+            ',' if depth == 0 => {
+                out.push(&s[start..i]);
+                start = i + 1;
+            }
+            _ => {}
+        }
+        prev = c;
+    }
+    out.push(&s[start..]);
+    out
+}
+
+/// **Shape D, parameter-type form** — a runtime-invoked callable known by
+/// the type of its last parameter (`rules::parameter_types_for`), not by
+/// its name: an AWS Lambda .NET handler named only in deployment config.
+fn match_parameter_types(
+    graph: &Graph,
+    rule: &FrameworkRule,
+    out: &mut Vec<FrameworkEntry>,
+) {
+    let shapes = rules::parameter_types_for(&rule.id, &rule.language);
+    if shapes.is_empty() {
+        return;
+    }
+    for (id, node) in &graph.callables {
+        if node.language != rule.language || node.synthetic {
+            continue;
+        }
+        let Some(params) = declared_param_types(&node.signature_hint, &node.simple_name)
+        else {
+            continue;
+        };
+        let Some(last) = params.last() else {
+            continue;
+        };
+        let Some(shape) = shapes
+            .iter()
+            .find(|s| s.type_name == last && params.len() <= s.max_params)
+        else {
+            continue;
+        };
+        out.push(FrameworkEntry {
+            framework: rule.id.clone(),
+            kind: rule.kind,
+            shape: EntryShape::BaseType,
+            route: String::new(),
+            target: *id,
+            target_name: node.qualified_name.clone(),
+            evidence: format!("takes the runtime's `{}` last", shape.type_name),
+            file: node.file,
+            site_line: node.start_line,
+            node: rule.node,
+        });
+    }
 }
 
 /// **Shape D, signature form** — a runtime hook found by exact name and
@@ -5451,5 +5634,53 @@ mod tests {
             .map(|e| (e.target.as_u32(), e.framework.as_str()))
             .collect();
         assert_eq!(got, vec![(0, "js-test-globals")], "{:?}", out.entries);
+    }
+
+    #[test]
+    fn nested_base_pattern_takes_protoc_service_bases_only() {
+        assert!(nested_base_matches("$.$Base", "Basket.BasketBase"));
+        assert!(nested_base_matches("$.$Base", "eShop.Basket.BasketBase"));
+        assert!(nested_base_matches("$.$Base", "Greeter.GreeterBase<T>"));
+        // Near misses: another nesting, a bare `*Base`, a plain pattern.
+        assert!(!nested_base_matches("$.$Base", "Store.RepoBase"));
+        assert!(!nested_base_matches("$.$Base", "BasketBase"));
+        assert!(!nested_base_matches("Base", "Basket.BasketBase"));
+    }
+
+    #[test]
+    fn declared_param_types_reads_type_first_and_name_first_lists() {
+        assert_eq!(
+            declared_param_types(
+                "public string FunctionHandler(string input, ILambdaContext context)",
+                "FunctionHandler"
+            ),
+            Some(vec!["string".to_string(), "ILambdaContext".to_string()])
+        );
+        assert_eq!(
+            declared_param_types(
+                "public async Task<R> H<T>(Dictionary<string, int> m, Amazon.Lambda.Core.ILambdaContext c) => x",
+                "H"
+            ),
+            Some(vec!["Dictionary".to_string(), "ILambdaContext".to_string()])
+        );
+        // F#: curried and tupled, with the body after `=` never read.
+        assert_eq!(
+            declared_param_types(
+                "let PostFormat (request: APIGatewayProxyRequest) (_context: ILambdaContext) = f (x: Other)",
+                "PostFormat"
+            ),
+            Some(vec![
+                "APIGatewayProxyRequest".to_string(),
+                "ILambdaContext".to_string()
+            ])
+        );
+        assert_eq!(
+            declared_param_types(
+                "member this.Run(req: string, ctx: ILambdaContext)",
+                "Run"
+            ),
+            Some(vec!["string".to_string(), "ILambdaContext".to_string()])
+        );
+        assert_eq!(declared_param_types("void Other()", "Missing"), None);
     }
 }

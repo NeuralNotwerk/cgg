@@ -134,12 +134,9 @@ impl<'a> FsharpWalker<'a> {
                     .unwrap_or_default();
                 if !name.is_empty() {
                     let inherits = self.child_kind(node, "class_inherits_decl");
-                    let base = inherits
-                        .and_then(|i| self.child_kind(i, "simple_type"))
-                        .map(|t| self.text(t).trim().to_string())
-                        .filter(|t| !t.is_empty());
+                    let bases = self.declared_bases(node, inherits);
                     self.scope.push(name);
-                    self.bases.push(base.into_iter().collect());
+                    self.bases.push(bases);
                     self.record_primary_constructor(node, inherits);
                     self.walk_children(node);
                     self.bases.pop();
@@ -342,6 +339,50 @@ impl<'a> FsharpWalker<'a> {
         });
     }
 
+    /// The type `inherit` names (`simple_type`, or a `generic_type` for
+    /// `inherit Hub<IClient>()`) or `None`.
+    fn inherited_type<'t>(&self, inherits: Node<'t>) -> Option<Node<'t>> {
+        let mut c = inherits.walk();
+        inherits
+            .named_children(&mut c)
+            .find(|n| matches!(n.kind(), "simple_type" | "generic_type"))
+    }
+
+    /// A type definition's declared bases, as written: the `inherit`ed
+    /// class, then each `interface I with` it implements, in order. An
+    /// interface implementation is the only way an F# type implements an
+    /// interface, so a .NET rule keyed on one (Quartz `IJob`, Orleans
+    /// grain interfaces, `IHandleMessages<T>`) sees it only through here.
+    /// Interfaces of an object expression (`{ new I with … }`) belong to
+    /// that expression, not to the enclosing type, and are not read.
+    fn declared_bases(&self, node: Node, inherits: Option<Node>) -> Vec<String> {
+        let mut out: Vec<String> = Vec::new();
+        if let Some(t) = inherits.and_then(|i| self.inherited_type(i)) {
+            out.push(self.text(t).trim().to_string());
+        }
+        let mut c = node.walk();
+        for elems in node.named_children(&mut c) {
+            if elems.kind() != "type_extension_elements" {
+                continue;
+            }
+            let mut c2 = elems.walk();
+            for imp in elems.named_children(&mut c2) {
+                if imp.kind() != "interface_implementation" {
+                    continue;
+                }
+                let mut c3 = imp.walk();
+                if let Some(t) = imp
+                    .named_children(&mut c3)
+                    .find(|n| matches!(n.kind(), "simple_type" | "generic_type"))
+                {
+                    out.push(self.text(t).trim().to_string());
+                }
+            }
+        }
+        out.retain(|t| !t.is_empty());
+        out
+    }
+
     /// `type Box(x: int) = inherit Base(x) …`: the primary constructor,
     /// named after the type and spanning its header — the parameters and
     /// the `inherit` clause, whose `Base(x)` is the `super` call it makes
@@ -358,7 +399,7 @@ impl<'a> FsharpWalker<'a> {
         let last = inherits.unwrap_or(args);
         self.push_constructor(&ty, node, last.end_byte(), last.end_position().row);
         let Some(inherits) = inherits else { return };
-        let Some(base) = self.child_kind(inherits, "simple_type") else {
+        let Some(base) = self.inherited_type(inherits) else {
             return;
         };
         // `inherit Base` with no argument list calls no constructor here.
@@ -792,6 +833,46 @@ mod tests {
             "{calls:?}"
         );
         assert!(calls.contains(&("h", "N")), "{calls:?}");
+    }
+
+    /// `inherit Base<T>()` and `interface I with` are bases of every member
+    /// of the type, as a `simple_type` inherit always was; an object
+    /// expression's interface is not the enclosing type's.
+    #[test]
+    fn generic_inherits_and_interface_implementations_are_bases() {
+        let f = extract(
+            "module M\ntype B() =\n    inherit Hub<IClient>()\n    member x.Y = 1\n\
+             type D() =\n    inherit Base()\n    interface IJob with\n        member this.Execute(c) = 1\n\
+             \x20   interface IHandleMessages<Foo> with\n        member this.Handle(m) = 2\n\
+             type E() =\n    member x.Mk() = { new IDisposable with member _.Dispose() = () }\n",
+        );
+        let bases = |qn: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.qualified_name == qn)
+                .unwrap_or_else(|| panic!("{qn}: {:?}", f.definitions))
+                .base_types
+                .clone()
+        };
+        assert_eq!(bases("B.Y"), vec!["Hub<IClient>"]);
+        assert_eq!(bases("B.B"), vec!["Hub<IClient>"]);
+        assert_eq!(
+            bases("D.Execute"),
+            vec!["Base", "IJob", "IHandleMessages<Foo>"]
+        );
+        assert_eq!(
+            bases("D.Handle"),
+            vec!["Base", "IJob", "IHandleMessages<Foo>"]
+        );
+        assert!(bases("E.Mk").is_empty());
+        // The generic base's constructor is called like a plain one.
+        assert!(
+            f.references
+                .iter()
+                .any(|r| r.name == "Hub" && r.receiver_hint == "super"),
+            "{:?}",
+            f.references
+        );
     }
 
     // WS22 (WS21 carry-over): the primary and additional constructors are
