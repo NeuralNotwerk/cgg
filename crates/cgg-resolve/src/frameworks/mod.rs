@@ -1056,6 +1056,11 @@ fn base_type_matches(wanted: &[String], declared: &str) -> bool {
     contains_ci(wanted, last)
 }
 
+/// Languages whose callable's qualified name is its attribute path
+/// (Nix: `nodes = { machine = …; }` is `nodes.machine`), so a rule's
+/// method pattern may name the path (`nodes.*`) as well as the binding.
+const ATTR_PATH_QN_LANGS: &[&str] = &["nix"];
+
 /// A method-name rule with no base type — the structural-typing escape
 /// hatch.
 ///
@@ -1092,7 +1097,11 @@ fn match_methods(
         if rule.kind == TrustKind::Test && !harness_file {
             continue;
         }
-        if !method_name_matches(rule, &node.simple_name) {
+        let path_match = || {
+            ATTR_PATH_QN_LANGS.contains(&node.language.as_str())
+                && method_name_matches(rule, &node.qualified_name)
+        };
+        if !(method_name_matches(rule, &node.simple_name) || path_match()) {
             continue;
         }
         out.push(FrameworkEntry {
