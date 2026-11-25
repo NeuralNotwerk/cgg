@@ -122,6 +122,43 @@ impl<'a> ClojureWalker<'a> {
         }
     }
 
+    /// The keyword flags in a definition name's metadata, as `^:key`
+    /// attributes: `(defn ^:export init! …)`, `^:dev/after-load`,
+    /// `^{:export true}` (a `false`/`nil` value is no flag). A type hint
+    /// (`^String`) is not a flag. ClojureScript's `^:export` keeps a name
+    /// callable from JavaScript, and shadow-cljs calls the reload hooks.
+    fn name_metadata_flags(&self, name_node: Node) -> Vec<String> {
+        let mut metas: Vec<Node> = Vec::new();
+        for field in ["meta", "old_meta"] {
+            let mut c = name_node.walk();
+            metas.extend(name_node.children_by_field_name(field, &mut c));
+        }
+        let mut out = Vec::new();
+        for m in metas {
+            let Some(v) = m.child_by_field_name("value") else {
+                continue;
+            };
+            match v.kind() {
+                "kwd_lit" => out.push(format!("^{}", self.text(v))),
+                "map_lit" => {
+                    let kv = forms(v);
+                    for pair in kv.chunks(2) {
+                        if let [k, val] = pair {
+                            let off = matches!(val.kind(), "nil_lit")
+                                || (val.kind() == "bool_lit"
+                                    && self.text(*val) == "false");
+                            if k.kind() == "kwd_lit" && !off {
+                                out.push(format!("^{}", self.text(*k)));
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        out
+    }
+
     fn qn(&self, simple: &str) -> String {
         if self.namespace.is_empty() {
             simple.to_string()
@@ -411,7 +448,7 @@ impl<'a> ClojureWalker<'a> {
             let variant = DefVariant::FreeFunction;
             // A macro: `settle_defn_macros` reads which namespaces define a
             // `defn`-style one.
-            let mut attributes = Vec::new();
+            let mut attributes = self.name_metadata_flags(name_node);
             match self.head_name(node) {
                 Some("defmacro" | "defmacro-") => attributes.push(MACRO_ATTR.to_string()),
                 Some("defmulti") => attributes.push(format!("{MULTI_ATTR}{qn}")),
@@ -765,27 +802,36 @@ impl<'a> ClojureWalker<'a> {
             return;
         }
 
+        let core_verb =
+            cgg_core::stdlib::stdlib_names("clojure").is_some_and(|s| s.contains(verb));
         // Only a *leading* string is a route. `(get headers "accept")`
         // shares the verb `get` with every HTTP router in the table, and
         // treating its second argument as an identity would make Clojure's
         // single most common map lookup look like a route registration.
-        let route = match elems.first() {
-            Some(n) if n.kind() == "str_lit" => super::registrar::unquote(self.text(*n)),
-            _ => String::new(),
+        // A leading keyword is the identity of a registration keyed by id
+        // (re-frame's `(reg-event-db ::save (fn [db _] …))`), except on a
+        // `clojure.core` verb, where it is that function's argument.
+        let (route, keyword_route) = match elems.first() {
+            Some(n) if n.kind() == "str_lit" => {
+                (super::registrar::unquote(self.text(*n)), false)
+            }
+            Some(n) if n.kind() == "kwd_lit" && !core_verb => {
+                (self.text(*n).to_string(), true)
+            }
+            _ => (String::new(), false),
         };
 
         // Compojure's arity is `(VERB path binding & body)`. The slot
         // right after the path destructures the request — `req`, `[]`,
         // `{:keys [id]}` — and never names a handler, so claiming it
         // would bind every route to whatever definition happens to
-        // share the binding's name.
-        let binding_pos = (!route.is_empty()).then_some(1usize);
+        // share the binding's name. An id-keyed registration has no
+        // binding slot.
+        let binding_pos = (!route.is_empty() && !keyword_route).then_some(1usize);
         // Without a route, a verb that is also a `clojure.core` function
         // is that function: `(get table k)` reads a map, and `table` is no
         // handler. (`(defroutes app handler)` keeps its captures.)
-        let core_call = route.is_empty()
-            && cgg_core::stdlib::stdlib_names("clojure")
-                .is_some_and(|s| s.contains(verb));
+        let core_call = route.is_empty() && core_verb;
 
         let mut out: Vec<RefRecord> = Vec::new();
         let mut body: Vec<Node> = Vec::new();
@@ -901,7 +947,8 @@ impl<'a> ClojureWalker<'a> {
     /// body usually sits inside `(defroutes …)`, which is not a
     /// definition either, so the calls it makes have no owner at all.
     /// Mirrors `ruby.rs::extract_inline_handler` and is gated the same
-    /// way — on the registrar verb and a leading route string, and only
+    /// way — on the registrar verb and a leading route string (or id
+    /// keyword, re-frame's `(reg-sub ::items (fn [db] …))`), and only
     /// when no argument already names a handler — so `(wrap-defaults
     /// app-routes site-defaults)` and every ordinary form mint nothing.
     fn synthesize_inline_handler(
@@ -2257,6 +2304,63 @@ mod tests {
         }
     }
 
+    /// 0.14.0: keyword flags in a name's metadata are attributes, so a
+    /// `^:export` or shadow-cljs reload hook can be an entry; a type hint
+    /// and a `false` flag are not.
+    #[test]
+    fn name_metadata_flags_are_attributes() {
+        let cases: [(&str, &[&str]); 5] = [
+            ("(defn ^:export init! [] 1)", &["^:export"]),
+            ("(defn ^:dev/after-load mount! [] 1)", &["^:dev/after-load"]),
+            (
+                "(defn ^{:export true :doc \"x\"} f [] 1)",
+                &["^:export", "^:doc"],
+            ),
+            ("(defn ^{:export false} g [] 1)", &[]),
+            ("(defn ^String ^:private h [] 1)", &["^:private"]),
+        ];
+        for (src, want) in cases {
+            let f = extract(&format!("(ns a.b)\n{src}\n"));
+            let got: Vec<&str> = f.definitions[0]
+                .attributes
+                .iter()
+                .map(String::as_str)
+                .collect();
+            assert_eq!(got, want, "{src}");
+        }
+    }
+
+    /// 0.14.0: re-frame registers a handler under a keyword id; the id is
+    /// the route, and an inline `(fn …)` becomes `handler_at_<line>`.
+    #[test]
+    fn a_keyword_id_registration_names_its_inline_handler() {
+        let f = extract(concat!(
+            "(ns app.events (:require [re-frame.core :as rf]))\n",
+            "(rf/reg-event-db ::save [rf/trim-v]\n  (fn [db [v]] (assoc db :v v)))\n",
+            "(rf/reg-sub :items items-sub)\n",
+        ));
+        let refs = hinted(&f, cgg_core::VALUE_REF_HINT);
+        let h = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name.starts_with("handler_at_"))
+            .unwrap_or_else(|| panic!("defs: {:?}", defs(&f)));
+        assert!(
+            refs.iter()
+                .any(|r| r.name == h.simple_name && r.route == "::save"),
+            "refs: {refs:?}"
+        );
+        assert!(
+            refs.iter()
+                .any(|r| r.name == "items-sub" && r.route == ":items"),
+            "refs: {refs:?}"
+        );
+        // A core verb keeps its keyword as an argument: `(get :k m)` is
+        // no registration.
+        let g = extract("(ns app)\n(defn f [m] (get :k m))\n");
+        assert!(hinted(&g, cgg_core::VALUE_REF_HINT).is_empty());
+    }
+
     /// A type hint on a call form (`^String (f x)`) is its metadata, not
     /// its operator.
     #[test]
@@ -2420,7 +2524,12 @@ mod tests {
             defs(&app),
             vec!["app/checked", "app/typed", "app/via-reexport", "app/plain"]
         );
-        assert!(app.definitions.iter().all(|d| d.attributes.is_empty()));
+        // Only the names' own metadata flags remain (`^:private`).
+        assert!(
+            app.definitions
+                .iter()
+                .all(|d| d.attributes.iter().all(|a| a.starts_with("^:")))
+        );
         let calls: Vec<&str> = app.references.iter().map(|r| r.name.as_str()).collect();
         assert_eq!(calls, vec!["mu/defmethod", "e/defn"], "{calls:?}");
     }
