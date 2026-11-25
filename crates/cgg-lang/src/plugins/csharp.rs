@@ -171,7 +171,10 @@ impl<'a> Walker<'a> {
                     .child_by_field_name("name")
                     .map(|n| self.text(n).to_string())
                     .unwrap_or_default();
-                let bases = super::attrs::base_types(node, self.source);
+                // A primary constructor passes arguments to the base's
+                // (`class X() : Executor<T>("id")`); they are not part of
+                // the type, and read as written the class lost its base.
+                let bases = super::attrs::base_types_with_ctor_args(node, self.source);
                 if !name.is_empty() {
                     // Every type, bodiless ones included: see the Java
                     // plugin. A chain that finds nothing then proves the
@@ -1450,6 +1453,22 @@ namespace A.B.C {
         assert_eq!(f.classes.len(), 1);
         assert_eq!(f.classes[0].class_qn, "N.W");
         assert_eq!(f.classes[0].base_types, vec!["Ext", "IThing"]);
+    }
+
+    /// REGRESSION: a primary constructor's base-constructor arguments
+    /// (`class X() : Executor<T>("id")`) made the base no type name.
+    #[test]
+    fn primary_constructor_base_arguments_keep_the_base() {
+        let f = extract(
+            "namespace N {\n  class X(string s) : Executor<Msg>(\"id\"), IThing {\n    public void Run() { }\n  }\n}\n",
+        );
+        assert_eq!(f.classes[0].base_types, vec!["Executor<Msg>", "IThing"]);
+        let run = f
+            .definitions
+            .iter()
+            .find(|d| d.simple_name == "Run")
+            .unwrap();
+        assert_eq!(run.base_types, vec!["Executor<Msg>", "IThing"]);
     }
 
     /// B5/C1: `a.M<T>()` is a call of `M` (it kept the name `M<string>`

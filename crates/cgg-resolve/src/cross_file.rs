@@ -1409,9 +1409,13 @@ pub fn resolve(
     // inheritance chain that finds nothing prove the method is outside the
     // tree: elsewhere a class with no methods carries no bases, and the
     // chain stops at it although the method lives one level further up.
+    // Ruby records its classes too, but a method no recorded ancestor
+    // declares can still come from a module mixed in at run time, a
+    // reopened class in a gem or `method_missing`: a chain finding
+    // nothing proves nothing there.
     let class_record_langs: std::collections::BTreeSet<String> = facts
         .iter()
-        .filter(|f| !f.classes.is_empty())
+        .filter(|f| !f.classes.is_empty() && f.language != "ruby")
         .map(|f| f.language.clone())
         .collect();
 

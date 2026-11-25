@@ -1436,3 +1436,79 @@ fn an_attribute_over_512_bytes_still_marks_its_entry() {
         "both tools are entries:\n{g}"
     );
 }
+
+/// One `[[framework]]` row naming a base type and its entry methods.
+fn base_rule(id: &str, lang: &str, detect: &str, base: &str, methods: &str) -> String {
+    format!(
+        "[[framework]]\nid = \"{id}\"\nlanguage = \"{lang}\"\nkind = \"network\"\n\
+         detect = [\"{detect}\"]\nbase_types = [\"{base}\"]\nmethods = [\"{methods}\"]\n\
+         node = true\n\n"
+    )
+}
+
+#[test]
+fn base_types_the_plugins_used_to_lose_reach_their_rules() {
+    // REGRESSION, one case per language:
+    // - TypeScript: an object type argument made `Agent<Env, {…}>` no
+    //   type name;
+    // - C#: a primary constructor's base arguments did the same;
+    // - Ruby: a bodiless intermediate class carried no base, so the
+    //   chain `WeatherTool < ApplicationTool < RubyLLM::Tool` ended;
+    // - PHP: a base written through a `use … as` alias never matched a
+    //   rule naming the class's full name.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "a.ts",
+        "import { Agent } from \"agents\";\n\
+         export class MyAgent extends Agent<Env, { n: number; f: () => void }> {\n\
+         \x20 onRequest(r: Request) { return r; }\n}\n",
+    );
+    write(
+        tmp.path(),
+        "X.cs",
+        "using Microsoft.Agents.AI.Workflows;\nnamespace N {\n\
+         \x20 class X(string s) : Executor<Msg>(\"id\") {\n\
+         \x20   public void HandleAsync(Msg m) { }\n  }\n}\n",
+    );
+    write(
+        tmp.path(),
+        "tools.rb",
+        "require \"ruby_llm\"\nclass ApplicationTool < RubyLLM::Tool\nend\n\
+         class WeatherTool < ApplicationTool\n  def execute(city:)\n    city\n  end\nend\n",
+    );
+    write(
+        tmp.path(),
+        "Tool.php",
+        "<?php\nnamespace App;\nuse NeuronAI\\Tools\\Tool as BaseTool;\n\
+         class Weather extends BaseTool {\n  public function __invoke($city) { return $city; }\n}\n",
+    );
+    let rules = [
+        base_rule("t-agents", "typescript", "agents", "Agent", "onRequest"),
+        base_rule(
+            "t-maf",
+            "csharp",
+            "Microsoft.Agents.AI",
+            "Executor",
+            "HandleAsync",
+        ),
+        base_rule("t-rubyllm", "ruby", "ruby_llm", "RubyLLM::Tool", "execute"),
+        base_rule(
+            "t-neuron",
+            "php",
+            "NeuronAI",
+            "NeuronAI\\\\Tools\\\\Tool",
+            "__invoke",
+        ),
+    ]
+    .concat();
+    write(tmp.path(), "rules.toml", &rules);
+    let path = tmp.path().join("rules.toml");
+    let (g, _) = run(tmp.path(), &["--roots", path.to_str().unwrap()]);
+    for id in ["t-agents", "t-maf", "t-rubyllm", "t-neuron"] {
+        assert!(
+            g.contains(&format!("network::{id}")),
+            "{id} has an entry:\n{g}"
+        );
+    }
+}
