@@ -372,6 +372,13 @@ impl Detection {
                     let calls = rules::detect_calls_for(&rule.id, &rule.language);
                     hit = calls.iter().any(|c| call_names.contains(c));
                 }
+                // A class declared with one of the rule's bases written
+                // namespace-qualified (`class Weather < RubyLLM::Tool`) is
+                // evidence on its own: Rails autoloads the gem, so no file
+                // requires it.
+                if !hit {
+                    hit = declares_qualified_base(f, &rule.base_types);
+                }
                 // A marker-only rule (CUDA's `__global__`) has no import
                 // to gate on — the marker on the definition IS the
                 // evidence. Treating it as unconditionally detected made
@@ -932,6 +939,29 @@ fn import_segments(path: &str) -> impl Iterator<Item = &str> {
     path.split('/')
         .chain(path.split(['.', '/', ':', '\\']))
         .filter(|s| !s.is_empty())
+}
+
+/// Whether `f` declares a class (on a method record or a class record)
+/// whose base is written exactly as one of `wanted` that names a
+/// namespace with `::` or `\\` (`RubyLLM::Tool`, `\\Laravel\\Mcp\\Server\\Tool`).
+/// A bare or dotted name is too common to prove a framework.
+fn declares_qualified_base(f: &FileFacts, wanted: &[String]) -> bool {
+    let qualified: Vec<&str> = wanted
+        .iter()
+        .map(|w| w.trim_start_matches(['\\', ':']))
+        .filter(|w| w.contains("::") || w.contains('\\'))
+        .collect();
+    if qualified.is_empty() {
+        return false;
+    }
+    let written = |b: &String| {
+        let b = b.trim().trim_start_matches(['\\', ':']);
+        qualified.iter().any(|w| w.eq_ignore_ascii_case(b))
+    };
+    f.definitions
+        .iter()
+        .any(|d| d.base_types.iter().any(written))
+        || f.classes.iter().any(|c| c.base_types.iter().any(written))
 }
 
 /// Whether an import path is, or is under, `prefix`.

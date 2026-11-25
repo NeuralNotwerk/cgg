@@ -47,6 +47,7 @@ impl LanguagePlugin for PhpPlugin {
             facts: &mut facts,
             scope: Vec::new(),
             bases: Vec::new(),
+            class_attrs: Vec::new(),
             namespace: String::new(),
         };
         w.walk(tree.root_node());
@@ -65,6 +66,9 @@ struct PhpWalker<'a> {
     scope: Vec<String>,
     /// `extends`/`implements` of the enclosing class, innermost last.
     bases: Vec<Vec<String>>,
+    /// Per enclosing class: its own attributes, each with the method it
+    /// hands to the framework (see [`class_attribute_target`]).
+    class_attrs: Vec<Vec<(String, String)>>,
     /// The namespace the walk is in (`namespace App\Http;`).
     namespace: String,
 }
@@ -102,7 +106,7 @@ impl<'a> PhpWalker<'a> {
                 // Every type the file declares, by its fully qualified
                 // name, so a `use` of it can be told from a `use` of a
                 // dependency's (WS14). Bases stay on the methods.
-                if !name.is_empty() && self.scope.is_empty() {
+                let class_decl = (!name.is_empty() && self.scope.is_empty()).then(|| {
                     let fqn = if self.namespace.is_empty() {
                         name.clone()
                     } else {
@@ -113,7 +117,8 @@ impl<'a> PhpWalker<'a> {
                         base_types: Vec::new(),
                         line: (node.start_position().row as u32) + 1,
                     });
-                }
+                    self.facts.classes.len() - 1
+                });
                 // `use T1, T2;` in the body mixes the traits' methods in:
                 // `$this->m()` reaches them as it reaches a base's.
                 let mut bases = super::attrs::base_types(node, self.source);
@@ -135,6 +140,24 @@ impl<'a> PhpWalker<'a> {
                         }
                     }
                 }
+                // The class record carries its `extends`/`implements` bases
+                // too, so a class with no method of its own (`abstract
+                // class AppTool extends Tool {}`) still links the chain.
+                if let Some(i) = class_decl {
+                    self.facts.classes[i].base_types =
+                        super::attrs::base_types(node, self.source);
+                }
+                // `#[AsTool('name', method: 'run')]` on the class registers
+                // the class's `run` (`__invoke` when no method is named):
+                // the attribute is handed to that method.
+                let attrs = super::attrs::collect(node, self.source)
+                    .into_iter()
+                    .map(|a| {
+                        let target = class_attribute_target(&a);
+                        (a, target)
+                    })
+                    .collect();
+                self.class_attrs.push(attrs);
                 self.bases.push(bases);
                 if !name.is_empty() {
                     self.scope.push(name);
@@ -144,6 +167,7 @@ impl<'a> PhpWalker<'a> {
                     self.walk_children(node);
                 }
                 self.bases.pop();
+                self.class_attrs.pop();
                 return;
             }
             "function_definition" => {
@@ -170,6 +194,23 @@ impl<'a> PhpWalker<'a> {
                 if !name.is_empty() {
                     let from = self.facts.definitions.len();
                     self.record_def(&name, node, DefVariant::InherentMethod);
+                    let handed: Vec<String> = self
+                        .class_attrs
+                        .last()
+                        .map(|list| {
+                            list.iter()
+                                .filter(|(_, m)| m.eq_ignore_ascii_case(&name))
+                                .map(|(a, _)| a.clone())
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    if let Some(d) = self.facts.definitions.last_mut() {
+                        for a in handed {
+                            if !d.attributes.contains(&a) {
+                                d.attributes.push(a);
+                            }
+                        }
+                    }
                     // An interface or `abstract` method: a declaration.
                     super::attrs::mark_abstract_from(
                         &mut self.facts.definitions,
@@ -620,6 +661,27 @@ fn is_conditional(def: Node) -> bool {
     false
 }
 
+/// The method a class-level attribute hands to its framework: the
+/// `method:` argument when the attribute names one (`#[AsTool('x',
+/// method: 'run')]`, `#[AsEventListener(method: 'onX')]`), else
+/// `__invoke` (an invokable tool, handler or command).
+fn class_attribute_target(attr: &str) -> String {
+    let Some(i) = attr.find("method:") else {
+        return "__invoke".to_string();
+    };
+    let rest = attr[i + "method:".len()..].trim_start();
+    let quote = rest.chars().next().filter(|c| *c == '\'' || *c == '"');
+    match quote {
+        Some(q) => rest[1..]
+            .split(q)
+            .next()
+            .filter(|m| !m.is_empty())
+            .unwrap_or("__invoke")
+            .to_string(),
+        None => "__invoke".to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -639,6 +701,49 @@ mod tests {
             &tree,
             src.as_bytes(),
         )
+    }
+
+    #[test]
+    fn a_class_attribute_is_handed_to_the_method_it_names() {
+        let src = "<?php\n#[AsTool('company', 'desc')]\nfinal class CompanyName {\n  public function __invoke(): string { return 'x'; }\n  public function other(): void {}\n}\n\
+                   #[AsTool(name: 'now', method: 'current')]\n#[AsTool(name: 'later', method: \"forecast\")]\nclass Meteo {\n  public function current() {}\n  public function forecast() {}\n  public function helper() {}\n}\n";
+        let f = extract(src);
+        let attrs = |qn: &str| {
+            f.definitions
+                .iter()
+                .find(|d| d.qualified_name == qn)
+                .map(|d| d.attributes.clone())
+                .unwrap_or_default()
+        };
+        assert!(
+            attrs("CompanyName::__invoke")
+                .iter()
+                .any(|a| a.contains("AsTool"))
+        );
+        assert!(attrs("CompanyName::other").is_empty());
+        assert!(attrs("Meteo::current").iter().any(|a| a.contains("'now'")));
+        assert!(
+            attrs("Meteo::forecast")
+                .iter()
+                .any(|a| a.contains("'later'"))
+        );
+        assert!(attrs("Meteo::helper").is_empty());
+    }
+
+    #[test]
+    fn a_class_record_carries_its_bases() {
+        let f = extract(
+            "<?php\nnamespace App;\nuse Laravel\\Mcp\\Server\\Tool;\nabstract class AppTool extends Tool implements Countable {}\n",
+        );
+        let c = f
+            .classes
+            .iter()
+            .find(|c| c.class_qn == "App\\AppTool")
+            .unwrap();
+        assert_eq!(
+            c.base_types,
+            vec!["Tool".to_string(), "Countable".to_string()]
+        );
     }
 
     // WS18: stacked attribute groups are separate attributes, so

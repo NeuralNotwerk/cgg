@@ -419,3 +419,183 @@ fn pest_closures_are_test_entries_and_reach_their_callees() {
     }
     assert!(dead.contains("unusedUsers"), "{dead:?}");
 }
+
+// ---------------------------------------------------------------------
+// Phase C: AI agent and tool-calling frameworks (kind `tool`)
+// ---------------------------------------------------------------------
+
+#[test]
+fn ruby_llm_tools_are_tool_entries_without_a_require() {
+    // Rails autoloads the gem: the qualified base is the only evidence,
+    // and an empty `ApplicationTool` sits in the chain.
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "app/tools/weather.rb",
+        "class Weather < RubyLLM::Tool\n  def execute(city:)\n    city\n  end\n  def unused_helper; end\nend\n",
+    );
+    write(
+        tmp.path(),
+        "app/tools/lookup.rb",
+        "class Lookup < ApplicationTool\n  def execute(query:)\n    query\n  end\nend\nclass ApplicationTool < RubyLLM::Tool\nend\n",
+    );
+    let (names, err) = entries(tmp.path());
+    assert!(err.contains("ruby-llm (tool"), "{err}");
+    assert!(
+        names.iter().any(|n| n.contains("tool::ruby-llm::Weather")),
+        "{names:?}"
+    );
+    assert!(
+        names.iter().any(|n| n.contains("tool::ruby-llm::Lookup")),
+        "{names:?}"
+    );
+    let (dead, _, _) = dead_code(tmp.path());
+    assert!(!dead.contains("Weather::execute"), "{dead:?}");
+    assert!(dead.contains("Weather::unused_helper"), "{dead:?}");
+}
+
+#[test]
+fn a_plain_execute_is_not_a_ruby_llm_tool() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "app/jobs/x.rb",
+        "class Runner < Base\n  def execute; end\nend\n",
+    );
+    let (_, err) = entries(tmp.path());
+    assert!(!err.contains("ruby-llm"), "{err}");
+}
+
+#[test]
+fn mcp_ruby_tools_prompts_and_defined_tools_are_entries() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "server.rb",
+        "require \"mcp\"\n\
+         class EchoTool < MCP::Tool\n  def self.call(message:, server_context:)\n    message\n  end\nend\n\
+         class GreetPrompt < MCP::Prompt\n  def self.template(args, server_context:)\n    args\n  end\nend\n\
+         server = MCP::Server.new(name: \"s\", tools: [EchoTool])\n\
+         server.define_tool(name: \"adder\", description: \"adds\") do |a:, b:|\n  a + b\nend\n",
+    );
+    let (names, err) = entries(tmp.path());
+    assert!(err.contains("mcp-ruby (tool"), "{err}");
+    for want in [
+        "tool::mcp-ruby::EchoTool",
+        "tool::mcp-ruby::GreetPrompt",
+        "tool::mcp-ruby::adder",
+    ] {
+        assert!(names.iter().any(|n| n.contains(want)), "{want}: {names:?}");
+    }
+}
+
+#[test]
+fn laravel_mcp_and_ai_tools_are_entries_through_use_and_member_less_bases() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "app/Mcp/Tools/CurrentWeatherTool.php",
+        "<?php\nnamespace App\\Mcp\\Tools;\nuse Laravel\\Mcp\\Request;\nuse Laravel\\Mcp\\Server\\Tool;\n\
+         class CurrentWeatherTool extends Tool {\n  public function handle(Request $r) { return $this->lookup(); }\n\
+         \x20 public function schema($s): array { return []; }\n  private function lookup() { return 1; }\n}\n\
+         abstract class AppTool extends Tool {}\n\
+         class ForecastTool extends AppTool {\n  public function handle(Request $r) { return 2; }\n}\n",
+    );
+    write(
+        tmp.path(),
+        "app/Ai/SalesCoach.php",
+        "<?php\nnamespace App\\Ai;\nuse Laravel\\Ai\\Contracts\\Agent;\nuse Laravel\\Ai\\Contracts\\Tool;\n\
+         class SalesCoach implements Agent {\n  public function instructions(): string { return 'x'; }\n}\n\
+         class Dice implements Tool {\n  public function handle($r): string { return '4'; }\n  public function unused(): void {}\n}\n",
+    );
+    let (names, err) = entries(tmp.path());
+    assert!(err.contains("laravel-mcp (tool"), "{err}");
+    assert!(err.contains("laravel-ai (tool"), "{err}");
+    for want in [
+        "tool::laravel-mcp::CurrentWeatherTool",
+        "tool::laravel-mcp::ForecastTool",
+        "tool::laravel-ai::Dice",
+    ] {
+        assert!(names.iter().any(|n| n.contains(want)), "{want}: {names:?}");
+    }
+    let (dead, _, _) = dead_code(tmp.path());
+    for live in [
+        "ForecastTool::handle",
+        "SalesCoach::instructions",
+        "CurrentWeatherTool::schema",
+    ] {
+        assert!(!dead.contains(live), "{live}: {dead:?}");
+    }
+    assert!(dead.contains("Dice::unused"), "{dead:?}");
+}
+
+#[test]
+fn symfony_ai_class_attributes_and_mcp_php_registrations_are_tool_entries() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/Tools.php",
+        "<?php\nnamespace App;\nuse Symfony\\AI\\Agent\\Toolbox\\Attribute\\AsTool;\nuse Mcp\\Capability\\Attribute\\McpTool;\n\
+         #[AsTool('company_name', 'desc')]\nfinal class CompanyName {\n  public function __invoke(): string { return 'x'; }\n}\n\
+         #[AsTool(name: 'weather_current', description: 'd', method: 'current')]\n\
+         final class OpenMeteo {\n  public function current(): array { return []; }\n  public function helper(): void {}\n}\n\
+         class McpTools {\n  #[McpTool(name: 'time-current')]\n  public function currentTime(): string { return ''; }\n}\n",
+    );
+    write(
+        tmp.path(),
+        "server.php",
+        "<?php\nuse Mcp\\Server;\n\
+         class Greeter {\n  public function manual(string $x): string { return $x; }\n}\n\
+         $server = Server::builder()->addTool([Greeter::class, 'manual'], 'manual')->build();\n",
+    );
+    let (names, err) = entries(tmp.path());
+    assert!(err.contains("symfony-ai (tool"), "{err}");
+    assert!(err.contains("mcp-php (tool"), "{err}");
+    for want in [
+        "tool::symfony-ai::company_name",
+        "tool::symfony-ai::weather_current",
+        "tool::mcp-php::time-current",
+    ] {
+        assert!(names.iter().any(|n| n.contains(want)), "{want}: {names:?}");
+    }
+    let (dead, _, _) = dead_code(tmp.path());
+    for live in [
+        "CompanyName::__invoke",
+        "OpenMeteo::current",
+        "Greeter::manual",
+    ] {
+        assert!(!dead.contains(live), "{live}: {dead:?}");
+    }
+    assert!(dead.contains("OpenMeteo::helper"), "{dead:?}");
+}
+
+#[test]
+fn prism_handlers_in_every_callable_form_are_tool_entries() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "app/Ai/Tools.php",
+        "<?php\nnamespace App\\Ai;\nuse Prism\\Prism\\Facades\\Tool;\nuse Prism\\Prism\\Tool as BaseTool;\n\
+         function make_tools(): array {\n\
+         \x20 $a = Tool::as('weather')->for('w')->using(function (string $c): string { return forecast($c); });\n\
+         \x20 $b = Tool::as('search')->for('s')->using([new Searcher(), 'search']);\n\
+         \x20 $c = Tool::as('lookup')->for('l')->using(new LookupTool());\n\
+         \x20 return [$a, $b, $c];\n}\n\
+         function forecast(string $c): string { return $c; }\n\
+         class Searcher {\n  public function search(string $q): string { return $q; }\n  public function unused(): void {}\n}\n\
+         class LookupTool {\n  public function __invoke(string $q): string { return $q; }\n}\n\
+         class SearchDocs extends BaseTool {\n  public function __invoke(string $q): string { return $q; }\n}\n",
+    );
+    let (_, err) = entries(tmp.path());
+    assert!(err.contains("prism-php (tool"), "{err}");
+    let (dead, _, _) = dead_code(tmp.path());
+    for live in [
+        "forecast",
+        "Searcher::search",
+        "LookupTool::__invoke",
+        "SearchDocs::__invoke",
+    ] {
+        assert!(!dead.contains(live), "{live}: {dead:?}");
+    }
+    assert!(dead.contains("Searcher::unused"), "{dead:?}");
+}
