@@ -1523,15 +1523,13 @@ impl BaseTypeIndex {
                 if owner.is_empty() {
                     continue;
                 }
-                by_owner
-                    .entry(owner.to_string())
-                    .or_insert_with(|| {
-                        let declared = match &php {
-                            Some(names) => names.expand(&c.base_types),
-                            None => c.base_types.clone(),
-                        };
-                        (declared, f.file)
-                    });
+                by_owner.entry(owner.to_string()).or_insert_with(|| {
+                    let declared = match &php {
+                        Some(names) => names.expand(&c.base_types),
+                        None => c.base_types.clone(),
+                    };
+                    (declared, f.file)
+                });
             }
         }
         Self { bases, by_owner }
