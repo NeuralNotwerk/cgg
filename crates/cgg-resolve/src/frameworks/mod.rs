@@ -3001,6 +3001,15 @@ fn match_registrars(
             {
                 continue;
             }
+            // Some rules share their receiver-qualified verbs with a
+            // sibling library: those count only in a file importing the
+            // rule's own (`rules::registrars_need_file_evidence`).
+            if !receiverless
+                && rules::registrars_need_file_evidence(&rule.id, &rule.language)
+                && !evidence.file_carries(&rule.id, &rule.language, f.file)
+            {
+                continue;
+            }
             // A rule naming the receiver (`server.resource`,
             // `ipcMain.handle`) has had it confirmed: that is the
             // corroboration, not the route.

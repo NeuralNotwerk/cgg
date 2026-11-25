@@ -153,7 +153,7 @@ APPS=(
     "app-fiber-recipes|https://github.com/gofiber/recipes.git|asynq,fiber,hono,net-http,cloudflare-workers,~go-encoding,~react"
     "app-homebox-chi|https://github.com/sysadminsmedia/homebox.git|chi,go-encoding,py-unittest,~net-http,ent-schema"
     "app-temporal-samples|https://github.com/temporalio/samples-go.git|net-http,temporal,~go-encoding"
-    "app-eshop-aspnet|https://github.com/dotnet/eShop.git|aspnet-minimal,aspnet-mvc,csharp-disposable,dotnet-hosting,ef-core,mstest,mvvm-toolkit,~blazor-lifecycle,fluentvalidation,grpc-dotnet"
+    "app-eshop-aspnet|https://github.com/dotnet/eShop.git|aspnet-minimal,aspnet-mvc,csharp-disposable,dotnet-hosting,ef-core,mstest,mvvm-toolkit,~blazor-lifecycle,fluentvalidation,grpc-dotnet,microsoft-extensions-ai"
     "app-masstransit-sample|https://github.com/MassTransit/Sample-Twitch.git|aspnet-mvc,dotnet-hosting,masstransit,~aspnet-minimal,~csharp-disposable"
     "app-ombi-quartz|https://github.com/Ombi-app/Ombi.git|angular,angular-router,aspnet-mvc,csharp-disposable,ef-core,quartz,signalr,~angular-host,~aspnet-minimal,~dotnet-hosting,nunit-runner"
     "app-axum-cratesio|https://github.com/rust-lang/crates.io.git|axum,rust-std-traits,~py-argparse"
@@ -582,6 +582,16 @@ APPS=(
     "app-predimarkt-ihp|https://github.com/avitkauskas/predimarkt.git|ihp,~hspec,~nix,~quickcheck,~wai"
     "app-qubesfirewall-mirage|https://github.com/mirage/qubes-mirage-firewall.git|mirage,~alcotest,~cmdliner"
     "app-frankencoin-chainlink|https://github.com/Frankencoin-ZCHF/Frankencoin.git|chainlink,js-test-globals,solidity-public"
+    "app-equibles-mcp|https://github.com/daniel3303/Equibles.git|aspnet-mvc,benchmarkdotnet,csharp-disposable,dotnet-hosting,ef-core,masstransit,mcp-csharp-sdk,xunit,xunit-data,~aspnet-minimal,~csharp-runtime,~dotnet-serialization"
+    "app-openclaw-semantickernel|https://github.com/clawdotnet/openclaw.net.git|aspnet-minimal,avalonia,csharp-disposable,dotnet-hosting,mcp-csharp-sdk,microsoft-agent-framework,microsoft-extensions-ai,mvvm-toolkit,node-event-emitter,py-signal,py-unittest,semantic-kernel,xaml,xunit,xunit-data,~aspnet-mvc,~avalonia-xaml,~blazor,~blazor-jsinterop,~blazor-lifecycle,~csharp-runtime,~go-encoding,~go-runtime,~net-http,~py-argparse,~py-threading,~semantic-kernel-hooks"
+    "app-bookworm-agentframework|https://github.com/foxminchan/BookWorm.git|azure-functions,csharp-disposable,ef-core,fluentvalidation,grpc-dotnet,mcp-csharp-sdk,microsoft-agent-framework,microsoft-agent-framework-workflows,microsoft-extensions-ai,quartz,vitest,~aspnet-minimal,~aspnet-mvc,~csharp-runtime,~dotnet-hosting,~dotnet-serialization,~nextjs,~node-event-emitter,~playwright,~react,~react-hooks"
+    "app-netcorekevin-meai|https://github.com/junkai-li/NetCoreKevin.git|aspnet-mvc,csharp-disposable,dotnetcore-cap,ef-core,mediatr,microsoft-extensions-ai,signalr,xunit,~aspnet-minimal,~csharp-runtime,~dotnet-hosting,~dotnet-serialization,~hangfire,~mcp-csharp-sdk,~microsoft-agent-framework,~vue,~xunit-data"
+    "app-blazorgpt-semantickernel|https://github.com/magols/BlazorGPT.git|aspnet-mvc,blazor-lifecycle,csharp-disposable,ef-core,razor,semantic-kernel,semantic-kernel-hooks,~aspnet-minimal,~blazor,~blazor-jsinterop,~csharp-runtime,~js-test-globals"
+    "app-githubmcp-gosdk|https://github.com/github/github-mcp-server.git|chi,go-encoding,go-testing,mcp-go-sdk,mcp-go-sdk-middleware,net-http,node-test,~cobra,~go-runtime,~go-signal,~react,~react-hooks"
+    "app-k8sgpt-mcpgo|https://github.com/k8sgpt-ai/k8sgpt.git|go-testing,mcp-go,net-http,~cobra,~controller-runtime,~go-encoding,~go-runtime,~go-signal,~grpc-gateway,~grpc-go,~mcp-go-hooks,~prometheus-collector,~robfig-cron"
+    "app-terraformmcp-mcpgo|https://github.com/hashicorp/terraform-mcp-server.git|go-testing,mcp-go-hooks,mcp-go-sdk,net-http,~cobra,~go-encoding,~go-runtime,~go-signal,~mcp-go,~mcp-go-sdk-middleware"
+    "app-mayfly-eino|https://github.com/dromara/mayfly-go.git|eino,go-encoding,go-testing,gorm,net-http,vitest,~cobra,~eino-graph,~eino-hooks,~gin,~go-runtime,~go-signal,~gorilla-mux,~grpc-go,~mcp-go,~mcp-go-hooks,~robfig-cron,~vue"
+    "app-cozestudio-eino|https://github.com/coze-dev/coze-studio.git|eino,eino-graph,eino-hooks,go-encoding,go-testing,gorm,hertz,nats,node-event-emitter,react,sarama,testify-suite,vitest,~go-runtime,~go-signal,~net-http,~react-hooks"
 )
 
 # Framework rules with NO application in the APPS manifest above.
