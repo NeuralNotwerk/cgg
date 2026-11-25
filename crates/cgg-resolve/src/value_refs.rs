@@ -167,6 +167,19 @@ pub fn prune(all_facts: &mut [FileFacts]) {
             continue;
         }
         let known = names.get(&f.language).unwrap_or(&empty);
+        // An assembly value (`.word handler`, `la t0, handler`) names a
+        // C or C++ function as often as a label: the linker joins them.
+        let asm_known: HashSet<String>;
+        let known = if f.language == "asm" {
+            asm_known = ["asm", "c", "cpp"]
+                .iter()
+                .filter_map(|l| names.get(*l))
+                .flat_map(|s| s.iter().cloned())
+                .collect();
+            &asm_known
+        } else {
+            known
+        };
         // A bare name some struct or class of the language declares as a
         // data member is, inside a member function, that field far more
         // often than a function (`result.height = height`).
@@ -234,6 +247,11 @@ pub fn prune(all_facts: &mut [FileFacts]) {
                 m
             });
         let zig = f.language == "zig";
+        // Rust: a value is in the value namespace, where a local always
+        // hides a same-named item — a `use`d function, and a module
+        // (`mod progress;` beside a parameter `progress`) is never a
+        // value at all — so the import exception does not apply.
+        let rust = f.language == "rust";
         let objc = f.language == "objc";
         let local_defs = LOCAL_DEF_LANGS.contains(&f.language.as_str());
         // OCaml records a value as its path (`M.default`); the binding it
@@ -252,6 +270,9 @@ pub fn prune(all_facts: &mut [FileFacts]) {
                     })
                     && !((r.receiver_hint.is_empty() || member_reads)
                         && is_field(if ocaml { leaf(r) } else { &r.name }))
+                    && !(rust
+                        && r.receiver_hint.is_empty()
+                        && locals.binds(&r.name, r.site_byte))
                     && !shadowed(&locals, &defs, r, local_defs))
         });
         f.definitions = defs;

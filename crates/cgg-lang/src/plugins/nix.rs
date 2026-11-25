@@ -131,13 +131,26 @@ impl<'a> NixWalker<'a> {
         if name.is_empty() {
             return;
         }
+        // `nodes = { machine = …; }` is `nodes.machine = …;` written
+        // nested: the qualified name is the whole attribute path, so both
+        // spellings name the callable alike. The simple name stays the
+        // binding's own attrpath, which is what a call selects by.
+        let mut qualified = name.clone();
+        let mut cur = node;
+        while let Some(parent) = self.enclosing_attrset_binding(cur) {
+            let Some(path) = self.child_kind(parent, "attrpath") else {
+                break;
+            };
+            qualified = format!("{}.{qualified}", self.text(path));
+            cur = parent;
+        }
         let (sl, el) = (
             (node.start_position().row as u32) + 1,
             (node.end_position().row as u32) + 1,
         );
         self.facts.definitions.push(DefRecord {
-            simple_name: name.clone(),
-            qualified_name: name,
+            simple_name: name,
+            qualified_name: qualified,
             variant: DefVariant::FreeFunction,
             start_line: sl,
             end_line: el,
@@ -148,6 +161,17 @@ impl<'a> NixWalker<'a> {
             attributes: Vec::new(),
             ..Default::default()
         });
+    }
+
+    /// The binding whose value is the attribute set holding `binding`
+    /// (`binding → binding_set → attrset_expression → binding`), if any.
+    fn enclosing_attrset_binding<'n>(&self, binding: Node<'n>) -> Option<Node<'n>> {
+        let set = binding.parent().filter(|p| p.kind() == "binding_set")?;
+        let attrs = set.parent().filter(|p| {
+            matches!(p.kind(), "attrset_expression" | "rec_attrset_expression")
+        })?;
+        let outer = attrs.parent().filter(|p| p.kind() == "binding")?;
+        (self.binding_value(outer)? == attrs).then_some(outer)
     }
 
     fn record_call(&mut self, node: Node) {
@@ -249,6 +273,23 @@ mod tests {
         assert!(names.contains(&"add"), "got: {names:?}");
         // `x = 1` is not a function — should NOT be recorded as a callable.
         assert!(!names.contains(&"x"), "got: {names:?}");
+    }
+
+    #[test]
+    fn a_nested_binding_is_qualified_by_its_attribute_path() {
+        let src = "{ pkgs }: pkgs.testers.runNixOSTest {\n  nodes = {\n    machine = { pkgs, ... }: { };\n    other.box = { ... }: { };\n  };\n  nodes.flat = { ... }: { };\n  testScript = { nodes, ... }: \"x\";\n  data = { n = 1; f = let g = x: x; in g; };\n}\n";
+        let f = extract(src);
+        let q: Vec<(&str, &str)> = f
+            .definitions
+            .iter()
+            .map(|d| (d.simple_name.as_str(), d.qualified_name.as_str()))
+            .collect();
+        assert!(q.contains(&("machine", "nodes.machine")), "{q:?}");
+        assert!(q.contains(&("other.box", "nodes.other.box")), "{q:?}");
+        assert!(q.contains(&("nodes.flat", "nodes.flat")), "{q:?}");
+        assert!(q.contains(&("testScript", "testScript")), "{q:?}");
+        // A `let` inside a value is not an attribute path.
+        assert!(q.contains(&("g", "g")), "{q:?}");
     }
 
     #[test]

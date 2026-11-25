@@ -321,8 +321,45 @@ APPS=(
     "app-tigerbeetle-zig|https://github.com/tigerbeetle/tigerbeetle.git|csharp-disposable,java-closeable,java-concurrent,junit,minitest,mstest,py-threading,rust-std-traits,~go-encoding,~zig-test"
     "app-neorv32-vhdl|https://github.com/stnolting/neorv32.git|~vhdl-toplevel"
     "app-fpm-fortran|https://github.com/fortran-lang/fpm.git|~fortran-program"
+    "app-leancopilot-lean|https://github.com/lean-dojo/LeanCopilot.git|fastapi,lean-ffi,~cpp-runtime,~pydantic,~torch"
+    "app-loogle-lean|https://github.com/nomeata/loogle.git|lean-attributes,lean-ffi,py-threading,py-unittest,~c-runtime,~py-argparse,~py-signal"
     "app-waybar-catch2|https://github.com/Alexays/Waybar.git|py-signal,~py-argparse,~cpp-test-macros"
     "app-kythe-bazel|https://github.com/kythe/kythe.git|gtest,gtest-fixture,go-encoding,java-closeable,junit,net-http,~cocoa-delegate,~java-concurrent,~py-argparse,~py-context-manager,~bazel"
+    # 0.14.0 framework audit, native languages (B5).
+    "app-opengamepadui-gdext|https://github.com/ShadowBlip/OpenGamepadUI.git|gdext,rust-std-traits,~rust-runtime,~zbus"
+    "app-ethertum-bevy|https://github.com/Dreamtowards/Ethertum.git|bevy,cargo-test,rust-std-traits,~rust-runtime,~serde"
+    "app-superposition-leptos|https://github.com/juspay/superposition.git|actix-web,cargo-test,express,ffi-export,flake-parts,hspec,java-closeable,java-concurrent,js-test-globals,junit,playwright,py-threading,rust-std-traits,rust-ui-components,~bun-serve,~c-runtime,~clap,~criterion,~go-encoding,~go-runtime,~gradle-task,~haskell-main,~java-runtime,~java-serialization,~kotlin-runtime,~kotlinx-coroutines,~py-context-manager,~py-setuptools-entrypoints,~react,~react-hooks,~rust-runtime,~rust-server-fn,~serde"
+    "app-rskey-kani|https://github.com/TheMaxMur/RS-Key.git|cargo-test,embedded-rt,kani,node-test,py-argparse,py-context-manager,py-threading,py-unittest,pytest,rtic,rust-std-traits,~c-runtime,~click,~cloudflare-workers,~criterion,~nix,~py-atexit,~py-signal,~rust-runtime,~serde"
+    "app-ferrite-eframe|https://github.com/OlaProeis/Ferrite.git|cargo-test,eframe,rust-std-traits,~clap,~cloudflare-workers,~nix,~py-argparse,~rust-runtime,~serde"
+    "app-asusctl-zbus|https://github.com/OpenGamingCollective/asusctl.git|cargo-test,rust-std-traits,zbus,~rust-runtime,~serde"
+    "app-robbb-serenity|https://github.com/unixporn/robbb.git|poise,rust-std-traits,serenity,~bash-dispatch,~nix,~rust-runtime,~serde"
+    "app-dickgrowerbot-teloxide|https://github.com/kozalosev/DickGrowerBot.git|cargo-test,rust-std-traits,teloxide,~axum,~rust-runtime,~serde,~tonic"
+    "app-xfr-hyper|https://github.com/lance0/xfr.git|cargo-test,hyper,rust-std-traits,~clap,~criterion,~nix,~rust-runtime,~serde"
+    "app-flameshot-qt|https://github.com/flameshot-org/flameshot.git|flake-parts,qt-widgets,~cmake,~cpp-runtime"
+    "app-keepassxc-qttest|https://github.com/keepassxreboot/keepassxc.git|cmake-codecoverage,cocoa-delegate,py-signal,qt-widgets,qtest,~c-runtime,~cmake,~cpp-callbacks,~cpp-runtime,~go-encoding,~go-runtime,~objc-main,~objc-selector,~py-argparse,~uikit-appdelegate,~uikit-lifecycle"
+    "app-pdns-boosttest|https://github.com/PowerDNS/pdns.git|boost-test,cargo-test,cpp-callbacks,libfuzzer,py-threading,py-unittest,pytest,rust-std-traits,~c-runtime,~clap,~cpp-runtime,~cpp-test-macros,~hyper,~js-test-globals,~py-argparse,~py-setuptools-entrypoints,~rust-runtime,~serde"
+    "app-navigation2-ros2|https://github.com/ros-navigation/navigation2.git|behaviortree-cpp,behaviortree-register,gtest,gtest-fixture,py-threading,py-unittest,pytest,qt-widgets,ros2-rclcpp,~c-runtime,~cmake,~cpp-runtime,~py-argparse,~py-setuptools-entrypoints,~py-signal"
+    "app-dexed-juce|https://github.com/asb2m10/dexed.git|juce,juce-plugin,~cpp-runtime"
+    "app-tfserving-grpc|https://github.com/tensorflow/serving.git|cpp-callbacks,grpc-cpp,gtest,gtest-fixture,~bazel,~cpp-runtime,~py-argparse,~py-atexit,~py-setuptools-entrypoints,~py-threading"
+    "app-meshtastic-arduino|https://github.com/meshtastic/firmware.git|arduino,c-callbacks,cmsis-vectors,cpp-callbacks,esp-idf,freertos,libfuzzer,py-argparse,~c-runtime,~cpp-runtime,~py-threading"
+    "app-geany-glib|https://github.com/geany/geany.git|c-callbacks,glib-signals,uikit-lifecycle,~c-runtime,~cocoa-delegate,~cpp-runtime,~csharp-disposable,~csharp-runtime,~django,~go-runtime,~java-closeable,~java-runtime,~jsr250-lifecycle,~julia-base-dispatch,~julia-module-init,~objc-main,~py-argparse,~rust-runtime,~rust-std-traits,~uikit-appdelegate,~vhdl-toplevel"
+    "app-zmk-zephyr|https://github.com/zmkfirmware/zmk.git|c-callbacks,zephyr,~c-runtime,~react,~react-hooks"
+    "app-redisbloom-redismodule|https://github.com/RedisBloom/RedisBloom.git|c-callbacks,py-unittest,redis-module,~bash-dispatch,~c-runtime,~py-argparse,~py-context-manager,~py-signal"
+    "app-sqlitevec-sqlite|https://github.com/asg017/sqlite-vec.git|c-callbacks,cargo-test,libfuzzer,pytest,sqlite-ext,~bun-serve,~c-runtime,~criterion,~go-runtime,~py-argparse,~py-context-manager,~py-unittest,~vue"
+    "app-squeezelite-espidf|https://github.com/sle118/squeezelite-esp32.git|c-callbacks,cpp-callbacks,esp-idf,freertos,gtest,js-test-globals,libfuzzer,py-argparse,py-context-manager,py-threading,~c-runtime,~cmake,~cpp-runtime,~cpp-test-macros,~gtest-fixture,~py-setuptools-entrypoints,~rake,~zephyr"
+    "app-crazyflie-cmsis|https://github.com/bitcraze/crazyflie-firmware.git|c-callbacks,cmsis-vectors,ffi-export,freertos,glib-signals,py-threading,pytest,qt-widgets,~c-runtime,~cpp-runtime,~py-argparse,~py-setuptools-entrypoints,~rake"
+    "app-hoverboard-stm32hal|https://github.com/EFeru/hoverboard-firmware-hack-FOC.git|cmsis-vectors,stm32-hal,~c-runtime"
+    "app-maiden-httpz|https://github.com/monome/maiden.git|jest,react,vitest,zig-httpz,~react-hooks,~zig-build,~zig-export,~zig-main,~zig-test,~zig-websocket"
+    "app-nullclaw-websocket|https://github.com/nullclaw/nullclaw.git|py-threading,zig-websocket,~zig-build,~zig-export,~zig-main,~zig-test"
+    "app-zrythm-cpm|https://github.com/zrythm/zrythm.git|boost-test,c-callbacks,cpm-cmake,cpp-callbacks,csharp-disposable,gtest,gtest-fixture,juce,py-threading,pytest,qt-widgets,~c-runtime,~cmake,~cpp-runtime,~csharp-runtime,~java-closeable,~java-runtime,~juce-plugin,~py-argparse,~qtest"
+    "app-fujinet-cmake|https://github.com/FujiNetWIFI/fujinet-firmware.git|arduino,c-callbacks,cmake-codecoverage,cmake-package-init,cpp-callbacks,csharp-disposable,esp-idf,freertos,libfuzzer,nunit-runner,py-threading,py-unittest,~bash-dispatch,~c-runtime,~cmake,~cpp-runtime,~cpp-test-macros,~csharp-runtime,~nunit,~py-argparse,~py-signal,~rake,~zephyr"
+    "app-attic-flakeparts|https://github.com/zhaofengli/attic.git|axum,cargo-test,flake-parts,rust-std-traits,~clap,~criterion,~nix,~rust-runtime,~serde"
+    "app-lanzaboote-nixostest|https://github.com/nix-community/lanzaboote.git|cargo-test,nixos-test,rust-std-traits,~clap,~nix,~rust-runtime,~serde"
+    "app-pdalac-abaqus|https://github.com/ammarkh95/ABAQUS_PDALAC.git|abaqus-user-subroutine"
+    "app-mom6-esmf|https://github.com/mom-ocean/MOM6.git|esmf-nuopc,~fortran-program,~py-argparse"
+    "app-microwatt-vunit|https://github.com/antonblanchard/microwatt.git|c-callbacks,cpp-callbacks,ffi-export,vunit,~c-runtime,~cpp-runtime,~py-argparse,~py-signal,~rust-runtime,~rust-std-traits,~vhdl-toplevel"
+    "app-dvbfpga-vunit|https://github.com/OpenResearchInstitute/dvb_fpga.git|vunit,~py-argparse,~py-threading,~vhdl-toplevel"
+    "app-orbfirmware-zephyr|https://github.com/worldcoin/orb-firmware.git|py-threading,zephyr,ztest,~c-runtime,~cmake,~nix,~py-argparse"
     # Every corpus directory is an APPS entry, so framework coverage and the
     # manifest sync measure all of them. Claims are measured, not hand-written
     # (scripts/sync-app-manifest.py).
@@ -555,6 +592,8 @@ APPS=(
 #
 # Format: id|why no application was found
 APPS_UNVERIFIED=(
+    "ansys-user-material|ANSYS USERMAT sources found on GitHub are single-file course exercises, not applications"
+    "lsdyna-user-material|no public LS-DYNA user-material application found; the UMAT4x names are fixed by the solver"
 )
 
 # One checkout per repository. A row that measures a repository another

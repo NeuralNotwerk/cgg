@@ -394,14 +394,25 @@ impl Detection {
                     // Nor does a rule whose methods are fixed symbols an
                     // engine calls (libFuzzer's `LLVMFuzzerTestOneInput`):
                     // defining one, by its exact name, is the evidence.
-                    if !hit
-                        && !rule.methods.is_empty()
-                        && rule.methods.iter().all(|m| !m.contains('*'))
-                    {
-                        hit = f
-                            .definitions
-                            .iter()
-                            .any(|d| rule.methods.contains(&d.simple_name));
+                    // Only the exact names count: a pattern a rule carries
+                    // beside them (`*_IRQHandler` beside CMSIS's
+                    // `SysTick_Handler`) rides on that detection but is
+                    // never evidence on its own.
+                    if !hit && rule.methods.iter().any(|m| !m.contains('*')) {
+                        // Case as the matcher compares it: Fortran's
+                        // `subroutine umat` is Abaqus's `UMAT`.
+                        let exact =
+                            rules::methods_case_sensitive(&rule.id, &rule.language);
+                        hit = f.definitions.iter().any(|d| {
+                            rule.methods.iter().any(|m| {
+                                !m.contains('*')
+                                    && if exact {
+                                        *m == d.simple_name
+                                    } else {
+                                        m.eq_ignore_ascii_case(&d.simple_name)
+                                    }
+                            })
+                        });
                     }
                     // A visibility rule has nothing to import either: the
                     // keyword on the definition is the evidence.
@@ -1043,6 +1054,17 @@ fn method_name_matches(rule: &FrameworkRule, name: &str) -> bool {
 }
 
 pub(crate) fn name_pattern_matches(pattern: &str, name: &str) -> bool {
+    // `sqlite3_*_init`, `HAL_*Callback`: an infix pattern needs both ends
+    // and a non-empty middle. Case-sensitive, like the other patterns.
+    if let Some((head, tail)) = pattern.split_once('*')
+        && !head.is_empty()
+        && !tail.is_empty()
+        && !tail.contains('*')
+    {
+        return name.len() > head.len() + tail.len()
+            && name.starts_with(head)
+            && name.ends_with(tail);
+    }
     if let Some(prefix) = pattern.strip_suffix('*') {
         // `test_*` already ends at a word boundary; `test*` must not run
         // on into a longer lowercase word.
@@ -1388,6 +1410,13 @@ fn match_container_attributes(
         else {
             continue;
         };
+        if node
+            .attributes
+            .iter()
+            .any(|a| rules::container_member_skipped(&rule.id, &rule.language, a))
+        {
+            continue;
+        }
         out.push(FrameworkEntry {
             framework: rule.id.clone(),
             kind: rule.kind,
@@ -1482,8 +1511,11 @@ impl<'a> RegistrarIndex<'a> {
             if f.language != language {
                 continue;
             }
+            let value_refs = VALUE_REF_REGISTRAR_LANGS.contains(&language);
             for r in &f.references {
-                if r.receiver_hint != VALUE_REF_HINT && r.receiver_hint != STRING_REF_HINT
+                if r.receiver_hint != VALUE_REF_HINT
+                    && r.receiver_hint != STRING_REF_HINT
+                    && !(value_refs && r.value_ref)
                 {
                     continue;
                 }
@@ -1839,6 +1871,17 @@ fn match_base_types(
         else {
             continue;
         };
+        // QtTest's base is plain `QObject`: a test class is one only
+        // where the harness runs it, a test file or one including QTest.
+        if rules::base_types_need_harness_file(&rule.id, &rule.language)
+            && graph
+                .files
+                .get(&node.file)
+                .is_none_or(|f| f.test_role.is_none())
+            && !evidence.file_carries(&rule.id, &rule.language, node.file)
+        {
+            continue;
+        }
         let named = rule.methods.is_empty()
             || method_name_matches(rule, &node.simple_name)
             || (node.kind == CallableKind::Constructor
@@ -1944,6 +1987,10 @@ fn base_type_matches(wanted: &[String], declared: &str) -> bool {
     // `nn.Module` should match a rule written as `Module`, and
     // `Sidekiq::Job` a rule written as `Sidekiq::Job` — compare the last
     // segment too, and strip generic arguments (`IConsumer<OrderPlaced>`).
+    // A pattern (`I*` for godot-rust's engine classes, `*::Service` for a
+    // protoc-generated gRPC base) is compared against the whole written
+    // name and its last segment, so `*::Service` needs the qualifier and
+    // never takes a bare `Service`.
     let bare = d.split(['<', '[']).next().unwrap_or(d).trim();
     if matches_ci_or_pattern(wanted, bare) {
         return true;
@@ -1973,6 +2020,17 @@ fn nested_base_matches(pattern: &str, declared: &str) -> bool {
     };
     inner.strip_suffix(suffix) == Some(outer)
 }
+
+/// Languages whose [`cgg_core::RefRecord::value_ref`] sites carry the
+/// registrar context of the call they are an argument of (Rust: a system
+/// in a tuple, `add_systems(Update, (a, b))`, or a combinator's receiver,
+/// `a.run_if(c)`), so a registrar rule reads them like a bare argument.
+const VALUE_REF_REGISTRAR_LANGS: &[&str] = &["rust"];
+
+/// Languages whose callable's qualified name is its attribute path
+/// (Nix: `nodes = { machine = …; }` is `nodes.machine`), so a rule's
+/// method pattern may name the path (`nodes.*`) as well as the binding.
+const ATTR_PATH_QN_LANGS: &[&str] = &["nix"];
 
 /// A method-name rule with no base type — the structural-typing escape
 /// hatch.
@@ -2010,7 +2068,18 @@ fn match_methods(
         if rule.kind == TrustKind::Test && !harness_file {
             continue;
         }
-        if !method_name_matches(rule, &node.simple_name) {
+        let path_match = || {
+            ATTR_PATH_QN_LANGS.contains(&node.language.as_str())
+                && method_name_matches(rule, &node.qualified_name)
+        };
+        if !(method_name_matches(rule, &node.simple_name) || path_match()) {
+            continue;
+        }
+        // Arduino's core calls the sketch's free `setup()`/`loop()`, never
+        // a class's `GPS::setup()`.
+        if rules::methods_are_free_functions(&rule.id, &rule.language)
+            && (node.kind != CallableKind::Function || node.qualified_name.contains("::"))
+        {
             continue;
         }
         let route = match rules::path_route_dir(&rule.id, &rule.language) {
@@ -2633,7 +2702,7 @@ fn match_registrars(
             continue;
         }
         {
-            let is_value = r.receiver_hint == VALUE_REF_HINT;
+            let is_value = r.receiver_hint == VALUE_REF_HINT || r.value_ref;
             let is_string = r.receiver_hint == STRING_REF_HINT;
             let verb = r
                 .context
@@ -3198,7 +3267,7 @@ fn is_module_surface(
     file: FileId,
     called_in_file: &HashSet<CallableId>,
 ) -> bool {
-    if node.kind != cgg_core::graph::CallableKind::Function {
+    if node.kind != CallableKind::Function {
         return false;
     }
     if let Some(f) = facts.iter().find(|f| f.file == file)
@@ -3742,6 +3811,31 @@ mod tests {
         // No mocking import: nothing is a mock decorator.
         let plain = facts_with_import("python", "api.py", "fastapi");
         assert!(python_mock_bindings(&[plain]).is_empty());
+    }
+
+    #[test]
+    fn infix_patterns_need_both_ends_and_a_middle() {
+        assert!(name_pattern_matches("sqlite3_*_init", "sqlite3_vec_init"));
+        assert!(!name_pattern_matches("sqlite3_*_init", "sqlite3__init"));
+        assert!(!name_pattern_matches("sqlite3_*_init", "sqlite3_helper"));
+        assert!(name_pattern_matches(
+            "HAL_*Callback",
+            "HAL_UART_RxCpltCallback"
+        ));
+        assert!(!name_pattern_matches("HAL_*Callback", "hal_x_callback"));
+    }
+
+    #[test]
+    fn base_type_patterns_read_the_written_name_and_its_last_segment() {
+        let w = |xs: &[&str]| xs.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        assert!(base_type_matches(&w(&["I*"]), "godot::classes::INode2D"));
+        assert!(!base_type_matches(&w(&["I*"]), "Iterator"));
+        assert!(base_type_matches(
+            &w(&["*::Service"]),
+            "PredictionService::Service"
+        ));
+        assert!(!base_type_matches(&w(&["*::Service"]), "Service"));
+        assert!(base_type_matches(&w(&["Plugin"]), "bevy::app::Plugin"));
     }
 
     fn rust_facts() -> FileFacts {
