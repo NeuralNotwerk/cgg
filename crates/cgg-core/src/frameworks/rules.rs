@@ -3676,6 +3676,97 @@ pub const SPECS: &[RuleSpec] = &[
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
+    // Moose, Moo, Mouse, Object::Pad and Mojo::Base call `BUILD`,
+    // `BUILDARGS`, `DEMOLISH` (Moo's `FOREIGNBUILDARGS`) during `new` and
+    // destruction, and `builder => '_build_x'` / `lazy_build` name
+    // `_build_<attr>` by string. Exact names compare case-sensitively
+    // (`methods_case_sensitive`): a Mojolicious `destroy` action is not
+    // `DESTROY`.
+    RuleSpec {
+        id: "moose-lifecycle",
+        language: "perl",
+        kind: TrustKind::Lifecycle,
+        detect: &[
+            "Moose",
+            "Moo",
+            "Mouse",
+            "Moose::Role",
+            "Moo::Role",
+            "Mouse::Role",
+            "Role::Tiny",
+            "Object::Pad",
+            "Mojo::Base",
+        ],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &[
+            "BUILD",
+            "BUILDARGS",
+            "DEMOLISH",
+            "FOREIGNBUILDARGS",
+            "_build_*",
+        ],
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Irssi loads Perl scripts whose entry points are registered with
+    // `Irssi::command_bind('cmd', \&f | 'f')`, `Irssi::signal_add*`,
+    // `Irssi::timeout_add*` and `Irssi::input_add`; a string names a sub
+    // of the script.
+    RuleSpec {
+        id: "irssi",
+        language: "perl",
+        kind: TrustKind::Public,
+        detect: &["Irssi"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: &[
+            "command_bind",
+            "command_bind_first",
+            "command_bind_last",
+            "signal_add",
+            "signal_add_first",
+            "signal_add_last",
+            "timeout_add",
+            "timeout_add_once",
+            "input_add",
+        ],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: true,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Minion, Mojolicious' job queue: `$app->minion->add_task(name =>
+    // \&f | sub { … })`. Apps that load it only as a Mojolicious plugin
+    // (`$self->plugin(Minion => {…})`) record it as a `perl-plugin`
+    // import.
+    RuleSpec {
+        id: "minion",
+        language: "perl",
+        kind: TrustKind::Queue,
+        detect: &["Minion", "Mojolicious::Plugin::Minion"],
+        detect_paths: NONE,
+        detect_calls: &["add_task"],
+        attributes: NONE,
+        registrars: &["add_task"],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
     RuleSpec {
         id: "compojure",
         language: "clojure",
@@ -6819,6 +6910,27 @@ pub const SPECS: &[RuleSpec] = &[
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
+    // targets: `_targets.R` returns `list(tar_target(name, command), …)`;
+    // the commands call functions `tar_source()` loads from `R/`. The
+    // plugin reads `tar_source()` as an include of every script under the
+    // directory; the commands themselves are top-level calls.
+    RuleSpec {
+        id: "targets",
+        language: "r",
+        kind: TrustKind::Schedule,
+        detect: &["targets", "tarchetypes"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "cgg has no entry rules for a targets pipeline. `tar_make()` runs the commands of the `tar_target(name, command)` list that `_targets.R` (or a `_targets_*.R` script) returns, and a command is an ordinary call written at the top level of that script, so cgg names no entry node for it. `tar_source()` is read as an include of every R script under its directory (`R/` by default), but a top-level call to a function of an included file does not bind yet, so the functions the commands call can read as unreferenced. Read `_targets.R` to see which functions the pipeline runs.",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
     RuleSpec {
         id: "r-s3-dispatch",
         language: "r",
@@ -6922,20 +7034,94 @@ pub const SPECS: &[RuleSpec] = &[
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
+    // Genie registers routes and channels with a path and a handler:
+    // `route("/p", HomeController.index)`, `route("/p") do … end`,
+    // `channel("/c", f)`.
     RuleSpec {
         id: "genie",
         language: "julia",
         kind: TrustKind::Network,
-        detect: &["Genie", "Oxygen", "Bukdu"],
+        detect: &["Genie", "Bukdu"],
         detect_paths: NONE,
         detect_calls: NONE,
         attributes: NONE,
-        registrars: NONE,
+        registrars: &["route", "channel"],
         base_types: NONE,
         methods: NONE,
         string_targets: false,
         node: true,
-        gap: "Genie routes are registered by `route(\"/path\", handler)` / `route(\"/path\", HomeController.index)` and by the `@get`/`@post` macros; Oxygen uses `@get \"/path\" function(req) ...`. The Julia plugin records no argument or context metadata on call sites, so a handler passed as a value is never linked to its route. Read routes.jl and app/resources/*/Controller.jl.",
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Oxygen: `@get "/p" function(req) … end`, `@post("/p", handler)`,
+    // `@websocket`, `@stream`, the function forms, and the scheduled
+    // `@cron "spec" function() … end` / `@repeat 5 function() … end`.
+    RuleSpec {
+        id: "oxygen",
+        language: "julia",
+        kind: TrustKind::Network,
+        detect: &["Oxygen"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: &[
+            "get",
+            "post",
+            "put",
+            "patch",
+            "delete",
+            "route",
+            "websocket",
+            "stream",
+            "cron",
+            "repeat",
+        ],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // HTTP.jl, the server under every Julia web stack:
+    // `HTTP.register!(router, "GET", "/p", handler)` and the handler or
+    // router `HTTP.serve`/`serve!`/`listen`/`listen!` runs.
+    RuleSpec {
+        id: "http-jl",
+        language: "julia",
+        kind: TrustKind::Network,
+        detect: &["HTTP"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: &["register!", "serve", "serve!", "listen", "listen!"],
+        base_types: NONE,
+        methods: NONE,
+        string_targets: false,
+        node: true,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Franklin.jl calls a site's `utils.jl` functions by name from its
+    // templates: `{{name}}` is `hfun_name`, `\name` is `lx_name`, an
+    // environment `env_name`. The file imports nothing from Franklin.
+    RuleSpec {
+        id: "franklin",
+        language: "julia",
+        kind: TrustKind::Public,
+        detect: &["Franklin"],
+        detect_paths: &["utils.jl"],
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &["hfun_*", "lx_*", "env_*"],
+        string_targets: false,
+        node: true,
+        gap: "",
         observer_types: NONE,
         handler_on_enclosing_owner: false,
     },
@@ -6978,6 +7164,36 @@ pub const SPECS: &[RuleSpec] = &[
             "Base.hash",
             "Base.isequal",
             "Base.convert",
+        ],
+        string_targets: false,
+        node: false,
+        gap: "",
+        observer_types: NONE,
+        handler_on_enclosing_owner: false,
+    },
+    // Chocolatey's AU updater calls the hook functions a package's
+    // `update.ps1` defines (`function global:au_GetLatest`). The simple
+    // name keeps its `global:` scope prefix, hence the suffix patterns;
+    // gated to `update.ps1` by `method_paths_for`.
+    RuleSpec {
+        id: "chocolatey-au",
+        language: "powershell",
+        kind: TrustKind::Lifecycle,
+        detect: &["au", "AU", "Chocolatey-AU"],
+        detect_paths: NONE,
+        detect_calls: NONE,
+        attributes: NONE,
+        registrars: NONE,
+        base_types: NONE,
+        methods: &[
+            "au_GetLatest",
+            "au_SearchReplace",
+            "au_BeforeUpdate",
+            "au_AfterUpdate",
+            "*:au_GetLatest",
+            "*:au_SearchReplace",
+            "*:au_BeforeUpdate",
+            "*:au_AfterUpdate",
         ],
         string_targets: false,
         node: false,
@@ -13452,7 +13668,10 @@ pub fn signature_methods_for(id: &str, language: &str) -> &'static [SignatureMet
 pub fn methods_case_sensitive(id: &str, language: &str) -> bool {
     matches!(
         (id, language),
-        ("gtest", "cpp") | ("gtest-fixture", "cpp") | ("libfuzzer", "c" | "cpp")
+        ("gtest", "cpp")
+            | ("gtest-fixture", "cpp")
+            | ("libfuzzer", "c" | "cpp")
+            | ("moose-lifecycle", "perl")
     )
 }
 
@@ -13475,6 +13694,8 @@ pub fn method_paths_for(id: &str, language: &str) -> &'static [&'static str] {
             &["apisix/plugins/*.lua", "apisix/stream/plugins/*.lua"]
         }
         ("neovim-plugin", "lua") => &["lua/*/init.lua", "lua/*/health.lua", "lua/*.lua"],
+        ("chocolatey-au", "powershell") => &["update.ps1", "*_update.ps1"],
+        ("franklin", "julia") => &["utils.jl"],
         _ => NONE,
     }
 }

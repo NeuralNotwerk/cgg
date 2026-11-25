@@ -221,7 +221,7 @@ APPS=(
     "js-polka|https://github.com/lukeed/polka.git|express,polka,react,~apollo-server,~fastify,~nextjs,~nuxt,~react-hooks,~socket-io"
     "js-restify|https://github.com/restify/node-restify.git|js-test-globals,node-event-emitter,restify,~socket-io"
     "julia-flux|https://github.com/FluxML/Flux.jl.git|julia-base-dispatch,~julia-module-init,~flux,~julia-test"
-    "julia-genie|https://github.com/GenieFramework/Genie.jl.git|julia-base-dispatch,julia-module-init,~genie,~julia-test"
+    "julia-genie|https://github.com/GenieFramework/Genie.jl.git|genie,julia-base-dispatch,julia-module-init,~http-jl,~julia-test"
     "perl-dancer2|https://github.com/PerlDancer/Dancer2.git|dancer2,~plack,~test-more"
     "perl-mojolicious|https://github.com/mojolicious/mojo.git|mojolicious,~test-more"
     "py-apscheduler|https://github.com/agronholm/apscheduler.git|apscheduler,fastapi,flask,py-context-manager,~py-threading,~py-unittest,~py-atexit,pytest,~starlette"
@@ -425,6 +425,13 @@ APPS=(
     "app-oncall-falcon|https://github.com/linkedin/oncall.git|falcon"
     "app-papercups-phoenix|https://github.com/papercups-io/papercups.git|mix-task,otp,otp-application,phoenix,phoenix-channel,phoenix-socket,plug,react"
     "app-perlmaven-dancer2|https://github.com/szabgab/Perl-Maven.git|dancer2"
+    # 0.14.0 scripting hosts (B6): real applications of each new row.
+    "app-chocolateypackages-au|https://github.com/chocolatey-community/chocolatey-packages.git|chocolatey-au"
+    "app-julialang-franklin|https://github.com/JuliaLang/www.julialang.org.git|franklin,playwright,~js-test-globals,~julia-base-dispatch,~julia-module-init,~react,~react-hooks"
+    "app-openqa-minion|https://github.com/os-autoinst/openQA.git|click,minion,moose-lifecycle,mojolicious,py-argparse,~bash-dispatch,~test-more"
+    "app-pluto-httpjl|https://github.com/fonsp/Pluto.jl.git|http-jl,jest,julia-base-dispatch,julia-module-init,~julia-test"
+    "app-scriptsirssi-irssi|https://github.com/irssi/scripts.irssi.org.git|irssi"
+    "app-wastewater-targets|https://github.com/CDCgov/wastewater-informed-covid-forecasting.git|~py-argparse,~r-package-hooks,~r-s3-dispatch,~targets,~testthat"
     "app-pixlserv-martini|https://github.com/MilanMisak/pixlserv.git|martini,~go-encoding,~net-http"
     "app-ravada-mojolicious|https://github.com/UPC/ravada.git|mojolicious"
     "app-reggie-restify|https://github.com/mbrevoort/node-reggie.git|restify"
@@ -474,6 +481,7 @@ APPS=(
 #
 # Format: id|why no application was found
 APPS_UNVERIFIED=(
+    "oxygen|no real Oxygen.jl application found: a GitHub search for apps using Oxygen returned only examples and projects with one star or fewer (0.14.0 audit); the row is verified by crates/cgg/tests/frameworks_perl_r_julia_ps.rs"
 )
 
 # One checkout per repository. A row that measures a repository another
