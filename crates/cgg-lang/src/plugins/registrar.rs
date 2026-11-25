@@ -546,13 +546,136 @@ pub(crate) fn capture(
                 kwargs: Vec::new(),
                 retyped_receiver: false,
                 receiver_module: None,
+                name_arg: String::new(),
             });
             continue;
         }
 
         collect_value_refs(ctx, arg, source, context, &route, line, &mut out, 0);
     }
+    let name = name_arg_of(call, source);
+    if !name.is_empty() {
+        for r in &mut out {
+            r.name_arg = name.clone();
+        }
+    }
     out
+}
+
+/// Keys whose string value names what a registration registers, rather
+/// than describing it: what a model calls a tool by.
+const NAME_KEYS: &[&str] = &["name", "id", "uri"];
+
+/// How deep [`name_arg_of`] looks into option containers: an options
+/// object in argument position, and one level of nesting below it
+/// (`&mcp.Tool{Name: "x"}` is a unary over a composite literal over its
+/// literal value).
+const NAME_ARG_DEPTH: u8 = 4;
+
+/// The string a registration call passes under a `name`, `id` or `uri`
+/// key — Python `name="x"`, a JS/TS options object `{ name: "x" }`, a
+/// Kotlin/Swift/C#/PHP labelled argument, Ruby `name: "x"`, a Go keyed
+/// element `Name: "x"` — or empty when it passes none.
+///
+/// Read by `tool`-kind rules only, through [`RefRecord::name_arg`]: the
+/// first string argument names a route, but a tool registration's first
+/// string is as often its description or a model id.
+pub(crate) fn name_arg_of(call: Node, source: &[u8]) -> String {
+    let Some(args) = arguments_of(call) else {
+        return String::new();
+    };
+    keyed_name_in(args, source, 0).unwrap_or_default()
+}
+
+fn keyed_name_in(node: Node, source: &[u8], depth: u8) -> Option<String> {
+    if depth > NAME_ARG_DEPTH {
+        return None;
+    }
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        if let Some(v) = keyed_name(child, source) {
+            return Some(v);
+        }
+    }
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        // Containers only: never into a nested call, a closure body or
+        // another statement, where a `name` belongs to something else.
+        if matches!(
+            child.kind(),
+            "object"
+                | "dictionary"
+                | "hash"
+                | "argument"
+                | "arguments"
+                | "unary_expression"
+                | "composite_literal"
+                | "literal_value"
+                | "literal_element"
+                | "object_creation_expression"
+                | "anonymous_object_creation_expression"
+                | "initializer_expression"
+                | "array_creation_expression"
+        ) && let Some(v) = keyed_name_in(child, source, depth + 1)
+        {
+            return Some(v);
+        }
+    }
+    None
+}
+
+/// `key: "value"` / `key="value"` in any grammar's keyed-slot node,
+/// when the key is one of [`NAME_KEYS`] (case-insensitively: Go writes
+/// `Name`).
+fn keyed_name(node: Node, source: &[u8]) -> Option<String> {
+    if !matches!(
+        node.kind(),
+        "keyword_argument"
+            | "pair"
+            | "value_argument"
+            | "argument"
+            | "keyed_element"
+            | "named_argument"
+            | "labeled_argument"
+            | "assignment_expression"
+            | "assignment"
+    ) {
+        return None;
+    }
+    let mut cursor = node.walk();
+    let parts: Vec<Node> = node.named_children(&mut cursor).collect();
+    if parts.len() < 2 {
+        return None;
+    }
+    let key_node = node
+        .child_by_field_name("name")
+        .or_else(|| node.child_by_field_name("key"))
+        .or_else(|| node.child_by_field_name("left"))
+        .unwrap_or(parts[0]);
+    let key = key_node.utf8_text(source).ok()?;
+    let key = unquote(
+        key.trim()
+            .trim_end_matches([':', '='])
+            .trim()
+            .trim_start_matches(':'),
+    );
+    if !NAME_KEYS.iter().any(|k| k.eq_ignore_ascii_case(&key)) {
+        return None;
+    }
+    let value = node
+        .child_by_field_name("value")
+        .or_else(|| node.child_by_field_name("right"))
+        .unwrap_or(parts[parts.len() - 1]);
+    if value.id() == key_node.id() {
+        return None;
+    }
+    string_within(value, source).or_else(|| {
+        // Go wraps both sides of a keyed element in `literal_element`.
+        let inner = value.named_child(0)?;
+        (value.named_child_count() == 1)
+            .then(|| string_within(inner, source))
+            .flatten()
+    })
 }
 
 /// Value references in the argument slots of an *ordinary* call.
@@ -719,6 +842,7 @@ fn collect_value_refs(
                 kwargs: Vec::new(),
                 retyped_receiver: false,
                 receiver_module: None,
+                name_arg: String::new(),
             });
             return;
         }
@@ -751,6 +875,7 @@ fn collect_value_refs(
                     kwargs: Vec::new(),
                     retyped_receiver: false,
                     receiver_module: None,
+                    name_arg: String::new(),
                 });
             } else {
                 collect_value_refs(ctx, child, source, context, route, line, out, depth);
@@ -805,6 +930,7 @@ fn collect_value_refs(
                     kwargs: Vec::new(),
                     retyped_receiver: false,
                     receiver_module: None,
+                    name_arg: String::new(),
                 });
             } else {
                 collect_value_refs(ctx, child, source, context, route, line, out, depth);
@@ -885,6 +1011,7 @@ fn collect_value_refs(
                 kwargs: Vec::new(),
                 retyped_receiver: false,
                 receiver_module: None,
+                name_arg: String::new(),
             });
             // `SiteView.as_view()` is a class adapter: the callable the
             // framework ends up invoking is a *method of the qualifier*,
@@ -928,6 +1055,7 @@ fn collect_value_refs(
                     kwargs: Vec::new(),
                     retyped_receiver: false,
                     receiver_module: None,
+                    name_arg: String::new(),
                 });
             }
         }
@@ -988,6 +1116,7 @@ fn collect_value_refs(
         kwargs: Vec::new(),
         retyped_receiver: false,
         receiver_module: None,
+        name_arg: String::new(),
     });
 }
 
@@ -1019,5 +1148,93 @@ mod tests {
         assert_eq!(last_segment("bare"), "bare");
         // Trailing separator must not produce an empty segment.
         assert_eq!(last_segment("a."), "a.");
+    }
+
+    /// `name_arg_of` on the first call of `src` whose callee text is
+    /// `callee`.
+    fn name_arg(lang: tree_sitter::Language, src: &str, callee: &str) -> String {
+        let mut p = tree_sitter::Parser::new();
+        p.set_language(&lang).unwrap();
+        let tree = p.parse(src, None).unwrap();
+        fn find<'t>(n: Node<'t>, src: &[u8], callee: &str) -> Option<Node<'t>> {
+            if is_kind(n, CALL_KINDS)
+                && callee_of(n).and_then(|c| c.utf8_text(src).ok()) == Some(callee)
+            {
+                return Some(n);
+            }
+            let mut c = n.walk();
+            for ch in n.named_children(&mut c) {
+                if let Some(f) = find(ch, src, callee) {
+                    return Some(f);
+                }
+            }
+            None
+        }
+        let call = find(tree.root_node(), src.as_bytes(), callee).expect("call");
+        name_arg_of(call, src.as_bytes())
+    }
+
+    // The tool's name sits under a `name`/`id`/`uri` key in every
+    // registration shape; a description or the first positional string
+    // never fills it, and a `name` inside a nested call is not this
+    // call's.
+    #[test]
+    fn name_arg_reads_the_keyed_name_of_a_registration() {
+        let py = tree_sitter_python::LANGUAGE.into();
+        assert_eq!(
+            name_arg(
+                py,
+                "mcp.add_tool(f, description='Look up', name='kb_lookup')\n",
+                "mcp.add_tool"
+            ),
+            "kb_lookup"
+        );
+        let py = tree_sitter_python::LANGUAGE.into();
+        assert_eq!(
+            name_arg(py, "mcp.add_tool(f, 'Look up')\n", "mcp.add_tool"),
+            ""
+        );
+        let py = tree_sitter_python::LANGUAGE.into();
+        assert_eq!(
+            name_arg(py, "reg(f, meta=build(name='inner'))\n", "reg"),
+            "",
+            "a nested call's name is not this registration's"
+        );
+        let js = tree_sitter_javascript::LANGUAGE.into();
+        assert_eq!(
+            name_arg(
+                js,
+                "const t = tool({ name: 'search', description: 'Find', execute: async (q) => q });",
+                "tool"
+            ),
+            "search"
+        );
+        let ts = tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into();
+        assert_eq!(
+            name_arg(
+                ts,
+                "createTool({ id: 'weather', execute: async () => 1 });",
+                "createTool"
+            ),
+            "weather"
+        );
+        let go = tree_sitter_go::LANGUAGE.into();
+        assert_eq!(
+            name_arg(
+                go,
+                "package m\nfunc f() { s.AddTool(&mcp.Tool{Name: \"greet\"}, h) }\n",
+                "s.AddTool"
+            ),
+            "greet"
+        );
+        let rb = tree_sitter_ruby::LANGUAGE.into();
+        assert_eq!(
+            name_arg(
+                rb,
+                "server.define_tool(name: \"echo\", description: \"x\")\n",
+                "define_tool"
+            ),
+            "echo"
+        );
     }
 }

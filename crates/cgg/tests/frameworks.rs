@@ -178,6 +178,34 @@ fn shape_c_anonymous_handler_still_gets_its_route_named() {
     assert!(g.contains("network::express::post('/admin/users')"), "{g}");
 }
 
+// 0.14.0: an MCP tool is a `tool` entry, named by what the model calls it
+// (its `name`, else the function), never by its description.
+#[test]
+fn rmcp_tools_are_tool_entries_named_by_the_tool() {
+    let tmp = TempDir::new().unwrap();
+    write(
+        tmp.path(),
+        "src/server.rs",
+        "use rmcp::{tool, tool_router};\n\
+         pub struct Server;\n\
+         #[tool_router]\n\
+         impl Server {\n\
+         \x20   #[tool(description = \"Scan the given ports\")]\n\
+         \x20   fn scan_ports(&self) -> u32 { probe() }\n\
+         \x20   #[tool(name = \"http_get\", description = \"Fetch a URL\")]\n\
+         \x20   fn fetch(&self) -> u32 { probe() }\n\
+         }\n\
+         fn probe() -> u32 { 1 }\n",
+    );
+    let (g, err) = run(tmp.path(), &[]);
+    assert!(g.contains("tool::rmcp::scan_ports"), "{g}");
+    assert!(g.contains("tool::rmcp::http_get"), "{g}");
+    assert!(!g.contains("Scan the given ports"), "{g}");
+    assert!(!g.contains("network::rmcp"), "{g}");
+    assert!(err.contains("rmcp (tool, 2 entries)"), "{err}");
+    assert!(err.contains("prompt injection"), "{err}");
+}
+
 #[test]
 fn shape_c_go_inline_martini_route_is_an_entry() {
     // Martini's README writes every route as an inline `func_literal`,

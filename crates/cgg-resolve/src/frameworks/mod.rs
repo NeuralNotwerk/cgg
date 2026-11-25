@@ -676,9 +676,17 @@ fn match_attributes(
             if !file_imports && !rule.detect.iter().any(|p| import_matches(key, p)) {
                 continue;
             }
-            let route = match attribute_string_arg(attr) {
-                Some(path) => format!("{verb}(\"{path}\")"),
-                None => String::new(),
+            let route = if rule.kind == TrustKind::Tool {
+                tool_route(
+                    &attribute_keyed_name(attr).unwrap_or_default(),
+                    &attribute_positional_string(attr).unwrap_or_default(),
+                    &node.simple_name,
+                )
+            } else {
+                match attribute_string_arg(attr) {
+                    Some(path) => format!("{verb}(\"{path}\")"),
+                    None => String::new(),
+                }
             };
             out.push(FrameworkEntry {
                 framework: rule.id.clone(),
@@ -698,6 +706,136 @@ fn match_attributes(
             // identical markers still collapse.
         }
     }
+}
+
+// ---------------------------------------------------------------------
+// Tool names
+// ---------------------------------------------------------------------
+
+/// Keys whose value names a tool rather than describing it. Matches
+/// `cgg_lang`'s registrar capture, which fills `RefRecord::name_arg`
+/// from the same keys.
+const TOOL_NAME_KEYS: &[&str] = &["name", "id", "uri"];
+
+/// The identity of a `tool`-kind entry: what the model calls it by.
+///
+/// A route rule takes the first string argument, which for a tool is as
+/// often its description (`#[tool(description = "…")]`, LangChain4j
+/// `@Tool("…")`) or a model id (`Agent('openai:gpt-4o', tools=[…])`) as
+/// its name. So: a `name`/`id`/`uri` argument first, then a positional
+/// string only when it is shaped like a name, then the callable's own
+/// name — the default every tool framework uses. Empty (the node falls
+/// back to the target's qualified name) when none applies, as for an
+/// inline closure whose synthesized name means nothing to a model.
+fn tool_route(keyed: &str, positional: &str, own_name: &str) -> String {
+    let keyed = keyed.trim();
+    if !keyed.is_empty() {
+        return keyed.to_string();
+    }
+    if tool_name_shaped(positional) {
+        return positional.trim().to_string();
+    }
+    own_name.trim().to_string()
+}
+
+/// A base-type tool (`class Search(BaseTool)`, `impl Tool for Search`)
+/// is named after its type, so every method the rule enters lands on the
+/// one node of that tool.
+fn tool_owner_route(qualified_name: &str) -> String {
+    crate::names::owner_from_qn(qualified_name)
+        .map(|o| last_segment(o).to_string())
+        .unwrap_or_default()
+}
+
+/// Whether a string reads as a tool name or a resource URI rather than
+/// prose or a model id: no whitespace, and no `:` unless it is a URI's
+/// `://`.
+fn tool_name_shaped(s: &str) -> bool {
+    let s = s.trim();
+    if s.is_empty() || s.len() > 128 || s.contains(char::is_whitespace) {
+        return false;
+    }
+    if s.contains("://") {
+        return true;
+    }
+    s.chars()
+        .all(|c| c.is_alphanumeric() || matches!(c, '_' | '-' | '.' | '/'))
+}
+
+fn last_segment(path: &str) -> &str {
+    path.rsplit(['.', ':', '\\', '/']).next().unwrap_or(path)
+}
+
+/// The text between an attribute's outermost parentheses.
+fn attribute_args(attr: &str) -> Option<&str> {
+    let open = attr.find('(')?;
+    let close = attr.rfind(')')?;
+    (close > open).then(|| &attr[open + 1..close])
+}
+
+/// `"x"` / `'x'` → `x`; anything else → `None`.
+fn quoted(s: &str) -> Option<String> {
+    let s = s.trim();
+    let s = s.trim_start_matches(['r', 'b', 'f', 'u', '@']);
+    let first = s.chars().next()?;
+    (matches!(first, '"' | '\'' | '`') && s.len() >= 2 && s.ends_with(first))
+        .then(|| s[1..s.len() - 1].to_string())
+}
+
+/// Split `key = value` / `key: value` when the key is a bare (or quoted)
+/// identifier. A URI or a `::` path is not a key.
+fn split_keyed(arg: &str) -> Option<(String, &str)> {
+    let at = arg.find(['=', ':'])?;
+    let (k, rest) = arg.split_at(at);
+    let v = &rest[1..];
+    if v.starts_with(['=', ':', '/']) {
+        return None;
+    }
+    let k = k.trim();
+    let k = quoted(k).unwrap_or_else(|| k.to_string());
+    (!k.is_empty() && k.chars().all(|c| c.is_alphanumeric() || c == '_'))
+        .then_some((k, v.trim()))
+}
+
+/// The string an attribute passes under a `name`/`id`/`uri` key,
+/// directly or inside one options object (`@Tool({ name: 'x' })`).
+fn attribute_keyed_name(attr: &str) -> Option<String> {
+    fn scan(body: &str, depth: u8) -> Option<String> {
+        for arg in split_top_level_args(body) {
+            if let Some(inner) = arg.strip_prefix('{').and_then(|a| a.strip_suffix('}')) {
+                if depth < 2
+                    && let Some(v) = scan(inner, depth + 1)
+                {
+                    return Some(v);
+                }
+                continue;
+            }
+            if let Some((k, v)) = split_keyed(arg)
+                && TOOL_NAME_KEYS.iter().any(|n| n.eq_ignore_ascii_case(&k))
+                && let Some(v) = quoted(v)
+            {
+                return Some(v);
+            }
+        }
+        None
+    }
+    scan(attribute_args(attr)?, 0)
+}
+
+/// The first string an attribute passes positionally (Java's implicit
+/// `value` counts as positional).
+fn attribute_positional_string(attr: &str) -> Option<String> {
+    for arg in split_top_level_args(attribute_args(attr)?) {
+        let value = match split_keyed(arg) {
+            Some((k, v)) if k == "value" => v,
+            Some(_) => continue,
+            None => arg,
+        };
+        if let Some(v) = quoted(value) {
+            return Some(v);
+        }
+    }
+    None
 }
 
 /// **Shape A, on the container** — `#[pymethods] impl Foo { … }` exposes
@@ -982,7 +1120,11 @@ fn match_base_types(
             framework: rule.id.clone(),
             kind: rule.kind,
             shape: EntryShape::BaseType,
-            route: String::new(),
+            route: if rule.kind == TrustKind::Tool {
+                tool_owner_route(&node.qualified_name)
+            } else {
+                String::new()
+            },
             target: *id,
             target_name: node.qualified_name.clone(),
             evidence: if named {
@@ -1099,7 +1241,11 @@ fn match_methods(
             framework: rule.id.clone(),
             kind: rule.kind,
             shape: EntryShape::BaseType,
-            route: String::new(),
+            route: if rule.kind == TrustKind::Tool {
+                tool_owner_route(&node.qualified_name)
+            } else {
+                String::new()
+            },
             target: *id,
             target_name: node.qualified_name.clone(),
             evidence: format!(
@@ -1572,7 +1718,9 @@ fn match_registrars(
                         framework: rule.id.clone(),
                         kind: rule.kind,
                         shape: EntryShape::BaseType,
-                        route: if r.route.is_empty() {
+                        route: if rule.kind == TrustKind::Tool {
+                            tool_route(&r.name_arg, &r.route, last_segment(&r.name))
+                        } else if r.route.is_empty() {
                             String::new()
                         } else {
                             format!("{}(\"{}\")", verb.to_ascii_lowercase(), r.route)
@@ -1642,7 +1790,14 @@ fn match_registrars(
                 continue;
             };
 
-            let route = if r.route.is_empty() {
+            let route = if rule.kind == TrustKind::Tool {
+                let own = if shape == EntryShape::Closure {
+                    ""
+                } else {
+                    node.simple_name.as_str()
+                };
+                tool_route(&r.name_arg, &r.route, own)
+            } else if r.route.is_empty() {
                 String::new()
             } else {
                 format!("{}(\"{}\")", verb.to_ascii_lowercase(), r.route)
@@ -2742,6 +2897,119 @@ mod tests {
         assert_eq!(out.coverage.network_entries(), 1);
     }
 
+    // A tool entry is named by what the model calls it, never by the
+    // first string argument: rmcp's `#[tool(description = "…")]` named
+    // every legba tool after its description.
+    #[test]
+    fn a_tool_entry_is_named_by_the_tool_not_its_description() {
+        let mut a = node(0, "Server::scan_ports", "scan_ports", "rust");
+        a.attributes = vec!["#[tool(description = \"Scan the given ports\")]".into()];
+        let mut b = node(1, "Server::fetch", "fetch", "rust");
+        b.attributes =
+            vec!["#[tool(name = \"http_get\", description = \"Fetch a URL\")]".into()];
+        let mut c = node(2, "Server::ping", "ping", "rust");
+        c.attributes = vec!["#[prompt(\"health check please\")]".into()];
+        let g = graph_with(vec![a, b, c]);
+        let facts = vec![facts_with_import("rust", "src/server.rs", "rmcp")];
+        let out = detect(&g, &facts, &[]);
+        let mut names: Vec<String> = out.entries.iter().map(|e| e.node_name()).collect();
+        names.sort();
+        assert_eq!(
+            names,
+            [
+                "<framework-entry>::tool::rmcp::http_get",
+                "<framework-entry>::tool::rmcp::ping",
+                "<framework-entry>::tool::rmcp::scan_ports",
+            ]
+        );
+        assert!(out.entries.iter().all(|e| e.kind == TrustKind::Tool));
+    }
+
+    #[test]
+    fn tool_names_come_from_keys_then_name_shaped_positionals() {
+        assert_eq!(
+            attribute_keyed_name("@mcp.tool(name=\"search\", description=\"d\")"),
+            Some("search".into())
+        );
+        assert_eq!(
+            attribute_keyed_name("@Tool({ name: 'search', description: 'x y' })"),
+            Some("search".into())
+        );
+        assert_eq!(
+            attribute_keyed_name("[McpServerTool(Name = \"get_x\")]"),
+            Some("get_x".into())
+        );
+        assert_eq!(attribute_keyed_name("@Tool(\"Returns x\")"), None);
+        assert_eq!(
+            attribute_positional_string("@Tool(value = \"Returns x\", name = \"n\")"),
+            Some("Returns x".into())
+        );
+        assert_eq!(
+            attribute_positional_string("@mcp.resource(\"config://app/{id}\")"),
+            Some("config://app/{id}".into())
+        );
+        // A description or a model id never names the tool.
+        assert_eq!(tool_route("", "Returns the weather", "weather"), "weather");
+        assert_eq!(tool_route("", "openai:gpt-4o", "agent"), "agent");
+        assert_eq!(tool_route("", "get_weather", "handler"), "get_weather");
+        assert_eq!(tool_route("lookup", "get_weather", "h"), "lookup");
+        assert_eq!(tool_route("", "config://app", "h"), "config://app");
+        assert_eq!(
+            tool_owner_route("tools.search.SearchTool._run"),
+            "SearchTool"
+        );
+    }
+
+    // A registrar's `name=` / options-object `name` (`RefRecord::name_arg`)
+    // names a tool handed over by value; an inline closure without one
+    // keeps its positional name, never its synthesized `handler_at_N`.
+    #[test]
+    fn a_tool_registrar_is_named_by_its_name_argument() {
+        let h = node(0, "srv.lookup", "lookup", "python");
+        let mut closure = node(1, "srv.handler_at_9", "handler_at_9", "python");
+        closure.synthetic = false;
+        let g = graph_with(vec![h, closure]);
+        let mut f = facts_with_import("python", "srv.py", "mytools");
+        f.references.push(RefRecord {
+            name: "lookup".into(),
+            receiver_hint: VALUE_REF_HINT.to_string(),
+            site_line: 4,
+            site_byte: 40,
+            context: "server.add_tool".into(),
+            route: "Look things up".into(),
+            name_arg: "kb_lookup".into(),
+            ..Default::default()
+        });
+        f.references.push(RefRecord {
+            name: "handler_at_9".into(),
+            receiver_hint: VALUE_REF_HINT.to_string(),
+            site_line: 9,
+            site_byte: 90,
+            context: "server.add_tool".into(),
+            route: "get_weather".into(),
+            ..Default::default()
+        });
+        let rule = FrameworkRule {
+            id: "mytools".into(),
+            language: "python".into(),
+            kind: TrustKind::Tool,
+            detect: vec!["mytools".into()],
+            registrars: vec!["add_tool".into()],
+            node: true,
+            ..Default::default()
+        };
+        let out = detect(&g, &[f], &[rule]);
+        let mut names: Vec<String> = out.entries.iter().map(|e| e.node_name()).collect();
+        names.sort();
+        assert_eq!(
+            names,
+            [
+                "<framework-entry>::tool::mytools::get_weather",
+                "<framework-entry>::tool::mytools::kb_lookup",
+            ]
+        );
+    }
+
     #[test]
     fn coverage_reports_a_detected_framework_it_cannot_enumerate() {
         // The single most important test in the set: a framework cgg
@@ -2860,6 +3128,7 @@ mod tests {
             kwargs: Vec::new(),
             retyped_receiver: false,
             receiver_module: None,
+            name_arg: String::new(),
         });
         let out = detect(&g, &f_vec(f), &[]);
         assert_eq!(out.entries.len(), 1, "{:?}", out.entries);
@@ -2906,6 +3175,7 @@ mod tests {
             kwargs: Vec::new(),
             retyped_receiver: false,
             receiver_module: None,
+            name_arg: String::new(),
         });
         assert!(detect(&g, &f_vec(bare), &[]).entries.is_empty());
 
@@ -2938,6 +3208,7 @@ mod tests {
             kwargs: Vec::new(),
             retyped_receiver: false,
             receiver_module: None,
+            name_arg: String::new(),
         });
         assert_eq!(detect(&g, &f_vec(free), &[]).entries.len(), 1);
     }
@@ -2977,6 +3248,7 @@ mod tests {
             kwargs: Vec::new(),
             retyped_receiver: false,
             receiver_module: None,
+            name_arg: String::new(),
         });
         assert!(detect(&g, &f_vec(f), &[]).entries.is_empty());
         // Rails, which does route by string, keeps the behaviour.
@@ -3041,6 +3313,7 @@ mod tests {
             kwargs: Vec::new(),
             retyped_receiver: false,
             receiver_module: None,
+            name_arg: String::new(),
         });
         let out = detect(&g, &f_vec(f), &[]);
         assert!(out.entries.is_empty());
@@ -3089,6 +3362,7 @@ mod tests {
             kwargs: Vec::new(),
             retyped_receiver: false,
             receiver_module: None,
+            name_arg: String::new(),
         });
         let out = detect(&g, &f_vec(f), &[]);
         let names: Vec<&str> =

@@ -401,6 +401,15 @@ pub struct RefRecord {
     /// path, queue name, or command string. Empty when there was none.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub route: String,
+    /// The string `context`'s call passes under a `name`, `id` or `uri`
+    /// key — a keyword argument, an options-object property or a labelled
+    /// argument (`mcp.add_tool(f, name="search")`, `tool({ name: "search",
+    /// execute })`, `&mcp.Tool{Name: "search"}`). Empty when there was
+    /// none. Only a `tool`-kind rule reads it: a tool's name is what the
+    /// model calls it by, and the first string argument there is as often
+    /// a description or a model id as a name.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub name_arg: String,
     /// Keyword-argument names at the call site (`f(data=1, ctx=2)` ->
     /// `["data", "ctx"]`).
     ///

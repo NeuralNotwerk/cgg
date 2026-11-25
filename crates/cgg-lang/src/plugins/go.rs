@@ -308,6 +308,7 @@ impl<'a> Walker<'a> {
                 site_byte: closure.start_byte() as u32,
                 context: context.to_string(),
                 route: route.clone(),
+                name_arg: super::registrar::name_arg_of(node, self.source),
                 ..Default::default()
             });
         }

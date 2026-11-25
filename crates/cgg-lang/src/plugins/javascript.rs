@@ -1721,6 +1721,7 @@ impl<'a> JsWalker<'a> {
                 kwargs: Vec::new(),
                 retyped_receiver: false,
                 receiver_module: None,
+                name_arg: super::registrar::name_arg_of(node, self.source),
             });
         }
     }

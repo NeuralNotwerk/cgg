@@ -582,6 +582,7 @@ impl<'a> PerlWalker<'a> {
                     kwargs: Vec::new(),
                     retyped_receiver: false,
                     receiver_module: None,
+                    name_arg: String::new(),
                 });
                 continue;
             }
@@ -613,6 +614,7 @@ impl<'a> PerlWalker<'a> {
                     kwargs: Vec::new(),
                     retyped_receiver: false,
                     receiver_module: None,
+                    name_arg: String::new(),
                 });
             }
         }
@@ -712,6 +714,7 @@ impl<'a> PerlWalker<'a> {
                 kwargs: Vec::new(),
                 retyped_receiver: false,
                 receiver_module: None,
+                name_arg: String::new(),
             });
         }
     }
