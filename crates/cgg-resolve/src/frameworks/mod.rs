@@ -236,8 +236,19 @@ impl Detection {
 
         // (language, import prefix) -> rule indices. Built once.
         let mut prefix_index: HashMap<(&str, &str), Vec<usize>> = HashMap::new();
+        // `detect` entries holding a `*` are name patterns, matched against
+        // every segment of an import: a generated stub's naming convention
+        // (`*GrpcKt`, `*_pb2_grpc`), which is all a service file imports.
+        let mut pattern_index: HashMap<&str, Vec<(usize, &str)>> = HashMap::new();
         for (i, r) in all.iter().enumerate() {
             for p in &r.detect {
+                if p.contains('*') {
+                    pattern_index
+                        .entry(r.language.as_str())
+                        .or_default()
+                        .push((i, p.as_str()));
+                    continue;
+                }
                 prefix_index
                     .entry((r.language.as_str(), p.as_str()))
                     .or_default()
@@ -309,6 +320,14 @@ impl Detection {
                 let in_tree =
                     f.language == "python" && vocab.declares_import(&f.language, raw);
                 let head = raw.split('.').next().unwrap_or(raw);
+                if let Some(patterns) = pattern_index.get(f.language.as_str()) {
+                    for (i, pat) in patterns {
+                        if import_segments(raw).any(|seg| name_pattern_matches(pat, seg))
+                        {
+                            import_hits.insert(*i);
+                        }
+                    }
+                }
                 for key in prefix_keys(raw) {
                     if let Some(ids) = prefix_index.get(&(f.language.as_str(), key)) {
                         import_hits.extend(ids.iter().copied().filter(|i| {
@@ -905,6 +924,16 @@ fn import_names(lang: &str, imp: &cgg_core::ImportRecord) -> Vec<(String, String
     out
 }
 
+/// The names an import path is made of, for `detect` patterns: each
+/// `/`-separated component whole (`helloworld.grpc.pb.h`) and each segment
+/// between `.`, `/`, `:` and `\\` (`GreeterGrpcKt` of
+/// `com.x.GreeterGrpcKt.GreeterCoroutineImplBase`).
+fn import_segments(path: &str) -> impl Iterator<Item = &str> {
+    path.split('/')
+        .chain(path.split(['.', '/', ':', '\\']))
+        .filter(|s| !s.is_empty())
+}
+
 /// Whether an import path is, or is under, `prefix`.
 ///
 /// Segment-aware so `next` does not match `nextcloud` and `express` does
@@ -1035,6 +1064,28 @@ fn file_scoped(rule: &FrameworkRule) -> bool {
     rule.kind != TrustKind::Test
         && !rule.detect.is_empty()
         && rules::FILE_SCOPED_EVIDENCE.contains(&rule.language.as_str())
+}
+
+/// Whether a base type or annotation is one the language makes visible in
+/// every file without an import (`Runnable`, `AutoCloseable`, Rust's
+/// `Drop`): [`cgg_core::stdlib::IMPLICIT_IMPORTS`]. Written qualified, it
+/// must name the implicit package itself (`java.lang.Runnable`), never a
+/// lookalike of another package's.
+fn implicitly_imported(language: &str, marker: &str) -> bool {
+    let m = marker.trim().trim_start_matches(['@', '#', '[']);
+    let m = m.split(['<', '[', '(']).next().unwrap_or(m).trim();
+    let last = m.rsplit(['.', ':']).next().unwrap_or(m);
+    let qualifier = m
+        .strip_suffix(last)
+        .unwrap_or("")
+        .trim_end_matches(['.', ':']);
+    let implicit_qualifier = qualifier.is_empty()
+        || matches!(
+            qualifier,
+            "java.lang" | "kotlin" | "Thread" | "std::prelude"
+        )
+        || qualifier.starts_with("kotlin.");
+    implicit_qualifier && cgg_core::stdlib::implicitly_imported(language, last)
 }
 
 /// The name a marker is written through: `app` of `app.task`, `tools` of
@@ -1242,6 +1293,7 @@ fn match_attributes(
             if !file_imports
                 && !rule.detect.iter().any(|p| import_matches(key, p))
                 && !evidence.carries_for(rule, node.file, marker_head(key), imports)
+                && !implicitly_imported(&rule.language, key)
             {
                 continue;
             }
@@ -2019,6 +2071,7 @@ fn match_base_types(
         let scoped = file_scoped(rule);
         let accept = |base: &str, at: FileId| {
             !scoped
+                || implicitly_imported(&rule.language, base)
                 || rule.detect.iter().any(|p| import_matches(base, p))
                 || evidence.carries_for(rule, at, marker_head(base), imports)
         };
@@ -5798,6 +5851,100 @@ mod tests {
 
     fn named_members_of(attr: &str) -> NamedMembers {
         named_members(attr, &[])
+    }
+
+    fn jvm_class(
+        id: u32,
+        file: u32,
+        qn: &str,
+        base: &str,
+        path: &str,
+        imports: &[&str],
+    ) -> (cgg_core::graph::CallableNode, FileFacts) {
+        let simple = qn.rsplit('.').next().unwrap();
+        let mut n = node(id, qn, simple, "kotlin");
+        n.file = FileId::new(file);
+        n.start_byte = 100 + id;
+        let mut f = FileFacts::new(FileId::new(file), PathBuf::from(path), "kotlin");
+        for i in imports {
+            f.imports.push(ImportRecord {
+                kind: "import".into(),
+                path: (*i).into(),
+                alias: String::new(),
+                site_line: 1,
+                site_byte: 0,
+            });
+        }
+        f.definitions.push(DefRecord {
+            simple_name: simple.into(),
+            qualified_name: qn.into(),
+            start_byte: 100 + id,
+            base_types: vec![base.into()],
+            ..Default::default()
+        });
+        (n, f)
+    }
+
+    // Fixup: a base type the language imports implicitly (`java.lang` /
+    // Kotlin default imports) is present in every file, so a `Runnable`
+    // in a file importing nothing from java.util.concurrent is still the
+    // rule's.
+    #[test]
+    fn an_implicitly_imported_base_type_needs_no_import() {
+        let (n0, f0) = jvm_class(0, 0, "a.Job.run", "Runnable", "Job.kt", &[]);
+        let (n1, f1) = jvm_class(1, 1, "b.Pool.call", "Callable", "Pool.kt", &[]);
+        let (_, f2) = jvm_class(
+            9,
+            2,
+            "c.X.y",
+            "Any",
+            "C.kt",
+            &["java.util.concurrent.Executors"],
+        );
+        let g = graph_with(vec![n0, n1]);
+        let mut rule = user_rule("conc", "kotlin", "java.util.concurrent");
+        rule.base_types = vec!["Runnable".into(), "Callable".into()];
+        rule.methods = vec!["run".into(), "call".into()];
+        let out = detect(&g, &[f0, f1, f2], &[rule]);
+        // `Callable` is java.util.concurrent's: still needs the import.
+        let got: Vec<String> = out
+            .entries
+            .iter()
+            .filter(|e| e.framework == "conc")
+            .map(|e| e.target_name.clone())
+            .collect();
+        assert_eq!(got, vec!["a.Job.run".to_string()]);
+    }
+
+    // Fixup: a gRPC service file imports only its generated stub
+    // (`…GrpcKt`), which a `detect` name pattern accepts as evidence.
+    #[test]
+    fn a_generated_stub_import_is_framework_evidence() {
+        let (n0, f0) = jvm_class(
+            0,
+            0,
+            "svc.Greeter.sayHello",
+            "GreeterGrpcKt.GreeterCoroutineImplBase",
+            "Greeter.kt",
+            &["com.acme.proto.GreeterGrpcKt"],
+        );
+        let g = graph_with(vec![n0]);
+        let mut rule = user_rule("grpcish", "kotlin", "io.grpc");
+        rule.detect.push("*GrpcKt".into());
+        rule.base_types = vec!["*ImplBase".into()];
+        let out = detect(&g, &[f0], &[rule]);
+        assert!(
+            out.entries.iter().any(|e| e.framework == "grpcish"),
+            "{:?}",
+            out.entries
+        );
+        assert!(
+            import_segments("com.x.GreeterGrpcKt.Base").any(|s| s == "GreeterGrpcKt")
+        );
+        assert!(
+            import_segments("proto/helloworld.grpc.pb.h")
+                .any(|s| name_pattern_matches("*.grpc.pb.h", s))
+        );
     }
 
     #[test]

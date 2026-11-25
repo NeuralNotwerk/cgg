@@ -213,6 +213,221 @@ pub const SCALA_IMPLICIT_PACKAGES: &[&str] = &[
     "runtime",
 ];
 
+/// Type and annotation names a language makes visible in every file with
+/// no import: Java's `java.lang.*`; Kotlin/JVM's default imports (`kotlin.*`,
+/// `kotlin.collections.*`, `kotlin.jvm.*`, `java.lang.*`); Swift's standard
+/// library module (not Foundation, which a file imports); Rust's prelude
+/// (and its derive macros); Go's predeclared `error`; Python's builtins;
+/// the JavaScript/TypeScript globals a class extends.
+///
+/// Framework detection reads this: where evidence is per file
+/// (`rules::FILE_SCOPED_EVIDENCE`), a base type or annotation named here
+/// is present in every file of the language, so `class Job implements
+/// Runnable` needs no import to be `java-concurrent`'s.
+pub const IMPLICIT_IMPORTS: &[(&str, &[&str])] = &[
+    ("java", JAVA_LANG),
+    ("kotlin", KOTLIN_DEFAULT),
+    (
+        "swift",
+        &[
+            "Sequence",
+            "IteratorProtocol",
+            "Collection",
+            "BidirectionalCollection",
+            "RandomAccessCollection",
+            "MutableCollection",
+            "RangeReplaceableCollection",
+            "Equatable",
+            "Hashable",
+            "Comparable",
+            "Codable",
+            "Encodable",
+            "Decodable",
+            "Error",
+            "CustomStringConvertible",
+            "CustomDebugStringConvertible",
+            "Identifiable",
+            "Sendable",
+            "AnyObject",
+            "CaseIterable",
+            "RawRepresentable",
+            "AsyncSequence",
+            "AsyncIteratorProtocol",
+            "Actor",
+            "main",
+            "MainActor",
+            "discardableResult",
+            "objc",
+            "available",
+        ],
+    ),
+    (
+        "rust",
+        &[
+            "Drop",
+            "Iterator",
+            "IntoIterator",
+            "DoubleEndedIterator",
+            "ExactSizeIterator",
+            "Extend",
+            "FromIterator",
+            "Clone",
+            "Copy",
+            "Default",
+            "Eq",
+            "PartialEq",
+            "Ord",
+            "PartialOrd",
+            "Hash",
+            "Debug",
+            "From",
+            "Into",
+            "TryFrom",
+            "TryInto",
+            "AsRef",
+            "AsMut",
+            "ToString",
+            "ToOwned",
+            "Send",
+            "Sync",
+            "Sized",
+            "Unpin",
+            "Fn",
+            "FnMut",
+            "FnOnce",
+            "derive",
+            "test",
+            "cfg",
+        ],
+    ),
+    ("go", &["error"]),
+    (
+        "python",
+        &[
+            "object",
+            "type",
+            "Exception",
+            "BaseException",
+            "dict",
+            "list",
+            "set",
+            "tuple",
+            "str",
+            "int",
+            "property",
+            "staticmethod",
+            "classmethod",
+        ],
+    ),
+    ("javascript", JS_GLOBALS),
+    ("typescript", JS_GLOBALS),
+];
+
+/// `java.lang`'s public types and annotations, which every Java (and
+/// Kotlin/JVM) file sees without an import.
+const JAVA_LANG: &[&str] = &[
+    "Object",
+    "Runnable",
+    "Thread",
+    "ThreadGroup",
+    "ThreadLocal",
+    "InheritableThreadLocal",
+    "AutoCloseable",
+    "Iterable",
+    "Comparable",
+    "Cloneable",
+    "Readable",
+    "Appendable",
+    "CharSequence",
+    "Number",
+    "Enum",
+    "Record",
+    "Throwable",
+    "Exception",
+    "RuntimeException",
+    "Error",
+    "ClassLoader",
+    "Process",
+    "UncaughtExceptionHandler",
+    "Override",
+    "Deprecated",
+    "FunctionalInterface",
+    "SafeVarargs",
+    "SuppressWarnings",
+];
+
+/// Kotlin/JVM default imports: `java.lang.*`, `kotlin.*`,
+/// `kotlin.collections.*`, `kotlin.annotation.*`, `kotlin.jvm.*`.
+const KOTLIN_DEFAULT: &[&str] = &[
+    "Object",
+    "Runnable",
+    "Thread",
+    "ThreadLocal",
+    "AutoCloseable",
+    "Cloneable",
+    "Appendable",
+    "CharSequence",
+    "Number",
+    "Enum",
+    "Throwable",
+    "Exception",
+    "RuntimeException",
+    "Error",
+    "ClassLoader",
+    "UncaughtExceptionHandler",
+    "Any",
+    "Comparable",
+    "Annotation",
+    "Lazy",
+    "Function",
+    "Iterable",
+    "Iterator",
+    "Collection",
+    "List",
+    "Set",
+    "Map",
+    "MutableIterable",
+    "MutableIterator",
+    "MutableCollection",
+    "MutableList",
+    "MutableSet",
+    "MutableMap",
+    "AbstractList",
+    "AbstractMap",
+    "Deprecated",
+    "Suppress",
+    "Throws",
+    "JvmStatic",
+    "JvmOverloads",
+    "JvmField",
+    "JvmName",
+    "Synchronized",
+    "Volatile",
+    "Transient",
+];
+
+/// Globals a JavaScript/TypeScript class extends without importing them.
+const JS_GLOBALS: &[&str] = &[
+    "Object",
+    "Error",
+    "Array",
+    "Map",
+    "Set",
+    "Promise",
+    "EventTarget",
+    "Event",
+    "CustomEvent",
+    "HTMLElement",
+];
+
+/// Whether `language` makes `name` (a type or annotation, its last
+/// segment) visible in every file without an import: [`IMPLICIT_IMPORTS`].
+pub fn implicitly_imported(language: &str, name: &str) -> bool {
+    IMPLICIT_IMPORTS
+        .iter()
+        .any(|(l, names)| *l == language && names.contains(&name))
+}
+
 /// Rust `Result` / `Option` adapter methods whose names a workspace type
 /// may also declare (a `Stats::ok`). A call of one through a receiver
 /// the resolver could not type — overwhelmingly a chain, `s.parse().ok()`
