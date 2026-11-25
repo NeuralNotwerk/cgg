@@ -1009,7 +1009,10 @@ mod tests {
         };
         assert_eq!(bases("Pair::props"), vec!["EquatableMixin"]);
         assert_eq!(bases("Live::onInit"), vec!["GetxController", "Other"]);
-        assert_eq!(bases("Ctl::onClose"), vec!["GetxController", "Live", "OtherMixin"]);
+        assert_eq!(
+            bases("Ctl::onClose"),
+            vec!["GetxController", "Live", "OtherMixin"]
+        );
     }
 
     /// C1: `f<int>()` / `b.m<T>()` wrap the callee in an

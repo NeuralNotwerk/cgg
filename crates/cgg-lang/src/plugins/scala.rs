@@ -823,7 +823,11 @@ mod tests {
         );
         assert_eq!(
             o.definitions[0].base_types,
-            vec!["Base".to_string(), "Logging".to_string(), "Metrics".to_string()]
+            vec![
+                "Base".to_string(),
+                "Logging".to_string(),
+                "Metrics".to_string()
+            ]
         );
     }
 
