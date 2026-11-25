@@ -5477,9 +5477,12 @@ mod tests {
         let mut agent = user_rule("agentlib", "python", "agentlib");
         agent.attributes = vec!["tool".into()];
         let out = detect(&g, &facts, &[mcp, agent]);
+        // Only the two rules under test: the built-in `mcp-python` rule
+        // rightly enters the FastMCP tool too.
         let mut got: Vec<(String, String)> = out
             .entries
             .iter()
+            .filter(|e| e.framework == "mcp" || e.framework == "agentlib")
             .map(|e| (e.framework.clone(), e.target_name.clone()))
             .collect();
         got.sort();

@@ -1620,7 +1620,9 @@ fn a_keyword_slot_registrar_takes_only_that_slot() {
         .as_array()
         .unwrap()
         .iter()
-        .filter(|e| names[e["src"].as_str().unwrap()].contains("framework-entry"))
+        // Only the two rules under test: the built-in `langgraph-python`
+        // rows enter these functions too.
+        .filter(|e| names[e["src"].as_str().unwrap()].contains("::t-lg"))
         .map(|e| {
             let from = &names[e["src"].as_str().unwrap()];
             let kind = if from.contains("::network::") {
